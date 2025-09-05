@@ -1,215 +1,107 @@
-# SmartFlow 多周期共振交易策略系统
+# SmartFlow 交易策略系统
 
-基于日线趋势过滤 + 小时确认 + 15分钟执行的高胜率高盈亏比加密货币交易策略系统。
+基于多周期共振的高胜率高盈亏比加密货币交易策略系统。
 
-## 🌐 在线访问
+## 项目结构
 
-- **主服务**: https://smartflow-trader.wendy-wang926.workers.dev
-- **API 测试**: https://smartflow-trader.wendy-wang926.workers.dev/api/test
-- **数据中转**: http://47.237.163.85:3000/health
-
-## 🎯 策略概述
-
-### 三层共振系统
-- **大周期过滤**（4H/日线）：MA趋势、资金费率、OI变动
-- **中周期确认**（1H）：VWAP、突破、放量、CVD
-- **小周期执行**（15m）：回踩、触发单、止损止盈
-
-### 核心指标
-- **趋势过滤**：MA(50/200)、VWAP、资金费率≤0.1%、OI 6h变动±2%
-- **入场确认**：1H突破20根高/低、成交量≥1.5×20SMA、CVD同向
-- **执行时机**：15m EMA(20/50)回踩、突破触发单、ATR止损
-
-## 🚀 快速开始
-
-### 1. 环境准备
-
-```bash
-# 安装依赖
-npm install
-
-# 安装Wrangler CLI
-npm install -g wrangler
+```
+smartflow/
+├── vps-app/                    # VPS应用核心目录
+│   ├── server.js              # 主服务器文件
+│   ├── package.json           # 依赖管理
+│   ├── public/
+│   │   └── index.html         # 前端界面
+│   ├── deploy-with-database.sh # 部署脚本
+│   └── ecosystem.config.js    # PM2配置
+├── strategy.md                # 策略文档
+├── auto-script.md             # 自动化脚本文档
+└── package.json               # 根目录依赖
 ```
 
-### 2. 配置设置
+## 核心功能
 
-复制配置示例文件：
+### 1. 交易策略分析
+- **多周期共振**：日线趋势 + 小时确认 + 15分钟执行
+- **技术指标**：MA、VWAP、ATR、EMA、成交量分析
+- **市场数据**：资金费率、持仓量变化、CVD数据
+- **风险控制**：止损价、目标价、杠杆计算、保证金管理
+
+### 2. 历史数据记录
+- **信号记录**：自动记录所有信号出现时的完整数据
+- **执行记录**：记录入场执行时的所有分析指标
+- **结果标记**：支持标记信号/执行结果为正确/错误/未标记
+- **复盘分析**：完整的历史数据支持策略优化
+
+### 3. 前端界面
+- **实时监控**：当前市场状态和信号展示
+- **折叠表格**：第一层显示核心数据，第二层显示历史记录
+- **数据监控**：原始数据获取成功率和错误追踪
+- **规则说明**：完整的策略规则和指标说明
+
+## 快速开始
+
+### 1. 安装依赖
 ```bash
-cp wrangler.toml.example wrangler.toml
+npm run install-deps
 ```
 
-编辑 `wrangler.toml` 文件：
-
-```toml
-name = "smartflow-trader"
-main = "src/index.js"
-compatibility_date = "2025-01-07"
-
-[vars]
-TG_BOT_TOKEN = "your_telegram_bot_token"
-TG_CHAT_ID = "your_telegram_chat_id"
-
-[[triggers]]
-cron = "0 * * * *"   # 每小时执行一次
-
-[kv_namespaces]
-{ binding = "TRADE_LOG", id = "your_kv_namespace_id" }
+### 2. 启动服务
+```bash
+npm start
 ```
 
-### 3. 本地测试
-
+### 3. 部署到VPS
 ```bash
-# 模拟测试（推荐，不依赖网络）
-npm run test
-
-# 真实API测试（需要网络连接）
-npm run test:api
-
-# 本地开发
-npm run dev
-```
-
-### 4. 部署到Cloudflare
-
-```bash
-# 登录Cloudflare
-wrangler login
-
-# 部署
 npm run deploy
 ```
 
-## 📊 功能特性
+## 技术栈
 
-### 核心功能
-- ✅ **多品种监控**：BTC、ETH、LINK、LDO永续合约
-- ✅ **实时数据获取**：K线、资金费率、持仓量、24h数据
-- ✅ **策略分析**：日线趋势 + 小时确认 + 15m执行
-- ✅ **WebSocket CVD**：实时计算累计净主动买量
-- ✅ **Telegram推送**：信号触发即时通知
-- ✅ **前端仪表板**：实时查看所有品种信号状态
+- **后端**：Node.js + Express + SQLite3
+- **前端**：HTML5 + CSS3 + JavaScript
+- **数据源**：Binance Futures API
+- **实时数据**：WebSocket连接
+- **数据库**：SQLite轻量级数据库
+- **进程管理**：PM2
 
-### API接口
-- `GET /` - 前端仪表板
-- `GET /api/analyze?symbol=BTCUSDT` - 分析单个交易对
+## API接口
+
+- `GET /` - 前端界面
 - `GET /api/analyze-all` - 分析所有交易对
-- `GET /api/test` - 测试API连接
+- `POST /api/analyze-custom` - 分析自定义交易对
+- `GET /api/history/:symbol?` - 获取历史记录
+- `POST /api/mark-result` - 标记结果
+- `GET /api/data-monitor` - 数据监控状态
+- `GET /api/websocket-status` - WebSocket状态
 
-## 🔧 配置说明
+## 配置说明
 
-### 策略参数
-所有策略参数已硬编码在 `src/index.js` 中，可根据需要调整：
+### 默认交易对
+- BTCUSDT
+- ETHUSDT
+- LINKUSDT
+- LDOUSDT
+- SOLUSDT
 
-```javascript
-// 趋势过滤参数
-const trendParams = {
-  maFast: 50,
-  maSlow: 200,
-  fundingRateMax: 0.001,  // 0.1%
-  oiChangeThreshold: 0.02  // 2%
-};
+### 数据刷新
+- 自动刷新间隔：30秒
+- 数据缓存时间：30秒
+- 缓存清理间隔：5分钟
 
-// 小时确认参数
-const confirmParams = {
-  breakoutBars: 20,
-  volumeMultiple: 1.5,
-  vwapRequired: true
-};
+## 部署要求
 
-// 15m执行参数
-const executionParams = {
-  atrPeriod: 14,
-  atrMultiple: 1.2,
-  riskRewardRatio: 2.0
-};
-```
+- Node.js >= 18.0.0
+- 2GB+ 内存
+- 30GB+ 存储空间
+- 稳定的网络连接
 
-### 监控品种
-默认监控品种可在 `src/index.js` 中修改：
+## 注意事项
 
-```javascript
-this.symbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT'];
-```
+1. 确保VPS可以访问Binance API
+2. 建议使用新加坡等亚洲地区的VPS
+3. 定期备份数据库文件
+4. 监控系统资源使用情况
 
-## 📈 使用指南
+## 许可证
 
-### 1. 信号解读
-
-**多头信号条件**：
-- 日线：MA20 > MA50 > MA200 且价格 > MA20
-- 小时：价格 > VWAP + 突破20根高点 + 放量1.5x + OI增加2% + 资金费率温和
-- 15m：等待回踩EMA20/50，突破setup candle高点触发
-
-**空头信号条件**：
-- 日线：MA20 < MA50 < MA200 且价格 < MA20
-- 小时：价格 < VWAP + 突破20根低点 + 放量1.5x + OI减少2% + 资金费率温和
-- 15m：等待回踩EMA20/50，突破setup candle低点触发
-
-### 2. 风险管理
-
-**仓位管理**：
-- 单笔风险：1%账户权益
-- 最大持仓：3笔同时
-- 日损限制：-3R停止交易
-
-**止损止盈**：
-- 止损：setup candle另一端 或 1.2×ATR(14)
-- 止盈：2R目标
-- 追踪：+2R后启动ATR×1.5追踪止盈
-
-### 3. 监控建议
-
-1. **每日检查**：早上10分钟检查日线趋势
-2. **整点巡检**：每小时检查1H确认条件
-3. **信号执行**：符合条件时切15m等待回踩
-4. **记录复盘**：每笔交易记录到CSV，周末统计
-
-## 🛠️ 开发调试
-
-### 本地测试
-```bash
-# 运行API测试
-node test/test-api.js
-
-# 本地开发服务器
-wrangler dev
-```
-
-### Cloudflare调试
-```bash
-# 查看日志
-wrangler tail
-
-# 查看KV存储
-wrangler kv:key list --binding TRADE_LOG
-```
-
-### 常见问题
-
-**Q: API调用失败怎么办？**
-A: 检查网络连接，Binance API有IP限制，建议在Cloudflare环境中运行。
-
-**Q: WebSocket连接不稳定？**
-A: 系统会自动重连，如持续失败可检查网络环境。
-
-**Q: 信号不准确？**
-A: 建议先用模拟盘验证，调整参数后再实盘。
-
-## 📝 更新日志
-
-### v1.0.0 (2025-01-07)
-- ✅ 初始版本发布
-- ✅ 多周期共振策略实现
-- ✅ Cloudflare Worker部署
-- ✅ 前端仪表板
-- ✅ Telegram推送
-- ✅ WebSocket CVD计算
-
-## ⚠️ 免责声明
-
-本系统仅供学习和研究使用，不构成投资建议。加密货币交易存在高风险，可能导致本金损失。请在使用前充分了解风险，并建议先进行模拟交易验证。
-
-## 📄 许可证
-
-MIT License - 详见 LICENSE 文件
+MIT License
