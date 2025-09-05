@@ -7,6 +7,9 @@ const { SMA, VWAP, ATR } = require('technicalindicators');
 const WebSocket = require('ws');
 const sqlite3 = require('sqlite3').verbose();
 
+// 加载环境变量
+require('dotenv').config();
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -1407,12 +1410,22 @@ app.get('/api/data-monitor', (req, res) => {
 // Telegram配置API
 app.get('/api/telegram-status', (req, res) => {
   try {
-    res.json({
+    const debugInfo = {
       enabled: telegramNotifier.enabled,
       configured: !!(telegramNotifier.botToken && telegramNotifier.chatId),
       hasToken: !!telegramNotifier.botToken,
-      hasChatId: !!telegramNotifier.chatId
-    });
+      hasChatId: !!telegramNotifier.chatId,
+      debug: {
+        botTokenLength: telegramNotifier.botToken ? telegramNotifier.botToken.length : 0,
+        chatIdValue: telegramNotifier.chatId,
+        envBotToken: process.env.TELEGRAM_BOT_TOKEN ? 'set' : 'not set',
+        envChatId: process.env.TELEGRAM_CHAT_ID ? 'set' : 'not set',
+        nodeEnv: process.env.NODE_ENV || 'undefined'
+      }
+    };
+
+    console.log('Telegram状态调试信息:', debugInfo);
+    res.json(debugInfo);
   } catch (error) {
     console.error('Telegram状态API错误:', error);
     res.status(500).json({ error: 'Telegram状态获取失败' });

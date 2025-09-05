@@ -698,6 +698,25 @@
             cursor: not-allowed;
         }
 
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .debug-info h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .debug-info p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #856404;
+        }
+
         /* 刷新控制样式 */
         .refresh-controls {
             display: flex;
@@ -1954,13 +1973,23 @@
                                 <span class="${status.hasToken ? 'status-success' : 'status-error'}">
                                     ${status.hasToken ? '✅ 已设置' : '❌ 未设置'}
                                 </span>
+                                ${status.debug ? ` (长度: ${status.debug.botTokenLength})` : ''}
                             </p>
                             <p><strong>Chat ID：</strong> 
                                 <span class="${status.hasChatId ? 'status-success' : 'status-error'}">
                                     ${status.hasChatId ? '✅ 已设置' : '❌ 未设置'}
                                 </span>
+                                ${status.debug ? ` (值: ${status.debug.chatIdValue})` : ''}
                             </p>
                         </div>
+                        ${status.debug ? `
+                        <div class="debug-info">
+                            <h4>🔍 调试信息：</h4>
+                            <p><strong>环境变量 Bot Token：</strong> ${status.debug.envBotToken}</p>
+                            <p><strong>环境变量 Chat ID：</strong> ${status.debug.envChatId}</p>
+                            <p><strong>Node 环境：</strong> ${status.debug.nodeEnv}</p>
+                        </div>
+                        ` : ''}
                         <div class="config-instructions">
                             <h4>📋 配置步骤：</h4>
                             <ol>
