@@ -87,8 +87,8 @@ class BinanceAPI {
 
   // 获取 API 基础 URL
   static getBaseUrl() {
-    // 直接使用 Binance API，添加重试机制和错误处理
-    return this.BASE_URL;
+    // 使用数据中转服务
+    return this.PROXY_URL;
   }
 
   // 获取备用 URL
