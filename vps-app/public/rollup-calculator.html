@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>斐波拉契滚仓计算器 - SmartFlow</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 1.1rem;
+    }
+
+    .calculator-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .input-section,
+    .result-section {
+      background: #f8f9fa;
+      padding: 25px;
+      border-radius: 10px;
+      border: 1px solid #e9ecef;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #333;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    .result-table th,
+    .result-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .result-table th {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      font-weight: 600;
+    }
+
+    .result-table tr:hover {
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    .profit {
+      color: #28a745;
+      font-weight: bold;
+    }
+
+    .loss {
+      color: #dc3545;
+      font-weight: bold;
+    }
+
+    .summary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+
+    .summary h3 {
+      margin-bottom: 15px;
+      font-size: 1.3rem;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 1.1rem;
+    }
+
+    .summary-item.total {
+      font-weight: bold;
+      font-size: 1.2rem;
+      border-top: 2px solid rgba(255, 255, 255, 0.3);
+      padding-top: 10px;
+      margin-top: 10px;
+    }
+
+    .fibonacci-levels {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .fib-level {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .fib-level h4 {
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+
+    .fib-level .price {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .fib-level .profit {
+      color: #28a745;
+      font-weight: bold;
+    }
+
+    .fib-level .loss {
+      color: #dc3545;
+      font-weight: bold;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border: 1px solid #f5c6cb;
+    }
+
+    .success {
+      background: #d4edda;
+      color: #155724;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      border: 1px solid #c3e6cb;
+    }
+
+    @media (max-width: 768px) {
+      .calculator-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .container {
+        padding: 20px;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 斐波拉契滚仓计算器</h1>
+      <p>基于斐波拉契回撤级别的智能滚仓策略计算工具</p>
+    </div>
+
+    <div class="calculator-grid">
+      <div class="input-section">
+        <h3 class="section-title">📝 输入参数</h3>
+
+        <div class="form-group">
+          <label for="maxLossAmount">💰 单次交易最大损失 (USDT)</label>
+          <select id="maxLossAmount">
+            <option value="10">10 USDT</option>
+            <option value="20" selected>20 USDT</option>
+            <option value="50">50 USDT</option>
+            <option value="100">100 USDT</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="entryPrice">📈 入场价格 (USDT)</label>
+          <input type="number" id="entryPrice" placeholder="例如: 50000" step="0.01" min="0">
+        </div>
+
+        <div class="form-group">
+          <label for="stopLoss">🛑 止损价格 (USDT)</label>
+          <input type="number" id="stopLoss" placeholder="例如: 48000" step="0.01" min="0">
+        </div>
+
+        <div class="form-group">
+          <label for="takeProfit">🎯 目标价格 (USDT)</label>
+          <input type="number" id="takeProfit" placeholder="例如: 54000" step="0.01" min="0">
+        </div>
+
+        <div class="form-group">
+          <label for="leverage">⚡ 杠杆倍数</label>
+          <select id="leverage">
+            <option value="1">1x</option>
+            <option value="2">2x</option>
+            <option value="3">3x</option>
+            <option value="5">5x</option>
+            <option value="10">10x</option>
+            <option value="20">20x</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="fibonacciLevels">📊 斐波拉契回撤级别</label>
+          <select id="fibonacciLevels">
+            <option value="3">3个级别 (23.6%, 38.2%, 61.8%)</option>
+            <option value="5" selected>5个级别 (23.6%, 38.2%, 50%, 61.8%, 78.6%)</option>
+            <option value="7">7个级别 (全部)</option>
+          </select>
+        </div>
+
+        <button class="btn" onclick="calculateRollup()">🧮 计算滚仓策略</button>
+      </div>
+
+      <div class="result-section">
+        <h3 class="section-title">📊 计算结果</h3>
+        <div id="results">
+          <p style="color: #666; text-align: center; margin-top: 50px;">
+            请填写参数并点击"计算滚仓策略"
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="fibonacciLevels" class="fibonacci-levels" style="display: none;">
+      <!-- 斐波拉契级别将在这里动态生成 -->
+    </div>
+
+    <div id="summary" class="summary" style="display: none;">
+      <!-- 汇总信息将在这里显示 -->
+    </div>
+  </div>
+
+  <script>
+    // 斐波拉契回撤级别
+    const fibonacciLevels = {
+      3: [0.236, 0.382, 0.618],
+      5: [0.236, 0.382, 0.5, 0.618, 0.786],
+      7: [0.236, 0.382, 0.5, 0.618, 0.786, 0.886, 0.95]
+    };
+
+    // 计算滚仓策略
+    function calculateRollup() {
+      try {
+        // 获取输入参数
+        const maxLoss = parseFloat(document.getElementById('maxLossAmount').value);
+        const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+        const stopLoss = parseFloat(document.getElementById('stopLoss').value);
+        const takeProfit = parseFloat(document.getElementById('takeProfit').value);
+        const leverage = parseInt(document.getElementById('leverage').value);
+        const levelCount = parseInt(document.getElementById('fibonacciLevels').value);
+
+        // 验证输入
+        if (!entryPrice || !stopLoss || !takeProfit) {
+          showError('请填写所有必需的价格参数');
+          return;
+        }
+
+        if (entryPrice <= stopLoss) {
+          showError('入场价格必须大于止损价格');
+          return;
+        }
+
+        if (takeProfit <= entryPrice) {
+          showError('目标价格必须大于入场价格');
+          return;
+        }
+
+        // 计算基础数据
+        const priceRange = takeProfit - entryPrice;
+        const stopDistance = entryPrice - stopLoss;
+        const riskRewardRatio = priceRange / stopDistance;
+
+        // 获取斐波拉契级别
+        const levels = fibonacciLevels[levelCount];
+        if (!levels) {
+          showError('无效的斐波拉契级别设置');
+          return;
+        }
+
+        // 计算每个级别的数据
+        const levelData = levels.map((level, index) => {
+          const levelPrice = entryPrice + (priceRange * level);
+          const levelStopLoss = stopLoss + (stopDistance * level);
+          const levelTakeProfit = takeProfit;
+
+          // 计算该级别的盈亏
+          const levelProfit = (levelTakeProfit - levelPrice) / levelPrice * leverage * 100;
+          const levelLoss = (levelStopLoss - levelPrice) / levelPrice * leverage * 100;
+
+          // 计算该级别需要的保证金
+          const levelMargin = maxLoss / Math.abs(levelLoss) * 100;
+
+          return {
+            level: (level * 100).toFixed(1) + '%',
+            price: levelPrice.toFixed(2),
+            stopLoss: levelStopLoss.toFixed(2),
+            takeProfit: levelTakeProfit.toFixed(2),
+            profit: levelProfit.toFixed(2),
+            loss: levelLoss.toFixed(2),
+            margin: levelMargin.toFixed(2),
+            riskReward: (levelProfit / Math.abs(levelLoss)).toFixed(2)
+          };
+        });
+
+        // 显示结果
+        displayResults(levelData, maxLoss, riskRewardRatio);
+        displayFibonacciLevels(levelData);
+        displaySummary(levelData, maxLoss);
+
+      } catch (error) {
+        showError('计算过程中发生错误: ' + error.message);
+      }
+    }
+
+    // 显示结果表格
+    function displayResults(data, maxLoss, riskRewardRatio) {
+      const resultsDiv = document.getElementById('results');
+
+      let html = `
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th>级别</th>
+                            <th>入场价</th>
+                            <th>止损价</th>
+                            <th>目标价</th>
+                            <th>预期收益%</th>
+                            <th>最大亏损%</th>
+                            <th>需要保证金</th>
+                            <th>风险收益比</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+      data.forEach((level, index) => {
+        html += `
+                    <tr>
+                        <td><strong>${level.level}</strong></td>
+                        <td>$${level.price}</td>
+                        <td>$${level.stopLoss}</td>
+                        <td>$${level.takeProfit}</td>
+                        <td class="profit">+${level.profit}%</td>
+                        <td class="loss">${level.loss}%</td>
+                        <td>$${level.margin}</td>
+                        <td>${level.riskReward}:1</td>
+                    </tr>
+                `;
+      });
+
+      html += `
+                    </tbody>
+                </table>
+                <div class="success">
+                    <strong>策略说明：</strong><br>
+                    • 基于斐波拉契回撤级别的分批入场策略<br>
+                    • 每个级别独立计算止损和止盈<br>
+                    • 总风险控制在 ${maxLoss} USDT 以内<br>
+                    • 整体风险收益比: ${riskRewardRatio.toFixed(2)}:1
+                </div>
+            `;
+
+      resultsDiv.innerHTML = html;
+    }
+
+    // 显示斐波拉契级别卡片
+    function displayFibonacciLevels(data) {
+      const container = document.getElementById('fibonacciLevels');
+      container.style.display = 'block';
+
+      let html = '';
+      data.forEach((level, index) => {
+        const isProfit = parseFloat(level.profit) > 0;
+        html += `
+                    <div class="fib-level">
+                        <h4>级别 ${level.level}</h4>
+                        <div class="price">$${level.price}</div>
+                        <div>止损: $${level.stopLoss}</div>
+                        <div>目标: $${level.takeProfit}</div>
+                        <div class="${isProfit ? 'profit' : 'loss'}">
+                            ${isProfit ? '+' : ''}${level.profit}%
+                        </div>
+                        <div>保证金: $${level.margin}</div>
+                    </div>
+                `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // 显示汇总信息
+    function displaySummary(data, maxLoss) {
+      const summaryDiv = document.getElementById('summary');
+      summaryDiv.style.display = 'block';
+
+      const totalMargin = data.reduce((sum, level) => sum + parseFloat(level.margin), 0);
+      const avgProfit = data.reduce((sum, level) => sum + parseFloat(level.profit), 0) / data.length;
+      const maxLossPercent = Math.max(...data.map(level => Math.abs(parseFloat(level.loss))));
+
+      let html = `
+                <h3>📊 策略汇总</h3>
+                <div class="summary-item">
+                    <span>总需要保证金:</span>
+                    <span>$${totalMargin.toFixed(2)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>平均预期收益:</span>
+                    <span class="profit">+${avgProfit.toFixed(2)}%</span>
+                </div>
+                <div class="summary-item">
+                    <span>最大单次亏损:</span>
+                    <span class="loss">${maxLossPercent.toFixed(2)}%</span>
+                </div>
+                <div class="summary-item">
+                    <span>风险控制:</span>
+                    <span>$${maxLoss} USDT</span>
+                </div>
+                <div class="summary-item total">
+                    <span>总风险收益比:</span>
+                    <span>${(avgProfit / maxLossPercent).toFixed(2)}:1</span>
+                </div>
+            `;
+
+      summaryDiv.innerHTML = html;
+    }
+
+    // 显示错误信息
+    function showError(message) {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = `<div class="error">${message}</div>`;
+
+      document.getElementById('fibonacciLevels').style.display = 'none';
+      document.getElementById('summary').style.display = 'none';
+    }
+
+    // 页面加载时设置默认值
+    document.addEventListener('DOMContentLoaded', function () {
+      // 从父窗口获取最大损失金额（如果有的话）
+      try {
+        if (window.opener && window.opener.document) {
+          const parentMaxLoss = window.opener.document.getElementById('maxLossAmount');
+          if (parentMaxLoss) {
+            document.getElementById('maxLossAmount').value = parentMaxLoss.value;
+          }
+        }
+      } catch (error) {
+        console.log('无法从父窗口获取参数:', error);
+      }
+    });
+  </script>
+</body>
+
+</html>
