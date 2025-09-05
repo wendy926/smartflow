@@ -1,0 +1,27 @@
+{
+  "name": "smartflow-trader",
+  "version": "1.0.0",
+  "description": "多周期共振高胜率高盈亏比加密货币交易策略",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node start.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node test/test-mock.js",
+    "test:api": "node test/test-api.js",
+    "test:mock": "node test/test-mock.js",
+    "deploy:prod": "./deploy.sh",
+    "logs": "wrangler tail",
+    "kv:list": "wrangler kv:key list --binding TRADE_LOG",
+    "kv:get": "wrangler kv:key get --binding TRADE_LOG",
+    "whoami": "wrangler whoami"
+  },
+  "dependencies": {
+    "technicalindicators": "^3.1.0",
+    "node-fetch": "^3.3.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
