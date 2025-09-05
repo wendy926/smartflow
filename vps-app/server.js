@@ -7,11 +7,7 @@ const { SMA, VWAP, ATR } = require('technicalindicators');
 const WebSocket = require('ws');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// 初始化 CVD 管理器
-const cvdManager = new CVDManager();
-cvdManager.start();
+const PORT = process.env.PORT || 8080;
 
 // 中间件
 app.use(cors());
@@ -573,6 +569,10 @@ class SmartFlowStrategy {
     }
   }
 }
+
+// 初始化 CVD 管理器
+const cvdManager = new CVDManager();
+cvdManager.start();
 
 // API 路由
 app.get('/api/test', async (req, res) => {
