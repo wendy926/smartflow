@@ -28,6 +28,11 @@ npm install -g wrangler
 
 ### 2. 配置设置
 
+复制配置示例文件：
+```bash
+cp wrangler.toml.example wrangler.toml
+```
+
 编辑 `wrangler.toml` 文件：
 
 ```toml
@@ -49,8 +54,11 @@ cron = "0 * * * *"   # 每小时执行一次
 ### 3. 本地测试
 
 ```bash
-# 测试API连接
+# 模拟测试（推荐，不依赖网络）
 npm run test
+
+# 真实API测试（需要网络连接）
+npm run test:api
 
 # 本地开发
 npm run dev

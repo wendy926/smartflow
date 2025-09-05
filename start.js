@@ -5,7 +5,7 @@
  * 用于本地开发和测试
  */
 
-import { runAllTests } from './test/test-api.js';
+import { runMockTests } from './test/test-mock.js';
 
 console.log('🚀 SmartFlow 交易策略系统启动中...\n');
 
@@ -17,11 +17,11 @@ console.log('- 时间周期: 日线趋势 + 小时确认 + 15分钟执行');
 console.log('- 风险控制: 单笔1%风险，最大3笔持仓，日损-3R限制');
 console.log('');
 
-// 运行API测试
-console.log('🧪 开始API连接测试...\n');
+// 运行模拟测试
+console.log('🧪 开始模拟测试...\n');
 try {
-  const testResults = await runAllTests();
-  
+  const testResults = await runMockTests();
+
   if (testResults.summary.failed === 0) {
     console.log('✅ 所有测试通过，系统就绪！');
     console.log('\n🎯 下一步操作:');
