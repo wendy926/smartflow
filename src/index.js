@@ -64,7 +64,7 @@ class TechnicalIndicators {
 // Binance API 数据获取
 class BinanceAPI {
   static BASE_URL = 'https://fapi.binance.com';
-  static VPS_PROXY_URL = 'http://47.237.163.85:3000/api/binance';
+  static PROXY_URL = 'http://47.237.163.85:3000/api/binance';
 
   // 检测是否在受限地区
   static isRestrictedRegion(request) {
@@ -87,54 +87,49 @@ class BinanceAPI {
 
   // 获取 API 基础 URL
   static getBaseUrl() {
-    // 优先使用 VPS 代理，如果失败则回退到直接访问
-    return this.VPS_PROXY_URL;
+    // 直接使用 Binance API，添加重试机制和错误处理
+    return this.BASE_URL;
   }
 
-  // 获取备用 URL（直接访问 Binance）
+  // 获取备用 URL
   static getFallbackUrl() {
     return this.BASE_URL;
   }
 
-  // 通用 API 请求方法，支持 VPS 代理和回退
-  static async _makeRequest(endpoint, params = {}, dataProcessor = null) {
+  // 通用 API 请求方法，支持重试机制
+  static async _makeRequest(endpoint, params = {}, dataProcessor = null, retries = 3) {
     const queryString = new URLSearchParams(params).toString();
     const url = `${this.getBaseUrl()}${endpoint}?${queryString}`;
 
-    try {
-      console.log(`[VPS代理] 请求: ${url}`);
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'SmartFlow-Trader/1.0',
-          'Accept': 'application/json'
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`[API] 尝试 ${attempt}/${retries}: ${url}`);
+
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'SmartFlow-Trader/1.0',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-      });
 
-      if (!response.ok) {
-        throw new Error(`VPS代理错误: ${response.status} ${response.statusText}`);
-      }
+        console.log(`[API] 成功: ${response.status}`);
+        const data = await response.json();
+        return dataProcessor ? dataProcessor(data) : data;
 
-      const data = await response.json();
-      return dataProcessor ? dataProcessor(data) : data;
+      } catch (error) {
+        console.warn(`[API] 尝试 ${attempt} 失败: ${error.message}`);
 
-    } catch (error) {
-      console.warn(`[VPS代理] 请求失败，尝试直接访问: ${error.message}`);
-
-      // 回退到直接访问 Binance
-      const fallbackUrl = `${this.getFallbackUrl()}${endpoint}?${queryString}`;
-      const fallbackResponse = await fetch(fallbackUrl, {
-        headers: {
-          'User-Agent': 'SmartFlow-Trader/1.0',
-          'Accept': 'application/json'
+        if (attempt === retries) {
+          throw new Error(`所有重试失败: ${error.message}`);
         }
-      });
 
-      if (!fallbackResponse.ok) {
-        throw new Error(`Binance API error: ${fallbackResponse.status}`);
+        // 等待后重试
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
-
-      const data = await fallbackResponse.json();
-      return dataProcessor ? dataProcessor(data) : data;
     }
   }
 
@@ -542,8 +537,7 @@ export default {
     const url = new URL(request.url);
     const strategy = new SmartFlowStrategy(env);
 
-    // 由于使用 VPS 代理，不再需要地区限制
-    // 所有请求都通过新加坡 VPS 代理访问 Binance API
+    // 直接访问 Binance API
 
     // API路由
     if (url.pathname === '/api/analyze') {

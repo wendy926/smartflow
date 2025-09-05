@@ -1,6 +1,6 @@
 /**
- * VPS 代理服务器 - 新加坡中转
- * 用于绕过 Binance API 的 IP 限制
+ * 中转服务器 - 新加坡
+ * 用于数据中转
  */
 
 const express = require('express');
@@ -28,13 +28,13 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    server: 'VPS Proxy Server',
+    server: 'Data Server',
     location: 'Singapore'
   });
 });
 
-// Binance API 代理配置
-const binanceProxy = createProxyMiddleware({
+// API 中转配置
+const apiProxy = createProxyMiddleware({
   target: 'https://fapi.binance.com',
   changeOrigin: true,
   pathRewrite: {
@@ -44,29 +44,29 @@ const binanceProxy = createProxyMiddleware({
     // 添加必要的请求头
     proxyReq.setHeader('User-Agent', 'SmartFlow-Trader/1.0');
     proxyReq.setHeader('X-Forwarded-For', req.ip);
-    
-    console.log(`[${new Date().toISOString()}] 代理请求: ${req.method} ${req.url}`);
+
+    console.log(`[${new Date().toISOString()}] 请求: ${req.method} ${req.url}`);
   },
   onProxyRes: (proxyRes, req, res) => {
     // 添加 CORS 头
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
     proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
-    
-    console.log(`[${new Date().toISOString()}] 代理响应: ${proxyRes.statusCode} ${req.url}`);
+
+    console.log(`[${new Date().toISOString()}] 响应: ${proxyRes.statusCode} ${req.url}`);
   },
   onError: (err, req, res) => {
-    console.error(`[${new Date().toISOString()}] 代理错误:`, err.message);
+    console.error(`[${new Date().toISOString()}] 错误:`, err.message);
     res.status(500).json({
-      error: 'Proxy Error',
+      error: 'Service Error',
       message: err.message,
       timestamp: new Date().toISOString()
     });
   }
 });
 
-// 应用 Binance API 代理
-app.use('/api/binance', binanceProxy);
+// 应用 API 中转
+app.use('/api/binance', apiProxy);
 
 // 错误处理中间件
 app.use((err, req, res, next) => {
@@ -89,10 +89,10 @@ app.use('*', (req, res) => {
 
 // 启动服务器
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 VPS 代理服务器启动成功！`);
+  console.log(`🚀 中转服务器启动成功！`);
   console.log(`📍 服务器地址: http://0.0.0.0:${PORT}`);
   console.log(`🌍 外部访问: http://47.237.163.85:${PORT}`);
-  console.log(`🔗 Binance API 代理: http://47.237.163.85:${PORT}/api/binance`);
+  console.log(`🔗 API 中转: http://47.237.163.85:${PORT}/api/binance`);
   console.log(`⏰ 启动时间: ${new Date().toISOString()}`);
 });
 

@@ -1,7 +1,7 @@
 {
-  "name": "smartflow-vps-proxy",
+  "name": "smartflow-data-server",
   "version": "1.0.0",
-  "description": "VPS 代理服务器 - 新加坡中转 Binance API",
+  "description": "数据中转服务器 - 新加坡",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
