@@ -175,6 +175,27 @@
             font-weight: 500;
         }
 
+        .win-rate-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .win-rate-card h3 {
+            color: white;
+            -webkit-text-fill-color: white;
+        }
+
+        .win-rate-card p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .win-rate-card small {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.8rem;
+            display: block;
+            margin-top: 2px;
+        }
+
         .table-container {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
@@ -783,6 +804,33 @@
             margin-top: 20px;
         }
 
+        /* 模拟交易历史样式 */
+        .simulation-history {
+            margin-top: 20px;
+        }
+
+        .simulation-history h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .profit {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .loss {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
         .debug-info {
             background: #fff3cd;
             border: 1px solid #ffeaa7;
@@ -1352,16 +1400,6 @@
                     <option value="100">100 USDT</option>
                 </select>
             </div>
-            <div class="calculator-group">
-                <button class="btn calculator-btn" onclick="openRollupCalculator()">
-                    📊 斐波拉契滚仓计算器
-                </button>
-            </div>
-            <div class="symbols-list-group">
-                <button class="btn symbols-list-btn" onclick="showSymbolsList()">
-                    📋 交易对列表 (${allSymbols.length})
-                </button>
-            </div>
         </div>
 
         <div class="stats">
@@ -1380,6 +1418,11 @@
             <div class="stat-card">
                 <h3 id="lastUpdate">--</h3>
                 <p>最后更新</p>
+            </div>
+            <div class="stat-card win-rate-card">
+                <h3 id="winRate">0%</h3>
+                <p>策略胜率</p>
+                <small id="winRateDetails">0/0</small>
             </div>
         </div>
 
@@ -1408,6 +1451,34 @@
             </table>
         </div>
 
+        <!-- 模拟交易历史表格 -->
+        <div class="table-container simulation-history" id="simulationHistoryContainer" style="display: none;">
+            <h3>📊 模拟交易历史</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>交易对</th>
+                        <th>入场价格</th>
+                        <th>止损价格</th>
+                        <th>止盈价格</th>
+                        <th>杠杆倍数</th>
+                        <th>最小保证金</th>
+                        <th>入场时间</th>
+                        <th>出场时间</th>
+                        <th>出场价格</th>
+                        <th>出场原因</th>
+                        <th>盈亏</th>
+                        <th>结果</th>
+                    </tr>
+                </thead>
+                <tbody id="simulationHistoryTable">
+                    <tr>
+                        <td colspan="12" class="loading">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
         <!-- 底部按钮区域 -->
         <div class="bottom-controls">
             <button class="btn secondary" onclick="testAPI()">
@@ -1418,6 +1489,12 @@
             </button>
             <button class="btn secondary" onclick="viewTelegramConfig()">
                 📱 Telegram通知
+            </button>
+            <button class="btn calculator-btn" onclick="openRollupCalculator()">
+                📊 斐波拉契滚仓计算器
+            </button>
+            <button class="btn secondary" onclick="toggleSimulationHistory()">
+                📈 模拟交易历史
             </button>
         </div>
 
@@ -1570,6 +1647,9 @@
                 const signals = await Promise.all(promises);
                 displaySignals(signals);
                 updateStats(signals);
+
+                // 更新胜率统计
+                await loadWinRateStats();
 
                 showMessage('信号刷新成功！', 'success');
             } catch (error) {
@@ -2445,9 +2525,76 @@
             }
         }
 
+        // 加载胜率统计
+        async function loadWinRateStats() {
+            try {
+                const response = await fetch('/api/win-rate-stats');
+                const stats = await response.json();
+
+                document.getElementById('winRate').textContent = stats.win_rate.toFixed(1) + '%';
+                document.getElementById('winRateDetails').textContent = `${stats.total_wins}/${stats.total_trades}`;
+            } catch (error) {
+                console.error('加载胜率统计失败:', error);
+            }
+        }
+
+        // 切换模拟交易历史显示
+        async function toggleSimulationHistory() {
+            const container = document.getElementById('simulationHistoryContainer');
+            const isVisible = container.style.display !== 'none';
+
+            if (isVisible) {
+                container.style.display = 'none';
+            } else {
+                container.style.display = 'block';
+                await loadSimulationHistory();
+            }
+        }
+
+        // 加载模拟交易历史
+        async function loadSimulationHistory() {
+            const tableBody = document.getElementById('simulationHistoryTable');
+            tableBody.innerHTML = '<tr><td colspan="12" class="loading">加载中...</td></tr>';
+
+            try {
+                const response = await fetch('/api/simulation-history?limit=50');
+                const history = await response.json();
+
+                if (history.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="12" class="no-data">暂无模拟交易记录</td></tr>';
+                    return;
+                }
+
+                tableBody.innerHTML = history.map(sim => `
+                    <tr>
+                        <td>${sim.symbol}</td>
+                        <td>${sim.entry_price.toFixed(4)}</td>
+                        <td>${sim.stop_loss_price.toFixed(4)}</td>
+                        <td>${sim.take_profit_price.toFixed(4)}</td>
+                        <td>${sim.max_leverage}x</td>
+                        <td>${sim.min_margin.toFixed(2)} USDT</td>
+                        <td>${new Date(sim.entry_time).toLocaleString()}</td>
+                        <td>${sim.exit_time ? new Date(sim.exit_time).toLocaleString() : '进行中'}</td>
+                        <td>${sim.exit_price ? sim.exit_price.toFixed(4) : '--'}</td>
+                        <td>${sim.exit_reason || '--'}</td>
+                        <td class="${sim.profit_loss >= 0 ? 'profit' : 'loss'}">
+                            ${sim.profit_loss ? sim.profit_loss.toFixed(2) + '%' : '--'}
+                        </td>
+                        <td>
+                            ${sim.is_win === null ? '进行中' : (sim.is_win ? '✅ 胜' : '❌ 败')}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('加载模拟交易历史失败:', error);
+                tableBody.innerHTML = '<tr><td colspan="12" class="error">加载失败: ' + error.message + '</td></tr>';
+            }
+        }
+
         // 页面加载时自动刷新一次
         document.addEventListener('DOMContentLoaded', () => {
             refreshAllSignals();
+            loadWinRateStats();
         });
     </script>
 </body>

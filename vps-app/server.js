@@ -520,6 +520,248 @@ class BinanceAPI {
   }
 }
 
+// 模拟交易管理器
+class SimulationManager {
+  constructor(db) {
+    this.db = db;
+    this.activeSimulations = new Map(); // 存储活跃的模拟交易
+    this.priceCheckInterval = null;
+    this.startPriceMonitoring();
+  }
+
+  // 开始价格监控
+  startPriceMonitoring() {
+    // 每30秒检查一次价格
+    this.priceCheckInterval = setInterval(() => {
+      this.checkActiveSimulations();
+    }, 30000);
+  }
+
+  // 检查活跃的模拟交易
+  async checkActiveSimulations() {
+    if (this.activeSimulations.size === 0) return;
+
+    for (const [simulationId, simulation] of this.activeSimulations) {
+      try {
+        // 获取当前价格
+        const currentPrice = await this.getCurrentPrice(simulation.symbol);
+        if (!currentPrice) continue;
+
+        // 检查是否触发止损或止盈
+        const exitReason = this.checkExitConditions(simulation, currentPrice);
+
+        if (exitReason) {
+          await this.closeSimulation(simulationId, currentPrice, exitReason);
+        }
+      } catch (error) {
+        console.error(`检查模拟交易失败 ${simulation.symbol}:`, error.message);
+      }
+    }
+  }
+
+  // 获取当前价格
+  async getCurrentPrice(symbol) {
+    try {
+      const response = await axios.get(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`);
+      return parseFloat(response.data.price);
+    } catch (error) {
+      console.error(`获取价格失败 ${symbol}:`, error.message);
+      return null;
+    }
+  }
+
+  // 检查退出条件
+  checkExitConditions(simulation, currentPrice) {
+    const { entryPrice, stopLossPrice, takeProfitPrice } = simulation;
+
+    // 检查止损
+    if (currentPrice <= stopLossPrice) {
+      return 'STOP_LOSS';
+    }
+
+    // 检查止盈
+    if (currentPrice >= takeProfitPrice) {
+      return 'TAKE_PROFIT';
+    }
+
+    return null;
+  }
+
+  // 关闭模拟交易
+  async closeSimulation(simulationId, exitPrice, exitReason) {
+    const simulation = this.activeSimulations.get(simulationId);
+    if (!simulation) return;
+
+    const isWin = exitReason === 'TAKE_PROFIT';
+    const profitLoss = this.calculateProfitLoss(simulation, exitPrice);
+
+    // 更新数据库
+    await this.updateSimulationInDB(simulationId, exitPrice, exitReason, isWin, profitLoss);
+
+    // 从活跃列表中移除
+    this.activeSimulations.delete(simulationId);
+
+    // 更新胜率统计
+    await this.updateWinRateStats();
+
+    console.log(`模拟交易结束 ${simulation.symbol}: ${exitReason}, 盈亏: ${profitLoss.toFixed(2)}`);
+  }
+
+  // 计算盈亏
+  calculateProfitLoss(simulation, exitPrice) {
+    const { entryPrice, maxLeverage } = simulation;
+    const priceChange = (exitPrice - entryPrice) / entryPrice;
+    return priceChange * maxLeverage * 100; // 假设100 USDT本金
+  }
+
+  // 更新数据库中的模拟交易
+  updateSimulationInDB(simulationId, exitPrice, exitReason, isWin, profitLoss) {
+    return new Promise((resolve, reject) => {
+      const stmt = this.db.prepare(`
+        UPDATE simulations 
+        SET exit_time = ?, exit_price = ?, exit_reason = ?, is_win = ?, profit_loss = ?
+        WHERE id = ?
+      `);
+
+      stmt.run([
+        new Date().toISOString(),
+        exitPrice,
+        exitReason,
+        isWin,
+        profitLoss,
+        simulationId
+      ], (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  // 更新胜率统计
+  async updateWinRateStats() {
+    return new Promise((resolve, reject) => {
+      this.db.get(`
+        SELECT 
+          COUNT(*) as total_trades,
+          SUM(CASE WHEN is_win = 1 THEN 1 ELSE 0 END) as total_wins
+        FROM simulations 
+        WHERE exit_time IS NOT NULL
+      `, (err, row) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        const winRate = row.total_trades > 0 ? (row.total_wins / row.total_trades * 100) : 0;
+
+        this.db.run(`
+          UPDATE win_rate_stats 
+          SET total_trades = ?, total_wins = ?, win_rate = ?, last_updated = ?
+        `, [row.total_trades, row.total_wins, winRate, new Date().toISOString()], (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+    });
+  }
+
+  // 创建新的模拟交易
+  async createSimulation(symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin) {
+    return new Promise((resolve, reject) => {
+      const stmt = this.db.prepare(`
+        INSERT INTO simulations 
+        (symbol, entry_price, stop_loss_price, take_profit_price, max_leverage, min_margin, entry_time)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run([
+        symbol,
+        entryPrice,
+        stopLossPrice,
+        takeProfitPrice,
+        maxLeverage,
+        minMargin,
+        new Date().toISOString()
+      ], function (err) {
+        if (err) {
+          reject(err);
+        } else {
+          const simulationId = this.lastID;
+          const simulation = {
+            id: simulationId,
+            symbol,
+            entryPrice,
+            stopLossPrice,
+            takeProfitPrice,
+            maxLeverage,
+            minMargin
+          };
+
+          // 添加到活跃列表
+          this.activeSimulations.set(simulationId, simulation);
+          resolve(simulationId);
+        }
+      }.bind(this));
+    });
+  }
+
+  // 获取胜率统计
+  async getWinRateStats() {
+    return new Promise((resolve, reject) => {
+      this.db.get('SELECT * FROM win_rate_stats ORDER BY id DESC LIMIT 1', (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row || { total_trades: 0, total_wins: 0, win_rate: 0.0 });
+        }
+      });
+    });
+  }
+
+  // 获取模拟交易历史
+  async getSimulationHistory(limit = 50) {
+    return new Promise((resolve, reject) => {
+      this.db.all(`
+        SELECT * FROM simulations 
+        ORDER BY created_at DESC 
+        LIMIT ?
+      `, [limit], (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows || []);
+        }
+      });
+    });
+  }
+
+  // 清理历史数据（保留最近半年）
+  async cleanOldData() {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    return new Promise((resolve, reject) => {
+      this.db.run(`
+        DELETE FROM simulations 
+        WHERE created_at < ?
+      `, [sixMonthsAgo.toISOString()], (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          console.log('历史模拟交易数据清理完成');
+          resolve();
+        }
+      });
+    });
+  }
+}
+
 // 数据库管理
 class DatabaseManager {
   constructor() {
@@ -586,7 +828,61 @@ class DatabaseManager {
       )
     `);
 
+    // 创建模拟交易表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS simulations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        entry_price REAL NOT NULL,
+        stop_loss_price REAL NOT NULL,
+        take_profit_price REAL NOT NULL,
+        max_leverage INTEGER NOT NULL,
+        min_margin REAL NOT NULL,
+        entry_time DATETIME NOT NULL,
+        exit_time DATETIME,
+        exit_price REAL,
+        exit_reason TEXT,
+        is_win BOOLEAN,
+        profit_loss REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 创建胜率统计表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS win_rate_stats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total_trades INTEGER DEFAULT 0,
+        total_wins INTEGER DEFAULT 0,
+        win_rate REAL DEFAULT 0.0,
+        last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 初始化胜率统计
+    this.initWinRateStats();
+
     console.log('📊 数据库表初始化完成');
+  }
+
+  // 初始化胜率统计
+  initWinRateStats() {
+    this.db.get('SELECT COUNT(*) as count FROM win_rate_stats', (err, row) => {
+      if (err) {
+        console.error('检查胜率统计表失败:', err);
+        return;
+      }
+
+      if (row.count === 0) {
+        this.db.run('INSERT INTO win_rate_stats (total_trades, total_wins, win_rate) VALUES (0, 0, 0.0)', (err) => {
+          if (err) {
+            console.error('初始化胜率统计失败:', err);
+          } else {
+            console.log('胜率统计初始化完成');
+          }
+        });
+      }
+    });
   }
 
   // 记录信号
@@ -1173,7 +1469,7 @@ class SmartFlowStrategy {
           await dbManager.recordSignal(symbol, signalData);
         }
 
-        // 如果有入场执行，记录执行数据
+        // 如果有入场执行，记录执行数据并创建模拟交易
         if (execution !== 'NO_SIGNAL') {
           const executionData = {
             trend: trend,
@@ -1197,6 +1493,22 @@ class SmartFlowStrategy {
             }
           };
           await dbManager.recordExecution(symbol, executionData);
+
+          // 创建模拟交易
+          try {
+            const minMargin = Math.ceil(20 / (maxLeverage * stopDistance)); // 使用默认20 USDT
+            await simulationManager.createSimulation(
+              symbol,
+              currentPrice,
+              stopLoss,
+              targetPrice,
+              maxLeverage,
+              minMargin
+            );
+            console.log(`📊 创建模拟交易: ${symbol} @ ${currentPrice}`);
+          } catch (simError) {
+            console.error(`模拟交易创建失败 ${symbol}:`, simError.message);
+          }
         }
       } catch (dbError) {
         console.error(`[Database] 记录历史数据失败 ${symbol}:`, dbError.message);
@@ -1239,12 +1551,26 @@ const telegramNotifier = new TelegramNotifier();
 
 // 初始化数据库
 const dbManager = new DatabaseManager();
+const simulationManager = new SimulationManager(dbManager.db);
 
 // 定时刷新数据 (每5分钟)
 setInterval(() => {
   console.log('🔄 定时刷新数据缓存...');
   BinanceAPI.rateLimiter.dataCache.clear();
-}, 5 * 60 * 1000); // 5分钟
+}, 5 * 60 * 1000);
+
+// 定期清理历史数据 (每天凌晨2点)
+setInterval(() => {
+  const now = new Date();
+  const hour = now.getHours();
+
+  if (hour === 2) {
+    console.log('🧹 开始清理历史数据...');
+    simulationManager.cleanOldData().catch(error => {
+      console.error('清理历史数据失败:', error);
+    });
+  }
+}, 60 * 60 * 1000); // 每小时检查一次 // 5分钟
 
 // API 路由
 app.get('/api/test', async (req, res) => {
@@ -1448,6 +1774,40 @@ app.post('/api/test-telegram', async (req, res) => {
   } catch (error) {
     console.error('Telegram测试API错误:', error);
     res.status(500).json({ error: 'Telegram测试失败: ' + error.message });
+  }
+});
+
+// 获取胜率统计
+app.get('/api/win-rate-stats', async (req, res) => {
+  try {
+    const stats = await simulationManager.getWinRateStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('获取胜率统计失败:', error);
+    res.status(500).json({ error: '获取胜率统计失败' });
+  }
+});
+
+// 获取模拟交易历史
+app.get('/api/simulation-history', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const history = await simulationManager.getSimulationHistory(limit);
+    res.json(history);
+  } catch (error) {
+    console.error('获取模拟交易历史失败:', error);
+    res.status(500).json({ error: '获取模拟交易历史失败' });
+  }
+});
+
+// 清理历史数据
+app.post('/api/clean-old-data', async (req, res) => {
+  try {
+    await simulationManager.cleanOldData();
+    res.json({ success: true, message: '历史数据清理完成' });
+  } catch (error) {
+    console.error('清理历史数据失败:', error);
+    res.status(500).json({ error: '清理历史数据失败' });
   }
 });
 
