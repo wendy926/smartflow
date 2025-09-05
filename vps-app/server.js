@@ -1128,7 +1128,7 @@ class SmartFlowStrategy {
         // 计算新增字段
         stopDistance = Math.abs(currentPrice - stopLoss) / currentPrice;
         maxLeverage = Math.floor(1 / (stopDistance + 0.005)); // 0.5% 缓冲
-        minMargin = Math.ceil(200 / (maxLeverage * stopDistance));
+        // 注意：minMargin将在前端根据用户选择的损失金额动态计算
       }
 
       const result = {
@@ -1148,7 +1148,6 @@ class SmartFlowStrategy {
         targetPrice,
         stopDistance,
         maxLeverage,
-        minMargin,
         riskReward: signal !== 'NO_SIGNAL' ? 2 : 0
       };
 
@@ -1189,7 +1188,6 @@ class SmartFlowStrategy {
             stopPrice: stopLoss,
             targetPrice: targetPrice,
             maxLeverage: maxLeverage,
-            minMargin: minMargin,
             riskRewardRatio: signal !== 'NO_SIGNAL' ? 2 : 0,
             rawData: {
               dailyTrend,

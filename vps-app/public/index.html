@@ -698,6 +698,91 @@
             cursor: not-allowed;
         }
 
+        /* 交易对列表样式 */
+        .symbols-list h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .symbols-content {
+            margin-bottom: 20px;
+        }
+
+        .default-symbols,
+        .custom-symbols {
+            margin-bottom: 20px;
+        }
+
+        .default-symbols h4,
+        .custom-symbols h4 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .symbols-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .symbol-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .default-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+
+        .custom-tag {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .remove-symbol {
+            background: #ff5252;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .remove-symbol:hover {
+            background: #d32f2f;
+            transform: scale(1.1);
+        }
+
+        .no-symbols {
+            color: #6c757d;
+            font-style: italic;
+            padding: 10px;
+        }
+
+        .symbols-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
         .debug-info {
             background: #fff3cd;
             border: 1px solid #ffeaa7;
@@ -753,6 +838,92 @@
             gap: 10px;
         }
 
+        .loss-amount-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 20px;
+        }
+
+        .loss-amount-group label {
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        .loss-select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .loss-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .loss-select:hover {
+            border-color: #667eea;
+        }
+
+        .calculator-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 20px;
+        }
+
+        .calculator-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .calculator-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .symbols-list-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 20px;
+        }
+
+        .symbols-list-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .symbols-list-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+
         .symbol-input {
             padding: 8px 12px;
             border: 1px solid #ccc;
@@ -800,6 +971,40 @@
                 flex-direction: column;
                 gap: 8px;
                 align-items: center;
+            }
+
+            .loss-amount-group {
+                flex-direction: column;
+                gap: 8px;
+                align-items: center;
+                margin-left: 0;
+                margin-top: 10px;
+            }
+
+            .calculator-group {
+                flex-direction: column;
+                gap: 8px;
+                align-items: center;
+                margin-left: 0;
+                margin-top: 10px;
+            }
+
+            .calculator-btn {
+                width: 100%;
+                max-width: 280px;
+            }
+
+            .symbols-list-group {
+                flex-direction: column;
+                gap: 8px;
+                align-items: center;
+                margin-left: 0;
+                margin-top: 10px;
+            }
+
+            .symbols-list-btn {
+                width: 100%;
+                max-width: 280px;
             }
 
             .symbol-input {
@@ -1138,6 +1343,25 @@
                     ➕ 添加交易对
                 </button>
             </div>
+            <div class="loss-amount-group">
+                <label for="maxLossAmount">💰 单次交易最大损失：</label>
+                <select id="maxLossAmount" class="loss-select" onchange="updateMaxLossAmount()">
+                    <option value="10">10 USDT</option>
+                    <option value="20" selected>20 USDT</option>
+                    <option value="50">50 USDT</option>
+                    <option value="100">100 USDT</option>
+                </select>
+            </div>
+            <div class="calculator-group">
+                <button class="btn calculator-btn" onclick="openRollupCalculator()">
+                    📊 斐波拉契滚仓计算器
+                </button>
+            </div>
+            <div class="symbols-list-group">
+                <button class="btn symbols-list-btn" onclick="showSymbolsList()">
+                    📋 交易对列表 (${allSymbols.length})
+                </button>
+            </div>
         </div>
 
         <div class="stats">
@@ -1302,8 +1526,9 @@
 
                     <h4>最低保证金：</h4>
                     <ul>
-                        <li>计算公式：200 / (最大杠杆倍数 × 止损距离) 向上取整</li>
-                        <li>基于杠杆和止损距离计算的最低保证金要求</li>
+                        <li>计算公式：单次交易最大损失金额 / (最大杠杆倍数 × 止损距离) 向上取整</li>
+                        <li>基于用户设定的最大损失金额、杠杆和止损距离计算</li>
+                        <li>用户可在顶部选择：10U/20U/50U/100U</li>
                     </ul>
                 </div>
             </div>
@@ -1313,28 +1538,68 @@
     <script>
         let autoRefreshInterval = null;
         let isAutoRefresh = false;
+        let maxLossAmount = 20; // 默认最大损失金额
         let currentRefreshInterval = 300000; // 默认5分钟
         let countdownInterval = null;
         let timeUntilNextRefresh = 0;
 
+        // 全局变量存储所有交易对
+        let allSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT', 'SOLUSDT'];
+        let customSymbols = [];
+
         // 刷新所有信号
         async function refreshAllSignals() {
             const tableBody = document.getElementById('signalsTable');
-            tableBody.innerHTML = '<tr><td colspan="16" class="loading">分析中...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="11" class="loading">分析中...</td></tr>';
 
             try {
-                const response = await fetch('/api/analyze-all');
-                const signals = await response.json();
+                // 使用动态交易对列表
+                const promises = allSymbols.map(symbol =>
+                    fetch(`/api/analyze/${symbol}`)
+                        .then(response => response.json())
+                        .catch(error => ({
+                            symbol,
+                            trend: 'ERROR',
+                            signal: 'ERROR',
+                            execution: 'ERROR',
+                            currentPrice: 0,
+                            dataError: `分析失败: ${error.message}`
+                        }))
+                );
 
+                const signals = await Promise.all(promises);
                 displaySignals(signals);
                 updateStats(signals);
 
                 showMessage('信号刷新成功！', 'success');
             } catch (error) {
                 console.error('刷新信号失败:', error);
-                tableBody.innerHTML = '<tr><td colspan="16" class="error">刷新失败: ' + error.message + '</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="11" class="error">刷新失败: ' + error.message + '</td></tr>';
                 showMessage('刷新失败: ' + error.message, 'error');
             }
+        }
+
+        // 更新最大损失金额
+        function updateMaxLossAmount() {
+            const select = document.getElementById('maxLossAmount');
+            maxLossAmount = parseInt(select.value);
+            console.log('最大损失金额已更新为:', maxLossAmount, 'USDT');
+
+            // 如果当前有数据显示，重新计算保证金
+            if (document.querySelector('.table tbody tr:not(.error)')) {
+                refreshAllSignals();
+            }
+        }
+
+        // 计算最低保证金
+        function calculateMinMargin(signal) {
+            if (!signal.stopLoss || !signal.maxLeverage || !signal.stopDistance) {
+                return '--';
+            }
+
+            // 新公式：单次交易最大损失金额 / (最大杠杆倍数 × 止损距离) 向上取整
+            const minMargin = Math.ceil(maxLossAmount / (signal.maxLeverage * signal.stopDistance));
+            return minMargin.toFixed(0);
         }
 
         // 添加自定义交易对
@@ -1351,32 +1616,38 @@
                 return;
             }
 
-            const tableBody = document.getElementById('signalsTable');
-            tableBody.innerHTML = '<tr><td colspan="16" class="loading">分析 ' + symbol + ' 中...</td></tr>';
+            // 检查是否已存在
+            if (allSymbols.includes(symbol)) {
+                showMessage('交易对已存在', 'error');
+                return;
+            }
 
             try {
-                const response = await fetch('/api/analyze-custom', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ symbol })
-                });
+                // 添加到交易对列表
+                customSymbols.push(symbol);
+                allSymbols.push(symbol);
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || '分析失败');
-                }
+                // 清空输入框
+                document.getElementById('customSymbol').value = '';
 
-                const result = await response.json();
-                displaySignals([result]);
-                updateStats([result]);
+                // 更新按钮显示
+                updateSymbolsListButton();
 
-                showMessage(symbol + ' 分析完成！', 'success');
+                showMessage(`正在添加 ${symbol}...`, 'success');
+
+                // 刷新所有交易对数据（包括新添加的）
+                await refreshAllSignals();
+
+                showMessage(`${symbol} 添加成功！`, 'success');
             } catch (error) {
-                console.error('自定义分析失败:', error);
-                tableBody.innerHTML = '<tr><td colspan="16" class="error">分析失败: ' + error.message + '</td></tr>';
-                showMessage('分析失败: ' + error.message, 'error');
+                console.error('添加交易对失败:', error);
+                // 如果失败，从列表中移除
+                const index = customSymbols.indexOf(symbol);
+                if (index > -1) {
+                    customSymbols.splice(index, 1);
+                    allSymbols.splice(allSymbols.indexOf(symbol), 1);
+                }
+                showMessage('添加失败: ' + error.message, 'error');
             }
         }
 
@@ -1869,7 +2140,7 @@
                                 <span class="label">最大杠杆:</span> <span class="value">${record.max_leverage || 'N/A'}</span>
                             </div>
                             <div class="detail-row">
-                                <span class="label">最低保证金:</span> <span class="value">$${record.min_margin || 'N/A'}</span>
+                                <span class="label">最低保证金:</span> <span class="value">$${calculateMinMargin(record)}</span>
                                 <span class="label">盈亏比:</span> <span class="value">${record.risk_reward_ratio || 'N/A'}</span>
                                 <span class="label">执行时间:</span> <span class="value">${executionTime}</span>
                             </div>
@@ -2069,6 +2340,109 @@
             `;
 
             document.body.appendChild(modal);
+        }
+
+        // 显示交易对列表
+        function showSymbolsList() {
+            const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT', 'SOLUSDT'];
+            const customSymbolsList = customSymbols;
+
+            const listHtml = `
+                <div class="symbols-list">
+                    <h3>📋 当前交易对列表</h3>
+                    <div class="symbols-content">
+                        <div class="default-symbols">
+                            <h4>默认交易对 (${defaultSymbols.length})</h4>
+                            <div class="symbols-grid">
+                                ${defaultSymbols.map(symbol =>
+                `<span class="symbol-tag default-tag">${symbol}</span>`
+            ).join('')}
+                            </div>
+                        </div>
+                        <div class="custom-symbols">
+                            <h4>自定义交易对 (${customSymbolsList.length})</h4>
+                            <div class="symbols-grid">
+                                ${customSymbolsList.length > 0 ?
+                    customSymbolsList.map(symbol =>
+                        `<span class="symbol-tag custom-tag">
+                                            ${symbol}
+                                            <button class="remove-symbol" onclick="removeCustomSymbol('${symbol}')" title="移除">×</button>
+                                        </span>`
+                    ).join('') :
+                    '<span class="no-symbols">暂无自定义交易对</span>'
+                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="symbols-actions">
+                        <button class="btn secondary" onclick="closeSymbolsList()">关闭</button>
+                    </div>
+                </div>
+            `;
+
+            showModal('交易对列表', listHtml);
+        }
+
+        // 移除自定义交易对
+        function removeCustomSymbol(symbol) {
+            if (confirm(`确定要移除交易对 ${symbol} 吗？`)) {
+                const index = customSymbols.indexOf(symbol);
+                if (index > -1) {
+                    customSymbols.splice(index, 1);
+                    allSymbols.splice(allSymbols.indexOf(symbol), 1);
+
+                    // 更新按钮显示
+                    updateSymbolsListButton();
+
+                    // 刷新数据
+                    refreshAllSignals();
+
+                    showMessage(`${symbol} 已移除`, 'success');
+                }
+            }
+        }
+
+        // 更新交易对列表按钮
+        function updateSymbolsListButton() {
+            const button = document.querySelector('.symbols-list-btn');
+            if (button) {
+                button.textContent = `📋 交易对列表 (${allSymbols.length})`;
+            }
+        }
+
+        // 关闭交易对列表
+        function closeSymbolsList() {
+            const modal = document.querySelector('.modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // 打开斐波拉契滚仓计算器
+        function openRollupCalculator() {
+            // 获取当前的最大损失金额
+            const currentMaxLoss = document.getElementById('maxLossAmount').value;
+
+            // 创建新窗口
+            const calculatorWindow = window.open(
+                'rollup-calculator.html',
+                'rollupCalculator',
+                'width=1200,height=800,scrollbars=yes,resizable=yes,status=yes,toolbar=no,menubar=no,location=no'
+            );
+
+            // 等待窗口加载完成后设置默认值
+            if (calculatorWindow) {
+                calculatorWindow.addEventListener('load', function () {
+                    try {
+                        const maxLossInput = calculatorWindow.document.getElementById('maxLossAmount');
+                        if (maxLossInput) {
+                            maxLossInput.value = currentMaxLoss;
+                        }
+                    } catch (error) {
+                        console.log('无法设置默认值:', error);
+                    }
+                });
+            }
         }
 
         // 页面加载时自动刷新一次
