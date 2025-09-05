@@ -45,7 +45,7 @@ pm2 restart smartflow-app
 
 ### 4. 验证配置
 
-1. 访问网页：`https://smartflow-trader.wendy-wang926.workers.dev`
+1. 访问网页：`https://smart.aimaventop.com`
 2. 点击 "📱 Telegram通知" 按钮
 3. 查看配置状态
 4. 点击 "🧪 测试通知" 按钮
@@ -71,7 +71,7 @@ pm2 restart smartflow-app
 4. 成交量分析: 成交量放大
 5. 15分钟执行: 突破setup高点
 
-🌐 网页链接：https://smartflow-trader.wendy-wang926.workers.dev
+🌐 网页链接：https://smart.aimaventop.com
 ```
 
 ## 🛠️ 故障排除

@@ -90,7 +90,7 @@ class TelegramNotifier {
       message += `\n`;
     }
 
-    message += `🌐 <b>网页链接：</b>https://smartflow-trader.wendy-wang926.workers.dev`;
+    message += `🌐 <b>网页链接：</b>https://smart.aimaventop.com`;
 
     return message;
   }
@@ -1443,7 +1443,7 @@ app.post('/api/test-telegram', async (req, res) => {
       return res.status(400).json({ error: 'Telegram未配置' });
     }
 
-    const testMessage = `🧪 <b>SmartFlow 测试消息</b>\n\n📊 <b>交易对：</b>BTCUSDT\n📈 <b>信号变化：</b>测试信号\n⚡ <b>入场执行变化：</b>测试执行\n🔍 <b>关键判断依据：</b>\n1. 这是一个测试消息\n2. 如果您收到此消息，说明Telegram通知配置成功\n\n🌐 <b>网页链接：</b>https://smartflow-trader.wendy-wang926.workers.dev`;
+    const testMessage = `🧪 <b>SmartFlow 测试消息</b>\n\n📊 <b>交易对：</b>BTCUSDT\n📈 <b>信号变化：</b>测试信号\n⚡ <b>入场执行变化：</b>测试执行\n🔍 <b>关键判断依据：</b>\n1. 这是一个测试消息\n2. 如果您收到此消息，说明Telegram通知配置成功\n\n🌐 <b>网页链接：</b>https://smart.aimaventop.com`;
 
     await telegramNotifier.sendMessage(testMessage);
     res.json({ success: true, message: '测试消息已发送' });
