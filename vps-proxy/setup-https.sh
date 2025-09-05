@@ -32,12 +32,17 @@ echo "🚇 创建隧道..."
 TUNNEL_NAME="smartflow-data-server"
 cloudflared tunnel create $TUNNEL_NAME
 
-# 5. 创建配置文件
+# 5. 获取 Tunnel ID
+echo "🔍 获取 Tunnel ID..."
+TUNNEL_ID=$(cloudflared tunnel list | grep $TUNNEL_NAME | awk '{print $1}')
+echo "Tunnel ID: $TUNNEL_ID"
+
+# 6. 创建配置文件
 echo "📝 创建配置文件..."
 mkdir -p /root/.cloudflared
 cat > /root/.cloudflared/config.yml << EOF
 tunnel: $TUNNEL_NAME
-credentials-file: /root/.cloudflared/$(cloudflared tunnel list | grep $TUNNEL_NAME | awk '{print $1}').json
+credentials-file: /root/.cloudflared/$TUNNEL_ID.json
 
 ingress:
   - hostname: data.smartflow-trader.wendy-wang926.workers.dev
@@ -45,7 +50,7 @@ ingress:
   - service: http_status:404
 EOF
 
-# 6. 创建 systemd 服务
+# 7. 创建 systemd 服务
 echo "🔧 创建 systemd 服务..."
 cat > /etc/systemd/system/cloudflared.service << EOF
 [Unit]
@@ -63,13 +68,13 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# 7. 启动服务
+# 8. 启动服务
 echo "🚀 启动 Cloudflare Tunnel..."
 systemctl daemon-reload
 systemctl enable cloudflared
 systemctl start cloudflared
 
-# 8. 检查服务状态
+# 9. 检查服务状态
 echo "📊 检查服务状态..."
 systemctl status cloudflared --no-pager
 
@@ -79,6 +84,9 @@ echo "🌐 HTTPS 访问地址: https://data.smartflow-trader.wendy-wang926.worke
 echo "🔗 API 中转: https://data.smartflow-trader.wendy-wang926.workers.dev/api/binance/*"
 echo ""
 echo "📝 下一步："
-echo "1. 在 Cloudflare 控制台添加 CNAME 记录"
+echo "1. 在 Cloudflare 控制台添加 CNAME 记录："
+echo "   名称: data"
+echo "   目标: $TUNNEL_ID.cfargotunnel.com"
+echo "   代理状态: 已代理"
 echo "2. 更新 Cloudflare Worker 配置"
 echo "3. 测试 HTTPS 访问"

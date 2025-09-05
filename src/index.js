@@ -64,7 +64,7 @@ class TechnicalIndicators {
 // Binance API 数据获取
 class BinanceAPI {
   static BASE_URL = 'https://fapi.binance.com';
-  static PROXY_URL = 'http://47.237.163.85:3000/api/binance';
+  static PROXY_URL = 'https://smartflow-data-server.wendy-wang926.workers.dev/api/binance';
 
   // 检测是否在受限地区
   static isRestrictedRegion(request) {
