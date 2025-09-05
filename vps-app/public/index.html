@@ -3,8 +3,18 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SmartFlow 交易策略仪表板</title>
+
+    <!-- PWA 支持 -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SmartFlow">
+
+    <!-- 防止iOS Safari缩放 -->
+    <meta name="format-detection" content="telephone=no">
     <style>
         * {
             margin: 0;
@@ -42,6 +52,31 @@
             opacity: 0.9;
         }
 
+        /* 顶部控制区域 */
+        .top-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* 底部控制区域 */
+        .bottom-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
         .controls {
             display: flex;
             justify-content: center;
@@ -71,6 +106,32 @@
 
         .btn:active {
             transform: translateY(0);
+        }
+
+        /* 触摸设备优化 */
+        @media (hover: none) and (pointer: coarse) {
+            .btn {
+                min-height: 44px;
+                /* iOS 推荐的最小触摸目标 */
+                min-width: 44px;
+            }
+
+            .expand-btn {
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            .refresh-select,
+            .symbol-input {
+                min-height: 44px;
+                font-size: 16px;
+                /* 防止iOS缩放 */
+            }
+
+            .mark-btn {
+                min-height: 36px;
+                min-width: 60px;
+            }
         }
 
         .btn.primary {
@@ -122,10 +183,14 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            /* iOS 平滑滚动 */
         }
 
         .table {
             width: 100%;
+            min-width: 800px;
+            /* 确保表格在小屏幕上可滚动 */
             border-collapse: collapse;
             margin-top: 20px;
         }
@@ -453,6 +518,516 @@
             padding: 20px;
         }
 
+        /* 消息提示样式 */
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        .message.success {
+            background: #28a745;
+        }
+
+        .message.error {
+            background: #dc3545;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* 移动端消息提示优化 */
+        @media screen and (max-width: 430px) {
+            .message {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+                text-align: center;
+                font-size: 14px;
+            }
+        }
+
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        /* Telegram配置样式 */
+        .telegram-config h3 {
+            color: #0088cc;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .config-status {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .config-status p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .status-success {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .status-error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .config-instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .config-instructions h4 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .config-instructions ol {
+            margin-left: 20px;
+        }
+
+        .config-instructions li {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
+        .config-instructions code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+
+        .config-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .config-actions .btn {
+            min-width: 120px;
+        }
+
+        .config-actions .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 刷新控制样式 */
+        .refresh-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .refresh-select {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 100px;
+        }
+
+        .refresh-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .refresh-status {
+            font-size: 12px;
+            color: #6c757d;
+            margin-left: 10px;
+        }
+
+        /* 交易对输入组样式 */
+        .symbol-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .symbol-input {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: white;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .symbol-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        /* iPhone 16 Pro Max 和其他大屏手机 */
+        @media screen and (max-width: 430px) and (max-height: 932px) {
+            .container {
+                padding: 8px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+                margin-bottom: 8px;
+            }
+
+            .header p {
+                font-size: 0.9rem;
+            }
+
+            .top-controls {
+                flex-direction: column;
+                gap: 12px;
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+
+            .refresh-controls {
+                flex-direction: column;
+                gap: 8px;
+                align-items: center;
+            }
+
+            .symbol-input-group {
+                flex-direction: column;
+                gap: 8px;
+                align-items: center;
+            }
+
+            .symbol-input {
+                min-width: 100%;
+                max-width: 280px;
+            }
+
+            .bottom-controls {
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px;
+                margin: 20px 0;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 280px;
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+
+            .stat-card {
+                padding: 15px;
+            }
+
+            .stat-card h3 {
+                font-size: 1.5rem;
+            }
+
+            .table-container {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+
+            .table {
+                font-size: 0.8rem;
+            }
+
+            .table th,
+            .table td {
+                padding: 8px 4px;
+                white-space: nowrap;
+            }
+
+            /* 移动端隐藏次要列 */
+            .table th:nth-child(7),
+            .table th:nth-child(8),
+            .table th:nth-child(9),
+            .table th:nth-child(10),
+            .table th:nth-child(11),
+            .table td:nth-child(7),
+            .table td:nth-child(8),
+            .table td:nth-child(9),
+            .table td:nth-child(10),
+            .table td:nth-child(11) {
+                display: none;
+            }
+
+            .expand-btn {
+                width: 25px;
+                height: 25px;
+                font-size: 12px;
+            }
+
+            .history-container {
+                padding: 15px;
+            }
+
+            .history-record {
+                padding: 12px;
+            }
+
+            .detail-row {
+                flex-direction: column;
+                gap: 5px;
+                margin-bottom: 10px;
+            }
+
+            .label {
+                min-width: auto;
+                font-size: 12px;
+            }
+
+            .rules-section {
+                padding: 20px;
+                margin-top: 20px;
+            }
+
+            .rules-section h2 {
+                font-size: 1.5rem;
+                margin-bottom: 20px;
+            }
+
+            .rule-category h3 {
+                font-size: 1rem;
+                padding: 12px 15px;
+            }
+
+            .rule-content {
+                padding: 15px;
+            }
+
+            .rule-content h4 {
+                font-size: 1rem;
+                margin: 12px 0 8px 0;
+            }
+
+            .rule-content li {
+                font-size: 0.9rem;
+                margin-bottom: 6px;
+            }
+        }
+
+        /* iPhone 横屏模式 */
+        @media screen and (max-height: 430px) and (orientation: landscape) {
+            .container {
+                padding: 5px;
+            }
+
+            .header {
+                margin-bottom: 15px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+                margin-bottom: 5px;
+            }
+
+            .header p {
+                font-size: 0.8rem;
+            }
+
+            .top-controls {
+                flex-direction: row;
+                gap: 10px;
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+
+            .refresh-controls {
+                flex-direction: row;
+                gap: 5px;
+            }
+
+            .symbol-input-group {
+                flex-direction: row;
+                gap: 5px;
+            }
+
+            .symbol-input {
+                min-width: 120px;
+                max-width: 150px;
+            }
+
+            .bottom-controls {
+                flex-direction: row;
+                gap: 10px;
+                padding: 10px;
+                margin: 15px 0;
+            }
+
+            .stats {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+                margin-bottom: 15px;
+            }
+
+            .stat-card {
+                padding: 10px;
+            }
+
+            .stat-card h3 {
+                font-size: 1.2rem;
+            }
+
+            .table-container {
+                padding: 8px;
+            }
+
+            .table {
+                font-size: 0.75rem;
+            }
+
+            .table th,
+            .table td {
+                padding: 6px 3px;
+            }
+
+            .rules-section {
+                display: none;
+                /* 横屏时隐藏规则说明以节省空间 */
+            }
+        }
+
+        /* 平板设备 */
+        @media screen and (min-width: 768px) and (max-width: 1024px) {
+            .container {
+                padding: 15px;
+            }
+
+            .top-controls {
+                gap: 20px;
+            }
+
+            .symbol-input {
+                min-width: 250px;
+            }
+
+            .table th,
+            .table td {
+                padding: 12px 8px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* 桌面端优化 */
+        @media screen and (min-width: 1025px) {
+            .container {
+                max-width: 1600px;
+            }
+
+            .top-controls {
+                gap: 30px;
+            }
+
+            .symbol-input {
+                min-width: 300px;
+            }
+
+            .table th,
+            .table td {
+                padding: 15px 10px;
+                font-size: 1rem;
+            }
+
+            .btn:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            }
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -460,6 +1035,29 @@
 
             .header h1 {
                 font-size: 2rem;
+            }
+
+            .top-controls {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .refresh-controls {
+                justify-content: center;
+            }
+
+            .symbol-input-group {
+                justify-content: center;
+            }
+
+            .symbol-input {
+                min-width: 150px;
+            }
+
+            .bottom-controls {
+                flex-direction: column;
+                align-items: center;
             }
 
             .controls {
@@ -496,24 +1094,29 @@
             <p>基于多周期共振的高胜率高盈亏比加密货币交易策略</p>
         </div>
 
-        <div class="controls">
+        <!-- 顶部按钮区域 -->
+        <div class="top-controls">
+            <div class="refresh-controls">
+                <button class="btn" onclick="toggleAutoRefresh()" id="autoRefreshBtn">
+                    ⏰ 自动刷新
+                </button>
+                <select id="refreshInterval" onchange="updateRefreshInterval()" class="refresh-select">
+                    <option value="300000">5分钟</option>
+                    <option value="900000">15分钟</option>
+                    <option value="1800000">30分钟</option>
+                    <option value="3600000">1小时</option>
+                    <option value="14400000">4小时</option>
+                    <option value="86400000">1天</option>
+                </select>
+                <span id="refreshStatus" class="refresh-status"></span>
+            </div>
             <button class="btn primary" onclick="refreshAllSignals()">
-                🔄 刷新所有信号
+                🔄 手动刷新
             </button>
-            <button class="btn secondary" onclick="testAPI()">
-                🧪 测试API连接
-            </button>
-            <button class="btn" onclick="toggleAutoRefresh()">
-                ⏰ 自动刷新
-            </button>
-            <button class="btn" onclick="loadDataMonitor()">
-                📊 数据监控
-            </button>
-            <div style="margin-top: 10px;">
-                <input type="text" id="customSymbol" placeholder="输入交易对 (如: ADAUSDT)"
-                    style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-right: 10px;">
-                <button class="btn" onclick="analyzeCustomSymbol()">
-                    📊 分析自定义交易对
+            <div class="symbol-input-group">
+                <input type="text" id="customSymbol" placeholder="输入交易对 (如: ADAUSDT)" class="symbol-input">
+                <button class="btn secondary" onclick="addCustomSymbol()">
+                    ➕ 添加交易对
                 </button>
             </div>
         </div>
@@ -560,6 +1163,19 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- 底部按钮区域 -->
+        <div class="bottom-controls">
+            <button class="btn secondary" onclick="testAPI()">
+                🧪 测试API连接
+            </button>
+            <button class="btn secondary" onclick="loadDataMonitor()">
+                📊 查看数据监控
+            </button>
+            <button class="btn secondary" onclick="viewTelegramConfig()">
+                📱 Telegram通知
+            </button>
         </div>
 
         <!-- 策略规则说明 -->
@@ -678,6 +1294,9 @@
     <script>
         let autoRefreshInterval = null;
         let isAutoRefresh = false;
+        let currentRefreshInterval = 300000; // 默认5分钟
+        let countdownInterval = null;
+        let timeUntilNextRefresh = 0;
 
         // 刷新所有信号
         async function refreshAllSignals() {
@@ -699,8 +1318,8 @@
             }
         }
 
-        // 分析自定义交易对
-        async function analyzeCustomSymbol() {
+        // 添加自定义交易对
+        async function addCustomSymbol() {
             const symbol = document.getElementById('customSymbol').value.trim().toUpperCase();
 
             if (!symbol) {
@@ -763,13 +1382,85 @@
         function toggleAutoRefresh() {
             if (isAutoRefresh) {
                 clearInterval(autoRefreshInterval);
+                clearInterval(countdownInterval);
                 isAutoRefresh = false;
+                document.getElementById('autoRefreshBtn').textContent = '⏰ 自动刷新';
+                document.getElementById('refreshStatus').textContent = '';
                 showMessage('自动刷新已关闭', 'success');
             } else {
-                autoRefreshInterval = setInterval(refreshAllSignals, 30000); // 30秒
-                isAutoRefresh = true;
-                showMessage('自动刷新已开启（30秒间隔）', 'success');
+                startAutoRefresh();
             }
+        }
+
+        // 开始自动刷新
+        function startAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            autoRefreshInterval = setInterval(refreshAllSignals, currentRefreshInterval);
+            isAutoRefresh = true;
+            timeUntilNextRefresh = currentRefreshInterval;
+
+            // 启动倒计时
+            startCountdown();
+
+            const intervalText = getIntervalText(currentRefreshInterval);
+            document.getElementById('autoRefreshBtn').textContent = '⏹️ 停止刷新';
+            showMessage(`自动刷新已开启（${intervalText}间隔）`, 'success');
+        }
+
+        // 开始倒计时
+        function startCountdown() {
+            countdownInterval = setInterval(() => {
+                timeUntilNextRefresh -= 1000;
+                updateCountdownDisplay();
+
+                if (timeUntilNextRefresh <= 0) {
+                    timeUntilNextRefresh = currentRefreshInterval;
+                }
+            }, 1000);
+        }
+
+        // 更新倒计时显示
+        function updateCountdownDisplay() {
+            const minutes = Math.floor(timeUntilNextRefresh / 60000);
+            const seconds = Math.floor((timeUntilNextRefresh % 60000) / 1000);
+
+            if (minutes > 0) {
+                document.getElementById('refreshStatus').textContent = `下次刷新: ${minutes}分${seconds}秒`;
+            } else {
+                document.getElementById('refreshStatus').textContent = `下次刷新: ${seconds}秒`;
+            }
+        }
+
+        // 更新刷新间隔
+        function updateRefreshInterval() {
+            const select = document.getElementById('refreshInterval');
+            currentRefreshInterval = parseInt(select.value);
+
+            if (isAutoRefresh) {
+                startAutoRefresh();
+            }
+
+            const intervalText = getIntervalText(currentRefreshInterval);
+            showMessage(`刷新间隔已设置为：${intervalText}`, 'success');
+        }
+
+        // 获取间隔文本
+        function getIntervalText(interval) {
+            const intervals = {
+                300000: '5分钟',
+                900000: '15分钟',
+                1800000: '30分钟',
+                3600000: '1小时',
+                14400000: '4小时',
+                86400000: '1天'
+            };
+            return intervals[interval] || '未知';
         }
 
         // 显示信号
@@ -1205,6 +1896,149 @@
             } catch (error) {
                 showMessage('标记失败: ' + error.message, 'error');
             }
+        }
+
+        // 移动端手势支持
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            if (!touchStartX || !touchStartY) return;
+
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+
+            const diffX = touchStartX - touchEndX;
+            const diffY = touchStartY - touchEndY;
+
+            // 检测下拉刷新手势
+            if (Math.abs(diffY) > Math.abs(diffX) && diffY < -50) {
+                refreshAllSignals();
+            }
+
+            touchStartX = 0;
+            touchStartY = 0;
+        });
+
+        // 防止双击缩放
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // Telegram配置相关函数
+        async function viewTelegramConfig() {
+            try {
+                const response = await fetch('/api/telegram-status');
+                const status = await response.json();
+
+                const configHtml = `
+                    <div class="telegram-config">
+                        <h3>📱 Telegram 通知配置</h3>
+                        <div class="config-status">
+                            <p><strong>配置状态：</strong> 
+                                <span class="${status.configured ? 'status-success' : 'status-error'}">
+                                    ${status.configured ? '✅ 已配置' : '❌ 未配置'}
+                                </span>
+                            </p>
+                            <p><strong>Bot Token：</strong> 
+                                <span class="${status.hasToken ? 'status-success' : 'status-error'}">
+                                    ${status.hasToken ? '✅ 已设置' : '❌ 未设置'}
+                                </span>
+                            </p>
+                            <p><strong>Chat ID：</strong> 
+                                <span class="${status.hasChatId ? 'status-success' : 'status-error'}">
+                                    ${status.hasChatId ? '✅ 已设置' : '❌ 未设置'}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="config-instructions">
+                            <h4>📋 配置步骤：</h4>
+                            <ol>
+                                <li>在Telegram中搜索 <code>@BotFather</code> 并创建新机器人</li>
+                                <li>获取Bot Token（格式：123456789:ABCdefGHIjklMNOpqrsTUVwxyz）</li>
+                                <li>将Bot Token设置为环境变量 <code>TELEGRAM_BOT_TOKEN</code></li>
+                                <li>获取您的Chat ID（可以给机器人发送消息，然后访问 <code>https://api.telegram.org/bot&lt;YOUR_BOT_TOKEN&gt;/getUpdates</code>）</li>
+                                <li>将Chat ID设置为环境变量 <code>TELEGRAM_CHAT_ID</code></li>
+                                <li>重启服务器使环境变量生效</li>
+                            </ol>
+                        </div>
+                        <div class="config-actions">
+                            <button class="btn primary" onclick="testTelegramNotification()" ${!status.configured ? 'disabled' : ''}>
+                                🧪 测试通知
+                            </button>
+                            <button class="btn secondary" onclick="closeTelegramConfig()">
+                                ❌ 关闭
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                showModal('Telegram配置', configHtml);
+            } catch (error) {
+                showMessage('获取Telegram配置失败: ' + error.message, 'error');
+            }
+        }
+
+        async function testTelegramNotification() {
+            try {
+                const response = await fetch('/api/test-telegram', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('测试消息已发送，请检查Telegram', 'success');
+                } else {
+                    showMessage('测试失败: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('测试Telegram通知失败: ' + error.message, 'error');
+            }
+        }
+
+        function closeTelegramConfig() {
+            const modal = document.querySelector('.modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function showModal(title, content) {
+            // 移除现有模态框
+            const existingModal = document.querySelector('.modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>${title}</h2>
+                        <button class="modal-close" onclick="closeTelegramConfig()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        ${content}
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
         }
 
         // 页面加载时自动刷新一次

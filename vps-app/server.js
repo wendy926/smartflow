@@ -22,6 +22,156 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Telegram 通知管理
+class TelegramNotifier {
+  constructor() {
+    this.botToken = process.env.TELEGRAM_BOT_TOKEN;
+    this.chatId = process.env.TELEGRAM_CHAT_ID;
+    this.enabled = !!(this.botToken && this.chatId);
+    this.lastSignals = new Map(); // 记录上次的信号状态
+    this.lastExecutions = new Map(); // 记录上次的入场执行状态
+  }
+
+  async sendMessage(message) {
+    if (!this.enabled) {
+      console.log('Telegram通知未配置，跳过发送:', message);
+      return;
+    }
+
+    try {
+      const response = await axios.post(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
+        chat_id: this.chatId,
+        text: message,
+        parse_mode: 'HTML',
+        disable_web_page_preview: false
+      });
+
+      if (response.data.ok) {
+        console.log('Telegram消息发送成功');
+      } else {
+        console.error('Telegram消息发送失败:', response.data);
+      }
+    } catch (error) {
+      console.error('Telegram API调用失败:', error.message);
+    }
+  }
+
+  formatSignalMessage(symbol, signalData, executionData, keyReasons) {
+    const signalChange = this.getSignalChange(symbol, signalData);
+    const executionChange = this.getExecutionChange(symbol, executionData);
+
+    if (!signalChange && !executionChange) {
+      return null; // 没有变化，不发送消息
+    }
+
+    let message = `🚨 <b>SmartFlow 交易信号提醒</b>\n\n`;
+    message += `📊 <b>交易对：</b>${symbol}\n\n`;
+
+    if (signalChange) {
+      message += `📈 <b>信号变化：</b>${signalChange}\n\n`;
+    }
+
+    if (executionChange) {
+      message += `⚡ <b>入场执行变化：</b>${executionChange}\n\n`;
+    }
+
+    if (keyReasons && keyReasons.length > 0) {
+      message += `🔍 <b>关键判断依据：</b>\n`;
+      keyReasons.forEach((reason, index) => {
+        message += `${index + 1}. ${reason}\n`;
+      });
+      message += `\n`;
+    }
+
+    message += `🌐 <b>网页链接：</b>https://smartflow-trader.wendy-wang926.workers.dev`;
+
+    return message;
+  }
+
+  getSignalChange(symbol, currentSignal) {
+    const lastSignal = this.lastSignals.get(symbol);
+    this.lastSignals.set(symbol, currentSignal);
+
+    if (!lastSignal) {
+      return currentSignal ? `新信号: ${currentSignal}` : null;
+    }
+
+    if (lastSignal !== currentSignal) {
+      return `从 "${lastSignal}" 变为 "${currentSignal || '无信号'}"`;
+    }
+
+    return null;
+  }
+
+  getExecutionChange(symbol, currentExecution) {
+    const lastExecution = this.lastExecutions.get(symbol);
+    this.lastExecutions.set(symbol, currentExecution);
+
+    if (!lastExecution) {
+      return currentExecution ? `新入场执行: ${currentExecution}` : null;
+    }
+
+    if (lastExecution !== currentExecution) {
+      return `从 "${lastExecution}" 变为 "${currentExecution || '无执行'}"`;
+    }
+
+    return null;
+  }
+
+  extractKeyReasons(analysis) {
+    const reasons = [];
+
+    if (analysis.dailyTrend) {
+      const trend = analysis.dailyTrend;
+      if (trend.trend) {
+        reasons.push(`日线趋势: ${trend.trend}`);
+      }
+      if (trend.maAlignment) {
+        reasons.push(`MA排列: ${trend.maAlignment}`);
+      }
+    }
+
+    if (analysis.hourlyConfirmation) {
+      const hourly = analysis.hourlyConfirmation;
+      if (hourly.signal) {
+        reasons.push(`小时确认: ${hourly.signal}`);
+      }
+      if (hourly.vwapPosition) {
+        reasons.push(`VWAP位置: ${hourly.vwapPosition}`);
+      }
+      if (hourly.volumeAnalysis) {
+        reasons.push(`成交量分析: ${hourly.volumeAnalysis}`);
+      }
+    }
+
+    if (analysis.execution) {
+      const exec = analysis.execution;
+      if (exec.execution) {
+        reasons.push(`15分钟执行: ${exec.execution}`);
+      }
+      if (exec.atrAnalysis) {
+        reasons.push(`ATR分析: ${exec.atrAnalysis}`);
+      }
+    }
+
+    return reasons.slice(0, 5); // 最多返回5个关键原因
+  }
+
+  async checkAndNotify(symbol, analysis) {
+    if (!this.enabled) return;
+
+    const signalData = analysis.hourlyConfirmation?.signal;
+    const executionData = analysis.execution?.execution;
+    const keyReasons = this.extractKeyReasons(analysis);
+
+    const message = this.formatSignalMessage(symbol, signalData, executionData, keyReasons);
+
+    if (message) {
+      await this.sendMessage(message);
+    }
+  }
+}
+
 // CVD WebSocket 管理
 class CVDManager {
   constructor() {
@@ -1048,6 +1198,19 @@ class SmartFlowStrategy {
         // 数据库错误不影响主要功能
       }
 
+      // 发送Telegram通知
+      try {
+        const analysis = {
+          dailyTrend,
+          hourlyConfirmation,
+          execution: execution15m
+        };
+        await telegramNotifier.checkAndNotify(symbol, analysis);
+      } catch (telegramError) {
+        console.error(`[Telegram] 通知发送失败 ${symbol}:`, telegramError.message);
+        // Telegram错误不影响主要功能
+      }
+
       return result;
     } catch (error) {
       console.error(`[Strategy] 综合分析失败: ${error.message}`);
@@ -1067,6 +1230,7 @@ class SmartFlowStrategy {
 // 初始化 CVD 管理器
 const cvdManager = new CVDManager();
 cvdManager.start();
+const telegramNotifier = new TelegramNotifier();
 
 // 初始化数据库
 const dbManager = new DatabaseManager();
@@ -1237,6 +1401,38 @@ app.get('/api/data-monitor', (req, res) => {
       error: '获取监控数据失败',
       message: error.message
     });
+  }
+});
+
+// Telegram配置API
+app.get('/api/telegram-status', (req, res) => {
+  try {
+    res.json({
+      enabled: telegramNotifier.enabled,
+      configured: !!(telegramNotifier.botToken && telegramNotifier.chatId),
+      hasToken: !!telegramNotifier.botToken,
+      hasChatId: !!telegramNotifier.chatId
+    });
+  } catch (error) {
+    console.error('Telegram状态API错误:', error);
+    res.status(500).json({ error: 'Telegram状态获取失败' });
+  }
+});
+
+// 测试Telegram通知
+app.post('/api/test-telegram', async (req, res) => {
+  try {
+    if (!telegramNotifier.enabled) {
+      return res.status(400).json({ error: 'Telegram未配置' });
+    }
+
+    const testMessage = `🧪 <b>SmartFlow 测试消息</b>\n\n📊 <b>交易对：</b>BTCUSDT\n📈 <b>信号变化：</b>测试信号\n⚡ <b>入场执行变化：</b>测试执行\n🔍 <b>关键判断依据：</b>\n1. 这是一个测试消息\n2. 如果您收到此消息，说明Telegram通知配置成功\n\n🌐 <b>网页链接：</b>https://smartflow-trader.wendy-wang926.workers.dev`;
+
+    await telegramNotifier.sendMessage(testMessage);
+    res.json({ success: true, message: '测试消息已发送' });
+  } catch (error) {
+    console.error('Telegram测试API错误:', error);
+    res.status(500).json({ error: 'Telegram测试失败: ' + error.message });
   }
 });
 
