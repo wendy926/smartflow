@@ -76,3 +76,4 @@ wrangler.toml.bak
 # Local development
 dist/
 build/
+.vercel

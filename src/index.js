@@ -64,17 +64,86 @@ class TechnicalIndicators {
 // Binance API 数据获取
 class BinanceAPI {
   static BASE_URL = 'https://fapi.binance.com';
+  static VPS_PROXY_URL = 'http://47.237.163.85:3000/api/binance';
+
+  // 检测是否在受限地区
+  static isRestrictedRegion(request) {
+    const country = request.cf?.country;
+    const restrictedCountries = [
+      'US',    // 美国
+      'CA',    // 加拿大
+      'GB',    // 英国
+      'NL',    // 荷兰
+      'NG',    // 尼日利亚
+      'BE',    // 比利时
+      'CU',    // 古巴
+      'IR',    // 伊朗
+      'SY',    // 叙利亚
+      'KP',    // 朝鲜
+      'PH'     // 菲律宾
+    ];
+    return restrictedCountries.includes(country);
+  }
+
+  // 获取 API 基础 URL
+  static getBaseUrl() {
+    // 优先使用 VPS 代理，如果失败则回退到直接访问
+    return this.VPS_PROXY_URL;
+  }
+
+  // 获取备用 URL（直接访问 Binance）
+  static getFallbackUrl() {
+    return this.BASE_URL;
+  }
+
+  // 通用 API 请求方法，支持 VPS 代理和回退
+  static async _makeRequest(endpoint, params = {}, dataProcessor = null) {
+    const queryString = new URLSearchParams(params).toString();
+    const url = `${this.getBaseUrl()}${endpoint}?${queryString}`;
+
+    try {
+      console.log(`[VPS代理] 请求: ${url}`);
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'SmartFlow-Trader/1.0',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`VPS代理错误: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return dataProcessor ? dataProcessor(data) : data;
+
+    } catch (error) {
+      console.warn(`[VPS代理] 请求失败，尝试直接访问: ${error.message}`);
+
+      // 回退到直接访问 Binance
+      const fallbackUrl = `${this.getFallbackUrl()}${endpoint}?${queryString}`;
+      const fallbackResponse = await fetch(fallbackUrl, {
+        headers: {
+          'User-Agent': 'SmartFlow-Trader/1.0',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!fallbackResponse.ok) {
+        throw new Error(`Binance API error: ${fallbackResponse.status}`);
+      }
+
+      const data = await fallbackResponse.json();
+      return dataProcessor ? dataProcessor(data) : data;
+    }
+  }
 
   static async getKlines(symbol, interval, limit = 500) {
-    const url = `${this.BASE_URL}/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`Binance API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.map(k => ({
+    return await this._makeRequest('/fapi/v1/klines', {
+      symbol,
+      interval,
+      limit
+    }, (data) => data.map(k => ({
       time: k[0],
       open: parseFloat(k[1]),
       high: parseFloat(k[2]),
@@ -86,45 +155,31 @@ class BinanceAPI {
       trades: parseInt(k[8]),
       takerBuyBaseVolume: parseFloat(k[9]),
       takerBuyQuoteVolume: parseFloat(k[10])
-    }));
+    })));
   }
 
   static async getFundingRate(symbol, limit = 1) {
-    const url = `${this.BASE_URL}/fapi/v1/fundingRate?symbol=${symbol}&limit=${limit}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`Funding rate API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return parseFloat(data[0].fundingRate);
+    return await this._makeRequest('/fapi/v1/fundingRate', {
+      symbol,
+      limit
+    }, (data) => parseFloat(data[0].fundingRate));
   }
 
   static async getOpenInterest(symbol, period = '1h', limit = 24) {
-    const url = `${this.BASE_URL}/futures/data/openInterestHist?symbol=${symbol}&period=${period}&limit=${limit}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`Open interest API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.map(d => ({
+    return await this._makeRequest('/futures/data/openInterestHist', {
+      symbol,
+      period,
+      limit
+    }, (data) => data.map(d => ({
       time: d.timestamp,
       oi: parseFloat(d.sumOpenInterest)
-    }));
+    })));
   }
 
   static async getTicker24hr(symbol) {
-    const url = `${this.BASE_URL}/fapi/v1/ticker/24hr?symbol=${symbol}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`24hr ticker API error: ${response.status}`);
-    }
-
-    return await response.json();
+    return await this._makeRequest('/fapi/v1/ticker/24hr', {
+      symbol
+    });
   }
 }
 
@@ -435,6 +490,45 @@ class SmartFlowStrategy {
   }
 }
 
+// 独立的测试函数
+async function testBinanceAPI() {
+  const tests = [];
+
+  try {
+    // 测试K线数据
+    const klines = await BinanceAPI.getKlines('BTCUSDT', '1h', 10);
+    tests.push({ test: 'K线数据', status: 'PASS', data: klines.length });
+  } catch (error) {
+    tests.push({ test: 'K线数据', status: 'FAIL', error: error.message });
+  }
+
+  try {
+    // 测试资金费率
+    const funding = await BinanceAPI.getFundingRate('BTCUSDT');
+    tests.push({ test: '资金费率', status: 'PASS', data: funding });
+  } catch (error) {
+    tests.push({ test: '资金费率', status: 'FAIL', error: error.message });
+  }
+
+  try {
+    // 测试持仓量
+    const oi = await BinanceAPI.getOpenInterest('BTCUSDT', '1h', 5);
+    tests.push({ test: '持仓量', status: 'PASS', data: oi.length });
+  } catch (error) {
+    tests.push({ test: '持仓量', status: 'FAIL', error: error.message });
+  }
+
+  return {
+    timestamp: new Date().toISOString(),
+    tests,
+    summary: {
+      total: tests.length,
+      passed: tests.filter(t => t.status === 'PASS').length,
+      failed: tests.filter(t => t.status === 'FAIL').length
+    }
+  };
+}
+
 // Cloudflare Worker 主入口
 export default {
   async scheduled(event, env, ctx) {
@@ -447,6 +541,9 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const strategy = new SmartFlowStrategy(env);
+
+    // 由于使用 VPS 代理，不再需要地区限制
+    // 所有请求都通过新加坡 VPS 代理访问 Binance API
 
     // API路由
     if (url.pathname === '/api/analyze') {
@@ -465,7 +562,7 @@ export default {
     }
 
     if (url.pathname === '/api/test') {
-      const testResult = await this.testBinanceAPI();
+      const testResult = await testBinanceAPI();
       return new Response(JSON.stringify(testResult, null, 2), {
         headers: { 'Content-Type': 'application/json' }
       });
@@ -481,43 +578,6 @@ export default {
     return new Response('SmartFlow Trading Strategy API', { status: 200 });
   },
 
-  async testBinanceAPI() {
-    const tests = [];
-
-    try {
-      // 测试K线数据
-      const klines = await BinanceAPI.getKlines('BTCUSDT', '1h', 10);
-      tests.push({ test: 'K线数据', status: 'PASS', data: klines.length });
-    } catch (error) {
-      tests.push({ test: 'K线数据', status: 'FAIL', error: error.message });
-    }
-
-    try {
-      // 测试资金费率
-      const funding = await BinanceAPI.getFundingRate('BTCUSDT');
-      tests.push({ test: '资金费率', status: 'PASS', data: funding });
-    } catch (error) {
-      tests.push({ test: '资金费率', status: 'FAIL', error: error.message });
-    }
-
-    try {
-      // 测试持仓量
-      const oi = await BinanceAPI.getOpenInterest('BTCUSDT', '1h', 5);
-      tests.push({ test: '持仓量', status: 'PASS', data: oi.length });
-    } catch (error) {
-      tests.push({ test: '持仓量', status: 'FAIL', error: error.message });
-    }
-
-    return {
-      timestamp: new Date().toISOString(),
-      tests,
-      summary: {
-        total: tests.length,
-        passed: tests.filter(t => t.status === 'PASS').length,
-        failed: tests.filter(t => t.status === 'FAIL').length
-      }
-    };
-  },
 
   generateDashboard() {
     return `
