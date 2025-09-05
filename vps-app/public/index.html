@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -33,7 +34,7 @@
         .header h1 {
             font-size: 2.5rem;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .header p {
@@ -65,7 +66,7 @@
         .btn:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         .btn:active {
@@ -94,7 +95,7 @@
             padding: 25px;
             border-radius: 15px;
             text-align: center;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
@@ -117,7 +118,7 @@
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
             padding: 25px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             overflow-x: auto;
@@ -252,6 +253,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -269,6 +271,13 @@
             <button class="btn" onclick="toggleAutoRefresh()">
                 ⏰ 自动刷新
             </button>
+            <div style="margin-top: 10px;">
+                <input type="text" id="customSymbol" placeholder="输入交易对 (如: ADAUSDT)"
+                    style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-right: 10px;">
+                <button class="btn" onclick="analyzeCustomSymbol()">
+                    📊 分析自定义交易对
+                </button>
+            </div>
         </div>
 
         <div class="stats">
@@ -297,20 +306,24 @@
                         <th>交易对</th>
                         <th>趋势</th>
                         <th>信号</th>
+                        <th>入场执行</th>
                         <th>当前价格</th>
                         <th>VWAP</th>
                         <th>成交量倍数</th>
                         <th>OI变化%</th>
                         <th>资金费率</th>
+                        <th>CVD</th>
                         <th>止损价</th>
                         <th>目标价</th>
+                        <th>止损距离</th>
+                        <th>最大杠杆</th>
+                        <th>最低保证金</th>
                         <th>盈亏比</th>
-                        <th>原因</th>
                     </tr>
                 </thead>
                 <tbody id="signalsTable">
                     <tr>
-                        <td colspan="12" class="loading">点击"刷新所有信号"开始分析</td>
+                        <td colspan="16" class="loading">点击"刷新所有信号"开始分析</td>
                     </tr>
                 </tbody>
             </table>
@@ -324,7 +337,7 @@
         // 刷新所有信号
         async function refreshAllSignals() {
             const tableBody = document.getElementById('signalsTable');
-            tableBody.innerHTML = '<tr><td colspan="12" class="loading">分析中...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="16" class="loading">分析中...</td></tr>';
 
             try {
                 const response = await fetch('/api/analyze-all');
@@ -336,8 +349,51 @@
                 showMessage('信号刷新成功！', 'success');
             } catch (error) {
                 console.error('刷新信号失败:', error);
-                tableBody.innerHTML = '<tr><td colspan="12" class="error">刷新失败: ' + error.message + '</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="16" class="error">刷新失败: ' + error.message + '</td></tr>';
                 showMessage('刷新失败: ' + error.message, 'error');
+            }
+        }
+
+        // 分析自定义交易对
+        async function analyzeCustomSymbol() {
+            const symbol = document.getElementById('customSymbol').value.trim().toUpperCase();
+
+            if (!symbol) {
+                showMessage('请输入交易对', 'error');
+                return;
+            }
+
+            if (!symbol.endsWith('USDT')) {
+                showMessage('交易对必须以 USDT 结尾', 'error');
+                return;
+            }
+
+            const tableBody = document.getElementById('signalsTable');
+            tableBody.innerHTML = '<tr><td colspan="16" class="loading">分析 ' + symbol + ' 中...</td></tr>';
+
+            try {
+                const response = await fetch('/api/analyze-custom', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ symbol })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || '分析失败');
+                }
+
+                const result = await response.json();
+                displaySignals([result]);
+                updateStats([result]);
+
+                showMessage(symbol + ' 分析完成！', 'success');
+            } catch (error) {
+                console.error('自定义分析失败:', error);
+                tableBody.innerHTML = '<tr><td colspan="16" class="error">分析失败: ' + error.message + '</td></tr>';
+                showMessage('分析失败: ' + error.message, 'error');
             }
         }
 
@@ -346,7 +402,7 @@
             try {
                 const response = await fetch('/api/test');
                 const result = await response.json();
-                
+
                 if (result.summary.passed === result.summary.total) {
                     showMessage('API连接正常！所有测试通过', 'success');
                 } else {
@@ -376,26 +432,54 @@
             const tableBody = document.getElementById('signalsTable');
             
             if (signals.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="12" class="loading">暂无信号数据</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="16" class="loading">暂无信号数据</td></tr>';
                 return;
             }
 
-            tableBody.innerHTML = signals.map(signal => `
-                <tr>
-                    <td><strong>${signal.symbol}</strong></td>
-                    <td><span class="trend ${signal.trend.toLowerCase()}">${signal.trend}</span></td>
-                    <td><span class="signal ${signal.signal.toLowerCase().replace('_', '-')}">${signal.signal}</span></td>
-                    <td>$${signal.currentPrice ? signal.currentPrice.toFixed(2) : '--'}</td>
-                    <td>${signal.vwap ? (signal.vwap * 100).toFixed(2) + '%' : '--'}</td>
-                    <td>${signal.volumeRatio ? signal.volumeRatio.toFixed(2) + 'x' : '--'}</td>
-                    <td>${signal.oiChange ? signal.oiChange.toFixed(2) : '--'}</td>
-                    <td>${signal.fundingRate ? (signal.fundingRate * 100).toFixed(4) + '%' : '--'}</td>
-                    <td>${signal.stopLoss ? '$' + signal.stopLoss.toFixed(2) : '--'}</td>
-                    <td>${signal.targetPrice ? '$' + signal.targetPrice.toFixed(2) : '--'}</td>
-                    <td>${signal.riskReward ? signal.riskReward.toFixed(1) : '--'}</td>
-                    <td>${signal.reason || '--'}</td>
-                </tr>
-            `).join('');
+            tableBody.innerHTML = signals.map(signal => {
+                // 处理数据错误情况
+                if (signal.trend === 'DATA_ERROR' || signal.trend === 'ERROR') {
+                    return `
+                        <tr>
+                            <td><strong>${signal.symbol}</strong></td>
+                            <td colspan="15" class="error">数据错误: ${signal.dataError || '未知错误'}</td>
+                        </tr>
+                    `;
+                }
+
+                // 格式化执行状态
+                const getExecutionDisplay = (execution) => {
+                    const executionMap = {
+                        'LONG_EXECUTE': '<span class="signal long">执行做多</span>',
+                        'LONG_WAIT_PULLBACK': '<span class="signal no-signal">等待回踩</span>',
+                        'SHORT_EXECUTE': '<span class="signal short">执行做空</span>',
+                        'SHORT_WAIT_PULLBACK': '<span class="signal no-signal">等待回踩</span>',
+                        'NO_EXECUTION': '<span class="signal no-signal">无执行</span>'
+                    };
+                    return executionMap[execution] || execution;
+                };
+
+                return `
+                    <tr>
+                        <td><strong>${signal.symbol}</strong></td>
+                        <td><span class="trend ${signal.trend.toLowerCase()}">${signal.trend}</span></td>
+                        <td><span class="signal ${signal.signal.toLowerCase().replace('_', '-')}">${signal.signal}</span></td>
+                        <td>${getExecutionDisplay(signal.execution)}</td>
+                        <td>$${signal.currentPrice ? signal.currentPrice.toFixed(2) : '--'}</td>
+                        <td>$${signal.vwap ? signal.vwap.toFixed(2) : '--'}</td>
+                        <td>${signal.volumeRatio ? signal.volumeRatio.toFixed(2) + 'x' : '--'}</td>
+                        <td>${signal.oiChange ? signal.oiChange.toFixed(2) + '%' : '--'}</td>
+                        <td>${signal.fundingRate ? (signal.fundingRate * 100).toFixed(4) + '%' : '--'}</td>
+                        <td>${signal.cvd || '--'}</td>
+                        <td>${signal.stopLoss ? '$' + signal.stopLoss.toFixed(2) : '--'}</td>
+                        <td>${signal.targetPrice ? '$' + signal.targetPrice.toFixed(2) : '--'}</td>
+                        <td>${signal.stopDistance ? (signal.stopDistance * 100).toFixed(2) + '%' : '--'}</td>
+                        <td>${signal.maxLeverage ? signal.maxLeverage + 'x' : '--'}</td>
+                        <td>${signal.minMargin ? '$' + signal.minMargin.toFixed(0) : '--'}</td>
+                        <td>${signal.riskReward ? signal.riskReward.toFixed(1) : '--'}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // 更新统计
@@ -403,7 +487,7 @@
             const totalSignals = signals.length;
             const longSignals = signals.filter(s => s.signal === 'LONG').length;
             const shortSignals = signals.filter(s => s.signal === 'SHORT').length;
-            
+
             document.getElementById('totalSignals').textContent = totalSignals;
             document.getElementById('longSignals').textContent = longSignals;
             document.getElementById('shortSignals').textContent = shortSignals;
@@ -420,9 +504,9 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
             messageDiv.textContent = message;
-            
+
             document.querySelector('.container').insertBefore(messageDiv, document.querySelector('.stats'));
-            
+
             setTimeout(() => {
                 messageDiv.remove();
             }, 5000);
@@ -434,4 +518,5 @@
         });
     </script>
 </body>
+
 </html>
