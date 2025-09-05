@@ -7,8 +7,12 @@ const { SMA, VWAP, ATR } = require('technicalindicators');
 const WebSocket = require('ws');
 const sqlite3 = require('sqlite3').verbose();
 
-// 加载环境变量
-require('dotenv').config();
+// 加载环境变量（如果dotenv可用）
+try {
+  require('dotenv').config();
+} catch (error) {
+  console.log('dotenv未安装，使用系统环境变量');
+}
 
 const app = express();
 const PORT = process.env.PORT || 8080;
