@@ -1,8 +1,8 @@
-# 🌐 aimaventop.com 域名配置指南
+# 🌐 smart.aimaventop.com 域名配置指南
 
 ## 📋 配置概览
 
-- **域名**: aimaventop.com
+- **域名**: smart.aimaventop.com
 - **VPS IP**: 47.237.163.85
 - **应用端口**: 8080
 - **SSL**: Cloudflare 处理
@@ -18,9 +18,7 @@
 
 | 类型 | 名称 | 内容 | 代理状态 | TTL |
 |------|------|------|----------|-----|
-| A | @ | 47.237.163.85 | 🟠 已代理 | 自动 |
-| A | www | 47.237.163.85 | 🟠 已代理 | 自动 |
-| A | api | 47.237.163.85 | 🟠 已代理 | 自动 |
+| A | smart | 47.237.163.85 | 🟠 已代理 | 自动 |
 
 ### 1.3 SSL/TLS 配置
 1. 进入 `SSL/TLS` → `概述`
@@ -60,29 +58,29 @@ sudo tail -f /var/log/nginx/aimaventop.com.access.log
 ### 3.1 基本测试
 ```bash
 # 测试 HTTP 重定向
-curl -I http://aimaventop.com
+curl -I http://smart.aimaventop.com
 
 # 测试 HTTPS 访问
-curl -I https://aimaventop.com
+curl -I https://smart.aimaventop.com
 
 # 测试 API
-curl https://aimaventop.com/api/test
+curl https://smart.aimaventop.com/api/test
 ```
 
 ### 3.2 浏览器测试
 访问以下 URL：
-- https://aimaventop.com - 主页面
-- https://aimaventop.com/api/test - API 测试
-- https://aimaventop.com/health - 健康检查
-- https://aimaventop.com/api/analyze-all - 分析所有交易对
+- https://smart.aimaventop.com - 主页面
+- https://smart.aimaventop.com/api/test - API 测试
+- https://smart.aimaventop.com/health - 健康检查
+- https://smart.aimaventop.com/api/analyze-all - 分析所有交易对
 
 ## 🔍 故障排除
 
 ### 问题 1: DNS 解析失败
 ```bash
 # 检查 DNS 解析
-nslookup aimaventop.com
-dig aimaventop.com
+nslookup smart.aimaventop.com
+dig smart.aimaventop.com
 ```
 
 ### 问题 2: SSL 证书错误
@@ -115,8 +113,8 @@ sudo ufw allow 8080
 ## 📊 监控和维护
 
 ### 日志文件
-- Nginx 访问日志: `/var/log/nginx/aimaventop.com.access.log`
-- Nginx 错误日志: `/var/log/nginx/aimaventop.com.error.log`
+- Nginx 访问日志: `/var/log/nginx/smart.aimaventop.com.access.log`
+- Nginx 错误日志: `/var/log/nginx/smart.aimaventop.com.error.log`
 - 应用日志: `pm2 logs smartflow-app`
 
 ### 性能监控
@@ -166,4 +164,4 @@ location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
 
 ---
 
-**配置完成后，你的 SmartFlow 应用将通过 https://aimaventop.com 访问！** 🎉
+**配置完成后，你的 SmartFlow 应用将通过 https://smart.aimaventop.com 访问！** 🎉
