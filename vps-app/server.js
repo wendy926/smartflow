@@ -296,6 +296,26 @@ class CVDManager {
     }
   }
 
+  // 检查连接是否已建立
+  isConnected(symbol) {
+    const ws = this.connections.get(symbol);
+    return ws && ws.readyState === WebSocket.OPEN;
+  }
+
+  // 等待连接建立
+  async waitForConnection(symbol, timeout = 15000) {
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+      if (this.isConnected(symbol)) {
+        console.log(`✅ ${symbol} WebSocket 连接已建立`);
+        return true;
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    console.warn(`⚠️ ${symbol} WebSocket 连接超时`);
+    return false;
+  }
+
   // 关闭所有连接
   closeAll() {
     this.connections.forEach((ws, symbol) => {
@@ -1191,10 +1211,13 @@ class SmartFlowStrategy {
       const cvdData = cvdManager.getCVD(symbol);
       if (!cvdData.isActive) {
         this.dataMonitor.recordRawData(symbol, 'CVD数据', null, false, new Error('CVD数据不可用'));
-        throw new Error('CVD数据不可用');
+        console.warn(`⚠️ ${symbol} CVD数据不可用，继续分析但可能影响信号准确性`);
+        // 不抛出错误，而是使用默认的CVD数据继续分析
+        const defaultCvdData = { cvd: 0, direction: 'N/A', isActive: false };
+        this.dataMonitor.recordRawData(symbol, 'CVD数据', defaultCvdData, false);
+      } else {
+        this.dataMonitor.recordRawData(symbol, 'CVD数据', cvdData, true);
       }
-
-      this.dataMonitor.recordRawData(symbol, 'CVD数据', cvdData, true);
 
       return {
         confirmed: volumeRatio > 1.5 && Math.abs(fundingRateValue) <= 0.001,
@@ -1205,7 +1228,7 @@ class SmartFlowStrategy {
         breakoutDown,
         oiChange,
         fundingRate: fundingRateValue,
-        cvd: cvdData,
+        cvd: cvdData.isActive ? cvdData : { cvd: 0, direction: 'N/A', isActive: false },
         dataValid: true
       };
     } catch (error) {
@@ -1357,19 +1380,23 @@ class SmartFlowStrategy {
       // 2. 信号判断 (日线 + 小时数据)
       let signal = 'NO_SIGNAL';
 
+      // 检查CVD数据是否可用
+      const cvdAvailable = hourlyConfirmation.cvd.isActive;
+      const cvdDirection = hourlyConfirmation.cvd.direction;
+
       if (trend === 'UPTREND' &&
         hourlyConfirmation.confirmed &&
         hourlyConfirmation.priceVsVwap > 0 &&
         hourlyConfirmation.breakoutUp &&
         hourlyConfirmation.oiChange >= 2 &&
-        hourlyConfirmation.cvd.direction === 'CVD(+)') {
+        (cvdAvailable ? cvdDirection === 'CVD(+)' : true)) {
         signal = 'LONG';
       } else if (trend === 'DOWNTREND' &&
         hourlyConfirmation.confirmed &&
         hourlyConfirmation.priceVsVwap < 0 &&
         hourlyConfirmation.breakoutDown &&
         hourlyConfirmation.oiChange <= -2 &&
-        hourlyConfirmation.cvd.direction === 'CVD(-)') {
+        (cvdAvailable ? cvdDirection === 'CVD(-)' : true)) {
         signal = 'SHORT';
       }
 
@@ -1862,16 +1889,22 @@ app.post('/api/analyze-custom', async (req, res) => {
     // 预先添加交易对到 CVD 连接
     cvdManager.addSymbol(symbol);
 
-    // 等待 WebSocket 连接建立并收集数据
+    // 等待 WebSocket 连接建立
     console.log(`⏳ 等待 ${symbol} WebSocket 连接建立...`);
-    await new Promise(resolve => setTimeout(resolve, 5000)); // 增加等待时间到5秒
+    const connected = await cvdManager.waitForConnection(symbol, 15000);
+
+    if (connected) {
+      // 连接建立后，再等待一段时间收集CVD数据
+      console.log(`⏳ 等待 ${symbol} CVD 数据收集...`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
 
     // 检查 CVD 连接状态
     const cvdStatus = cvdManager.getCVD(symbol);
     if (!cvdStatus.isActive) {
-      console.warn(`⚠️ ${symbol} CVD 连接未建立，继续分析但可能缺少 CVD 数据`);
+      console.warn(`⚠️ ${symbol} CVD 连接未建立或数据不足，继续分析但可能缺少 CVD 数据`);
     } else {
-      console.log(`✅ ${symbol} CVD 连接已建立`);
+      console.log(`✅ ${symbol} CVD 连接已建立，数据可用`);
     }
 
     const result = await SmartFlowStrategy.analyzeAll(symbol);
