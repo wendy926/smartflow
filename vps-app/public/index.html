@@ -218,6 +218,241 @@
             border: 1px solid #c3e6cb;
         }
 
+        /* 规则说明样式 */
+        .rules-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .rules-section h2 {
+            color: #333;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1.8rem;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .rule-category {
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .rule-category h3 {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            margin: 0;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+        }
+
+        .rule-content {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .rule-content h4 {
+            color: #495057;
+            margin: 15px 0 10px 0;
+            font-size: 1.1rem;
+            border-left: 4px solid #667eea;
+            padding-left: 10px;
+        }
+
+        .rule-content ul {
+            margin: 0 0 15px 20px;
+            padding: 0;
+        }
+
+        .rule-content li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+            color: #6c757d;
+        }
+
+        .rule-content li strong {
+            color: #495057;
+        }
+
+        /* 历史记录样式 */
+        .expand-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .expand-btn:hover {
+            background: #5a6fd8;
+            transform: scale(1.1);
+        }
+
+        .history-row {
+            background: #f8f9fa;
+        }
+
+        .history-container {
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .history-header h4 {
+            margin: 0;
+            color: #333;
+        }
+
+        .load-history-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .load-history-btn:hover {
+            background: #218838;
+        }
+
+        .history-record {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            padding: 15px;
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .record-time {
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .record-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .record-status.correct {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .record-status.incorrect {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .record-status.unmarked {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .record-details {
+            font-size: 14px;
+        }
+
+        .detail-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 8px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #6c757d;
+            min-width: 80px;
+        }
+
+        .value {
+            color: #495057;
+        }
+
+        .record-notes {
+            background: #e9ecef;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-style: italic;
+            color: #6c757d;
+        }
+
+        .record-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .mark-btn {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .mark-btn.correct {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .mark-btn.incorrect {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .mark-btn.unmarked {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .mark-btn:hover {
+            opacity: 0.8;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #6c757d;
+            padding: 20px;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -271,6 +506,9 @@
             <button class="btn" onclick="toggleAutoRefresh()">
                 ⏰ 自动刷新
             </button>
+            <button class="btn" onclick="loadDataMonitor()">
+                📊 数据监控
+            </button>
             <div style="margin-top: 10px;">
                 <input type="text" id="customSymbol" placeholder="输入交易对 (如: ADAUSDT)"
                     style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; margin-right: 10px;">
@@ -303,6 +541,7 @@
             <table class="table">
                 <thead>
                     <tr>
+                        <th>操作</th>
                         <th>交易对</th>
                         <th>趋势</th>
                         <th>信号</th>
@@ -313,20 +552,126 @@
                         <th>OI变化%</th>
                         <th>资金费率</th>
                         <th>CVD</th>
-                        <th>止损价</th>
-                        <th>目标价</th>
-                        <th>止损距离</th>
-                        <th>最大杠杆</th>
-                        <th>最低保证金</th>
-                        <th>盈亏比</th>
                     </tr>
                 </thead>
                 <tbody id="signalsTable">
                     <tr>
-                        <td colspan="16" class="loading">点击"刷新所有信号"开始分析</td>
+                        <td colspan="11" class="loading">点击"刷新所有信号"开始分析</td>
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- 策略规则说明 -->
+        <div class="rules-section">
+            <h2>📋 交易策略规则说明</h2>
+
+            <div class="rule-category">
+                <h3>🎯 趋势判断 (日线级别)</h3>
+                <div class="rule-content">
+                    <h4>多头趋势条件：</h4>
+                    <ul>
+                        <li>MA20 > MA50 > MA200 (移动平均线多头排列)</li>
+                        <li>当前价格 > MA20 (价格在短期均线之上)</li>
+                        <li>满足以上条件时显示 "多头"</li>
+                    </ul>
+
+                    <h4>空头趋势条件：</h4>
+                    <ul>
+                        <li>MA20 < MA50 < MA200 (移动平均线空头排列)</li>
+                        <li>当前价格 < MA20 (价格在短期均线之下)</li>
+                        <li>满足以上条件时显示 "空头"</li>
+                    </ul>
+
+                    <h4>震荡趋势：</h4>
+                    <ul>
+                        <li>不满足多头或空头条件时显示 "震荡"</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="rule-category">
+                <h3>📊 信号判断 (小时级别确认)</h3>
+                <div class="rule-content">
+                    <h4>多头信号条件：</h4>
+                    <ul>
+                        <li>日线趋势为 "多头" 或 "震荡"</li>
+                        <li>成交量倍数 > 1.5 (当前成交量/平均成交量)</li>
+                        <li>资金费率绝对值 ≤ 0.001 (避免高费率)</li>
+                        <li>VWAP确认：价格 > VWAP</li>
+                        <li>20周期高低点突破：当前价格 > 过去20小时最高价</li>
+                        <li>持仓量6小时变化 > 0 (资金流入)</li>
+                        <li>CVD数据可用且方向为多头</li>
+                    </ul>
+
+                    <h4>空头信号条件：</h4>
+                    <ul>
+                        <li>日线趋势为 "空头" 或 "震荡"</li>
+                        <li>成交量倍数 > 1.5</li>
+                        <li>资金费率绝对值 ≤ 0.001</li>
+                        <li>VWAP确认：价格 < VWAP</li>
+                        <li>20周期高低点突破：当前价格 < 过去20小时最低价</li>
+                        <li>持仓量6小时变化 < 0 (资金流出)</li>
+                        <li>CVD数据可用且方向为空头</li>
+                    </ul>
+
+                    <h4>无信号：</h4>
+                    <ul>
+                        <li>不满足多头或空头信号条件时显示 "无信号"</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="rule-category">
+                <h3>⚡ 入场执行 (15分钟级别)</h3>
+                <div class="rule-content">
+                    <h4>多头入场条件：</h4>
+                    <ul>
+                        <li>小时信号为 "多头"</li>
+                        <li>价格回调至EMA20或EMA50附近</li>
+                        <li>识别setupHigh：前一根15分钟K线的最高价</li>
+                        <li>当前价格突破setupHigh</li>
+                        <li>满足以上条件时显示 "多头入场"</li>
+                    </ul>
+
+                    <h4>空头入场条件：</h4>
+                    <ul>
+                        <li>小时信号为 "空头"</li>
+                        <li>价格回调至EMA20或EMA50附近</li>
+                        <li>识别setupLow：前一根15分钟K线的最低价</li>
+                        <li>当前价格跌破setupLow</li>
+                        <li>满足以上条件时显示 "空头入场"</li>
+                    </ul>
+
+                    <h4>等待入场：</h4>
+                    <ul>
+                        <li>不满足入场条件时显示 "等待入场"</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="rule-category">
+                <h3>💰 风险控制指标</h3>
+                <div class="rule-content">
+                    <h4>现价止损距离：</h4>
+                    <ul>
+                        <li>计算公式：(当前价格 - 止损价格) / 当前价格</li>
+                        <li>用于衡量止损位置与当前价格的距离</li>
+                    </ul>
+
+                    <h4>最大杠杆倍数：</h4>
+                    <ul>
+                        <li>计算公式：1 / (现价止损距离 + 0.5%) 向下取整</li>
+                        <li>基于止损距离计算的最大安全杠杆</li>
+                    </ul>
+
+                    <h4>最低保证金：</h4>
+                    <ul>
+                        <li>计算公式：200 / (最大杠杆倍数 × 止损距离) 向上取整</li>
+                        <li>基于杠杆和止损距离计算的最低保证金要求</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -342,10 +687,10 @@
             try {
                 const response = await fetch('/api/analyze-all');
                 const signals = await response.json();
-                
+
                 displaySignals(signals);
                 updateStats(signals);
-                
+
                 showMessage('信号刷新成功！', 'success');
             } catch (error) {
                 console.error('刷新信号失败:', error);
@@ -430,9 +775,9 @@
         // 显示信号
         function displaySignals(signals) {
             const tableBody = document.getElementById('signalsTable');
-            
+
             if (signals.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="16" class="loading">暂无信号数据</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="11" class="loading">暂无信号数据</td></tr>';
                 return;
             }
 
@@ -441,8 +786,9 @@
                 if (signal.trend === 'DATA_ERROR' || signal.trend === 'ERROR') {
                     return `
                         <tr>
+                            <td></td>
                             <td><strong>${signal.symbol}</strong></td>
-                            <td colspan="15" class="error">数据错误: ${signal.dataError || '未知错误'}</td>
+                            <td colspan="9" class="error">数据错误: ${signal.dataError || '未知错误'}</td>
                         </tr>
                     `;
                 }
@@ -461,6 +807,11 @@
 
                 return `
                     <tr>
+                        <td>
+                            <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看历史记录">
+                                📊
+                            </button>
+                        </td>
                         <td><strong>${signal.symbol}</strong></td>
                         <td><span class="trend ${signal.trend.toLowerCase()}">${signal.trend}</span></td>
                         <td><span class="signal ${signal.signal.toLowerCase().replace('_', '-')}">${signal.signal}</span></td>
@@ -471,12 +822,19 @@
                         <td>${signal.oiChange ? signal.oiChange.toFixed(2) + '%' : '--'}</td>
                         <td>${signal.fundingRate ? (signal.fundingRate * 100).toFixed(4) + '%' : '--'}</td>
                         <td>${signal.cvd || '--'}</td>
-                        <td>${signal.stopLoss ? '$' + signal.stopLoss.toFixed(2) : '--'}</td>
-                        <td>${signal.targetPrice ? '$' + signal.targetPrice.toFixed(2) : '--'}</td>
-                        <td>${signal.stopDistance ? (signal.stopDistance * 100).toFixed(2) + '%' : '--'}</td>
-                        <td>${signal.maxLeverage ? signal.maxLeverage + 'x' : '--'}</td>
-                        <td>${signal.minMargin ? '$' + signal.minMargin.toFixed(0) : '--'}</td>
-                        <td>${signal.riskReward ? signal.riskReward.toFixed(1) : '--'}</td>
+                    </tr>
+                    <tr id="history-${signal.symbol}" class="history-row" style="display: none;">
+                        <td colspan="11">
+                            <div class="history-container">
+                                <div class="history-header">
+                                    <h4>📈 ${signal.symbol} 历史记录</h4>
+                                    <button onclick="loadHistory('${signal.symbol}')" class="load-history-btn">加载历史</button>
+                                </div>
+                                <div class="history-content" id="history-content-${signal.symbol}">
+                                    <div class="loading">点击"加载历史"查看详细记录</div>
+                                </div>
+                            </div>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -510,6 +868,343 @@
             setTimeout(() => {
                 messageDiv.remove();
             }, 5000);
+        }
+
+        // 数据监控功能
+        async function loadDataMonitor() {
+            try {
+                const response = await fetch('/api/data-monitor');
+                const data = await response.json();
+
+                if (data.error) {
+                    showMessage(`数据监控加载失败: ${data.error}`, 'error');
+                    return;
+                }
+
+                displayDataMonitor(data);
+            } catch (error) {
+                showMessage(`数据监控加载失败: ${error.message}`, 'error');
+            }
+        }
+
+        function displayDataMonitor(data) {
+            // 创建监控面板
+            const monitorPanel = document.createElement('div');
+            monitorPanel.className = 'monitor-panel';
+            monitorPanel.innerHTML = `
+                <div class="monitor-header">
+                    <h3>📊 数据准确性监控</h3>
+                    <button onclick="this.parentElement.parentElement.remove()" class="close-btn">×</button>
+                </div>
+                <div class="monitor-content">
+                    <div class="overall-stats">
+                        <h4>总体状态</h4>
+                        <div class="stat-item ${data.overall.isHealthy ? 'healthy' : 'unhealthy'}">
+                            <span>成功率: ${data.overall.successRate}%</span>
+                            <span>分析次数: ${data.overall.totalAnalyses}</span>
+                            <span>成功次数: ${data.overall.successfulAnalyses}</span>
+                        </div>
+                    </div>
+                    <div class="raw-data-stats">
+                        <h4>原始数据成功率</h4>
+                        ${Object.entries(data.rawDataStats).map(([type, stats]) => `
+                            <div class="data-type ${stats.successRate < 100 ? 'warning' : 'normal'}">
+                                <span class="data-type-name">${type}</span>
+                                <span class="success-rate">${stats.successRate}%</span>
+                                <span class="data-count">(${stats.success}/${stats.total})</span>
+                                ${stats.failures.length > 0 ? `
+                                    <div class="failures">
+                                        <strong>失败记录:</strong>
+                                        ${stats.failures.map(f => `
+                                            <div class="failure-item">
+                                                ${f.symbol}: ${f.error} (${f.timestamp})
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="recent-logs">
+                        <h4>最近分析记录</h4>
+                        ${data.recentLogs.map(log => `
+                            <div class="log-item ${log.success ? 'success' : 'error'}">
+                                <span class="symbol">${log.symbol}</span>
+                                <span class="duration">${log.totalTime}ms</span>
+                                <span class="status">${log.success ? '成功' : '失败'}</span>
+                                ${!log.success ? `<div class="errors">${log.errors.join(', ')}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            // 添加样式
+            if (!document.querySelector('#monitor-styles')) {
+                const style = document.createElement('style');
+                style.id = 'monitor-styles';
+                style.textContent = `
+                    .monitor-panel {
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: white;
+                        border-radius: 15px;
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                        z-index: 1000;
+                        max-width: 800px;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        border: 2px solid #667eea;
+                    }
+                    .monitor-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 20px;
+                        border-bottom: 1px solid #eee;
+                        background: #f8f9fa;
+                        border-radius: 15px 15px 0 0;
+                    }
+                    .monitor-header h3 {
+                        margin: 0;
+                        color: #333;
+                    }
+                    .close-btn {
+                        background: #ff4757;
+                        color: white;
+                        border: none;
+                        border-radius: 50%;
+                        width: 30px;
+                        height: 30px;
+                        cursor: pointer;
+                        font-size: 18px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .monitor-content {
+                        padding: 20px;
+                    }
+                    .overall-stats, .raw-data-stats, .recent-logs {
+                        margin-bottom: 20px;
+                    }
+                    .overall-stats h4, .raw-data-stats h4, .recent-logs h4 {
+                        margin-bottom: 10px;
+                        color: #333;
+                        border-bottom: 2px solid #667eea;
+                        padding-bottom: 5px;
+                    }
+                    .stat-item {
+                        display: flex;
+                        gap: 15px;
+                        padding: 10px;
+                        border-radius: 8px;
+                        margin-bottom: 10px;
+                    }
+                    .stat-item.healthy {
+                        background: #d4edda;
+                        color: #155724;
+                    }
+                    .stat-item.unhealthy {
+                        background: #f8d7da;
+                        color: #721c24;
+                        border: 2px solid #f5c6cb;
+                    }
+                    .data-type {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 8px;
+                        border-radius: 5px;
+                        margin-bottom: 5px;
+                    }
+                    .data-type.normal {
+                        background: #e8f5e8;
+                    }
+                    .data-type.warning {
+                        background: #fff3cd;
+                        border: 1px solid #ffeaa7;
+                    }
+                    .data-type-name {
+                        font-weight: bold;
+                        min-width: 120px;
+                    }
+                    .success-rate {
+                        font-weight: bold;
+                        min-width: 60px;
+                    }
+                    .data-count {
+                        color: #666;
+                        font-size: 0.9em;
+                    }
+                    .failures {
+                        margin-top: 5px;
+                        font-size: 0.9em;
+                    }
+                    .failure-item {
+                        background: #f8d7da;
+                        padding: 5px;
+                        margin: 2px 0;
+                        border-radius: 3px;
+                        font-size: 0.8em;
+                    }
+                    .log-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 8px;
+                        border-radius: 5px;
+                        margin-bottom: 5px;
+                        font-size: 0.9em;
+                    }
+                    .log-item.success {
+                        background: #e8f5e8;
+                    }
+                    .log-item.error {
+                        background: #f8d7da;
+                    }
+                    .symbol {
+                        font-weight: bold;
+                        min-width: 80px;
+                    }
+                    .duration {
+                        min-width: 60px;
+                        color: #666;
+                    }
+                    .status {
+                        min-width: 40px;
+                    }
+                    .errors {
+                        color: #721c24;
+                        font-size: 0.8em;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // 移除现有的监控面板
+            const existingPanel = document.querySelector('.monitor-panel');
+            if (existingPanel) {
+                existingPanel.remove();
+            }
+
+            document.body.appendChild(monitorPanel);
+        }
+
+        // 切换历史记录显示
+        function toggleHistory(symbol) {
+            const historyRow = document.getElementById(`history-${symbol}`);
+            if (historyRow.style.display === 'none') {
+                historyRow.style.display = 'table-row';
+                loadHistory(symbol);
+            } else {
+                historyRow.style.display = 'none';
+            }
+        }
+
+        // 加载历史记录
+        async function loadHistory(symbol) {
+            const contentDiv = document.getElementById(`history-content-${symbol}`);
+            contentDiv.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                const response = await fetch(`/api/history/${symbol}?limit=20`);
+                const data = await response.json();
+
+                if (data.success && data.data.length > 0) {
+                    displayHistoryRecords(data.data, contentDiv);
+                } else {
+                    contentDiv.innerHTML = '<div class="no-data">暂无历史记录</div>';
+                }
+            } catch (error) {
+                contentDiv.innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
+            }
+        }
+
+        // 显示历史记录
+        function displayHistoryRecords(records, container) {
+            const historyHtml = records.map(record => {
+                const signalTime = record.signal_time ? new Date(record.signal_time).toLocaleString() : 'N/A';
+                const executionTime = record.execution_time ? new Date(record.execution_time).toLocaleString() : 'N/A';
+                const markerResult = record.marker_result || '未标记';
+
+                return `
+                    <div class="history-record">
+                        <div class="record-header">
+                            <span class="record-time">${signalTime}</span>
+                            <span class="record-status ${markerResult === '正确' ? 'correct' : markerResult === '错误' ? 'incorrect' : 'unmarked'}">${markerResult}</span>
+                        </div>
+                        <div class="record-details">
+                            <div class="detail-row">
+                                <span class="label">趋势:</span> <span class="value">${record.trend}</span>
+                                <span class="label">信号:</span> <span class="value">${record.signal}</span>
+                                <span class="label">执行:</span> <span class="value">${record.execution || 'N/A'}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">价格:</span> <span class="value">$${record.current_price}</span>
+                                <span class="label">VWAP:</span> <span class="value">$${record.vwap || 'N/A'}</span>
+                                <span class="label">成交量倍数:</span> <span class="value">${record.volume_ratio ? record.volume_ratio.toFixed(2) + 'x' : 'N/A'}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">OI变化:</span> <span class="value">${record.oi_change ? record.oi_change.toFixed(2) + '%' : 'N/A'}</span>
+                                <span class="label">资金费率:</span> <span class="value">${record.funding_rate ? (record.funding_rate * 100).toFixed(4) + '%' : 'N/A'}</span>
+                                <span class="label">CVD:</span> <span class="value">${record.cvd_direction || 'N/A'}</span>
+                            </div>
+                            ${record.stop_price ? `
+                            <div class="detail-row">
+                                <span class="label">止损价:</span> <span class="value">$${record.stop_price}</span>
+                                <span class="label">目标价:</span> <span class="value">$${record.target_price || 'N/A'}</span>
+                                <span class="label">最大杠杆:</span> <span class="value">${record.max_leverage || 'N/A'}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">最低保证金:</span> <span class="value">$${record.min_margin || 'N/A'}</span>
+                                <span class="label">盈亏比:</span> <span class="value">${record.risk_reward_ratio || 'N/A'}</span>
+                                <span class="label">执行时间:</span> <span class="value">${executionTime}</span>
+                            </div>
+                            ` : ''}
+                            ${record.marker_notes ? `<div class="record-notes">备注: ${record.marker_notes}</div>` : ''}
+                            <div class="record-actions">
+                                <button onclick="markResult(${record.id}, 'signal', '${record.symbol}', '正确')" class="mark-btn correct">✓ 正确</button>
+                                <button onclick="markResult(${record.id}, 'signal', '${record.symbol}', '错误')" class="mark-btn incorrect">✗ 错误</button>
+                                <button onclick="markResult(${record.id}, 'signal', '${record.symbol}', '未标记')" class="mark-btn unmarked">○ 未标记</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = historyHtml;
+        }
+
+        // 标记结果
+        async function markResult(recordId, recordType, symbol, result) {
+            try {
+                const response = await fetch('/api/mark-result', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        recordId,
+                        recordType,
+                        symbol,
+                        result
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showMessage('标记成功！', 'success');
+                    // 重新加载历史记录
+                    loadHistory(symbol);
+                } else {
+                    showMessage('标记失败: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showMessage('标记失败: ' + error.message, 'error');
+            }
         }
 
         // 页面加载时自动刷新一次
