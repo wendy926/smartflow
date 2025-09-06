@@ -6,6 +6,10 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SmartFlow 交易策略仪表板</title>
+    <!-- 强制刷新缓存 v2.0 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
 
     <!-- PWA 支持 -->
     <meta name="theme-color" content="#667eea">
@@ -102,22 +106,22 @@
         }
 
         .btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border: 2px solid #667eea;
-            color: white;
+            background: linear-gradient(45deg, #667eea, #764ba2) !important;
+            border: 2px solid #667eea !important;
+            color: white !important;
             padding: 12px 24px;
             border-radius: 25px;
             cursor: pointer;
             font-size: 1rem;
             font-weight: 600;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
         }
 
         .btn:hover {
-            background: linear-gradient(45deg, #5a6fd8, #6a4c93);
+            background: linear-gradient(45deg, #5a6fd8, #6a4c93) !important;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
         }
 
         .btn:active {
@@ -151,13 +155,13 @@
         }
 
         .btn.primary {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            border-color: #ff6b6b;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24) !important;
+            border-color: #ff6b6b !important;
         }
 
         .btn.secondary {
-            background: linear-gradient(45deg, #4834d4, #686de0);
-            border-color: #4834d4;
+            background: linear-gradient(45deg, #4834d4, #686de0) !important;
+            border-color: #4834d4 !important;
         }
 
         .stats {
@@ -375,6 +379,9 @@
 
         /* 操作按钮优化 */
         .btn.small {
+            background: linear-gradient(45deg, #ff4757, #ff3742) !important;
+            border: 2px solid #ff4757 !important;
+            color: white !important;
             padding: 6px 12px;
             font-size: 12px;
             border-radius: 15px;
@@ -382,8 +389,9 @@
         }
 
         .btn.small:hover {
+            background: linear-gradient(45deg, #ff3742, #e74c3c) !important;
             transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(255, 71, 87, 0.4) !important;
         }
 
         .trend {
@@ -1122,14 +1130,14 @@
 
         .refresh-select {
             padding: 8px 12px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #e0e0e0 !important;
             border-radius: 8px;
-            background: white;
-            color: #333;
+            background: white !important;
+            color: #333 !important;
             font-size: 14px;
             cursor: pointer;
             min-width: 100px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
             transition: all 0.3s ease;
         }
 
@@ -1167,16 +1175,16 @@
 
         .loss-select {
             padding: 8px 12px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #e0e0e0 !important;
             border-radius: 8px;
-            background: white;
+            background: white !important;
             font-size: 14px;
             font-weight: 500;
-            color: #333;
+            color: #333 !important;
             cursor: pointer;
             transition: all 0.3s ease;
             min-width: 120px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
         }
 
         .loss-select:focus {
@@ -1241,13 +1249,13 @@
 
         .symbol-input {
             padding: 8px 12px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #e0e0e0 !important;
             border-radius: 8px;
-            background: white;
-            color: #333;
+            background: white !important;
+            color: #333 !important;
             font-size: 14px;
             min-width: 200px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
             transition: all 0.3s ease;
         }
 
