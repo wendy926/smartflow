@@ -1111,10 +1111,12 @@ class DatabaseManager {
     // 初始化胜率统计
     this.initWinRateStats();
 
-    // 初始化交易对数据
-    this.initCustomSymbols();
-
     console.log('📊 数据库表初始化完成');
+
+    // 延迟初始化交易对数据，确保表已创建
+    setTimeout(() => {
+      this.initCustomSymbols();
+    }, 1000);
   }
 
   // 初始化胜率统计
@@ -1139,23 +1141,36 @@ class DatabaseManager {
 
   // 初始化自定义交易对
   initCustomSymbols(cvdManager) {
-    this.db.all('SELECT symbol FROM custom_symbols WHERE is_active = 1', (err, rows) => {
+    // 检查表是否存在
+    this.db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='custom_symbols'", (err, row) => {
       if (err) {
-        console.error('获取自定义交易对失败:', err);
+        console.error('检查custom_symbols表失败:', err);
         return;
       }
 
-      const customSymbols = rows.map(row => row.symbol);
-      console.log('📋 加载自定义交易对:', customSymbols);
-
-      // 将自定义交易对添加到CVD管理器
-      if (cvdManager) {
-        customSymbols.forEach(symbol => {
-          if (!cvdManager.symbols.includes(symbol)) {
-            cvdManager.addSymbol(symbol);
-          }
-        });
+      if (!row) {
+        console.log('📋 custom_symbols表不存在，跳过加载自定义交易对');
+        return;
       }
+
+      this.db.all('SELECT symbol FROM custom_symbols WHERE is_active = 1', (err, rows) => {
+        if (err) {
+          console.error('获取自定义交易对失败:', err);
+          return;
+        }
+
+        const customSymbols = rows.map(row => row.symbol);
+        console.log('📋 加载自定义交易对:', customSymbols);
+
+        // 将自定义交易对添加到CVD管理器
+        if (cvdManager) {
+          customSymbols.forEach(symbol => {
+            if (!cvdManager.symbols.includes(symbol)) {
+              cvdManager.addSymbol(symbol);
+            }
+          });
+        }
+      });
     });
   }
 
@@ -2156,7 +2171,7 @@ cvdManager.start();
 // 初始化数据库后加载自定义交易对
 setTimeout(() => {
   dbManager.initCustomSymbols(cvdManager);
-}, 1000); // 延迟1秒确保CVD管理器已启动
+}, 2000); // 延迟1秒确保CVD管理器已启动
 
 const telegramNotifier = new TelegramNotifier();
 const simulationManager = new SimulationManager(dbManager.db);
