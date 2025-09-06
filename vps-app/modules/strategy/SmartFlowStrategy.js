@@ -189,8 +189,11 @@ class SmartFlowStrategy {
         breakoutDown,
         oiChange,
         fundingRate: parseFloat(funding[0].fundingRate),
-        cvd: lastCVD, // 直接返回数值
-        cvdDirection: cvdDirection,
+        cvd: {
+          value: lastCVD,
+          direction: cvdDirection,
+          isActive: Math.abs(lastCVD) > 0
+        },
         dataValid: true
       };
     } catch (error) {
@@ -413,8 +416,11 @@ class SmartFlowStrategy {
           volumeRatio: 0, 
           oiChange: 0, 
           fundingRate: 0, 
-          cvd: 0,
-          cvdDirection: 'NEUTRAL',
+          cvd: {
+            value: 0,
+            direction: 'NEUTRAL',
+            isActive: false
+          },
           priceVsVwap: 0,
           breakoutUp: false,
           breakoutDown: false,
