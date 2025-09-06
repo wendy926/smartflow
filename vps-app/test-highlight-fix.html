@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>信号高亮修复测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    .table th,
+    .table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+
+    .table th {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      font-weight: 600;
+    }
+
+    .table tr:hover {
+      background: rgba(102, 126, 234, 0.05);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .trend,
+    .signal,
+    .execution {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .trend.uptrend {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .trend.downtrend {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .trend.range {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .signal.long {
+      background: linear-gradient(45deg, #00b894, #00cec9);
+      color: white;
+    }
+
+    .signal.short {
+      background: linear-gradient(45deg, #e17055, #d63031);
+      color: white;
+    }
+
+    .signal.no-signal {
+      background: #ddd;
+      color: #666;
+    }
+
+    .execution.long-execute {
+      background: linear-gradient(45deg, #00b894, #00cec9);
+      color: white;
+    }
+
+    .execution.short-execute {
+      background: linear-gradient(45deg, #e17055, #d63031);
+      color: white;
+    }
+
+    .execution.no-execution {
+      background: #ddd;
+      color: #666;
+    }
+
+    /* 信号高亮显示 */
+    .signal.long.highlight {
+      background: linear-gradient(45deg, #00b894, #00cec9);
+      color: white;
+      box-shadow: 0 0 15px rgba(0, 184, 148, 0.5);
+      animation: pulse 2s infinite;
+    }
+
+    .signal.short.highlight {
+      background: linear-gradient(45deg, #e17055, #d63031);
+      color: white;
+      box-shadow: 0 0 15px rgba(225, 112, 85, 0.5);
+      animation: pulse 2s infinite;
+    }
+
+    .trend.uptrend.highlight {
+      background: #d4edda;
+      color: #155724;
+      box-shadow: 0 0 10px rgba(21, 87, 36, 0.3);
+      animation: pulse 2s infinite;
+    }
+
+    .trend.downtrend.highlight {
+      background: #f8d7da;
+      color: #721c24;
+      box-shadow: 0 0 10px rgba(114, 28, 36, 0.3);
+      animation: pulse 2s infinite;
+    }
+
+    .execution.long-execute.highlight {
+      background: linear-gradient(45deg, #00b894, #00cec9);
+      color: white;
+      box-shadow: 0 0 15px rgba(0, 184, 148, 0.5);
+      animation: pulse 2s infinite;
+    }
+
+    .execution.short-execute.highlight {
+      background: linear-gradient(45deg, #e17055, #d63031);
+      color: white;
+      box-shadow: 0 0 15px rgba(225, 112, 85, 0.5);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.7);
+      }
+
+      70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(0, 184, 148, 0);
+      }
+
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 184, 148, 0);
+      }
+    }
+
+    .expand-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .expand-btn:hover {
+      background: #5a6fd8;
+      transform: scale(1.1);
+    }
+
+    .btn.small {
+      background: #ff4757;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 15px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .btn.small:hover {
+      background: #ff3742;
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .test-info {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #2196f3;
+    }
+
+    .test-info h3 {
+      margin: 0 0 10px 0;
+      color: #1976d2;
+    }
+
+    .test-info ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .test-info li {
+      margin-bottom: 5px;
+      color: #424242;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🔧 信号高亮修复测试</h1>
+
+    <div class="test-info">
+      <h3>✅ 修复内容：</h3>
+      <ul>
+        <li><strong>CSS类名修复：</strong>添加了正确的 <code>trend</code>、<code>signal</code>、<code>execution</code> 基础类名</li>
+        <li><strong>高亮逻辑：</strong>当出现 UPTREND/DOWNTREND、LONG/SHORT、LONG_EXECUTE/SHORT_EXECUTE 时会高亮显示</li>
+        <li><strong>移动端优化：</strong>缩小字体，避免文字转行，优化按钮排列</li>
+        <li><strong>对话框优化：</strong>改善模态框样式，按钮排列整齐美观</li>
+      </ul>
+    </div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>详情</th>
+          <th>交易对</th>
+          <th>趋势</th>
+          <th>信号</th>
+          <th>入场执行</th>
+          <th>当前价格</th>
+          <th>VWAP</th>
+          <th>成交量倍数</th>
+          <th>OI变化%</th>
+          <th>资金费率</th>
+          <th>CVD</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <button class="expand-btn" title="查看详细信息">+</button>
+          </td>
+          <td>BTCUSDT</td>
+          <td class="trend uptrend highlight">UPTREND</td>
+          <td class="signal long highlight">LONG</td>
+          <td class="execution long-execute highlight">LONG_EXECUTE</td>
+          <td>45000.1234</td>
+          <td>44800.5678</td>
+          <td>1.85</td>
+          <td>2.34</td>
+          <td>0.0001</td>
+          <td>UP</td>
+          <td>
+            <button class="btn small" title="删除交易对">🗑️</button>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <button class="expand-btn" title="查看详细信息">+</button>
+          </td>
+          <td>ETHUSDT</td>
+          <td class="trend downtrend highlight">DOWNTREND</td>
+          <td class="signal short highlight">SHORT</td>
+          <td class="execution short-execute highlight">SHORT_EXECUTE</td>
+          <td>3200.5678</td>
+          <td>3250.1234</td>
+          <td>2.15</td>
+          <td>-1.25</td>
+          <td>-0.0002</td>
+          <td>DOWN</td>
+          <td>
+            <button class="btn small" title="删除交易对">🗑️</button>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <button class="expand-btn" title="查看详细信息">+</button>
+          </td>
+          <td>LINKUSDT</td>
+          <td class="trend range">RANGE</td>
+          <td class="signal no-signal">NO_SIGNAL</td>
+          <td class="execution no-execution">NO_EXECUTION</td>
+          <td>15.2345</td>
+          <td>15.1234</td>
+          <td>0.95</td>
+          <td>0.15</td>
+          <td>0.0000</td>
+          <td>NEUTRAL</td>
+          <td>
+            <button class="btn small" title="删除交易对">🗑️</button>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <button class="expand-btn" title="查看详细信息">+</button>
+          </td>
+          <td>SOLUSDT</td>
+          <td class="trend uptrend highlight">UPTREND</td>
+          <td class="signal no-signal">NO_SIGNAL</td>
+          <td class="execution no-execution">NO_EXECUTION</td>
+          <td>98.5678</td>
+          <td>97.1234</td>
+          <td>1.25</td>
+          <td>0.85</td>
+          <td>0.0001</td>
+          <td>UP</td>
+          <td>
+            <button class="btn small" title="删除交易对">🗑️</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+      <h3>📱 移动端优化说明：</h3>
+      <ul>
+        <li><strong>字体缩小：</strong>表格字体从 0.8rem 缩小到 0.75rem，避免文字转行</li>
+        <li><strong>按钮优化：</strong>详情按钮从 30px 缩小到 22px，操作按钮字体从 12px 缩小到 10px</li>
+        <li><strong>间距调整：</strong>减少各种间距，提高空间利用率</li>
+        <li><strong>对话框优化：</strong>模态框在移动端有更好的适配，按钮排列整齐</li>
+        <li><strong>信号标签：</strong>趋势、信号、执行标签字体缩小到 0.7rem，避免换行</li>
+      </ul>
+    </div>
+  </div>
+</body>
+
+</html>
