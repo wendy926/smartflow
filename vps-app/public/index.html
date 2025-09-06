@@ -13,6 +13,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="SmartFlow">
 
+    <!-- 防止移动端下拉刷新 -->
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+
     <!-- 防止iOS Safari缩放 -->
     <meta name="format-detection" content="telephone=no">
     <style>
@@ -27,12 +31,24 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: #333;
+            /* 防止移动端下拉刷新 */
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
+            /* 防止iOS Safari的弹性滚动 */
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
+            /* 支持滚动 */
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .header {
@@ -1230,6 +1246,26 @@
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        /* 防止移动端下拉刷新 */
+        @media screen and (max-width: 768px) {
+            body {
+                /* 防止iOS Safari的下拉刷新 */
+                overscroll-behavior-y: none;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .container {
+                /* 确保容器可以正常滚动 */
+                overscroll-behavior-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* 防止表格区域的下拉刷新 */
+            .table-container {
+                overscroll-behavior-y: none;
+            }
         }
 
         /* iPhone 16 Pro Max 和其他大屏手机 */
@@ -2876,31 +2912,65 @@
         }
 
         // 移动端手势支持
+        // 触摸事件处理 - 防止意外刷新
         let touchStartX = 0;
         let touchStartY = 0;
+        let touchStartTime = 0;
+        let isScrolling = false;
 
+        // 防止页面下拉刷新
         document.addEventListener('touchstart', (e) => {
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
-        });
+            touchStartTime = Date.now();
+            isScrolling = false;
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!touchStartX || !touchStartY) return;
+
+            const touchCurrentX = e.touches[0].clientX;
+            const touchCurrentY = e.touches[0].clientY;
+
+            const diffX = Math.abs(touchStartX - touchCurrentX);
+            const diffY = Math.abs(touchStartY - touchCurrentY);
+
+            // 如果主要是垂直滚动，标记为滚动状态
+            if (diffY > diffX && diffY > 10) {
+                isScrolling = true;
+            }
+
+            // 如果用户在页面顶部下拉，阻止默认的下拉刷新行为
+            if (window.scrollY === 0 && touchCurrentY > touchStartY) {
+                e.preventDefault();
+            }
+        }, { passive: false });
 
         document.addEventListener('touchend', (e) => {
             if (!touchStartX || !touchStartY) return;
 
             const touchEndX = e.changedTouches[0].clientX;
             const touchEndY = e.changedTouches[0].clientY;
+            const touchEndTime = Date.now();
 
             const diffX = touchStartX - touchEndX;
             const diffY = touchStartY - touchEndY;
+            const touchDuration = touchEndTime - touchStartTime;
 
-            // 检测下拉刷新手势
-            if (Math.abs(diffY) > Math.abs(diffX) && diffY < -50) {
+            // 只有在非滚动状态下，且是明确的下拉手势时才触发刷新
+            if (!isScrolling &&
+                Math.abs(diffY) > Math.abs(diffX) &&
+                diffY < -80 &&
+                touchDuration > 200 &&
+                touchDuration < 1000) {
                 refreshAllSignals();
             }
 
             touchStartX = 0;
             touchStartY = 0;
-        });
+            touchStartTime = 0;
+            isScrolling = false;
+        }, { passive: false });
 
         // 防止双击缩放
         let lastTouchEnd = 0;
@@ -2910,7 +2980,7 @@
                 e.preventDefault();
             }
             lastTouchEnd = now;
-        }, false);
+        }, { passive: false });
 
         // Telegram配置相关函数
         async function viewTelegramConfig() {
