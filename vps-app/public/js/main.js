@@ -286,67 +286,69 @@ async function loadUnifiedMonitoring() {
     // 创建监控面板HTML
     const monitoringHtml = `
             <div class="unified-monitoring-panel">
-                <div class="monitoring-header">
-                    <h3>📊 SmartFlow 统一监控中心</h3>
-                    <div class="monitoring-controls">
-                        <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>
-                        <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
-                    </div>
-                </div>
                 <div class="monitoring-content">
-                    <div class="system-overview">
-                        <h4>📈 系统概览</h4>
-                        <div class="overview-cards">
-                            <div class="overview-card">
-                                <span class="card-icon">📊</span>
-                                <div class="card-content">
-                                    <div class="card-title">总交易对</div>
-                                    <div class="card-value" id="totalSymbols">${data.summary.totalSymbols}</div>
+                    <div class="monitoring-header">
+                        <h3>📊 SmartFlow 统一监控中心</h3>
+                        <div class="monitoring-controls">
+                            <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>
+                            <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
+                        </div>
+                    </div>
+                    <div class="monitoring-body">
+                        <div class="system-overview">
+                            <h4>📈 系统概览</h4>
+                            <div class="overview-cards">
+                                <div class="overview-card">
+                                    <span class="card-icon">📊</span>
+                                    <div class="card-content">
+                                        <div class="card-title">总交易对</div>
+                                        <div class="card-value" id="totalSymbols">${data.summary.totalSymbols}</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="overview-card">
-                                <span class="card-icon">✅</span>
-                                <div class="card-content">
-                                    <div class="card-title">健康状态</div>
-                                    <div class="card-value" id="healthySymbols">${data.summary.healthySymbols}</div>
+                                <div class="overview-card">
+                                    <span class="card-icon">✅</span>
+                                    <div class="card-content">
+                                        <div class="card-title">健康状态</div>
+                                        <div class="card-value" id="healthySymbols">${data.summary.healthySymbols}</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="overview-card">
-                                <span class="card-icon">⚠️</span>
-                                <div class="card-content">
-                                    <div class="card-title">警告状态</div>
-                                    <div class="card-value" id="warningSymbols">${data.summary.warningSymbols}</div>
+                                <div class="overview-card">
+                                    <span class="card-icon">⚠️</span>
+                                    <div class="card-content">
+                                        <div class="card-title">警告状态</div>
+                                        <div class="card-value" id="warningSymbols">${data.summary.warningSymbols}</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="overview-card">
-                                <span class="card-icon">📈</span>
-                                <div class="card-content">
-                                    <div class="card-title">数据收集率</div>
-                                    <div class="card-value" id="dataCollectionRate">${data.summary.completionRates.dataCollection.toFixed(1)}%</div>
+                                <div class="overview-card">
+                                    <span class="card-icon">📈</span>
+                                    <div class="card-content">
+                                        <div class="card-title">数据收集率</div>
+                                        <div class="card-value" id="dataCollectionRate">${data.summary.completionRates.dataCollection.toFixed(1)}%</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="symbols-monitoring">
-                        <h4>🔍 交易对详细监控</h4>
-                        <div class="symbols-table-container">
-                            <table class="symbols-table">
-                                <thead>
-                                    <tr>
-                                        <th>交易对</th>
-                                        <th>数据收集率</th>
-                                        <th>信号分析率</th>
-                                        <th>模拟交易完成率</th>
-                                        <th>模拟交易进行率</th>
-                                        <th>刷新频率</th>
-                                        <th>整体状态</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="monitoringTableBody">
-                                    <!-- 动态填充 -->
-                                </tbody>
-                            </table>
+                        
+                        <div class="symbols-monitoring">
+                            <h4>🔍 交易对详细监控</h4>
+                            <div class="symbols-table-container">
+                                <table class="symbols-table">
+                                    <thead>
+                                        <tr>
+                                            <th>交易对</th>
+                                            <th>数据收集率</th>
+                                            <th>信号分析率</th>
+                                            <th>模拟交易完成率</th>
+                                            <th>模拟交易进行率</th>
+                                            <th>刷新频率</th>
+                                            <th>整体状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="monitoringTableBody">
+                                        <!-- 动态填充 -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -355,6 +357,21 @@ async function loadUnifiedMonitoring() {
 
     // 添加到页面
     document.body.insertAdjacentHTML('beforeend', monitoringHtml);
+
+    // 添加事件监听器
+    const panel = document.querySelector('.unified-monitoring-panel');
+    panel.addEventListener('click', (e) => {
+      if (e.target === panel) {
+        closeMonitoringPanel();
+      }
+    });
+
+    // 添加ESC键关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.querySelector('.unified-monitoring-panel')) {
+        closeMonitoringPanel();
+      }
+    });
 
     // 填充监控数据
     await refreshMonitoringData();
@@ -371,57 +388,85 @@ async function refreshMonitoringData() {
     const data = await dataManager.getMonitoringData();
 
     // 更新概览数据
-    document.getElementById('totalSymbols').textContent = data.summary.totalSymbols;
-    document.getElementById('healthySymbols').textContent = data.summary.healthySymbols;
-    document.getElementById('warningSymbols').textContent = data.summary.warningSymbols;
-    document.getElementById('dataCollectionRate').textContent = data.summary.completionRates.dataCollection.toFixed(1) + '%';
+    const totalSymbolsEl = document.getElementById('totalSymbols');
+    const healthySymbolsEl = document.getElementById('healthySymbols');
+    const warningSymbolsEl = document.getElementById('warningSymbols');
+    const dataCollectionRateEl = document.getElementById('dataCollectionRate');
+
+    if (totalSymbolsEl) totalSymbolsEl.textContent = data.summary.totalSymbols;
+    if (healthySymbolsEl) healthySymbolsEl.textContent = data.summary.healthySymbols;
+    if (warningSymbolsEl) warningSymbolsEl.textContent = data.summary.warningSymbols;
+    if (dataCollectionRateEl) dataCollectionRateEl.textContent = data.summary.completionRates.dataCollection.toFixed(1) + '%';
 
     // 更新交易对表格
     const tbody = document.getElementById('monitoringTableBody');
+    if (!tbody) return;
+
     tbody.innerHTML = '';
 
-    data.detailedStats.forEach(symbol => {
-      const row = document.createElement('tr');
-      row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
+    if (data.detailedStats && data.detailedStats.length > 0) {
+      data.detailedStats.forEach(symbol => {
+        const row = document.createElement('tr');
+        row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
 
-      row.innerHTML = `
-                <td class="symbol-name">
-                    ${symbol.symbol}
-                    ${symbol.hasExecution ? '<span class="signal-indicator execution">🚀</span>' : ''}
-                    ${symbol.hasSignal ? '<span class="signal-indicator signal">🎯</span>' : ''}
-                    ${symbol.hasTrend ? '<span class="signal-indicator trend">📈</span>' : ''}
-                    ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
-                </td>
-                <td>
-                    <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
-                </td>
-                <td>
-                    <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
-                </td>
-                <td>
-                    <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
-                </td>
-                <td>
-                    <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.simulationProgress.inProgress}/${symbol.simulationProgress.triggers}</div>
-                </td>
-                <td>
-                    <div class="metric-time">${symbol.refreshFrequency}秒</div>
-                </td>
-                <td>
-                    <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
-                        ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(1)}%
-                    </span>
-                </td>
-            `;
-      tbody.appendChild(row);
-    });
+        row.innerHTML = `
+          <td class="symbol-name">
+            ${symbol.symbol}
+            ${symbol.hasExecution ? '<span class="signal-indicator execution">🚀</span>' : ''}
+            ${symbol.hasSignal ? '<span class="signal-indicator signal">🎯</span>' : ''}
+            ${symbol.hasTrend ? '<span class="signal-indicator trend">📈</span>' : ''}
+            ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
+          </td>
+          <td>
+            <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
+            <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
+          </td>
+          <td>
+            <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
+            <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
+          </td>
+          <td>
+            <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
+            <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
+          </td>
+          <td>
+            <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(1)}%</div>
+            <div class="metric-details">${symbol.simulationProgress.inProgress}/${symbol.simulationProgress.triggers}</div>
+          </td>
+          <td>
+            <div class="metric-time">${symbol.refreshFrequency}秒</div>
+          </td>
+          <td>
+            <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
+              ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(1)}%
+            </span>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    } else {
+      // 如果没有数据，显示提示信息
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; color: #6c757d; padding: 20px;">
+            暂无监控数据，请等待数据收集完成
+          </td>
+        </tr>
+      `;
+    }
 
   } catch (error) {
     console.error('刷新监控数据失败:', error);
+    const tbody = document.getElementById('monitoringTableBody');
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; color: #dc3545; padding: 20px;">
+            数据加载失败: ${error.message}
+          </td>
+        </tr>
+      `;
+    }
   }
 }
 
@@ -429,7 +474,13 @@ async function refreshMonitoringData() {
 function closeMonitoringPanel() {
   const panel = document.querySelector('.unified-monitoring-panel');
   if (panel) {
-    panel.remove();
+    // 添加关闭动画
+    panel.style.opacity = '0';
+    panel.style.transform = 'scale(0.9)';
+
+    setTimeout(() => {
+      panel.remove();
+    }, 200);
   }
 }
 
@@ -492,14 +543,24 @@ function openRollupCalculator() {
 async function showSymbolsList() {
   try {
     const symbols = await window.apiClient.getAllSignals();
-    const symbolList = symbols.map(s => s.symbol).join(', ');
+    const symbolList = symbols.map(s => s.symbol);
 
     const content = `
             <div style="padding: 20px;">
                 <h4>当前监控的交易对</h4>
-                <p>${symbolList || '暂无交易对'}</p>
+                <div style="margin-bottom: 20px;">
+                    ${symbolList.length > 0 ?
+        symbolList.map(symbol => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #ddd; margin: 5px 0; border-radius: 4px;">
+                          <span>${symbol}</span>
+                          <button class="btn small warning" onclick="removeCustomSymbol('${symbol}')" title="删除交易对">🗑️</button>
+                        </div>
+                      `).join('') :
+        '<p style="color: #6c757d;">暂无交易对</p>'
+      }
+                </div>
                 <div style="margin-top: 20px;">
-                    <input type="text" id="newSymbol" placeholder="输入新的交易对" class="symbol-input">
+                    <input type="text" id="newSymbol" placeholder="输入新的交易对 (如: BTCUSDT)" class="symbol-input" style="width: 200px; padding: 8px; margin-right: 10px;">
                     <button class="btn primary" onclick="addSymbol()">添加</button>
                 </div>
             </div>
@@ -530,6 +591,25 @@ async function addSymbol() {
   } catch (error) {
     console.error('添加交易对失败:', error);
     modal.showMessage('添加交易对失败: ' + error.message, 'error');
+  }
+}
+
+async function removeCustomSymbol(symbol) {
+  if (!confirm(`确定要删除交易对 ${symbol} 吗？`)) {
+    return;
+  }
+
+  try {
+    const result = await window.apiClient.removeSymbol(symbol);
+    if (result.success) {
+      modal.showMessage(result.message, 'success');
+      await app.loadAllData();
+    } else {
+      modal.showMessage(result.message, 'error');
+    }
+  } catch (error) {
+    console.error('删除交易对失败:', error);
+    modal.showMessage('删除交易对失败: ' + error.message, 'error');
   }
 }
 

@@ -24,9 +24,10 @@ class SmartFlowStrategy {
       const latestMA200 = ma200[ma200.length - 1];
 
       let trend = 'RANGE';
-      if (latestMA20 > latestMA50 && latestMA50 > latestMA200 && latestClose > latestMA20) {
+      // 严格按照strategy.md: MA50 > MA200 且价格在MA50上/下
+      if (latestMA50 > latestMA200 && latestClose > latestMA50) {
         trend = 'UPTREND';
-      } else if (latestMA20 < latestMA50 && latestMA50 < latestMA200 && latestClose < latestMA20) {
+      } else if (latestMA50 < latestMA200 && latestClose < latestMA50) {
         trend = 'DOWNTREND';
       }
 
@@ -81,9 +82,19 @@ class SmartFlowStrategy {
       const oiChange = openInterestHist.length > 1 ?
         ((openInterestHist[openInterestHist.length - 1].sumOpenInterest - openInterestHist[0].sumOpenInterest) / openInterestHist[0].sumOpenInterest) * 100 : 0;
 
-      // 检查确认条件
-      const confirmed = volumeRatio >= 1.5 && Math.abs(funding.fundingRate) <= 0.001;
+      // 严格按照strategy.md和auto-script.md的确认条件
+      // 1. 价格与VWAP方向一致
+      // 2. 突破近20根高/低点
+      // 3. 放量 ≥ 1.5×(20MA)
+      // 4. OI 6h变动 ≥ +2%(做多) 或 ≤ -2%(做空)
+      // 5. 资金费率 |FR| ≤ 0.1%/8h
       const priceVsVwap = lastClose - lastVWAP;
+      const volumeConfirmed = volumeRatio >= 1.5;
+      const fundingConfirmed = Math.abs(funding.fundingRate) <= 0.001;
+      const oiConfirmed = oiChange >= 2 || oiChange <= -2; // 根据方向判断
+      const breakoutConfirmed = breakoutUp || breakoutDown;
+
+      const confirmed = volumeConfirmed && fundingConfirmed && oiConfirmed && breakoutConfirmed;
 
       return {
         confirmed,
@@ -203,15 +214,25 @@ class SmartFlowStrategy {
         volumeRatio: hourlyConfirmation.volumeRatio
       }, Date.now() - startTime);
 
-      // 信号判断
+      // 严格按照strategy.md和auto-script.md的信号判断逻辑
       let signal = 'NO_SIGNAL';
-      if (dailyTrend.trend === 'UPTREND' && hourlyConfirmation.confirmed &&
-        hourlyConfirmation.priceVsVwap > 0 && hourlyConfirmation.breakoutUp &&
-        hourlyConfirmation.oiChange >= 2) {
+
+      // 做多条件：趋势向上 + 价格在VWAP上 + 突破高点 + 放量 + OI增加 + 资金费率温和
+      if (dailyTrend.trend === 'UPTREND' &&
+        hourlyConfirmation.priceVsVwap > 0 &&
+        hourlyConfirmation.breakoutUp &&
+        hourlyConfirmation.volumeRatio >= 1.5 &&
+        hourlyConfirmation.oiChange >= 2 &&
+        Math.abs(hourlyConfirmation.fundingRate) <= 0.001) {
         signal = 'LONG';
-      } else if (dailyTrend.trend === 'DOWNTREND' && hourlyConfirmation.confirmed &&
-        hourlyConfirmation.priceVsVwap < 0 && hourlyConfirmation.breakoutDown &&
-        hourlyConfirmation.oiChange <= -2) {
+      }
+      // 做空条件：趋势向下 + 价格在VWAP下 + 突破低点 + 放量 + OI减少 + 资金费率温和
+      else if (dailyTrend.trend === 'DOWNTREND' &&
+        hourlyConfirmation.priceVsVwap < 0 &&
+        hourlyConfirmation.breakoutDown &&
+        hourlyConfirmation.volumeRatio >= 1.5 &&
+        hourlyConfirmation.oiChange <= -2 &&
+        Math.abs(hourlyConfirmation.fundingRate) <= 0.001) {
         signal = 'SHORT';
       }
 
@@ -227,24 +248,54 @@ class SmartFlowStrategy {
         fundingRate: hourlyConfirmation.fundingRate
       }, true);
 
-      // 入场执行判断
+      // 严格按照strategy.md和auto-script.md的入场执行逻辑
       let execution = 'NO_EXECUTION';
-      if (signal === 'LONG' && (execution15m.pullbackToEma20 || execution15m.pullbackToEma50) && execution15m.breakSetupHigh) {
+
+      // 做多执行：等待回踩EMA20/50或前高支撑缩量企稳 + 突破setup candle高点
+      if (signal === 'LONG' &&
+        (execution15m.pullbackToEma20 || execution15m.pullbackToEma50) &&
+        execution15m.breakSetupHigh) {
         execution = 'LONG_EXECUTE';
-      } else if (signal === 'SHORT' && (execution15m.pullbackToEma20 || execution15m.pullbackToEma50) && execution15m.breakSetupLow) {
+      }
+      // 做空执行：等待回踩EMA20/50或前低支撑缩量企稳 + 突破setup candle低点
+      else if (signal === 'SHORT' &&
+        (execution15m.pullbackToEma20 || execution15m.pullbackToEma50) &&
+        execution15m.breakSetupLow) {
         execution = 'SHORT_EXECUTE';
       }
 
-      // 记录模拟交易
+      // 记录模拟交易 - 严格按照strategy.md的止损止盈规则
       if (execution.includes('EXECUTE')) {
+        const entryPrice = parseFloat(ticker.lastPrice);
+        const atr = execution15m.atr;
+
+        // 止损：setup candle另一端 或 1.2×ATR(14)（取更远）
+        let stopLoss;
+        if (execution === 'LONG_EXECUTE') {
+          const setupStop = execution15m.setupLow;
+          const atrStop = entryPrice - 1.2 * atr;
+          stopLoss = Math.min(setupStop, atrStop); // 取更远的（更小的值）
+        } else {
+          const setupStop = execution15m.setupHigh;
+          const atrStop = entryPrice + 1.2 * atr;
+          stopLoss = Math.max(setupStop, atrStop); // 取更远的（更大的值）
+        }
+
+        // 止盈：≥2R目标
+        const risk = Math.abs(entryPrice - stopLoss);
+        const takeProfit = execution === 'LONG_EXECUTE' ?
+          entryPrice + risk * 2 :
+          entryPrice - risk * 2;
+
         const simulationData = {
           signal: execution,
-          entryPrice: parseFloat(ticker.lastPrice),
-          stopLoss: execution === 'LONG_EXECUTE' ? execution15m.setupLow : execution15m.setupHigh,
-          takeProfit: execution === 'LONG_EXECUTE' ?
-            parseFloat(ticker.lastPrice) + (parseFloat(ticker.lastPrice) - execution15m.setupLow) * 2 :
-            parseFloat(ticker.lastPrice) - (execution15m.setupHigh - parseFloat(ticker.lastPrice)) * 2,
+          entryPrice,
+          stopLoss,
+          takeProfit,
           riskReward: 2.0,
+          atr: atr,
+          setupHigh: execution15m.setupHigh,
+          setupLow: execution15m.setupLow,
           timestamp: Date.now()
         };
         this.dataMonitor.recordSimulation(symbol, '交易信号', simulationData, true);

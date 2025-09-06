@@ -35,7 +35,7 @@ class SmartFlowServer {
   setupRoutes() {
     // 主页路由
     this.app.get('/', (req, res) => {
-      res.sendFile(path.join(__dirname, 'public', 'index-new.html'));
+      res.sendFile(path.join(__dirname, 'public', 'index.html'));
     });
 
     // API路由
@@ -116,6 +116,17 @@ class SmartFlowServer {
         res.json(result);
       } catch (error) {
         console.error('删除交易对失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取所有交易对
+    this.app.get('/api/symbols', async (req, res) => {
+      try {
+        const symbols = await this.db.getCustomSymbols();
+        res.json(symbols);
+      } catch (error) {
+        console.error('获取交易对列表失败:', error);
         res.status(500).json({ error: error.message });
       }
     });
