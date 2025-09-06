@@ -1003,7 +1003,10 @@ class SimulationManager {
 // 数据库管理
 class DatabaseManager {
   constructor() {
-    this.db = new sqlite3.Database('./smartflow.db');
+    // 使用绝对路径确保数据库文件位置正确
+    const dbPath = process.cwd() + '/smartflow.db';
+    console.log('📊 数据库路径:', dbPath);
+    this.db = new sqlite3.Database(dbPath);
     this.initTables();
   }
 

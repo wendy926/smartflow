@@ -1793,6 +1793,22 @@
             }
 
             try {
+                showMessage(`正在添加 ${symbol}...`, 'success');
+
+                // 调用后端API保存到数据库
+                const response = await fetch('/api/analyze-custom', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ symbol: symbol })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || '添加交易对失败');
+                }
+
                 // 添加到交易对列表
                 customSymbols.push(symbol);
                 allSymbols.push(symbol);
@@ -1802,8 +1818,6 @@
 
                 // 更新按钮显示
                 updateSymbolsListButton();
-
-                showMessage(`正在添加 ${symbol}...`, 'success');
 
                 // 刷新所有交易对数据（包括新添加的）
                 await refreshAllSignals();
