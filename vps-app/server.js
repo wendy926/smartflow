@@ -1798,24 +1798,28 @@ class DataMonitor {
       const simulationProgressRate = stats.simulationTriggers > 0 ?
         (stats.simulationInProgress / stats.simulationTriggers * 100) : 0;
 
-      // 检查各阶段信号状态（基于实际业务逻辑）
+      // 检查各阶段信号状态（基于实际分析日志中的信号状态）
       let hasExecution = false;
       let hasSignal = false;
       let hasTrend = false;
 
-      // 检查是否有模拟交易记录（基于数据库记录）
-      if (stats.simulationTriggers > 0) {
-        hasExecution = true;
-      }
+      // 从分析日志中获取实际的信号状态
+      const log = this.analysisLogs.get(symbol);
+      if (log) {
+        // 检查入场执行信号（基于实际的execution状态）
+        if (log.execution && log.execution !== 'NO_EXECUTION' && log.execution.includes('EXECUTE')) {
+          hasExecution = true;
+        }
 
-      // 检查是否有信号分析成功记录
-      if (stats.signalAnalysisSuccesses > 0) {
-        hasSignal = true;
-      }
+        // 检查信号判断（基于实际的signal状态）
+        if (log.signal && log.signal !== 'NO_SIGNAL' && (log.signal === 'LONG' || log.signal === 'SHORT')) {
+          hasSignal = true;
+        }
 
-      // 检查是否有数据收集成功记录（表示有趋势分析）
-      if (stats.dataCollectionSuccesses > 0) {
-        hasTrend = true;
+        // 检查趋势信号（基于实际的trend状态）
+        if (log.trend && log.trend !== 'RANGE' && (log.trend === 'UPTREND' || log.trend === 'DOWNTREND')) {
+          hasTrend = true;
+        }
       }
 
       // 计算优先级分数：入场执行(1000) > 信号(100) > 趋势(10) > 无信号(0)

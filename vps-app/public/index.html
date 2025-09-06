@@ -1214,7 +1214,7 @@
         }
 
         .calculator-btn {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             padding: 10px 20px;
@@ -1228,7 +1228,7 @@
 
         .calculator-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
         .symbols-list-group {
@@ -1239,7 +1239,7 @@
         }
 
         .symbols-list-btn {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             padding: 10px 20px;
@@ -1253,7 +1253,7 @@
 
         .symbols-list-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
         .symbol-input {
@@ -3916,19 +3916,46 @@
 
             // 添加事件委托处理
             monitoringPanel.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
                 if (e.target.classList.contains('refresh-btn') && e.target.dataset.action === 'refresh') {
                     loadUnifiedMonitoring();
                 } else if (e.target.classList.contains('close-btn') && e.target.dataset.action === 'close') {
                     closeUnifiedMonitoring();
                 }
             });
+
+            // 添加背景点击关闭
+            monitoringPanel.addEventListener('click', function (e) {
+                if (e.target === monitoringPanel) {
+                    closeUnifiedMonitoring();
+                }
+            });
+
+            // 添加ESC键关闭
+            const handleEscKey = function (e) {
+                if (e.key === 'Escape') {
+                    closeUnifiedMonitoring();
+                    document.removeEventListener('keydown', handleEscKey);
+                }
+            };
+            document.addEventListener('keydown', handleEscKey);
         }
 
         // 关闭统一监控中心
         function closeUnifiedMonitoring() {
             const monitoringPanel = document.querySelector('.unified-monitoring-panel');
             if (monitoringPanel) {
-                monitoringPanel.remove();
+                // 添加关闭动画
+                monitoringPanel.style.opacity = '0';
+                monitoringPanel.style.transform = 'translate(-50%, -50%) scale(0.8)';
+
+                setTimeout(() => {
+                    if (monitoringPanel && monitoringPanel.parentNode) {
+                        monitoringPanel.remove();
+                    }
+                }, 200);
             }
         }
 
@@ -4169,7 +4196,7 @@
                             <button class="btn primary" onclick="testTelegramNotification()" ${!status.configured ? 'disabled' : ''}>
                                 🧪 测试通知
                             </button>
-                            <button class="btn warning" onclick="testMonitoringAlert()" ${!status.configured ? 'disabled' : ''}>
+                            <button class="btn primary" onclick="testMonitoringAlert()" ${!status.configured ? 'disabled' : ''}>
                                 🚨 测试监控告警
                             </button>
                             <button class="btn secondary" onclick="closeTelegramConfig()">
