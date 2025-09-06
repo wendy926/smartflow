@@ -110,7 +110,7 @@ class SmartFlowApp {
                 <td>${dataManager.formatNumber(signal.vwap || 0)}</td>
                 <td>${dataManager.formatNumber(signal.volumeRatio || 0, 1)}x</td>
                 <td>${dataManager.formatPercentage(signal.oiChange || 0)}</td>
-                <td>${dataManager.formatPercentage(signal.fundingRate || 0, 4)}</td>
+                <td>${dataManager.formatPercentage((signal.fundingRate || 0) * 100, 4)}</td>
                 <td>${signal.cvdActive ? `${signal.cvd} (${dataManager.formatNumber(signal.cvdValue || 0)})` : '--'}</td>
                 <td class="${dataCollectionClass}" title="数据采集成功率: ${dataCollectionRate.toFixed(1)}%">
                     ${dataCollectionRate.toFixed(1)}%
