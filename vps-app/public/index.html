@@ -1870,14 +1870,8 @@
             <button class="btn secondary" onclick="testAPI()">
                 🧪 测试API连接
             </button>
-            <button class="btn secondary" onclick="loadDataMonitor()">
-                📊 查看数据监控
-            </button>
-            <button class="btn secondary" onclick="loadMonitoringDashboard()">
-                📈 监控仪表板
-            </button>
-            <button class="btn secondary" onclick="loadHealthCheck()">
-                🏥 健康检查
+            <button class="btn secondary" onclick="loadUnifiedMonitoring()">
+                📊 统一监控中心
             </button>
             <button class="btn secondary" onclick="viewTelegramConfig()">
                 📱 Telegram通知
@@ -2661,6 +2655,23 @@
             }
         }
 
+        // 统一监控中心
+        async function loadUnifiedMonitoring() {
+            try {
+                const response = await fetch('/api/monitoring-dashboard');
+                const data = await response.json();
+
+                if (data.error) {
+                    showMessage(`监控数据加载失败: ${data.error}`, 'error');
+                    return;
+                }
+
+                displayUnifiedMonitoring(data);
+            } catch (error) {
+                showMessage(`监控数据加载失败: ${error.message}`, 'error');
+            }
+        }
+
         function displayDataMonitor(data) {
             // 创建监控面板
             const monitorPanel = document.createElement('div');
@@ -3368,6 +3379,410 @@
             }
         }
 
+        // 显示统一监控中心
+        function displayUnifiedMonitoring(data) {
+            // 创建统一监控面板
+            const monitoringPanel = document.createElement('div');
+            monitoringPanel.className = 'unified-monitoring-panel';
+            monitoringPanel.innerHTML = `
+                <div class="monitoring-header">
+                    <h3>📊 SmartFlow 统一监控中心</h3>
+                    <div class="monitoring-controls">
+                        <button onclick="loadUnifiedMonitoring()" class="refresh-btn">🔄 刷新</button>
+                        <button onclick="closeUnifiedMonitoring()" class="close-btn">×</button>
+                    </div>
+                </div>
+                <div class="monitoring-content">
+                    <!-- 系统概览 -->
+                    <div class="system-overview">
+                        <h4>📈 系统概览</h4>
+                        <div class="overview-cards">
+                            <div class="overview-card">
+                                <div class="card-icon">⏱️</div>
+                                <div class="card-info">
+                                    <div class="card-title">运行时间</div>
+                                    <div class="card-value">${Math.floor(data.uptime / 3600)}小时${Math.floor((data.uptime % 3600) / 60)}分钟</div>
+                                </div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-icon">📊</div>
+                                <div class="card-info">
+                                    <div class="card-title">监控交易对</div>
+                                    <div class="card-value">${data.summary.totalSymbols}个</div>
+                                </div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-icon">📈</div>
+                                <div class="card-info">
+                                    <div class="card-title">平均数据收集率</div>
+                                    <div class="card-value ${data.summary.avgDataCollection >= 99 ? 'healthy' : 'warning'}">${data.summary.avgDataCollection}%</div>
+                                </div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-icon">🎯</div>
+                                <div class="card-info">
+                                    <div class="card-title">平均信号判断率</div>
+                                    <div class="card-value ${data.summary.avgSignalAnalysis >= 99 ? 'healthy' : 'warning'}">${data.summary.avgSignalAnalysis}%</div>
+                                </div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-icon">💰</div>
+                                <div class="card-info">
+                                    <div class="card-title">平均模拟交易率</div>
+                                    <div class="card-value ${data.summary.avgSimulationTrading >= 99 ? 'healthy' : 'warning'}">${data.summary.avgSimulationTrading}%</div>
+                                </div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-icon">🏆</div>
+                                <div class="card-info">
+                                    <div class="card-title">总体完成率</div>
+                                    <div class="card-value ${data.summary.avgOverall >= 99 ? 'healthy' : 'critical'}">${data.summary.avgOverall}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 交易对详细监控 -->
+                    <div class="symbols-detailed-monitoring">
+                        <h4>🔍 交易对详细监控</h4>
+                        <div class="symbols-table-container">
+                            <table class="symbols-table">
+                                <thead>
+                                    <tr>
+                                        <th>交易对</th>
+                                        <th>数据收集</th>
+                                        <th>信号判断</th>
+                                        <th>模拟交易完成率</th>
+                                        <th>模拟交易进行率</th>
+                                        <th>刷新频率</th>
+                                        <th>总体状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.symbols.map(symbol => `
+                                        <tr class="symbol-row">
+                                            <td class="symbol-name">${symbol.symbol}</td>
+                                            <td class="metric-cell">
+                                                <div class="metric-info">
+                                                    <div class="metric-rate ${symbol.dataCollection.status}">${symbol.dataCollection.rate}%</div>
+                                                    <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
+                                                    <div class="metric-time">${symbol.dataCollection.lastTime ? new Date(symbol.dataCollection.lastTime).toLocaleTimeString() : 'N/A'}</div>
+                                                </div>
+                                            </td>
+                                            <td class="metric-cell">
+                                                <div class="metric-info">
+                                                    <div class="metric-rate ${symbol.signalAnalysis.status}">${symbol.signalAnalysis.rate}%</div>
+                                                    <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
+                                                    <div class="metric-time">${symbol.signalAnalysis.lastTime ? new Date(symbol.signalAnalysis.lastTime).toLocaleTimeString() : 'N/A'}</div>
+                                                </div>
+                                            </td>
+                                            <td class="metric-cell">
+                                                <div class="metric-info">
+                                                    <div class="metric-rate ${symbol.simulationTrading.status}">${symbol.simulationTrading.completionRate}%</div>
+                                                    <div class="metric-details">${symbol.simulationTrading.completions}/${symbol.simulationTrading.triggers}</div>
+                                                    <div class="metric-time">${symbol.simulationTrading.lastTime ? new Date(symbol.simulationTrading.lastTime).toLocaleTimeString() : 'N/A'}</div>
+                                                </div>
+                                            </td>
+                                            <td class="metric-cell">
+                                                <div class="metric-info">
+                                                    <div class="metric-rate ${symbol.simulationTrading.progressRate > 0 ? 'warning' : 'healthy'}">${symbol.simulationTrading.progressRate}%</div>
+                                                    <div class="metric-details">${symbol.simulationTrading.inProgress}/${symbol.simulationTrading.triggers}</div>
+                                                    <div class="metric-time">进行中</div>
+                                                </div>
+                                            </td>
+                                            <td class="metric-cell">
+                                                <div class="metric-info">
+                                                    <div class="metric-rate ${symbol.refreshFrequency.status}">${symbol.refreshFrequency.rate}/分钟</div>
+                                                    <div class="metric-details">刷新频率</div>
+                                                    <div class="metric-time">${symbol.refreshFrequency.lastRefresh ? new Date(symbol.refreshFrequency.lastRefresh).toLocaleTimeString() : 'N/A'}</div>
+                                                </div>
+                                            </td>
+                                            <td class="metric-cell">
+                                                <div class="overall-status ${symbol.overall.status}">${symbol.overall.rate}%</div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 告警阈值配置 -->
+                    <div class="thresholds-section">
+                        <h4>⚙️ 告警阈值配置</h4>
+                        <div class="thresholds-grid">
+                            <div class="threshold-item">
+                                <span class="threshold-label">数据收集阈值</span>
+                                <span class="threshold-value">${data.thresholds.dataCollection}%</span>
+                            </div>
+                            <div class="threshold-item">
+                                <span class="threshold-label">信号判断阈值</span>
+                                <span class="threshold-value">${data.thresholds.signalAnalysis}%</span>
+                            </div>
+                            <div class="threshold-item">
+                                <span class="threshold-label">模拟交易阈值</span>
+                                <span class="threshold-value">${data.thresholds.simulationTrading}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 最近分析记录 -->
+                    <div class="recent-logs-section">
+                        <h4>📋 最近分析记录</h4>
+                        <div class="logs-container">
+                            ${data.recentLogs.map(log => `
+                                <div class="log-item ${log.success ? 'success' : 'error'}">
+                                    <div class="log-symbol">${log.symbol}</div>
+                                    <div class="log-duration">${log.totalTime}ms</div>
+                                    <div class="log-status">${log.success ? '✅ 成功' : '❌ 失败'}</div>
+                                    <div class="log-time">${new Date(log.startTime).toLocaleString()}</div>
+                                    ${!log.success ? `<div class="log-errors">${log.errors.join(', ')}</div>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 添加样式
+            if (!document.querySelector('#unified-monitoring-styles')) {
+                const style = document.createElement('style');
+                style.id = 'unified-monitoring-styles';
+                style.textContent = `
+                    .unified-monitoring-panel {
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: white;
+                        border-radius: 15px;
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                        z-index: 1000;
+                        max-width: 1400px;
+                        max-height: 90vh;
+                        overflow-y: auto;
+                        border: 2px solid #667eea;
+                    }
+                    .monitoring-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 20px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border-radius: 13px 13px 0 0;
+                    }
+                    .monitoring-controls {
+                        display: flex;
+                        gap: 10px;
+                    }
+                    .refresh-btn, .close-btn {
+                        background: rgba(255, 255, 255, 0.2);
+                        border: none;
+                        color: white;
+                        padding: 8px 12px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    }
+                    .refresh-btn:hover, .close-btn:hover {
+                        background: rgba(255, 255, 255, 0.3);
+                    }
+                    .monitoring-content {
+                        padding: 20px;
+                    }
+                    .system-overview h4, .symbols-detailed-monitoring h4, .thresholds-section h4, .recent-logs-section h4 {
+                        margin-bottom: 15px;
+                        color: #333;
+                        border-bottom: 2px solid #667eea;
+                        padding-bottom: 5px;
+                    }
+                    .overview-cards {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                        gap: 15px;
+                        margin-bottom: 30px;
+                    }
+                    .overview-card {
+                        display: flex;
+                        align-items: center;
+                        background: #f8f9fa;
+                        padding: 15px;
+                        border-radius: 10px;
+                        border-left: 4px solid #667eea;
+                    }
+                    .card-icon {
+                        font-size: 24px;
+                        margin-right: 15px;
+                    }
+                    .card-info {
+                        flex: 1;
+                    }
+                    .card-title {
+                        font-size: 12px;
+                        color: #666;
+                        margin-bottom: 5px;
+                    }
+                    .card-value {
+                        font-size: 18px;
+                        font-weight: bold;
+                        color: #333;
+                    }
+                    .card-value.healthy { color: #28a745; }
+                    .card-value.warning { color: #ffc107; }
+                    .card-value.critical { color: #dc3545; }
+                    .symbols-table-container {
+                        overflow-x: auto;
+                        margin-bottom: 30px;
+                    }
+                    .symbols-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        background: white;
+                        border-radius: 10px;
+                        overflow: hidden;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                    .symbols-table th {
+                        background: #667eea;
+                        color: white;
+                        padding: 12px;
+                        text-align: left;
+                        font-weight: 600;
+                    }
+                    .symbols-table td {
+                        padding: 12px;
+                        border-bottom: 1px solid #e9ecef;
+                    }
+                    .symbols-table tr:hover {
+                        background: #f8f9fa;
+                    }
+                    .symbol-name {
+                        font-weight: bold;
+                        color: #333;
+                    }
+                    .metric-cell {
+                        text-align: center;
+                    }
+                    .metric-info {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 2px;
+                    }
+                    .metric-rate {
+                        font-weight: bold;
+                        font-size: 14px;
+                    }
+                    .metric-rate.healthy { color: #28a745; }
+                    .metric-rate.warning { color: #ffc107; }
+                    .metric-rate.critical { color: #dc3545; }
+                    .metric-details {
+                        font-size: 11px;
+                        color: #666;
+                    }
+                    .metric-time {
+                        font-size: 10px;
+                        color: #999;
+                    }
+                    .overall-status {
+                        padding: 4px 8px;
+                        border-radius: 12px;
+                        font-weight: bold;
+                        font-size: 12px;
+                        text-align: center;
+                    }
+                    .overall-status.healthy { background: #d4edda; color: #155724; }
+                    .overall-status.warning { background: #fff3cd; color: #856404; }
+                    .overall-status.critical { background: #f8d7da; color: #721c24; }
+                    .thresholds-section {
+                        margin-bottom: 30px;
+                        padding: 20px;
+                        background: #f8f9fa;
+                        border-radius: 10px;
+                    }
+                    .thresholds-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                        gap: 15px;
+                    }
+                    .threshold-item {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 10px;
+                        background: white;
+                        border-radius: 5px;
+                        border: 1px solid #e9ecef;
+                    }
+                    .threshold-label {
+                        font-weight: 500;
+                        color: #333;
+                    }
+                    .threshold-value {
+                        font-weight: bold;
+                        color: #667eea;
+                    }
+                    .recent-logs-section {
+                        margin-bottom: 20px;
+                    }
+                    .logs-container {
+                        max-height: 300px;
+                        overflow-y: auto;
+                    }
+                    .log-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
+                        padding: 10px;
+                        margin-bottom: 8px;
+                        border-radius: 5px;
+                        font-size: 14px;
+                    }
+                    .log-item.success {
+                        background: #e8f5e8;
+                        border-left: 4px solid #28a745;
+                    }
+                    .log-item.error {
+                        background: #f8d7da;
+                        border-left: 4px solid #dc3545;
+                    }
+                    .log-symbol {
+                        font-weight: bold;
+                        min-width: 80px;
+                    }
+                    .log-duration {
+                        min-width: 60px;
+                        color: #666;
+                    }
+                    .log-status {
+                        min-width: 80px;
+                    }
+                    .log-time {
+                        min-width: 120px;
+                        color: #666;
+                        font-size: 12px;
+                    }
+                    .log-errors {
+                        color: #721c24;
+                        font-size: 12px;
+                        flex: 1;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(monitoringPanel);
+        }
+
+        // 关闭统一监控中心
+        function closeUnifiedMonitoring() {
+            const monitoringPanel = document.querySelector('.unified-monitoring-panel');
+            if (monitoringPanel) {
+                monitoringPanel.remove();
+            }
+        }
+
         // 切换历史记录显示
         function toggleHistory(symbol) {
             const historyRow = document.getElementById(`history-${symbol}`);
@@ -3920,11 +4335,8 @@
 
             // 每10秒自动刷新监控数据（如果有监控面板打开）
             setInterval(() => {
-                if (document.querySelector('.dashboard-panel')) {
-                    loadMonitoringDashboard();
-                }
-                if (document.querySelector('.health-panel')) {
-                    loadHealthCheck();
+                if (document.querySelector('.unified-monitoring-panel')) {
+                    loadUnifiedMonitoring();
                 }
             }, 10000);
         });

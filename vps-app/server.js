@@ -1459,12 +1459,15 @@ class DataMonitor {
     this.analysisLogs = new Map();
     this.completionRates = new Map(); // 完成率统计
     this.healthStatus = new Map(); // 健康状态
+    this.symbolStats = new Map(); // 每个交易对的详细统计
     this.alertThresholds = {
       dataCollection: 99, // 数据收集完成率阈值
       signalAnalysis: 99, // 信号判断完成率阈值
       simulationTrading: 99 // 模拟交易触发率阈值
     };
     this.startTime = Date.now();
+    this.refreshInterval = 30000; // 30秒刷新间隔
+    this.lastRefreshTime = new Map(); // 每个交易对的上次刷新时间
   }
 
   /**
@@ -1486,6 +1489,33 @@ class DataMonitor {
         simulationTrading: { startTime: null, endTime: null, success: false }
       }
     });
+
+    // 初始化交易对统计
+    if (!this.symbolStats.has(symbol)) {
+      this.symbolStats.set(symbol, {
+        dataCollectionAttempts: 0,
+        dataCollectionSuccesses: 0,
+        signalAnalysisAttempts: 0,
+        signalAnalysisSuccesses: 0,
+        simulationTriggers: 0,
+        simulationCompletions: 0,
+        simulationInProgress: 0,
+        lastDataCollectionTime: null,
+        lastSignalAnalysisTime: null,
+        lastSimulationTime: null,
+        refreshFrequency: 0, // 每分钟刷新次数
+        lastRefreshTime: now
+      });
+    }
+
+    // 更新刷新频率
+    const stats = this.symbolStats.get(symbol);
+    const timeSinceLastRefresh = now - stats.lastRefreshTime;
+    if (timeSinceLastRefresh > 0) {
+      stats.refreshFrequency = 60000 / timeSinceLastRefresh; // 每分钟刷新次数
+    }
+    stats.lastRefreshTime = now;
+    this.lastRefreshTime.set(symbol, now);
   }
 
   /**
@@ -1503,6 +1533,16 @@ class DataMonitor {
       if (!success) {
         log.errors.push(`${dataType}: ${error ? error.message : '未知错误'}`);
         log.success = false;
+      }
+    }
+
+    // 更新交易对统计
+    const stats = this.symbolStats.get(symbol);
+    if (stats) {
+      stats.dataCollectionAttempts++;
+      if (success) {
+        stats.dataCollectionSuccesses++;
+        stats.lastDataCollectionTime = Date.now();
       }
     }
   }
@@ -1543,6 +1583,16 @@ class DataMonitor {
         log.phases.signalAnalysis.endTime = Date.now();
       }
     }
+
+    // 更新交易对统计
+    const stats = this.symbolStats.get(symbol);
+    if (stats) {
+      stats.signalAnalysisAttempts++;
+      if (success) {
+        stats.signalAnalysisSuccesses++;
+        stats.lastSignalAnalysisTime = Date.now();
+      }
+    }
   }
 
   /**
@@ -1566,6 +1616,19 @@ class DataMonitor {
         log.phases.simulationTrading.success = true;
         log.phases.simulationTrading.endTime = Date.now();
       }
+    }
+
+    // 更新交易对统计
+    const stats = this.symbolStats.get(symbol);
+    if (stats) {
+      stats.simulationTriggers++;
+      if (success) {
+        stats.simulationCompletions++;
+        stats.simulationInProgress = Math.max(0, stats.simulationInProgress - 1);
+      } else {
+        stats.simulationInProgress++;
+      }
+      stats.lastSimulationTime = Date.now();
     }
   }
 
@@ -1701,6 +1764,55 @@ class DataMonitor {
     const avgOverall = symbols.length > 0 ?
       symbols.reduce((sum, symbol) => sum + rates.overall[symbol], 0) / symbols.length : 0;
 
+    // 计算详细统计
+    const detailedStats = symbols.map(symbol => {
+      const stats = this.symbolStats.get(symbol) || {};
+      const dataCollectionRate = stats.dataCollectionAttempts > 0 ?
+        (stats.dataCollectionSuccesses / stats.dataCollectionAttempts * 100) : 0;
+      const signalAnalysisRate = stats.signalAnalysisAttempts > 0 ?
+        (stats.signalAnalysisSuccesses / stats.signalAnalysisAttempts * 100) : 0;
+      const simulationCompletionRate = stats.simulationTriggers > 0 ?
+        (stats.simulationCompletions / stats.simulationTriggers * 100) : 0;
+      const simulationProgressRate = stats.simulationTriggers > 0 ?
+        (stats.simulationInProgress / stats.simulationTriggers * 100) : 0;
+
+      return {
+        symbol,
+        dataCollection: {
+          rate: Math.round(dataCollectionRate * 100) / 100,
+          attempts: stats.dataCollectionAttempts || 0,
+          successes: stats.dataCollectionSuccesses || 0,
+          lastTime: stats.lastDataCollectionTime ? new Date(stats.lastDataCollectionTime).toISOString() : null,
+          status: dataCollectionRate >= this.alertThresholds.dataCollection ? 'healthy' : 'warning'
+        },
+        signalAnalysis: {
+          rate: Math.round(signalAnalysisRate * 100) / 100,
+          attempts: stats.signalAnalysisAttempts || 0,
+          successes: stats.signalAnalysisSuccesses || 0,
+          lastTime: stats.lastSignalAnalysisTime ? new Date(stats.lastSignalAnalysisTime).toISOString() : null,
+          status: signalAnalysisRate >= this.alertThresholds.signalAnalysis ? 'healthy' : 'warning'
+        },
+        simulationTrading: {
+          completionRate: Math.round(simulationCompletionRate * 100) / 100,
+          progressRate: Math.round(simulationProgressRate * 100) / 100,
+          triggers: stats.simulationTriggers || 0,
+          completions: stats.simulationCompletions || 0,
+          inProgress: stats.simulationInProgress || 0,
+          lastTime: stats.lastSimulationTime ? new Date(stats.lastSimulationTime).toISOString() : null,
+          status: simulationCompletionRate >= this.alertThresholds.simulationTrading ? 'healthy' : 'warning'
+        },
+        refreshFrequency: {
+          rate: Math.round((stats.refreshFrequency || 0) * 100) / 100,
+          lastRefresh: stats.lastRefreshTime ? new Date(stats.lastRefreshTime).toISOString() : null,
+          status: (stats.refreshFrequency || 0) >= 2 ? 'healthy' : 'warning' // 每分钟至少2次刷新
+        },
+        overall: {
+          rate: rates.overall[symbol] || 0,
+          status: health[symbol]?.overall?.status || 'unknown'
+        }
+      };
+    });
+
     return {
       timestamp: new Date().toISOString(),
       uptime: Math.floor(uptime / 1000), // 秒
@@ -1711,25 +1823,7 @@ class DataMonitor {
         avgSimulationTrading: Math.round(avgSimulationTrading * 100) / 100,
         avgOverall: Math.round(avgOverall * 100) / 100
       },
-      symbols: symbols.map(symbol => ({
-        symbol,
-        dataCollection: {
-          rate: rates.dataCollection[symbol] || 0,
-          status: health[symbol]?.dataCollection?.status || 'unknown'
-        },
-        signalAnalysis: {
-          rate: rates.signalAnalysis[symbol] || 0,
-          status: health[symbol]?.signalAnalysis?.status || 'unknown'
-        },
-        simulationTrading: {
-          rate: rates.simulationTrading[symbol] || 0,
-          status: health[symbol]?.simulationTrading?.status || 'unknown'
-        },
-        overall: {
-          rate: rates.overall[symbol] || 0,
-          status: health[symbol]?.overall?.status || 'unknown'
-        }
-      })),
+      symbols: detailedStats,
       thresholds: this.alertThresholds,
       recentLogs: Array.from(this.analysisLogs.values())
         .sort((a, b) => b.startTime - a.startTime)
