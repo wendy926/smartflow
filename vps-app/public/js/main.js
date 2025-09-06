@@ -1,0 +1,549 @@
+// public/js/main.js - 主应用逻辑
+
+class SmartFlowApp {
+  constructor() {
+    this.allSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT'];
+    this.isLoading = false;
+    this.autoRefreshInterval = null;
+    this.init();
+  }
+
+  init() {
+    this.setupEventListeners();
+    this.loadInitialData();
+    this.startAutoRefresh();
+    this.startMonitoringRefresh(); // 启动监控数据自动刷新
+  }
+
+  setupEventListeners() {
+    // 刷新间隔变化
+    document.getElementById('refreshInterval').addEventListener('change', (e) => {
+      this.startAutoRefresh(parseInt(e.target.value));
+    });
+
+    // 页面可见性变化时暂停/恢复自动刷新
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.stopAutoRefresh();
+      } else {
+        this.startAutoRefresh();
+      }
+    });
+  }
+
+  async loadInitialData() {
+    try {
+      this.showLoading(true);
+      await this.loadAllData();
+    } catch (error) {
+      console.error('加载初始数据失败:', error);
+      modal.showMessage('数据加载失败: ' + error.message, 'error');
+    } finally {
+      this.showLoading(false);
+    }
+  }
+
+  async loadAllData() {
+    try {
+      const [signals, history, stats] = await Promise.all([
+        dataManager.getAllSignals(),
+        dataManager.getSimulationHistory(),
+        dataManager.getWinRateStats()
+      ]);
+
+      this.updateStatsDisplay(signals, stats);
+      this.updateSignalsTable(signals);
+      this.updateSimulationTable(history);
+    } catch (error) {
+      console.error('加载数据失败:', error);
+      throw error;
+    }
+  }
+
+  updateStatsDisplay(signals, stats) {
+    // 更新信号统计
+    const totalSignals = signals.length;
+    const longSignals = signals.filter(s => s.signal === 'LONG').length;
+    const shortSignals = signals.filter(s => s.signal === 'SHORT').length;
+
+    document.getElementById('totalSignals').textContent = totalSignals;
+    document.getElementById('longSignals').textContent = longSignals;
+    document.getElementById('shortSignals').textContent = shortSignals;
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('zh-CN');
+
+    // 更新胜率统计
+    if (stats) {
+      const winRate = dataManager.formatPercentage(stats.win_rate || 0);
+      const winDetails = `${stats.winning_trades || 0}/${stats.total_trades || 0}`;
+
+      document.getElementById('winRate').textContent = winRate;
+      document.getElementById('winRateDetails').textContent = winDetails;
+    }
+  }
+
+  updateSignalsTable(signals) {
+    const tbody = document.getElementById('signalsTableBody');
+    tbody.innerHTML = '';
+
+    if (signals.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #6c757d;">暂无信号数据</td></tr>';
+      return;
+    }
+
+    signals.forEach(signal => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+                <td>
+                    <button class="btn secondary" onclick="showSignalDetails('${signal.symbol}')">
+                        查看详情
+                    </button>
+                </td>
+                <td>${signal.symbol}</td>
+                <td class="${dataManager.getSignalClass(signal.trend)}">${signal.trend || '--'}</td>
+                <td class="${dataManager.getSignalClass(signal.signal)}">${signal.signal || '--'}</td>
+                <td class="${dataManager.getExecutionClass(signal.execution)}">${signal.execution || '--'}</td>
+                <td>${dataManager.formatNumber(signal.currentPrice || 0)}</td>
+                <td>${dataManager.formatNumber(signal.vwap || 0)}</td>
+                <td>${dataManager.formatNumber(signal.volumeRatio || 0, 1)}x</td>
+                <td>${dataManager.formatPercentage(signal.oiChange || 0)}</td>
+                <td>${dataManager.formatPercentage(signal.fundingRate || 0, 4)}</td>
+                <td>${signal.cvd || '--'}</td>
+                <td>
+                    <button class="btn primary" onclick="refreshSymbol('${signal.symbol}')">
+                        刷新
+                    </button>
+                </td>
+            `;
+      tbody.appendChild(row);
+    });
+  }
+
+  updateSimulationTable(history) {
+    const tbody = document.getElementById('simulationTableBody');
+    tbody.innerHTML = '';
+
+    if (history.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #6c757d;">暂无模拟交易记录</td></tr>';
+      return;
+    }
+
+    history.forEach(sim => {
+      const row = document.createElement('tr');
+      const profitLoss = sim.profit_loss || 0;
+      const isWin = sim.is_win;
+      const resultClass = isWin ? 'signal-long' : 'signal-short';
+      const resultText = isWin ? '盈利' : '亏损';
+
+      row.innerHTML = `
+                <td>${sim.symbol}</td>
+                <td>${dataManager.formatNumber(sim.entry_price)}</td>
+                <td>${dataManager.formatNumber(sim.stop_loss_price)}</td>
+                <td>${dataManager.formatNumber(sim.take_profit_price)}</td>
+                <td>${sim.max_leverage}x</td>
+                <td>${dataManager.formatNumber(sim.min_margin)}</td>
+                <td>${dataManager.formatTime(sim.created_at)}</td>
+                <td>${dataManager.formatTime(sim.closed_at)}</td>
+                <td>${dataManager.formatNumber(sim.exit_price || 0)}</td>
+                <td>${sim.exit_reason || '--'}</td>
+                <td>${sim.trigger_reason || '--'}</td>
+                <td class="${resultClass}">${dataManager.formatNumber(profitLoss)}</td>
+                <td class="${resultClass}">${resultText}</td>
+            `;
+      tbody.appendChild(row);
+    });
+  }
+
+  showLoading(show) {
+    this.isLoading = show;
+    const buttons = document.querySelectorAll('.btn');
+    buttons.forEach(btn => {
+      btn.disabled = show;
+    });
+
+    if (show) {
+      document.body.style.cursor = 'wait';
+    } else {
+      document.body.style.cursor = 'default';
+    }
+  }
+
+  startAutoRefresh(interval = null) {
+    this.stopAutoRefresh();
+
+    const refreshInterval = interval || parseInt(document.getElementById('refreshInterval').value);
+    this.autoRefreshInterval = setInterval(async () => {
+      try {
+        await this.loadAllData();
+        console.log('数据自动刷新完成');
+      } catch (error) {
+        console.error('自动刷新失败:', error);
+      }
+    }, refreshInterval);
+  }
+
+  // 启动监控数据自动刷新（5分钟一次，不产生弹框）
+  startMonitoringRefresh() {
+    this.monitoringInterval = setInterval(async () => {
+      try {
+        // 静默刷新监控数据，不显示加载状态和消息
+        const [signals, history, stats] = await Promise.all([
+          dataManager.getAllSignals(),
+          dataManager.getSimulationHistory(),
+          dataManager.getWinRateStats()
+        ]);
+
+        this.updateStatsDisplay(signals, stats);
+        this.updateSignalsTable(signals);
+        this.updateSimulationTable(history);
+
+        console.log('监控数据静默刷新完成');
+      } catch (error) {
+        console.error('监控数据刷新失败:', error);
+      }
+    }, 300000); // 5分钟 = 300000毫秒
+  }
+
+  stopMonitoringRefresh() {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+    }
+  }
+
+  stopAutoRefresh() {
+    if (this.autoRefreshInterval) {
+      clearInterval(this.autoRefreshInterval);
+      this.autoRefreshInterval = null;
+    }
+  }
+}
+
+// 全局函数
+async function refreshAllSignals() {
+  try {
+    app.showLoading(true);
+    await window.apiClient.refreshAllSignals();
+    await app.loadAllData();
+    modal.showMessage('所有信号已刷新', 'success');
+  } catch (error) {
+    console.error('刷新信号失败:', error);
+    modal.showMessage('刷新失败: ' + error.message, 'error');
+  } finally {
+    app.showLoading(false);
+  }
+}
+
+async function refreshSymbol(symbol) {
+  try {
+    app.showLoading(true);
+    // 这里可以添加单个交易对的刷新逻辑
+    await app.loadAllData();
+    modal.showMessage(`${symbol} 已刷新`, 'success');
+  } catch (error) {
+    console.error(`刷新 ${symbol} 失败:`, error);
+    modal.showMessage(`刷新 ${symbol} 失败: ` + error.message, 'error');
+  } finally {
+    app.showLoading(false);
+  }
+}
+
+function showSignalDetails(symbol) {
+  // 显示信号详情模态框
+  const content = `
+        <div style="padding: 20px;">
+            <h4>${symbol} 信号详情</h4>
+            <p>这里可以显示更详细的信号分析信息</p>
+        </div>
+    `;
+  modal.show(`${symbol} 信号详情`, content);
+}
+
+async function testAPIConnection() {
+  try {
+    app.showLoading(true);
+    await window.apiClient.getAllSignals();
+    modal.showMessage('API连接正常', 'success');
+  } catch (error) {
+    console.error('API连接测试失败:', error);
+    modal.showMessage('API连接失败: ' + error.message, 'error');
+  } finally {
+    app.showLoading(false);
+  }
+}
+
+async function loadUnifiedMonitoring() {
+  try {
+    const data = await dataManager.getMonitoringData();
+
+    // 检查是否已有监控面板打开
+    const existingPanel = document.querySelector('.unified-monitoring-panel');
+    if (existingPanel) {
+      // 如果已存在，直接刷新数据
+      await refreshMonitoringData();
+      return;
+    }
+
+    // 创建监控面板HTML
+    const monitoringHtml = `
+            <div class="unified-monitoring-panel">
+                <div class="monitoring-header">
+                    <h3>📊 SmartFlow 统一监控中心</h3>
+                    <div class="monitoring-controls">
+                        <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>
+                        <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
+                    </div>
+                </div>
+                <div class="monitoring-content">
+                    <div class="system-overview">
+                        <h4>📈 系统概览</h4>
+                        <div class="overview-cards">
+                            <div class="overview-card">
+                                <span class="card-icon">📊</span>
+                                <div class="card-content">
+                                    <div class="card-title">总交易对</div>
+                                    <div class="card-value" id="totalSymbols">${data.summary.totalSymbols}</div>
+                                </div>
+                            </div>
+                            <div class="overview-card">
+                                <span class="card-icon">✅</span>
+                                <div class="card-content">
+                                    <div class="card-title">健康状态</div>
+                                    <div class="card-value" id="healthySymbols">${data.summary.healthySymbols}</div>
+                                </div>
+                            </div>
+                            <div class="overview-card">
+                                <span class="card-icon">⚠️</span>
+                                <div class="card-content">
+                                    <div class="card-title">警告状态</div>
+                                    <div class="card-value" id="warningSymbols">${data.summary.warningSymbols}</div>
+                                </div>
+                            </div>
+                            <div class="overview-card">
+                                <span class="card-icon">📈</span>
+                                <div class="card-content">
+                                    <div class="card-title">数据收集率</div>
+                                    <div class="card-value" id="dataCollectionRate">${data.summary.completionRates.dataCollection.toFixed(1)}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="symbols-monitoring">
+                        <h4>🔍 交易对详细监控</h4>
+                        <div class="symbols-table-container">
+                            <table class="symbols-table">
+                                <thead>
+                                    <tr>
+                                        <th>交易对</th>
+                                        <th>数据收集率</th>
+                                        <th>信号分析率</th>
+                                        <th>模拟交易完成率</th>
+                                        <th>模拟交易进行率</th>
+                                        <th>刷新频率</th>
+                                        <th>整体状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monitoringTableBody">
+                                    <!-- 动态填充 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+    // 添加到页面
+    document.body.insertAdjacentHTML('beforeend', monitoringHtml);
+
+    // 填充监控数据
+    await refreshMonitoringData();
+
+  } catch (error) {
+    console.error('加载监控数据失败:', error);
+    modal.showMessage('监控数据加载失败: ' + error.message, 'error');
+  }
+}
+
+// 刷新监控数据
+async function refreshMonitoringData() {
+  try {
+    const data = await dataManager.getMonitoringData();
+
+    // 更新概览数据
+    document.getElementById('totalSymbols').textContent = data.summary.totalSymbols;
+    document.getElementById('healthySymbols').textContent = data.summary.healthySymbols;
+    document.getElementById('warningSymbols').textContent = data.summary.warningSymbols;
+    document.getElementById('dataCollectionRate').textContent = data.summary.completionRates.dataCollection.toFixed(1) + '%';
+
+    // 更新交易对表格
+    const tbody = document.getElementById('monitoringTableBody');
+    tbody.innerHTML = '';
+
+    data.detailedStats.forEach(symbol => {
+      const row = document.createElement('tr');
+      row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
+
+      row.innerHTML = `
+                <td class="symbol-name">
+                    ${symbol.symbol}
+                    ${symbol.hasExecution ? '<span class="signal-indicator execution">🚀</span>' : ''}
+                    ${symbol.hasSignal ? '<span class="signal-indicator signal">🎯</span>' : ''}
+                    ${symbol.hasTrend ? '<span class="signal-indicator trend">📈</span>' : ''}
+                    ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
+                </td>
+                <td>
+                    <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
+                    <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
+                </td>
+                <td>
+                    <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
+                    <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
+                </td>
+                <td>
+                    <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
+                    <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
+                </td>
+                <td>
+                    <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(1)}%</div>
+                    <div class="metric-details">${symbol.simulationProgress.inProgress}/${symbol.simulationProgress.triggers}</div>
+                </td>
+                <td>
+                    <div class="metric-time">${symbol.refreshFrequency}秒</div>
+                </td>
+                <td>
+                    <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
+                        ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(1)}%
+                    </span>
+                </td>
+            `;
+      tbody.appendChild(row);
+    });
+
+  } catch (error) {
+    console.error('刷新监控数据失败:', error);
+  }
+}
+
+// 关闭监控面板
+function closeMonitoringPanel() {
+  const panel = document.querySelector('.unified-monitoring-panel');
+  if (panel) {
+    panel.remove();
+  }
+}
+
+async function viewTelegramConfig() {
+  try {
+    const config = await window.apiClient.getTelegramConfig();
+    const content = `
+            <div style="padding: 20px;">
+                <h4>Telegram 配置状态</h4>
+                <p>配置状态: ${config.configured ? '已配置' : '未配置'}</p>
+                <div style="margin-top: 20px;">
+                    <button class="btn primary" onclick="testTelegramNotification()">测试通知</button>
+                    <button class="btn secondary" onclick="modal.close()">关闭</button>
+                </div>
+            </div>
+        `;
+    modal.show('Telegram 配置', content);
+  } catch (error) {
+    console.error('获取Telegram配置失败:', error);
+    modal.showMessage('获取配置失败: ' + error.message, 'error');
+  }
+}
+
+async function testTelegramNotification() {
+  try {
+    const result = await window.apiClient.testTelegramNotification();
+    if (result.success) {
+      modal.showMessage('测试通知已发送', 'success');
+    } else {
+      modal.showMessage('测试通知失败: ' + result.error, 'error');
+    }
+  } catch (error) {
+    console.error('测试Telegram通知失败:', error);
+    modal.showMessage('测试通知失败: ' + error.message, 'error');
+  }
+}
+
+function openRollupCalculator() {
+  const currentMaxLoss = document.getElementById('maxLossAmount').value;
+  const calculatorWindow = window.open(
+    'rollup-calculator.html',
+    'rollupCalculator',
+    'width=1200,height=800,scrollbars=yes,resizable=yes,status=yes,toolbar=no,menubar=no,location=no'
+  );
+
+  if (calculatorWindow) {
+    calculatorWindow.addEventListener('load', function () {
+      try {
+        const maxLossInput = calculatorWindow.document.getElementById('maxLossAmount');
+        if (maxLossInput) {
+          maxLossInput.value = currentMaxLoss;
+        }
+      } catch (error) {
+        console.log('无法设置默认值:', error);
+      }
+    });
+  }
+}
+
+async function showSymbolsList() {
+  try {
+    const symbols = await window.apiClient.getAllSignals();
+    const symbolList = symbols.map(s => s.symbol).join(', ');
+
+    const content = `
+            <div style="padding: 20px;">
+                <h4>当前监控的交易对</h4>
+                <p>${symbolList || '暂无交易对'}</p>
+                <div style="margin-top: 20px;">
+                    <input type="text" id="newSymbol" placeholder="输入新的交易对" class="symbol-input">
+                    <button class="btn primary" onclick="addSymbol()">添加</button>
+                </div>
+            </div>
+        `;
+    modal.show('交易对管理', content);
+  } catch (error) {
+    console.error('获取交易对列表失败:', error);
+    modal.showMessage('获取交易对列表失败: ' + error.message, 'error');
+  }
+}
+
+async function addSymbol() {
+  const symbol = document.getElementById('newSymbol').value.trim().toUpperCase();
+  if (!symbol) {
+    modal.showMessage('请输入有效的交易对', 'warning');
+    return;
+  }
+
+  try {
+    const result = await window.apiClient.addSymbol(symbol);
+    if (result.success) {
+      modal.showMessage(result.message, 'success');
+      modal.close();
+      await app.loadAllData();
+    } else {
+      modal.showMessage(result.message, 'error');
+    }
+  } catch (error) {
+    console.error('添加交易对失败:', error);
+    modal.showMessage('添加交易对失败: ' + error.message, 'error');
+  }
+}
+
+function toggleSimulationHistory() {
+  const table = document.getElementById('simulationTable').closest('.table-container');
+  if (table.style.display === 'none') {
+    table.style.display = 'block';
+    app.loadAllData();
+  } else {
+    table.style.display = 'none';
+  }
+}
+
+// 页面加载完成后初始化应用
+document.addEventListener('DOMContentLoaded', () => {
+  window.app = new SmartFlowApp();
+});

@@ -1,21 +1,42 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>斐波拉契滚仓计算器 - SmartFlow</title>
+    <link rel="stylesheet" href="css/main.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* 斐波拉契滚仓计算器特定样式 */
+        .calculator-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        .calculator-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .calculator-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .calculator-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .calculator-content {
+            padding: 30px;
         }
 
         .container {
@@ -322,7 +343,8 @@
             min-width: 800px;
         }
 
-        th, td {
+        th,
+        td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #e9ecef;
@@ -420,12 +442,14 @@
                 font-size: 0.8rem;
             }
 
-            th, td {
+            th,
+            td {
                 padding: 8px 6px;
             }
         }
 
         @media (max-width: 480px) {
+
             .calculation-cards,
             .summary-cards {
                 grid-template-columns: 1fr;
@@ -441,237 +465,244 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <header class="header">
-            <h1>📊 斐波拉契滚仓计算器</h1>
-            <p>基于0.618黄金回调法的滚仓策略计算</p>
-        </header>
+        <div class="calculator-container">
+            <header class="calculator-header">
+                <h1>📊 斐波拉契滚仓计算器</h1>
+                <p>基于0.618黄金回调法的滚仓策略计算</p>
+            </header>
 
-        <div class="content">
-            <form id="rollupForm" class="input-form">
-                <div class="input-group">
-                    <label for="maxLossAmount">最大损失金额 (U)</label>
-                    <input type="number" id="maxLossAmount" name="maxLossAmount" value="100" min="1" step="1" required>
-                    <small class="input-hint">愿意承担的最大损失金额</small>
-                </div>
-
-                <div class="input-group">
-                    <label for="orderZoneHigh">订单区上沿价格 (U)</label>
-                    <input type="number" id="orderZoneHigh" name="orderZoneHigh" value="4500" min="1" step="0.01" required>
-                    <small class="input-hint">订单区上沿价格，作为初始开仓价</small>
-                </div>
-
-                <div class="input-group">
-                    <label for="orderZoneLow">订单区下沿价格 (U)</label>
-                    <input type="number" id="orderZoneLow" name="orderZoneLow" value="4300" min="1" step="0.01" required>
-                    <small class="input-hint">订单区下沿价格，用于计算止损价格</small>
-                </div>
-
-                <div class="input-group">
-                    <label for="atr4h">4H级别图ATR (U)</label>
-                    <input type="number" id="atr4h" name="atr4h" value="50" min="0.01" step="0.01" required>
-                    <small class="input-hint">4小时级别图的平均真实波幅</small>
-                </div>
-
-                <div class="input-group">
-                    <label for="targetPrice">目标平仓价 (U)</label>
-                    <input type="number" id="targetPrice" name="targetPrice" value="5000" min="1" step="0.01" required>
-                    <small class="input-hint">目标平仓价格</small>
-                </div>
-
-                <div class="input-group">
-                    <label for="leverageStrategy">杠杆策略</label>
-                    <select id="leverageStrategy" name="leverageStrategy">
-                        <option value="dynamic">动态计算策略</option>
-                        <option value="fixed">固定序列策略 [30,25,20,15,10,5]</option>
-                    </select>
-                    <small class="input-hint">选择使用的杠杆策略类型</small>
-                </div>
-            </form>
-
-            <div class="button-group">
-                <button type="button" id="calculateInitial" class="btn btn-primary">📊 初单计算</button>
-                <button type="button" id="compareStrategies" class="btn btn-secondary">⚖️ 对比杠杆策略</button>
-                <button type="button" id="calculateRollup" class="btn btn-warning">🚀 计算滚仓路径</button>
-            </div>
-
-            <!-- 初单计算结果 -->
-            <div id="initialCalculation" class="results-section hidden">
-                <h3>📊 初单计算结果</h3>
-                <div class="calculation-cards">
-                    <div class="calculation-card">
-                        <h4>计算本金</h4>
-                        <span id="calculatedPrincipal" class="principal-value">0 U</span>
+            <div class="calculator-content">
+                <form id="rollupForm" class="input-form">
+                    <div class="input-group">
+                        <label for="maxLossAmount">最大损失金额 (U)</label>
+                        <input type="number" id="maxLossAmount" name="maxLossAmount" value="100" min="1" step="1"
+                            required>
+                        <small class="input-hint">愿意承担的最大损失金额</small>
                     </div>
-                    <div class="calculation-card">
-                        <h4>初始杠杆</h4>
-                        <span id="calculatedLeverage" class="leverage-value">0</span>
-                    </div>
-                    <div class="calculation-card">
-                        <h4>止损价格</h4>
-                        <span id="calculatedStopLoss" class="stoploss-value">0 U</span>
-                    </div>
-                    <div class="calculation-card">
-                        <h4>止损距离</h4>
-                        <span id="calculatedStopLossDistance" class="distance-value">0%</span>
-                    </div>
-                </div>
-            </div>
 
-            <!-- 策略对比结果 -->
-            <div id="strategyComparison" class="results-section hidden">
-                <h3>⚖️ 杠杆策略对比结果</h3>
-                <div class="strategy-results">
-                    <div class="strategy-card dynamic-strategy">
-                        <h4>🔄 动态计算策略</h4>
-                        <div class="strategy-metrics">
-                            <div class="metric">
-                                <span class="metric-label">预期收益</span>
-                                <span id="dynamicProfit" class="metric-value">0 U</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">收益率</span>
-                                <span id="dynamicReturnRate" class="metric-value">0%</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">加仓次数</span>
-                                <span id="dynamicRollupCount" class="metric-value">0</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">风险等级</span>
-                                <span id="dynamicRiskLevel" class="metric-value">较低</span>
-                            </div>
+                    <div class="input-group">
+                        <label for="orderZoneHigh">订单区上沿价格 (U)</label>
+                        <input type="number" id="orderZoneHigh" name="orderZoneHigh" value="4500" min="1" step="0.01"
+                            required>
+                        <small class="input-hint">订单区上沿价格，作为初始开仓价</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="orderZoneLow">订单区下沿价格 (U)</label>
+                        <input type="number" id="orderZoneLow" name="orderZoneLow" value="4300" min="1" step="0.01"
+                            required>
+                        <small class="input-hint">订单区下沿价格，用于计算止损价格</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="atr4h">4H级别图ATR (U)</label>
+                        <input type="number" id="atr4h" name="atr4h" value="50" min="0.01" step="0.01" required>
+                        <small class="input-hint">4小时级别图的平均真实波幅</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="targetPrice">目标平仓价 (U)</label>
+                        <input type="number" id="targetPrice" name="targetPrice" value="5000" min="1" step="0.01"
+                            required>
+                        <small class="input-hint">目标平仓价格</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="leverageStrategy">杠杆策略</label>
+                        <select id="leverageStrategy" name="leverageStrategy">
+                            <option value="dynamic">动态计算策略</option>
+                            <option value="fixed">固定序列策略 [30,25,20,15,10,5]</option>
+                        </select>
+                        <small class="input-hint">选择使用的杠杆策略类型</small>
+                    </div>
+                </form>
+
+                <div class="button-group">
+                    <button type="button" id="calculateInitial" class="btn primary">📊 初单计算</button>
+                    <button type="button" id="compareStrategies" class="btn secondary">⚖️ 对比杠杆策略</button>
+                    <button type="button" id="calculateRollup" class="btn warning">🚀 计算滚仓路径</button>
+                </div>
+
+                <!-- 初单计算结果 -->
+                <div id="initialCalculation" class="table-container hidden">
+                    <h3>📊 初单计算结果</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3 id="calculatedPrincipal">0 U</h3>
+                            <p>计算本金</p>
                         </div>
-                    </div>
-
-                    <div class="strategy-card fixed-strategy">
-                        <h4>📋 固定序列策略</h4>
-                        <div class="strategy-metrics">
-                            <div class="metric">
-                                <span class="metric-label">预期收益</span>
-                                <span id="fixedProfit" class="metric-value">0 U</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">收益率</span>
-                                <span id="fixedReturnRate" class="metric-value">0%</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">加仓次数</span>
-                                <span id="fixedRollupCount" class="metric-value">0</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">风险等级</span>
-                                <span id="fixedRiskLevel" class="metric-value">较低</span>
-                            </div>
+                        <div class="stat-card">
+                            <h3 id="calculatedLeverage">0</h3>
+                            <p>初始杠杆</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="calculatedStopLoss">0 U</h3>
+                            <p>止损价格</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="calculatedStopLossDistance">0%</h3>
+                            <p>止损距离</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="recommendation">
-                    <h4>💡 策略推荐</h4>
-                    <p id="recommendation">请先完成初单计算</p>
-                </div>
-            </div>
+                <!-- 策略对比结果 -->
+                <div id="strategyComparison" class="table-container hidden">
+                    <h3>⚖️ 杠杆策略对比结果</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>🔄 动态计算策略</h3>
+                            <div class="strategy-metrics">
+                                <div class="metric">
+                                    <span class="metric-label">预期收益</span>
+                                    <span id="dynamicProfit" class="metric-value">0 U</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">收益率</span>
+                                    <span id="dynamicReturnRate" class="metric-value">0%</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">加仓次数</span>
+                                    <span id="dynamicRollupCount" class="metric-value">0</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">风险等级</span>
+                                    <span id="dynamicRiskLevel" class="metric-value">较低</span>
+                                </div>
+                            </div>
+                        </div>
 
-            <!-- 计算结果 -->
-            <div id="results" class="results-section hidden">
-                <h3>📈 计算结果</h3>
-
-                <div class="summary-cards">
-                    <div class="summary-card">
-                        <h4>总收益</h4>
-                        <span id="totalProfit" class="profit-value">0 U</span>
-                    </div>
-                    <div class="summary-card">
-                        <h4>最终账户</h4>
-                        <span id="finalAccount" class="account-value">0 U</span>
-                    </div>
-                    <div class="summary-card">
-                        <h4>收益率</h4>
-                        <span id="returnRate" class="return-value">0%</span>
-                    </div>
-                    <div class="summary-card">
-                        <h4>加仓次数</h4>
-                        <span id="rollupCount" class="count-value">0</span>
-                    </div>
-                </div>
-
-                <div class="risk-info">
-                    <div class="risk-item">
-                        <span class="risk-label">本金保护：</span>
-                        <span id="principalProtected" class="risk-value">✅ 安全</span>
-                    </div>
-                    <div class="risk-item">
-                        <span class="risk-label">最大回撤：</span>
-                        <span id="maxDrawdown" class="risk-value">0%</span>
-                    </div>
-                </div>
-
-                <div class="tables-container">
-                    <div class="table-section">
-                        <h4>滚仓路径表</h4>
-                        <div class="table-wrapper">
-                            <table class="positions-table">
-                                <thead>
-                                    <tr>
-                                        <th>序号</th>
-                                        <th>操作</th>
-                                        <th>入场价 (U)</th>
-                                        <th>保证金 (U)</th>
-                                        <th>杠杆</th>
-                                        <th>仓位价值 (U)</th>
-                                        <th>代币数量</th>
-                                        <th>止损价格 (U)</th>
-                                        <th>利润 (U)</th>
-                                        <th>累计账户 (U)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="positionsTableBody">
-                                    <!-- 动态填充 -->
-                                </tbody>
-                            </table>
+                        <div class="stat-card">
+                            <h3>📋 固定序列策略</h3>
+                            <div class="strategy-metrics">
+                                <div class="metric">
+                                    <span class="metric-label">预期收益</span>
+                                    <span id="fixedProfit" class="metric-value">0 U</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">收益率</span>
+                                    <span id="fixedReturnRate" class="metric-value">0%</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">加仓次数</span>
+                                    <span id="fixedRollupCount" class="metric-value">0</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">风险等级</span>
+                                    <span id="fixedRiskLevel" class="metric-value">较低</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="table-section">
-                        <h4>加仓详情表</h4>
-                        <div class="table-wrapper">
-                            <table class="add-steps-table">
-                                <thead>
-                                    <tr>
-                                        <th>完成</th>
-                                        <th>步骤</th>
-                                        <th>峰值 (U)</th>
-                                        <th>回调价 (U)</th>
-                                        <th>入场价 (U)</th>
-                                        <th>使用保证金 (U)</th>
-                                        <th>杠杆</th>
-                                        <th>仓位价值 (U)</th>
-                                        <th>代币数量</th>
-                                        <th>止损价格 (U)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="addStepsTableBody">
-                                    <!-- 动态填充 -->
-                                </tbody>
-                            </table>
+                    <div class="recommendation">
+                        <h4>💡 策略推荐</h4>
+                        <p id="recommendation">请先完成初单计算</p>
+                    </div>
+                </div>
+
+                <!-- 计算结果 -->
+                <div id="results" class="table-container hidden">
+                    <h3>📈 计算结果</h3>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3 id="totalProfit">0 U</h3>
+                            <p>总收益</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="finalAccount">0 U</h3>
+                            <p>最终账户</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="returnRate">0%</h3>
+                            <p>收益率</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="rollupCount">0</h3>
+                            <p>加仓次数</p>
+                        </div>
+                    </div>
+
+                    <div class="risk-info">
+                        <div class="risk-item">
+                            <span class="risk-label">本金保护：</span>
+                            <span id="principalProtected" class="risk-value">✅ 安全</span>
+                        </div>
+                        <div class="risk-item">
+                            <span class="risk-label">最大回撤：</span>
+                            <span id="maxDrawdown" class="risk-value">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="tables-container">
+                        <div class="table-container">
+                            <h4>滚仓路径表</h4>
+                            <div class="table-wrapper">
+                                <table class="positions-table">
+                                    <thead>
+                                        <tr>
+                                            <th>序号</th>
+                                            <th>操作</th>
+                                            <th>入场价 (U)</th>
+                                            <th>保证金 (U)</th>
+                                            <th>杠杆</th>
+                                            <th>仓位价值 (U)</th>
+                                            <th>代币数量</th>
+                                            <th>止损价格 (U)</th>
+                                            <th>利润 (U)</th>
+                                            <th>累计账户 (U)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="positionsTableBody">
+                                        <!-- 动态填充 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <h4>加仓详情表</h4>
+                            <div class="table-wrapper">
+                                <table class="add-steps-table">
+                                    <thead>
+                                        <tr>
+                                            <th>完成</th>
+                                            <th>步骤</th>
+                                            <th>峰值 (U)</th>
+                                            <th>回调价 (U)</th>
+                                            <th>入场价 (U)</th>
+                                            <th>使用保证金 (U)</th>
+                                            <th>杠杆</th>
+                                            <th>仓位价值 (U)</th>
+                                            <th>代币数量</th>
+                                            <th>止损价格 (U)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="addStepsTableBody">
+                                        <!-- 动态填充 -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- 错误信息 -->
-            <div id="error" class="error hidden">
-                <div class="error-content">
-                    <span class="error-icon">⚠️</span>
-                    <span id="errorMessage">发生错误</span>
+                <!-- 错误信息 -->
+                <div id="error" class="error hidden">
+                    <div class="error-content">
+                        <span class="error-icon">⚠️</span>
+                        <span id="errorMessage">发生错误</span>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script src="rollup-calculator.js"></script>
-    <script src="popup.js"></script>
+        <script src="rollup-calculator.js"></script>
+        <script src="popup.js"></script>
 </body>
+
 </html>
