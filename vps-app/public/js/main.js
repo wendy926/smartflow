@@ -5,20 +5,71 @@ class SmartFlowApp {
     this.allSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT'];
     this.isLoading = false;
     this.autoRefreshInterval = null;
+    this.userSettings = {
+      refreshInterval: '300000', // 默认5分钟
+      maxLossAmount: '100' // 默认100 USDT
+    };
     this.init();
   }
 
-  init() {
+  async init() {
     this.setupEventListeners();
+    await this.loadUserSettings();
     this.loadInitialData();
     this.startAutoRefresh();
     this.startMonitoringRefresh(); // 启动监控数据自动刷新
   }
 
+  // 加载用户设置
+  async loadUserSettings() {
+    try {
+      const settings = await window.apiClient.getUserSettings();
+      if (settings) {
+        this.userSettings = { ...this.userSettings, ...settings };
+        
+        // 应用设置到UI
+        const refreshSelect = document.getElementById('refreshInterval');
+        const maxLossSelect = document.getElementById('maxLossAmount');
+        
+        if (refreshSelect && this.userSettings.refreshInterval) {
+          refreshSelect.value = this.userSettings.refreshInterval;
+        }
+        
+        if (maxLossSelect && this.userSettings.maxLossAmount) {
+          maxLossSelect.value = this.userSettings.maxLossAmount;
+        }
+        
+        console.log('✅ 用户设置加载完成:', this.userSettings);
+      }
+    } catch (error) {
+      console.error('❌ 加载用户设置失败:', error);
+    }
+  }
+
+  // 保存用户设置
+  async saveUserSetting(key, value) {
+    try {
+      this.userSettings[key] = value;
+      await window.apiClient.setUserSetting(key, value);
+      console.log(`✅ 设置保存成功: ${key} = ${value}`);
+    } catch (error) {
+      console.error(`❌ 保存设置失败: ${key} = ${value}`, error);
+    }
+  }
+
   setupEventListeners() {
     // 刷新间隔变化
-    document.getElementById('refreshInterval').addEventListener('change', (e) => {
-      this.startAutoRefresh(parseInt(e.target.value));
+    document.getElementById('refreshInterval').addEventListener('change', async (e) => {
+      const value = e.target.value;
+      await this.saveUserSetting('refreshInterval', value);
+      this.startAutoRefresh(parseInt(value));
+    });
+
+    // 最大损失金额变化
+    document.getElementById('maxLossAmount').addEventListener('change', async (e) => {
+      const value = e.target.value;
+      await this.saveUserSetting('maxLossAmount', value);
+      console.log('💰 最大损失金额已更新为:', value, 'USDT');
     });
 
     // 页面可见性变化时暂停/恢复自动刷新
@@ -199,7 +250,7 @@ class SmartFlowApp {
   startAutoRefresh(interval = null) {
     this.stopAutoRefresh();
 
-    const refreshInterval = interval || parseInt(document.getElementById('refreshInterval').value);
+    const refreshInterval = interval || parseInt(this.userSettings.refreshInterval || document.getElementById('refreshInterval').value);
     this.autoRefreshInterval = setInterval(async () => {
       try {
         await this.loadAllData();
@@ -1041,7 +1092,7 @@ async function testDataQualityAlert() {
 }
 
 function openRollupCalculator() {
-  const currentMaxLoss = document.getElementById('maxLossAmount').value;
+  const currentMaxLoss = app.userSettings.maxLossAmount || document.getElementById('maxLossAmount').value;
   const calculatorWindow = window.open(
     'rollup-calculator.html',
     'rollupCalculator',

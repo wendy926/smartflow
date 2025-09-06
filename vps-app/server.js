@@ -271,6 +271,36 @@ class SmartFlowServer {
         res.status(500).json({ error: error.message });
       }
     });
+
+    // 用户设置相关API
+    this.app.get('/api/user-settings', async (req, res) => {
+      try {
+        const settings = await this.db.getAllUserSettings();
+        res.json(settings);
+      } catch (error) {
+        console.error('获取用户设置失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    this.app.post('/api/user-settings', async (req, res) => {
+      try {
+        const { key, value } = req.body;
+        if (!key || value === undefined) {
+          return res.status(400).json({ error: '缺少必要参数' });
+        }
+        
+        const result = await this.db.setUserSetting(key, value);
+        if (result.success) {
+          res.json({ success: true, message: '设置保存成功' });
+        } else {
+          res.status(500).json({ error: result.error });
+        }
+      } catch (error) {
+        console.error('保存用户设置失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
   }
 
   async initialize() {

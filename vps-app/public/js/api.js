@@ -99,6 +99,18 @@ class APIClient {
   async getTelegramConfig() {
     return await this.request('/api/telegram-config');
   }
+
+  // 用户设置相关API
+  async getUserSettings() {
+    return await this.request('/api/user-settings');
+  }
+
+  async setUserSetting(key, value) {
+    return await this.request('/api/user-settings', {
+      method: 'POST',
+      body: JSON.stringify({ key, value })
+    });
+  }
 }
 
 // 创建全局API客户端实例

@@ -85,6 +85,14 @@ class DatabaseManager {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         symbol TEXT UNIQUE NOT NULL,
         added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      // 用户设置表
+      `CREATE TABLE IF NOT EXISTS user_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        setting_key TEXT UNIQUE NOT NULL,
+        setting_value TEXT NOT NULL,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`
     ];
 
@@ -266,6 +274,41 @@ class DatabaseManager {
     };
 
     return await checkComplete();
+  }
+
+  // 用户设置相关方法
+  async setUserSetting(key, value) {
+    try {
+      await this.runQuery(
+        'INSERT OR REPLACE INTO user_settings (setting_key, setting_value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+        [key, value]
+      );
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  async getUserSetting(key, defaultValue = null) {
+    try {
+      const rows = await this.runQuery('SELECT setting_value FROM user_settings WHERE setting_key = ?', [key]);
+      return rows.length > 0 ? rows[0].setting_value : defaultValue;
+    } catch (err) {
+      return defaultValue;
+    }
+  }
+
+  async getAllUserSettings() {
+    try {
+      const rows = await this.runQuery('SELECT setting_key, setting_value FROM user_settings');
+      const settings = {};
+      rows.forEach(row => {
+        settings[row.setting_key] = row.setting_value;
+      });
+      return settings;
+    } catch (err) {
+      return {};
+    }
   }
 
   async close() {
