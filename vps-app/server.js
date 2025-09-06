@@ -1008,6 +1008,8 @@ class DatabaseManager {
   }
 
   initTables() {
+    console.log('📊 开始创建数据库表...');
+
     // 创建信号记录表
     this.db.run(`
       CREATE TABLE IF NOT EXISTS signal_records (
@@ -1025,7 +1027,9 @@ class DatabaseManager {
         raw_data TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
-    `);
+    `, (err) => {
+      if (err) console.error('创建signal_records表失败:', err);
+    });
 
     // 创建入场执行记录表
     this.db.run(`
@@ -1050,7 +1054,9 @@ class DatabaseManager {
         raw_data TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
-    `);
+    `, (err) => {
+      if (err) console.error('创建execution_records表失败:', err);
+    });
 
     // 创建标记结果表
     this.db.run(`
@@ -1064,7 +1070,9 @@ class DatabaseManager {
         marked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (record_id) REFERENCES signal_records(id) ON DELETE CASCADE
       )
-    `);
+    `, (err) => {
+      if (err) console.error('创建result_markers表失败:', err);
+    });
 
     // 创建模拟交易表
     this.db.run(`
@@ -1085,7 +1093,9 @@ class DatabaseManager {
         trigger_reason TEXT DEFAULT 'SIGNAL',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
-    `);
+    `, (err) => {
+      if (err) console.error('创建simulations表失败:', err);
+    });
 
     // 创建胜率统计表
     this.db.run(`
@@ -1096,7 +1106,15 @@ class DatabaseManager {
         win_rate REAL DEFAULT 0.0,
         last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
       )
-    `);
+    `, (err) => {
+      if (err) {
+        console.error('创建win_rate_stats表失败:', err);
+      } else {
+        console.log('✅ win_rate_stats表创建成功');
+        // 表创建成功后初始化数据
+        this.initWinRateStats();
+      }
+    });
 
     // 创建交易对管理表
     this.db.run(`
@@ -1106,17 +1124,19 @@ class DatabaseManager {
         added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         is_active BOOLEAN DEFAULT 1
       )
-    `);
+    `, (err) => {
+      if (err) {
+        console.error('创建custom_symbols表失败:', err);
+      } else {
+        console.log('✅ custom_symbols表创建成功');
+        // 表创建成功后初始化数据
+        setTimeout(() => {
+          this.initCustomSymbols();
+        }, 500);
+      }
+    });
 
-    // 初始化胜率统计
-    this.initWinRateStats();
-
-    console.log('📊 数据库表初始化完成');
-
-    // 延迟初始化交易对数据，确保表已创建
-    setTimeout(() => {
-      this.initCustomSymbols();
-    }, 1000);
+    console.log('📊 数据库表创建命令已发送');
   }
 
   // 初始化胜率统计
@@ -1140,7 +1160,7 @@ class DatabaseManager {
   }
 
   // 初始化自定义交易对
-  initCustomSymbols(cvdManager) {
+  initCustomSymbols() {
     // 检查表是否存在
     this.db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='custom_symbols'", (err, row) => {
       if (err) {
@@ -1163,7 +1183,7 @@ class DatabaseManager {
         console.log('📋 加载自定义交易对:', customSymbols);
 
         // 将自定义交易对添加到CVD管理器
-        if (cvdManager) {
+        if (typeof cvdManager !== 'undefined' && cvdManager) {
           customSymbols.forEach(symbol => {
             if (!cvdManager.symbols.includes(symbol)) {
               cvdManager.addSymbol(symbol);
@@ -2170,8 +2190,8 @@ cvdManager.start();
 
 // 初始化数据库后加载自定义交易对
 setTimeout(() => {
-  dbManager.initCustomSymbols(cvdManager);
-}, 2000); // 延迟1秒确保CVD管理器已启动
+  dbManager.initCustomSymbols();
+}, 3000); // 延迟1秒确保CVD管理器已启动
 
 const telegramNotifier = new TelegramNotifier();
 const simulationManager = new SimulationManager(dbManager.db);
