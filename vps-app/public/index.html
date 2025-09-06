@@ -2876,7 +2876,7 @@
                     <h3>📈 智能交易监控仪表板</h3>
                     <div class="dashboard-controls">
                         <button onclick="loadMonitoringDashboard()" class="refresh-btn">🔄 刷新</button>
-                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="close-btn">×</button>
+                        <button onclick="closeDashboard()" class="close-btn">×</button>
                     </div>
                 </div>
                 <div class="dashboard-content">
@@ -2891,19 +2891,19 @@
                         </div>
                         <div class="summary-card">
                             <h4>平均数据收集率</h4>
-                            <div class="card-value ${data.summary.avgDataCollection >= 90 ? 'healthy' : 'warning'}">${data.summary.avgDataCollection}%</div>
+                            <div class="card-value ${data.summary.avgDataCollection >= 99 ? 'healthy' : 'warning'}">${data.summary.avgDataCollection}%</div>
                         </div>
                         <div class="summary-card">
                             <h4>平均信号判断率</h4>
-                            <div class="card-value ${data.summary.avgSignalAnalysis >= 85 ? 'healthy' : 'warning'}">${data.summary.avgSignalAnalysis}%</div>
+                            <div class="card-value ${data.summary.avgSignalAnalysis >= 99 ? 'healthy' : 'warning'}">${data.summary.avgSignalAnalysis}%</div>
                         </div>
                         <div class="summary-card">
                             <h4>平均模拟交易率</h4>
-                            <div class="card-value ${data.summary.avgSimulationTrading >= 80 ? 'healthy' : 'warning'}">${data.summary.avgSimulationTrading}%</div>
+                            <div class="card-value ${data.summary.avgSimulationTrading >= 99 ? 'healthy' : 'warning'}">${data.summary.avgSimulationTrading}%</div>
                         </div>
                         <div class="summary-card">
                             <h4>总体完成率</h4>
-                            <div class="card-value ${data.summary.avgOverall >= 80 ? 'healthy' : 'critical'}">${data.summary.avgOverall}%</div>
+                            <div class="card-value ${data.summary.avgOverall >= 99 ? 'healthy' : 'critical'}">${data.summary.avgOverall}%</div>
                         </div>
                     </div>
                     
@@ -3151,7 +3151,7 @@
                     <h3>🏥 系统健康检查</h3>
                     <div class="health-controls">
                         <button onclick="loadHealthCheck()" class="refresh-btn">🔄 刷新</button>
-                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="close-btn">×</button>
+                        <button onclick="closeHealthPanel()" class="close-btn">×</button>
                     </div>
                 </div>
                 <div class="health-content">
@@ -3350,6 +3350,22 @@
             }
 
             document.body.appendChild(healthPanel);
+        }
+
+        // 关闭监控仪表板
+        function closeDashboard() {
+            const dashboardPanel = document.querySelector('.dashboard-panel');
+            if (dashboardPanel) {
+                dashboardPanel.remove();
+            }
+        }
+
+        // 关闭健康检查面板
+        function closeHealthPanel() {
+            const healthPanel = document.querySelector('.health-panel');
+            if (healthPanel) {
+                healthPanel.remove();
+            }
         }
 
         // 切换历史记录显示

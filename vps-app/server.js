@@ -1460,9 +1460,9 @@ class DataMonitor {
     this.completionRates = new Map(); // 完成率统计
     this.healthStatus = new Map(); // 健康状态
     this.alertThresholds = {
-      dataCollection: 90, // 数据收集完成率阈值
-      signalAnalysis: 85, // 信号判断完成率阈值
-      simulationTrading: 80 // 模拟交易触发率阈值
+      dataCollection: 99, // 数据收集完成率阈值
+      signalAnalysis: 99, // 信号判断完成率阈值
+      simulationTrading: 99 // 模拟交易触发率阈值
     };
     this.startTime = Date.now();
   }
@@ -1671,8 +1671,8 @@ class DataMonitor {
         },
         overall: {
           rate: rates.overall[symbol],
-          healthy: rates.overall[symbol] >= 80, // 总体健康阈值
-          status: rates.overall[symbol] >= 80 ? 'healthy' : 'critical'
+          healthy: rates.overall[symbol] >= 99, // 总体健康阈值
+          status: rates.overall[symbol] >= 99 ? 'healthy' : 'critical'
         }
       };
     }
@@ -1804,8 +1804,8 @@ class DataMonitor {
           type: 'overall',
           symbol,
           rate: status.overall.rate,
-          threshold: 80,
-          message: `🚨 ${symbol} 总体完成率严重过低: ${status.overall.rate}% (阈值: 80%)`
+          threshold: 99,
+          message: `🚨 ${symbol} 总体完成率严重过低: ${status.overall.rate}% (阈值: 99%)`
         });
       }
     }
