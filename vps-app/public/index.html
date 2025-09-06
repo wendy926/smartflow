@@ -1475,11 +1475,12 @@
                         <th>OI变化%</th>
                         <th>资金费率</th>
                         <th>CVD</th>
+                        <th>详情</th>
                     </tr>
                 </thead>
                 <tbody id="signalsTable">
                     <tr>
-                        <td colspan="11" class="loading">点击"刷新所有信号"开始分析</td>
+                        <td colspan="12" class="loading">点击"刷新所有信号"开始分析</td>
                     </tr>
                 </tbody>
             </table>
@@ -1805,6 +1806,9 @@
                 <td>${signal.oiChange ? signal.oiChange.toFixed(2) + '%' : '--'}</td>
                 <td>${signal.fundingRate ? (signal.fundingRate * 100).toFixed(4) + '%' : '--'}</td>
                 <td>${signal.cvdDirection || '--'}</td>
+                <td>
+                    <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
+                </td>
             `;
         }
 
@@ -1812,6 +1816,7 @@
         function removeSignalFromTable(symbol) {
             const tableBody = document.getElementById('signalsTable');
             const row = tableBody.querySelector(`tr[data-symbol="${symbol}"]`);
+            const historyRow = document.getElementById(`history-${symbol}`);
 
             if (row) {
                 row.remove();
@@ -1819,12 +1824,17 @@
             } else {
                 console.log(`⚠️ 未找到 ${symbol} 对应的表格行`);
             }
+
+            if (historyRow) {
+                historyRow.remove();
+                console.log(`✅ 已从表格中移除 ${symbol} 的历史记录行`);
+            }
         }
 
         // 刷新所有信号
         async function refreshAllSignals() {
             const tableBody = document.getElementById('signalsTable');
-            tableBody.innerHTML = '<tr><td colspan="11" class="loading">分析中...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="12" class="loading">分析中...</td></tr>';
 
             console.log('🔄 开始刷新所有信号，当前交易对列表:', allSymbols);
             console.log('📊 交易对数量:', allSymbols.length);
@@ -1906,7 +1916,7 @@
                 showMessage('信号刷新成功！', 'success');
             } catch (error) {
                 console.error('刷新信号失败:', error);
-                tableBody.innerHTML = '<tr><td colspan="11" class="error">刷新失败: ' + error.message + '</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="12" class="error">刷新失败: ' + error.message + '</td></tr>';
                 showMessage('刷新失败: ' + error.message, 'error');
             }
         }
@@ -2104,7 +2114,7 @@
             const tableBody = document.getElementById('signalsTable');
 
             if (signals.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="11" class="loading">暂无信号数据</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="12" class="loading">暂无信号数据</td></tr>';
                 return;
             }
 
@@ -2113,8 +2123,7 @@
 
             // 为每个信号创建行
             signals.forEach(signal => {
-                const row = createSignalRow(signal);
-                tableBody.appendChild(row);
+                createSignalRow(signal);
             });
         }
 
@@ -2172,7 +2181,34 @@
                 <td>${signal.oiChange ? signal.oiChange.toFixed(2) + '%' : '--'}</td>
                 <td>${signal.fundingRate ? (signal.fundingRate * 100).toFixed(4) + '%' : '--'}</td>
                 <td>${signal.cvdDirection || '--'}</td>
+                <td>
+                    <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
+                </td>
             `;
+
+            // 创建折叠行
+            const historyRow = document.createElement('tr');
+            historyRow.id = `history-${signal.symbol}`;
+            historyRow.className = 'history-row';
+            historyRow.style.display = 'none';
+            historyRow.innerHTML = `
+                <td colspan="12">
+                    <div class="history-container">
+                        <div class="history-header">
+                            <h4>📊 ${signal.symbol} 详细信息</h4>
+                            <button class="load-history-btn" onclick="loadHistory('${signal.symbol}')">加载历史记录</button>
+                        </div>
+                        <div id="history-content-${signal.symbol}">
+                            <div class="loading">点击"加载历史记录"查看详细信息</div>
+                        </div>
+                    </div>
+                </td>
+            `;
+
+            // 将折叠行添加到表格中
+            const tableBody = document.getElementById('signalsTable');
+            tableBody.appendChild(row);
+            tableBody.appendChild(historyRow);
 
             return row;
         }

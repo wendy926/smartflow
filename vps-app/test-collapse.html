@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>折叠功能测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    .table th,
+    .table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .table th {
+      background-color: #f2f2f2;
+    }
+
+    .expand-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .expand-btn:hover {
+      background: #5a6fd8;
+      transform: scale(1.1);
+    }
+
+    .history-row {
+      background: #f8f9fa;
+    }
+
+    .history-container {
+      padding: 20px;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+
+    .history-header h4 {
+      margin: 0;
+      color: #333;
+    }
+
+    .load-history-btn {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .load-history-btn:hover {
+      background: #218838;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>折叠功能测试</h1>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>操作</th>
+        <th>交易对</th>
+        <th>趋势</th>
+        <th>信号</th>
+        <th>入场执行</th>
+        <th>当前价格</th>
+        <th>VWAP</th>
+        <th>成交量倍数</th>
+        <th>OI变化%</th>
+        <th>资金费率</th>
+        <th>CVD</th>
+        <th>详情</th>
+      </tr>
+    </thead>
+    <tbody id="signalsTable">
+      <tr data-symbol="BTCUSDT">
+        <td>
+          <button class="btn small" onclick="removeCustomSymbol('BTCUSDT')" title="删除交易对">🗑️</button>
+        </td>
+        <td>BTCUSDT</td>
+        <td>UPTREND</td>
+        <td>LONG</td>
+        <td>LONG_EXECUTE</td>
+        <td>45000.1234</td>
+        <td>44800.5678</td>
+        <td>1.85</td>
+        <td>2.34</td>
+        <td>0.0001</td>
+        <td>UP</td>
+        <td>
+          <button class="expand-btn" onclick="toggleHistory('BTCUSDT')" title="查看详细信息">+</button>
+        </td>
+      </tr>
+      <tr id="history-BTCUSDT" class="history-row" style="display: none;">
+        <td colspan="12">
+          <div class="history-container">
+            <div class="history-header">
+              <h4>📊 BTCUSDT 详细信息</h4>
+              <button class="load-history-btn" onclick="loadHistory('BTCUSDT')">加载历史记录</button>
+            </div>
+            <div id="history-content-BTCUSDT">
+              <div class="loading">点击"加载历史记录"查看详细信息</div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <script>
+    function toggleHistory(symbol) {
+      const historyRow = document.getElementById(`history-${symbol}`);
+      const expandBtn = event.target;
+
+      if (historyRow.style.display === 'none') {
+        historyRow.style.display = 'table-row';
+        expandBtn.textContent = '-';
+        expandBtn.title = '收起详细信息';
+      } else {
+        historyRow.style.display = 'none';
+        expandBtn.textContent = '+';
+        expandBtn.title = '查看详细信息';
+      }
+    }
+
+    function loadHistory(symbol) {
+      const contentDiv = document.getElementById(`history-content-${symbol}`);
+      contentDiv.innerHTML = `
+                <div class="history-record">
+                    <div class="record-header">
+                        <span class="record-time">2025-01-07 15:30:00</span>
+                        <span class="record-status correct">正确</span>
+                    </div>
+                    <div class="record-details">
+                        <div class="detail-row">
+                            <span class="label">趋势:</span> <span class="value">UPTREND</span>
+                            <span class="label">信号:</span> <span class="value">LONG</span>
+                            <span class="label">执行:</span> <span class="value">LONG_EXECUTE</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">价格:</span> <span class="value">$45000.1234</span>
+                            <span class="label">VWAP:</span> <span class="value">$44800.5678</span>
+                            <span class="label">成交量倍数:</span> <span class="value">1.85x</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">OI变化:</span> <span class="value">2.34%</span>
+                            <span class="label">资金费率:</span> <span class="value">0.0001%</span>
+                            <span class="label">CVD:</span> <span class="value">UP</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">止损价:</span> <span class="value">$44000.0000</span>
+                            <span class="label">目标价:</span> <span class="value">$46000.0000</span>
+                            <span class="label">最大杠杆:</span> <span class="value">20x</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">最低保证金:</span> <span class="value">$50.00</span>
+                            <span class="label">盈亏比:</span> <span class="value">2:1</span>
+                            <span class="label">执行时间:</span> <span class="value">2025-01-07 15:35:00</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+    }
+
+    function removeCustomSymbol(symbol) {
+      if (confirm(`确定要移除交易对 ${symbol} 吗？`)) {
+        alert(`${symbol} 已移除`);
+      }
+    }
+  </script>
+</body>
+
+</html>
