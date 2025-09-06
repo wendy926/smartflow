@@ -7,7 +7,7 @@ const path = require('path');
 class DatabaseManager {
   constructor() {
     this.db = null;
-    this.dbPath = path.join(__dirname, '../../data/smartflow.db');
+    this.dbPath = '/home/admin/smartflow-vps-app/vps-app/smartflow.db';
   }
 
   async init() {

@@ -208,14 +208,32 @@ class DataMonitor {
     this.healthStatus.overall = overallRate >= 99 ? 'HEALTHY' : 'WARNING';
   }
 
-  getMonitoringDashboard() {
+  async getMonitoringDashboard() {
     this.calculateCompletionRates();
     this.checkHealthStatus();
 
-    const symbols = Array.from(this.symbolStats.keys()).filter(symbol => symbol && symbol.trim() !== '');
-    const recentLogs = symbols.map(symbol => this.getAnalysisLog(symbol)).filter(log => log !== null);
+    // 获取所有交易对，优先从数据库获取
+    let allSymbols = [];
 
-    const detailedStats = symbols.map(symbol => {
+    if (this.db) {
+      try {
+        const dbSymbols = await this.db.getCustomSymbols();
+        allSymbols = dbSymbols.filter(symbol => symbol && symbol.trim() !== '');
+      } catch (error) {
+        console.error('获取数据库交易对失败:', error);
+      }
+    }
+
+    // 如果数据库没有交易对，则从统计中获取
+    if (allSymbols.length === 0) {
+      const statsSymbols = Array.from(this.symbolStats.keys()).filter(symbol => symbol && symbol.trim() !== '');
+      const logSymbols = Array.from(this.analysisLogs.keys()).filter(symbol => symbol && symbol.trim() !== '');
+      allSymbols = [...new Set([...statsSymbols, ...logSymbols])];
+    }
+
+    const recentLogs = allSymbols.map(symbol => this.getAnalysisLog(symbol)).filter(log => log !== null);
+
+    const detailedStats = allSymbols.map(symbol => {
       const stats = this.symbolStats.get(symbol);
       const log = this.getAnalysisLog(symbol);
 
@@ -315,7 +333,7 @@ class DataMonitor {
 
     return {
       summary: {
-        totalSymbols: symbols.length,
+        totalSymbols: allSymbols.length,
         healthySymbols: detailedStats.filter(s => s.overall.status === 'HEALTHY').length,
         warningSymbols: detailedStats.filter(s => s.overall.status === 'WARNING').length,
         overallHealth: this.healthStatus.overall,

@@ -156,7 +156,7 @@ class SmartFlowServer {
     // 获取监控仪表板数据
     this.app.get('/api/monitoring-dashboard', async (req, res) => {
       try {
-        const data = this.dataMonitor.getMonitoringDashboard();
+        const data = await this.dataMonitor.getMonitoringDashboard();
         res.json(data);
       } catch (error) {
         console.error('获取监控数据失败:', error);
@@ -243,6 +243,10 @@ class SmartFlowServer {
 
       // 初始化数据监控
       this.dataMonitor = new DataMonitor();
+      // 将DataMonitor实例传递给SmartFlowStrategy
+      SmartFlowStrategy.dataMonitor = this.dataMonitor;
+      // 将数据库实例传递给DataMonitor
+      this.dataMonitor.db = this.db;
       console.log('✅ 数据监控器初始化完成');
 
       // 启动定期分析
