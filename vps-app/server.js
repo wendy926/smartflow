@@ -883,12 +883,12 @@ class SimulationManager {
   }
 
   // 创建新的模拟交易
-  async createSimulation(symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin) {
+  async createSimulation(symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin, triggerReason = 'SIGNAL') {
     return new Promise((resolve, reject) => {
       const stmt = this.db.prepare(`
         INSERT INTO simulations 
-        (symbol, entry_price, stop_loss_price, take_profit_price, max_leverage, min_margin, entry_time)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (symbol, entry_price, stop_loss_price, take_profit_price, max_leverage, min_margin, entry_time, trigger_reason)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run([
@@ -898,7 +898,8 @@ class SimulationManager {
         takeProfitPrice,
         maxLeverage,
         minMargin,
-        new Date().toISOString()
+        new Date().toISOString(),
+        triggerReason
       ], function (err) {
         if (err) {
           reject(err);
@@ -911,7 +912,8 @@ class SimulationManager {
             stopLossPrice,
             takeProfitPrice,
             maxLeverage,
-            minMargin
+            minMargin,
+            triggerReason
           };
 
           // 添加到活跃列表
@@ -1080,6 +1082,7 @@ class DatabaseManager {
         exit_reason TEXT,
         is_win BOOLEAN,
         profit_loss REAL,
+        trigger_reason TEXT DEFAULT 'SIGNAL',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -1135,7 +1138,7 @@ class DatabaseManager {
   }
 
   // 初始化自定义交易对
-  initCustomSymbols() {
+  initCustomSymbols(cvdManager) {
     this.db.all('SELECT symbol FROM custom_symbols WHERE is_active = 1', (err, rows) => {
       if (err) {
         console.error('获取自定义交易对失败:', err);
@@ -1146,24 +1149,29 @@ class DatabaseManager {
       console.log('📋 加载自定义交易对:', customSymbols);
 
       // 将自定义交易对添加到CVD管理器
-      customSymbols.forEach(symbol => {
-        if (!cvdManager.symbols.includes(symbol)) {
-          cvdManager.addSymbol(symbol);
-        }
-      });
+      if (cvdManager) {
+        customSymbols.forEach(symbol => {
+          if (!cvdManager.symbols.includes(symbol)) {
+            cvdManager.addSymbol(symbol);
+          }
+        });
+      }
     });
   }
 
   // 添加自定义交易对
   addCustomSymbol(symbol) {
     return new Promise((resolve, reject) => {
+      console.log(`📋 数据库操作: 添加交易对 ${symbol}`);
       this.db.run(
         'INSERT OR REPLACE INTO custom_symbols (symbol, is_active) VALUES (?, 1)',
         [symbol],
         function (err) {
           if (err) {
+            console.error(`❌ 添加交易对 ${symbol} 到数据库失败:`, err);
             reject(err);
           } else {
+            console.log(`✅ 交易对 ${symbol} 已成功添加到数据库，ID: ${this.lastID}`);
             resolve(this.lastID);
           }
         }
@@ -1191,11 +1199,15 @@ class DatabaseManager {
   // 获取所有自定义交易对
   getCustomSymbols() {
     return new Promise((resolve, reject) => {
+      console.log('📋 数据库操作: 获取自定义交易对列表');
       this.db.all('SELECT symbol FROM custom_symbols WHERE is_active = 1', (err, rows) => {
         if (err) {
+          console.error('❌ 获取自定义交易对失败:', err);
           reject(err);
         } else {
-          resolve(rows.map(row => row.symbol));
+          const symbols = rows.map(row => row.symbol);
+          console.log(`✅ 从数据库获取到 ${symbols.length} 个自定义交易对:`, symbols);
+          resolve(symbols);
         }
       });
     });
@@ -2021,7 +2033,7 @@ class SmartFlowStrategy {
 
       // 记录历史数据
       try {
-        // 如果有信号，记录信号数据
+        // 如果有信号，记录信号数据并创建模拟交易
         if (signal !== 'NO_SIGNAL') {
           const signalData = {
             trend: trend,
@@ -2039,6 +2051,23 @@ class SmartFlowStrategy {
             }
           };
           await dbManager.recordSignal(symbol, signalData);
+
+          // 为信号创建模拟交易
+          try {
+            const minMargin = Math.ceil(20 / (maxLeverage * stopDistance)); // 使用默认20 USDT
+            await simulationManager.createSimulation(
+              symbol,
+              currentPrice,
+              stopLoss,
+              targetPrice,
+              maxLeverage,
+              minMargin,
+              'SIGNAL' // 触发原因：信号
+            );
+            console.log(`📊 创建信号模拟交易: ${symbol} @ ${currentPrice}`);
+          } catch (simError) {
+            console.error(`信号模拟交易创建失败 ${symbol}:`, simError.message);
+          }
         }
 
         // 如果有入场执行，记录执行数据并创建模拟交易
@@ -2066,7 +2095,7 @@ class SmartFlowStrategy {
           };
           await dbManager.recordExecution(symbol, executionData);
 
-          // 创建模拟交易
+          // 为入场执行创建模拟交易
           try {
             const minMargin = Math.ceil(20 / (maxLeverage * stopDistance)); // 使用默认20 USDT
             await simulationManager.createSimulation(
@@ -2075,11 +2104,12 @@ class SmartFlowStrategy {
               stopLoss,
               targetPrice,
               maxLeverage,
-              minMargin
+              minMargin,
+              'EXECUTION' // 触发原因：入场执行
             );
-            console.log(`📊 创建模拟交易: ${symbol} @ ${currentPrice}`);
+            console.log(`📊 创建执行模拟交易: ${symbol} @ ${currentPrice}`);
           } catch (simError) {
-            console.error(`模拟交易创建失败 ${symbol}:`, simError.message);
+            console.error(`执行模拟交易创建失败 ${symbol}:`, simError.message);
           }
         }
       } catch (dbError) {
@@ -2116,13 +2146,19 @@ class SmartFlowStrategy {
   }
 }
 
+// 初始化数据库
+const dbManager = new DatabaseManager();
+
 // 初始化 CVD 管理器
 const cvdManager = new CVDManager();
 cvdManager.start();
-const telegramNotifier = new TelegramNotifier();
 
-// 初始化数据库
-const dbManager = new DatabaseManager();
+// 初始化数据库后加载自定义交易对
+setTimeout(() => {
+  dbManager.initCustomSymbols(cvdManager);
+}, 1000); // 延迟1秒确保CVD管理器已启动
+
+const telegramNotifier = new TelegramNotifier();
 const simulationManager = new SimulationManager(dbManager.db);
 
 // 定时刷新数据 (每5分钟)
@@ -2466,6 +2502,11 @@ app.get('/api/symbols', async (req, res) => {
     const customSymbols = await dbManager.getCustomSymbols();
     const allSymbols = [...defaultSymbols, ...customSymbols];
 
+    console.log('📋 API /api/symbols 被调用:');
+    console.log('  - 默认交易对:', defaultSymbols);
+    console.log('  - 自定义交易对:', customSymbols);
+    console.log('  - 所有交易对:', allSymbols);
+
     res.json({
       success: true,
       data: {
@@ -2475,6 +2516,7 @@ app.get('/api/symbols', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('❌ 获取交易对列表失败:', error);
     res.status(500).json({
       success: false,
       error: '获取交易对列表失败',
@@ -2563,8 +2605,11 @@ app.post('/api/analyze-custom', async (req, res) => {
     const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT', 'SOLUSDT'];
     if (!defaultSymbols.includes(symbol)) {
       // 添加到数据库
+      console.log(`📋 开始添加交易对 ${symbol} 到数据库...`);
       await dbManager.addCustomSymbol(symbol);
-      console.log(`📋 交易对 ${symbol} 已保存到数据库`);
+      console.log(`✅ 交易对 ${symbol} 已保存到数据库`);
+    } else {
+      console.log(`ℹ️ 交易对 ${symbol} 是默认交易对，无需保存到数据库`);
     }
 
     // 预先添加交易对到 CVD 连接

@@ -808,6 +808,24 @@
             font-weight: normal;
         }
 
+        .trigger-reason {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .trigger-reason.signal {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .trigger-reason.execution {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
         .no-symbols {
             color: #6c757d;
             font-style: italic;
@@ -1483,13 +1501,14 @@
                         <th>出场时间</th>
                         <th>出场价格</th>
                         <th>出场原因</th>
+                        <th>触发原因</th>
                         <th>盈亏</th>
                         <th>结果</th>
                     </tr>
                 </thead>
                 <tbody id="simulationHistoryTable">
                     <tr>
-                        <td colspan="12" class="loading">加载中...</td>
+                        <td colspan="13" class="loading">加载中...</td>
                     </tr>
                 </tbody>
             </table>
@@ -2666,14 +2685,14 @@
         // 加载模拟交易历史
         async function loadSimulationHistory() {
             const tableBody = document.getElementById('simulationHistoryTable');
-            tableBody.innerHTML = '<tr><td colspan="12" class="loading">加载中...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="13" class="loading">加载中...</td></tr>';
 
             try {
                 const response = await fetch('/api/simulation-history?limit=50');
                 const history = await response.json();
 
                 if (history.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="12" class="no-data">暂无模拟交易记录</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="13" class="no-data">暂无模拟交易记录</td></tr>';
                     return;
                 }
 
@@ -2689,6 +2708,11 @@
                         <td>${sim.exit_time ? new Date(sim.exit_time).toLocaleString() : '进行中'}</td>
                         <td>${sim.exit_price ? sim.exit_price.toFixed(4) : '--'}</td>
                         <td>${sim.exit_reason || '--'}</td>
+                        <td>
+                            <span class="trigger-reason ${sim.trigger_reason === 'SIGNAL' ? 'signal' : 'execution'}">
+                                ${sim.trigger_reason === 'SIGNAL' ? '📊 信号' : '⚡ 执行'}
+                            </span>
+                        </td>
                         <td class="${sim.profit_loss !== null && sim.profit_loss >= 0 ? 'profit' : 'loss'}">
                             ${sim.profit_loss !== null ? sim.profit_loss.toFixed(2) + '%' : '--'}
                         </td>
@@ -2699,7 +2723,7 @@
                 `).join('');
             } catch (error) {
                 console.error('加载模拟交易历史失败:', error);
-                tableBody.innerHTML = '<tr><td colspan="12" class="error">加载失败: ' + error.message + '</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="13" class="error">加载失败: ' + error.message + '</td></tr>';
             }
         }
 
