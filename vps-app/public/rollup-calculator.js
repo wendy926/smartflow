@@ -121,15 +121,20 @@ class RollupCalculator {
 
         if (leverageStrategy === 'fixed' && i < this.fixedLeverageSequence.length) {
           chosenLeverage = this.fixedLeverageSequence[i];
-          marginToUse = Math.min(desiredMargin, maxSafeMargin);
+          // 固定序列策略：基于杠杆计算保证金
+          const requiredMargin = (availableProfit * 0.1) / chosenLeverage;
+          marginToUse = Math.min(requiredMargin, maxSafeMargin);
         } else {
           chosenLeverage = this.calculateDynamicLeverage({ availableProfit, stepIndex: i });
+          // 动态计算策略：基于可用利润的10%计算保证金
           marginToUse = Math.min(desiredMargin, maxSafeMargin);
         }
 
         if (chosenLeverage <= 0 || marginToUse <= 0) continue;
 
-        const actualLeverage = Math.min(chosenLeverage, Math.floor(availableProfit / 10));
+        // 确保杠杆不超过可用利润的限制
+        const maxLeverageByProfit = Math.floor(availableProfit / marginToUse);
+        const actualLeverage = Math.min(chosenLeverage, maxLeverageByProfit);
         if (actualLeverage <= 0) continue;
 
         const newPositionValue = marginToUse * actualLeverage;
