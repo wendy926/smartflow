@@ -211,6 +211,18 @@ class SmartFlowServer {
       }
     });
 
+    // 手动触发告警检查
+    this.app.post('/api/trigger-alert-check', async (req, res) => {
+      try {
+        console.log('🔍 手动触发告警检查...');
+        await this.dataMonitor.checkAndSendAlerts(this.telegramNotifier);
+        res.json({ success: true, message: '告警检查完成' });
+      } catch (error) {
+        console.error('手动告警检查失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 获取Telegram配置状态
     this.app.get('/api/telegram-config', async (req, res) => {
       try {
@@ -252,6 +264,9 @@ class SmartFlowServer {
       // 启动定期分析
       this.startPeriodicAnalysis();
 
+      // 启动定期告警检查
+      this.startPeriodicAlerts();
+
       // 启动服务器
       this.app.listen(this.port, () => {
         console.log(`🌐 服务器运行在 http://localhost:${this.port}`);
@@ -286,11 +301,28 @@ class SmartFlowServer {
     }, 300000); // 5分钟
   }
 
+  startPeriodicAlerts() {
+    // 每10分钟检查一次告警
+    this.alertInterval = setInterval(async () => {
+      try {
+        console.log('🔍 开始检查告警...');
+        await this.dataMonitor.checkAndSendAlerts(this.telegramNotifier);
+        console.log('✅ 告警检查完成');
+      } catch (error) {
+        console.error('告警检查失败:', error);
+      }
+    }, 600000); // 10分钟
+  }
+
   async shutdown() {
     console.log('🛑 正在关闭服务器...');
 
     if (this.analysisInterval) {
       clearInterval(this.analysisInterval);
+    }
+
+    if (this.alertInterval) {
+      clearInterval(this.alertInterval);
     }
 
     if (this.simulationManager) {

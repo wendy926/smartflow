@@ -201,10 +201,11 @@ class DataMonitor {
     this.healthStatus = {
       dataCollection: this.completionRates.dataCollection >= thresholds.dataCollection ? 'HEALTHY' : 'WARNING',
       signalAnalysis: this.completionRates.signalAnalysis >= thresholds.signalAnalysis ? 'HEALTHY' : 'WARNING',
-      simulationTrading: this.completionRates.simulationTrading >= thresholds.simulationTrading ? 'HEALTHY' : 'WARNING'
+      simulationTrading: 'N/A' // 模拟交易不参与健康检查
     };
 
-    const overallRate = (this.completionRates.dataCollection + this.completionRates.signalAnalysis + this.completionRates.simulationTrading) / 3;
+    // 只关注数据收集率和信号分析率，各占50%
+    const overallRate = (this.completionRates.dataCollection + this.completionRates.signalAnalysis) / 2;
     this.healthStatus.overall = overallRate >= 99 ? 'HEALTHY' : 'WARNING';
   }
 
@@ -281,7 +282,8 @@ class DataMonitor {
 
       const priorityScore = (hasExecution ? 1000 : 0) + (hasSignal ? 100 : 0) + (hasTrend ? 10 : 0);
       const signalActivityScore = (stats.signalAnalysisSuccesses * 10) + (stats.simulationTriggers * 5) + (stats.simulationInProgress * 3);
-      const overallRate = (dataCollectionRate + signalAnalysisRate + simulationCompletionRate) / 3;
+      // 只关注数据收集率和信号分析率，各占50%
+      const overallRate = (dataCollectionRate + signalAnalysisRate) / 2;
 
       return {
         symbol,
@@ -363,31 +365,56 @@ class DataMonitor {
   async checkAndSendAlerts(telegramNotifier) {
     if (!telegramNotifier || !telegramNotifier.enabled) return;
 
-    const dashboard = this.getMonitoringDashboard();
-    const { detailedStats } = dashboard;
+    const dashboard = await this.getMonitoringDashboard();
+    const { detailedStats, summary } = dashboard;
 
+    // 检查整体系统告警
+    const dataCollectionRate = summary.completionRates.dataCollection;
+    const signalAnalysisRate = summary.completionRates.signalAnalysis;
+
+    if (dataCollectionRate < this.alertThresholds.dataCollection || signalAnalysisRate < this.alertThresholds.signalAnalysis) {
+      const alertMessage = `🚨 <b>SmartFlow 系统告警</b>\n\n` +
+        `📊 <b>系统概览：</b>\n` +
+        `• 总交易对: ${summary.totalSymbols}\n` +
+        `• 健康状态: ${summary.healthySymbols}\n` +
+        `• 警告状态: ${summary.warningSymbols}\n\n` +
+        `⚠️ <b>告警详情：</b>\n` +
+        `• 数据收集率: ${dataCollectionRate.toFixed(1)}% ${dataCollectionRate < 99 ? '❌' : '✅'}\n` +
+        `• 信号分析率: ${signalAnalysisRate.toFixed(1)}% ${signalAnalysisRate < 99 ? '❌' : '✅'}\n\n` +
+        `🌐 <b>网页链接：</b>https://smart.aimaventop.com\n` +
+        `⏰ <b>告警时间：</b>${new Date().toLocaleString('zh-CN')}`;
+
+      await telegramNotifier.sendMessage(alertMessage);
+    }
+
+    // 检查单个交易对告警
     for (const symbol of detailedStats) {
-      const { dataCollection, signalAnalysis, simulationTrading } = symbol;
+      const { dataCollection, signalAnalysis } = symbol;
+      let hasAlert = false;
+      let alertDetails = [];
 
       // 检查数据收集告警
       if (dataCollection.rate < this.alertThresholds.dataCollection) {
-        await telegramNotifier.sendMessage(
-          `⚠️ ${symbol.symbol} 数据收集完成率过低: ${dataCollection.rate.toFixed(1)}% (阈值: ${this.alertThresholds.dataCollection}%)`
-        );
+        hasAlert = true;
+        alertDetails.push(`数据收集率: ${dataCollection.rate.toFixed(1)}% (成功: ${dataCollection.successes}/${dataCollection.attempts})`);
       }
 
       // 检查信号判断告警
       if (signalAnalysis.rate < this.alertThresholds.signalAnalysis) {
-        await telegramNotifier.sendMessage(
-          `⚠️ ${symbol.symbol} 信号判断完成率过低: ${signalAnalysis.rate.toFixed(1)}% (阈值: ${this.alertThresholds.signalAnalysis}%)`
-        );
+        hasAlert = true;
+        alertDetails.push(`信号分析率: ${signalAnalysis.rate.toFixed(1)}% (成功: ${signalAnalysis.successes}/${signalAnalysis.attempts})`);
       }
 
-      // 检查模拟交易告警
-      if (simulationTrading.rate < this.alertThresholds.simulationTrading) {
-        await telegramNotifier.sendMessage(
-          `⚠️ ${symbol.symbol} 模拟交易完成率过低: ${simulationTrading.rate.toFixed(1)}% (阈值: ${this.alertThresholds.simulationTrading}%)`
-        );
+      // 发送单个交易对告警
+      if (hasAlert) {
+        const symbolAlertMessage = `⚠️ <b>${symbol.symbol} 交易对告警</b>\n\n` +
+          `📊 <b>告警详情：</b>\n` +
+          alertDetails.map(detail => `• ${detail}`).join('\n') + '\n\n' +
+          `🔄 <b>刷新频率：</b>${symbol.refreshFrequency}秒\n` +
+          `⏰ <b>最后更新：</b>${new Date(symbol.dataCollection.lastTime || Date.now()).toLocaleString('zh-CN')}\n\n` +
+          `🌐 <b>网页链接：</b>https://smart.aimaventop.com`;
+
+        await telegramNotifier.sendMessage(symbolAlertMessage);
       }
     }
   }

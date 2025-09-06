@@ -331,23 +331,68 @@ async function loadUnifiedMonitoring() {
                         
                         <div class="symbols-monitoring">
                             <h4>🔍 交易对详细监控</h4>
-                            <div class="symbols-table-container">
-                                <table class="symbols-table">
-                                    <thead>
-                                        <tr>
-                                            <th>交易对</th>
-                                            <th>数据收集率</th>
-                                            <th>信号分析率</th>
-                                            <th>模拟交易完成率</th>
-                                            <th>模拟交易进行率</th>
-                                            <th>刷新频率</th>
-                                            <th>整体状态</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="monitoringTableBody">
-                                        <!-- 动态填充 -->
-                                    </tbody>
-                                </table>
+                            <div class="monitoring-tabs">
+                                <button class="tab-btn active" onclick="switchMonitoringTab('summary')">📊 汇总视图</button>
+                                <button class="tab-btn" onclick="switchMonitoringTab('detailed')">🔍 详细视图</button>
+                                <button class="tab-btn" onclick="switchMonitoringTab('raw')">📋 原始数据</button>
+                            </div>
+                            
+                            <!-- 汇总视图 -->
+                            <div id="summaryView" class="monitoring-view active">
+                                <div class="symbols-table-container">
+                                    <table class="symbols-table">
+                                        <thead>
+                                            <tr>
+                                                <th>交易对</th>
+                                                <th>数据收集率</th>
+                                                <th>信号分析率</th>
+                                                <th>模拟交易完成率</th>
+                                                <th>模拟交易进行率</th>
+                                                <th>刷新频率</th>
+                                                <th>整体状态</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="monitoringTableBody">
+                                            <!-- 动态填充 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- 详细视图 -->
+                            <div id="detailedView" class="monitoring-view">
+                                <div class="symbols-table-container">
+                                    <table class="symbols-table">
+                                        <thead>
+                                            <tr>
+                                                <th>交易对</th>
+                                                <th>数据收集</th>
+                                                <th>信号分析</th>
+                                                <th>模拟交易</th>
+                                                <th>信号状态</th>
+                                                <th>最后更新</th>
+                                                <th>健康状态</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="detailedTableBody">
+                                            <!-- 动态填充 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- 原始数据视图 -->
+                            <div id="rawView" class="monitoring-view">
+                                <div class="raw-data-container">
+                                    <div class="raw-data-section">
+                                        <h5>📊 系统概览原始数据</h5>
+                                        <pre id="rawSummaryData" class="raw-data-json"></pre>
+                                    </div>
+                                    <div class="raw-data-section">
+                                        <h5>🔍 交易对详细原始数据</h5>
+                                        <pre id="rawDetailedData" class="raw-data-json"></pre>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -386,75 +431,27 @@ async function loadUnifiedMonitoring() {
 async function refreshMonitoringData() {
   try {
     const data = await dataManager.getMonitoringData();
-
+    
     // 更新概览数据
     const totalSymbolsEl = document.getElementById('totalSymbols');
     const healthySymbolsEl = document.getElementById('healthySymbols');
     const warningSymbolsEl = document.getElementById('warningSymbols');
     const dataCollectionRateEl = document.getElementById('dataCollectionRate');
-
+    
     if (totalSymbolsEl) totalSymbolsEl.textContent = data.summary.totalSymbols;
     if (healthySymbolsEl) healthySymbolsEl.textContent = data.summary.healthySymbols;
     if (warningSymbolsEl) warningSymbolsEl.textContent = data.summary.warningSymbols;
     if (dataCollectionRateEl) dataCollectionRateEl.textContent = data.summary.completionRates.dataCollection.toFixed(1) + '%';
-
-    // 更新交易对表格
-    const tbody = document.getElementById('monitoringTableBody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    if (data.detailedStats && data.detailedStats.length > 0) {
-      data.detailedStats.forEach(symbol => {
-        const row = document.createElement('tr');
-        row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
-
-        row.innerHTML = `
-          <td class="symbol-name">
-            ${symbol.symbol}
-            ${symbol.hasExecution ? '<span class="signal-indicator execution">🚀</span>' : ''}
-            ${symbol.hasSignal ? '<span class="signal-indicator signal">🎯</span>' : ''}
-            ${symbol.hasTrend ? '<span class="signal-indicator trend">📈</span>' : ''}
-            ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
-          </td>
-          <td>
-            <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
-            <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
-          </td>
-          <td>
-            <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
-            <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
-          </td>
-          <td>
-            <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
-            <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
-          </td>
-          <td>
-            <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(1)}%</div>
-            <div class="metric-details">${symbol.simulationProgress.inProgress}/${symbol.simulationProgress.triggers}</div>
-          </td>
-          <td>
-            <div class="metric-time">${symbol.refreshFrequency}秒</div>
-          </td>
-          <td>
-            <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
-              ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(1)}%
-            </span>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
-    } else {
-      // 如果没有数据，显示提示信息
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" style="text-align: center; color: #6c757d; padding: 20px;">
-            暂无监控数据，请等待数据收集完成
-          </td>
-        </tr>
-      `;
-    }
-
+    
+    // 更新汇总视图表格
+    updateSummaryTable(data);
+    
+    // 更新详细视图表格
+    updateDetailedTable(data);
+    
+    // 更新原始数据视图
+    updateRawDataView(data);
+    
   } catch (error) {
     console.error('刷新监控数据失败:', error);
     const tbody = document.getElementById('monitoringTableBody');
@@ -468,6 +465,191 @@ async function refreshMonitoringData() {
       `;
     }
   }
+}
+
+// 更新汇总视图表格
+function updateSummaryTable(data) {
+  const tbody = document.getElementById('monitoringTableBody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '';
+  
+  if (data.detailedStats && data.detailedStats.length > 0) {
+    data.detailedStats.forEach(symbol => {
+      const row = document.createElement('tr');
+      row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
+      
+      row.innerHTML = `
+        <td class="symbol-name">
+          ${symbol.symbol}
+          ${symbol.hasExecution ? '<span class="signal-indicator execution">🚀</span>' : ''}
+          ${symbol.hasSignal ? '<span class="signal-indicator signal">🎯</span>' : ''}
+          ${symbol.hasTrend ? '<span class="signal-indicator trend">📈</span>' : ''}
+          ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
+        </td>
+        <td>
+          <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
+          <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
+        </td>
+        <td>
+          <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
+          <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
+        </td>
+        <td>
+          <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
+          <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
+        </td>
+        <td>
+          <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(1)}%</div>
+          <div class="metric-details">${symbol.simulationProgress.inProgress}/${symbol.simulationProgress.triggers}</div>
+        </td>
+        <td>
+          <div class="metric-time">${symbol.refreshFrequency}秒</div>
+        </td>
+        <td>
+          <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
+            ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(1)}%
+          </span>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  } else {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; color: #6c757d; padding: 20px;">
+          暂无监控数据，请等待数据收集完成
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// 更新详细视图表格
+function updateDetailedTable(data) {
+  const tbody = document.getElementById('detailedTableBody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '';
+  
+  if (data.detailedStats && data.detailedStats.length > 0) {
+    data.detailedStats.forEach(symbol => {
+      const row = document.createElement('tr');
+      row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
+      
+      // 格式化时间
+      const formatTime = (timestamp) => {
+        if (!timestamp) return 'N/A';
+        return new Date(timestamp).toLocaleString('zh-CN');
+      };
+      
+      row.innerHTML = `
+        <td class="symbol-name">
+          ${symbol.symbol}
+          ${symbol.hasExecution ? '<span class="signal-indicator execution">🚀</span>' : ''}
+          ${symbol.hasSignal ? '<span class="signal-indicator signal">🎯</span>' : ''}
+          ${symbol.hasTrend ? '<span class="signal-indicator trend">📈</span>' : ''}
+          ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
+        </td>
+        <td>
+          <div class="metric-detail">
+            <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
+            <div class="metric-info">成功: ${symbol.dataCollection.successes} | 尝试: ${symbol.dataCollection.attempts}</div>
+            <div class="metric-time">最后: ${formatTime(symbol.dataCollection.lastTime)}</div>
+          </div>
+        </td>
+        <td>
+          <div class="metric-detail">
+            <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
+            <div class="metric-info">成功: ${symbol.signalAnalysis.successes} | 尝试: ${symbol.signalAnalysis.attempts}</div>
+            <div class="metric-time">最后: ${formatTime(symbol.signalAnalysis.lastTime)}</div>
+          </div>
+        </td>
+        <td>
+          <div class="metric-detail">
+            <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
+            <div class="metric-info">完成: ${symbol.simulationCompletion.completions} | 触发: ${symbol.simulationCompletion.triggers}</div>
+            <div class="metric-rate">进行: ${symbol.simulationProgress.rate.toFixed(1)}%</div>
+            <div class="metric-info">进行中: ${symbol.simulationProgress.inProgress} | 触发: ${symbol.simulationProgress.triggers}</div>
+          </div>
+        </td>
+        <td>
+          <div class="signal-status">
+            <div class="signal-item ${symbol.hasExecution ? 'active' : ''}">
+              🚀 入场执行: ${symbol.hasExecution ? '是' : '否'}
+            </div>
+            <div class="signal-item ${symbol.hasSignal ? 'active' : ''}">
+              🎯 信号确认: ${symbol.hasSignal ? '是' : '否'}
+            </div>
+            <div class="signal-item ${symbol.hasTrend ? 'active' : ''}">
+              📈 趋势信号: ${symbol.hasTrend ? '是' : '否'}
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="last-update">
+            <div>数据收集: ${formatTime(symbol.dataCollection.lastTime)}</div>
+            <div>信号分析: ${formatTime(symbol.signalAnalysis.lastTime)}</div>
+            <div>刷新频率: ${symbol.refreshFrequency}秒</div>
+          </div>
+        </td>
+        <td>
+          <div class="health-status">
+            <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
+              ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(1)}%
+            </span>
+            <div class="health-details">
+              <div>优先级: ${symbol.priorityScore}</div>
+              <div>活跃度: ${symbol.signalActivityScore}</div>
+            </div>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  } else {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; color: #6c757d; padding: 20px;">
+          暂无监控数据，请等待数据收集完成
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// 更新原始数据视图
+function updateRawDataView(data) {
+  const rawSummaryEl = document.getElementById('rawSummaryData');
+  const rawDetailedEl = document.getElementById('rawDetailedData');
+  
+  if (rawSummaryEl) {
+    rawSummaryEl.textContent = JSON.stringify(data.summary, null, 2);
+  }
+  
+  if (rawDetailedEl) {
+    rawDetailedEl.textContent = JSON.stringify(data.detailedStats, null, 2);
+  }
+}
+
+// 切换监控标签页
+function switchMonitoringTab(tabName) {
+  // 隐藏所有视图
+  document.querySelectorAll('.monitoring-view').forEach(view => {
+    view.classList.remove('active');
+  });
+  
+  // 移除所有标签按钮的激活状态
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // 显示选中的视图
+  const targetView = document.getElementById(tabName + 'View');
+  const targetBtn = document.querySelector(`[onclick="switchMonitoringTab('${tabName}')"]`);
+  
+  if (targetView) targetView.classList.add('active');
+  if (targetBtn) targetBtn.classList.add('active');
 }
 
 // 关闭监控面板
