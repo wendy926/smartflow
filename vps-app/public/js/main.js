@@ -86,11 +86,16 @@ class SmartFlowApp {
     tbody.innerHTML = '';
 
     if (signals.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #6c757d;">暂无信号数据</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #6c757d;">暂无信号数据</td></tr>';
       return;
     }
 
     signals.forEach(signal => {
+      // 计算数据采集成功率
+      const dataCollectionRate = signal.dataCollectionRate || 0;
+      const dataCollectionClass = dataCollectionRate >= 95 ? 'data-healthy' : 
+                                 dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
+      
       const row = document.createElement('tr');
       row.innerHTML = `
                 <td>
@@ -108,6 +113,9 @@ class SmartFlowApp {
                 <td>${dataManager.formatPercentage(signal.oiChange || 0)}</td>
                 <td>${dataManager.formatPercentage(signal.fundingRate || 0, 4)}</td>
                 <td>${signal.cvdActive ? `${signal.cvd} (${dataManager.formatNumber(signal.cvdValue || 0)})` : '--'}</td>
+                <td class="${dataCollectionClass}" title="数据采集成功率: ${dataCollectionRate.toFixed(1)}%">
+                    ${dataCollectionRate.toFixed(1)}%
+                </td>
                 <td>
                     <button class="btn primary" onclick="refreshSymbol('${signal.symbol}')">
                         刷新
@@ -247,15 +255,65 @@ async function refreshSymbol(symbol) {
   }
 }
 
-function showSignalDetails(symbol) {
-  // 显示信号详情模态框
-  const content = `
+async function showSignalDetails(symbol) {
+  try {
+    // 获取监控数据
+    const monitoringData = await dataManager.getMonitoringData();
+    const symbolData = monitoringData.detailedStats.find(s => s.symbol === symbol);
+    
+    if (!symbolData) {
+      modal.showMessage(`${symbol} 数据不可用`, 'error');
+      return;
+    }
+
+    // 构建数据采集详情HTML
+    let dataCollectionHtml = '';
+    if (symbolData.dataTypeCollection && Object.keys(symbolData.dataTypeCollection).length > 0) {
+      dataCollectionHtml = `
+        <div class="data-collection-details">
+          <h5>📊 数据采集详情</h5>
+          ${Object.entries(symbolData.dataTypeCollection).map(([dataType, stats]) => {
+            const statusClass = stats.status === 'HEALTHY' ? 'healthy' : 
+                              stats.status === 'WARNING' ? 'warning' : 'error';
+            return `
+              <div class="data-type-item">
+                <span class="data-type-name">${dataType}</span>
+                <div class="data-type-status">
+                  <span class="data-type-rate ${statusClass}">${stats.rate.toFixed(1)}%</span>
+                  <span>(${stats.successes}/${stats.attempts})</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    const content = `
         <div style="padding: 20px;">
             <h4>${symbol} 信号详情</h4>
-            <p>这里可以显示更详细的信号分析信息</p>
+            <div style="margin: 15px 0;">
+              <strong>整体数据采集率:</strong> 
+              <span class="${symbolData.dataCollection.rate >= 95 ? 'data-healthy' : 
+                           symbolData.dataCollection.rate >= 80 ? 'data-warning' : 'data-error'}">
+                ${symbolData.dataCollection.rate.toFixed(1)}%
+              </span>
+              (${symbolData.dataCollection.successes}/${symbolData.dataCollection.attempts})
+            </div>
+            ${dataCollectionHtml}
+            <div style="margin-top: 20px;">
+              <h5>📈 信号分析详情</h5>
+              <p><strong>趋势:</strong> ${symbolData.trend || '--'}</p>
+              <p><strong>信号:</strong> ${symbolData.signal || '--'}</p>
+              <p><strong>执行:</strong> ${symbolData.execution || '--'}</p>
+            </div>
         </div>
     `;
-  modal.show(`${symbol} 信号详情`, content);
+    modal.show(`${symbol} 信号详情`, content);
+  } catch (error) {
+    console.error('获取信号详情失败:', error);
+    modal.showMessage('获取信号详情失败: ' + error.message, 'error');
+  }
 }
 
 async function testAPIConnection() {

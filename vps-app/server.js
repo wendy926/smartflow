@@ -52,6 +52,17 @@ class SmartFlowServer {
         for (const symbol of symbols) {
           try {
             const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+            
+            // 获取数据采集成功率
+            let dataCollectionRate = 0;
+            if (this.dataMonitor && this.dataMonitor.symbolStats) {
+              const stats = this.dataMonitor.symbolStats.get(symbol);
+              if (stats) {
+                dataCollectionRate = stats.dataCollectionAttempts > 0 ? 
+                  (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100 : 0;
+              }
+            }
+            
             signals.push({
               symbol,
               trend: analysis.trend,
@@ -64,7 +75,8 @@ class SmartFlowServer {
               fundingRate: analysis.hourlyConfirmation?.fundingRate || 0,
               cvd: analysis.hourlyConfirmation?.cvd?.direction || 'N/A',
               cvdValue: analysis.hourlyConfirmation?.cvd?.value || 0,
-              cvdActive: analysis.hourlyConfirmation?.cvd?.isActive || false
+              cvdActive: analysis.hourlyConfirmation?.cvd?.isActive || false,
+              dataCollectionRate: dataCollectionRate
             });
           } catch (error) {
             console.error(`分析 ${symbol} 失败:`, error);

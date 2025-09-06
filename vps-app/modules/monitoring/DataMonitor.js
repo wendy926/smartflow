@@ -69,6 +69,33 @@ class DataMonitor {
   recordRawData(symbol, dataType, data, success = true, error = null) {
     const stats = this.symbolStats.get(symbol);
     if (stats) {
+      // 初始化数据类型统计
+      if (!stats.dataTypeStats) {
+        stats.dataTypeStats = new Map();
+      }
+      
+      if (!stats.dataTypeStats.has(dataType)) {
+        stats.dataTypeStats.set(dataType, {
+          attempts: 0,
+          successes: 0,
+          lastSuccessTime: null,
+          lastErrorTime: null,
+          lastError: null
+        });
+      }
+      
+      const dataTypeStats = stats.dataTypeStats.get(dataType);
+      dataTypeStats.attempts++;
+      
+      if (success) {
+        dataTypeStats.successes++;
+        dataTypeStats.lastSuccessTime = Date.now();
+        dataTypeStats.lastError = null;
+      } else {
+        dataTypeStats.lastErrorTime = Date.now();
+        dataTypeStats.lastError = error;
+      }
+      
       stats.dataCollectionAttempts++;
       if (success) {
         stats.dataCollectionSuccesses++;
@@ -78,7 +105,7 @@ class DataMonitor {
 
     const log = this.analysisLogs.get(symbol);
     if (log) {
-      log.rawData[dataType] = { data, success, error };
+      log.rawData[dataType] = { data, success, error, timestamp: Date.now() };
       log.phases.dataCollection.success = success;
       if (error) {
         log.errors.push(`数据收集错误 (${dataType}): ${error.message || error}`);
@@ -282,6 +309,7 @@ class DataMonitor {
         return {
           symbol,
           dataCollection: { rate: 0, attempts: 0, successes: 0 },
+          dataTypeCollection: {},
           signalAnalysis: { rate: 0, attempts: 0, successes: 0 },
           simulationCompletion: { rate: 0, triggers: 0, completions: 0 },
           simulationProgress: { rate: 0, triggers: 0, inProgress: 0 },
@@ -302,6 +330,25 @@ class DataMonitor {
         (stats.simulationCompletions / stats.simulationTriggers) * 100 : 0;
       const simulationProgressRate = stats.simulationTriggers > 0 ?
         (stats.simulationInProgress / stats.simulationTriggers) * 100 : 0;
+
+      // 计算各数据类型采集成功率
+      const dataTypeCollection = {};
+      if (stats.dataTypeStats) {
+        for (const [dataType, dataTypeStats] of stats.dataTypeStats.entries()) {
+          const rate = dataTypeStats.attempts > 0 ? 
+            (dataTypeStats.successes / dataTypeStats.attempts) * 100 : 0;
+          
+          dataTypeCollection[dataType] = {
+            rate: rate,
+            attempts: dataTypeStats.attempts,
+            successes: dataTypeStats.successes,
+            lastSuccessTime: dataTypeStats.lastSuccessTime,
+            lastErrorTime: dataTypeStats.lastErrorTime,
+            lastError: dataTypeStats.lastError,
+            status: rate >= 95 ? 'HEALTHY' : rate >= 80 ? 'WARNING' : 'ERROR'
+          };
+        }
+      }
 
       // 检查各阶段信号状态
       let hasExecution = false;
@@ -333,6 +380,7 @@ class DataMonitor {
           successes: stats.dataCollectionSuccesses,
           lastTime: stats.lastDataCollectionTime
         },
+        dataTypeCollection,
         signalAnalysis: {
           rate: signalAnalysisRate,
           attempts: stats.signalAnalysisAttempts,
