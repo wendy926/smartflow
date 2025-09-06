@@ -190,6 +190,40 @@ class SmartFlowStrategy {
       const atr = TechnicalIndicators.calculateATR(klines, 14);
       const lastATR = atr[atr.length - 1];
 
+      // 计算止盈止损价格
+      let stopLoss = null;
+      let targetPrice = null;
+      let riskRewardRatio = 0;
+      let maxLeverage = 0;
+      let minMargin = 0;
+      let manualConfirmation = false;
+
+      // 只有在有信号时才计算止盈止损
+      if (breakSetupHigh || breakSetupLow) {
+        const latestClose = lastClose;
+        
+        if (breakSetupHigh) {
+          // 做多信号
+          stopLoss = Math.min(setupLow, latestClose - 1.2 * lastATR);
+          targetPrice = latestClose + 2 * (latestClose - stopLoss);
+          riskRewardRatio = (targetPrice - latestClose) / (latestClose - stopLoss);
+        } else if (breakSetupLow) {
+          // 做空信号
+          stopLoss = Math.max(setupHigh, latestClose + 1.2 * lastATR);
+          targetPrice = latestClose - 2 * (stopLoss - latestClose);
+          riskRewardRatio = (latestClose - targetPrice) / (stopLoss - latestClose);
+        }
+
+        // 计算杠杆和保证金（基于风险控制）
+        const riskPercentage = 0.02; // 2%风险
+        const stopDistance = Math.abs(latestClose - stopLoss) / latestClose;
+        maxLeverage = Math.min(20, Math.floor(riskPercentage / stopDistance)); // 最大20倍杠杆
+        minMargin = (latestClose * 0.1) / maxLeverage; // 假设10%仓位，最小保证金
+
+        // 人工确认条件
+        manualConfirmation = riskRewardRatio >= 2 && stopDistance >= 0.01; // 至少1%止损距离
+      }
+
       return {
         pullbackToEma20,
         pullbackToEma50,
@@ -198,6 +232,12 @@ class SmartFlowStrategy {
         setupHigh,
         setupLow,
         atr: lastATR,
+        stopLoss,
+        targetPrice,
+        riskRewardRatio,
+        maxLeverage,
+        minMargin,
+        manualConfirmation,
         dataValid: true
       };
     } catch (error) {

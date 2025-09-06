@@ -76,7 +76,17 @@ class SmartFlowServer {
               cvd: analysis.hourlyConfirmation?.cvd?.direction || 'N/A',
               cvdValue: analysis.hourlyConfirmation?.cvd?.value || 0,
               cvdActive: analysis.hourlyConfirmation?.cvd?.isActive || false,
-              dataCollectionRate: dataCollectionRate
+              dataCollectionRate: dataCollectionRate,
+              // 新增的交易执行信息
+              stopLoss: analysis.execution15m?.stopLoss || null,
+              targetPrice: analysis.execution15m?.targetPrice || null,
+              riskRewardRatio: analysis.execution15m?.riskRewardRatio || 0,
+              maxLeverage: analysis.execution15m?.maxLeverage || 0,
+              minMargin: analysis.execution15m?.minMargin || 0,
+              manualConfirmation: analysis.execution15m?.manualConfirmation || false,
+              setupHigh: analysis.execution15m?.setupHigh || 0,
+              setupLow: analysis.execution15m?.setupLow || 0,
+              atr: analysis.execution15m?.atr || 0
             });
           } catch (error) {
             console.error(`分析 ${symbol} 失败:`, error);

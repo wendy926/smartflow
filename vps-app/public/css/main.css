@@ -1117,3 +1117,77 @@ tr:hover {
   background-color: #f8d7da;
   color: #721c24;
 }
+
+/* 交易执行详情样式 */
+.execution-details {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.execution-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.execution-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.execution-item .label {
+  font-weight: 500;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.execution-item .value {
+  font-weight: bold;
+  color: #212529;
+  font-size: 0.9rem;
+}
+
+.confirmation-yes {
+  color: #155724 !important;
+  background-color: #d4edda;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.confirmation-no {
+  color: #721c24 !important;
+  background-color: #f8d7da;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.data-collection-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  margin-top: 10px;
+}
+
+.data-collection-item .label {
+  font-weight: 500;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.data-collection-item .value {
+  font-weight: bold;
+  font-size: 0.9rem;
+}

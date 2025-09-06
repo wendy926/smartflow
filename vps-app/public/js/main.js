@@ -257,34 +257,81 @@ async function refreshSymbol(symbol) {
 
 async function showSignalDetails(symbol) {
   try {
-    // 获取监控数据
-    const monitoringData = await dataManager.getMonitoringData();
-    const symbolData = monitoringData.detailedStats.find(s => s.symbol === symbol);
+    // 获取信号数据
+    const signals = await dataManager.getAllSignals();
+    const signalData = signals.find(s => s.symbol === symbol);
     
-    if (!symbolData) {
+    if (!signalData) {
       modal.showMessage(`${symbol} 数据不可用`, 'error');
       return;
     }
 
+    // 构建交易执行详情HTML
+    let executionDetailsHtml = '';
+    if (signalData.execution && signalData.execution.includes('EXECUTE')) {
+      executionDetailsHtml = `
+        <div class="execution-details">
+          <h5>🎯 交易执行详情</h5>
+          <div class="execution-grid">
+            <div class="execution-item">
+              <span class="label">当前价格:</span>
+              <span class="value">${dataManager.formatNumber(signalData.currentPrice)}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">止损价格:</span>
+              <span class="value">${signalData.stopLoss ? dataManager.formatNumber(signalData.stopLoss) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">止盈价格:</span>
+              <span class="value">${signalData.targetPrice ? dataManager.formatNumber(signalData.targetPrice) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">风险回报比:</span>
+              <span class="value">${signalData.riskRewardRatio ? signalData.riskRewardRatio.toFixed(2) + 'R' : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">最大杠杆:</span>
+              <span class="value">${signalData.maxLeverage ? signalData.maxLeverage + 'x' : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">最小保证金:</span>
+              <span class="value">${signalData.minMargin ? dataManager.formatNumber(signalData.minMargin) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">人工确认:</span>
+              <span class="value ${signalData.manualConfirmation ? 'confirmation-yes' : 'confirmation-no'}">
+                ${signalData.manualConfirmation ? '✅ 有效' : '❌ 无效'}
+              </span>
+            </div>
+            <div class="execution-item">
+              <span class="label">Setup High:</span>
+              <span class="value">${signalData.setupHigh ? dataManager.formatNumber(signalData.setupHigh) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">Setup Low:</span>
+              <span class="value">${signalData.setupLow ? dataManager.formatNumber(signalData.setupLow) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">ATR(14):</span>
+              <span class="value">${signalData.atr ? dataManager.formatNumber(signalData.atr) : '--'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     // 构建数据采集详情HTML
     let dataCollectionHtml = '';
-    if (symbolData.dataTypeCollection && Object.keys(symbolData.dataTypeCollection).length > 0) {
+    if (signalData.dataCollectionRate !== undefined) {
+      const statusClass = signalData.dataCollectionRate >= 95 ? 'data-healthy' : 
+                         signalData.dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
       dataCollectionHtml = `
         <div class="data-collection-details">
-          <h5>📊 数据采集详情</h5>
-          ${Object.entries(symbolData.dataTypeCollection).map(([dataType, stats]) => {
-            const statusClass = stats.status === 'HEALTHY' ? 'healthy' : 
-                              stats.status === 'WARNING' ? 'warning' : 'error';
-            return `
-              <div class="data-type-item">
-                <span class="data-type-name">${dataType}</span>
-                <div class="data-type-status">
-                  <span class="data-type-rate ${statusClass}">${stats.rate.toFixed(1)}%</span>
-                  <span>(${stats.successes}/${stats.attempts})</span>
-                </div>
-              </div>
-            `;
-          }).join('')}
+          <h5>📊 数据采集状态</h5>
+          <div class="data-collection-item">
+            <span class="label">数据采集率:</span>
+            <span class="value ${statusClass}">${signalData.dataCollectionRate.toFixed(1)}%</span>
+          </div>
         </div>
       `;
     }
@@ -293,20 +340,13 @@ async function showSignalDetails(symbol) {
         <div style="padding: 20px;">
             <h4>${symbol} 信号详情</h4>
             <div style="margin: 15px 0;">
-              <strong>整体数据采集率:</strong> 
-              <span class="${symbolData.dataCollection.rate >= 95 ? 'data-healthy' : 
-                           symbolData.dataCollection.rate >= 80 ? 'data-warning' : 'data-error'}">
-                ${symbolData.dataCollection.rate.toFixed(1)}%
-              </span>
-              (${symbolData.dataCollection.successes}/${symbolData.dataCollection.attempts})
+              <h5>📈 信号分析</h5>
+              <p><strong>趋势:</strong> <span class="${dataManager.getSignalClass(signalData.trend)}">${signalData.trend || '--'}</span></p>
+              <p><strong>信号:</strong> <span class="${dataManager.getSignalClass(signalData.signal)}">${signalData.signal || '--'}</span></p>
+              <p><strong>执行:</strong> <span class="${dataManager.getExecutionClass(signalData.execution)}">${signalData.execution || '--'}</span></p>
             </div>
+            ${executionDetailsHtml}
             ${dataCollectionHtml}
-            <div style="margin-top: 20px;">
-              <h5>📈 信号分析详情</h5>
-              <p><strong>趋势:</strong> ${symbolData.trend || '--'}</p>
-              <p><strong>信号:</strong> ${symbolData.signal || '--'}</p>
-              <p><strong>执行:</strong> ${symbolData.execution || '--'}</p>
-            </div>
         </div>
     `;
     modal.show(`${symbol} 信号详情`, content);
