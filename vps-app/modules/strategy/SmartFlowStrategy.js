@@ -52,10 +52,18 @@ class SmartFlowStrategy {
 
   static async analyzeHourlyConfirmation(symbol, symbolData = null) {
     try {
+      console.log(`🔍 [${symbol}] 开始获取数据...`);
       const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '1h', 200);
       const ticker = symbolData?.ticker || await BinanceAPI.get24hrTicker(symbol);
       const funding = symbolData?.funding || await BinanceAPI.getFundingRate(symbol);
       const openInterestHist = symbolData?.openInterestHist || await BinanceAPI.getOpenInterestHist(symbol, '1h', 6);
+      
+      console.log(`📊 [${symbol}] 数据获取完成:`, {
+        klinesLength: klines?.length || 0,
+        tickerLastPrice: ticker?.lastPrice || 'N/A',
+        fundingLength: funding?.length || 0,
+        openInterestLength: openInterestHist?.length || 0
+      });
 
       // 严格数据验证 - 确保数据质量，提供友好错误提示
       if (!klines || klines.length === 0) {
@@ -77,9 +85,15 @@ class SmartFlowStrategy {
       const lows = klines.map(k => parseFloat(k.low));
 
       // 计算VWAP
+      console.log(`📈 [${symbol}] 开始计算VWAP...`);
       const vwap = TechnicalIndicators.calculateVWAP(klines);
       const lastVWAP = vwap[vwap.length - 1];
       const lastClose = closes[closes.length - 1];
+      console.log(`📈 [${symbol}] VWAP计算完成:`, {
+        vwapLength: vwap.length,
+        lastVWAP: lastVWAP,
+        lastClose: lastClose
+      });
 
       // 计算成交量倍数
       const volSMA = TechnicalIndicators.calculateSMA(volumes, 20);
