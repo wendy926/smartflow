@@ -335,9 +335,17 @@ class SmartFlowStrategy {
       }
       
       try {
+        console.log(`🔍 开始分析小时确认 [${symbol}]...`);
         hourlyConfirmation = await this.analyzeHourlyConfirmation(symbol, symbolData);
+        console.log(`✅ 小时确认分析成功 [${symbol}]:`, {
+          vwap: hourlyConfirmation.vwap,
+          volumeRatio: hourlyConfirmation.volumeRatio,
+          cvd: hourlyConfirmation.cvd,
+          dataValid: hourlyConfirmation.dataValid
+        });
       } catch (error) {
         console.error(`❌ 小时确认分析失败 [${symbol}]: ${error.message}`);
+        console.error(`错误堆栈:`, error.stack);
         // 记录数据质量问题到监控系统
         this.dataMonitor.recordDataQualityIssue(symbol, '小时确认分析', error.message);
         hourlyConfirmation = { 
