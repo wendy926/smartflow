@@ -334,7 +334,6 @@ async function loadUnifiedMonitoring() {
                             <div class="monitoring-tabs">
                                 <button class="tab-btn active" onclick="switchMonitoringTab('summary')">📊 汇总视图</button>
                                 <button class="tab-btn" onclick="switchMonitoringTab('detailed')">🔍 详细视图</button>
-                                <button class="tab-btn" onclick="switchMonitoringTab('raw')">📋 原始数据</button>
                             </div>
                             
                             <!-- 汇总视图 -->
@@ -380,20 +379,6 @@ async function loadUnifiedMonitoring() {
                                     </table>
                                 </div>
                             </div>
-                            
-                            <!-- 原始数据视图 -->
-                            <div id="rawView" class="monitoring-view">
-                                <div class="raw-data-container">
-                                    <div class="raw-data-section">
-                                        <h5>📊 系统概览原始数据</h5>
-                                        <pre id="rawSummaryData" class="raw-data-json"></pre>
-                                    </div>
-                                    <div class="raw-data-section">
-                                        <h5>🔍 交易对详细原始数据</h5>
-                                        <pre id="rawDetailedData" class="raw-data-json"></pre>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -431,27 +416,24 @@ async function loadUnifiedMonitoring() {
 async function refreshMonitoringData() {
   try {
     const data = await dataManager.getMonitoringData();
-    
+
     // 更新概览数据
     const totalSymbolsEl = document.getElementById('totalSymbols');
     const healthySymbolsEl = document.getElementById('healthySymbols');
     const warningSymbolsEl = document.getElementById('warningSymbols');
     const dataCollectionRateEl = document.getElementById('dataCollectionRate');
-    
+
     if (totalSymbolsEl) totalSymbolsEl.textContent = data.summary.totalSymbols;
     if (healthySymbolsEl) healthySymbolsEl.textContent = data.summary.healthySymbols;
     if (warningSymbolsEl) warningSymbolsEl.textContent = data.summary.warningSymbols;
     if (dataCollectionRateEl) dataCollectionRateEl.textContent = data.summary.completionRates.dataCollection.toFixed(1) + '%';
-    
+
     // 更新汇总视图表格
     updateSummaryTable(data);
-    
+
     // 更新详细视图表格
     updateDetailedTable(data);
-    
-    // 更新原始数据视图
-    updateRawDataView(data);
-    
+
   } catch (error) {
     console.error('刷新监控数据失败:', error);
     const tbody = document.getElementById('monitoringTableBody');
@@ -471,14 +453,14 @@ async function refreshMonitoringData() {
 function updateSummaryTable(data) {
   const tbody = document.getElementById('monitoringTableBody');
   if (!tbody) return;
-  
+
   tbody.innerHTML = '';
-  
+
   if (data.detailedStats && data.detailedStats.length > 0) {
     data.detailedStats.forEach(symbol => {
       const row = document.createElement('tr');
       row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
-      
+
       row.innerHTML = `
         <td class="symbol-name">
           ${symbol.symbol}
@@ -529,20 +511,20 @@ function updateSummaryTable(data) {
 function updateDetailedTable(data) {
   const tbody = document.getElementById('detailedTableBody');
   if (!tbody) return;
-  
+
   tbody.innerHTML = '';
-  
+
   if (data.detailedStats && data.detailedStats.length > 0) {
     data.detailedStats.forEach(symbol => {
       const row = document.createElement('tr');
       row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
-      
+
       // 格式化时间
       const formatTime = (timestamp) => {
         if (!timestamp) return 'N/A';
         return new Date(timestamp).toLocaleString('zh-CN');
       };
-      
+
       row.innerHTML = `
         <td class="symbol-name">
           ${symbol.symbol}
@@ -618,19 +600,6 @@ function updateDetailedTable(data) {
   }
 }
 
-// 更新原始数据视图
-function updateRawDataView(data) {
-  const rawSummaryEl = document.getElementById('rawSummaryData');
-  const rawDetailedEl = document.getElementById('rawDetailedData');
-  
-  if (rawSummaryEl) {
-    rawSummaryEl.textContent = JSON.stringify(data.summary, null, 2);
-  }
-  
-  if (rawDetailedEl) {
-    rawDetailedEl.textContent = JSON.stringify(data.detailedStats, null, 2);
-  }
-}
 
 // 切换监控标签页
 function switchMonitoringTab(tabName) {
@@ -638,16 +607,16 @@ function switchMonitoringTab(tabName) {
   document.querySelectorAll('.monitoring-view').forEach(view => {
     view.classList.remove('active');
   });
-  
+
   // 移除所有标签按钮的激活状态
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.remove('active');
   });
-  
+
   // 显示选中的视图
   const targetView = document.getElementById(tabName + 'View');
   const targetBtn = document.querySelector(`[onclick="switchMonitoringTab('${tabName}')"]`);
-  
+
   if (targetView) targetView.classList.add('active');
   if (targetBtn) targetBtn.classList.add('active');
 }

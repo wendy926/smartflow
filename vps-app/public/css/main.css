@@ -652,6 +652,45 @@ tr:hover {
   font-weight: 600;
 }
 
+.monitoring-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 10px;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  border: none;
+  background: #f8f9fa;
+  color: #6c757d;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.tab-btn:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.tab-btn.active {
+  background: #007bff;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.monitoring-view {
+  display: none;
+}
+
+.monitoring-view.active {
+  display: block;
+}
+
 .symbols-table-container {
   background: white;
   border: 1px solid #e9ecef;
@@ -776,6 +815,62 @@ tr:hover {
 .symbol-row.no-signals {
   background: #fff5f5;
   border-left: 4px solid #dc3545;
+}
+
+/* 详细视图样式 */
+.metric-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-info {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.signal-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.signal-item {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: #f8f9fa;
+  color: #6c757d;
+}
+
+.signal-item.active {
+  background: #d4edda;
+  color: #155724;
+  font-weight: 500;
+}
+
+.last-update {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.health-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.health-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8rem;
+  color: #6c757d;
+  text-align: center;
 }
 
 /* 移动端适配 */
