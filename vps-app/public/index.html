@@ -146,9 +146,132 @@
     </div>
 
     <!-- 策略规则说明 -->
-    <div class="rules-section" id="rulesSection" style="display: none;">
-      <h2>📋 交易策略规则说明</h2>
-      <!-- 规则内容将通过JavaScript动态加载 -->
+    <div class="rules-section" id="rulesSection">
+      <h2>📋 SmartFlow 交易策略规则说明</h2>
+
+      <div class="strategy-overview">
+        <h3>🎯 系统结构（3层共振）</h3>
+        <p>大周期过滤（4H/日线） → 中周期确认（1H） → 小周期执行（15m）</p>
+      </div>
+
+      <div class="strategy-details">
+        <div class="strategy-phase">
+          <h3>📈 1. 趋势过滤（日线）</h3>
+          <div class="phase-content">
+            <h4>数据来源：</h4>
+            <ul>
+              <li><strong>K线数据：</strong> Binance Futures API `/fapi/v1/klines?symbol={symbol}&interval=1d&limit=250`
+              </li>
+            </ul>
+
+            <h4>指标计算：</h4>
+            <ul>
+              <li><strong>MA20：</strong> SMA(收盘价, 20) = Σ(收盘价[i-19:i]) / 20</li>
+              <li><strong>MA50：</strong> SMA(收盘价, 50) = Σ(收盘价[i-49:i]) / 50</li>
+              <li><strong>MA200：</strong> SMA(收盘价, 200) = Σ(收盘价[i-199:i]) / 200</li>
+            </ul>
+
+            <h4>判断逻辑：</h4>
+            <ul>
+              <li><strong>多头趋势：</strong> MA20 > MA50 > MA200 且 收盘价 > MA20</li>
+              <li><strong>空头趋势：</strong> MA20 < MA50 < MA200 且 收盘价 < MA20</li>
+              <li><strong>震荡趋势：</strong> 不满足上述条件</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="strategy-phase">
+          <h3>⏰ 2. 小时确认（1H）</h3>
+          <div class="phase-content">
+            <h4>数据来源：</h4>
+            <ul>
+              <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=200`</li>
+              <li><strong>24小时行情：</strong> `/fapi/v1/ticker/24hr?symbol={symbol}`</li>
+              <li><strong>资金费率：</strong> `/fapi/v1/fundingRate?symbol={symbol}&limit=1`</li>
+              <li><strong>持仓量历史：</strong> `/futures/data/openInterestHist?symbol={symbol}&period=1h&limit=6`</li>
+            </ul>
+
+            <h4>指标计算：</h4>
+            <ul>
+              <li><strong>VWAP：</strong> Σ(典型价 × 成交量) / Σ(成交量)，其中典型价 = (最高价 + 最低价 + 收盘价) / 3</li>
+              <li><strong>成交量倍数：</strong> 当前成交量 / SMA(成交量, 20)</li>
+              <li><strong>OI变化：</strong> ((最新OI - 6小时前OI) / 6小时前OI) × 100%</li>
+              <li><strong>CVD：</strong> 累积成交量差，基于价格在K线中的位置计算</li>
+            </ul>
+
+            <h4>判断逻辑：</h4>
+            <ul>
+              <li><strong>价格与VWAP方向一致：</strong> 收盘价 > VWAP（做多）或 收盘价 < VWAP（做空）</li>
+              <li><strong>突破条件：</strong> 收盘价突破最近20根K线高点（做多）或低点（做空）</li>
+              <li><strong>放量确认：</strong> 成交量 ≥ 1.5 × 20期平均成交量</li>
+              <li><strong>OI确认：</strong> OI 6小时变动 ≥ +2%（做多）或 ≤ -2%（做空）</li>
+              <li><strong>资金费率确认：</strong> |资金费率| ≤ 0.1%/8h</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="strategy-phase">
+          <h3>⚡ 3. 15分钟执行</h3>
+          <div class="phase-content">
+            <h4>数据来源：</h4>
+            <ul>
+              <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=15m&limit=50`</li>
+            </ul>
+
+            <h4>指标计算：</h4>
+            <ul>
+              <li><strong>EMA20：</strong> EMA(收盘价, 20) = 收盘价 × (2/21) + 前EMA × (19/21)</li>
+              <li><strong>EMA50：</strong> EMA(收盘价, 50) = 收盘价 × (2/51) + 前EMA × (49/51)</li>
+              <li><strong>ATR14：</strong> ATR(14) = SMA(真实波幅, 14)，真实波幅 = max(最高价-最低价, |最高价-前收盘价|, |最低价-前收盘价|)</li>
+            </ul>
+
+            <h4>判断逻辑：</h4>
+            <ul>
+              <li><strong>回踩确认：</strong> 价格回踩到EMA20/50或前高/前低支撑，缩量不破位</li>
+              <li><strong>触发条件：</strong> 突破setup candle（前一根K线）高点（做多）或低点（做空）</li>
+              <li><strong>止损设置：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
+              <li><strong>止盈目标：</strong> ≥2R（风险回报比1:2）</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="strategy-phase">
+          <h3>📊 4. 数据指标说明</h3>
+          <div class="phase-content">
+            <h4>VWAP（成交量加权平均价格）：</h4>
+            <p>VWAP = Σ(典型价 × 成交量) / Σ(成交量)</p>
+            <p>其中：典型价 = (最高价 + 最低价 + 收盘价) / 3</p>
+
+            <h4>成交量倍数：</h4>
+            <p>成交量倍数 = 当前成交量 / 20期平均成交量</p>
+            <p>用于确认放量突破，阈值 ≥ 1.5</p>
+
+            <h4>OI变化（持仓量变化）：</h4>
+            <p>OI变化% = ((最新OI - 6小时前OI) / 6小时前OI) × 100%</p>
+            <p>多头需 ≥ +2%，空头需 ≤ -2%</p>
+
+            <h4>资金费率：</h4>
+            <p>从Binance Futures API获取，绝对值需 ≤ 0.1%/8h</p>
+
+            <h4>CVD（累积成交量差）：</h4>
+            <p>基于价格在K线中的位置计算：</p>
+            <p>价格位置 = (收盘价 - 最低价) / (最高价 - 最低价)</p>
+            <p>如果价格位置 > 0.5，为买入主导；否则为卖出主导</p>
+          </div>
+        </div>
+
+        <div class="strategy-phase">
+          <h3>⚠️ 5. 风险控制</h3>
+          <div class="phase-content">
+            <ul>
+              <li><strong>单笔风险：</strong> 1% 账户权益</li>
+              <li><strong>最大持仓：</strong> 最多3笔同时持仓</li>
+              <li><strong>日损限制：</strong> 当日净亏损 ≤ -3R 时停止交易</li>
+              <li><strong>止损管理：</strong> +1R时移动止损至保本，+1.5R时减仓30%，+2R时启动追踪止盈</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

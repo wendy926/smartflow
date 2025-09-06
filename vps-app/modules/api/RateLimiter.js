@@ -143,7 +143,7 @@ class SmartAPIRateLimiter {
       case 'openInterest':
         return await BinanceAPI.getOpenInterest(symbol);
       case 'openInterestHist':
-        return await BinanceAPI.getOpenInterestHist(symbol, '1h', 7);
+        return await BinanceAPI.getOpenInterestHist(symbol, '1h', 6);
       default:
         throw new Error(`未知的数据类型: ${dataType}`);
     }

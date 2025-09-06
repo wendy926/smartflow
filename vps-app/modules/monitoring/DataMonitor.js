@@ -232,6 +232,46 @@ class DataMonitor {
       allSymbols = [...new Set([...statsSymbols, ...logSymbols])];
     }
 
+    // 计算实际的数据收集成功率
+    let actualDataCollectionRate = 0;
+    let actualSignalAnalysisRate = 0;
+    let totalSymbols = allSymbols.length;
+    let dataValidationErrors = [];
+
+    if (totalSymbols > 0) {
+      let successfulDataCollections = 0;
+      let successfulSignalAnalyses = 0;
+
+      for (const symbol of allSymbols) {
+        const log = this.getAnalysisLog(symbol);
+        const stats = this.symbolStats.get(symbol);
+        
+        // 验证数据完整性
+        if (log) {
+          if (log.phases.dataCollection.success) {
+            successfulDataCollections++;
+          }
+          if (log.phases.signalAnalysis.success) {
+            successfulSignalAnalyses++;
+          }
+          
+          // 检查数据质量
+          if (log.rawData && Object.keys(log.rawData).length === 0) {
+            dataValidationErrors.push(`${symbol}: 缺少原始数据`);
+          }
+          
+          if (log.indicators && Object.keys(log.indicators).length === 0) {
+            dataValidationErrors.push(`${symbol}: 缺少技术指标数据`);
+          }
+        } else {
+          dataValidationErrors.push(`${symbol}: 缺少分析日志`);
+        }
+      }
+
+      actualDataCollectionRate = (successfulDataCollections / totalSymbols) * 100;
+      actualSignalAnalysisRate = (successfulSignalAnalyses / totalSymbols) * 100;
+    }
+
     const recentLogs = allSymbols.map(symbol => this.getAnalysisLog(symbol)).filter(log => log !== null);
 
     const detailedStats = allSymbols.map(symbol => {
@@ -339,7 +379,19 @@ class DataMonitor {
         healthySymbols: detailedStats.filter(s => s.overall.status === 'HEALTHY').length,
         warningSymbols: detailedStats.filter(s => s.overall.status === 'WARNING').length,
         overallHealth: this.healthStatus.overall,
-        completionRates: this.completionRates
+        completionRates: {
+          dataCollection: actualDataCollectionRate,
+          signalAnalysis: actualSignalAnalysisRate,
+          simulationTrading: this.completionRates.simulationTrading
+        },
+        // 保留原始统计数据用于调试
+        rawCompletionRates: this.completionRates,
+        // 数据验证信息
+        dataValidation: {
+          errors: dataValidationErrors,
+          errorCount: dataValidationErrors.length,
+          hasErrors: dataValidationErrors.length > 0
+        }
       },
       detailedStats,
       recentLogs: recentLogs.slice(0, 10),
@@ -368,7 +420,7 @@ class DataMonitor {
     const dashboard = await this.getMonitoringDashboard();
     const { detailedStats, summary } = dashboard;
 
-    // 检查整体系统告警
+    // 检查整体系统告警 - 使用实际计算的数据收集率
     const dataCollectionRate = summary.completionRates.dataCollection;
     const signalAnalysisRate = summary.completionRates.signalAnalysis;
 

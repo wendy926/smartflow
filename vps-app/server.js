@@ -62,7 +62,9 @@ class SmartFlowServer {
               volumeRatio: analysis.hourlyConfirmation?.volumeRatio || 0,
               oiChange: analysis.hourlyConfirmation?.oiChange || 0,
               fundingRate: analysis.hourlyConfirmation?.fundingRate || 0,
-              cvd: analysis.hourlyConfirmation?.cvd?.direction || 'N/A'
+              cvd: analysis.hourlyConfirmation?.cvd?.direction || 'N/A',
+              cvdValue: analysis.hourlyConfirmation?.cvd?.value || 0,
+              cvdActive: analysis.hourlyConfirmation?.cvd?.isActive || false
             });
           } catch (error) {
             console.error(`分析 ${symbol} 失败:`, error);

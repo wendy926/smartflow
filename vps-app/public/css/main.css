@@ -949,3 +949,92 @@ tr:hover {
     font-size: 0.8rem;
   }
 }
+
+/* 策略规则说明样式 */
+.rules-section {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-top: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.strategy-overview {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  color: white;
+}
+
+.strategy-overview h3 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.strategy-details {
+  display: grid;
+  gap: 25px;
+}
+
+.strategy-phase {
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 20px;
+  background: #fafafa;
+}
+
+.strategy-phase h3 {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 8px;
+}
+
+.phase-content h4 {
+  color: #555;
+  margin: 15px 0 8px 0;
+  font-size: 1.1rem;
+}
+
+.phase-content ul {
+  margin-left: 20px;
+  margin-bottom: 15px;
+}
+
+.phase-content li {
+  margin-bottom: 5px;
+  line-height: 1.5;
+}
+
+.phase-content p {
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #f0f0f0;
+  border-radius: 5px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+.phase-content strong {
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* 策略规则说明响应式设计 */
+@media (max-width: 768px) {
+  .strategy-details {
+    gap: 15px;
+  }
+
+  .strategy-phase {
+    padding: 15px;
+  }
+
+  .phase-content p {
+    font-size: 0.8rem;
+    padding: 8px;
+  }
+}

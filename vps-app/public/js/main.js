@@ -107,7 +107,7 @@ class SmartFlowApp {
                 <td>${dataManager.formatNumber(signal.volumeRatio || 0, 1)}x</td>
                 <td>${dataManager.formatPercentage(signal.oiChange || 0)}</td>
                 <td>${dataManager.formatPercentage(signal.fundingRate || 0, 4)}</td>
-                <td>${signal.cvd || '--'}</td>
+                <td>${signal.cvdActive ? `${signal.cvd} (${dataManager.formatNumber(signal.cvdValue || 0)})` : '--'}</td>
                 <td>
                     <button class="btn primary" onclick="refreshSymbol('${signal.symbol}')">
                         刷新
@@ -326,6 +326,13 @@ async function loadUnifiedMonitoring() {
                                         <div class="card-value" id="dataCollectionRate">${data.summary.completionRates.dataCollection.toFixed(1)}%</div>
                                     </div>
                                 </div>
+                                <div class="overview-card">
+                                    <span class="card-icon">🔍</span>
+                                    <div class="card-content">
+                                        <div class="card-title">数据验证</div>
+                                        <div class="card-value" id="dataValidationStatus">${data.summary.dataValidation?.hasErrors ? '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常'}</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -422,11 +429,17 @@ async function refreshMonitoringData() {
     const healthySymbolsEl = document.getElementById('healthySymbols');
     const warningSymbolsEl = document.getElementById('warningSymbols');
     const dataCollectionRateEl = document.getElementById('dataCollectionRate');
+    const dataValidationStatusEl = document.getElementById('dataValidationStatus');
 
     if (totalSymbolsEl) totalSymbolsEl.textContent = data.summary.totalSymbols;
     if (healthySymbolsEl) healthySymbolsEl.textContent = data.summary.healthySymbols;
     if (warningSymbolsEl) warningSymbolsEl.textContent = data.summary.warningSymbols;
     if (dataCollectionRateEl) dataCollectionRateEl.textContent = data.summary.completionRates.dataCollection.toFixed(1) + '%';
+    if (dataValidationStatusEl) {
+      const validationStatus = data.summary.dataValidation?.hasErrors ? 
+        '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常';
+      dataValidationStatusEl.textContent = validationStatus;
+    }
 
     // 更新汇总视图表格
     updateSummaryTable(data);

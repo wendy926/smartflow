@@ -24,10 +24,11 @@ class SmartFlowStrategy {
       const latestMA200 = ma200[ma200.length - 1];
 
       let trend = 'RANGE';
-      // 严格按照strategy.md: MA50 > MA200 且价格在MA50上/下
-      if (latestMA50 > latestMA200 && latestClose > latestMA50) {
+      // 严格按照strategy.md: MA20 > MA50 > MA200 且收盘 > MA20 (多头)
+      // MA20 < MA50 < MA200 且收盘 < MA20 (空头)
+      if (latestMA20 > latestMA50 && latestMA50 > latestMA200 && latestClose > latestMA20) {
         trend = 'UPTREND';
-      } else if (latestMA50 < latestMA200 && latestClose < latestMA50) {
+      } else if (latestMA20 < latestMA50 && latestMA50 < latestMA200 && latestClose < latestMA20) {
         trend = 'DOWNTREND';
       }
 
@@ -54,7 +55,21 @@ class SmartFlowStrategy {
       const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '1h', 200);
       const ticker = symbolData?.ticker || await BinanceAPI.get24hrTicker(symbol);
       const funding = symbolData?.funding || await BinanceAPI.getFundingRate(symbol);
-      const openInterestHist = symbolData?.openInterestHist || await BinanceAPI.getOpenInterestHist(symbol, '1h', 7);
+      const openInterestHist = symbolData?.openInterestHist || await BinanceAPI.getOpenInterestHist(symbol, '1h', 6);
+
+      // 数据验证
+      if (!klines || klines.length === 0) {
+        throw new Error('K线数据为空');
+      }
+      if (!ticker || !ticker.lastPrice) {
+        throw new Error('Ticker数据无效');
+      }
+      if (!funding || typeof funding.fundingRate !== 'number') {
+        throw new Error('资金费率数据无效');
+      }
+      if (!openInterestHist || openInterestHist.length === 0) {
+        throw new Error('持仓量历史数据为空');
+      }
 
       const closes = klines.map(k => parseFloat(k.close));
       const volumes = klines.map(k => parseFloat(k.volume));
@@ -70,7 +85,16 @@ class SmartFlowStrategy {
       const volSMA = TechnicalIndicators.calculateSMA(volumes, 20);
       const avgVol = volSMA[volSMA.length - 1];
       const lastVol = volumes[volumes.length - 1];
-      const volumeRatio = lastVol / avgVol;
+      const volumeRatio = avgVol > 0 ? lastVol / avgVol : 0;
+
+      // 调试信息
+      console.log(`🔍 ${symbol} 小时确认数据调试:`);
+      console.log(`  - K线数量: ${klines.length}`);
+      console.log(`  - 最后收盘价: ${lastClose}`);
+      console.log(`  - VWAP: ${lastVWAP}`);
+      console.log(`  - 最后成交量: ${lastVol}`);
+      console.log(`  - 20期平均成交量: ${avgVol}`);
+      console.log(`  - 成交量倍数: ${volumeRatio}`);
 
       // 检查突破
       const recentHighs = highs.slice(-20);
@@ -81,6 +105,18 @@ class SmartFlowStrategy {
       // 计算OI变化
       const oiChange = openInterestHist.length > 1 ?
         ((openInterestHist[openInterestHist.length - 1].sumOpenInterest - openInterestHist[0].sumOpenInterest) / openInterestHist[0].sumOpenInterest) * 100 : 0;
+
+      // 调试OI和资金费率
+      console.log(`  - OI历史数据数量: ${openInterestHist.length}`);
+      console.log(`  - 最新OI: ${openInterestHist[openInterestHist.length - 1]?.sumOpenInterest}`);
+      console.log(`  - 最早OI: ${openInterestHist[0]?.sumOpenInterest}`);
+      console.log(`  - OI变化: ${oiChange}%`);
+      console.log(`  - 资金费率: ${funding.fundingRate}`);
+
+      // 计算CVD (Cumulative Volume Delta)
+      const cvd = this.calculateCVD(klines);
+      const lastCVD = cvd[cvd.length - 1];
+      const cvdDirection = lastCVD > 0 ? 'BULLISH' : lastCVD < 0 ? 'BEARISH' : 'NEUTRAL';
 
       // 严格按照strategy.md和auto-script.md的确认条件
       // 1. 价格与VWAP方向一致
@@ -105,7 +141,11 @@ class SmartFlowStrategy {
         breakoutDown,
         oiChange,
         fundingRate: funding.fundingRate,
-        cvd: { isActive: false, direction: 'N/A' },
+        cvd: {
+          value: lastCVD,
+          direction: cvdDirection,
+          isActive: Math.abs(lastCVD) > 0
+        },
         dataValid: true
       };
     } catch (error) {
@@ -173,6 +213,39 @@ class SmartFlowStrategy {
     }
   }
 
+  /**
+   * 计算CVD (Cumulative Volume Delta)
+   * 根据strategy.md和auto-script.md的要求：
+   * - 基于主动买卖成交量差
+   * - 如果无法获取实时数据，使用成交量+OI作为替代
+   * @param {Array} klines - K线数据
+   * @returns {Array} CVD数组
+   */
+  static calculateCVD(klines) {
+    const cvd = [];
+    let cumulativeDelta = 0;
+
+    for (let i = 0; i < klines.length; i++) {
+      const k = klines[i];
+      const close = parseFloat(k.close);
+      const open = parseFloat(k.open);
+      const high = parseFloat(k.high);
+      const low = parseFloat(k.low);
+      const volume = parseFloat(k.volume);
+
+      // 更精确的CVD计算：基于价格位置和成交量
+      // 如果收盘价在K线中上部（>50%位置），认为是买入主导
+      // 如果收盘价在K线中下部（<50%位置），认为是卖出主导
+      const pricePosition = (close - low) / (high - low);
+      const delta = pricePosition > 0.5 ? volume : -volume;
+
+      cumulativeDelta += delta;
+      cvd.push(cumulativeDelta);
+    }
+
+    return cvd;
+  }
+
   static async analyzeAll(symbol) {
     const startTime = Date.now();
 
@@ -185,7 +258,7 @@ class SmartFlowStrategy {
         BinanceAPI.getKlines(symbol, '1h', 200),
         BinanceAPI.get24hrTicker(symbol),
         BinanceAPI.getFundingRate(symbol),
-        BinanceAPI.getOpenInterestHist(symbol, '1h', 7)
+        BinanceAPI.getOpenInterestHist(symbol, '1h', 6)
       ]);
 
       const symbolData = { klines, ticker, funding, openInterestHist };
@@ -212,6 +285,13 @@ class SmartFlowStrategy {
       this.dataMonitor.recordIndicator(symbol, '小时VWAP', {
         vwap: hourlyConfirmation.vwap,
         volumeRatio: hourlyConfirmation.volumeRatio
+      }, Date.now() - startTime);
+
+      this.dataMonitor.recordIndicator(symbol, '小时确认指标', {
+        oiChange: hourlyConfirmation.oiChange,
+        fundingRate: hourlyConfirmation.fundingRate,
+        cvdValue: hourlyConfirmation.cvd.value,
+        cvdDirection: hourlyConfirmation.cvd.direction
       }, Date.now() - startTime);
 
       // 严格按照strategy.md和auto-script.md的信号判断逻辑
@@ -307,7 +387,14 @@ class SmartFlowStrategy {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
+      // 调试信息
       console.log(`✅ ${symbol} 分析完成，耗时: ${duration}ms`);
+      console.log(`📊 ${symbol} 数据概览:`);
+      console.log(`  - VWAP: ${hourlyConfirmation.vwap}`);
+      console.log(`  - 成交量倍数: ${hourlyConfirmation.volumeRatio}x`);
+      console.log(`  - OI变化: ${hourlyConfirmation.oiChange}%`);
+      console.log(`  - 资金费率: ${hourlyConfirmation.fundingRate}`);
+      console.log(`  - CVD: ${hourlyConfirmation.cvd.direction} (${hourlyConfirmation.cvd.value})`);
 
       return {
         time: new Date().toISOString(),
