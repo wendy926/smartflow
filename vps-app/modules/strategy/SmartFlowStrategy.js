@@ -57,18 +57,18 @@ class SmartFlowStrategy {
       const funding = symbolData?.funding || await BinanceAPI.getFundingRate(symbol);
       const openInterestHist = symbolData?.openInterestHist || await BinanceAPI.getOpenInterestHist(symbol, '1h', 6);
 
-      // 数据验证
+      // 严格数据验证 - 确保数据质量，提供友好错误提示
       if (!klines || klines.length === 0) {
-        throw new Error('K线数据为空');
+        throw new Error(`K线数据为空 - 请检查API连接或交易对是否有效`);
       }
       if (!ticker || !ticker.lastPrice) {
-        throw new Error('Ticker数据无效');
+        throw new Error(`24小时行情数据无效 - 请检查API响应格式`);
       }
       if (!funding || !Array.isArray(funding) || funding.length === 0 || !funding[0].fundingRate) {
-        throw new Error('资金费率数据无效');
+        throw new Error(`资金费率数据无效 - 请检查API响应格式或交易对是否支持`);
       }
       if (!openInterestHist || openInterestHist.length === 0) {
-        throw new Error('持仓量历史数据为空');
+        throw new Error(`持仓量历史数据为空 - 请检查API响应或时间范围`);
       }
 
       const closes = klines.map(k => parseFloat(k.close));
@@ -148,11 +148,8 @@ class SmartFlowStrategy {
         breakoutDown,
         oiChange,
         fundingRate: parseFloat(funding[0].fundingRate),
-        cvd: {
-          value: lastCVD,
-          direction: cvdDirection,
-          isActive: Math.abs(lastCVD) > 0
-        },
+        cvd: lastCVD, // 直接返回数值
+        cvdDirection: cvdDirection,
         dataValid: true
       };
     } catch (error) {
@@ -327,10 +324,51 @@ class SmartFlowStrategy {
       const oiValid = openInterestHist && openInterestHist.length > 0;
       this.dataMonitor.recordRawData(symbol, '持仓量历史', openInterestHist, oiValid);
 
-      // 分析各个阶段
-      const dailyTrend = await this.analyzeDailyTrend(symbol, symbolData);
-      const hourlyConfirmation = await this.analyzeHourlyConfirmation(symbol, symbolData);
-      const execution15m = await this.analyze15mExecution(symbol, symbolData);
+      // 分析各个阶段 - 添加错误处理
+      let dailyTrend, hourlyConfirmation, execution15m;
+      
+      try {
+        dailyTrend = await this.analyzeDailyTrend(symbol, symbolData);
+      } catch (error) {
+        console.error(`日线趋势分析失败 [${symbol}]:`, error.message);
+        dailyTrend = { trend: 'UNKNOWN', ma20: 0, ma50: 0, ma200: 0 };
+      }
+      
+      try {
+        hourlyConfirmation = await this.analyzeHourlyConfirmation(symbol, symbolData);
+      } catch (error) {
+        console.error(`❌ 小时确认分析失败 [${symbol}]: ${error.message}`);
+        // 记录数据质量问题到监控系统
+        this.dataMonitor.recordDataQualityIssue(symbol, '小时确认分析', error.message);
+        hourlyConfirmation = { 
+          vwap: 0, 
+          volumeRatio: 0, 
+          oiChange: 0, 
+          fundingRate: 0, 
+          cvd: 0,
+          cvdDirection: 'NEUTRAL',
+          priceVsVwap: 0,
+          breakoutUp: false,
+          breakoutDown: false,
+          dataValid: false,
+          error: error.message
+        };
+      }
+      
+      try {
+        execution15m = await this.analyze15mExecution(symbol, symbolData);
+      } catch (error) {
+        console.error(`15分钟执行分析失败 [${symbol}]:`, error.message);
+        execution15m = { 
+          signal: 'NO_SIGNAL', 
+          stopLoss: 0, 
+          targetPrice: 0, 
+          riskRewardRatio: 0, 
+          maxLeverage: 0, 
+          minMargin: 0, 
+          manualConfirmation: false 
+        };
+      }
 
       // 记录指标计算
       this.dataMonitor.recordIndicator(symbol, '日线MA指标', {

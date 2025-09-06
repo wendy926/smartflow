@@ -21,6 +21,7 @@ class DataMonitor {
       simulationTrading: 99
     };
     this.symbolStats = new Map();
+    this.dataQualityIssues = new Map(); // 数据质量问题记录
     this.refreshInterval = 30000; // 30秒
     this.lastRefreshTime = new Map();
   }
@@ -110,6 +111,26 @@ class DataMonitor {
       if (error) {
         log.errors.push(`数据收集错误 (${dataType}): ${error.message || error}`);
       }
+    }
+  }
+
+  // 记录数据质量问题
+  recordDataQualityIssue(symbol, analysisType, errorMessage) {
+    if (!this.dataQualityIssues.has(symbol)) {
+      this.dataQualityIssues.set(symbol, []);
+    }
+    
+    const issues = this.dataQualityIssues.get(symbol);
+    issues.push({
+      timestamp: Date.now(),
+      analysisType,
+      errorMessage,
+      severity: 'HIGH' // 数据质量问题都是高严重性
+    });
+    
+    // 只保留最近10个问题
+    if (issues.length > 10) {
+      issues.splice(0, issues.length - 10);
     }
   }
 
@@ -264,6 +285,7 @@ class DataMonitor {
     let actualSignalAnalysisRate = 0;
     let totalSymbols = allSymbols.length;
     let dataValidationErrors = [];
+    let dataQualityIssues = [];
 
     if (totalSymbols > 0) {
       let successfulDataCollections = 0;
@@ -285,6 +307,14 @@ class DataMonitor {
               hasValidData = false;
               dataValidationErrors.push(`${symbol}: ${dataType}数据无效`);
             }
+          }
+          
+          // 收集数据质量问题
+          if (this.dataQualityIssues.has(symbol)) {
+            const issues = this.dataQualityIssues.get(symbol);
+            issues.forEach(issue => {
+              dataQualityIssues.push(`${symbol}: ${issue.analysisType} - ${issue.errorMessage}`);
+            });
           }
           
           if (hasValidData) {
@@ -452,6 +482,12 @@ class DataMonitor {
           errors: dataValidationErrors,
           errorCount: dataValidationErrors.length,
           hasErrors: dataValidationErrors.length > 0
+        },
+        // 数据质量问题
+        dataQuality: {
+          issues: dataQualityIssues,
+          issueCount: dataQualityIssues.length,
+          hasIssues: dataQualityIssues.length > 0
         }
       },
       detailedStats,

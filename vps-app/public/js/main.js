@@ -378,7 +378,7 @@ async function loadHistory(symbol) {
       `;
     }
 
-    const content = `
+  const content = `
         <div style="padding: 20px;">
             <h4>${symbol} 信号详情</h4>
             <div style="margin: 15px 0;">
@@ -493,7 +493,7 @@ async function showSignalDetails(symbol) {
             ${dataCollectionHtml}
         </div>
     `;
-    modal.show(`${symbol} 信号详情`, content);
+  modal.show(`${symbol} 信号详情`, content);
   } catch (error) {
     console.error('获取信号详情失败:', error);
     modal.showMessage('获取信号详情失败: ' + error.message, 'error');
@@ -533,6 +533,41 @@ function showDataValidationDetails(errors) {
   content += '</div>';
   
   modal.show('数据验证错误详情', content);
+}
+
+// 显示数据质量问题详情
+function showDataQualityDetails(issues) {
+  const issueGroups = {};
+  
+  // 按问题类型分组
+  issues.forEach(issue => {
+    const parts = issue.split(': ');
+    if (parts.length === 2) {
+      const symbol = parts[0];
+      const issueDetail = parts[1];
+      if (!issueGroups[issueDetail]) {
+        issueGroups[issueDetail] = [];
+      }
+      issueGroups[issueDetail].push(symbol);
+    }
+  });
+  
+  let content = '<div style="padding: 20px;"><h4>⚠️ 数据质量问题详情</h4>';
+  
+  Object.entries(issueGroups).forEach(([issueType, symbols]) => {
+    content += `
+      <div style="margin: 15px 0; padding: 10px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ff6b35;">
+        <h5 style="color: #ff6b35; margin: 0 0 10px 0;">${issueType}</h5>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+          ${symbols.map(symbol => `<span style="background: #ff6b35; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.8rem;">${symbol}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  });
+  
+  content += '</div>';
+  
+  modal.show('数据质量问题详情', content);
 }
 
 async function testAPIConnection() {
@@ -609,6 +644,14 @@ async function loadUnifiedMonitoring() {
                                         <div class="card-title">数据验证</div>
                                         <div class="card-value" id="dataValidationStatus">${data.summary.dataValidation?.hasErrors ? '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常'}</div>
                                         ${data.summary.dataValidation?.hasErrors ? '<div class="card-details" id="dataValidationDetails" style="font-size: 0.8rem; color: #dc3545; margin-top: 5px;">点击查看详情</div>' : ''}
+                                    </div>
+                                </div>
+                                <div class="overview-card">
+                                    <span class="card-icon">⚠️</span>
+                                    <div class="card-content">
+                                        <div class="card-title">数据质量</div>
+                                        <div class="card-value" id="dataQualityStatus">${data.summary.dataQuality?.hasIssues ? '⚠️ ' + data.summary.dataQuality.issueCount + ' 问题' : '✅ 正常'}</div>
+                                        ${data.summary.dataQuality?.hasIssues ? '<div class="card-details" id="dataQualityDetails" style="font-size: 0.8rem; color: #ff6b35; margin-top: 5px;">点击查看详情</div>' : ''}
                                     </div>
                                 </div>
                             </div>
@@ -723,6 +766,21 @@ async function refreshMonitoringData() {
       if (detailsEl && data.summary.dataValidation?.hasErrors) {
         detailsEl.style.cursor = 'pointer';
         detailsEl.onclick = () => showDataValidationDetails(data.summary.dataValidation.errors);
+      }
+    }
+
+    // 更新数据质量状态
+    const dataQualityStatusEl = document.getElementById('dataQualityStatus');
+    if (dataQualityStatusEl) {
+      const qualityStatus = data.summary.dataQuality?.hasIssues ? 
+        '⚠️ ' + data.summary.dataQuality.issueCount + ' 问题' : '✅ 正常';
+      dataQualityStatusEl.textContent = qualityStatus;
+      
+      // 添加点击事件显示详细问题
+      const qualityDetailsEl = document.getElementById('dataQualityDetails');
+      if (qualityDetailsEl && data.summary.dataQuality?.hasIssues) {
+        qualityDetailsEl.style.cursor = 'pointer';
+        qualityDetailsEl.onclick = () => showDataQualityDetails(data.summary.dataQuality.issues);
       }
     }
 
