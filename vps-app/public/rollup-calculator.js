@@ -7,199 +7,270 @@ class RollupCalculator {
     this.fixedLeverageSequence = [30, 25, 20, 15, 10, 5];
   }
 
+  // 四舍五入到2位小数
+  round2(v) {
+    return Math.round(v * 100) / 100;
+  }
+
   // 格式化数字显示
-  formatNumber(num, decimals = 2) {
-    if (typeof num !== 'number' || isNaN(num)) return '0';
-    return num.toFixed(decimals);
+  formatNumber(num) {
+    if (num === null || num === undefined || isNaN(num)) {
+      return '0.00';
+    }
+    return num.toLocaleString('zh-CN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  // 计算止损距离
+  calculateStopLossDistance({ orderZoneHigh, orderZoneLow, atr4h }) {
+    const stopLossPrice = orderZoneLow - atr4h;
+    const stopLossDistance = ((orderZoneHigh - stopLossPrice) / orderZoneHigh) * 100;
+    return {
+      stopLossPrice: this.round2(stopLossPrice),
+      stopLossDistance: this.round2(stopLossDistance)
+    };
   }
 
   // 计算初始杠杆
   calculateInitialLeverage(params) {
     const { maxLossAmount, orderZoneHigh, orderZoneLow, atr4h } = params;
 
-    // 计算止损价格（取订单区下沿和ATR止损的较小值）
-    const atrStopLoss = orderZoneHigh - atr4h * 1.2;
-    const stopLossPrice = Math.max(orderZoneLow, atrStopLoss);
+    try {
+      if (maxLossAmount <= 0 || orderZoneHigh <= 0 || orderZoneLow <= 0 || atr4h <= 0) {
+        throw new Error('所有参数必须大于0');
+      }
+      if (orderZoneHigh <= orderZoneLow) {
+        throw new Error('订单区上沿价格必须大于下沿价格');
+      }
 
-    // 计算止损距离
-    const stopLossDistance = ((orderZoneHigh - stopLossPrice) / orderZoneHigh) * 100;
+      const stopLossData = this.calculateStopLossDistance({ orderZoneHigh, orderZoneLow, atr4h });
+      const { stopLossPrice, stopLossDistance } = stopLossData;
 
-    // 计算最大杠杆（基于止损距离）
-    const maxLeverage = Math.floor(1 / (stopLossDistance / 100 + 0.005));
+      const maxLeverage = Math.floor(1 / (stopLossDistance / 100 + 0.005));
+      const suggestedMargin = maxLossAmount / (maxLeverage * stopLossDistance / 100);
+      const riskRatio = (suggestedMargin / orderZoneHigh) * 100;
+      const positionValue = suggestedMargin * maxLeverage;
+      const tokenQuantity = positionValue / orderZoneHigh;
 
-    // 计算建议保证金
-    const suggestedMargin = maxLossAmount / (stopLossDistance / 100);
-
-    return {
-      entryPrice: orderZoneHigh,
-      stopLossPrice: stopLossPrice,
-      stopLossDistance: stopLossDistance,
-      maxLeverage: maxLeverage,
-      suggestedMargin: suggestedMargin
-    };
+      return {
+        maxLeverage,
+        suggestedMargin: this.round2(suggestedMargin),
+        riskRatio: this.round2(riskRatio),
+        stopLossPrice: this.round2(stopLossPrice),
+        stopLossDistance: this.round2(stopLossDistance),
+        entryPrice: orderZoneHigh,
+        positionValue: this.round2(positionValue),
+        tokenQuantity: this.round2(tokenQuantity),
+        maxLossAmount
+      };
+    } catch (error) {
+      console.error('计算初始杠杆时出错:', error);
+      throw error;
+    }
   }
 
   // 模拟滚仓策略
-  simulateRollup(params) {
-    const { principal, initLeverage, entryPrice, targetPrice, leverageStrategy, maxDrawdownRatio } = params;
+  simulateRollup({ principal, initLeverage, entryPrice, targetPrice, leverageStrategy, maxDrawdownRatio = 0.8 }) {
+    try {
+      let positions = [];
+      const initialPositionValue = principal * initLeverage;
+      const initialQty = initialPositionValue / entryPrice;
 
-    const positions = [];
-    const addSteps = [];
-    let currentAccount = principal;
-    let currentPrice = entryPrice;
-    let step = 1;
+      positions.push({
+        id: 1,
+        entry: entryPrice,
+        margin: principal,
+        leverage: initLeverage,
+        positionValue: initialPositionValue,
+        qty: initialQty,
+        source: 'principal'
+      });
 
-    // 添加初始仓位
-    const initialMargin = principal;
-    const initialPositionValue = initialMargin * initLeverage;
-    const initialQty = initialPositionValue / entryPrice;
+      const start = entryPrice;
+      const end = targetPrice;
+      const range = end - start;
+      let trough = start;
 
-    positions.push({
-      entry: entryPrice,
-      margin: initialMargin,
-      leverage: initLeverage,
-      position_value: initialPositionValue,
-      qty: initialQty,
-      stop_loss_price: this.calculateStopLoss(entryPrice, entryPrice, initLeverage),
-      profit: 0,
-      source: 'principal'
-    });
+      const peaks = this.fibonacciLevels.map(r => {
+        const H = start + r * range;
+        const R = H - 0.618 * (H - trough);
+        return { ratio: r, H: H, R: R, troughBefore: trough };
+      });
 
-    // 模拟价格波动和加仓
-    while (currentPrice < targetPrice && step <= 10) {
-      // 计算下一个斐波拉契回调位
-      const fibLevel = this.fibonacciLevels[(step - 1) % this.fibonacciLevels.length];
-      const peakPrice = currentPrice * (1 + 0.1 * step); // 模拟价格上涨
-      const retracePrice = peakPrice * (1 - fibLevel);
+      let allocSequence = [];
+      let cumulativeRealizedProfit = 0;
 
-      // 计算加仓参数
-      const leverage = this.getLeverage(leverageStrategy, step, currentAccount);
-      const marginUsed = this.calculateMarginUsed(currentAccount, retracePrice, leverage);
+      for (let i = 0; i < peaks.length; i++) {
+        const p = peaks[i];
+        const priceAt = p.R;
 
-      if (marginUsed > currentAccount * 0.1) { // 确保有足够资金
-        const newPositionValue = marginUsed * leverage;
-        const newQty = newPositionValue / retracePrice;
+        let unrealizedProfit = positions.reduce((acc, pos) => {
+          return acc + (priceAt - pos.entry) * pos.qty;
+        }, 0);
 
-        // 添加加仓步骤
-        addSteps.push({
-          step: step,
-          peak_H: peakPrice,
-          retrace_R: retracePrice,
-          new_entry_price: retracePrice,
-          margin_used: marginUsed,
-          leverage: leverage,
-          position_value: newPositionValue,
-          qty: newQty,
-          stop_loss_price: this.calculateStopLoss(retracePrice, entryPrice, leverage)
-        });
+        let availableProfit = Math.max(0, unrealizedProfit - cumulativeRealizedProfit);
 
-        // 添加新仓位
+        if (availableProfit <= 0) continue;
+
+        const maxSafeMargin = availableProfit * 0.95;
+        const desiredMargin = availableProfit / 10;
+
+        let chosenLeverage, marginToUse;
+
+        if (leverageStrategy === 'fixed' && i < this.fixedLeverageSequence.length) {
+          chosenLeverage = this.fixedLeverageSequence[i];
+          marginToUse = Math.min(desiredMargin, maxSafeMargin);
+        } else {
+          chosenLeverage = this.calculateDynamicLeverage({ availableProfit, stepIndex: i });
+          marginToUse = Math.min(desiredMargin, maxSafeMargin);
+        }
+
+        if (chosenLeverage <= 0 || marginToUse <= 0) continue;
+
+        const actualLeverage = Math.min(chosenLeverage, Math.floor(availableProfit / 10));
+        if (actualLeverage <= 0) continue;
+
+        const newPositionValue = marginToUse * actualLeverage;
+        const newQty = newPositionValue / priceAt;
+
         positions.push({
-          entry: retracePrice,
-          margin: marginUsed,
-          leverage: leverage,
-          position_value: newPositionValue,
+          id: positions.length + 1,
+          entry: priceAt,
+          margin: marginToUse,
+          leverage: actualLeverage,
+          positionValue: newPositionValue,
           qty: newQty,
-          stop_loss_price: this.calculateStopLoss(retracePrice, entryPrice, leverage),
-          profit: 0,
           source: 'profit'
         });
 
-        currentAccount -= marginUsed;
-        currentPrice = retracePrice;
-        step++;
-      } else {
-        break;
+        cumulativeRealizedProfit += marginToUse;
+
+        const stopLossPrice = this.calculateStopLossPrice({
+          principal,
+          currentPrice: priceAt,
+          totalQty: this.calculateTotalQty(positions),
+          maxDrawdownRatio
+        });
+
+        allocSequence.push({
+          step: i + 1,
+          peak_H: this.round2(p.H),
+          retrace_R: this.round2(p.R),
+          new_entry_price: this.round2(priceAt),
+          margin_used: this.round2(marginToUse),
+          leverage: actualLeverage,
+          position_value: this.round2(newPositionValue),
+          qty: this.round2(newQty),
+          stop_loss_price: this.round2(stopLossPrice)
+        });
       }
+
+      const finalDetails = positions.map((pos, index) => {
+        const profit = (targetPrice - pos.entry) * pos.qty;
+        const stopLossPrice = this.calculateStopLossPrice({
+          principal,
+          currentPrice: pos.entry,
+          totalQty: pos.qty,
+          maxDrawdownRatio
+        });
+
+        return {
+          id: pos.id,
+          entry: this.round2(pos.entry),
+          margin: this.round2(pos.margin),
+          leverage: pos.leverage,
+          qty: this.round2(pos.qty),
+          position_value: this.round2(pos.positionValue),
+          stop_loss_price: this.round2(stopLossPrice),
+          profit: this.round2(profit),
+          source: pos.source
+        };
+      });
+
+      const totalProfit = finalDetails.reduce((sum, pos) => sum + pos.profit, 0);
+      const finalAccount = principal + totalProfit;
+      const returnRate = (totalProfit / principal) * 100;
+
+      const principalProtection = this.calculatePrincipalProtection(principal, finalDetails, targetPrice);
+
+      return {
+        inputs: { principal, initLeverage, entryPrice, targetPrice, leverageStrategy, maxDrawdownRatio },
+        positions: finalDetails,
+        addSteps: allocSequence,
+        principalProtection,
+        summary: {
+          totalProfit: this.round2(totalProfit),
+          finalAccount: this.round2(finalAccount),
+          returnRate: this.round2(returnRate),
+          positionsCount: finalDetails.length,
+          rollupCount: allocSequence.length,
+          principalProtected: principalProtection.isProtected,
+          maxDrawdown: principalProtection.maxDrawdown
+        }
+      };
+    } catch (error) {
+      throw new Error(`计算错误: ${error.message}`);
+    }
+  }
+
+
+  // 计算动态杠杆
+  calculateDynamicLeverage({ availableProfit, stepIndex, baseLeverage = 20 }) {
+    if (availableProfit <= 0) return 0;
+
+    const decayFactor = Math.max(0.6, 1 - (stepIndex * 0.08));
+    const leverage = Math.floor(baseLeverage * decayFactor);
+    return Math.max(1, Math.min(leverage, Math.floor(availableProfit / 10)));
+  }
+
+  // 计算总数量
+  calculateTotalQty(positions) {
+    return positions.reduce((total, pos) => total + pos.qty, 0);
+  }
+
+  // 计算加权平均入场价
+  calculateWeightedAvgEntry(positions) {
+    if (positions.length === 0) return 0;
+    const totalValue = positions.reduce((total, pos) => total + pos.positionValue, 0);
+    const weightedSum = positions.reduce((total, pos) => total + pos.entry * pos.positionValue, 0);
+    return totalValue > 0 ? weightedSum / totalValue : 0;
+  }
+
+  // 计算本金保护
+  calculatePrincipalProtection(principal, positions, targetPrice) {
+    const totalQty = this.calculateTotalQty(positions);
+    const weightedAvgEntry = this.calculateWeightedAvgEntry(positions);
+
+    if (weightedAvgEntry === 0) {
+      return { isProtected: true, maxDrawdown: 0, worstCaseLoss: 0, protectionRatio: 1.0 };
     }
 
-    // 计算最终结果
-    const totalProfit = this.calculateTotalProfit(positions, targetPrice);
-    const finalAccount = principal + totalProfit;
-    const returnRate = (totalProfit / principal) * 100;
-    const maxDrawdown = this.calculateMaxDrawdown(positions);
-    const principalProtected = maxDrawdown < 50;
+    const worstCaseLoss = Math.abs(targetPrice - weightedAvgEntry) * totalQty;
+    const maxDrawdown = worstCaseLoss / principal;
+    const isProtected = worstCaseLoss < principal * 0.8;
+    const protectionRatio = Math.max(0, (principal - worstCaseLoss) / principal);
 
     return {
-      inputs: {
-        principal: principal,
-        initLeverage: initLeverage,
-        entryPrice: entryPrice,
-        targetPrice: targetPrice,
-        leverageStrategy: leverageStrategy
-      },
-      positions: positions,
-      addSteps: addSteps,
-      summary: {
-        totalProfit: totalProfit,
-        finalAccount: finalAccount,
-        returnRate: returnRate,
-        rollupCount: addSteps.length,
-        maxDrawdown: maxDrawdown,
-        principalProtected: principalProtected
-      }
+      isProtected,
+      maxDrawdown: this.round2(maxDrawdown),
+      worstCaseLoss: this.round2(worstCaseLoss),
+      protectionRatio: this.round2(protectionRatio)
     };
   }
 
-  // 获取杠杆
-  getLeverage(strategy, step, currentAccount) {
-    if (strategy === 'fixed') {
-      return this.fixedLeverageSequence[(step - 1) % this.fixedLeverageSequence.length];
-    } else {
-      // 动态计算杠杆
-      const baseLeverage = 20;
-      const decayFactor = 0.8;
-      return Math.max(5, Math.floor(baseLeverage * Math.pow(decayFactor, step - 1)));
-    }
-  }
-
-  // 计算使用的保证金
-  calculateMarginUsed(currentAccount, price, leverage) {
-    const maxMargin = currentAccount * 0.2; // 最多使用20%的资金
-    const requiredMargin = (currentAccount * 0.1) / leverage; // 基于10%风险计算
-    return Math.min(maxMargin, requiredMargin);
-  }
-
   // 计算止损价格
-  calculateStopLoss(entryPrice, originalEntryPrice, leverage) {
-    const atrStop = entryPrice * 0.95; // 5%止损
-    const leverageStop = originalEntryPrice * 0.9; // 基于原始入场价的10%止损
-    return Math.max(atrStop, leverageStop);
-  }
-
-  // 计算总利润
-  calculateTotalProfit(positions, targetPrice) {
-    let totalProfit = 0;
-    positions.forEach(pos => {
-      const profit = (targetPrice - pos.entry) * pos.qty;
-      totalProfit += profit;
-    });
-    return totalProfit;
-  }
-
-  // 计算最大回撤
-  calculateMaxDrawdown(positions) {
-    let maxDrawdown = 0;
-    let peakValue = 0;
-
-    positions.forEach(pos => {
-      const currentValue = pos.position_value;
-      if (currentValue > peakValue) {
-        peakValue = currentValue;
-      }
-      const drawdown = ((peakValue - currentValue) / peakValue) * 100;
-      if (drawdown > maxDrawdown) {
-        maxDrawdown = drawdown;
-      }
-    });
-
-    return maxDrawdown;
+  calculateStopLossPrice({ principal, currentPrice, totalQty, maxDrawdownRatio }) {
+    const maxLoss = principal * maxDrawdownRatio;
+    const stopLossDistance = maxLoss / (totalQty * currentPrice);
+    return this.round2(currentPrice * (1 - stopLossDistance));
   }
 
   // 获取操作类型
   getOperationType(index, source) {
     if (index === 0) return '初始开仓';
-    return source === 'principal' ? '本金加仓' : '利润加仓';
+    return `第${index}次加仓`;
   }
 }
 

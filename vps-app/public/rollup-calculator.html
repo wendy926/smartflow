@@ -527,34 +527,34 @@
                 </div>
 
                 <!-- 初单计算结果 -->
-                <div id="initialCalculation" class="table-container hidden">
+                <div id="initialCalculation" class="initial-calculation hidden">
                     <h3>📊 初单计算结果</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <h3 id="calculatedPrincipal">0 U</h3>
-                            <p>计算本金</p>
+                    <div class="calculation-cards">
+                        <div class="calculation-card">
+                            <h4>计算本金</h4>
+                            <span id="calculatedPrincipal" class="principal-value">0 U</span>
                         </div>
-                        <div class="stat-card">
-                            <h3 id="calculatedLeverage">0</h3>
-                            <p>初始杠杆</p>
+                        <div class="calculation-card">
+                            <h4>初始杠杆</h4>
+                            <span id="calculatedLeverage" class="leverage-value">0</span>
                         </div>
-                        <div class="stat-card">
-                            <h3 id="calculatedStopLoss">0 U</h3>
-                            <p>止损价格</p>
+                        <div class="calculation-card">
+                            <h4>止损价格</h4>
+                            <span id="calculatedStopLoss" class="stoploss-value">0 U</span>
                         </div>
-                        <div class="stat-card">
-                            <h3 id="calculatedStopLossDistance">0%</h3>
-                            <p>止损距离</p>
+                        <div class="calculation-card">
+                            <h4>止损距离</h4>
+                            <span id="calculatedStopLossDistance" class="distance-value">0%</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- 策略对比结果 -->
-                <div id="strategyComparison" class="table-container hidden">
+                <div id="strategyComparison" class="strategy-comparison hidden">
                     <h3>⚖️ 杠杆策略对比结果</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <h3>🔄 动态计算策略</h3>
+                    <div class="strategy-results">
+                        <div class="strategy-card dynamic-strategy">
+                            <h4>🔄 动态计算策略</h4>
                             <div class="strategy-metrics">
                                 <div class="metric">
                                     <span class="metric-label">预期收益</span>
@@ -575,8 +575,8 @@
                             </div>
                         </div>
 
-                        <div class="stat-card">
-                            <h3>📋 固定序列策略</h3>
+                        <div class="strategy-card fixed-strategy">
+                            <h4>📋 固定序列策略</h4>
                             <div class="strategy-metrics">
                                 <div class="metric">
                                     <span class="metric-label">预期收益</span>
@@ -605,25 +605,25 @@
                 </div>
 
                 <!-- 计算结果 -->
-                <div id="results" class="table-container hidden">
+                <div id="results" class="results hidden">
                     <h3>📈 计算结果</h3>
 
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <h3 id="totalProfit">0 U</h3>
-                            <p>总收益</p>
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <h4>总收益</h4>
+                            <span id="totalProfit" class="profit-value">0 U</span>
                         </div>
-                        <div class="stat-card">
-                            <h3 id="finalAccount">0 U</h3>
-                            <p>最终账户</p>
+                        <div class="summary-card">
+                            <h4>最终账户</h4>
+                            <span id="finalAccount" class="account-value">0 U</span>
                         </div>
-                        <div class="stat-card">
-                            <h3 id="returnRate">0%</h3>
-                            <p>收益率</p>
+                        <div class="summary-card">
+                            <h4>收益率</h4>
+                            <span id="returnRate" class="return-value">0%</span>
                         </div>
-                        <div class="stat-card">
-                            <h3 id="rollupCount">0</h3>
-                            <p>加仓次数</p>
+                        <div class="summary-card">
+                            <h4>加仓次数</h4>
+                            <span id="rollupCount" class="count-value">0</span>
                         </div>
                     </div>
 
@@ -639,7 +639,7 @@
                     </div>
 
                     <div class="tables-container">
-                        <div class="table-container">
+                        <div class="table-section">
                             <h4>滚仓路径表</h4>
                             <div class="table-wrapper">
                                 <table class="positions-table">
@@ -664,7 +664,7 @@
                             </div>
                         </div>
 
-                        <div class="table-container">
+                        <div class="table-section">
                             <h4>加仓详情表</h4>
                             <div class="table-wrapper">
                                 <table class="add-steps-table">
