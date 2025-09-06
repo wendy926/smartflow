@@ -283,15 +283,15 @@ class SmartFlowStrategy {
       }, Date.now() - startTime);
 
       this.dataMonitor.recordIndicator(symbol, '小时VWAP', {
-        vwap: hourlyConfirmation.vwap,
-        volumeRatio: hourlyConfirmation.volumeRatio
+        vwap: hourlyConfirmation.vwap || 0,
+        volumeRatio: hourlyConfirmation.volumeRatio || 0
       }, Date.now() - startTime);
 
       this.dataMonitor.recordIndicator(symbol, '小时确认指标', {
-        oiChange: hourlyConfirmation.oiChange,
-        fundingRate: hourlyConfirmation.fundingRate,
-        cvdValue: hourlyConfirmation.cvd.value,
-        cvdDirection: hourlyConfirmation.cvd.direction
+        oiChange: hourlyConfirmation.oiChange || 0,
+        fundingRate: hourlyConfirmation.fundingRate || 0,
+        cvdValue: hourlyConfirmation.cvd?.value || 0,
+        cvdDirection: hourlyConfirmation.cvd?.direction || 'N/A'
       }, Date.now() - startTime);
 
       // 严格按照strategy.md和auto-script.md的信号判断逻辑
@@ -299,20 +299,20 @@ class SmartFlowStrategy {
 
       // 做多条件：趋势向上 + 价格在VWAP上 + 突破高点 + 放量 + OI增加 + 资金费率温和
       if (dailyTrend.trend === 'UPTREND' &&
-        hourlyConfirmation.priceVsVwap > 0 &&
-        hourlyConfirmation.breakoutUp &&
-        hourlyConfirmation.volumeRatio >= 1.5 &&
-        hourlyConfirmation.oiChange >= 2 &&
-        Math.abs(hourlyConfirmation.fundingRate) <= 0.001) {
+        (hourlyConfirmation.priceVsVwap || 0) > 0 &&
+        (hourlyConfirmation.breakoutUp || false) &&
+        (hourlyConfirmation.volumeRatio || 0) >= 1.5 &&
+        (hourlyConfirmation.oiChange || 0) >= 2 &&
+        Math.abs(hourlyConfirmation.fundingRate || 0) <= 0.001) {
         signal = 'LONG';
       }
       // 做空条件：趋势向下 + 价格在VWAP下 + 突破低点 + 放量 + OI减少 + 资金费率温和
       else if (dailyTrend.trend === 'DOWNTREND' &&
-        hourlyConfirmation.priceVsVwap < 0 &&
-        hourlyConfirmation.breakoutDown &&
-        hourlyConfirmation.volumeRatio >= 1.5 &&
-        hourlyConfirmation.oiChange <= -2 &&
-        Math.abs(hourlyConfirmation.fundingRate) <= 0.001) {
+        (hourlyConfirmation.priceVsVwap || 0) < 0 &&
+        (hourlyConfirmation.breakoutDown || false) &&
+        (hourlyConfirmation.volumeRatio || 0) >= 1.5 &&
+        (hourlyConfirmation.oiChange || 0) <= -2 &&
+        Math.abs(hourlyConfirmation.fundingRate || 0) <= 0.001) {
         signal = 'SHORT';
       }
 
@@ -320,12 +320,12 @@ class SmartFlowStrategy {
       this.dataMonitor.recordSignal(symbol, '综合分析', {
         signal,
         trend: dailyTrend.trend,
-        confirmed: hourlyConfirmation.confirmed,
-        priceVsVwap: hourlyConfirmation.priceVsVwap,
-        breakoutUp: hourlyConfirmation.breakoutUp,
-        breakoutDown: hourlyConfirmation.breakoutDown,
-        oiChange: hourlyConfirmation.oiChange,
-        fundingRate: hourlyConfirmation.fundingRate
+        confirmed: hourlyConfirmation.confirmed || false,
+        priceVsVwap: hourlyConfirmation.priceVsVwap || 0,
+        breakoutUp: hourlyConfirmation.breakoutUp || false,
+        breakoutDown: hourlyConfirmation.breakoutDown || false,
+        oiChange: hourlyConfirmation.oiChange || 0,
+        fundingRate: hourlyConfirmation.fundingRate || 0
       }, true);
 
       // 严格按照strategy.md和auto-script.md的入场执行逻辑
@@ -390,11 +390,11 @@ class SmartFlowStrategy {
       // 调试信息
       console.log(`✅ ${symbol} 分析完成，耗时: ${duration}ms`);
       console.log(`📊 ${symbol} 数据概览:`);
-      console.log(`  - VWAP: ${hourlyConfirmation.vwap}`);
-      console.log(`  - 成交量倍数: ${hourlyConfirmation.volumeRatio}x`);
-      console.log(`  - OI变化: ${hourlyConfirmation.oiChange}%`);
-      console.log(`  - 资金费率: ${hourlyConfirmation.fundingRate}`);
-      console.log(`  - CVD: ${hourlyConfirmation.cvd.direction} (${hourlyConfirmation.cvd.value})`);
+      console.log(`  - VWAP: ${hourlyConfirmation.vwap || 0}`);
+      console.log(`  - 成交量倍数: ${hourlyConfirmation.volumeRatio || 0}x`);
+      console.log(`  - OI变化: ${hourlyConfirmation.oiChange || 0}%`);
+      console.log(`  - 资金费率: ${hourlyConfirmation.fundingRate || 0}`);
+      console.log(`  - CVD: ${hourlyConfirmation.cvd?.direction || 'N/A'} (${hourlyConfirmation.cvd?.value || 0})`);
 
       return {
         time: new Date().toISOString(),
