@@ -500,6 +500,41 @@ async function showSignalDetails(symbol) {
   }
 }
 
+// 显示数据验证详情
+function showDataValidationDetails(errors) {
+  const errorGroups = {};
+  
+  // 按错误类型分组
+  errors.forEach(error => {
+    const parts = error.split(': ');
+    if (parts.length === 2) {
+      const symbol = parts[0];
+      const errorType = parts[1];
+      if (!errorGroups[errorType]) {
+        errorGroups[errorType] = [];
+      }
+      errorGroups[errorType].push(symbol);
+    }
+  });
+  
+  let content = '<div style="padding: 20px;"><h4>📊 数据验证错误详情</h4>';
+  
+  Object.entries(errorGroups).forEach(([errorType, symbols]) => {
+    content += `
+      <div style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+        <h5 style="color: #dc3545; margin: 0 0 10px 0;">${errorType}</h5>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+          ${symbols.map(symbol => `<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.8rem;">${symbol}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  });
+  
+  content += '</div>';
+  
+  modal.show('数据验证错误详情', content);
+}
+
 async function testAPIConnection() {
   try {
     app.showLoading(true);
@@ -573,6 +608,7 @@ async function loadUnifiedMonitoring() {
                                     <div class="card-content">
                                         <div class="card-title">数据验证</div>
                                         <div class="card-value" id="dataValidationStatus">${data.summary.dataValidation?.hasErrors ? '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常'}</div>
+                                        ${data.summary.dataValidation?.hasErrors ? '<div class="card-details" id="dataValidationDetails" style="font-size: 0.8rem; color: #dc3545; margin-top: 5px;">点击查看详情</div>' : ''}
                                     </div>
                                 </div>
                             </div>
@@ -681,6 +717,13 @@ async function refreshMonitoringData() {
       const validationStatus = data.summary.dataValidation?.hasErrors ? 
         '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常';
       dataValidationStatusEl.textContent = validationStatus;
+      
+      // 添加点击事件显示详细错误
+      const detailsEl = document.getElementById('dataValidationDetails');
+      if (detailsEl && data.summary.dataValidation?.hasErrors) {
+        detailsEl.style.cursor = 'pointer';
+        detailsEl.onclick = () => showDataValidationDetails(data.summary.dataValidation.errors);
+      }
     }
 
     // 更新汇总视图表格

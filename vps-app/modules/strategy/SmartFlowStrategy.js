@@ -64,7 +64,7 @@ class SmartFlowStrategy {
       if (!ticker || !ticker.lastPrice) {
         throw new Error('Ticker数据无效');
       }
-      if (!funding || !Array.isArray(funding) || funding.length === 0 || typeof funding[0].fundingRate !== 'number') {
+      if (!funding || !Array.isArray(funding) || funding.length === 0 || !funding[0].fundingRate) {
         throw new Error('资金费率数据无效');
       }
       if (!openInterestHist || openInterestHist.length === 0) {
@@ -118,7 +118,7 @@ class SmartFlowStrategy {
       console.log(`  - 最新OI: ${openInterestHist[openInterestHist.length - 1]?.sumOpenInterest}`);
       console.log(`  - 最早OI: ${openInterestHist[0]?.sumOpenInterest}`);
       console.log(`  - OI变化: ${oiChange}%`);
-      console.log(`  - 资金费率: ${funding[0].fundingRate}`);
+      console.log(`  - 资金费率: ${parseFloat(funding[0].fundingRate)}`);
 
       // 计算CVD (Cumulative Volume Delta)
       const cvd = this.calculateCVD(klines);
@@ -133,7 +133,7 @@ class SmartFlowStrategy {
       // 5. 资金费率 |FR| ≤ 0.1%/8h
       const priceVsVwap = lastClose - lastVWAP;
       const volumeConfirmed = volumeRatio >= 1.5;
-      const fundingConfirmed = Math.abs(funding[0].fundingRate) <= 0.001;
+      const fundingConfirmed = Math.abs(parseFloat(funding[0].fundingRate)) <= 0.001;
       const oiConfirmed = oiChange >= 2 || oiChange <= -2; // 根据方向判断
       const breakoutConfirmed = breakoutUp || breakoutDown;
 
@@ -147,7 +147,7 @@ class SmartFlowStrategy {
         breakoutUp,
         breakoutDown,
         oiChange,
-        fundingRate: funding[0].fundingRate,
+        fundingRate: parseFloat(funding[0].fundingRate),
         cvd: {
           value: lastCVD,
           direction: cvdDirection,
@@ -321,7 +321,7 @@ class SmartFlowStrategy {
       const tickerValid = ticker && ticker.lastPrice;
       this.dataMonitor.recordRawData(symbol, '24小时行情', ticker, tickerValid);
       
-      const fundingValid = funding && Array.isArray(funding) && funding.length > 0 && typeof funding[0].fundingRate === 'number';
+      const fundingValid = funding && Array.isArray(funding) && funding.length > 0 && funding[0].fundingRate;
       this.dataMonitor.recordRawData(symbol, '资金费率', funding, fundingValid);
       
       const oiValid = openInterestHist && openInterestHist.length > 0;
