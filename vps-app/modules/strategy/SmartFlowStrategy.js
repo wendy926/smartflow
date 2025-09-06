@@ -169,8 +169,9 @@ class SmartFlowStrategy {
       const fundingConfirmed = Math.abs(parseFloat(funding[0].fundingRate)) <= 0.001;
       const oiConfirmed = oiChange >= 2 || oiChange <= -2; // 根据方向判断
       const breakoutConfirmed = breakoutUp || breakoutDown;
+      const vwapConfirmed = priceVsVwap !== 0; // 价格与VWAP方向一致（非零表示有方向性）
 
-      const confirmed = volumeConfirmed && fundingConfirmed && oiConfirmed && breakoutConfirmed;
+      const confirmed = volumeConfirmed && fundingConfirmed && oiConfirmed && breakoutConfirmed && vwapConfirmed;
 
       return {
         confirmed,
@@ -450,22 +451,24 @@ class SmartFlowStrategy {
       // 严格按照strategy.md和auto-script.md的信号判断逻辑
       let signal = 'NO_SIGNAL';
 
-      // 做多条件：趋势向上 + 价格在VWAP上 + 突破高点 + 放量 + OI增加 + 资金费率温和
+      // 做多条件：趋势向上 + 价格在VWAP上 + 突破高点 + 放量 + OI增加 + 资金费率温和 + CVD向上
       if (dailyTrend.trend === 'UPTREND' &&
         (hourlyConfirmation.priceVsVwap || 0) > 0 &&
         (hourlyConfirmation.breakoutUp || false) &&
         (hourlyConfirmation.volumeRatio || 0) >= 1.5 &&
         (hourlyConfirmation.oiChange || 0) >= 2 &&
-        Math.abs(hourlyConfirmation.fundingRate || 0) <= 0.001) {
+        Math.abs(hourlyConfirmation.fundingRate || 0) <= 0.001 &&
+        (hourlyConfirmation.cvd?.direction || 'NEUTRAL') === 'BULLISH') {
         signal = 'LONG';
       }
-      // 做空条件：趋势向下 + 价格在VWAP下 + 突破低点 + 放量 + OI减少 + 资金费率温和
+      // 做空条件：趋势向下 + 价格在VWAP下 + 突破低点 + 放量 + OI减少 + 资金费率温和 + CVD向下
       else if (dailyTrend.trend === 'DOWNTREND' &&
         (hourlyConfirmation.priceVsVwap || 0) < 0 &&
         (hourlyConfirmation.breakoutDown || false) &&
         (hourlyConfirmation.volumeRatio || 0) >= 1.5 &&
         (hourlyConfirmation.oiChange || 0) <= -2 &&
-        Math.abs(hourlyConfirmation.fundingRate || 0) <= 0.001) {
+        Math.abs(hourlyConfirmation.fundingRate || 0) <= 0.001 &&
+        (hourlyConfirmation.cvd?.direction || 'NEUTRAL') === 'BEARISH') {
         signal = 'SHORT';
       }
 
