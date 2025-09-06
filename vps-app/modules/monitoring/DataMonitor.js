@@ -275,9 +275,22 @@ class DataMonitor {
         
         // 验证数据完整性
         if (log) {
-          if (log.phases.dataCollection.success) {
+          // 检查原始数据质量
+          let hasValidData = true;
+          const requiredDataTypes = ['日线K线', '小时K线', '24小时行情', '资金费率', '持仓量历史'];
+          
+          for (const dataType of requiredDataTypes) {
+            const dataInfo = log.rawData[dataType];
+            if (!dataInfo || !dataInfo.success || !dataInfo.data) {
+              hasValidData = false;
+              dataValidationErrors.push(`${symbol}: ${dataType}数据无效`);
+            }
+          }
+          
+          if (hasValidData) {
             successfulDataCollections++;
           }
+          
           if (log.phases.signalAnalysis.success) {
             successfulSignalAnalyses++;
           }

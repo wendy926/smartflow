@@ -91,10 +91,17 @@ class SmartFlowStrategy {
       console.log(`🔍 ${symbol} 小时确认数据调试:`);
       console.log(`  - K线数量: ${klines.length}`);
       console.log(`  - 最后收盘价: ${lastClose}`);
+      console.log(`  - VWAP数组长度: ${vwap.length}`);
       console.log(`  - VWAP: ${lastVWAP}`);
       console.log(`  - 最后成交量: ${lastVol}`);
       console.log(`  - 20期平均成交量: ${avgVol}`);
       console.log(`  - 成交量倍数: ${volumeRatio}`);
+      console.log(`  - 前3根K线数据:`, klines.slice(-3).map(k => ({
+        high: k.high,
+        low: k.low,
+        close: k.close,
+        volume: k.volume
+      })));
 
       // 检查突破
       const recentHighs = highs.slice(-20);
@@ -303,12 +310,22 @@ class SmartFlowStrategy {
 
       const symbolData = { klines, ticker, funding, openInterestHist };
 
-      // 记录原始数据
-      this.dataMonitor.recordRawData(symbol, '日线K线', await BinanceAPI.getKlines(symbol, '1d', 250), true);
-      this.dataMonitor.recordRawData(symbol, '小时K线', klines, true);
-      this.dataMonitor.recordRawData(symbol, '24小时行情', ticker, true);
-      this.dataMonitor.recordRawData(symbol, '资金费率', funding, true);
-      this.dataMonitor.recordRawData(symbol, '持仓量历史', openInterestHist, true);
+      // 记录原始数据 - 添加数据验证
+      const dailyKlines = await BinanceAPI.getKlines(symbol, '1d', 250);
+      const dailyKlinesValid = dailyKlines && dailyKlines.length > 0;
+      this.dataMonitor.recordRawData(symbol, '日线K线', dailyKlines, dailyKlinesValid);
+      
+      const klinesValid = klines && klines.length > 0;
+      this.dataMonitor.recordRawData(symbol, '小时K线', klines, klinesValid);
+      
+      const tickerValid = ticker && ticker.lastPrice;
+      this.dataMonitor.recordRawData(symbol, '24小时行情', ticker, tickerValid);
+      
+      const fundingValid = funding && Array.isArray(funding) && funding.length > 0 && typeof funding[0].fundingRate === 'number';
+      this.dataMonitor.recordRawData(symbol, '资金费率', funding, fundingValid);
+      
+      const oiValid = openInterestHist && openInterestHist.length > 0;
+      this.dataMonitor.recordRawData(symbol, '持仓量历史', openInterestHist, oiValid);
 
       // 分析各个阶段
       const dailyTrend = await this.analyzeDailyTrend(symbol, symbolData);
