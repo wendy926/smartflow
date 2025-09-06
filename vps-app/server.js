@@ -1798,15 +1798,42 @@ class DataMonitor {
       const simulationProgressRate = stats.simulationTriggers > 0 ?
         (stats.simulationInProgress / stats.simulationTriggers * 100) : 0;
 
-      // 检查是否有活跃信号（趋势、信号、入场执行）
-      const hasActiveSignals = stats.signalAnalysisSuccesses > 0 || stats.simulationTriggers > 0 || stats.simulationInProgress > 0;
+      // 检查各阶段信号状态（基于实际业务逻辑）
+      let hasExecution = false;
+      let hasSignal = false;
+      let hasTrend = false;
 
-      // 计算信号活跃度分数（用于排序）
+      // 检查是否有模拟交易记录（基于数据库记录）
+      if (stats.simulationTriggers > 0) {
+        hasExecution = true;
+      }
+
+      // 检查是否有信号分析成功记录
+      if (stats.signalAnalysisSuccesses > 0) {
+        hasSignal = true;
+      }
+
+      // 检查是否有数据收集成功记录（表示有趋势分析）
+      if (stats.dataCollectionSuccesses > 0) {
+        hasTrend = true;
+      }
+
+      // 计算优先级分数：入场执行(1000) > 信号(100) > 趋势(10) > 无信号(0)
+      let priorityScore = 0;
+      if (hasExecution) priorityScore += 1000;
+      if (hasSignal) priorityScore += 100;
+      if (hasTrend) priorityScore += 10;
+
+      // 计算信号活跃度分数（用于同优先级内的排序）
       const signalActivityScore = (stats.signalAnalysisSuccesses * 10) + (stats.simulationTriggers * 5) + (stats.simulationInProgress * 3);
 
       return {
         symbol: symbol || 'unknown',
-        hasActiveSignals,
+        hasActiveSignals: hasExecution || hasSignal || hasTrend,
+        hasExecution,
+        hasSignal,
+        hasTrend,
+        priorityScore,
         signalActivityScore,
         dataCollection: {
           rate: Math.round(dataCollectionRate * 100) / 100,
@@ -1843,18 +1870,19 @@ class DataMonitor {
       };
     });
 
-    // 按信号活跃度排序：有信号的在前，无信号的在后，同类型内按活跃度分数降序
+    // 按优先级排序：入场执行 > 信号 > 趋势 > 无信号
     detailedStats.sort((a, b) => {
-      // 首先按是否有活跃信号排序
-      if (a.hasActiveSignals && !b.hasActiveSignals) return -1;
-      if (!a.hasActiveSignals && b.hasActiveSignals) return 1;
+      // 首先按优先级分数排序（入场执行1000 > 信号100 > 趋势10 > 无信号0）
+      if (a.priorityScore !== b.priorityScore) {
+        return b.priorityScore - a.priorityScore;
+      }
 
-      // 如果都有信号或都没有信号，按活跃度分数排序
-      if (a.hasActiveSignals && b.hasActiveSignals) {
+      // 同优先级内按信号活跃度分数排序
+      if (a.signalActivityScore !== b.signalActivityScore) {
         return b.signalActivityScore - a.signalActivityScore;
       }
 
-      // 都没有信号时，按总体完成率排序
+      // 最后按总体完成率排序
       return b.overall.rate - a.overall.rate;
     });
 
@@ -2399,8 +2427,8 @@ class SmartFlowStrategy {
       };
       this.dataMonitor.recordSignal(symbol, '综合分析', signalData, true);
 
-      // 记录模拟交易结果（如果有交易信号）
-      if (execution15m && execution15m.signal) {
+      // 记录模拟交易结果（只有在真正有交易信号时才记录）
+      if (execution15m && execution15m.signal && execution15m.signal !== 'NO_EXECUTION') {
         const simulationData = {
           signal: execution15m.signal,
           entryPrice: execution15m.entryPrice,
@@ -2410,9 +2438,8 @@ class SmartFlowStrategy {
           timestamp: Date.now()
         };
         this.dataMonitor.recordSimulation(symbol, '交易信号', simulationData, true);
-      } else {
-        this.dataMonitor.recordSimulation(symbol, '交易信号', null, false, new Error('无交易信号'));
       }
+      // 注意：只有当真正有交易信号时才记录，没有信号时不记录失败
 
       const endTime = Date.now();
       const duration = endTime - startTime;

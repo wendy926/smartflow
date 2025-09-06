@@ -3388,8 +3388,8 @@
                 <div class="monitoring-header">
                     <h3>📊 SmartFlow 统一监控中心</h3>
                     <div class="monitoring-controls">
-                        <button onclick="loadUnifiedMonitoring()" class="refresh-btn">🔄 刷新</button>
-                        <button onclick="closeUnifiedMonitoring()" class="close-btn">×</button>
+                        <button class="refresh-btn" data-action="refresh">🔄 刷新</button>
+                        <button class="close-btn" data-action="close">×</button>
                     </div>
                 </div>
                 <div class="monitoring-content">
@@ -3446,7 +3446,7 @@
                     <div class="symbols-detailed-monitoring">
                         <h4>🔍 交易对详细监控</h4>
                         <div class="sorting-info">
-                            <span class="sorting-note">📊 排序规则：有信号的交易对优先显示，按信号活跃度排序</span>
+                            <span class="sorting-note">📊 排序规则：入场执行 🚀 > 信号 🎯 > 趋势 📈 > 无信号 ⚪</span>
                         </div>
                         <div class="symbols-table-container">
                             <table class="symbols-table">
@@ -3465,8 +3465,10 @@
                                     ${data.symbols.map(symbol => `
                                         <tr class="symbol-row ${symbol.hasActiveSignals ? 'has-signals' : 'no-signals'}">
                                             <td class="symbol-name">
-                                                ${symbol.hasActiveSignals ? '🔥' : '⚪'} ${symbol.symbol}
-                                                ${symbol.hasActiveSignals ? '<span class="signal-indicator">有信号</span>' : ''}
+                                                ${symbol.hasExecution ? '🚀' : symbol.hasSignal ? '🎯' : symbol.hasTrend ? '📈' : '⚪'} ${symbol.symbol}
+                                                ${symbol.hasExecution ? '<span class="signal-indicator execution">入场执行</span>' :
+                    symbol.hasSignal ? '<span class="signal-indicator signal">信号</span>' :
+                        symbol.hasTrend ? '<span class="signal-indicator trend">趋势</span>' : ''}
                                             </td>
                                             <td class="metric-cell">
                                                 <div class="metric-info">
@@ -3568,6 +3570,93 @@
                         max-height: 90vh;
                         overflow-y: auto;
                         border: 2px solid #667eea;
+                        width: 95vw;
+                    }
+                    @media (max-width: 768px) {
+                        .unified-monitoring-panel {
+                            width: 98vw;
+                            max-height: 95vh;
+                            top: 10px;
+                            left: 10px;
+                            transform: none;
+                            border-radius: 10px;
+                        }
+                        .monitoring-header {
+                            padding: 15px;
+                            flex-direction: column;
+                            gap: 10px;
+                        }
+                        .monitoring-header h3 {
+                            font-size: 18px;
+                            text-align: center;
+                        }
+                        .monitoring-controls {
+                            width: 100%;
+                            justify-content: center;
+                        }
+                        .overview-cards {
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 10px;
+                        }
+                        .overview-card {
+                            padding: 10px;
+                        }
+                        .card-icon {
+                            font-size: 20px;
+                            margin-right: 10px;
+                        }
+                        .card-title {
+                            font-size: 11px;
+                        }
+                        .card-value {
+                            font-size: 16px;
+                        }
+                        .symbols-table-container {
+                            overflow-x: auto;
+                            -webkit-overflow-scrolling: touch;
+                        }
+                        .symbols-table {
+                            min-width: 600px;
+                        }
+                        .symbols-table th,
+                        .symbols-table td {
+                            padding: 8px 6px;
+                            font-size: 12px;
+                        }
+                        .symbol-name {
+                            font-size: 14px;
+                        }
+                        .signal-indicator {
+                            font-size: 9px;
+                            padding: 1px 4px;
+                        }
+                        .metric-rate {
+                            font-size: 12px;
+                        }
+                        .metric-details {
+                            font-size: 10px;
+                        }
+                        .metric-time {
+                            font-size: 9px;
+                        }
+                        .thresholds-grid {
+                            grid-template-columns: 1fr;
+                        }
+                        .logs-container {
+                            max-height: 200px;
+                        }
+                        .log-item {
+                            flex-direction: column;
+                            align-items: flex-start;
+                            gap: 5px;
+                            padding: 8px;
+                        }
+                        .log-symbol,
+                        .log-duration,
+                        .log-status,
+                        .log-time {
+                            min-width: auto;
+                        }
                     }
                     .monitoring-header {
                         display: flex;
@@ -3694,13 +3783,23 @@
                         gap: 8px;
                     }
                     .signal-indicator {
-                        background: #ffc107;
-                        color: #856404;
                         padding: 2px 6px;
                         border-radius: 10px;
                         font-size: 10px;
                         font-weight: bold;
                         text-transform: uppercase;
+                    }
+                    .signal-indicator.execution {
+                        background: #dc3545;
+                        color: white;
+                    }
+                    .signal-indicator.signal {
+                        background: #ffc107;
+                        color: #856404;
+                    }
+                    .signal-indicator.trend {
+                        background: #17a2b8;
+                        color: white;
                     }
                     .metric-cell {
                         text-align: center;
@@ -3814,6 +3913,15 @@
             }
 
             document.body.appendChild(monitoringPanel);
+
+            // 添加事件委托处理
+            monitoringPanel.addEventListener('click', function (e) {
+                if (e.target.classList.contains('refresh-btn') && e.target.dataset.action === 'refresh') {
+                    loadUnifiedMonitoring();
+                } else if (e.target.classList.contains('close-btn') && e.target.dataset.action === 'close') {
+                    closeUnifiedMonitoring();
+                }
+            });
         }
 
         // 关闭统一监控中心
