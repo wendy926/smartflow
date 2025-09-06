@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SmartFlow 交易策略仪表板</title>
-    <!-- 强制刷新缓存 v2.0 -->
+    <title>SmartFlow 交易策略仪表板 v2.1</title>
+    <!-- 强制刷新缓存 v2.1 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -58,18 +58,24 @@
         .header {
             text-align: center;
             margin-bottom: 30px;
-            color: white;
+            color: white !important;
+            background: rgba(0, 0, 0, 0.2) !important;
+            padding: 20px !important;
+            border-radius: 15px !important;
+            backdrop-filter: blur(10px) !important;
         }
 
         .header h1 {
             font-size: 2.5rem;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5) !important;
+            color: white !important;
         }
 
         .header p {
             font-size: 1.1rem;
             opacity: 0.9;
+            color: white !important;
         }
 
         /* 顶部控制区域 */
@@ -79,10 +85,11 @@
             align-items: center;
             margin-bottom: 30px;
             padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.95) !important;
             border-radius: 15px;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.1) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
         }
 
         /* 底部控制区域 */
@@ -92,9 +99,11 @@
             gap: 15px;
             margin: 30px 0;
             padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.95) !important;
             border-radius: 15px;
             backdrop-filter: blur(10px);
+            border: 1px solid rgba(102, 126, 234, 0.1) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
         }
 
         .controls {
@@ -1732,13 +1741,16 @@
 
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🚀 SmartFlow 交易策略仪表板</h1>
-            <p>基于多周期共振的高胜率高盈亏比加密货币交易策略</p>
+        <div class="header"
+            style="background: rgba(0, 0, 0, 0.2) !important; color: white !important; padding: 20px !important; border-radius: 15px !important; backdrop-filter: blur(10px) !important;">
+            <h1 style="color: white !important; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5) !important;">🚀 SmartFlow
+                交易策略仪表板</h1>
+            <p style="color: white !important;">基于多周期共振的高胜率高盈亏比加密货币交易策略</p>
         </div>
 
         <!-- 顶部按钮区域 -->
-        <div class="top-controls">
+        <div class="top-controls"
+            style="background: rgba(255, 255, 255, 0.95) !important; border: 1px solid rgba(102, 126, 234, 0.1) !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;">
             <div class="refresh-controls">
                 <button class="btn" onclick="toggleAutoRefresh()" id="autoRefreshBtn">
                     ⏰ 自动刷新
@@ -1853,12 +1865,19 @@
         </div>
 
         <!-- 底部按钮区域 -->
-        <div class="bottom-controls">
+        <div class="bottom-controls"
+            style="background: rgba(255, 255, 255, 0.95) !important; border: 1px solid rgba(102, 126, 234, 0.1) !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;">
             <button class="btn secondary" onclick="testAPI()">
                 🧪 测试API连接
             </button>
             <button class="btn secondary" onclick="loadDataMonitor()">
                 📊 查看数据监控
+            </button>
+            <button class="btn secondary" onclick="loadMonitoringDashboard()">
+                📈 监控仪表板
+            </button>
+            <button class="btn secondary" onclick="loadHealthCheck()">
+                🏥 健康检查
             </button>
             <button class="btn secondary" onclick="viewTelegramConfig()">
                 📱 Telegram通知
@@ -2608,6 +2627,40 @@
             }
         }
 
+        // 监控仪表板功能
+        async function loadMonitoringDashboard() {
+            try {
+                const response = await fetch('/api/monitoring-dashboard');
+                const data = await response.json();
+
+                if (data.error) {
+                    showMessage(`监控仪表板加载失败: ${data.error}`, 'error');
+                    return;
+                }
+
+                displayMonitoringDashboard(data);
+            } catch (error) {
+                showMessage(`监控仪表板加载失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 健康检查功能
+        async function loadHealthCheck() {
+            try {
+                const response = await fetch('/api/health-check');
+                const data = await response.json();
+
+                if (data.error) {
+                    showMessage(`健康检查失败: ${data.error}`, 'error');
+                    return;
+                }
+
+                displayHealthCheck(data);
+            } catch (error) {
+                showMessage(`健康检查失败: ${error.message}`, 'error');
+            }
+        }
+
         function displayDataMonitor(data) {
             // 创建监控面板
             const monitorPanel = document.createElement('div');
@@ -2812,6 +2865,491 @@
             }
 
             document.body.appendChild(monitorPanel);
+        }
+
+        function displayMonitoringDashboard(data) {
+            // 创建监控仪表板面板
+            const dashboardPanel = document.createElement('div');
+            dashboardPanel.className = 'dashboard-panel';
+            dashboardPanel.innerHTML = `
+                <div class="dashboard-header">
+                    <h3>📈 智能交易监控仪表板</h3>
+                    <div class="dashboard-controls">
+                        <button onclick="loadMonitoringDashboard()" class="refresh-btn">🔄 刷新</button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="close-btn">×</button>
+                    </div>
+                </div>
+                <div class="dashboard-content">
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <h4>系统运行时间</h4>
+                            <div class="card-value">${Math.floor(data.uptime / 3600)}小时${Math.floor((data.uptime % 3600) / 60)}分钟</div>
+                        </div>
+                        <div class="summary-card">
+                            <h4>监控交易对</h4>
+                            <div class="card-value">${data.summary.totalSymbols}个</div>
+                        </div>
+                        <div class="summary-card">
+                            <h4>平均数据收集率</h4>
+                            <div class="card-value ${data.summary.avgDataCollection >= 90 ? 'healthy' : 'warning'}">${data.summary.avgDataCollection}%</div>
+                        </div>
+                        <div class="summary-card">
+                            <h4>平均信号判断率</h4>
+                            <div class="card-value ${data.summary.avgSignalAnalysis >= 85 ? 'healthy' : 'warning'}">${data.summary.avgSignalAnalysis}%</div>
+                        </div>
+                        <div class="summary-card">
+                            <h4>平均模拟交易率</h4>
+                            <div class="card-value ${data.summary.avgSimulationTrading >= 80 ? 'healthy' : 'warning'}">${data.summary.avgSimulationTrading}%</div>
+                        </div>
+                        <div class="summary-card">
+                            <h4>总体完成率</h4>
+                            <div class="card-value ${data.summary.avgOverall >= 80 ? 'healthy' : 'critical'}">${data.summary.avgOverall}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="symbols-monitoring">
+                        <h4>各交易对完成率监控</h4>
+                        <div class="symbols-grid">
+                            ${data.symbols.map(symbol => `
+                                <div class="symbol-card">
+                                    <div class="symbol-header">
+                                        <h5>${symbol.symbol}</h5>
+                                        <div class="overall-status ${symbol.overall.status}">${symbol.overall.rate}%</div>
+                                    </div>
+                                    <div class="symbol-metrics">
+                                        <div class="metric">
+                                            <span class="metric-label">数据收集</span>
+                                            <div class="metric-bar">
+                                                <div class="metric-fill ${symbol.dataCollection.status}" 
+                                                     style="width: ${symbol.dataCollection.rate}%"></div>
+                                            </div>
+                                            <span class="metric-value">${symbol.dataCollection.rate}%</span>
+                                        </div>
+                                        <div class="metric">
+                                            <span class="metric-label">信号判断</span>
+                                            <div class="metric-bar">
+                                                <div class="metric-fill ${symbol.signalAnalysis.status}" 
+                                                     style="width: ${symbol.signalAnalysis.rate}%"></div>
+                                            </div>
+                                            <span class="metric-value">${symbol.signalAnalysis.rate}%</span>
+                                        </div>
+                                        <div class="metric">
+                                            <span class="metric-label">模拟交易</span>
+                                            <div class="metric-bar">
+                                                <div class="metric-fill ${symbol.simulationTrading.status}" 
+                                                     style="width: ${symbol.simulationTrading.rate}%"></div>
+                                            </div>
+                                            <span class="metric-value">${symbol.simulationTrading.rate}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="thresholds-config">
+                        <h4>告警阈值配置</h4>
+                        <div class="thresholds-grid">
+                            <div class="threshold-item">
+                                <span>数据收集阈值</span>
+                                <span class="threshold-value">${data.thresholds.dataCollection}%</span>
+                            </div>
+                            <div class="threshold-item">
+                                <span>信号判断阈值</span>
+                                <span class="threshold-value">${data.thresholds.signalAnalysis}%</span>
+                            </div>
+                            <div class="threshold-item">
+                                <span>模拟交易阈值</span>
+                                <span class="threshold-value">${data.thresholds.simulationTrading}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 添加样式
+            if (!document.querySelector('#dashboard-styles')) {
+                const style = document.createElement('style');
+                style.id = 'dashboard-styles';
+                style.textContent = `
+                    .dashboard-panel {
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: white;
+                        border-radius: 15px;
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                        z-index: 1000;
+                        max-width: 1200px;
+                        max-height: 90vh;
+                        overflow-y: auto;
+                        border: 2px solid #667eea;
+                    }
+                    .dashboard-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 20px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border-radius: 13px 13px 0 0;
+                    }
+                    .dashboard-controls {
+                        display: flex;
+                        gap: 10px;
+                    }
+                    .refresh-btn, .close-btn {
+                        background: rgba(255, 255, 255, 0.2);
+                        border: none;
+                        color: white;
+                        padding: 8px 12px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    }
+                    .refresh-btn:hover, .close-btn:hover {
+                        background: rgba(255, 255, 255, 0.3);
+                    }
+                    .dashboard-content {
+                        padding: 20px;
+                    }
+                    .summary-cards {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                        gap: 15px;
+                        margin-bottom: 30px;
+                    }
+                    .summary-card {
+                        background: #f8f9fa;
+                        padding: 15px;
+                        border-radius: 10px;
+                        text-align: center;
+                        border-left: 4px solid #667eea;
+                    }
+                    .summary-card h4 {
+                        margin: 0 0 10px 0;
+                        color: #666;
+                        font-size: 14px;
+                    }
+                    .card-value {
+                        font-size: 24px;
+                        font-weight: bold;
+                        color: #333;
+                    }
+                    .card-value.healthy { color: #28a745; }
+                    .card-value.warning { color: #ffc107; }
+                    .card-value.critical { color: #dc3545; }
+                    .symbols-monitoring h4 {
+                        margin-bottom: 20px;
+                        color: #333;
+                    }
+                    .symbols-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                        gap: 20px;
+                    }
+                    .symbol-card {
+                        background: #f8f9fa;
+                        padding: 20px;
+                        border-radius: 10px;
+                        border: 1px solid #e9ecef;
+                    }
+                    .symbol-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 15px;
+                    }
+                    .symbol-header h5 {
+                        margin: 0;
+                        color: #333;
+                    }
+                    .overall-status {
+                        padding: 5px 10px;
+                        border-radius: 15px;
+                        font-weight: bold;
+                        font-size: 14px;
+                    }
+                    .overall-status.healthy { background: #d4edda; color: #155724; }
+                    .overall-status.warning { background: #fff3cd; color: #856404; }
+                    .overall-status.critical { background: #f8d7da; color: #721c24; }
+                    .symbol-metrics {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+                    .metric {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .metric-label {
+                        min-width: 60px;
+                        font-size: 12px;
+                        color: #666;
+                    }
+                    .metric-bar {
+                        flex: 1;
+                        height: 8px;
+                        background: #e9ecef;
+                        border-radius: 4px;
+                        overflow: hidden;
+                    }
+                    .metric-fill {
+                        height: 100%;
+                        transition: width 0.3s ease;
+                    }
+                    .metric-fill.healthy { background: #28a745; }
+                    .metric-fill.warning { background: #ffc107; }
+                    .metric-fill.critical { background: #dc3545; }
+                    .metric-value {
+                        min-width: 40px;
+                        text-align: right;
+                        font-size: 12px;
+                        font-weight: bold;
+                    }
+                    .thresholds-config {
+                        margin-top: 30px;
+                        padding-top: 20px;
+                        border-top: 1px solid #e9ecef;
+                    }
+                    .thresholds-config h4 {
+                        margin-bottom: 15px;
+                        color: #333;
+                    }
+                    .thresholds-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                        gap: 15px;
+                    }
+                    .threshold-item {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 10px;
+                        background: #f8f9fa;
+                        border-radius: 5px;
+                    }
+                    .threshold-value {
+                        font-weight: bold;
+                        color: #667eea;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(dashboardPanel);
+        }
+
+        function displayHealthCheck(data) {
+            // 创建健康检查面板
+            const healthPanel = document.createElement('div');
+            healthPanel.className = 'health-panel';
+            healthPanel.innerHTML = `
+                <div class="health-header">
+                    <h3>🏥 系统健康检查</h3>
+                    <div class="health-controls">
+                        <button onclick="loadHealthCheck()" class="refresh-btn">🔄 刷新</button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="close-btn">×</button>
+                    </div>
+                </div>
+                <div class="health-content">
+                    <div class="system-status ${data.systemHealth === 'healthy' ? 'healthy' : 'unhealthy'}">
+                        <h4>系统状态: ${data.systemHealth === 'healthy' ? '健康' : '异常'}</h4>
+                        <p>检查时间: ${new Date(data.timestamp).toLocaleString()}</p>
+                    </div>
+                    
+                    ${data.unhealthySymbols.length > 0 ? `
+                        <div class="unhealthy-symbols">
+                            <h4>异常交易对</h4>
+                            ${data.unhealthySymbols.map(symbol => `
+                                <div class="unhealthy-item">
+                                    <span class="symbol-name">${symbol.symbol}</span>
+                                    <span class="symbol-rate">完成率: ${symbol.overallRate}%</span>
+                                    <span class="symbol-status ${symbol.status}">${symbol.status}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="health-details">
+                        <h4>详细健康状态</h4>
+                        ${Object.entries(data.healthStatus).map(([symbol, status]) => `
+                            <div class="health-item">
+                                <h5>${symbol}</h5>
+                                <div class="health-metrics">
+                                    <div class="health-metric">
+                                        <span>数据收集: ${status.dataCollection.rate}%</span>
+                                        <span class="status ${status.dataCollection.status}">${status.dataCollection.status}</span>
+                                    </div>
+                                    <div class="health-metric">
+                                        <span>信号判断: ${status.signalAnalysis.rate}%</span>
+                                        <span class="status ${status.signalAnalysis.status}">${status.signalAnalysis.status}</span>
+                                    </div>
+                                    <div class="health-metric">
+                                        <span>模拟交易: ${status.simulationTrading.rate}%</span>
+                                        <span class="status ${status.simulationTrading.status}">${status.simulationTrading.status}</span>
+                                    </div>
+                                    <div class="health-metric">
+                                        <span>总体状态: ${status.overall.rate}%</span>
+                                        <span class="status ${status.overall.status}">${status.overall.status}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            // 添加样式
+            if (!document.querySelector('#health-styles')) {
+                const style = document.createElement('style');
+                style.id = 'health-styles';
+                style.textContent = `
+                    .health-panel {
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background: white;
+                        border-radius: 15px;
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                        z-index: 1000;
+                        max-width: 800px;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        border: 2px solid #667eea;
+                    }
+                    .health-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 20px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border-radius: 13px 13px 0 0;
+                    }
+                    .health-controls {
+                        display: flex;
+                        gap: 10px;
+                    }
+                    .refresh-btn, .close-btn {
+                        background: rgba(255, 255, 255, 0.2);
+                        border: none;
+                        color: white;
+                        padding: 8px 12px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    }
+                    .refresh-btn:hover, .close-btn:hover {
+                        background: rgba(255, 255, 255, 0.3);
+                    }
+                    .health-content {
+                        padding: 20px;
+                    }
+                    .system-status {
+                        padding: 20px;
+                        border-radius: 10px;
+                        margin-bottom: 20px;
+                        text-align: center;
+                    }
+                    .system-status.healthy {
+                        background: #d4edda;
+                        color: #155724;
+                        border: 1px solid #c3e6cb;
+                    }
+                    .system-status.unhealthy {
+                        background: #f8d7da;
+                        color: #721c24;
+                        border: 1px solid #f5c6cb;
+                    }
+                    .unhealthy-symbols {
+                        background: #fff3cd;
+                        padding: 15px;
+                        border-radius: 10px;
+                        margin-bottom: 20px;
+                        border: 1px solid #ffeaa7;
+                    }
+                    .unhealthy-item {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 8px 0;
+                        border-bottom: 1px solid #ffeaa7;
+                    }
+                    .unhealthy-item:last-child {
+                        border-bottom: none;
+                    }
+                    .symbol-name {
+                        font-weight: bold;
+                    }
+                    .symbol-rate {
+                        color: #666;
+                    }
+                    .symbol-status {
+                        padding: 4px 8px;
+                        border-radius: 12px;
+                        font-size: 12px;
+                        font-weight: bold;
+                    }
+                    .symbol-status.warning {
+                        background: #fff3cd;
+                        color: #856404;
+                    }
+                    .symbol-status.critical {
+                        background: #f8d7da;
+                        color: #721c24;
+                    }
+                    .health-details h4 {
+                        margin-bottom: 15px;
+                        color: #333;
+                    }
+                    .health-item {
+                        background: #f8f9fa;
+                        padding: 15px;
+                        border-radius: 10px;
+                        margin-bottom: 15px;
+                    }
+                    .health-item h5 {
+                        margin: 0 0 10px 0;
+                        color: #333;
+                    }
+                    .health-metrics {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                        gap: 10px;
+                    }
+                    .health-metric {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 5px 0;
+                    }
+                    .status {
+                        padding: 2px 6px;
+                        border-radius: 8px;
+                        font-size: 12px;
+                        font-weight: bold;
+                    }
+                    .status.healthy {
+                        background: #d4edda;
+                        color: #155724;
+                    }
+                    .status.warning {
+                        background: #fff3cd;
+                        color: #856404;
+                    }
+                    .status.critical {
+                        background: #f8d7da;
+                        color: #721c24;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(healthPanel);
         }
 
         // 切换历史记录显示
@@ -3363,6 +3901,16 @@
             await loadWinRateStats();
 
             console.log('✅ 页面初始化完成');
+
+            // 每10秒自动刷新监控数据（如果有监控面板打开）
+            setInterval(() => {
+                if (document.querySelector('.dashboard-panel')) {
+                    loadMonitoringDashboard();
+                }
+                if (document.querySelector('.health-panel')) {
+                    loadHealthCheck();
+                }
+            }, 10000);
         });
     </script>
 </body>

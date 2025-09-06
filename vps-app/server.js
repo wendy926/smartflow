@@ -1453,22 +1453,44 @@ class DatabaseManager {
   }
 }
 
-// 数据监控管理
+// 增强的数据监控管理
 class DataMonitor {
   constructor() {
     this.analysisLogs = new Map();
+    this.completionRates = new Map(); // 完成率统计
+    this.healthStatus = new Map(); // 健康状态
+    this.alertThresholds = {
+      dataCollection: 90, // 数据收集完成率阈值
+      signalAnalysis: 85, // 信号判断完成率阈值
+      simulationTrading: 80 // 模拟交易触发率阈值
+    };
+    this.startTime = Date.now();
   }
 
+  /**
+   * 开始分析，记录开始时间
+   */
   startAnalysis(symbol) {
+    const now = Date.now();
     this.analysisLogs.set(symbol, {
-      startTime: Date.now(),
+      startTime: now,
       rawData: {},
       indicators: {},
+      signals: {},
+      simulation: {},
       errors: [],
-      success: true
+      success: true,
+      phases: {
+        dataCollection: { startTime: now, endTime: null, success: false },
+        signalAnalysis: { startTime: null, endTime: null, success: false },
+        simulationTrading: { startTime: null, endTime: null, success: false }
+      }
     });
   }
 
+  /**
+   * 记录原始数据收集
+   */
   recordRawData(symbol, dataType, data, success = true, error = null) {
     const log = this.analysisLogs.get(symbol);
     if (log) {
@@ -1485,6 +1507,9 @@ class DataMonitor {
     }
   }
 
+  /**
+   * 记录指标计算
+   */
   recordIndicator(symbol, indicatorType, data, calculationTime) {
     const log = this.analysisLogs.get(symbol);
     if (log) {
@@ -1496,6 +1521,68 @@ class DataMonitor {
     }
   }
 
+  /**
+   * 记录信号判断结果
+   */
+  recordSignal(symbol, signalType, signalData, success = true, error = null) {
+    const log = this.analysisLogs.get(symbol);
+    if (log) {
+      log.signals[signalType] = {
+        data: signalData,
+        success,
+        error: error ? error.message : null,
+        timestamp: Date.now()
+      };
+
+      // 更新信号分析阶段状态
+      if (log.phases.signalAnalysis.startTime === null) {
+        log.phases.signalAnalysis.startTime = Date.now();
+      }
+      if (success) {
+        log.phases.signalAnalysis.success = true;
+        log.phases.signalAnalysis.endTime = Date.now();
+      }
+    }
+  }
+
+  /**
+   * 记录模拟交易结果
+   */
+  recordSimulation(symbol, simulationType, simulationData, success = true, error = null) {
+    const log = this.analysisLogs.get(symbol);
+    if (log) {
+      log.simulation[simulationType] = {
+        data: simulationData,
+        success,
+        error: error ? error.message : null,
+        timestamp: Date.now()
+      };
+
+      // 更新模拟交易阶段状态
+      if (log.phases.simulationTrading.startTime === null) {
+        log.phases.simulationTrading.startTime = Date.now();
+      }
+      if (success) {
+        log.phases.simulationTrading.success = true;
+        log.phases.simulationTrading.endTime = Date.now();
+      }
+    }
+  }
+
+  /**
+   * 完成数据收集阶段
+   */
+  completeDataCollection(symbol, success = true) {
+    const log = this.analysisLogs.get(symbol);
+    if (log) {
+      log.phases.dataCollection.endTime = Date.now();
+      log.phases.dataCollection.success = success;
+    }
+  }
+
+  /**
+   * 获取分析日志
+   */
   getAnalysisLog(symbol) {
     const log = this.analysisLogs.get(symbol);
     if (!log) return null;
@@ -1508,13 +1595,152 @@ class DataMonitor {
       totalTime,
       rawData: log.rawData,
       indicators: log.indicators,
+      signals: log.signals,
+      simulation: log.simulation,
       errors: log.errors,
       success: log.success,
+      phases: log.phases,
       startTime: new Date(log.startTime).toISOString(),
       endTime: new Date(endTime).toISOString()
     };
   }
 
+  /**
+   * 计算完成率统计
+   */
+  calculateCompletionRates() {
+    const now = Date.now();
+    const rates = {
+      dataCollection: {},
+      signalAnalysis: {},
+      simulationTrading: {},
+      overall: {}
+    };
+
+    // 统计各交易对的完成率
+    for (const [symbol, log] of this.analysisLogs.entries()) {
+      // 数据收集完成率
+      const dataCollectionSuccess = log.phases.dataCollection.success ? 1 : 0;
+      rates.dataCollection[symbol] = dataCollectionSuccess * 100;
+
+      // 信号判断完成率
+      const signalAnalysisSuccess = log.phases.signalAnalysis.success ? 1 : 0;
+      rates.signalAnalysis[symbol] = signalAnalysisSuccess * 100;
+
+      // 模拟交易触发率
+      const simulationSuccess = log.phases.simulationTrading.success ? 1 : 0;
+      rates.simulationTrading[symbol] = simulationSuccess * 100;
+
+      // 总体完成率
+      const totalPhases = 3;
+      const completedPhases = dataCollectionSuccess + signalAnalysisSuccess + simulationSuccess;
+      rates.overall[symbol] = (completedPhases / totalPhases) * 100;
+    }
+
+    this.completionRates = rates;
+    return rates;
+  }
+
+  /**
+   * 检查健康状态
+   */
+  checkHealthStatus() {
+    const rates = this.calculateCompletionRates();
+    const healthStatus = {};
+
+    for (const symbol of Object.keys(rates.overall)) {
+      const dataRate = rates.dataCollection[symbol] || 0;
+      const signalRate = rates.signalAnalysis[symbol] || 0;
+      const simulationRate = rates.simulationTrading[symbol] || 0;
+
+      healthStatus[symbol] = {
+        dataCollection: {
+          rate: dataRate,
+          healthy: dataRate >= this.alertThresholds.dataCollection,
+          status: dataRate >= this.alertThresholds.dataCollection ? 'healthy' : 'warning'
+        },
+        signalAnalysis: {
+          rate: signalRate,
+          healthy: signalRate >= this.alertThresholds.signalAnalysis,
+          status: signalRate >= this.alertThresholds.signalAnalysis ? 'healthy' : 'warning'
+        },
+        simulationTrading: {
+          rate: simulationRate,
+          healthy: simulationRate >= this.alertThresholds.simulationTrading,
+          status: simulationRate >= this.alertThresholds.simulationTrading ? 'healthy' : 'warning'
+        },
+        overall: {
+          rate: rates.overall[symbol],
+          healthy: rates.overall[symbol] >= 80, // 总体健康阈值
+          status: rates.overall[symbol] >= 80 ? 'healthy' : 'critical'
+        }
+      };
+    }
+
+    this.healthStatus = healthStatus;
+    return healthStatus;
+  }
+
+  /**
+   * 获取监控仪表板数据
+   */
+  getMonitoringDashboard() {
+    const rates = this.calculateCompletionRates();
+    const health = this.checkHealthStatus();
+    const now = Date.now();
+    const uptime = now - this.startTime;
+
+    // 计算平均完成率
+    const symbols = Object.keys(rates.overall);
+    const avgDataCollection = symbols.length > 0 ?
+      symbols.reduce((sum, symbol) => sum + (rates.dataCollection[symbol] || 0), 0) / symbols.length : 0;
+    const avgSignalAnalysis = symbols.length > 0 ?
+      symbols.reduce((sum, symbol) => sum + (rates.signalAnalysis[symbol] || 0), 0) / symbols.length : 0;
+    const avgSimulationTrading = symbols.length > 0 ?
+      symbols.reduce((sum, symbol) => sum + (rates.simulationTrading[symbol] || 0), 0) / symbols.length : 0;
+    const avgOverall = symbols.length > 0 ?
+      symbols.reduce((sum, symbol) => sum + rates.overall[symbol], 0) / symbols.length : 0;
+
+    return {
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(uptime / 1000), // 秒
+      summary: {
+        totalSymbols: symbols.length,
+        avgDataCollection: Math.round(avgDataCollection * 100) / 100,
+        avgSignalAnalysis: Math.round(avgSignalAnalysis * 100) / 100,
+        avgSimulationTrading: Math.round(avgSimulationTrading * 100) / 100,
+        avgOverall: Math.round(avgOverall * 100) / 100
+      },
+      symbols: symbols.map(symbol => ({
+        symbol,
+        dataCollection: {
+          rate: rates.dataCollection[symbol] || 0,
+          status: health[symbol]?.dataCollection?.status || 'unknown'
+        },
+        signalAnalysis: {
+          rate: rates.signalAnalysis[symbol] || 0,
+          status: health[symbol]?.signalAnalysis?.status || 'unknown'
+        },
+        simulationTrading: {
+          rate: rates.simulationTrading[symbol] || 0,
+          status: health[symbol]?.simulationTrading?.status || 'unknown'
+        },
+        overall: {
+          rate: rates.overall[symbol] || 0,
+          status: health[symbol]?.overall?.status || 'unknown'
+        }
+      })),
+      thresholds: this.alertThresholds,
+      recentLogs: Array.from(this.analysisLogs.values())
+        .sort((a, b) => b.startTime - a.startTime)
+        .slice(0, 10)
+        .map(log => this.getAnalysisLog(log.symbol || 'unknown'))
+    };
+  }
+
+  /**
+   * 清理过期日志
+   */
   clearOldLogs() {
     const now = Date.now();
     for (const [symbol, log] of this.analysisLogs.entries()) {
@@ -1522,6 +1748,78 @@ class DataMonitor {
         this.analysisLogs.delete(symbol);
       }
     }
+  }
+
+  /**
+   * 设置告警阈值
+   */
+  setAlertThresholds(thresholds) {
+    this.alertThresholds = { ...this.alertThresholds, ...thresholds };
+  }
+
+  /**
+   * 检查并发送告警
+   */
+  checkAndSendAlerts(telegramNotifier) {
+    const healthStatus = this.checkHealthStatus();
+    const alerts = [];
+
+    for (const [symbol, status] of Object.entries(healthStatus)) {
+      // 检查数据收集告警
+      if (!status.dataCollection.healthy) {
+        alerts.push({
+          type: 'dataCollection',
+          symbol,
+          rate: status.dataCollection.rate,
+          threshold: this.alertThresholds.dataCollection,
+          message: `⚠️ ${symbol} 数据收集完成率过低: ${status.dataCollection.rate}% (阈值: ${this.alertThresholds.dataCollection}%)`
+        });
+      }
+
+      // 检查信号判断告警
+      if (!status.signalAnalysis.healthy) {
+        alerts.push({
+          type: 'signalAnalysis',
+          symbol,
+          rate: status.signalAnalysis.rate,
+          threshold: this.alertThresholds.signalAnalysis,
+          message: `⚠️ ${symbol} 信号判断完成率过低: ${status.signalAnalysis.rate}% (阈值: ${this.alertThresholds.signalAnalysis}%)`
+        });
+      }
+
+      // 检查模拟交易告警
+      if (!status.simulationTrading.healthy) {
+        alerts.push({
+          type: 'simulationTrading',
+          symbol,
+          rate: status.simulationTrading.rate,
+          threshold: this.alertThresholds.simulationTrading,
+          message: `⚠️ ${symbol} 模拟交易触发率过低: ${status.simulationTrading.rate}% (阈值: ${this.alertThresholds.simulationTrading}%)`
+        });
+      }
+
+      // 检查总体健康告警
+      if (!status.overall.healthy) {
+        alerts.push({
+          type: 'overall',
+          symbol,
+          rate: status.overall.rate,
+          threshold: 80,
+          message: `🚨 ${symbol} 总体完成率严重过低: ${status.overall.rate}% (阈值: 80%)`
+        });
+      }
+    }
+
+    // 发送告警
+    if (alerts.length > 0 && telegramNotifier) {
+      const alertMessage = `🚨 <b>SmartFlow 系统告警</b>\n\n` +
+        alerts.map(alert => alert.message).join('\n') +
+        `\n\n🌐 <b>网页链接：</b>https://smart.aimaventop.com`;
+
+      telegramNotifier.sendMessage(alertMessage);
+    }
+
+    return alerts;
   }
 }
 
@@ -1924,6 +2222,9 @@ class SmartFlowStrategy {
         'klines', 'ticker', 'funding', 'openInterest', 'openInterestHist'
       ]);
 
+      // 完成数据收集阶段
+      this.dataMonitor.completeDataCollection(symbol, true);
+
       // 并行分析各个组件
       const [dailyTrend, hourlyConfirmation, execution15m] = await Promise.all([
         this.analyzeDailyTrend(symbol, symbolData),
@@ -1938,6 +2239,30 @@ class SmartFlowStrategy {
         this.dataMonitor.recordRawData(symbol, '24小时价格', ticker24hr, true);
       } else {
         this.dataMonitor.recordRawData(symbol, '24小时价格', null, false, new Error('24小时价格数据获取失败'));
+      }
+
+      // 记录信号判断结果
+      const signalData = {
+        dailyTrend,
+        hourlyConfirmation,
+        execution15m,
+        timestamp: Date.now()
+      };
+      this.dataMonitor.recordSignal(symbol, '综合分析', signalData, true);
+
+      // 记录模拟交易结果（如果有交易信号）
+      if (execution15m && execution15m.signal) {
+        const simulationData = {
+          signal: execution15m.signal,
+          entryPrice: execution15m.entryPrice,
+          stopLoss: execution15m.stopLoss,
+          takeProfit: execution15m.takeProfit,
+          riskReward: execution15m.riskReward,
+          timestamp: Date.now()
+        };
+        this.dataMonitor.recordSimulation(symbol, '交易信号', simulationData, true);
+      } else {
+        this.dataMonitor.recordSimulation(symbol, '交易信号', null, false, new Error('无交易信号'));
       }
 
       const endTime = Date.now();
@@ -2240,6 +2565,21 @@ setInterval(() => {
   SmartFlowStrategy.dataManager.cleanExpiredCache();
 }, 5 * 60 * 1000);
 
+// 定时检查告警 (每2分钟)
+setInterval(() => {
+  try {
+    console.log('🔍 检查系统告警...');
+    const alerts = SmartFlowStrategy.dataMonitor.checkAndSendAlerts(telegramNotifier);
+    if (alerts.length > 0) {
+      console.log(`⚠️ 发现 ${alerts.length} 个告警`);
+    } else {
+      console.log('✅ 系统运行正常');
+    }
+  } catch (error) {
+    console.error('❌ 告警检查失败:', error);
+  }
+}, 2 * 60 * 1000);
+
 // 定期清理历史数据 (每天凌晨2点)
 setInterval(() => {
   const now = new Date();
@@ -2358,7 +2698,7 @@ app.post('/api/mark-result', async (req, res) => {
   }
 });
 
-// 数据监控状态API
+// 数据监控状态API（保持向后兼容）
 app.get('/api/data-monitor', (req, res) => {
   try {
     const allLogs = [];
@@ -2411,6 +2751,77 @@ app.get('/api/data-monitor', (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: '获取监控数据失败',
+      message: error.message
+    });
+  }
+});
+
+// 新的监控仪表板API
+app.get('/api/monitoring-dashboard', (req, res) => {
+  try {
+    const dashboardData = SmartFlowStrategy.dataMonitor.getMonitoringDashboard();
+    res.json(dashboardData);
+  } catch (error) {
+    res.status(500).json({
+      error: '获取监控仪表板数据失败',
+      message: error.message
+    });
+  }
+});
+
+// 设置告警阈值API
+app.post('/api/monitoring-thresholds', (req, res) => {
+  try {
+    const { thresholds } = req.body;
+    if (!thresholds || typeof thresholds !== 'object') {
+      return res.status(400).json({
+        error: '无效的阈值配置',
+        message: '请提供有效的阈值对象'
+      });
+    }
+
+    SmartFlowStrategy.dataMonitor.setAlertThresholds(thresholds);
+
+    res.json({
+      success: true,
+      message: '告警阈值设置成功',
+      thresholds: SmartFlowStrategy.dataMonitor.alertThresholds
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: '设置告警阈值失败',
+      message: error.message
+    });
+  }
+});
+
+// 健康检查API
+app.get('/api/health-check', (req, res) => {
+  try {
+    const healthStatus = SmartFlowStrategy.dataMonitor.checkHealthStatus();
+    const rates = SmartFlowStrategy.dataMonitor.calculateCompletionRates();
+
+    // 检查是否有任何交易对处于不健康状态
+    const unhealthySymbols = Object.entries(healthStatus).filter(([symbol, status]) =>
+      !status.overall.healthy
+    );
+
+    const isSystemHealthy = unhealthySymbols.length === 0;
+
+    res.json({
+      timestamp: new Date().toISOString(),
+      systemHealth: isSystemHealthy ? 'healthy' : 'unhealthy',
+      unhealthySymbols: unhealthySymbols.map(([symbol, status]) => ({
+        symbol,
+        overallRate: status.overall.rate,
+        status: status.overall.status
+      })),
+      healthStatus,
+      completionRates: rates
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: '健康检查失败',
       message: error.message
     });
   }
