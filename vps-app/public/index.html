@@ -1703,6 +1703,124 @@
         let allSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT', 'SOLUSDT'];
         let customSymbols = [];
 
+        // 分析单个交易对
+        async function analyzeSingleSymbol(symbol) {
+            console.log(`🔄 开始分析单个交易对: ${symbol}`);
+
+            try {
+                const response = await fetch(`/api/analyze/${symbol}`);
+
+                // 检查响应状态
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`${symbol} API错误:`, response.status, errorText);
+
+                    // 特殊处理速率限制错误
+                    if (response.status === 429) {
+                        return {
+                            symbol,
+                            trend: 'RATE_LIMIT',
+                            signal: 'RATE_LIMIT',
+                            execution: 'RATE_LIMIT',
+                            currentPrice: 0,
+                            dataError: 'API请求过于频繁，请稍后重试'
+                        };
+                    }
+
+                    // 其他错误
+                    return {
+                        symbol,
+                        trend: 'ERROR',
+                        signal: 'ERROR',
+                        execution: 'ERROR',
+                        currentPrice: 0,
+                        dataError: `API错误 ${response.status}: ${errorText}`
+                    };
+                }
+
+                const result = await response.json();
+                console.log(`✅ ${symbol} 分析完成:`, result);
+
+                // 将新分析的结果添加到现有表格中
+                addSignalToTable(result);
+
+                return result;
+            } catch (error) {
+                console.error(`${symbol} 分析失败:`, error);
+                const errorResult = {
+                    symbol,
+                    trend: 'ERROR',
+                    signal: 'ERROR',
+                    execution: 'ERROR',
+                    currentPrice: 0,
+                    dataError: `分析失败: ${error.message}`
+                };
+
+                // 将错误结果添加到表格中
+                addSignalToTable(errorResult);
+
+                return errorResult;
+            }
+        }
+
+        // 将信号添加到表格中
+        function addSignalToTable(signal) {
+            const tableBody = document.getElementById('signalsTable');
+
+            // 检查是否已经存在该交易对的行
+            const existingRow = tableBody.querySelector(`tr[data-symbol="${signal.symbol}"]`);
+
+            if (existingRow) {
+                // 如果存在，更新现有行
+                updateSignalRow(existingRow, signal);
+            } else {
+                // 如果不存在，添加新行
+                const newRow = createSignalRow(signal);
+                tableBody.appendChild(newRow);
+            }
+        }
+
+
+        // 更新信号行
+        function updateSignalRow(row, signal) {
+            const trendClass = signal.trend === 'UPTREND' ? 'uptrend' :
+                signal.trend === 'DOWNTREND' ? 'downtrend' : 'range';
+            const signalClass = signal.signal === 'LONG' ? 'long' :
+                signal.signal === 'SHORT' ? 'short' : 'no-signal';
+            const executionClass = signal.execution === 'LONG_EXECUTE' ? 'long-execute' :
+                signal.execution === 'SHORT_EXECUTE' ? 'short-execute' : 'no-execution';
+
+            row.className = `${trendClass} ${signalClass} ${executionClass}`;
+            row.innerHTML = `
+                <td>
+                    <button class="btn small" onclick="removeCustomSymbol('${signal.symbol}')" title="删除交易对">🗑️</button>
+                </td>
+                <td>${signal.symbol}</td>
+                <td class="${trendClass}">${signal.trend || '--'}</td>
+                <td class="${signalClass}">${signal.signal || '--'}</td>
+                <td class="${executionClass}">${signal.execution || '--'}</td>
+                <td>${signal.currentPrice ? signal.currentPrice.toFixed(4) : '--'}</td>
+                <td>${signal.vwap ? signal.vwap.toFixed(4) : '--'}</td>
+                <td>${signal.volumeRatio ? signal.volumeRatio.toFixed(2) : '--'}</td>
+                <td>${signal.oiChange ? signal.oiChange.toFixed(2) + '%' : '--'}</td>
+                <td>${signal.fundingRate ? (signal.fundingRate * 100).toFixed(4) + '%' : '--'}</td>
+                <td>${signal.cvdDirection || '--'}</td>
+            `;
+        }
+
+        // 从表格中移除信号行
+        function removeSignalFromTable(symbol) {
+            const tableBody = document.getElementById('signalsTable');
+            const row = tableBody.querySelector(`tr[data-symbol="${symbol}"]`);
+
+            if (row) {
+                row.remove();
+                console.log(`✅ 已从表格中移除 ${symbol}`);
+            } else {
+                console.log(`⚠️ 未找到 ${symbol} 对应的表格行`);
+            }
+        }
+
         // 刷新所有信号
         async function refreshAllSignals() {
             const tableBody = document.getElementById('signalsTable');
@@ -1863,8 +1981,8 @@
                 // 更新按钮显示
                 updateSymbolsListButton();
 
-                // 刷新所有交易对数据（包括新添加的）
-                await refreshAllSignals();
+                // 只分析新添加的交易对，不刷新所有交易对
+                await analyzeSingleSymbol(symbol);
 
                 showMessage(`${symbol} 添加成功！`, 'success');
             } catch (error) {
@@ -1990,79 +2108,75 @@
                 return;
             }
 
-            tableBody.innerHTML = signals.map(signal => {
-                // 处理数据错误情况
-                if (signal.trend === 'DATA_ERROR' || signal.trend === 'ERROR' ||
-                    signal.trend === 'RATE_LIMIT' || signal.trend === 'PARSE_ERROR') {
+            // 清空表格
+            tableBody.innerHTML = '';
 
-                    let errorClass = 'error';
-                    let errorIcon = '❌';
+            // 为每个信号创建行
+            signals.forEach(signal => {
+                const row = createSignalRow(signal);
+                tableBody.appendChild(row);
+            });
+        }
 
-                    if (signal.trend === 'RATE_LIMIT') {
-                        errorClass = 'warning';
-                        errorIcon = '⏰';
-                    } else if (signal.trend === 'PARSE_ERROR') {
-                        errorClass = 'error';
-                        errorIcon = '🔧';
-                    }
+        // 创建信号行（处理错误情况）
+        function createSignalRow(signal) {
+            // 处理数据错误情况
+            if (signal.trend === 'DATA_ERROR' || signal.trend === 'ERROR' ||
+                signal.trend === 'RATE_LIMIT' || signal.trend === 'PARSE_ERROR') {
 
-                    return `
-                        <tr>
-                            <td></td>
-                            <td><strong>${signal.symbol}</strong></td>
-                            <td colspan="9" class="${errorClass}">
-                                ${errorIcon} ${signal.dataError || '未知错误'}
-                            </td>
-                        </tr>
-                    `;
+                let errorClass = 'error';
+                let errorIcon = '❌';
+
+                if (signal.trend === 'RATE_LIMIT') {
+                    errorClass = 'warning';
+                    errorIcon = '⏰';
+                } else if (signal.trend === 'PARSE_ERROR') {
+                    errorClass = 'error';
+                    errorIcon = '🔧';
                 }
 
-                // 格式化执行状态
-                const getExecutionDisplay = (execution) => {
-                    const executionMap = {
-                        'LONG_EXECUTE': '<span class="signal long">执行做多</span>',
-                        'LONG_WAIT_PULLBACK': '<span class="signal no-signal">等待回踩</span>',
-                        'SHORT_EXECUTE': '<span class="signal short">执行做空</span>',
-                        'SHORT_WAIT_PULLBACK': '<span class="signal no-signal">等待回踩</span>',
-                        'NO_EXECUTION': '<span class="signal no-signal">无执行</span>'
-                    };
-                    return executionMap[execution] || execution;
-                };
-
-                return `
-                    <tr>
-                        <td>
-                            <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看历史记录">
-                                📊
-                            </button>
-                        </td>
-                        <td><strong>${signal.symbol}</strong></td>
-                        <td><span class="trend ${signal.trend.toLowerCase()}">${signal.trend}</span></td>
-                        <td><span class="signal ${signal.signal.toLowerCase().replace('_', '-')}">${signal.signal}</span></td>
-                        <td>${getExecutionDisplay(signal.execution)}</td>
-                        <td>$${signal.currentPrice ? signal.currentPrice.toFixed(2) : '--'}</td>
-                        <td>$${signal.vwap ? signal.vwap.toFixed(2) : '--'}</td>
-                        <td>${signal.volumeRatio ? signal.volumeRatio.toFixed(2) + 'x' : '--'}</td>
-                        <td>${signal.oiChange ? signal.oiChange.toFixed(2) + '%' : '--'}</td>
-                        <td>${signal.fundingRate ? (signal.fundingRate * 100).toFixed(4) + '%' : '--'}</td>
-                        <td>${signal.cvd || '--'}</td>
-                    </tr>
-                    <tr id="history-${signal.symbol}" class="history-row" style="display: none;">
-                        <td colspan="11">
-                            <div class="history-container">
-                                <div class="history-header">
-                                    <h4>📈 ${signal.symbol} 历史记录</h4>
-                                    <button onclick="loadHistory('${signal.symbol}')" class="load-history-btn">加载历史</button>
-                                </div>
-                                <div class="history-content" id="history-content-${signal.symbol}">
-                                    <div class="loading">点击"加载历史"查看详细记录</div>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
+                const row = document.createElement('tr');
+                row.setAttribute('data-symbol', signal.symbol);
+                row.innerHTML = `
+                    <td></td>
+                    <td><strong>${signal.symbol}</strong></td>
+                    <td colspan="9" class="${errorClass}">
+                        ${errorIcon} ${signal.dataError || '未知错误'}
+                    </td>
                 `;
-            }).join('');
+                return row;
+            }
+
+            // 正常信号处理
+            const row = document.createElement('tr');
+            row.setAttribute('data-symbol', signal.symbol);
+
+            const trendClass = signal.trend === 'UPTREND' ? 'uptrend' :
+                signal.trend === 'DOWNTREND' ? 'downtrend' : 'range';
+            const signalClass = signal.signal === 'LONG' ? 'long' :
+                signal.signal === 'SHORT' ? 'short' : 'no-signal';
+            const executionClass = signal.execution === 'LONG_EXECUTE' ? 'long-execute' :
+                signal.execution === 'SHORT_EXECUTE' ? 'short-execute' : 'no-execution';
+
+            row.innerHTML = `
+                <td>
+                    <button class="btn small" onclick="removeCustomSymbol('${signal.symbol}')" title="删除交易对">🗑️</button>
+                </td>
+                <td>${signal.symbol}</td>
+                <td class="${trendClass}">${signal.trend || '--'}</td>
+                <td class="${signalClass}">${signal.signal || '--'}</td>
+                <td class="${executionClass}">${signal.execution || '--'}</td>
+                <td>${signal.currentPrice ? signal.currentPrice.toFixed(4) : '--'}</td>
+                <td>${signal.vwap ? signal.vwap.toFixed(4) : '--'}</td>
+                <td>${signal.volumeRatio ? signal.volumeRatio.toFixed(2) : '--'}</td>
+                <td>${signal.oiChange ? signal.oiChange.toFixed(2) + '%' : '--'}</td>
+                <td>${signal.fundingRate ? (signal.fundingRate * 100).toFixed(4) + '%' : '--'}</td>
+                <td>${signal.cvdDirection || '--'}</td>
+            `;
+
+            return row;
         }
+
 
         // 更新统计
         function updateStats(signals) {
@@ -2654,8 +2768,8 @@
                         // 更新按钮显示
                         updateSymbolsListButton();
 
-                        // 刷新数据
-                        refreshAllSignals();
+                        // 从表格中移除对应的行
+                        removeSignalFromTable(symbol);
 
                         showMessage(`${symbol} 已成功移除`, 'success');
 
