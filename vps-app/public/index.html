@@ -258,6 +258,116 @@
             color: #666;
         }
 
+        /* 信号高亮显示 */
+        .signal.long.highlight {
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 184, 148, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .signal.short.highlight {
+            background: linear-gradient(45deg, #e17055, #d63031);
+            color: white;
+            box-shadow: 0 0 15px rgba(225, 112, 85, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .trend.uptrend.highlight {
+            background: #d4edda;
+            color: #155724;
+            box-shadow: 0 0 10px rgba(21, 87, 36, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        .trend.downtrend.highlight {
+            background: #f8d7da;
+            color: #721c24;
+            box-shadow: 0 0 10px rgba(114, 28, 36, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        .execution.long-execute.highlight {
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 184, 148, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .execution.short-execute.highlight {
+            background: linear-gradient(45deg, #e17055, #d63031);
+            color: white;
+            box-shadow: 0 0 15px rgba(225, 112, 85, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.7);
+            }
+
+            70% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(0, 184, 148, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 184, 148, 0);
+            }
+        }
+
+        /* 表格行悬停效果优化 */
+        .table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 高亮信号的行悬停效果 */
+        .table tr:hover .highlight {
+            transform: scale(1.02);
+        }
+
+        /* 详情按钮优化 */
+        .expand-btn {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .expand-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+
+        .expand-btn:hover::before {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 操作按钮优化 */
+        .btn.small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .btn.small:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
         .trend {
             padding: 4px 8px;
             border-radius: 12px;
@@ -1464,7 +1574,7 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>操作</th>
+                        <th>详情</th>
                         <th>交易对</th>
                         <th>趋势</th>
                         <th>信号</th>
@@ -1475,7 +1585,7 @@
                         <th>OI变化%</th>
                         <th>资金费率</th>
                         <th>CVD</th>
-                        <th>详情</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody id="signalsTable">
@@ -1791,15 +1901,20 @@
             const executionClass = signal.execution === 'LONG_EXECUTE' ? 'long-execute' :
                 signal.execution === 'SHORT_EXECUTE' ? 'short-execute' : 'no-execution';
 
+            // 判断是否需要高亮显示
+            const shouldHighlightTrend = signal.trend === 'UPTREND' || signal.trend === 'DOWNTREND';
+            const shouldHighlightSignal = signal.signal === 'LONG' || signal.signal === 'SHORT';
+            const shouldHighlightExecution = signal.execution === 'LONG_EXECUTE' || signal.execution === 'SHORT_EXECUTE';
+
             row.className = `${trendClass} ${signalClass} ${executionClass}`;
             row.innerHTML = `
                 <td>
-                    <button class="btn small" onclick="removeCustomSymbol('${signal.symbol}')" title="删除交易对">🗑️</button>
+                    <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
                 </td>
                 <td>${signal.symbol}</td>
-                <td class="${trendClass}">${signal.trend || '--'}</td>
-                <td class="${signalClass}">${signal.signal || '--'}</td>
-                <td class="${executionClass}">${signal.execution || '--'}</td>
+                <td class="${trendClass}${shouldHighlightTrend ? ' highlight' : ''}">${signal.trend || '--'}</td>
+                <td class="${signalClass}${shouldHighlightSignal ? ' highlight' : ''}">${signal.signal || '--'}</td>
+                <td class="${executionClass}${shouldHighlightExecution ? ' highlight' : ''}">${signal.execution || '--'}</td>
                 <td>${signal.currentPrice ? signal.currentPrice.toFixed(4) : '--'}</td>
                 <td>${signal.vwap ? signal.vwap.toFixed(4) : '--'}</td>
                 <td>${signal.volumeRatio ? signal.volumeRatio.toFixed(2) : '--'}</td>
@@ -1807,7 +1922,7 @@
                 <td>${signal.fundingRate ? (signal.fundingRate * 100).toFixed(4) + '%' : '--'}</td>
                 <td>${signal.cvdDirection || '--'}</td>
                 <td>
-                    <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
+                    <button class="btn small" onclick="removeCustomSymbol('${signal.symbol}')" title="删除交易对">🗑️</button>
                 </td>
             `;
         }
@@ -2167,14 +2282,19 @@
             const executionClass = signal.execution === 'LONG_EXECUTE' ? 'long-execute' :
                 signal.execution === 'SHORT_EXECUTE' ? 'short-execute' : 'no-execution';
 
+            // 判断是否需要高亮显示
+            const shouldHighlightTrend = signal.trend === 'UPTREND' || signal.trend === 'DOWNTREND';
+            const shouldHighlightSignal = signal.signal === 'LONG' || signal.signal === 'SHORT';
+            const shouldHighlightExecution = signal.execution === 'LONG_EXECUTE' || signal.execution === 'SHORT_EXECUTE';
+
             row.innerHTML = `
                 <td>
-                    <button class="btn small" onclick="removeCustomSymbol('${signal.symbol}')" title="删除交易对">🗑️</button>
+                    <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
                 </td>
                 <td>${signal.symbol}</td>
-                <td class="${trendClass}">${signal.trend || '--'}</td>
-                <td class="${signalClass}">${signal.signal || '--'}</td>
-                <td class="${executionClass}">${signal.execution || '--'}</td>
+                <td class="${trendClass}${shouldHighlightTrend ? ' highlight' : ''}">${signal.trend || '--'}</td>
+                <td class="${signalClass}${shouldHighlightSignal ? ' highlight' : ''}">${signal.signal || '--'}</td>
+                <td class="${executionClass}${shouldHighlightExecution ? ' highlight' : ''}">${signal.execution || '--'}</td>
                 <td>${signal.currentPrice ? signal.currentPrice.toFixed(4) : '--'}</td>
                 <td>${signal.vwap ? signal.vwap.toFixed(4) : '--'}</td>
                 <td>${signal.volumeRatio ? signal.volumeRatio.toFixed(2) : '--'}</td>
@@ -2182,7 +2302,7 @@
                 <td>${signal.fundingRate ? (signal.fundingRate * 100).toFixed(4) + '%' : '--'}</td>
                 <td>${signal.cvdDirection || '--'}</td>
                 <td>
-                    <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
+                    <button class="btn small" onclick="removeCustomSymbol('${signal.symbol}')" title="删除交易对">🗑️</button>
                 </td>
             `;
 
