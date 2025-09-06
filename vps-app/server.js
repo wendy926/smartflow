@@ -76,6 +76,7 @@ class SmartFlowServer {
               cvd: analysis.hourlyConfirmation?.cvd?.direction || 'N/A',
               cvdValue: analysis.hourlyConfirmation?.cvd?.value || 0,
               cvdActive: analysis.hourlyConfirmation?.cvd?.isActive || false,
+              priceVsVwap: analysis.hourlyConfirmation?.priceVsVwap || 0,
               dataCollectionRate: dataCollectionRate,
               // 新增的交易执行信息
               stopLoss: analysis.execution15m?.stopLoss || null,
