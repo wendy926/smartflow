@@ -154,17 +154,9 @@ class SmartFlowStrategy {
       console.log(`  - 资金费率: ${parseFloat(funding[0].fundingRate)}`);
 
       // 计算CVD (Cumulative Volume Delta)
-      console.log(`📊 [${symbol}] 开始计算CVD...`);
       const cvd = this.calculateCVD(klinesObjects);
       const lastCVD = cvd[cvd.length - 1];
       const cvdDirection = lastCVD > 0 ? 'BULLISH' : lastCVD < 0 ? 'BEARISH' : 'NEUTRAL';
-      console.log(`📊 [${symbol}] CVD计算完成:`, {
-        cvdLength: cvd.length,
-        lastCVD: lastCVD,
-        cvdDirection: cvdDirection,
-        firstCVD: cvd[0],
-        last3CVD: cvd.slice(-3)
-      });
 
       // 严格按照strategy.md和auto-script.md的确认条件
       // 1. 价格与VWAP方向一致
@@ -323,8 +315,6 @@ class SmartFlowStrategy {
     const cvd = [];
     let cumulativeDelta = 0;
 
-    console.log(`🔍 CVD计算开始，K线数量: ${klines.length}`);
-
     for (let i = 0; i < klines.length; i++) {
       const k = klines[i];
       const close = parseFloat(k.close);
@@ -342,14 +332,8 @@ class SmartFlowStrategy {
 
       cumulativeDelta += delta;
       cvd.push(cumulativeDelta);
-
-      // 调试前3根和后3根K线
-      if (i < 3 || i >= klines.length - 3) {
-        console.log(`  K线${i}: close=${close}, high=${high}, low=${low}, volume=${volume}, pricePosition=${pricePosition.toFixed(3)}, delta=${delta.toFixed(2)}, cumulative=${cumulativeDelta.toFixed(2)}`);
-      }
     }
 
-    console.log(`🔍 CVD计算完成，最终累积值: ${cumulativeDelta.toFixed(2)}`);
     return cvd;
   }
 
