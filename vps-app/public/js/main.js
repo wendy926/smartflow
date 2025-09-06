@@ -96,12 +96,11 @@ class SmartFlowApp {
       const dataCollectionClass = dataCollectionRate >= 95 ? 'data-healthy' : 
                                  dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
       
+      // 创建主行
       const row = document.createElement('tr');
       row.innerHTML = `
                 <td>
-                    <button class="btn secondary" onclick="showSignalDetails('${signal.symbol}')">
-                        查看详情
-                    </button>
+                    <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
                 </td>
                 <td>${signal.symbol}</td>
                 <td class="${dataManager.getSignalClass(signal.trend)}">${signal.trend || '--'}</td>
@@ -122,7 +121,29 @@ class SmartFlowApp {
                     </button>
                 </td>
             `;
+      
+      // 创建折叠行
+      const historyRow = document.createElement('tr');
+      historyRow.id = `history-${signal.symbol}`;
+      historyRow.className = 'history-row';
+      historyRow.style.display = 'none';
+      historyRow.innerHTML = `
+                <td colspan="13">
+                    <div class="history-container">
+                        <div class="history-header">
+                            <h4>📊 ${signal.symbol} 详细信息</h4>
+                            <button class="load-history-btn" onclick="loadHistory('${signal.symbol}')">加载详细信息</button>
+                        </div>
+                        <div id="history-content-${signal.symbol}">
+                            <div class="loading">点击"加载详细信息"查看交易执行详情</div>
+                        </div>
+                    </div>
+                </td>
+            `;
+      
+      // 将行添加到表格
       tbody.appendChild(row);
+      tbody.appendChild(historyRow);
     });
   }
 
@@ -252,6 +273,129 @@ async function refreshSymbol(symbol) {
     modal.showMessage(`刷新 ${symbol} 失败: ` + error.message, 'error');
   } finally {
     app.showLoading(false);
+  }
+}
+
+// 切换历史记录显示
+function toggleHistory(symbol) {
+  const historyRow = document.getElementById(`history-${symbol}`);
+  const expandBtn = event.target;
+  
+  if (historyRow.style.display === 'none') {
+    historyRow.style.display = 'table-row';
+    expandBtn.textContent = '-';
+    expandBtn.title = '收起详细信息';
+    loadHistory(symbol);
+  } else {
+    historyRow.style.display = 'none';
+    expandBtn.textContent = '+';
+    expandBtn.title = '查看详细信息';
+  }
+}
+
+// 加载历史记录
+async function loadHistory(symbol) {
+  const contentDiv = document.getElementById(`history-content-${symbol}`);
+  contentDiv.innerHTML = '<div class="loading">加载中...</div>';
+
+  try {
+    // 获取信号数据
+    const signals = await dataManager.getAllSignals();
+    const signalData = signals.find(s => s.symbol === symbol);
+    
+    if (!signalData) {
+      contentDiv.innerHTML = '<div class="error">数据不可用</div>';
+      return;
+    }
+
+    // 构建交易执行详情HTML
+    let executionDetailsHtml = '';
+    if (signalData.execution && signalData.execution.includes('EXECUTE')) {
+      executionDetailsHtml = `
+        <div class="execution-details">
+          <h5>🎯 交易执行详情</h5>
+          <div class="execution-grid">
+            <div class="execution-item">
+              <span class="label">当前价格:</span>
+              <span class="value">${dataManager.formatNumber(signalData.currentPrice)}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">止损价格:</span>
+              <span class="value">${signalData.stopLoss ? dataManager.formatNumber(signalData.stopLoss) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">止盈价格:</span>
+              <span class="value">${signalData.targetPrice ? dataManager.formatNumber(signalData.targetPrice) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">风险回报比:</span>
+              <span class="value">${signalData.riskRewardRatio ? signalData.riskRewardRatio.toFixed(2) + 'R' : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">最大杠杆:</span>
+              <span class="value">${signalData.maxLeverage ? signalData.maxLeverage + 'x' : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">最小保证金:</span>
+              <span class="value">${signalData.minMargin ? dataManager.formatNumber(signalData.minMargin) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">人工确认:</span>
+              <span class="value ${signalData.manualConfirmation ? 'confirmation-yes' : 'confirmation-no'}">
+                ${signalData.manualConfirmation ? '✅ 有效' : '❌ 无效'}
+              </span>
+            </div>
+            <div class="execution-item">
+              <span class="label">Setup High:</span>
+              <span class="value">${signalData.setupHigh ? dataManager.formatNumber(signalData.setupHigh) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">Setup Low:</span>
+              <span class="value">${signalData.setupLow ? dataManager.formatNumber(signalData.setupLow) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">ATR(14):</span>
+              <span class="value">${signalData.atr ? dataManager.formatNumber(signalData.atr) : '--'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 构建数据采集详情HTML
+    let dataCollectionHtml = '';
+    if (signalData.dataCollectionRate !== undefined) {
+      const statusClass = signalData.dataCollectionRate >= 95 ? 'data-healthy' : 
+                         signalData.dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
+      dataCollectionHtml = `
+        <div class="data-collection-details">
+          <h5>📊 数据采集状态</h5>
+          <div class="data-collection-item">
+            <span class="label">数据采集率:</span>
+            <span class="value ${statusClass}">${signalData.dataCollectionRate.toFixed(1)}%</span>
+          </div>
+        </div>
+      `;
+    }
+
+    const content = `
+        <div style="padding: 20px;">
+            <h4>${symbol} 信号详情</h4>
+            <div style="margin: 15px 0;">
+              <h5>📈 信号分析</h5>
+              <p><strong>趋势:</strong> <span class="${dataManager.getSignalClass(signalData.trend)}">${signalData.trend || '--'}</span></p>
+              <p><strong>信号:</strong> <span class="${dataManager.getSignalClass(signalData.signal)}">${signalData.signal || '--'}</span></p>
+              <p><strong>执行:</strong> <span class="${dataManager.getExecutionClass(signalData.execution)}">${signalData.execution || '--'}</span></p>
+            </div>
+            ${executionDetailsHtml}
+            ${dataCollectionHtml}
+        </div>
+    `;
+    
+    contentDiv.innerHTML = content;
+  } catch (error) {
+    console.error('加载详细信息失败:', error);
+    contentDiv.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
   }
 }
 

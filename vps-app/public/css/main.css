@@ -1191,3 +1191,79 @@ tr:hover {
   font-weight: bold;
   font-size: 0.9rem;
 }
+
+/* 折叠行样式 */
+.expand-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.expand-btn:hover {
+  background: #5a6fd8;
+  transform: scale(1.1);
+}
+
+.history-row {
+  background: #f8f9fa;
+}
+
+.history-container {
+  padding: 20px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.history-header h4 {
+  margin: 0;
+  color: #333;
+}
+
+.load-history-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.load-history-btn:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.loading {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  padding: 20px;
+}
+
+.error {
+  text-align: center;
+  color: #dc3545;
+  font-weight: bold;
+  padding: 20px;
+}
