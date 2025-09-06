@@ -1647,6 +1647,47 @@
                     </ul>
                 </div>
             </div>
+
+            <div class="rule-category">
+                <h3>📊 模拟交易产生逻辑</h3>
+                <div class="rule-content">
+                    <h4>模拟交易触发条件：</h4>
+                    <ul>
+                        <li><strong>信号模拟交易</strong>：当交易对满足所有小时级别确认条件并生成"多头"或"空头"信号时，系统自动创建模拟交易</li>
+                        <li><strong>执行模拟交易</strong>：当交易对在15分钟级别满足回踩EMA20/50条件并突破setup candle时，系统自动创建模拟交易</li>
+                    </ul>
+
+                    <h4>模拟交易参数设置：</h4>
+                    <ul>
+                        <li><strong>入场价格</strong>：信号生成时的当前价格</li>
+                        <li><strong>止损价格</strong>：setup candle的另一端或1.2×ATR(14)，取更远的位置</li>
+                        <li><strong>止盈价格</strong>：基于2:1盈亏比计算的目标价格</li>
+                        <li><strong>杠杆倍数</strong>：根据止损距离计算的最大安全杠杆</li>
+                        <li><strong>最小保证金</strong>：基于用户设定的最大损失金额计算</li>
+                    </ul>
+
+                    <h4>模拟交易结束条件：</h4>
+                    <ul>
+                        <li><strong>止损触发</strong>：价格触及止损价格，记录为亏损交易</li>
+                        <li><strong>止盈触发</strong>：价格触及止盈价格，记录为盈利交易</li>
+                        <li><strong>时间限制</strong>：入场8小时后未达到+0.5R，强制平仓</li>
+                    </ul>
+
+                    <h4>胜率统计计算：</h4>
+                    <ul>
+                        <li><strong>总交易数</strong>：所有已结束的模拟交易数量</li>
+                        <li><strong>盈利交易数</strong>：止盈触发的交易数量</li>
+                        <li><strong>亏损交易数</strong>：止损触发的交易数量</li>
+                        <li><strong>胜率</strong>：盈利交易数 / 总交易数 × 100%</li>
+                    </ul>
+
+                    <h4>触发原因说明：</h4>
+                    <ul>
+                        <li><strong>📊 信号</strong>：基于小时级别确认条件生成的交易信号</li>
+                        <li><strong>⚡ 执行</strong>：基于15分钟级别执行条件触发的入场执行</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 

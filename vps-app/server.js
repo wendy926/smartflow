@@ -1979,43 +1979,77 @@ class SmartFlowStrategy {
       const cvdAvailable = hourlyConfirmation.cvd.isActive;
       const cvdDirection = hourlyConfirmation.cvd.direction;
 
+      console.log(`🔍 [${symbol}] 信号判断条件:`);
+      console.log(`  - 趋势: ${trend}`);
+      console.log(`  - 小时确认: ${hourlyConfirmation.confirmed}`);
+      console.log(`  - 价格vsVWAP: ${hourlyConfirmation.priceVsVwap}`);
+      console.log(`  - 突破高点: ${hourlyConfirmation.breakoutUp}, 突破低点: ${hourlyConfirmation.breakoutDown}`);
+      console.log(`  - OI变化: ${hourlyConfirmation.oiChange}%`);
+      console.log(`  - CVD可用: ${cvdAvailable}, CVD方向: ${cvdDirection}`);
+
       if (trend === 'UPTREND' &&
         hourlyConfirmation.confirmed &&
         hourlyConfirmation.priceVsVwap > 0 &&
         hourlyConfirmation.breakoutUp &&
-        hourlyConfirmation.oiChange >= 2 &&
+        hourlyConfirmation.oiChange >= 2 && // 恢复严格的OI变化要求：≥2%
         (cvdAvailable ? cvdDirection === 'CVD(+)' : true)) {
         signal = 'LONG';
+        console.log(`✅ [${symbol}] 生成多头信号`);
       } else if (trend === 'DOWNTREND' &&
         hourlyConfirmation.confirmed &&
         hourlyConfirmation.priceVsVwap < 0 &&
         hourlyConfirmation.breakoutDown &&
-        hourlyConfirmation.oiChange <= -2 &&
+        hourlyConfirmation.oiChange <= -2 && // 恢复严格的OI变化要求：≤-2%
         (cvdAvailable ? cvdDirection === 'CVD(-)' : true)) {
         signal = 'SHORT';
+        console.log(`✅ [${symbol}] 生成空头信号`);
+      } else {
+        console.log(`❌ [${symbol}] 不满足信号条件，无信号`);
       }
 
       // 3. 入场执行判断 (15分钟数据)
+      // 按照strategy.md要求：等待回踩EMA20/50或前高/前低支撑，然后突破setup candle触发
       let execution = 'NO_EXECUTION';
+
       if (signal === 'LONG') {
+        console.log(`🔍 [${symbol}] 多头执行条件检查:`);
+        console.log(`  - 回踩EMA20: ${execution15m.pullbackToEma20}`);
+        console.log(`  - 回踩EMA50: ${execution15m.pullbackToEma50}`);
+        console.log(`  - 突破setup高点: ${execution15m.breakSetupHigh}`);
+        console.log(`  - Setup高点: ${execution15m.setupHigh}, Setup低点: ${execution15m.setupLow}`);
+
+        // 多头执行条件：回踩到EMA20/50或前高支撑，然后突破setup candle高点
         if (execution15m.pullbackToEma20 || execution15m.pullbackToEma50) {
           if (execution15m.breakSetupHigh) {
             execution = 'LONG_EXECUTE';
+            console.log(`✅ [${symbol}] 多头执行触发`);
           } else {
             execution = 'LONG_WAIT_PULLBACK';
+            console.log(`⏳ [${symbol}] 多头等待突破setup高点`);
           }
         } else {
           execution = 'LONG_WAIT_PULLBACK';
+          console.log(`⏳ [${symbol}] 多头等待回踩EMA20/50`);
         }
       } else if (signal === 'SHORT') {
+        console.log(`🔍 [${symbol}] 空头执行条件检查:`);
+        console.log(`  - 回踩EMA20: ${execution15m.pullbackToEma20}`);
+        console.log(`  - 回踩EMA50: ${execution15m.pullbackToEma50}`);
+        console.log(`  - 突破setup低点: ${execution15m.breakSetupLow}`);
+        console.log(`  - Setup高点: ${execution15m.setupHigh}, Setup低点: ${execution15m.setupLow}`);
+
+        // 空头执行条件：回踩到EMA20/50或前低支撑，然后突破setup candle低点
         if (execution15m.pullbackToEma20 || execution15m.pullbackToEma50) {
           if (execution15m.breakSetupLow) {
             execution = 'SHORT_EXECUTE';
+            console.log(`✅ [${symbol}] 空头执行触发`);
           } else {
             execution = 'SHORT_WAIT_PULLBACK';
+            console.log(`⏳ [${symbol}] 空头等待突破setup低点`);
           }
         } else {
           execution = 'SHORT_WAIT_PULLBACK';
+          console.log(`⏳ [${symbol}] 空头等待回踩EMA20/50`);
         }
       }
 
@@ -2072,7 +2106,7 @@ class SmartFlowStrategy {
       // 记录历史数据
       try {
         // 如果有信号，记录信号数据并创建模拟交易
-        if (signal !== 'NO_SIGNAL') {
+        if (signal === 'LONG' || signal === 'SHORT') {
           const signalData = {
             trend: trend,
             signal: signal,
@@ -2109,7 +2143,7 @@ class SmartFlowStrategy {
         }
 
         // 如果有入场执行，记录执行数据并创建模拟交易
-        if (execution !== 'NO_SIGNAL') {
+        if (execution !== 'NO_EXECUTION' && execution.includes('EXECUTE')) {
           const executionData = {
             trend: trend,
             signal: signal,
