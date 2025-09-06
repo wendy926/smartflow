@@ -1648,21 +1648,43 @@ class DataMonitor {
    */
   getAnalysisLog(symbol) {
     const log = this.analysisLogs.get(symbol);
-    if (!log) return null;
+    if (!log) {
+      return {
+        symbol: symbol || 'unknown',
+        totalTime: 0,
+        rawData: {},
+        indicators: {},
+        signals: {},
+        simulation: {},
+        errors: ['日志不存在'],
+        success: false,
+        phases: {
+          dataCollection: { startTime: null, endTime: null, success: false },
+          signalAnalysis: { startTime: null, endTime: null, success: false },
+          simulationTrading: { startTime: null, endTime: null, success: false }
+        },
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString()
+      };
+    }
 
     const endTime = Date.now();
     const totalTime = endTime - log.startTime;
 
     return {
-      symbol,
+      symbol: symbol || 'unknown',
       totalTime,
-      rawData: log.rawData,
-      indicators: log.indicators,
-      signals: log.signals,
-      simulation: log.simulation,
-      errors: log.errors,
-      success: log.success,
-      phases: log.phases,
+      rawData: log.rawData || {},
+      indicators: log.indicators || {},
+      signals: log.signals || {},
+      simulation: log.simulation || {},
+      errors: log.errors || [],
+      success: log.success !== undefined ? log.success : false,
+      phases: log.phases || {
+        dataCollection: { startTime: null, endTime: null, success: false },
+        signalAnalysis: { startTime: null, endTime: null, success: false },
+        simulationTrading: { startTime: null, endTime: null, success: false }
+      },
       startTime: new Date(log.startTime).toISOString(),
       endTime: new Date(endTime).toISOString()
     };
@@ -1765,7 +1787,7 @@ class DataMonitor {
       symbols.reduce((sum, symbol) => sum + rates.overall[symbol], 0) / symbols.length : 0;
 
     // 计算详细统计
-    const detailedStats = symbols.map(symbol => {
+    const detailedStats = symbols.filter(symbol => symbol && symbol.trim() !== '').map(symbol => {
       const stats = this.symbolStats.get(symbol) || {};
       const dataCollectionRate = stats.dataCollectionAttempts > 0 ?
         (stats.dataCollectionSuccesses / stats.dataCollectionAttempts * 100) : 0;
@@ -1776,8 +1798,16 @@ class DataMonitor {
       const simulationProgressRate = stats.simulationTriggers > 0 ?
         (stats.simulationInProgress / stats.simulationTriggers * 100) : 0;
 
+      // 检查是否有活跃信号（趋势、信号、入场执行）
+      const hasActiveSignals = stats.signalAnalysisSuccesses > 0 || stats.simulationTriggers > 0 || stats.simulationInProgress > 0;
+
+      // 计算信号活跃度分数（用于排序）
+      const signalActivityScore = (stats.signalAnalysisSuccesses * 10) + (stats.simulationTriggers * 5) + (stats.simulationInProgress * 3);
+
       return {
-        symbol,
+        symbol: symbol || 'unknown',
+        hasActiveSignals,
+        signalActivityScore,
         dataCollection: {
           rate: Math.round(dataCollectionRate * 100) / 100,
           attempts: stats.dataCollectionAttempts || 0,
@@ -1813,6 +1843,21 @@ class DataMonitor {
       };
     });
 
+    // 按信号活跃度排序：有信号的在前，无信号的在后，同类型内按活跃度分数降序
+    detailedStats.sort((a, b) => {
+      // 首先按是否有活跃信号排序
+      if (a.hasActiveSignals && !b.hasActiveSignals) return -1;
+      if (!a.hasActiveSignals && b.hasActiveSignals) return 1;
+
+      // 如果都有信号或都没有信号，按活跃度分数排序
+      if (a.hasActiveSignals && b.hasActiveSignals) {
+        return b.signalActivityScore - a.signalActivityScore;
+      }
+
+      // 都没有信号时，按总体完成率排序
+      return b.overall.rate - a.overall.rate;
+    });
+
     return {
       timestamp: new Date().toISOString(),
       uptime: Math.floor(uptime / 1000), // 秒
@@ -1828,7 +1873,17 @@ class DataMonitor {
       recentLogs: Array.from(this.analysisLogs.values())
         .sort((a, b) => b.startTime - a.startTime)
         .slice(0, 10)
-        .map(log => this.getAnalysisLog(log.symbol || 'unknown'))
+        .map(log => {
+          const analysisLog = this.getAnalysisLog(log.symbol || 'unknown');
+          return analysisLog || {
+            symbol: log.symbol || 'unknown',
+            totalTime: 0,
+            success: false,
+            errors: ['分析日志获取失败'],
+            startTime: new Date().toISOString(),
+            endTime: new Date().toISOString()
+          };
+        })
     };
   }
 
@@ -2960,6 +3015,67 @@ app.post('/api/test-telegram', async (req, res) => {
   } catch (error) {
     console.error('Telegram测试API错误:', error);
     res.status(500).json({ error: 'Telegram测试失败: ' + error.message });
+  }
+});
+
+// 测试监控告警通知
+app.post('/api/test-monitoring-alert', async (req, res) => {
+  try {
+    if (!telegramNotifier.enabled) {
+      return res.status(400).json({ error: 'Telegram未配置' });
+    }
+
+    // 创建模拟的告警数据
+    const mockAlerts = [
+      {
+        type: 'dataCollection',
+        symbol: 'BTCUSDT',
+        rate: 85.5,
+        threshold: 99,
+        message: '⚠️ BTCUSDT 数据收集完成率过低: 85.5% (阈值: 99%)'
+      },
+      {
+        type: 'signalAnalysis',
+        symbol: 'ETHUSDT',
+        rate: 78.2,
+        threshold: 99,
+        message: '⚠️ ETHUSDT 信号判断完成率过低: 78.2% (阈值: 99%)'
+      },
+      {
+        type: 'simulationTrading',
+        symbol: 'LINKUSDT',
+        rate: 65.0,
+        threshold: 99,
+        message: '⚠️ LINKUSDT 模拟交易触发率过低: 65.0% (阈值: 99%)'
+      },
+      {
+        type: 'overall',
+        symbol: 'SOLUSDT',
+        rate: 45.0,
+        threshold: 99,
+        message: '🚨 SOLUSDT 总体完成率严重过低: 45.0% (阈值: 99%)'
+      }
+    ];
+
+    const alertMessage = `🚨 <b>SmartFlow 系统告警</b>\n\n` +
+      mockAlerts.map(alert => alert.message).join('\n') +
+      `\n\n🔍 <b>告警详情：</b>\n` +
+      `• 数据收集阈值: 99%\n` +
+      `• 信号判断阈值: 99%\n` +
+      `• 模拟交易阈值: 99%\n` +
+      `• 总体健康阈值: 99%\n\n` +
+      `📊 <b>建议操作：</b>\n` +
+      `1. 检查API连接状态\n` +
+      `2. 查看系统监控面板\n` +
+      `3. 检查网络连接\n` +
+      `4. 重启相关服务\n\n` +
+      `🌐 <b>网页链接：</b>https://smart.aimaventop.com`;
+
+    await telegramNotifier.sendMessage(alertMessage);
+    res.json({ success: true, message: '测试监控告警已发送' });
+  } catch (error) {
+    console.error('监控告警测试API错误:', error);
+    res.status(500).json({ error: '监控告警测试失败: ' + error.message });
   }
 });
 

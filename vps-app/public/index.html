@@ -3445,6 +3445,9 @@
                     <!-- 交易对详细监控 -->
                     <div class="symbols-detailed-monitoring">
                         <h4>🔍 交易对详细监控</h4>
+                        <div class="sorting-info">
+                            <span class="sorting-note">📊 排序规则：有信号的交易对优先显示，按信号活跃度排序</span>
+                        </div>
                         <div class="symbols-table-container">
                             <table class="symbols-table">
                                 <thead>
@@ -3460,8 +3463,11 @@
                                 </thead>
                                 <tbody>
                                     ${data.symbols.map(symbol => `
-                                        <tr class="symbol-row">
-                                            <td class="symbol-name">${symbol.symbol}</td>
+                                        <tr class="symbol-row ${symbol.hasActiveSignals ? 'has-signals' : 'no-signals'}">
+                                            <td class="symbol-name">
+                                                ${symbol.hasActiveSignals ? '🔥' : '⚪'} ${symbol.symbol}
+                                                ${symbol.hasActiveSignals ? '<span class="signal-indicator">有信号</span>' : ''}
+                                            </td>
                                             <td class="metric-cell">
                                                 <div class="metric-info">
                                                     <div class="metric-rate ${symbol.dataCollection.status}">${symbol.dataCollection.rate}%</div>
@@ -3530,13 +3536,13 @@
                     <div class="recent-logs-section">
                         <h4>📋 最近分析记录</h4>
                         <div class="logs-container">
-                            ${data.recentLogs.map(log => `
-                                <div class="log-item ${log.success ? 'success' : 'error'}">
-                                    <div class="log-symbol">${log.symbol}</div>
-                                    <div class="log-duration">${log.totalTime}ms</div>
-                                    <div class="log-status">${log.success ? '✅ 成功' : '❌ 失败'}</div>
-                                    <div class="log-time">${new Date(log.startTime).toLocaleString()}</div>
-                                    ${!log.success ? `<div class="log-errors">${log.errors.join(', ')}</div>` : ''}
+                            ${data.recentLogs.filter(log => log !== null).map(log => `
+                                <div class="log-item ${log && log.success ? 'success' : 'error'}">
+                                    <div class="log-symbol">${log && log.symbol ? log.symbol : 'Unknown'}</div>
+                                    <div class="log-duration">${log && log.totalTime ? log.totalTime : 0}ms</div>
+                                    <div class="log-status">${log && log.success ? '✅ 成功' : '❌ 失败'}</div>
+                                    <div class="log-time">${log && log.startTime ? new Date(log.startTime).toLocaleString() : 'N/A'}</div>
+                                    ${log && !log.success && log.errors ? `<div class="log-errors">${log.errors.join(', ')}</div>` : ''}
                                 </div>
                             `).join('')}
                         </div>
@@ -3596,6 +3602,21 @@
                         color: #333;
                         border-bottom: 2px solid #667eea;
                         padding-bottom: 5px;
+                    }
+                    .symbols-detailed-monitoring h4 {
+                        margin-bottom: 10px;
+                    }
+                    .sorting-info {
+                        margin-bottom: 15px;
+                        padding: 8px 12px;
+                        background: #e3f2fd;
+                        border-radius: 5px;
+                        border-left: 4px solid #2196f3;
+                    }
+                    .sorting-note {
+                        font-size: 12px;
+                        color: #1976d2;
+                        font-weight: 500;
                     }
                     .overview-cards {
                         display: grid;
@@ -3657,9 +3678,29 @@
                     .symbols-table tr:hover {
                         background: #f8f9fa;
                     }
+                    .symbol-row.has-signals {
+                        background: linear-gradient(90deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 255, 255, 0.1) 100%);
+                        border-left: 4px solid #ffc107;
+                    }
+                    .symbol-row.no-signals {
+                        background: #f8f9fa;
+                        opacity: 0.7;
+                    }
                     .symbol-name {
                         font-weight: bold;
                         color: #333;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .signal-indicator {
+                        background: #ffc107;
+                        color: #856404;
+                        padding: 2px 6px;
+                        border-radius: 10px;
+                        font-size: 10px;
+                        font-weight: bold;
+                        text-transform: uppercase;
                     }
                     .metric-cell {
                         text-align: center;
@@ -4020,6 +4061,9 @@
                             <button class="btn primary" onclick="testTelegramNotification()" ${!status.configured ? 'disabled' : ''}>
                                 🧪 测试通知
                             </button>
+                            <button class="btn warning" onclick="testMonitoringAlert()" ${!status.configured ? 'disabled' : ''}>
+                                🚨 测试监控告警
+                            </button>
                             <button class="btn secondary" onclick="closeTelegramConfig()">
                                 ❌ 关闭
                             </button>
@@ -4051,6 +4095,27 @@
                 }
             } catch (error) {
                 showMessage('测试Telegram通知失败: ' + error.message, 'error');
+            }
+        }
+
+        async function testMonitoringAlert() {
+            try {
+                const response = await fetch('/api/test-monitoring-alert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('测试监控告警已发送，请检查Telegram', 'success');
+                } else {
+                    showMessage('测试监控告警失败: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('测试监控告警失败: ' + error.message, 'error');
             }
         }
 
