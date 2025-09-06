@@ -154,7 +154,7 @@ class SmartFlowApp {
                     <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
                 </td>
                 <td>${signal.symbol}</td>
-                <td class="${dataManager.getSignalClass(signal.trend)}">${signal.trend || '--'}</td>
+                <td class="${dataManager.getTrendClass(signal.trend)}">${signal.trend || '--'}</td>
                 <td class="${dataManager.getSignalClass(signal.signal)}">${signal.signal || '--'}</td>
                 <td class="${dataManager.getExecutionClass(signal.execution)}">${signal.execution || '--'}</td>
                 <td>${dataManager.formatNumber(signal.currentPrice || 0)}</td>

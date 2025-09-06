@@ -173,6 +173,18 @@ class DataManager {
     return date.toLocaleString('zh-CN');
   }
 
+  // 获取趋势状态样式
+  getTrendClass(trend) {
+    switch (trend) {
+      case 'UPTREND':
+        return 'trend-uptrend';
+      case 'DOWNTREND':
+        return 'trend-downtrend';
+      default:
+        return 'trend-range';
+    }
+  }
+
   // 获取信号状态样式
   getSignalClass(signal) {
     switch (signal) {
@@ -188,11 +200,11 @@ class DataManager {
   // 获取执行状态样式
   getExecutionClass(execution) {
     if (execution && execution.includes('EXECUTE')) {
-      return 'signal-long';
+      return 'execution-execute';
     } else if (execution && execution.includes('WAIT')) {
-      return 'signal-warning';
+      return 'execution-wait';
     } else {
-      return 'signal-no';
+      return 'execution-no';
     }
   }
 }

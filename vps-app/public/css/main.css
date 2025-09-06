@@ -201,19 +201,89 @@ tr:hover {
   background: #f8f9fa;
 }
 
+/* 趋势状态样式 */
+.trend-uptrend {
+  background-color: #d4edda;
+  color: #155724;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.trend-downtrend {
+  background-color: #f8d7da;
+  color: #721c24;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.trend-range {
+  background-color: #e2e3e5;
+  color: #6c757d;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
 /* 信号状态样式 */
 .signal-long {
-  color: #28a745;
+  background-color: #d4edda;
+  color: #155724;
   font-weight: 600;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
 }
 
 .signal-short {
-  color: #dc3545;
+  background-color: #f8d7da;
+  color: #721c24;
   font-weight: 600;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
 }
 
 .signal-no {
+  background-color: #e2e3e5;
   color: #6c757d;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+/* 入场执行状态样式 */
+.execution-execute {
+  background-color: #fff3cd;
+  color: #856404;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+  border: 2px solid #ffc107;
+}
+
+.execution-wait {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.execution-no {
+  background-color: #e2e3e5;
+  color: #6c757d;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
 }
 
 /* 模态框样式 */
