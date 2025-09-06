@@ -296,6 +296,29 @@ class CVDManager {
     }
   }
 
+  // 删除交易对连接
+  removeSymbol(symbol) {
+    const index = this.symbols.indexOf(symbol);
+    if (index > -1) {
+      this.symbols.splice(index, 1);
+
+      // 关闭WebSocket连接
+      const ws = this.connections.get(symbol);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+        console.log(`🔌 关闭 ${symbol} WebSocket 连接`);
+      }
+
+      // 移除连接和数据
+      this.connections.delete(symbol);
+      this.cvdData.delete(symbol);
+
+      console.log(`➖ 删除交易对连接: ${symbol}`);
+      return true;
+    }
+    return false;
+  }
+
   // 检查连接是否已建立
   isConnected(symbol) {
     const ws = this.connections.get(symbol);
@@ -390,47 +413,215 @@ class DataCache {
   }
 }
 
-// API 调用限制管理
-class APIRateLimiter {
+// 智能API限速管理器
+class SmartAPIRateLimiter {
   constructor() {
     this.requests = [];
-    this.maxRequestsPerMinute = 1200; // Binance 限制
-    this.maxRequestsPerSecond = 10;   // 保守限制
     this.dataCache = new DataCache();
+
+    // Binance官方限速规则
+    this.limits = {
+      // REST API限制
+      rest: {
+        requestsPerMinute: 100,        // IP限制：每分钟100个请求
+        weightPerMinute: 2400,         // 权重限制：每分钟2400个权重
+        ordersPer10Seconds: 300,       // 订单限制：每10秒300个订单
+        ordersPerMinute: 1200          // 订单限制：每分钟1200个订单
+      },
+      // WebSocket限制
+      websocket: {
+        maxConnections: 5,             // 最大连接数
+        heartbeatInterval: 180000,     // 心跳间隔：3分钟
+        connectionTimeout: 600000      // 连接超时：10分钟
+      }
+    };
+
+    // 请求权重映射（根据Binance文档）
+    this.requestWeights = {
+      'klines': 1,                    // K线数据
+      'ticker/24hr': 1,               // 24小时价格
+      'premiumIndex': 1,              // 资金费率
+      'openInterest': 1,              // 持仓量
+      'openInterestHist': 1,          // 持仓量历史
+      'ticker/price': 1               // 实时价格
+    };
+
+    // 请求队列管理
+    this.requestQueue = [];
+    this.processing = false;
+    this.symbolPriorities = new Map(); // 交易对优先级
   }
 
-  async waitForSlot() {
+  // 设置交易对优先级
+  setSymbolPriority(symbol, priority = 1) {
+    this.symbolPriorities.set(symbol, priority);
+  }
+
+  // 获取交易对优先级
+  getSymbolPriority(symbol) {
+    return this.symbolPriorities.get(symbol) || 1;
+  }
+
+  // 计算请求权重
+  getRequestWeight(endpoint) {
+    return this.requestWeights[endpoint] || 1;
+  }
+
+  // 检查限速状态
+  checkRateLimit() {
     const now = Date.now();
+    const oneMinuteAgo = now - 60000;
+    const tenSecondsAgo = now - 10000;
 
-    // 清理1分钟前的请求记录
-    this.requests = this.requests.filter(time => now - time < 60000);
+    // 清理过期请求记录
+    this.requests = this.requests.filter(req => req.timestamp > oneMinuteAgo);
 
-    // 检查每分钟限制
-    if (this.requests.length >= this.maxRequestsPerMinute) {
-      const oldestRequest = Math.min(...this.requests);
-      const waitTime = 60000 - (now - oldestRequest);
-      if (waitTime > 0) {
-        console.log(`⏳ API 限制：等待 ${waitTime}ms`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      }
-    }
+    const recentRequests = this.requests.filter(req => req.timestamp > oneMinuteAgo);
+    const recentWeight = recentRequests.reduce((sum, req) => sum + req.weight, 0);
+    const tenSecondRequests = this.requests.filter(req => req.timestamp > tenSecondsAgo);
 
-    // 检查每秒限制
-    const recentRequests = this.requests.filter(time => now - time < 1000);
-    if (recentRequests.length >= this.maxRequestsPerSecond) {
-      const waitTime = 1000 - (now - Math.min(...recentRequests));
-      if (waitTime > 0) {
-        console.log(`⏳ 每秒限制：等待 ${waitTime}ms`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      }
-    }
-
-    // 记录当前请求
-    this.requests.push(now);
+    return {
+      requestsPerMinute: recentRequests.length,
+      weightPerMinute: recentWeight,
+      requestsPer10Seconds: tenSecondRequests.length,
+      canMakeRequest: recentRequests.length < this.limits.rest.requestsPerMinute &&
+        recentWeight < this.limits.rest.weightPerMinute &&
+        tenSecondRequests.length < this.limits.rest.ordersPer10Seconds
+    };
   }
 
-  // 带缓存的 API 调用
-  async cachedCall(cacheKey, apiCall) {
+  // 智能等待策略
+  async waitForSlot(endpoint, symbol) {
+    const weight = this.getRequestWeight(endpoint);
+    const priority = this.getSymbolPriority(symbol);
+
+    while (true) {
+      const rateLimitStatus = this.checkRateLimit();
+
+      if (rateLimitStatus.canMakeRequest) {
+        // 记录请求
+        this.requests.push({
+          timestamp: Date.now(),
+          weight: weight,
+          symbol: symbol,
+          endpoint: endpoint,
+          priority: priority
+        });
+        return;
+      }
+
+      // 计算等待时间
+      const now = Date.now();
+      const oldestRequest = Math.min(...this.requests.map(req => req.timestamp));
+      const waitTime = Math.max(
+        60000 - (now - oldestRequest), // 每分钟限制
+        1000 - (now - Math.min(...this.requests.filter(req => req.timestamp > now - 1000).map(req => req.timestamp))) // 每10秒限制
+      );
+
+      if (waitTime > 0) {
+        console.log(`⏳ 限速等待: ${waitTime}ms (${symbol} - ${endpoint})`);
+        await new Promise(resolve => setTimeout(resolve, Math.min(waitTime, 5000))); // 最多等待5秒
+      }
+    }
+  }
+
+  // 交易对数据获取队列
+  async queueSymbolData(symbol, dataTypes) {
+    const symbolKey = `${symbol}_${Date.now()}`;
+    const priority = this.getSymbolPriority(symbol);
+
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push({
+        symbol,
+        dataTypes,
+        priority,
+        timestamp: Date.now(),
+        resolve,
+        reject,
+        key: symbolKey
+      });
+
+      // 按优先级排序队列
+      this.requestQueue.sort((a, b) => b.priority - a.priority);
+
+      // 启动队列处理
+      this.processQueue();
+    });
+  }
+
+  // 处理请求队列
+  async processQueue() {
+    if (this.processing || this.requestQueue.length === 0) {
+      return;
+    }
+
+    this.processing = true;
+
+    while (this.requestQueue.length > 0) {
+      const request = this.requestQueue.shift();
+
+      try {
+        const results = {};
+
+        // 为每个数据类型获取数据
+        for (const dataType of request.dataTypes) {
+          const cacheKey = `${request.symbol}_${dataType}_${Date.now()}`;
+          const endpoint = this.getEndpointForDataType(dataType);
+
+          // 等待限速槽位
+          await this.waitForSlot(endpoint, request.symbol);
+
+          // 获取数据
+          const data = await this.fetchDataForType(request.symbol, dataType);
+          results[dataType] = data;
+
+          // 缓存数据
+          this.dataCache.set(cacheKey, data);
+        }
+
+        request.resolve(results);
+      } catch (error) {
+        request.reject(error);
+      }
+
+      // 处理间隔，避免过于频繁
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    this.processing = false;
+  }
+
+  // 获取数据类型对应的API端点
+  getEndpointForDataType(dataType) {
+    const endpointMap = {
+      'klines': 'klines',
+      'ticker': 'ticker/24hr',
+      'funding': 'premiumIndex',
+      'openInterest': 'openInterest',
+      'openInterestHist': 'openInterestHist',
+      'price': 'ticker/price'
+    };
+    return endpointMap[dataType] || 'klines';
+  }
+
+  // 为特定类型获取数据
+  async fetchDataForType(symbol, dataType) {
+    const endpoint = this.getEndpointForDataType(dataType);
+    const weight = this.getRequestWeight(endpoint);
+
+    // 这里需要调用实际的API获取方法
+    // 具体实现将在BinanceAPI类中完成
+    return await this.callBinanceAPI(symbol, endpoint);
+  }
+
+  // 调用Binance API
+  async callBinanceAPI(symbol, endpoint) {
+    // 这个方法将在BinanceAPI类中实现
+    throw new Error('需要在BinanceAPI类中实现');
+  }
+
+  // 带缓存的 API 调用（保持向后兼容）
+  async cachedCall(cacheKey, apiCall, endpoint = 'klines', symbol = 'UNKNOWN') {
     // 先检查缓存
     const cached = this.dataCache.get(cacheKey);
     if (cached) {
@@ -439,7 +630,7 @@ class APIRateLimiter {
     }
 
     // 等待 API 调用槽位
-    await this.waitForSlot();
+    await this.waitForSlot(endpoint, symbol);
 
     // 执行 API 调用
     const data = await apiCall();
@@ -454,7 +645,7 @@ class APIRateLimiter {
 // Binance API 数据获取
 class BinanceAPI {
   static BASE_URL = 'https://fapi.binance.com';
-  static rateLimiter = new APIRateLimiter();
+  static rateLimiter = new SmartAPIRateLimiter();
 
   static async getKlines(symbol, interval, limit = 500) {
     try {
@@ -465,7 +656,7 @@ class BinanceAPI {
           timeout: 10000
         });
         return response.data;
-      });
+      }, 'klines', symbol);
     } catch (error) {
       console.error(`[BinanceAPI] K线数据获取失败: ${error.message}`);
       throw error;
@@ -481,7 +672,7 @@ class BinanceAPI {
           timeout: 10000
         });
         return response.data;
-      });
+      }, 'premiumIndex', symbol);
     } catch (error) {
       console.error(`[BinanceAPI] 资金费率获取失败: ${error.message}`);
       throw error;
@@ -497,7 +688,7 @@ class BinanceAPI {
           timeout: 10000
         });
         return response.data;
-      });
+      }, 'openInterest', symbol);
     } catch (error) {
       console.error(`[BinanceAPI] 持仓量获取失败: ${error.message}`);
       throw error;
@@ -513,7 +704,7 @@ class BinanceAPI {
           timeout: 10000
         });
         return response.data;
-      });
+      }, 'ticker/24hr', symbol);
     } catch (error) {
       console.error(`[BinanceAPI] 24小时价格获取失败: ${error.message}`);
       throw error;
@@ -532,7 +723,7 @@ class BinanceAPI {
           time: d.timestamp,
           oi: parseFloat(d.sumOpenInterest)
         }));
-      });
+      }, 'openInterestHist', symbol);
     } catch (error) {
       console.error(`[BinanceAPI] 持仓量历史获取失败: ${error.message}`);
       throw error;
@@ -1108,13 +1299,155 @@ class DataMonitor {
   }
 }
 
+// 智能数据获取管理器
+class SmartDataManager {
+  constructor() {
+    this.rateLimiter = new SmartAPIRateLimiter();
+    this.symbolDataCache = new Map(); // 交易对数据缓存
+    this.pendingRequests = new Map(); // 待处理请求
+    this.retryQueue = new Map(); // 重试队列
+  }
+
+  // 为交易对设置优先级
+  setSymbolPriority(symbol, priority = 1) {
+    this.rateLimiter.setSymbolPriority(symbol, priority);
+  }
+
+  // 获取交易对的所有必需数据
+  async getSymbolData(symbol, dataTypes = ['klines', 'ticker', 'funding', 'openInterest', 'openInterestHist']) {
+    const cacheKey = `${symbol}_${dataTypes.join('_')}`;
+
+    // 检查缓存
+    if (this.symbolDataCache.has(cacheKey)) {
+      const cached = this.symbolDataCache.get(cacheKey);
+      if (Date.now() - cached.timestamp < 30000) { // 30秒缓存
+        return cached.data;
+      }
+    }
+
+    // 检查是否有待处理的请求
+    if (this.pendingRequests.has(cacheKey)) {
+      return await this.pendingRequests.get(cacheKey);
+    }
+
+    // 创建新的请求
+    const requestPromise = this.fetchSymbolDataWithRetry(symbol, dataTypes);
+    this.pendingRequests.set(cacheKey, requestPromise);
+
+    try {
+      const data = await requestPromise;
+
+      // 缓存结果
+      this.symbolDataCache.set(cacheKey, {
+        data,
+        timestamp: Date.now()
+      });
+
+      return data;
+    } finally {
+      this.pendingRequests.delete(cacheKey);
+    }
+  }
+
+  // 带重试的数据获取
+  async fetchSymbolDataWithRetry(symbol, dataTypes, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const results = {};
+
+        // 按优先级获取数据
+        const priorityOrder = this.getDataPriorityOrder(dataTypes);
+
+        for (const dataType of priorityOrder) {
+          try {
+            results[dataType] = await this.fetchSingleDataType(symbol, dataType);
+          } catch (error) {
+            console.warn(`获取 ${symbol} ${dataType} 失败 (尝试 ${attempt}/${maxRetries}):`, error.message);
+
+            if (attempt === maxRetries) {
+              throw new Error(`获取 ${symbol} ${dataType} 失败: ${error.message}`);
+            }
+
+            // 等待后重试
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          }
+        }
+
+        return results;
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error;
+        }
+
+        // 指数退避重试
+        const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+        console.log(`重试 ${symbol} 数据获取，等待 ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+
+  // 获取数据类型优先级顺序
+  getDataPriorityOrder(dataTypes) {
+    const priority = {
+      'klines': 1,      // 最高优先级
+      'ticker': 2,      // 价格数据
+      'funding': 3,     // 资金费率
+      'openInterest': 4, // 持仓量
+      'openInterestHist': 5 // 持仓量历史
+    };
+
+    return dataTypes.sort((a, b) => (priority[a] || 999) - (priority[b] || 999));
+  }
+
+  // 获取单个数据类型
+  async fetchSingleDataType(symbol, dataType) {
+    const endpoint = this.rateLimiter.getEndpointForDataType(dataType);
+    const cacheKey = `${symbol}_${dataType}_${Date.now()}`;
+
+    return await this.rateLimiter.cachedCall(cacheKey, async () => {
+      return await this.callBinanceAPI(symbol, endpoint);
+    }, endpoint, symbol);
+  }
+
+  // 调用Binance API
+  async callBinanceAPI(symbol, endpoint) {
+    const url = `${BinanceAPI.BASE_URL}/fapi/v1/${endpoint}`;
+    const params = { symbol };
+
+    const response = await axios.get(url, {
+      params,
+      timeout: 15000
+    });
+
+    return response.data;
+  }
+
+  // 清理过期缓存
+  cleanExpiredCache() {
+    const now = Date.now();
+    for (const [key, value] of this.symbolDataCache.entries()) {
+      if (now - value.timestamp > 300000) { // 5分钟过期
+        this.symbolDataCache.delete(key);
+      }
+    }
+  }
+}
+
 // 交易策略
 class SmartFlowStrategy {
   static dataMonitor = new DataMonitor();
+  static dataManager = new SmartDataManager();
 
-  static async analyzeDailyTrend(symbol) {
+  static async analyzeDailyTrend(symbol, symbolData = null) {
     try {
-      const klines = await BinanceAPI.getKlines(symbol, '1d', 250);
+      let klines;
+      if (symbolData && symbolData.klines) {
+        klines = symbolData.klines;
+      } else {
+        klines = await BinanceAPI.getKlines(symbol, '1d', 250);
+      }
+
       if (!klines || klines.length < 200) {
         this.dataMonitor.recordRawData(symbol, '日线K线', null, false, new Error('日线数据不足'));
         throw new Error('日线数据不足');
@@ -1154,9 +1487,15 @@ class SmartFlowStrategy {
     }
   }
 
-  static async analyzeHourlyConfirmation(symbol) {
+  static async analyzeHourlyConfirmation(symbol, symbolData = null) {
     try {
-      const klines = await BinanceAPI.getKlines(symbol, '1h', 200);
+      let klines;
+      if (symbolData && symbolData.klines) {
+        klines = symbolData.klines;
+      } else {
+        klines = await BinanceAPI.getKlines(symbol, '1h', 200);
+      }
+
       if (!klines || klines.length < 20) {
         this.dataMonitor.recordRawData(symbol, '小时线K线', null, false, new Error('小时数据不足'));
         throw new Error('小时数据不足');
@@ -1188,7 +1527,13 @@ class SmartFlowStrategy {
       const breakoutDown = currentPrice < Math.min(...lows20);
 
       // 获取 OI 6小时变化
-      const oiHist = await BinanceAPI.getOpenInterestHist(symbol, '1h', 7);
+      let oiHist;
+      if (symbolData && symbolData.openInterestHist) {
+        oiHist = symbolData.openInterestHist;
+      } else {
+        oiHist = await BinanceAPI.getOpenInterestHist(symbol, '1h', 7);
+      }
+
       if (!oiHist || oiHist.length < 2) {
         this.dataMonitor.recordRawData(symbol, '持仓量历史', null, false, new Error('OI历史数据不足'));
         throw new Error('OI历史数据不足');
@@ -1198,7 +1543,13 @@ class SmartFlowStrategy {
       const oiChange = (oiHist[oiHist.length - 1].oi - oiHist[0].oi) / oiHist[0].oi * 100;
 
       // 获取资金费率
-      const fundingRate = await BinanceAPI.getFundingRate(symbol);
+      let fundingRate;
+      if (symbolData && symbolData.funding) {
+        fundingRate = symbolData.funding;
+      } else {
+        fundingRate = await BinanceAPI.getFundingRate(symbol);
+      }
+
       if (!fundingRate || !fundingRate.lastFundingRate) {
         this.dataMonitor.recordRawData(symbol, '资金费率', null, false, new Error('资金费率数据获取失败'));
         throw new Error('资金费率数据获取失败');
@@ -1249,9 +1600,15 @@ class SmartFlowStrategy {
     }
   }
 
-  static async analyze15mExecution(symbol) {
+  static async analyze15mExecution(symbol, symbolData = null) {
     try {
-      const klines = await BinanceAPI.getKlines(symbol, '15m', 96);
+      let klines;
+      if (symbolData && symbolData.klines) {
+        klines = symbolData.klines;
+      } else {
+        klines = await BinanceAPI.getKlines(symbol, '15m', 96);
+      }
+
       if (!klines || klines.length < 50) {
         this.dataMonitor.recordRawData(symbol, '15分钟K线', null, false, new Error('15分钟数据不足'));
         throw new Error('15分钟数据不足');
@@ -1331,12 +1688,24 @@ class SmartFlowStrategy {
       // 开始数据监控
       this.dataMonitor.startAnalysis(symbol);
 
-      const [dailyTrend, hourlyConfirmation, execution15m, ticker24hr] = await Promise.all([
-        this.analyzeDailyTrend(symbol),
-        this.analyzeHourlyConfirmation(symbol),
-        this.analyze15mExecution(symbol),
-        BinanceAPI.get24hrTicker(symbol)
+      // 设置交易对优先级（默认交易对优先级更高）
+      const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT', 'SOLUSDT'];
+      const priority = defaultSymbols.includes(symbol) ? 10 : 5;
+      this.dataManager.setSymbolPriority(symbol, priority);
+
+      // 使用智能数据管理器获取所有必需数据
+      const symbolData = await this.dataManager.getSymbolData(symbol, [
+        'klines', 'ticker', 'funding', 'openInterest', 'openInterestHist'
       ]);
+
+      // 并行分析各个组件
+      const [dailyTrend, hourlyConfirmation, execution15m] = await Promise.all([
+        this.analyzeDailyTrend(symbol, symbolData),
+        this.analyzeHourlyConfirmation(symbol, symbolData),
+        this.analyze15mExecution(symbol, symbolData)
+      ]);
+
+      const ticker24hr = symbolData.ticker;
 
       // 记录24小时价格数据
       if (ticker24hr) {
@@ -1584,6 +1953,7 @@ const simulationManager = new SimulationManager(dbManager.db);
 setInterval(() => {
   console.log('🔄 定时刷新数据缓存...');
   BinanceAPI.rateLimiter.dataCache.clear();
+  SmartFlowStrategy.dataManager.cleanExpiredCache();
 }, 5 * 60 * 1000);
 
 // 定期清理历史数据 (每天凌晨2点)
@@ -1841,12 +2211,32 @@ app.post('/api/clean-old-data', async (req, res) => {
 app.get('/api/analyze/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
+
+    // 验证交易对格式
+    if (!symbol || !symbol.endsWith('USDT')) {
+      return res.status(400).json({
+        symbol,
+        trend: 'ERROR',
+        signal: 'ERROR',
+        execution: 'ERROR',
+        currentPrice: 0,
+        dataError: '无效的交易对格式'
+      });
+    }
+
     const result = await SmartFlowStrategy.analyzeAll(symbol);
     res.json(result);
   } catch (error) {
+    console.error(`分析 ${req.params.symbol} 失败:`, error);
+
+    // 确保返回正确的JSON格式
     res.status(500).json({
-      error: '分析失败',
-      message: error.message
+      symbol: req.params.symbol || 'UNKNOWN',
+      trend: 'ERROR',
+      signal: 'ERROR',
+      execution: 'ERROR',
+      currentPrice: 0,
+      dataError: `分析失败: ${error.message}`
     });
   }
 });
@@ -1861,6 +2251,83 @@ app.get('/api/analyze-all', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: '批量分析失败',
+      message: error.message
+    });
+  }
+});
+
+// 获取当前交易对列表
+app.get('/api/symbols', (req, res) => {
+  try {
+    const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT', 'SOLUSDT'];
+    const allSymbols = cvdManager.symbols;
+    const customSymbols = allSymbols.filter(symbol => !defaultSymbols.includes(symbol));
+
+    res.json({
+      success: true,
+      data: {
+        defaultSymbols,
+        customSymbols,
+        allSymbols
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: '获取交易对列表失败',
+      message: error.message
+    });
+  }
+});
+
+// 删除交易对
+app.delete('/api/symbol/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+
+    if (!symbol) {
+      return res.status(400).json({
+        error: '缺少交易对参数',
+        message: '请提供 symbol 参数'
+      });
+    }
+
+    // 验证交易对格式
+    if (!symbol.endsWith('USDT')) {
+      return res.status(400).json({
+        error: '交易对格式错误',
+        message: '交易对必须以 USDT 结尾'
+      });
+    }
+
+    // 检查是否为默认交易对（不允许删除）
+    const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT', 'SOLUSDT'];
+    if (defaultSymbols.includes(symbol)) {
+      return res.status(400).json({
+        error: '不允许删除默认交易对',
+        message: '默认交易对不能删除'
+      });
+    }
+
+    // 从CVD管理器删除交易对
+    const removed = cvdManager.removeSymbol(symbol);
+
+    if (removed) {
+      res.json({
+        success: true,
+        message: `交易对 ${symbol} 已成功删除`
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: '交易对不存在',
+        message: `交易对 ${symbol} 不存在`
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: '删除交易对失败',
       message: error.message
     });
   }
@@ -1958,20 +2425,31 @@ app.get('/api/cvd-status/:symbol', (req, res) => {
 app.get('/api/rate-limit-status', (req, res) => {
   try {
     const now = Date.now();
-    const recentRequests = BinanceAPI.rateLimiter.requests.filter(time => now - time < 60000);
+    const rateLimitStatus = BinanceAPI.rateLimiter.checkRateLimit();
     const cacheSize = BinanceAPI.rateLimiter.dataCache.cache.size;
+    const queueSize = BinanceAPI.rateLimiter.requestQueue.length;
+    const processing = BinanceAPI.rateLimiter.processing;
 
     res.json({
       timestamp: new Date().toISOString(),
       rateLimit: {
-        requestsLastMinute: recentRequests.length,
-        maxRequestsPerMinute: BinanceAPI.rateLimiter.maxRequestsPerMinute,
-        maxRequestsPerSecond: BinanceAPI.rateLimiter.maxRequestsPerSecond,
-        cacheSize: cacheSize
+        requestsPerMinute: rateLimitStatus.requestsPerMinute,
+        weightPerMinute: rateLimitStatus.weightPerMinute,
+        requestsPer10Seconds: rateLimitStatus.requestsPer10Seconds,
+        canMakeRequest: rateLimitStatus.canMakeRequest,
+        limits: BinanceAPI.rateLimiter.limits.rest
+      },
+      queue: {
+        size: queueSize,
+        processing: processing
       },
       cache: {
         size: cacheSize,
         timeout: BinanceAPI.rateLimiter.dataCache.cacheTimeout
+      },
+      dataManager: {
+        symbolCacheSize: SmartFlowStrategy.dataManager.symbolDataCache.size,
+        pendingRequests: SmartFlowStrategy.dataManager.pendingRequests.size
       }
     });
   } catch (error) {

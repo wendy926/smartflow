@@ -295,6 +295,15 @@
             border: 1px solid #f5c6cb;
         }
 
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #ffeaa7;
+        }
+
         .success {
             background: #d4edda;
             color: #155724;
@@ -775,9 +784,9 @@
             color: white;
             border: none;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 12px;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             margin-left: 8px;
@@ -790,6 +799,13 @@
         .remove-symbol:hover {
             background: #d32f2f;
             transform: scale(1.1);
+        }
+
+        .symbol-status {
+            font-size: 10px;
+            color: #666;
+            margin-left: 5px;
+            font-weight: normal;
         }
 
         .no-symbols {
@@ -1493,6 +1509,9 @@
             <button class="btn calculator-btn" onclick="openRollupCalculator()">
                 📊 斐波拉契滚仓计算器
             </button>
+            <button class="btn symbols-list-btn" onclick="showSymbolsList()">
+                📋 交易对管理 (${allSymbols.length})
+            </button>
             <button class="btn secondary" onclick="toggleSimulationHistory()">
                 📈 模拟交易历史
             </button>
@@ -1630,19 +1649,71 @@
             tableBody.innerHTML = '<tr><td colspan="11" class="loading">分析中...</td></tr>';
 
             try {
-                // 使用动态交易对列表
-                const promises = allSymbols.map(symbol =>
-                    fetch(`/api/analyze/${symbol}`)
-                        .then(response => response.json())
-                        .catch(error => ({
+                // 使用动态交易对列表，添加延迟避免速率限制
+                const promises = allSymbols.map(async (symbol, index) => {
+                    try {
+                        // 添加延迟避免同时请求过多
+                        if (index > 0) {
+                            await new Promise(resolve => setTimeout(resolve, index * 200));
+                        }
+
+                        const response = await fetch(`/api/analyze/${symbol}`);
+
+                        // 检查响应状态
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error(`${symbol} API错误:`, response.status, errorText);
+
+                            // 特殊处理速率限制错误
+                            if (response.status === 429) {
+                                return {
+                                    symbol,
+                                    trend: 'RATE_LIMIT',
+                                    signal: 'RATE_LIMIT',
+                                    execution: 'RATE_LIMIT',
+                                    currentPrice: 0,
+                                    dataError: `请求过于频繁，请稍后重试`
+                                };
+                            }
+
+                            return {
+                                symbol,
+                                trend: 'ERROR',
+                                signal: 'ERROR',
+                                execution: 'ERROR',
+                                currentPrice: 0,
+                                dataError: `API错误 ${response.status}: ${errorText}`
+                            };
+                        }
+
+                        // 尝试解析JSON
+                        const data = await response.json();
+                        return data;
+                    } catch (error) {
+                        console.error(`${symbol} 请求失败:`, error);
+
+                        // 特殊处理JSON解析错误
+                        if (error.message.includes('Unexpected token')) {
+                            return {
+                                symbol,
+                                trend: 'PARSE_ERROR',
+                                signal: 'PARSE_ERROR',
+                                execution: 'PARSE_ERROR',
+                                currentPrice: 0,
+                                dataError: `数据解析错误，可能是服务器响应格式异常`
+                            };
+                        }
+
+                        return {
                             symbol,
                             trend: 'ERROR',
                             signal: 'ERROR',
                             execution: 'ERROR',
                             currentPrice: 0,
                             dataError: `分析失败: ${error.message}`
-                        }))
-                );
+                        };
+                    }
+                });
 
                 const signals = await Promise.all(promises);
                 displaySignals(signals);
@@ -1844,12 +1915,27 @@
 
             tableBody.innerHTML = signals.map(signal => {
                 // 处理数据错误情况
-                if (signal.trend === 'DATA_ERROR' || signal.trend === 'ERROR') {
+                if (signal.trend === 'DATA_ERROR' || signal.trend === 'ERROR' ||
+                    signal.trend === 'RATE_LIMIT' || signal.trend === 'PARSE_ERROR') {
+
+                    let errorClass = 'error';
+                    let errorIcon = '❌';
+
+                    if (signal.trend === 'RATE_LIMIT') {
+                        errorClass = 'warning';
+                        errorIcon = '⏰';
+                    } else if (signal.trend === 'PARSE_ERROR') {
+                        errorClass = 'error';
+                        errorIcon = '🔧';
+                    }
+
                     return `
                         <tr>
                             <td></td>
                             <td><strong>${signal.symbol}</strong></td>
-                            <td colspan="9" class="error">数据错误: ${signal.dataError || '未知错误'}</td>
+                            <td colspan="9" class="${errorClass}">
+                                ${errorIcon} ${signal.dataError || '未知错误'}
+                            </td>
                         </tr>
                     `;
                 }
@@ -2429,13 +2515,16 @@
 
             const listHtml = `
                 <div class="symbols-list">
-                    <h3>📋 当前交易对列表</h3>
+                    <h3>📋 交易对管理</h3>
                     <div class="symbols-content">
                         <div class="default-symbols">
                             <h4>默认交易对 (${defaultSymbols.length})</h4>
                             <div class="symbols-grid">
                                 ${defaultSymbols.map(symbol =>
-                `<span class="symbol-tag default-tag">${symbol}</span>`
+                `<span class="symbol-tag default-tag">
+                    ${symbol}
+                    <span class="symbol-status">🔒 系统默认</span>
+                </span>`
             ).join('')}
                             </div>
                         </div>
@@ -2445,9 +2534,9 @@
                                 ${customSymbolsList.length > 0 ?
                     customSymbolsList.map(symbol =>
                         `<span class="symbol-tag custom-tag">
-                                            ${symbol}
-                                            <button class="remove-symbol" onclick="removeCustomSymbol('${symbol}')" title="移除">×</button>
-                                        </span>`
+                            ${symbol}
+                            <button class="remove-symbol" onclick="removeCustomSymbol('${symbol}')" title="删除交易对">🗑️</button>
+                        </span>`
                     ).join('') :
                     '<span class="no-symbols">暂无自定义交易对</span>'
                 }
@@ -2460,24 +2549,47 @@
                 </div>
             `;
 
-            showModal('交易对列表', listHtml);
+            showModal('交易对管理', listHtml);
         }
 
         // 移除自定义交易对
-        function removeCustomSymbol(symbol) {
+        async function removeCustomSymbol(symbol) {
             if (confirm(`确定要移除交易对 ${symbol} 吗？`)) {
-                const index = customSymbols.indexOf(symbol);
-                if (index > -1) {
-                    customSymbols.splice(index, 1);
-                    allSymbols.splice(allSymbols.indexOf(symbol), 1);
+                try {
+                    // 调用后端API删除交易对
+                    const response = await fetch(`/api/symbol/${symbol}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
 
-                    // 更新按钮显示
-                    updateSymbolsListButton();
+                    const result = await response.json();
 
-                    // 刷新数据
-                    refreshAllSignals();
+                    if (result.success) {
+                        // 从前端列表中移除
+                        const index = customSymbols.indexOf(symbol);
+                        if (index > -1) {
+                            customSymbols.splice(index, 1);
+                            allSymbols.splice(allSymbols.indexOf(symbol), 1);
+                        }
 
-                    showMessage(`${symbol} 已移除`, 'success');
+                        // 更新按钮显示
+                        updateSymbolsListButton();
+
+                        // 刷新数据
+                        refreshAllSignals();
+
+                        showMessage(`${symbol} 已成功移除`, 'success');
+
+                        // 关闭模态框
+                        closeSymbolsList();
+                    } else {
+                        showMessage(`移除失败: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('删除交易对失败:', error);
+                    showMessage(`删除失败: ${error.message}`, 'error');
                 }
             }
         }
@@ -2486,7 +2598,7 @@
         function updateSymbolsListButton() {
             const button = document.querySelector('.symbols-list-btn');
             if (button) {
-                button.textContent = `📋 交易对列表 (${allSymbols.length})`;
+                button.textContent = `📋 交易对管理 (${allSymbols.length})`;
             }
         }
 
@@ -2591,8 +2703,30 @@
             }
         }
 
+        // 同步交易对列表
+        async function syncSymbolsList() {
+            try {
+                const response = await fetch('/api/symbols');
+                const result = await response.json();
+
+                if (result.success) {
+                    // 更新全局变量
+                    allSymbols = result.data.allSymbols;
+                    customSymbols = result.data.customSymbols;
+
+                    // 更新按钮显示
+                    updateSymbolsListButton();
+
+                    console.log('交易对列表已同步:', allSymbols);
+                }
+            } catch (error) {
+                console.error('同步交易对列表失败:', error);
+            }
+        }
+
         // 页面加载时自动刷新一次
         document.addEventListener('DOMContentLoaded', () => {
+            syncSymbolsList();
             refreshAllSignals();
             loadWinRateStats();
         });
