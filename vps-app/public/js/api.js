@@ -90,6 +90,11 @@ class APIClient {
     return await this.request('/api/test-monitoring-alert', { method: 'POST' });
   }
 
+  // 测试数据质量告警
+  async testDataQualityAlert() {
+    return await this.request('/api/test-data-quality-alert', { method: 'POST' });
+  }
+
   // 获取Telegram配置状态
   async getTelegramConfig() {
     return await this.request('/api/telegram-config');

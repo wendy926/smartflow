@@ -24,6 +24,8 @@ class DataMonitor {
     this.dataQualityIssues = new Map(); // 数据质量问题记录
     this.refreshInterval = 30000; // 30秒
     this.lastRefreshTime = new Map();
+    this.lastAlertTime = new Map(); // 记录上次告警时间，避免重复告警
+    this.alertCooldown = 30 * 60 * 1000; // 30分钟冷却时间
   }
 
   startAnalysis(symbol) {
@@ -520,17 +522,63 @@ class DataMonitor {
     // 检查整体系统告警 - 使用实际计算的数据收集率
     const dataCollectionRate = summary.completionRates.dataCollection;
     const signalAnalysisRate = summary.completionRates.signalAnalysis;
+    const dataValidation = summary.dataValidation;
+    const dataQuality = summary.dataQuality;
 
-    if (dataCollectionRate < this.alertThresholds.dataCollection || signalAnalysisRate < this.alertThresholds.signalAnalysis) {
-      const alertMessage = `🚨 <b>SmartFlow 系统告警</b>\n\n` +
+    // 检查是否需要发送告警
+    const needsAlert = dataCollectionRate < this.alertThresholds.dataCollection || 
+                      signalAnalysisRate < this.alertThresholds.signalAnalysis ||
+                      dataValidation.hasErrors ||
+                      dataQuality.hasIssues;
+
+    if (needsAlert) {
+      // 检查冷却时间，避免重复告警
+      const now = Date.now();
+      const lastAlert = this.lastAlertTime.get('system') || 0;
+      
+      if (now - lastAlert < this.alertCooldown) {
+        console.log('⏰ 系统告警在冷却期内，跳过发送');
+        return;
+      }
+
+      // 更新告警时间
+      this.lastAlertTime.set('system', now);
+      let alertMessage = `🚨 <b>SmartFlow 系统告警</b>\n\n` +
         `📊 <b>系统概览：</b>\n` +
         `• 总交易对: ${summary.totalSymbols}\n` +
         `• 健康状态: ${summary.healthySymbols}\n` +
         `• 警告状态: ${summary.warningSymbols}\n\n` +
         `⚠️ <b>告警详情：</b>\n` +
         `• 数据收集率: ${dataCollectionRate.toFixed(1)}% ${dataCollectionRate < 99 ? '❌' : '✅'}\n` +
-        `• 信号分析率: ${signalAnalysisRate.toFixed(1)}% ${signalAnalysisRate < 99 ? '❌' : '✅'}\n\n` +
-        `🌐 <b>网页链接：</b>https://smart.aimaventop.com\n` +
+        `• 信号分析率: ${signalAnalysisRate.toFixed(1)}% ${signalAnalysisRate < 99 ? '❌' : '✅'}\n` +
+        `• 数据验证: ${dataValidation.hasErrors ? '❌ 异常' : '✅ 正常'} (${dataValidation.errorCount}个错误)\n` +
+        `• 数据质量: ${dataQuality.hasIssues ? '❌ 异常' : '✅ 正常'} (${dataQuality.issueCount}个问题)\n\n`;
+
+      // 添加数据验证错误详情
+      if (dataValidation.hasErrors) {
+        alertMessage += `🔍 <b>数据验证错误：</b>\n`;
+        dataValidation.errors.slice(0, 5).forEach(error => {
+          alertMessage += `• ${error}\n`;
+        });
+        if (dataValidation.errors.length > 5) {
+          alertMessage += `• ... 还有${dataValidation.errors.length - 5}个错误\n`;
+        }
+        alertMessage += `\n`;
+      }
+
+      // 添加数据质量问题详情
+      if (dataQuality.hasIssues) {
+        alertMessage += `⚠️ <b>数据质量问题：</b>\n`;
+        dataQuality.issues.slice(0, 5).forEach(issue => {
+          alertMessage += `• ${issue}\n`;
+        });
+        if (dataQuality.issues.length > 5) {
+          alertMessage += `• ... 还有${dataQuality.issues.length - 5}个问题\n`;
+        }
+        alertMessage += `\n`;
+      }
+
+      alertMessage += `🌐 <b>网页链接：</b>https://smart.aimaventop.com\n` +
         `⏰ <b>告警时间：</b>${new Date().toLocaleString('zh-CN')}`;
 
       await telegramNotifier.sendMessage(alertMessage);
@@ -556,6 +604,18 @@ class DataMonitor {
 
       // 发送单个交易对告警
       if (hasAlert) {
+        // 检查单个交易对告警冷却时间
+        const now = Date.now();
+        const lastSymbolAlert = this.lastAlertTime.get(symbol.symbol) || 0;
+        
+        if (now - lastSymbolAlert < this.alertCooldown) {
+          console.log(`⏰ ${symbol.symbol} 交易对告警在冷却期内，跳过发送`);
+          continue;
+        }
+
+        // 更新告警时间
+        this.lastAlertTime.set(symbol.symbol, now);
+
         const symbolAlertMessage = `⚠️ <b>${symbol.symbol} 交易对告警</b>\n\n` +
           `📊 <b>告警详情：</b>\n` +
           alertDetails.map(detail => `• ${detail}`).join('\n') + '\n\n' +

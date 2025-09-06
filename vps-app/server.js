@@ -236,6 +236,19 @@ class SmartFlowServer {
       }
     });
 
+    // 测试数据质量告警
+    this.app.post('/api/test-data-quality-alert', async (req, res) => {
+      try {
+        const testMessage = `🚨 <b>SmartFlow 数据质量告警测试</b>\n\n📊 <b>系统概览：</b>\n• 总交易对: 3\n• 健康状态: 1\n• 警告状态: 2\n\n⚠️ <b>告警详情：</b>\n• 数据收集率: 85.5% ❌\n• 信号分析率: 92.3% ❌\n• 数据验证: ❌ 异常 (3个错误)\n• 数据质量: ❌ 异常 (2个问题)\n\n🔍 <b>数据验证错误：</b>\n• BTCUSDT: 日线K线数据无效\n• ETHUSDT: 小时K线数据无效\n• LINKUSDT: 24小时行情数据无效\n\n⚠️ <b>数据质量问题：</b>\n• BTCUSDT: 日线趋势分析失败 - 数据不足\n• ETHUSDT: 小时确认分析失败 - 资金费率数据无效\n\n🌐 <b>网页链接：</b>https://smart.aimaventop.com\n⏰ <b>告警时间：</b>${new Date().toLocaleString('zh-CN')}`;
+
+        const result = await this.telegramNotifier.sendMessage(testMessage);
+        res.json(result);
+      } catch (error) {
+        console.error('测试数据质量告警失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 手动触发告警检查
     this.app.post('/api/trigger-alert-check', async (req, res) => {
       try {

@@ -603,6 +603,7 @@ async function loadUnifiedMonitoring() {
                         <h3>📊 SmartFlow 统一监控中心</h3>
                         <div class="monitoring-controls">
                             <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>
+                            <button class="btn secondary" onclick="testDataQualityAlert()">🧪 测试数据质量告警</button>
                             <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
                         </div>
                     </div>
@@ -1022,6 +1023,20 @@ async function testTelegramNotification() {
   } catch (error) {
     console.error('测试Telegram通知失败:', error);
     modal.showMessage('测试通知失败: ' + error.message, 'error');
+  }
+}
+
+async function testDataQualityAlert() {
+  try {
+    const result = await window.apiClient.testDataQualityAlert();
+    if (result.success) {
+      modal.showMessage('数据质量告警测试已发送', 'success');
+    } else {
+      modal.showMessage('数据质量告警测试失败: ' + result.error, 'error');
+    }
+  } catch (error) {
+    console.error('测试数据质量告警失败:', error);
+    modal.showMessage('数据质量告警测试失败: ' + error.message, 'error');
   }
 }
 
