@@ -12,7 +12,17 @@ class SmartFlowStrategy {
   static async analyzeDailyTrend(symbol, symbolData = null) {
     try {
       const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '1d', 250);
-      const closes = klines.map(k => parseFloat(k.close));
+      
+      // 将数组格式的K线数据转换为对象格式
+      const klinesObjects = klines.map(k => ({
+        open: parseFloat(k[1]),
+        high: parseFloat(k[2]),
+        low: parseFloat(k[3]),
+        close: parseFloat(k[4]),
+        volume: parseFloat(k[5])
+      }));
+      
+      const closes = klinesObjects.map(k => k.close);
 
       const ma20 = TechnicalIndicators.calculateSMA(closes, 20);
       const ma50 = TechnicalIndicators.calculateSMA(closes, 50);
@@ -79,14 +89,23 @@ class SmartFlowStrategy {
         throw new Error(`持仓量历史数据为空 - 请检查API响应或时间范围`);
       }
 
-      const closes = klines.map(k => parseFloat(k.close));
-      const volumes = klines.map(k => parseFloat(k.volume));
-      const highs = klines.map(k => parseFloat(k.high));
-      const lows = klines.map(k => parseFloat(k.low));
+      // 将数组格式的K线数据转换为对象格式
+      const klinesObjects = klines.map(k => ({
+        open: parseFloat(k[1]),
+        high: parseFloat(k[2]),
+        low: parseFloat(k[3]),
+        close: parseFloat(k[4]),
+        volume: parseFloat(k[5])
+      }));
+
+      const closes = klinesObjects.map(k => k.close);
+      const volumes = klinesObjects.map(k => k.volume);
+      const highs = klinesObjects.map(k => k.high);
+      const lows = klinesObjects.map(k => k.low);
 
       // 计算VWAP
       console.log(`📈 [${symbol}] 开始计算VWAP...`);
-      const vwap = TechnicalIndicators.calculateVWAP(klines);
+      const vwap = TechnicalIndicators.calculateVWAP(klinesObjects);
       const lastVWAP = vwap[vwap.length - 1];
       const lastClose = closes[closes.length - 1];
       console.log(`📈 [${symbol}] VWAP计算完成:`, {
@@ -135,7 +154,7 @@ class SmartFlowStrategy {
       console.log(`  - 资金费率: ${parseFloat(funding[0].fundingRate)}`);
 
       // 计算CVD (Cumulative Volume Delta)
-      const cvd = this.calculateCVD(klines);
+      const cvd = this.calculateCVD(klinesObjects);
       const lastCVD = cvd[cvd.length - 1];
       const cvdDirection = lastCVD > 0 ? 'BULLISH' : lastCVD < 0 ? 'BEARISH' : 'NEUTRAL';
 
@@ -179,9 +198,19 @@ class SmartFlowStrategy {
   static async analyze15mExecution(symbol, symbolData = null) {
     try {
       const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '15m', 50);
-      const closes = klines.map(k => parseFloat(k.close));
-      const highs = klines.map(k => parseFloat(k.high));
-      const lows = klines.map(k => parseFloat(k.low));
+      
+      // 将数组格式的K线数据转换为对象格式
+      const klinesObjects = klines.map(k => ({
+        open: parseFloat(k[1]),
+        high: parseFloat(k[2]),
+        low: parseFloat(k[3]),
+        close: parseFloat(k[4]),
+        volume: parseFloat(k[5])
+      }));
+      
+      const closes = klinesObjects.map(k => k.close);
+      const highs = klinesObjects.map(k => k.high);
+      const lows = klinesObjects.map(k => k.low);
 
       // 计算EMA
       const ema20 = TechnicalIndicators.calculateEMA(closes, 20);
