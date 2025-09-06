@@ -2679,18 +2679,18 @@
 
                 tableBody.innerHTML = history.map(sim => `
                     <tr>
-                        <td>${sim.symbol}</td>
-                        <td>${sim.entry_price.toFixed(4)}</td>
-                        <td>${sim.stop_loss_price.toFixed(4)}</td>
-                        <td>${sim.take_profit_price.toFixed(4)}</td>
-                        <td>${sim.max_leverage}x</td>
-                        <td>${sim.min_margin.toFixed(2)} USDT</td>
-                        <td>${new Date(sim.entry_time).toLocaleString()}</td>
+                        <td>${sim.symbol || '--'}</td>
+                        <td>${sim.entry_price ? sim.entry_price.toFixed(4) : '--'}</td>
+                        <td>${sim.stop_loss_price ? sim.stop_loss_price.toFixed(4) : '--'}</td>
+                        <td>${sim.take_profit_price ? sim.take_profit_price.toFixed(4) : '--'}</td>
+                        <td>${sim.max_leverage ? sim.max_leverage + 'x' : '--'}</td>
+                        <td>${sim.min_margin ? sim.min_margin.toFixed(2) + ' USDT' : '--'}</td>
+                        <td>${sim.entry_time ? new Date(sim.entry_time).toLocaleString() : '--'}</td>
                         <td>${sim.exit_time ? new Date(sim.exit_time).toLocaleString() : '进行中'}</td>
                         <td>${sim.exit_price ? sim.exit_price.toFixed(4) : '--'}</td>
                         <td>${sim.exit_reason || '--'}</td>
-                        <td class="${sim.profit_loss >= 0 ? 'profit' : 'loss'}">
-                            ${sim.profit_loss ? sim.profit_loss.toFixed(2) + '%' : '--'}
+                        <td class="${sim.profit_loss !== null && sim.profit_loss >= 0 ? 'profit' : 'loss'}">
+                            ${sim.profit_loss !== null ? sim.profit_loss.toFixed(2) + '%' : '--'}
                         </td>
                         <td>
                             ${sim.is_win === null ? '进行中' : (sim.is_win ? '✅ 胜' : '❌ 败')}

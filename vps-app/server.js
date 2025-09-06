@@ -952,21 +952,46 @@ class SimulationManager {
     });
   }
 
-  // 清理历史数据（保留最近半年）
+  // 清理历史数据（保留最近360天）
   async cleanOldData() {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const oneYearAgo = new Date();
+    oneYearAgo.setDate(oneYearAgo.getDate() - 360);
+    const cutoffDate = oneYearAgo.toISOString();
 
+    console.log(`🧹 开始清理360天前的数据，截止日期: ${cutoffDate}`);
+
+    try {
+      // 清理信号记录
+      await this.cleanTable('signal_records', cutoffDate);
+
+      // 清理执行记录
+      await this.cleanTable('execution_records', cutoffDate);
+
+      // 清理模拟交易记录
+      await this.cleanTable('simulations', cutoffDate);
+
+      // 清理结果标记
+      await this.cleanTable('result_markers', cutoffDate);
+
+      console.log('✅ 历史数据清理完成（保留最近360天）');
+    } catch (error) {
+      console.error('❌ 清理历史数据失败:', error);
+      throw error;
+    }
+  }
+
+  // 清理指定表的历史数据
+  async cleanTable(tableName, cutoffDate) {
     return new Promise((resolve, reject) => {
       this.db.run(`
-        DELETE FROM simulations 
+        DELETE FROM ${tableName} 
         WHERE created_at < ?
-      `, [sixMonthsAgo.toISOString()], (err) => {
+      `, [cutoffDate], function (err) {
         if (err) {
           reject(err);
         } else {
-          console.log('历史模拟交易数据清理完成');
-          resolve();
+          console.log(`🗑️ 清理 ${tableName} 表: 删除了 ${this.changes} 条记录`);
+          resolve(this.changes);
         }
       });
     });
@@ -1070,8 +1095,21 @@ class DatabaseManager {
       )
     `);
 
+    // 创建交易对管理表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS custom_symbols (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT UNIQUE NOT NULL,
+        added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN DEFAULT 1
+      )
+    `);
+
     // 初始化胜率统计
     this.initWinRateStats();
+
+    // 初始化交易对数据
+    this.initCustomSymbols();
 
     console.log('📊 数据库表初始化完成');
   }
@@ -1093,6 +1131,144 @@ class DatabaseManager {
           }
         });
       }
+    });
+  }
+
+  // 初始化自定义交易对
+  initCustomSymbols() {
+    this.db.all('SELECT symbol FROM custom_symbols WHERE is_active = 1', (err, rows) => {
+      if (err) {
+        console.error('获取自定义交易对失败:', err);
+        return;
+      }
+
+      const customSymbols = rows.map(row => row.symbol);
+      console.log('📋 加载自定义交易对:', customSymbols);
+
+      // 将自定义交易对添加到CVD管理器
+      customSymbols.forEach(symbol => {
+        if (!cvdManager.symbols.includes(symbol)) {
+          cvdManager.addSymbol(symbol);
+        }
+      });
+    });
+  }
+
+  // 添加自定义交易对
+  addCustomSymbol(symbol) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        'INSERT OR REPLACE INTO custom_symbols (symbol, is_active) VALUES (?, 1)',
+        [symbol],
+        function (err) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(this.lastID);
+          }
+        }
+      );
+    });
+  }
+
+  // 删除自定义交易对
+  removeCustomSymbol(symbol) {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        'UPDATE custom_symbols SET is_active = 0 WHERE symbol = ?',
+        [symbol],
+        function (err) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(this.changes);
+          }
+        }
+      );
+    });
+  }
+
+  // 获取所有自定义交易对
+  getCustomSymbols() {
+    return new Promise((resolve, reject) => {
+      this.db.all('SELECT symbol FROM custom_symbols WHERE is_active = 1', (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows.map(row => row.symbol));
+        }
+      });
+    });
+  }
+
+  // 获取数据统计信息
+  getDataStats() {
+    return new Promise((resolve, reject) => {
+      const stats = {};
+      let completed = 0;
+      const total = 5;
+
+      const checkComplete = () => {
+        completed++;
+        if (completed === total) {
+          resolve(stats);
+        }
+      };
+
+      // 信号记录统计
+      this.db.get('SELECT COUNT(*) as count FROM signal_records', (err, row) => {
+        if (err) {
+          console.error('获取信号记录统计失败:', err);
+          stats.signalRecords = 0;
+        } else {
+          stats.signalRecords = row.count;
+        }
+        checkComplete();
+      });
+
+      // 执行记录统计
+      this.db.get('SELECT COUNT(*) as count FROM execution_records', (err, row) => {
+        if (err) {
+          console.error('获取执行记录统计失败:', err);
+          stats.executionRecords = 0;
+        } else {
+          stats.executionRecords = row.count;
+        }
+        checkComplete();
+      });
+
+      // 模拟交易统计
+      this.db.get('SELECT COUNT(*) as count FROM simulations', (err, row) => {
+        if (err) {
+          console.error('获取模拟交易统计失败:', err);
+          stats.simulations = 0;
+        } else {
+          stats.simulations = row.count;
+        }
+        checkComplete();
+      });
+
+      // 活跃模拟交易统计
+      this.db.get('SELECT COUNT(*) as count FROM simulations WHERE exit_time IS NULL', (err, row) => {
+        if (err) {
+          console.error('获取活跃模拟交易统计失败:', err);
+          stats.activeSimulations = 0;
+        } else {
+          stats.activeSimulations = row.count;
+        }
+        checkComplete();
+      });
+
+      // 自定义交易对统计
+      this.db.get('SELECT COUNT(*) as count FROM custom_symbols WHERE is_active = 1', (err, row) => {
+        if (err) {
+          console.error('获取自定义交易对统计失败:', err);
+          stats.customSymbols = 0;
+        } else {
+          stats.customSymbols = row.count;
+        }
+        checkComplete();
+      });
     });
   }
 
@@ -2197,14 +2373,41 @@ app.get('/api/simulation-history', async (req, res) => {
   }
 });
 
-// 清理历史数据
+// 清理历史数据（保留最近360天）
 app.post('/api/clean-old-data', async (req, res) => {
   try {
     await simulationManager.cleanOldData();
-    res.json({ success: true, message: '历史数据清理完成' });
+    res.json({
+      success: true,
+      message: '历史数据清理完成（保留最近360天）',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     console.error('清理历史数据失败:', error);
-    res.status(500).json({ error: '清理历史数据失败' });
+    res.status(500).json({
+      success: false,
+      error: '清理历史数据失败',
+      message: error.message
+    });
+  }
+});
+
+// 获取数据统计信息
+app.get('/api/data-stats', async (req, res) => {
+  try {
+    const stats = await dbManager.getDataStats();
+    res.json({
+      success: true,
+      data: stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('获取数据统计失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取数据统计失败',
+      message: error.message
+    });
   }
 });
 
@@ -2257,11 +2460,11 @@ app.get('/api/analyze-all', async (req, res) => {
 });
 
 // 获取当前交易对列表
-app.get('/api/symbols', (req, res) => {
+app.get('/api/symbols', async (req, res) => {
   try {
     const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT', 'SOLUSDT'];
-    const allSymbols = cvdManager.symbols;
-    const customSymbols = allSymbols.filter(symbol => !defaultSymbols.includes(symbol));
+    const customSymbols = await dbManager.getCustomSymbols();
+    const allSymbols = [...defaultSymbols, ...customSymbols];
 
     res.json({
       success: true,
@@ -2309,10 +2512,13 @@ app.delete('/api/symbol/:symbol', async (req, res) => {
       });
     }
 
-    // 从CVD管理器删除交易对
-    const removed = cvdManager.removeSymbol(symbol);
+    // 从数据库删除交易对
+    const dbResult = await dbManager.removeCustomSymbol(symbol);
 
-    if (removed) {
+    if (dbResult > 0) {
+      // 从CVD管理器删除交易对
+      cvdManager.removeSymbol(symbol);
+
       res.json({
         success: true,
         message: `交易对 ${symbol} 已成功删除`
@@ -2351,6 +2557,14 @@ app.post('/api/analyze-custom', async (req, res) => {
         error: '交易对格式错误',
         message: '交易对必须以 USDT 结尾'
       });
+    }
+
+    // 检查是否为默认交易对
+    const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT', 'SOLUSDT'];
+    if (!defaultSymbols.includes(symbol)) {
+      // 添加到数据库
+      await dbManager.addCustomSymbol(symbol);
+      console.log(`📋 交易对 ${symbol} 已保存到数据库`);
     }
 
     // 预先添加交易对到 CVD 连接
