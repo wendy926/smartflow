@@ -1667,6 +1667,9 @@
             const tableBody = document.getElementById('signalsTable');
             tableBody.innerHTML = '<tr><td colspan="11" class="loading">分析中...</td></tr>';
 
+            console.log('🔄 开始刷新所有信号，当前交易对列表:', allSymbols);
+            console.log('📊 交易对数量:', allSymbols.length);
+
             try {
                 // 使用动态交易对列表，添加延迟避免速率限制
                 const promises = allSymbols.map(async (symbol, index) => {
@@ -2744,29 +2747,50 @@
         // 同步交易对列表
         async function syncSymbolsList() {
             try {
+                console.log('🔄 开始同步交易对列表...');
                 const response = await fetch('/api/symbols');
+                console.log('📡 API响应状态:', response.status);
+
                 const result = await response.json();
+                console.log('📋 API响应数据:', result);
 
                 if (result.success) {
                     // 更新全局变量
                     allSymbols = result.data.allSymbols;
                     customSymbols = result.data.customSymbols;
 
+                    console.log('✅ 交易对列表已同步:');
+                    console.log('  - 所有交易对:', allSymbols);
+                    console.log('  - 自定义交易对:', customSymbols);
+
                     // 更新按钮显示
                     updateSymbolsListButton();
-
-                    console.log('交易对列表已同步:', allSymbols);
+                } else {
+                    console.error('❌ API返回失败:', result);
                 }
             } catch (error) {
-                console.error('同步交易对列表失败:', error);
+                console.error('❌ 同步交易对列表失败:', error);
             }
         }
 
         // 页面加载时自动刷新一次
-        document.addEventListener('DOMContentLoaded', () => {
-            syncSymbolsList();
-            refreshAllSignals();
-            loadWinRateStats();
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 页面加载完成，开始初始化...');
+
+            // 先同步交易对列表
+            await syncSymbolsList();
+
+            // 确保交易对列表已更新
+            console.log('🔍 当前allSymbols:', allSymbols);
+            console.log('🔍 当前customSymbols:', customSymbols);
+
+            // 然后刷新信号
+            await refreshAllSignals();
+
+            // 最后加载胜率统计
+            await loadWinRateStats();
+
+            console.log('✅ 页面初始化完成');
         });
     </script>
 </body>
