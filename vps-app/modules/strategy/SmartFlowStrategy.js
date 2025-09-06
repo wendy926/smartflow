@@ -323,7 +323,8 @@ class SmartFlowStrategy {
       // 更精确的CVD计算：基于价格位置和成交量
       // 如果收盘价在K线中上部（>50%位置），认为是买入主导
       // 如果收盘价在K线中下部（<50%位置），认为是卖出主导
-      const pricePosition = (close - low) / (high - low);
+      const priceRange = high - low;
+      const pricePosition = priceRange > 0 ? (close - low) / priceRange : 0.5;
       const delta = pricePosition > 0.5 ? volume : -volume;
 
       cumulativeDelta += delta;
