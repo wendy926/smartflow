@@ -59,24 +59,39 @@ server.js
 
 #### 1.1 多周期共振机制
 
-**日线趋势过滤 (4H/1D)**
-- **MA排列判断**：MA20 > MA50 > MA200 (多头) / MA20 < MA50 < MA200 (空头)
-- **价格位置**：收盘价 > MA20 (多头) / 收盘价 < MA20 (空头)
-- **资金费率**：|FR| ≤ 0.1%/8h
-- **持仓量变化**：OI 6h变动 ≥ +2% (多头) / ≤ -2% (空头)
+**日线趋势过滤 (1D)**
+- **价格位置**：价格在 MA200 上方 (多头) / 价格在 MA200 下方 (空头)
+- **MA排列判断**：MA20 > MA50 (多头) / MA20 < MA50 (空头)
+- **趋势强度**：ADX(14) > 20 (说明趋势强度足够)
+- **波动率扩张**：布林带开口扩张 - 布林带上轨和下轨间距最近 20 根 K 线逐渐扩大，代表波动率增加，趋势在走强
 
-**小时确认 (1H)**
-- **VWAP关系**：价格与VWAP方向一致
-- **突破确认**：突破近20根K线高点/低点
-- **成交量放量**：最新成交量 ≥ 1.5 × 20H平均成交量
-- **CVD方向**：CVD与交易方向一致
-- **ATR空间**：允许≥1:2盈亏比
+**小时确认 (1H) → 多因子打分体系**
+- **打分体系**：每个条件满足都为1分，满足一个则加1分
+- **1. VWAP方向一致**：收盘价在VWAP上方（做多）/下方（做空）
+- **2. 突破结构**：收盘价突破最近20根K线的最高点/最低点
+- **3. 成交量确认**：当前K线成交量 ≥ 1.5 × 20期平均成交量
+- **4. OI确认**：未平仓合约OI在6h内上涨≥+2%（做多）/下降≥-2%（做空）
+- **5. 资金费率**：资金费率 ≤ 0.15%/8h
+- **6. Delta确认**：买卖盘不平衡（突破时15m Delta > 过去20根平均Delta的2倍）
 
-**15分钟执行 (15m)**
-- **回踩确认**：回踩EMA20/50或前高/前低支撑
-- **触发条件**：突破setup candle高点/低点
-- **止损设置**：setup candle另一端或1.2×ATR(14)
-- **目标价格**：≥2R盈亏比
+**根据打分体系小时级信号大小判断的执行规则：**
+- **得分 ≥ 2分** → 可以进入小周期观察入场机会
+- **得分 ≥ 4分** → 优先级最高（强信号，允许加仓）
+
+**15分钟执行 (15m) → 入场与风控**
+- **要求**：两种入场模式同时执行，避免错过机会
+
+**模式A：回踩确认模式（胜率高）**
+- 等价格回踩到EMA20/50或前高/前低支撑位
+- 回踩时成交量缩小，价格不有效跌破支撑
+- 下一根K线突破setup candle的高点（做多）/低点（做空）→ 入场
+
+**模式B：动能突破模式（机会多）**
+- 当价格突破setup candle的高点/低点时，如果15m成交量&OI同步放大，直接追单入场，不等回踩
+
+**止损止盈计算逻辑：**
+- **止损**：设置在setup candle的另一端 或 1.2 × ATR(14)，取更远的位置
+- **止盈**：第一目标：1.5R平掉50%仓位；第二目标：剩余仓位用追踪止损（如跟随15m EMA20/前一小时低点）直到被动出场
 
 #### 1.2 技术指标计算
 
@@ -102,45 +117,162 @@ function calculateVWAP(candles) {
 }
 ```
 
+**ADX (平均方向指数)**
+```javascript
+// 计算ADX
+function calculateADX(klines, period = 14) {
+  // 计算True Range, +DM, -DM
+  const trueRanges = [];
+  const plusDMs = [];
+  const minusDMs = [];
+  
+  for (let i = 1; i < klines.length; i++) {
+    const high = parseFloat(klines[i].high);
+    const low = parseFloat(klines[i].low);
+    const prevHigh = parseFloat(klines[i - 1].high);
+    const prevLow = parseFloat(klines[i - 1].low);
+
+    const tr = Math.max(high - low, Math.abs(high - prevHigh), Math.abs(low - prevLow));
+    trueRanges.push(tr);
+
+    const plusDM = high - prevHigh > prevLow - low && high - prevHigh > 0 ? high - prevHigh : 0;
+    const minusDM = prevLow - low > high - prevHigh && prevLow - low > 0 ? prevLow - low : 0;
+
+    plusDMs.push(plusDM);
+    minusDMs.push(minusDM);
+  }
+
+  // 计算平滑的TR, +DM, -DM，然后计算+DI, -DI, DX, ADX
+  // ... (详细实现)
+}
+```
+
+**布林带开口扩张检测**
+```javascript
+// 计算布林带开口扩张
+function calculateBollingerBandExpansion(data, period = 20) {
+  const bands = calculateBollingerBands(data, period);
+  const recentBands = bands.slice(-20);
+  const widths = recentBands.map(band => band.upper - band.lower);
+  
+  const firstHalf = widths.slice(0, 10);
+  const secondHalf = widths.slice(10, 20);
+  
+  const avgFirstHalf = firstHalf.reduce((sum, w) => sum + w, 0) / firstHalf.length;
+  const avgSecondHalf = secondHalf.reduce((sum, w) => sum + w, 0) / secondHalf.length;
+  
+  // 如果后半段平均宽度比前半段大15%以上，认为开口扩张
+  return avgSecondHalf > avgFirstHalf * 1.15;
+}
+```
+
+**Delta (净主动买卖量)**
+```javascript
+// 计算Delta
+function calculateDelta(klines) {
+  return klines.map(k => {
+    const high = parseFloat(k.high);
+    const low = parseFloat(k.low);
+    const close = parseFloat(k.close);
+    const volume = parseFloat(k.volume);
+
+    const priceRange = high - low;
+    const pricePosition = priceRange > 0 ? (close - low) / priceRange : 0.5;
+    
+    // 如果收盘价在K线上半部分，认为是买入主导
+    return pricePosition > 0.5 ? volume : -volume;
+  });
+}
+```
+
 **CVD (累计成交量差)**
 ```javascript
 // 计算CVD
-function calculateCVD(candles) {
-  let cvd = 0;
-  return candles.map(c => {
-    const pricePosition = (c.close - c.low) / (c.high - c.low);
-    const delta = pricePosition > 0.5 ? c.volume : -c.volume;
-    cvd += delta;
-    return { value: cvd, direction: cvd > 0 ? 'BULLISH' : 'BEARISH' };
-  });
+function calculateCVD(klines) {
+  const deltas = calculateDelta(klines);
+  const cvd = [];
+  let cumulativeDelta = 0;
+
+  for (const delta of deltas) {
+    cumulativeDelta += delta;
+    cvd.push(cumulativeDelta);
+  }
+
+  return cvd;
 }
 ```
 
 #### 1.3 信号判断逻辑
 
-**LONG信号条件**
+**日线趋势过滤**
 ```javascript
-if (dailyTrend.trend === 'UPTREND' &&
-    hourlyConfirmation.priceVsVwap > 0 &&
-    hourlyConfirmation.breakoutUp &&
-    hourlyConfirmation.volumeRatio >= 1.5 &&
-    hourlyConfirmation.oiChange >= 2 &&
-    Math.abs(hourlyConfirmation.fundingRate) <= 0.001 &&
-    hourlyConfirmation.cvd.direction === 'BULLISH') {
-  signal = 'LONG';
+// 多头趋势：价格在MA200上方 + MA20 > MA50 + ADX > 20 + 布林带开口扩张
+if (latestClose > latestMA200 && 
+    latestMA20 > latestMA50 && 
+    latestADX > 20 && 
+    bollingerExpansion) {
+  trend = 'UPTREND';
+}
+
+// 空头趋势：价格在MA200下方 + MA20 < MA50 + ADX > 20 + 布林带开口扩张
+else if (latestClose < latestMA200 && 
+         latestMA20 < latestMA50 && 
+         latestADX > 20 && 
+         bollingerExpansion) {
+  trend = 'DOWNTREND';
 }
 ```
 
-**SHORT信号条件**
+**小时级多因子打分体系**
 ```javascript
-if (dailyTrend.trend === 'DOWNTREND' &&
-    hourlyConfirmation.priceVsVwap < 0 &&
-    hourlyConfirmation.breakoutDown &&
-    hourlyConfirmation.volumeRatio >= 1.5 &&
-    hourlyConfirmation.oiChange <= -2 &&
-    Math.abs(hourlyConfirmation.fundingRate) <= 0.001 &&
-    hourlyConfirmation.cvd.direction === 'BEARISH') {
+// 6个条件，每个满足得1分
+let score = 0;
+
+// 1. VWAP方向一致
+if (priceVsVwap > 0 || priceVsVwap < 0) score += 1;
+
+// 2. 突破结构
+if (breakoutUp || breakoutDown) score += 1;
+
+// 3. 成交量确认
+if (volumeRatio >= 1.5) score += 1;
+
+// 4. OI确认
+if (oiChange >= 2 || oiChange <= -2) score += 1;
+
+// 5. 资金费率
+if (Math.abs(fundingRate) <= 0.0015) score += 1;
+
+// 6. Delta确认
+if (deltaConfirmed) score += 1;
+
+// 信号强度判断
+if (score >= 4) signalStrength = 'STRONG';
+else if (score >= 2) signalStrength = 'MODERATE';
+```
+
+**最终信号判断**
+```javascript
+// 只有当日线趋势明确且小时级得分≥2分时才产生信号
+if (dailyTrend.trend === 'UPTREND' && hourlyConfirmation.signalStrength !== 'NONE') {
+  signal = 'LONG';
+} else if (dailyTrend.trend === 'DOWNTREND' && hourlyConfirmation.signalStrength !== 'NONE') {
   signal = 'SHORT';
+}
+```
+
+**15分钟执行判断**
+```javascript
+// 模式A：回踩确认模式
+if (pullbackToSupport && volumeContraction && (breakSetupHigh || breakSetupLow)) {
+  executionMode = 'PULLBACK_CONFIRMATION';
+  executionSignal = breakSetupHigh ? 'LONG_EXECUTE' : 'SHORT_EXECUTE';
+}
+
+// 模式B：动能突破模式
+else if (momentumBreakout) {
+  executionMode = 'MOMENTUM_BREAKOUT';
+  executionSignal = breakSetupHigh ? 'LONG_EXECUTE' : 'SHORT_EXECUTE';
 }
 ```
 

@@ -127,7 +127,7 @@ class SmartFlowApp {
     tbody.innerHTML = '';
 
     if (signals.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #6c757d;">暂无信号数据</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align: center; color: #6c757d;">暂无信号数据</td></tr>';
       return;
     }
 
@@ -139,6 +139,17 @@ class SmartFlowApp {
 
       // 创建主行
       const row = document.createElement('tr');
+      // 获取小时得分和执行模式
+      const hourlyScore = signal.hourlyConfirmation?.score || 0;
+      const executionMode = signal.executionMode || 'NONE';
+      const signalStrength = signal.signalStrength || 'NONE';
+      
+      // 获取模式A和模式B的判断结果
+      const modeA = signal.execution15m?.executionDetails?.pullbackToEma20 || signal.execution15m?.executionDetails?.pullbackToEma50 || false;
+      const modeB = signal.execution15m?.executionDetails?.volumeExpansion >= 1.5 || false;
+      const modeAClass = modeA ? 'mode-confirmed' : 'mode-none';
+      const modeBClass = modeB ? 'mode-confirmed' : 'mode-none';
+
       row.innerHTML = `
                 <td>
                     <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
@@ -146,7 +157,12 @@ class SmartFlowApp {
                 <td>${signal.symbol}</td>
                 <td class="${dataManager.getTrendClass(signal.trend)}">${signal.trend || '--'}</td>
                 <td class="${dataManager.getSignalClass(signal.signal)}">${signal.signal || '--'}</td>
+                <td class="${hourlyScore >= 4 ? 'score-strong' : hourlyScore >= 2 ? 'score-moderate' : 'score-weak'}" title="小时级多因子得分: ${hourlyScore}/6">
+                    ${hourlyScore}
+                </td>
                 <td class="${dataManager.getExecutionClass(signal.execution)}">${signal.execution || '--'}</td>
+                <td class="${modeAClass}" title="模式A: 回踩确认">${modeA ? '✅' : '❌'}</td>
+                <td class="${modeBClass}" title="模式B: 动能突破">${modeB ? '✅' : '❌'}</td>
                 <td>${dataManager.formatNumber(signal.currentPrice || 0)}</td>
                 <td>${dataManager.formatNumber(signal.vwap || 0)}</td>
                 <td>${dataManager.formatNumber(signal.volumeRatio || 0, 1)}x</td>
@@ -169,7 +185,7 @@ class SmartFlowApp {
       historyRow.className = 'history-row';
       historyRow.style.display = 'none';
       historyRow.innerHTML = `
-                <td colspan="13">
+                <td colspan="17">
                     <div class="history-container">
                         <div class="history-header">
                             <h4>📊 ${signal.symbol} 详细信息</h4>
@@ -1031,12 +1047,20 @@ function updateDetailedTable(data) {
           <div class="signal-status">
             <div class="signal-item ${symbol.hasExecution ? 'active' : ''}">
               🚀 入场执行: ${symbol.hasExecution ? '是' : '否'}
+              ${symbol.executionMode ? ` (${symbol.executionMode === 'PULLBACK_CONFIRMATION' ? '回踩确认' : symbol.executionMode === 'MOMENTUM_BREAKOUT' ? '动能突破' : '未知'})` : ''}
             </div>
             <div class="signal-item ${symbol.hasSignal ? 'active' : ''}">
               🎯 信号确认: ${symbol.hasSignal ? '是' : '否'}
+              ${symbol.hourlyScore !== undefined ? ` (得分: ${symbol.hourlyScore}/6)` : ''}
             </div>
             <div class="signal-item ${symbol.hasTrend ? 'active' : ''}">
               📈 趋势信号: ${symbol.hasTrend ? '是' : '否'}
+            </div>
+            <div class="signal-item">
+              🔄 模式A: ${symbol.modeA ? '✅ 回踩确认' : '❌ 未满足'}
+            </div>
+            <div class="signal-item">
+              ⚡ 模式B: ${symbol.modeB ? '✅ 动能突破' : '❌ 未满足'}
             </div>
           </div>
         </td>

@@ -399,6 +399,10 @@ class DataMonitor {
       let hasExecution = false;
       let hasSignal = false;
       let hasTrend = false;
+      let hourlyScore = 0;
+      let executionMode = 'NONE';
+      let modeA = false;
+      let modeB = false;
 
       if (log) {
         if (log.execution && log.execution !== 'NO_EXECUTION' && log.execution.includes('EXECUTE')) {
@@ -409,6 +413,22 @@ class DataMonitor {
         }
         if (log.trend && log.trend !== 'RANGE' && (log.trend === 'UPTREND' || log.trend === 'DOWNTREND')) {
           hasTrend = true;
+        }
+        
+        // 获取小时级多因子得分
+        if (log.hourlyConfirmation && log.hourlyConfirmation.score !== undefined) {
+          hourlyScore = log.hourlyConfirmation.score;
+        }
+        
+        // 获取执行模式
+        if (log.executionMode) {
+          executionMode = log.executionMode;
+        }
+        
+        // 获取模式A和模式B判断结果
+        if (log.execution15m && log.execution15m.executionDetails) {
+          modeA = log.execution15m.executionDetails.pullbackToEma20 || log.execution15m.executionDetails.pullbackToEma50 || false;
+          modeB = log.execution15m.executionDetails.volumeExpansion >= 1.5 || false;
         }
       }
 
@@ -450,6 +470,10 @@ class DataMonitor {
         hasExecution,
         hasSignal,
         hasTrend,
+        hourlyScore,
+        executionMode,
+        modeA,
+        modeB,
         priorityScore,
         signalActivityScore
       };

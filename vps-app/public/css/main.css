@@ -273,6 +273,72 @@ tr:hover {
   text-align: center;
 }
 
+/* 小时得分样式 */
+.score-strong {
+  background-color: #d4edda;
+  color: #155724;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.score-moderate {
+  background-color: #fff3cd;
+  color: #856404;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.score-weak {
+  background-color: #e2e3e5;
+  color: #6c757d;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+/* 执行模式样式 */
+.mode-pullback {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.mode-momentum {
+  background-color: #ffeaa7;
+  color: #856404;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+.mode-none {
+  background-color: #e2e3e5;
+  color: #6c757d;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
+/* 模式确认样式 */
+.mode-confirmed {
+  background-color: #d4edda;
+  color: #155724;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+}
+
 /* 信号状态样式 */
 .signal-long {
   background-color: #d4edda;
