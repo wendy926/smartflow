@@ -667,6 +667,8 @@ tr:hover {
   .btn {
     width: 100%;
     max-width: 300px;
+    font-size: 0.9rem;
+    padding: 10px 16px;
   }
 }
 
@@ -679,10 +681,16 @@ tr:hover {
   }
 
   .bottom-controls {
-    flex-direction: row;
+    flex-direction: column;
     gap: 8px;
     padding: 8px;
     margin: 10px 0;
+  }
+
+  .btn {
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    min-height: 36px;
   }
 }
 

@@ -1164,7 +1164,6 @@ async function updateMonitoringPanel(data) {
         <h3>📊 SmartFlow 统一监控中心</h3>
         <div class="monitoring-controls">
           <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>
-          <button class="btn secondary" onclick="testDataQualityAlert()">🧪 测试数据质量告警</button>
           <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
         </div>
       </div>
