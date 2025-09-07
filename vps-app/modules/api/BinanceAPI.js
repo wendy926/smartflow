@@ -52,6 +52,20 @@ class BinanceAPI {
     );
   }
 
+  static async getTicker(symbol) {
+    const endpoint = '/fapi/v1/ticker/price';
+    const params = new URLSearchParams({
+      symbol: symbol.toUpperCase()
+    });
+
+    return await this.rateLimiter.cachedCall(
+      `ticker_${symbol}`,
+      () => this.callBinanceAPI(symbol, `${endpoint}?${params}`),
+      'ticker',
+      symbol
+    );
+  }
+
   static async get24hrTicker(symbol) {
     const endpoint = '/fapi/v1/ticker/24hr';
     const params = new URLSearchParams({
