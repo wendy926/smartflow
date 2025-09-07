@@ -762,7 +762,7 @@
                 <!-- 计算逻辑说明 -->
                 <div class="calculation-explanation">
                     <h3>📚 计算逻辑说明</h3>
-                    
+
                     <div class="explanation-section">
                         <h4>1. 初始本金计算</h4>
                         <div class="explanation-content">
@@ -794,7 +794,7 @@
                                 <li>保证金计算：所需保证金 = (可用利润 × 0.1) ÷ 杠杆倍数</li>
                                 <li>特点：高杠杆起步，风险较高但收益潜力大</li>
                             </ul>
-                            
+
                             <h5>动态计算策略</h5>
                             <ul>
                                 <li>杠杆计算：baseLeverage × decayFactor，其中衰减因子 = max(0.6, 1 - 步骤 × 0.08)</li>
@@ -821,12 +821,12 @@
                         <h4>5. 本金保护判断</h4>
                         <div class="explanation-content">
                             <p><strong>判断条件：</strong> 最坏情况损失 < 本金 × 0.8</p>
-                            <p><strong>计算方式：</strong></p>
-                            <ul>
-                                <li>加权平均入场价 = Σ(入场价 × 仓位价值) ÷ Σ(仓位价值)</li>
-                                <li>最坏情况损失 = |目标价格 - 加权平均入场价| × 总数量</li>
-                                <li>保护比例 = max(0, (本金 - 最坏情况损失) ÷ 本金)</li>
-                            </ul>
+                                    <p><strong>计算方式：</strong></p>
+                                    <ul>
+                                        <li>加权平均入场价 = Σ(入场价 × 仓位价值) ÷ Σ(仓位价值)</li>
+                                        <li>最坏情况损失 = |目标价格 - 加权平均入场价| × 总数量</li>
+                                        <li>保护比例 = max(0, (本金 - 最坏情况损失) ÷ 本金)</li>
+                                    </ul>
                         </div>
                     </div>
 

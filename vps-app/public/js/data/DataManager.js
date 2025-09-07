@@ -163,6 +163,10 @@ class DataManager {
   // 格式化百分比
   formatPercentage(num, decimals = 1) {
     if (typeof num !== 'number' || isNaN(num)) return '0%';
+    // 对于非常小的数字，使用科学计数法显示
+    if (Math.abs(num) < 0.0001 && num !== 0) {
+      return `${num.toExponential(4)}%`;
+    }
     return `${num.toFixed(decimals)}%`;
   }
 
