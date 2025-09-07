@@ -1,7 +1,7 @@
 // modules/database/SimulationManager.js
 // 模拟交易管理模块
 
-const { BinanceAPI } = require('../api/BinanceAPI');
+const BinanceAPI = require('../api/BinanceAPI');
 
 class SimulationManager {
   constructor(db) {
