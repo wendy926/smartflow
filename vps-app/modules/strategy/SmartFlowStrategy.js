@@ -344,6 +344,14 @@ class SmartFlowStrategy {
           stopLossDistance = (stopLoss - entrySignal) / entrySignal;
         }
 
+        console.log(`📊 计算杠杆和保证金 [${symbol}]:`, {
+          entrySignal,
+          stopLoss,
+          trend,
+          stopLossDistance: (stopLossDistance * 100).toFixed(2) + '%',
+          maxLossAmount
+        });
+
         // 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
         if (stopLossDistance > 0) {
           maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
@@ -353,6 +361,20 @@ class SmartFlowStrategy {
         if (maxLeverage > 0 && stopLossDistance > 0) {
           minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
         }
+
+        console.log(`📊 计算结果 [${symbol}]:`, {
+          maxLeverage,
+          minMargin,
+          stopLossDistance: (stopLossDistance * 100).toFixed(2) + '%',
+          atrValue
+        });
+      } else {
+        console.log(`⚠️ 缺少必要数据 [${symbol}]:`, {
+          entrySignal,
+          stopLoss,
+          hasEntrySignal: !!entrySignal,
+          hasStopLoss: !!stopLoss
+        });
       }
 
       return {
@@ -614,10 +636,10 @@ class SmartFlowStrategy {
         entrySignal: execution15m?.entrySignal || null,
         stopLoss: execution15m?.stopLoss || null,
         takeProfit: execution15m?.takeProfit || null,
-        maxLeverage: execution15m?.maxLeverage || 0,
-        minMargin: execution15m?.minMargin || 0,
-        stopLossDistance: execution15m?.stopLossDistance || 0,
-        atrValue: execution15m?.atrValue || 0,
+        maxLeverage: execution15m?.maxLeverage || null,
+        minMargin: execution15m?.minMargin || null,
+        stopLossDistance: execution15m?.stopLossDistance || null,
+        atrValue: execution15m?.atrValue || null,
         // 其他信息
         currentPrice: parseFloat(ticker.lastPrice),
         dataCollectionRate: 100,

@@ -256,12 +256,12 @@ class SmartFlowApp {
 
     history.forEach(sim => {
       const row = document.createElement('tr');
-      
+
       // 只有在交易结束时才显示盈亏和结果
       let profitLoss = '--';
       let resultClass = '';
       let resultText = '--';
-      
+
       if (sim.status === 'CLOSED') {
         profitLoss = sim.profit_loss || 0;
         const isWin = sim.is_win;
@@ -280,7 +280,7 @@ class SmartFlowApp {
                 <td>${dataManager.formatNumber(sim.min_margin)}</td>
                 <td>${dataManager.formatTime(sim.created_at)}</td>
                 <td>${dataManager.formatTime(sim.closed_at)}</td>
-                <td>${dataManager.formatNumber(sim.exit_price || 0)}</td>
+                <td>${sim.exit_price ? dataManager.formatNumber(sim.exit_price) : '--'}</td>
                 <td>${sim.exit_reason || '--'}</td>
                 <td>${sim.trigger_reason || '--'}</td>
                 <td class="${resultClass}">${profitLoss === '--' ? '--' : dataManager.formatNumber(profitLoss)}</td>
