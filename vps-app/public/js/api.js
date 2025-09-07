@@ -116,6 +116,11 @@ class APIClient {
   async getUpdateTimes() {
     return await this.request('/api/update-times');
   }
+
+  // 获取数据质量详情
+  async getDataQualityDetails() {
+    return await this.request('/api/monitoring-dashboard');
+  }
 }
 
 // 创建全局API客户端实例

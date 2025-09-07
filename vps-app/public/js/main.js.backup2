@@ -126,7 +126,7 @@ class SmartFlowApp {
   setRowBackgroundColor(row, signal) {
     // 重置背景颜色
     row.style.backgroundColor = '';
-
+    
     // 优先级：入场执行 > 信号 > 趋势
     // 入场执行列背景颜色（最高优先级）
     if (signal.execution && signal.execution.includes('做多')) {
@@ -348,7 +348,7 @@ async function startSimulation(symbol) {
   try {
     const signals = await dataManager.getAllSignals();
     const signalData = signals.find(s => s.symbol === symbol);
-
+    
     if (!signalData || !signalData.execution || (!signalData.execution.includes('做多') && !signalData.execution.includes('做空'))) {
       alert('该交易对当前没有有效的交易信号');
       return;
@@ -394,7 +394,7 @@ async function viewTradeHistory(symbol) {
   try {
     const response = await fetch(`/api/simulation/history/${symbol}`);
     const history = await response.json();
-
+    
     if (history.length === 0) {
       alert('暂无交易历史记录');
       return;
@@ -437,7 +437,7 @@ async function viewTradeHistory(symbol) {
         </div>
       </div>
     `;
-
+    
     document.body.appendChild(modal);
   } catch (error) {
     console.error('查看交易历史失败:', error);
@@ -553,6 +553,60 @@ async function loadHistory(symbol) {
             <button class="btn secondary" onclick="viewTradeHistory('${symbol}')">
               📊 查看交易历史
             </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // 构建交易执行详情HTML
+    let executionDetailsHtml = '';
+    if (signalData.execution && signalData.execution.includes('EXECUTE')) {
+      executionDetailsHtml = `
+        <div class="execution-details">
+          <h5>🎯 交易执行详情</h5>
+          <div class="execution-grid">
+            <div class="execution-item">
+              <span class="label">当前价格:</span>
+              <span class="value">${dataManager.formatNumber(signalData.currentPrice)}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">止损价格:</span>
+              <span class="value">${signalData.stopLoss ? dataManager.formatNumber(signalData.stopLoss) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">止盈价格:</span>
+              <span class="value">${signalData.targetPrice ? dataManager.formatNumber(signalData.targetPrice) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">风险回报比:</span>
+              <span class="value">${signalData.riskRewardRatio ? signalData.riskRewardRatio.toFixed(2) + 'R' : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">最大杠杆:</span>
+              <span class="value">${signalData.maxLeverage ? signalData.maxLeverage + 'x' : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">最小保证金:</span>
+              <span class="value">${signalData.minMargin ? dataManager.formatNumber(signalData.minMargin) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">人工确认:</span>
+              <span class="value ${signalData.manualConfirmation ? 'confirmation-yes' : 'confirmation-no'}">
+                ${signalData.manualConfirmation ? '✅ 有效' : '❌ 无效'}
+              </span>
+            </div>
+            <div class="execution-item">
+              <span class="label">Setup High:</span>
+              <span class="value">${signalData.setupHigh ? dataManager.formatNumber(signalData.setupHigh) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">Setup Low:</span>
+              <span class="value">${signalData.setupLow ? dataManager.formatNumber(signalData.setupLow) : '--'}</span>
+            </div>
+            <div class="execution-item">
+              <span class="label">ATR(14):</span>
+              <span class="value">${signalData.atr ? dataManager.formatNumber(signalData.atr) : '--'}</span>
+            </div>
           </div>
         </div>
       `;

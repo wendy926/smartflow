@@ -193,9 +193,13 @@ class DataManager {
   getSignalClass(signal) {
     switch (signal) {
       case 'LONG':
+      case '做多':
         return 'signal-long';
       case 'SHORT':
+      case '做空':
         return 'signal-short';
+      case '观望/不做':
+        return 'signal-moderate';
       default:
         return 'signal-no';
     }
@@ -203,7 +207,7 @@ class DataManager {
 
   // 获取执行状态样式
   getExecutionClass(execution) {
-    if (execution && execution.includes('EXECUTE')) {
+    if (execution && (execution.includes('EXECUTE') || execution.includes('做多') || execution.includes('做空'))) {
       return 'execution-execute';
     } else if (execution && execution.includes('WAIT')) {
       return 'execution-wait';

@@ -179,6 +179,50 @@ class SmartFlowServer {
       }
     });
 
+    // 启动模拟交易
+    this.app.post('/api/simulation/start', async (req, res) => {
+      try {
+        const { symbol, entryPrice, stopLoss, takeProfit, maxLeverage, minMargin, executionMode, direction } = req.body;
+
+        if (!symbol || !entryPrice || !stopLoss || !takeProfit) {
+          return res.status(400).json({ error: '缺少必要参数' });
+        }
+
+        const simulation = await this.simulationManager.createSimulation(
+          symbol,
+          entryPrice,
+          stopLoss,
+          takeProfit,
+          maxLeverage || 10,
+          minMargin || 100,
+          `SIGNAL_${executionMode}_${direction}`
+        );
+
+        // 记录到数据监控
+        if (this.dataMonitor) {
+          this.dataMonitor.recordSimulation(symbol, 'START', simulation, true);
+        }
+
+        res.json({ success: true, simulation });
+      } catch (error) {
+        console.error('启动模拟交易失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取特定交易对的模拟交易历史
+    this.app.get('/api/simulation/history/:symbol', async (req, res) => {
+      try {
+        const { symbol } = req.params;
+        const history = await this.simulationManager.getSimulationHistory(50);
+        const symbolHistory = history.filter(sim => sim.symbol === symbol);
+        res.json(symbolHistory);
+      } catch (error) {
+        console.error('获取交易对模拟交易历史失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 获取胜率统计
     this.app.get('/api/win-rate-stats', async (req, res) => {
       try {
