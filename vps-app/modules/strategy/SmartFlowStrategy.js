@@ -542,6 +542,10 @@ class SmartFlowStrategy {
           mode: execution15m.mode,
           modeA: execution15m.modeA,
           modeB: execution15m.modeB,
+          maxLeverage: execution15m.maxLeverage,
+          minMargin: execution15m.minMargin,
+          stopLossDistance: execution15m.stopLossDistance,
+          atrValue: execution15m.atrValue,
           dataValid: execution15m.dataValid
         });
       } catch (error) {
