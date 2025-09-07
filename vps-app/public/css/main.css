@@ -1968,3 +1968,34 @@ tr:hover {
     height: 100%;
   }
 }
+
+/* 通知动画样式 */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.notification {
+  transition: all 0.3s ease;
+}
+
+.notification.slide-out {
+  animation: slideOut 0.3s ease-in forwards;
+}

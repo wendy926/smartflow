@@ -153,9 +153,12 @@ class SmartFlowApp {
     tbody.innerHTML = '';
 
     if (signals.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #6c757d;">暂无信号数据</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #6c757d;">暂无信号数据</td></tr>';
       return;
     }
+
+    // 检查是否有新的入场执行信号，自动触发模拟交易
+    this.checkAndAutoTriggerSimulation(signals);
 
     signals.forEach(signal => {
       // 计算数据采集成功率
@@ -336,6 +339,119 @@ class SmartFlowApp {
     }
   }
 
+  /**
+   * 检查并自动触发模拟交易
+   * 当检测到新的入场执行信号时，自动启动模拟交易
+   */
+  async checkAndAutoTriggerSimulation(signals) {
+    try {
+      // 获取当前已触发的模拟交易记录
+      const currentHistory = await dataManager.getSimulationHistory();
+      const triggeredSymbols = new Set(currentHistory.map(trade => trade.symbol));
+
+      // 检查每个信号
+      for (const signal of signals) {
+        // 检查是否有入场执行信号
+        if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
+          // 如果这个交易对还没有触发过模拟交易，则自动触发
+          if (!triggeredSymbols.has(signal.symbol)) {
+            console.log(`🚀 检测到新的入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution}`);
+            
+            // 自动启动模拟交易
+            await this.autoStartSimulation(signal);
+            
+            // 添加到已触发列表，避免重复触发
+            triggeredSymbols.add(signal.symbol);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('自动触发模拟交易检查失败:', error);
+    }
+  }
+
+  /**
+   * 自动启动模拟交易
+   */
+  async autoStartSimulation(signalData) {
+    try {
+      const tradeData = {
+        symbol: signalData.symbol,
+        entryPrice: signalData.entrySignal,
+        stopLoss: signalData.stopLoss,
+        takeProfit: signalData.takeProfit,
+        maxLeverage: signalData.maxLeverage,
+        minMargin: signalData.minMargin,
+        executionMode: signalData.executionMode,
+        direction: signalData.execution.includes('做多_') ? 'LONG' : 'SHORT',
+        timestamp: new Date().toISOString()
+      };
+
+      // 发送模拟交易请求
+      const response = await fetch('/api/simulation/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(tradeData)
+      });
+
+      if (response.ok) {
+        console.log(`✅ 自动启动模拟交易成功: ${signalData.symbol}`);
+        // 显示通知
+        this.showNotification(`🚀 自动启动模拟交易: ${signalData.symbol} - ${signalData.execution}`, 'success');
+      } else {
+        const error = await response.text();
+        console.error(`❌ 自动启动模拟交易失败: ${signalData.symbol}`, error);
+        this.showNotification(`❌ 自动启动模拟交易失败: ${signalData.symbol}`, 'error');
+      }
+    } catch (error) {
+      console.error('自动启动模拟交易失败:', error);
+      this.showNotification(`❌ 自动启动模拟交易失败: ${signalData.symbol}`, 'error');
+    }
+  }
+
+  /**
+   * 显示通知消息
+   */
+  showNotification(message, type = 'info') {
+    // 创建通知元素
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 6px;
+      color: white;
+      font-weight: 500;
+      z-index: 10000;
+      max-width: 400px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: slideIn 0.3s ease-out;
+    `;
+
+    // 设置背景颜色
+    if (type === 'success') {
+      notification.style.backgroundColor = '#28a745';
+    } else if (type === 'error') {
+      notification.style.backgroundColor = '#dc3545';
+    } else {
+      notification.style.backgroundColor = '#17a2b8';
+    }
+
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // 3秒后自动移除
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 3000);
+  }
+
 }
 
 // 启动模拟交易
@@ -387,6 +503,8 @@ async function startSimulation(symbol) {
 // 查看交易历史
 async function viewTradeHistory(symbol) {
   try {
+    console.log(`📊 查看交易历史: ${symbol} - 不会更新表格数据`);
+    
     const response = await fetch(`/api/simulation/history/${symbol}`);
     const history = await response.json();
 
@@ -402,6 +520,7 @@ async function viewTradeHistory(symbol) {
       <div class="modal-content">
         <div class="modal-header">
           <h3>📊 ${symbol} 交易历史</h3>
+          <p style="font-size: 12px; color: #666; margin: 5px 0 0 0;">仅查看历史记录，不影响当前表格数据</p>
           <span class="close" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</span>
         </div>
         <div class="modal-body">
