@@ -330,6 +330,32 @@ class SmartFlowStrategy {
         }
       }
 
+      // 计算最大杠杆数和最小保证金（按照strategy-v2.md的逻辑）
+      let maxLeverage = 0;
+      let minMargin = 0;
+      let stopLossDistance = 0;
+      let atrValue = lastATR;
+
+      if (entrySignal && stopLoss) {
+        // 计算止损距离X%
+        if (trend === "多头趋势") {
+          stopLossDistance = (entrySignal - stopLoss) / entrySignal;
+        } else if (trend === "空头趋势") {
+          stopLossDistance = (stopLoss - entrySignal) / entrySignal;
+        }
+
+        // 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
+        if (stopLossDistance > 0) {
+          maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+        }
+
+        // 保证金Z：M/(Y*X%) 数值向上取整（假设最大损失金额M=100 USDT）
+        const maxLossAmount = 100; // 默认100 USDT
+        if (maxLeverage > 0 && stopLossDistance > 0) {
+          minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
+        }
+      }
+
       return {
         entrySignal,
         stopLoss,
@@ -337,6 +363,10 @@ class SmartFlowStrategy {
         mode,
         modeA: mode === '回踩确认A',
         modeB: mode === '动能突破B',
+        maxLeverage,
+        minMargin,
+        stopLossDistance,
+        atrValue,
         dataValid: true
       };
     } catch (error) {
@@ -474,13 +504,23 @@ class SmartFlowStrategy {
       let signal = 'NO_SIGNAL';
       let signalStrength = 'NONE';
 
-      // 信号列直接使用小时级趋势加强判断的action结果
-      if (hourlyConfirmation.action === '做多') {
-        signal = 'LONG';
-        signalStrength = hourlyConfirmation.signalStrength;
-      } else if (hourlyConfirmation.action === '做空') {
-        signal = 'SHORT';
-        signalStrength = hourlyConfirmation.signalStrength;
+      // 根据strategy-v2.md的逻辑：
+      // - 得分 ≥ 2分 → 可以进入小周期观察入场机会，信号显示"观望/不做"
+      // - 得分 ≥ 4分 → 优先级最高（强信号），信号显示"做多"/"做空"
+      if (hourlyConfirmation.score >= 2) {
+        if (hourlyConfirmation.score >= 4) {
+          // 强信号：显示具体的做多/做空
+          if (dailyTrend.trend === '多头趋势') {
+            signal = '做多';
+          } else if (dailyTrend.trend === '空头趋势') {
+            signal = '做空';
+          }
+          signalStrength = 'STRONG';
+        } else {
+          // 中等信号：显示观望/不做
+          signal = '观望/不做';
+          signalStrength = 'MODERATE';
+        }
       }
 
       // 按照strategy-v2.md的入场执行逻辑
@@ -489,12 +529,21 @@ class SmartFlowStrategy {
       let executionMode = 'NONE';
 
       // 入场执行列显示触发了模式A还是模式B
-      if (execution15m.entrySignal) {
+      // 只有当趋势明确且得分≥2时，才可能触发入场执行
+      if (execution15m.entrySignal && hourlyConfirmation.score >= 2) {
         if (execution15m.modeA) {
-          execution = signal === 'LONG' ? 'LONG_EXECUTE' : 'SHORT_EXECUTE';
+          if (dailyTrend.trend === '多头趋势') {
+            execution = '做多_模式A';
+          } else if (dailyTrend.trend === '空头趋势') {
+            execution = '做空_模式A';
+          }
           executionMode = '模式A';
         } else if (execution15m.modeB) {
-          execution = signal === 'LONG' ? 'LONG_EXECUTE' : 'SHORT_EXECUTE';
+          if (dailyTrend.trend === '多头趋势') {
+            execution = '做多_模式B';
+          } else if (dailyTrend.trend === '空头趋势') {
+            execution = '做空_模式B';
+          }
           executionMode = '模式B';
         }
       }
@@ -566,6 +615,10 @@ class SmartFlowStrategy {
         entrySignal: execution15m?.entrySignal || null,
         stopLoss: execution15m?.stopLoss || null,
         takeProfit: execution15m?.takeProfit || null,
+        maxLeverage: execution15m?.maxLeverage || 0,
+        minMargin: execution15m?.minMargin || 0,
+        stopLossDistance: execution15m?.stopLossDistance || 0,
+        atrValue: execution15m?.atrValue || 0,
         // 其他信息
         currentPrice: parseFloat(ticker.lastPrice),
         dataCollectionRate: 100,

@@ -428,3 +428,11 @@ console.log(result);
 }
 */
 ```
+
+采用逐仓模式，止损距离，最大杠杆数和最小保证金数计算方式：
+- 止损距离X%：
+  - 多头：(entrySignal - stopLoss) / entrySignal
+  - 空头：(stopLoss - entrySignal) / entrySignal
+- 最大损失金额(U)：M
+    - 最大杠杆数Y：1/(X%+0.5%) 数值向下取整。
+    - 保证金Z：M/(Y*X%) 数值向上取整。
