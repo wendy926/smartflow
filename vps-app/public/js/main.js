@@ -127,30 +127,51 @@ class SmartFlowApp {
     // 获取所有单元格
     const cells = row.querySelectorAll('td');
 
-    // 趋势列（第2列，索引1）
-    if (cells[1]) {
+    // 清除所有相关单元格的样式
+    [2, 4, 5].forEach(index => {
+      if (cells[index]) {
+        cells[index].style.backgroundColor = '';
+        cells[index].style.border = '';
+        cells[index].style.fontWeight = '';
+      }
+    });
+
+    // 趋势列（第3列，索引2）
+    if (cells[2]) {
       if (signal.trend === '多头趋势') {
-        cells[1].style.backgroundColor = '#e8f5e8'; // 浅绿色
+        cells[2].style.backgroundColor = '#d4edda'; // 绿色
+        cells[2].style.border = '2px solid #28a745';
+        cells[2].style.fontWeight = 'bold';
       } else if (signal.trend === '空头趋势') {
-        cells[1].style.backgroundColor = '#ffeaea'; // 浅红色
+        cells[2].style.backgroundColor = '#f8d7da'; // 红色
+        cells[2].style.border = '2px solid #dc3545';
+        cells[2].style.fontWeight = 'bold';
       }
     }
 
-    // 信号列（第4列，索引3）
-    if (cells[3]) {
-      if (signal.signal === '做多') {
-        cells[3].style.backgroundColor = '#e8f5e8'; // 浅绿色
-      } else if (signal.signal === '做空') {
-        cells[3].style.backgroundColor = '#ffeaea'; // 浅红色
-      }
-    }
-
-    // 入场执行列（第5列，索引4）
+    // 信号列（第5列，索引4）
     if (cells[4]) {
+      if (signal.signal === '做多') {
+        cells[4].style.backgroundColor = '#d4edda'; // 绿色
+        cells[4].style.border = '2px solid #28a745';
+        cells[4].style.fontWeight = 'bold';
+      } else if (signal.signal === '做空') {
+        cells[4].style.backgroundColor = '#f8d7da'; // 红色
+        cells[4].style.border = '2px solid #dc3545';
+        cells[4].style.fontWeight = 'bold';
+      }
+    }
+
+    // 入场执行列（第6列，索引5）
+    if (cells[5]) {
       if (signal.execution && signal.execution.includes('做多_')) {
-        cells[4].style.backgroundColor = '#e8f5e8'; // 浅绿色
+        cells[5].style.backgroundColor = '#d4edda'; // 绿色
+        cells[5].style.border = '2px solid #28a745';
+        cells[5].style.fontWeight = 'bold';
       } else if (signal.execution && signal.execution.includes('做空_')) {
-        cells[4].style.backgroundColor = '#ffeaea'; // 浅红色
+        cells[5].style.backgroundColor = '#f8d7da'; // 红色
+        cells[5].style.border = '2px solid #dc3545';
+        cells[5].style.fontWeight = 'bold';
       }
     }
   }
