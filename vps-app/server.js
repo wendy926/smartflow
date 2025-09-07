@@ -91,6 +91,11 @@ class SmartFlowServer {
               takeProfit: analysis.takeProfit,
               currentPrice: analysis.currentPrice,
               dataCollectionRate: Math.round(dataCollectionRate),
+              // 交易执行详情
+              maxLeverage: analysis.maxLeverage,
+              minMargin: analysis.minMargin,
+              stopLossDistance: analysis.stopLossDistance,
+              atrValue: analysis.atrValue,
               // 详细分析数据
               dailyTrend: analysis.dailyTrend,
               hourlyConfirmation: analysis.hourlyConfirmation,
