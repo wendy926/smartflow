@@ -502,7 +502,7 @@ class SmartFlowServer {
       }
     }, 15 * 60 * 1000); // 15分钟
 
-    // 模拟交易状态监控：每30秒检查一次
+    // 模拟交易状态监控：每5分钟检查一次
     this.simulationInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
@@ -528,7 +528,7 @@ class SmartFlowServer {
       } catch (error) {
         console.error('模拟交易状态监控失败:', error);
       }
-    }, 30 * 1000); // 30秒
+    }, 5 * 60 * 1000); // 5分钟
 
     // 立即执行一次完整分析
     this.performInitialAnalysis();
