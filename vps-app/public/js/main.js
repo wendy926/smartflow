@@ -104,14 +104,14 @@ class SmartFlowApp {
       }
 
       console.log('✅ 开始加载数据...');
-      
+
       // 尝试调用getUpdateTimes，如果失败则使用默认值
       let updateTimes = {
         trend: null,
         signal: null,
         execution: null
       };
-      
+
       if (typeof window.apiClient.getUpdateTimes === 'function') {
         try {
           updateTimes = await window.apiClient.getUpdateTimes();
@@ -122,7 +122,7 @@ class SmartFlowApp {
       } else {
         console.warn('⚠️ getUpdateTimes方法不存在，使用默认值');
       }
-      
+
       const [signals, history, stats] = await Promise.all([
         dataManager.getAllSignals(),
         dataManager.getSimulationHistory(),
@@ -207,11 +207,14 @@ class SmartFlowApp {
 
     // 信号列（第5列，索引4）
     if (cells[4]) {
-      if (signal.signal === '做多') {
+      // 检查信号字段，包括做多/做空信号
+      if (signal.signal === '做多' || signal.signal === 'LONG' || 
+          (signal.signal && signal.signal.includes('做多'))) {
         cells[4].style.backgroundColor = '#d4edda'; // 绿色
         cells[4].style.border = '2px solid #28a745';
         cells[4].style.fontWeight = 'bold';
-      } else if (signal.signal === '做空') {
+      } else if (signal.signal === '做空' || signal.signal === 'SHORT' || 
+                 (signal.signal && signal.signal.includes('做空'))) {
         cells[4].style.backgroundColor = '#f8d7da'; // 红色
         cells[4].style.border = '2px solid #dc3545';
         cells[4].style.fontWeight = 'bold';
@@ -220,11 +223,12 @@ class SmartFlowApp {
 
     // 入场执行列（第6列，索引5）
     if (cells[5]) {
-      if (signal.execution && signal.execution.includes('做多_')) {
+      // 检查执行字段，包括做多_和做空_模式
+      if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('LONG_'))) {
         cells[5].style.backgroundColor = '#d4edda'; // 绿色
         cells[5].style.border = '2px solid #28a745';
         cells[5].style.fontWeight = 'bold';
-      } else if (signal.execution && signal.execution.includes('做空_')) {
+      } else if (signal.execution && (signal.execution.includes('做空_') || signal.execution.includes('SHORT_'))) {
         cells[5].style.backgroundColor = '#f8d7da'; // 红色
         cells[5].style.border = '2px solid #dc3545';
         cells[5].style.fontWeight = 'bold';
@@ -262,6 +266,11 @@ class SmartFlowApp {
       const modeB = signal.modeB || false;
 
       // 设置单元格背景颜色
+      console.log(`🎨 设置 ${signal.symbol} 单元格背景颜色:`, {
+        trend: signal.trend,
+        signal: signal.signal,
+        execution: signal.execution
+      });
       this.setCellBackgroundColors(row, signal);
 
       // 构建入场执行列内容
