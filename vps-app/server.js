@@ -137,6 +137,9 @@ class SmartFlowServer {
           }
         }
 
+        // 检查并自动触发模拟交易
+        await this.checkAndAutoTriggerSimulation();
+
         res.json({ success: true, message: '所有信号已刷新（趋势数据保持4小时更新周期）' });
       } catch (error) {
         console.error('刷新所有信号失败:', error);
@@ -684,6 +687,102 @@ class SmartFlowServer {
       console.log('✅ 模拟交易统计同步完成');
     } catch (error) {
       console.error('同步模拟交易统计失败:', error);
+    }
+  }
+
+  /**
+   * 检查并自动触发模拟交易
+   * 当检测到新的入场执行信号时，自动启动模拟交易
+   */
+  async checkAndAutoTriggerSimulation() {
+    try {
+      console.log('🔍 开始检查自动触发模拟交易...');
+      
+      // 获取当前所有信号
+      const signals = await this.getAllSignals();
+      
+      // 获取当前已触发的模拟交易记录
+      const currentHistory = await this.simulationManager.getSimulationHistory();
+      
+      // 创建已触发信号的映射，基于交易对+执行信号类型
+      const triggeredSignals = new Map();
+      currentHistory.forEach(trade => {
+        const key = `${trade.symbol}_${trade.trigger_reason}`;
+        triggeredSignals.set(key, trade);
+      });
+
+      // 检查每个信号
+      for (const signal of signals) {
+        // 检查是否有入场执行信号
+        if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
+          // 从execution中提取模式信息
+          const isLong = signal.execution.includes('做多_');
+          const mode = signal.execution.includes('模式A') ? '模式A' : '模式B';
+          const direction = isLong ? 'LONG' : 'SHORT';
+          
+          // 创建与数据库中trigger_reason格式一致的键
+          const signalKey = `${signal.symbol}_SIGNAL_${mode}_${direction}`;
+          
+          // 检查是否已经为这个特定的信号创建过模拟交易
+          if (!triggeredSignals.has(signalKey)) {
+            console.log(`🚀 检测到新的入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution} (${signalKey})`);
+
+            // 自动启动模拟交易
+            await this.autoStartSimulation(signal);
+
+            // 添加到已触发列表，避免重复触发相同的信号
+            triggeredSignals.set(signalKey, { symbol: signal.symbol, execution: signal.execution });
+          } else {
+            console.log(`⏭️ 跳过已触发的信号: ${signal.symbol} - ${signal.execution} (${signalKey})`);
+          }
+        }
+      }
+      
+      console.log('✅ 自动触发模拟交易检查完成');
+    } catch (error) {
+      console.error('自动触发模拟交易检查失败:', error);
+    }
+  }
+
+  /**
+   * 自动启动模拟交易
+   */
+  async autoStartSimulation(signalData) {
+    try {
+      const { symbol, execution, entrySignal, stopLoss, takeProfit, maxLeverage, minMargin, stopLossDistance, atrValue } = signalData;
+      
+      if (!symbol || !entrySignal || !stopLoss || !takeProfit) {
+        console.log(`❌ 跳过 ${symbol}：缺少必要参数`);
+        return;
+      }
+
+      // 确定执行模式和方向
+      const isLong = execution.includes('做多_');
+      const mode = execution.includes('模式A') ? '模式A' : '模式B';
+      const direction = isLong ? 'LONG' : 'SHORT';
+      const triggerReason = `SIGNAL_${mode}_${direction}`;
+
+      // 创建模拟交易
+      const simulationId = await this.simulationManager.createSimulation(
+        symbol,
+        entrySignal,
+        stopLoss,
+        takeProfit,
+        maxLeverage || 10,
+        minMargin || 100,
+        triggerReason,
+        stopLossDistance || null,
+        atrValue || null
+      );
+
+      // 记录到数据监控
+      if (this.dataMonitor) {
+        this.dataMonitor.recordSimulation(symbol, 'START', { simulationId }, true);
+      }
+
+      console.log(`✅ 自动启动模拟交易成功: ${symbol} - ${execution} (ID: ${simulationId})`);
+    } catch (error) {
+      console.error(`自动启动模拟交易失败 ${signalData.symbol}:`, error);
     }
   }
 
