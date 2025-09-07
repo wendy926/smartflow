@@ -181,7 +181,7 @@ class SmartFlowApp {
   // 设置单元格背景颜色
   setCellBackgroundColors(row, signal) {
     console.log(`🎨 开始设置 ${signal.symbol} 单元格背景颜色`);
-    
+
     // 获取所有单元格
     const cells = row.querySelectorAll('td');
     console.log(`📊 找到 ${cells.length} 个单元格`);
@@ -215,14 +215,14 @@ class SmartFlowApp {
     if (cells[4]) {
       console.log(`📊 信号列检查: ${signal.signal}`);
       // 检查信号字段，包括做多/做空信号
-      if (signal.signal === '做多' || signal.signal === 'LONG' || 
-          (signal.signal && signal.signal.includes('做多'))) {
+      if (signal.signal === '做多' || signal.signal === 'LONG' ||
+        (signal.signal && signal.signal.includes('做多'))) {
         cells[4].style.backgroundColor = '#d4edda'; // 绿色
         cells[4].style.border = '2px solid #28a745';
         cells[4].style.fontWeight = 'bold';
         console.log(`✅ 设置信号列为绿色`);
-      } else if (signal.signal === '做空' || signal.signal === 'SHORT' || 
-                 (signal.signal && signal.signal.includes('做空'))) {
+      } else if (signal.signal === '做空' || signal.signal === 'SHORT' ||
+        (signal.signal && signal.signal.includes('做空'))) {
         cells[4].style.backgroundColor = '#f8d7da'; // 红色
         cells[4].style.border = '2px solid #dc3545';
         cells[4].style.fontWeight = 'bold';
@@ -246,7 +246,7 @@ class SmartFlowApp {
         console.log(`✅ 设置执行列为红色`);
       }
     }
-    
+
     console.log(`🎨 完成设置 ${signal.symbol} 单元格背景颜色`);
   }
 
@@ -278,14 +278,6 @@ class SmartFlowApp {
       // 获取模式A和模式B的判断结果
       const modeA = signal.modeA || false;
       const modeB = signal.modeB || false;
-
-      // 设置单元格背景颜色
-      console.log(`🎨 设置 ${signal.symbol} 单元格背景颜色:`, {
-        trend: signal.trend,
-        signal: signal.signal,
-        execution: signal.execution
-      });
-      this.setCellBackgroundColors(row, signal);
 
       // 构建入场执行列内容
       let executionDisplay = signal.execution || '--';
@@ -319,6 +311,14 @@ class SmartFlowApp {
                     ${dataCollectionRate.toFixed(1)}%
                 </td>
             `;
+
+      // 设置单元格背景颜色（在row.innerHTML之后调用）
+      console.log(`🎨 设置 ${signal.symbol} 单元格背景颜色:`, {
+        trend: signal.trend,
+        signal: signal.signal,
+        execution: signal.execution
+      });
+      this.setCellBackgroundColors(row, signal);
 
       // 创建折叠行
       const historyRow = document.createElement('tr');
