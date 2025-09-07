@@ -49,10 +49,13 @@ class SmartFlowServer {
         const symbols = await this.db.getCustomSymbols();
         const signals = [];
 
+        // 获取用户设置的最大损失金额
+        const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
+
         for (const symbol of symbols) {
           try {
             // 只更新信号和执行数据，不重新计算趋势数据
-            const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+            const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
 
             // 获取数据采集成功率
             let dataCollectionRate = 0;
@@ -110,10 +113,13 @@ class SmartFlowServer {
       try {
         const symbols = await this.db.getCustomSymbols();
 
+        // 获取用户设置的最大损失金额
+        const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
+
         for (const symbol of symbols) {
           try {
             // 只更新信号和执行数据，不更新趋势数据
-            const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+            const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
 
             // 存储策略分析结果到数据库
             try {
@@ -490,9 +496,12 @@ class SmartFlowServer {
       const symbols = await this.db.getCustomSymbols();
       console.log(`🚀 执行初始完整分析 ${symbols.length} 个交易对...`);
 
+      // 获取用户设置的最大损失金额
+      const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
+
       for (const symbol of symbols) {
         try {
-          const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+          const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
 
           // 存储策略分析结果到数据库
           try {
@@ -514,7 +523,9 @@ class SmartFlowServer {
   // 更新趋势数据（日线分析）- 使用完整分析流程
   async updateTrendData(symbol) {
     try {
-      const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+      // 获取用户设置的最大损失金额
+      const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
+      const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
 
       // 存储策略分析结果到数据库
       try {
@@ -532,7 +543,9 @@ class SmartFlowServer {
   // 更新信号数据（小时确认分析）- 使用完整分析流程
   async updateSignalData(symbol) {
     try {
-      const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+      // 获取用户设置的最大损失金额
+      const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
+      const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
 
       // 存储策略分析结果到数据库
       try {
@@ -550,7 +563,9 @@ class SmartFlowServer {
   // 更新入场执行数据（15分钟执行分析）- 使用完整分析流程
   async updateExecutionData(symbol) {
     try {
-      const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+      // 获取用户设置的最大损失金额
+      const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
+      const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
 
       // 存储策略分析结果到数据库
       try {

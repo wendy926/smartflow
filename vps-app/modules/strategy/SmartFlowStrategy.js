@@ -248,7 +248,7 @@ class SmartFlowStrategy {
    * @param {Object} symbolData - 可选的数据对象
    * @returns {Object} 15分钟入场分析结果
    */
-  static async analyze15mExecution(symbol, trend, score, symbolData = null) {
+  static async analyze15mExecution(symbol, trend, score, symbolData = null, maxLossAmount = 100) {
     try {
       const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '15m', 50);
 
@@ -349,8 +349,7 @@ class SmartFlowStrategy {
           maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
         }
 
-        // 保证金Z：M/(Y*X%) 数值向上取整（假设最大损失金额M=100 USDT）
-        const maxLossAmount = 100; // 默认100 USDT
+        // 保证金Z：M/(Y*X%) 数值向上取整（M为用户设置的最大损失金额）
         if (maxLeverage > 0 && stopLossDistance > 0) {
           minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
         }
@@ -389,7 +388,7 @@ class SmartFlowStrategy {
    * @param {string} symbol - 交易对
    * @returns {Object} 综合分析结果
    */
-  static async analyzeAll(symbol) {
+  static async analyzeAll(symbol, maxLossAmount = 100) {
     const startTime = Date.now();
 
     try {
@@ -466,7 +465,7 @@ class SmartFlowStrategy {
       // 3. 基于天级趋势和小时级得分进行15分钟入场判断
       try {
         console.log(`🔍 开始分析15分钟执行 [${symbol}]...`);
-        execution15m = await this.analyze15mExecution(symbol, dailyTrend.trend, hourlyConfirmation.score, symbolData);
+        execution15m = await this.analyze15mExecution(symbol, dailyTrend.trend, hourlyConfirmation.score, symbolData, maxLossAmount);
         console.log(`✅ 15分钟执行分析成功 [${symbol}]:`, {
           entrySignal: execution15m.entrySignal,
           mode: execution15m.mode,
