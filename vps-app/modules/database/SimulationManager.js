@@ -1,6 +1,8 @@
 // modules/database/SimulationManager.js
 // 模拟交易管理模块
 
+const { BinanceAPI } = require('../api/BinanceAPI');
+
 class SimulationManager {
   constructor(db) {
     this.db = db;
@@ -45,7 +47,6 @@ class SimulationManager {
 
   async getCurrentPrice(symbol) {
     try {
-      const { BinanceAPI } = require('../api/BinanceAPI');
       const ticker = await BinanceAPI.get24hrTicker(symbol);
       return parseFloat(ticker.lastPrice);
     } catch (error) {
