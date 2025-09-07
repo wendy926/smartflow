@@ -466,21 +466,37 @@ class SmartFlowApp {
     try {
       // 获取当前已触发的模拟交易记录
       const currentHistory = await dataManager.getSimulationHistory();
-      const triggeredSymbols = new Set(currentHistory.map(trade => trade.symbol));
+      
+      // 创建已触发信号的映射，基于交易对+执行信号类型
+      const triggeredSignals = new Map();
+      currentHistory.forEach(trade => {
+        const key = `${trade.symbol}_${trade.trigger_reason}`;
+        triggeredSignals.set(key, trade);
+      });
 
       // 检查每个信号
       for (const signal of signals) {
         // 检查是否有入场执行信号
         if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
-          // 如果这个交易对还没有触发过模拟交易，则自动触发
-          if (!triggeredSymbols.has(signal.symbol)) {
-            console.log(`🚀 检测到新的入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution}`);
+          // 从execution中提取模式信息
+          const isLong = signal.execution.includes('做多_');
+          const mode = signal.execution.includes('模式A') ? '模式A' : '模式B';
+          const direction = isLong ? 'LONG' : 'SHORT';
+          
+          // 创建与数据库中trigger_reason格式一致的键
+          const signalKey = `${signal.symbol}_SIGNAL_${mode}_${direction}`;
+          
+          // 检查是否已经为这个特定的信号创建过模拟交易
+          if (!triggeredSignals.has(signalKey)) {
+            console.log(`🚀 检测到新的入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution} (${signalKey})`);
 
             // 自动启动模拟交易
             await this.autoStartSimulation(signal);
 
-            // 添加到已触发列表，避免重复触发
-            triggeredSymbols.add(signal.symbol);
+            // 添加到已触发列表，避免重复触发相同的信号
+            triggeredSignals.set(signalKey, { symbol: signal.symbol, execution: signal.execution });
+          } else {
+            console.log(`⏭️ 跳过已触发的信号: ${signal.symbol} - ${signal.execution} (${signalKey})`);
           }
         }
       }

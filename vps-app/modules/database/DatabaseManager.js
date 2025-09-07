@@ -465,15 +465,15 @@ class DatabaseManager {
         WHERE 1=1
       `;
       const params = [];
-      
+
       if (alertType) {
         query += ' AND alert_type = ?';
         params.push(alertType);
       }
-      
+
       query += ' ORDER BY timestamp DESC LIMIT ?';
       params.push(limit);
-      
+
       return await this.runQuery(query, params);
     } catch (error) {
       console.error('获取告警历史失败:', error);
