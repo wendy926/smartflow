@@ -51,6 +51,7 @@ class SmartFlowServer {
 
         for (const symbol of symbols) {
           try {
+            // 只更新信号和执行数据，不重新计算趋势数据
             const analysis = await SmartFlowStrategy.analyzeAll(symbol);
 
             // 获取数据采集成功率
@@ -63,31 +64,34 @@ class SmartFlowServer {
               }
             }
 
+            // 存储策略分析结果到数据库
+            try {
+              await this.db.recordStrategyAnalysis(analysis);
+            } catch (dbError) {
+              console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
+            }
+
             signals.push({
               symbol,
+              // 使用新的策略分析结果结构
               trend: analysis.trend,
+              trendStrength: analysis.trendStrength,
               signal: analysis.signal,
+              signalStrength: analysis.signalStrength,
+              hourlyScore: analysis.hourlyScore,
               execution: analysis.execution,
+              executionMode: analysis.executionMode,
+              modeA: analysis.modeA,
+              modeB: analysis.modeB,
+              entrySignal: analysis.entrySignal,
+              stopLoss: analysis.stopLoss,
+              takeProfit: analysis.takeProfit,
               currentPrice: analysis.currentPrice,
-              vwap: analysis.hourlyConfirmation?.vwap || 0,
-              volumeRatio: analysis.hourlyConfirmation?.volumeRatio || 0,
-              oiChange: analysis.hourlyConfirmation?.oiChange || 0,
-              fundingRate: analysis.hourlyConfirmation?.fundingRate || 0,
-              cvd: analysis.hourlyConfirmation?.cvd?.direction || 'N/A',
-              cvdValue: analysis.hourlyConfirmation?.cvd?.value || 0,
-              cvdActive: analysis.hourlyConfirmation?.cvd?.isActive || false,
-              priceVsVwap: analysis.hourlyConfirmation?.priceVsVwap || 0,
-              dataCollectionRate: dataCollectionRate,
-              // 新增的交易执行信息
-              stopLoss: analysis.execution15m?.stopLoss || null,
-              targetPrice: analysis.execution15m?.targetPrice || null,
-              riskRewardRatio: analysis.execution15m?.riskRewardRatio || 0,
-              maxLeverage: analysis.execution15m?.maxLeverage || 0,
-              minMargin: analysis.execution15m?.minMargin || 0,
-              manualConfirmation: analysis.execution15m?.manualConfirmation || false,
-              setupHigh: analysis.execution15m?.setupHigh || 0,
-              setupLow: analysis.execution15m?.setupLow || 0,
-              atr: analysis.execution15m?.atr || 0
+              dataCollectionRate: Math.round(dataCollectionRate),
+              // 详细分析数据
+              dailyTrend: analysis.dailyTrend,
+              hourlyConfirmation: analysis.hourlyConfirmation,
+              execution15m: analysis.execution15m
             });
           } catch (error) {
             console.error(`分析 ${symbol} 失败:`, error);
@@ -101,20 +105,28 @@ class SmartFlowServer {
       }
     });
 
-    // 刷新所有信号
+    // 刷新所有信号（不包含趋势数据）
     this.app.post('/api/refresh-all', async (req, res) => {
       try {
         const symbols = await this.db.getCustomSymbols();
 
         for (const symbol of symbols) {
           try {
-            await SmartFlowStrategy.analyzeAll(symbol);
+            // 只更新信号和执行数据，不更新趋势数据
+            const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+
+            // 存储策略分析结果到数据库
+            try {
+              await this.db.recordStrategyAnalysis(analysis);
+            } catch (dbError) {
+              console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
+            }
           } catch (error) {
             console.error(`刷新 ${symbol} 失败:`, error);
           }
         }
 
-        res.json({ success: true, message: '所有信号已刷新' });
+        res.json({ success: true, message: '所有信号已刷新（趋势数据保持4小时更新周期）' });
       } catch (error) {
         console.error('刷新所有信号失败:', error);
         res.status(500).json({ error: error.message });
@@ -436,7 +448,14 @@ class SmartFlowServer {
 
       for (const symbol of symbols) {
         try {
-          await SmartFlowStrategy.analyzeAll(symbol);
+          const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+
+          // 存储策略分析结果到数据库
+          try {
+            await this.db.recordStrategyAnalysis(analysis);
+          } catch (dbError) {
+            console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
+          }
         } catch (error) {
           console.error(`初始分析 ${symbol} 失败:`, error);
         }
@@ -448,34 +467,55 @@ class SmartFlowServer {
     }
   }
 
-  // 更新趋势数据（日线分析）
+  // 更新趋势数据（日线分析）- 使用完整分析流程
   async updateTrendData(symbol) {
     try {
-      const dailyTrend = await SmartFlowStrategy.analyzeDailyTrend(symbol);
-      // 只更新趋势相关数据，不触发信号分析
-      console.log(`📈 趋势更新完成 [${symbol}]: ${dailyTrend.trend}`);
+      const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+
+      // 存储策略分析结果到数据库
+      try {
+        await this.db.recordStrategyAnalysis(analysis);
+      } catch (dbError) {
+        console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
+      }
+
+      console.log(`📈 趋势更新完成 [${symbol}]: ${analysis.trend}`);
     } catch (error) {
       console.error(`趋势更新失败 [${symbol}]:`, error);
     }
   }
 
-  // 更新信号数据（小时确认分析）
+  // 更新信号数据（小时确认分析）- 使用完整分析流程
   async updateSignalData(symbol) {
     try {
-      const hourlyConfirmation = await SmartFlowStrategy.analyzeHourlyConfirmation(symbol);
-      // 只更新信号相关数据，不触发执行分析
-      console.log(`📊 信号更新完成 [${symbol}]: 确认=${hourlyConfirmation.confirmed}`);
+      const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+
+      // 存储策略分析结果到数据库
+      try {
+        await this.db.recordStrategyAnalysis(analysis);
+      } catch (dbError) {
+        console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
+      }
+
+      console.log(`📊 信号更新完成 [${symbol}]: 得分=${analysis.hourlyScore}, 信号=${analysis.signal}`);
     } catch (error) {
       console.error(`信号更新失败 [${symbol}]:`, error);
     }
   }
 
-  // 更新入场执行数据（15分钟执行分析）
+  // 更新入场执行数据（15分钟执行分析）- 使用完整分析流程
   async updateExecutionData(symbol) {
     try {
-      const execution15m = await SmartFlowStrategy.analyze15mExecution(symbol);
-      // 只更新执行相关数据
-      console.log(`⚡ 执行更新完成 [${symbol}]: 信号=${execution15m.signal}`);
+      const analysis = await SmartFlowStrategy.analyzeAll(symbol);
+
+      // 存储策略分析结果到数据库
+      try {
+        await this.db.recordStrategyAnalysis(analysis);
+      } catch (dbError) {
+        console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
+      }
+
+      console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode}`);
     } catch (error) {
       console.error(`执行更新失败 [${symbol}]:`, error);
     }

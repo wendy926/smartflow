@@ -76,7 +76,7 @@ class DataMonitor {
       if (!stats.dataTypeStats) {
         stats.dataTypeStats = new Map();
       }
-      
+
       if (!stats.dataTypeStats.has(dataType)) {
         stats.dataTypeStats.set(dataType, {
           attempts: 0,
@@ -86,10 +86,10 @@ class DataMonitor {
           lastError: null
         });
       }
-      
+
       const dataTypeStats = stats.dataTypeStats.get(dataType);
       dataTypeStats.attempts++;
-      
+
       if (success) {
         dataTypeStats.successes++;
         dataTypeStats.lastSuccessTime = Date.now();
@@ -98,7 +98,7 @@ class DataMonitor {
         dataTypeStats.lastErrorTime = Date.now();
         dataTypeStats.lastError = error;
       }
-      
+
       stats.dataCollectionAttempts++;
       if (success) {
         stats.dataCollectionSuccesses++;
@@ -121,7 +121,7 @@ class DataMonitor {
     if (!this.dataQualityIssues.has(symbol)) {
       this.dataQualityIssues.set(symbol, []);
     }
-    
+
     const issues = this.dataQualityIssues.get(symbol);
     issues.push({
       timestamp: Date.now(),
@@ -129,7 +129,7 @@ class DataMonitor {
       errorMessage,
       severity: 'HIGH' // 数据质量问题都是高严重性
     });
-    
+
     // 只保留最近10个问题
     if (issues.length > 10) {
       issues.splice(0, issues.length - 10);
@@ -193,6 +193,41 @@ class DataMonitor {
 
     this.calculateCompletionRates();
     this.checkHealthStatus();
+  }
+
+  /**
+   * 记录完整的分析日志
+   * @param {string} symbol - 交易对
+   * @param {Object} analysisResult - 分析结果
+   */
+  recordAnalysisLog(symbol, analysisResult) {
+    const log = this.analysisLogs.get(symbol);
+    if (log) {
+      // 更新分析日志中的信号数据
+      log.trend = analysisResult.trend;
+      log.signal = analysisResult.signal;
+      log.execution = analysisResult.execution;
+      log.executionMode = analysisResult.executionMode;
+      log.hourlyScore = analysisResult.hourlyScore;
+      log.modeA = analysisResult.modeA;
+      log.modeB = analysisResult.modeB;
+
+      // 更新详细分析数据
+      if (analysisResult.dailyTrend) {
+        log.dailyTrend = analysisResult.dailyTrend;
+      }
+      if (analysisResult.hourlyConfirmation) {
+        log.hourlyConfirmation = analysisResult.hourlyConfirmation;
+      }
+      if (analysisResult.execution15m) {
+        log.execution15m = analysisResult.execution15m;
+      }
+
+      // 更新完成时间
+      log.endTime = Date.now();
+      log.success = true;
+      log.totalTime = log.endTime - log.startTime;
+    }
   }
 
   getAnalysisLog(symbol) {
@@ -296,13 +331,13 @@ class DataMonitor {
       for (const symbol of allSymbols) {
         const log = this.getAnalysisLog(symbol);
         const stats = this.symbolStats.get(symbol);
-        
+
         // 验证数据完整性
         if (log) {
           // 检查原始数据质量
           let hasValidData = true;
           const requiredDataTypes = ['日线K线', '小时K线', '24小时行情', '资金费率', '持仓量历史'];
-          
+
           for (const dataType of requiredDataTypes) {
             const dataInfo = log.rawData[dataType];
             if (!dataInfo || !dataInfo.success || !dataInfo.data) {
@@ -310,7 +345,7 @@ class DataMonitor {
               dataValidationErrors.push(`${symbol}: ${dataType}数据无效`);
             }
           }
-          
+
           // 收集数据质量问题
           if (this.dataQualityIssues.has(symbol)) {
             const issues = this.dataQualityIssues.get(symbol);
@@ -318,20 +353,20 @@ class DataMonitor {
               dataQualityIssues.push(`${symbol}: ${issue.analysisType} - ${issue.errorMessage}`);
             });
           }
-          
+
           if (hasValidData) {
             successfulDataCollections++;
           }
-          
+
           if (log.phases.signalAnalysis.success) {
             successfulSignalAnalyses++;
           }
-          
+
           // 检查数据质量
           if (log.rawData && Object.keys(log.rawData).length === 0) {
             dataValidationErrors.push(`${symbol}: 缺少原始数据`);
           }
-          
+
           if (log.indicators && Object.keys(log.indicators).length === 0) {
             dataValidationErrors.push(`${symbol}: 缺少技术指标数据`);
           }
@@ -380,9 +415,9 @@ class DataMonitor {
       const dataTypeCollection = {};
       if (stats.dataTypeStats) {
         for (const [dataType, dataTypeStats] of stats.dataTypeStats.entries()) {
-          const rate = dataTypeStats.attempts > 0 ? 
+          const rate = dataTypeStats.attempts > 0 ?
             (dataTypeStats.successes / dataTypeStats.attempts) * 100 : 0;
-          
+
           dataTypeCollection[dataType] = {
             rate: rate,
             attempts: dataTypeStats.attempts,
@@ -414,17 +449,17 @@ class DataMonitor {
         if (log.trend && log.trend !== 'RANGE' && (log.trend === 'UPTREND' || log.trend === 'DOWNTREND')) {
           hasTrend = true;
         }
-        
+
         // 获取小时级多因子得分
         if (log.hourlyConfirmation && log.hourlyConfirmation.score !== undefined) {
           hourlyScore = log.hourlyConfirmation.score;
         }
-        
+
         // 获取执行模式
         if (log.executionMode) {
           executionMode = log.executionMode;
         }
-        
+
         // 获取模式A和模式B判断结果
         if (log.execution15m && log.execution15m.executionDetails) {
           modeA = log.execution15m.executionDetails.pullbackToEma20 || log.execution15m.executionDetails.pullbackToEma50 || false;
@@ -550,16 +585,16 @@ class DataMonitor {
     const dataQuality = summary.dataQuality;
 
     // 检查是否需要发送告警
-    const needsAlert = dataCollectionRate < this.alertThresholds.dataCollection || 
-                      signalAnalysisRate < this.alertThresholds.signalAnalysis ||
-                      dataValidation.hasErrors ||
-                      dataQuality.hasIssues;
+    const needsAlert = dataCollectionRate < this.alertThresholds.dataCollection ||
+      signalAnalysisRate < this.alertThresholds.signalAnalysis ||
+      dataValidation.hasErrors ||
+      dataQuality.hasIssues;
 
     if (needsAlert) {
       // 检查冷却时间，避免重复告警
       const now = Date.now();
       const lastAlert = this.lastAlertTime.get('system') || 0;
-      
+
       if (now - lastAlert < this.alertCooldown) {
         console.log('⏰ 系统告警在冷却期内，跳过发送');
         return;
@@ -631,7 +666,7 @@ class DataMonitor {
         // 检查单个交易对告警冷却时间
         const now = Date.now();
         const lastSymbolAlert = this.lastAlertTime.get(symbol.symbol) || 0;
-        
+
         if (now - lastSymbolAlert < this.alertCooldown) {
           console.log(`⏰ ${symbol.symbol} 交易对告警在冷却期内，跳过发送`);
           continue;

@@ -7,7 +7,12 @@ const path = require('path');
 class DatabaseManager {
   constructor() {
     this.db = null;
-    this.dbPath = '/home/admin/smartflow-vps-app/vps-app/smartflow.db';
+    // 根据环境设置数据库路径
+    if (process.env.NODE_ENV === 'production') {
+      this.dbPath = '/home/admin/smartflow-vps-app/vps-app/smartflow.db';
+    } else {
+      this.dbPath = path.join(__dirname, '..', '..', 'smartflow.db');
+    }
   }
 
   async init() {
@@ -26,7 +31,44 @@ class DatabaseManager {
 
   async initTables() {
     const tables = [
-      // 信号记录表
+      // 策略分析记录表 - 存储完整的策略分析结果
+      `CREATE TABLE IF NOT EXISTS strategy_analysis (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        -- 天级趋势数据
+        trend TEXT,
+        trend_strength TEXT,
+        ma20 REAL,
+        ma50 REAL,
+        ma200 REAL,
+        bbw_expanding BOOLEAN,
+        -- 小时级趋势加强数据
+        signal TEXT,
+        signal_strength TEXT,
+        hourly_score INTEGER,
+        vwap REAL,
+        oi_change REAL,
+        funding_rate REAL,
+        -- 15分钟入场执行数据
+        execution TEXT,
+        execution_mode TEXT,
+        mode_a BOOLEAN,
+        mode_b BOOLEAN,
+        entry_signal REAL,
+        stop_loss REAL,
+        take_profit REAL,
+        -- 基础信息
+        current_price REAL,
+        data_collection_rate REAL,
+        -- 完整数据JSON
+        full_analysis_data TEXT,
+        -- 数据质量
+        data_valid BOOLEAN DEFAULT TRUE,
+        error_message TEXT
+      )`,
+
+      // 信号记录表 - 保持向后兼容
       `CREATE TABLE IF NOT EXISTS signal_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         symbol TEXT NOT NULL,
@@ -37,7 +79,7 @@ class DatabaseManager {
         notes TEXT
       )`,
 
-      // 入场执行记录表
+      // 入场执行记录表 - 保持向后兼容
       `CREATE TABLE IF NOT EXISTS execution_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         symbol TEXT NOT NULL,
@@ -152,7 +194,49 @@ class DatabaseManager {
     });
   }
 
-  // 记录信号
+  // 记录策略分析结果 - 新方法
+  async recordStrategyAnalysis(analysisData) {
+    const sql = `
+      INSERT INTO strategy_analysis (
+        symbol, trend, trend_strength, ma20, ma50, ma200, bbw_expanding,
+        signal, signal_strength, hourly_score, vwap, oi_change, funding_rate,
+        execution, execution_mode, mode_a, mode_b, entry_signal, stop_loss, take_profit,
+        current_price, data_collection_rate, full_analysis_data, data_valid, error_message
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const params = [
+      analysisData.symbol,
+      analysisData.trend,
+      analysisData.trendStrength,
+      analysisData.dailyTrend?.ma20,
+      analysisData.dailyTrend?.ma50,
+      analysisData.dailyTrend?.ma200,
+      analysisData.dailyTrend?.bbwExpanding,
+      analysisData.signal,
+      analysisData.signalStrength,
+      analysisData.hourlyScore,
+      analysisData.hourlyConfirmation?.vwap,
+      analysisData.hourlyConfirmation?.oiChange,
+      analysisData.hourlyConfirmation?.fundingRate,
+      analysisData.execution,
+      analysisData.executionMode,
+      analysisData.modeA,
+      analysisData.modeB,
+      analysisData.entrySignal,
+      analysisData.stopLoss,
+      analysisData.takeProfit,
+      analysisData.currentPrice,
+      analysisData.dataCollectionRate,
+      JSON.stringify(analysisData),
+      analysisData.dataValid !== false,
+      analysisData.error || null
+    ];
+
+    return await this.run(sql, params);
+  }
+
+  // 记录信号 - 保持向后兼容
   async recordSignal(symbol, signalData) {
     const sql = `
       INSERT INTO signal_records (symbol, signal_type, signal_data, result, notes)
@@ -196,7 +280,33 @@ class DatabaseManager {
     return await this.run(sql, [result, notes, recordId]);
   }
 
-  // 获取历史记录
+  // 获取策略分析历史记录
+  async getStrategyAnalysisHistory(symbol = null, limit = 100) {
+    let sql = `
+      SELECT * FROM strategy_analysis
+      ${symbol ? 'WHERE symbol = ?' : ''}
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `;
+
+    const params = symbol ? [symbol, limit] : [limit];
+    return await this.runQuery(sql, params);
+  }
+
+  // 获取最新的策略分析结果
+  async getLatestStrategyAnalysis(symbol) {
+    const sql = `
+      SELECT * FROM strategy_analysis
+      WHERE symbol = ?
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `;
+
+    const results = await this.runQuery(sql, [symbol]);
+    return results.length > 0 ? results[0] : null;
+  }
+
+  // 获取历史记录 - 保持向后兼容
   async getHistoryRecords(symbol = null, limit = 100) {
     let sql = `
       SELECT 'signal' as type, id, symbol, signal_type as data_type, signal_data as data, timestamp, result, notes
@@ -251,20 +361,42 @@ class DatabaseManager {
   async getDataStats() {
     const checkComplete = () => {
       return new Promise((resolve) => {
-        this.db.get('SELECT COUNT(*) as count FROM signal_records', (err, row) => {
+        this.db.get('SELECT COUNT(*) as count FROM strategy_analysis', (err, strategyRow) => {
           if (err) {
-            resolve({ totalSignals: 0, totalExecutions: 0, totalSimulations: 0 });
+            resolve({
+              totalStrategyAnalysis: 0,
+              totalSignals: 0,
+              totalExecutions: 0,
+              totalSimulations: 0
+            });
           } else {
-            this.db.get('SELECT COUNT(*) as count FROM execution_records', (err, execRow) => {
+            this.db.get('SELECT COUNT(*) as count FROM signal_records', (err, signalRow) => {
               if (err) {
-                resolve({ totalSignals: row.count, totalExecutions: 0, totalSimulations: 0 });
+                resolve({
+                  totalStrategyAnalysis: strategyRow.count,
+                  totalSignals: 0,
+                  totalExecutions: 0,
+                  totalSimulations: 0
+                });
               } else {
-                this.db.get('SELECT COUNT(*) as count FROM simulations', (err, simRow) => {
-                  resolve({
-                    totalSignals: row.count,
-                    totalExecutions: execRow.count,
-                    totalSimulations: simRow ? simRow.count : 0
-                  });
+                this.db.get('SELECT COUNT(*) as count FROM execution_records', (err, execRow) => {
+                  if (err) {
+                    resolve({
+                      totalStrategyAnalysis: strategyRow.count,
+                      totalSignals: signalRow.count,
+                      totalExecutions: 0,
+                      totalSimulations: 0
+                    });
+                  } else {
+                    this.db.get('SELECT COUNT(*) as count FROM simulations', (err, simRow) => {
+                      resolve({
+                        totalStrategyAnalysis: strategyRow.count,
+                        totalSignals: signalRow.count,
+                        totalExecutions: execRow.count,
+                        totalSimulations: simRow ? simRow.count : 0
+                      });
+                    });
+                  }
                 });
               }
             });

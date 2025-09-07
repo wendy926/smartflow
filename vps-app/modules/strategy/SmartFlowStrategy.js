@@ -1,5 +1,5 @@
 // modules/strategy/SmartFlowStrategy.js
-// SmartFlow 交易策略核心模块
+// SmartFlow 交易策略核心模块 - 基于strategy-v2.md实现
 
 const BinanceAPI = require('../api/BinanceAPI');
 const TechnicalIndicators = require('../utils/TechnicalIndicators');
@@ -9,6 +9,12 @@ class SmartFlowStrategy {
   static dataMonitor = new DataMonitor();
   static dataManager = null; // 将在初始化时设置
 
+  /**
+   * 天级趋势判断 - 基于布林带带宽(BBW)扩张
+   * @param {string} symbol - 交易对
+   * @param {Object} symbolData - 可选的数据对象
+   * @returns {Object} 天级趋势分析结果
+   */
   static async analyzeDailyTrend(symbol, symbolData = null) {
     try {
       const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '1d', 250);
@@ -29,68 +35,58 @@ class SmartFlowStrategy {
       const ma50 = TechnicalIndicators.calculateSMA(closes, 50);
       const ma200 = TechnicalIndicators.calculateSMA(closes, 200);
 
-      // 计算ADX
-      let adx = [];
-      let adxError = null;
+      // 计算布林带带宽扩张
+      let bbwExpanding = false;
+      let bbwError = null;
       try {
-        adx = TechnicalIndicators.calculateADX(klines, 14);
-        if (!adx || adx.length === 0) {
-          throw new Error('ADX计算结果为空');
-        }
+        bbwExpanding = TechnicalIndicators.isBBWExpanding(closes, 20, 2);
       } catch (error) {
-        adxError = error.message;
-        this.dataMonitor.recordDataQualityIssue(symbol, '日线趋势分析', `ADX计算失败: ${error.message}`);
-        console.error(`ADX计算失败 ${symbol}:`, error);
-      }
-      
-      // 计算布林带开口扩张
-      let bollingerExpansion = false;
-      let bollingerError = null;
-      try {
-        bollingerExpansion = TechnicalIndicators.calculateBollingerBandExpansion(closes, 20);
-      } catch (error) {
-        bollingerError = error.message;
-        this.dataMonitor.recordDataQualityIssue(symbol, '日线趋势分析', `布林带开口扩张计算失败: ${error.message}`);
-        console.error(`布林带开口扩张计算失败 ${symbol}:`, error);
+        bbwError = error.message;
+        this.dataMonitor.recordDataQualityIssue(symbol, '日线趋势分析', `BBW计算失败: ${error.message}`);
+        console.error(`BBW计算失败 ${symbol}:`, error);
       }
 
       const latestClose = closes[closes.length - 1];
       const latestMA20 = ma20[ma20.length - 1];
       const latestMA50 = ma50[ma50.length - 1];
       const latestMA200 = ma200[ma200.length - 1];
-      const latestADX = adx.length > 0 ? adx[adx.length - 1] : 0;
 
-      let trend = 'RANGE';
+      let trend = '震荡/无趋势';
       let trendStrength = 'WEAK';
 
-      // 检查指标计算是否成功
-      const hasValidADX = !adxError && adx.length > 0;
-      const hasValidBollinger = !bollingerError;
+      // 按照strategy-v2.md的天级趋势判断逻辑
+      // 1. 趋势基础条件（必须满足）
+      // 2. 趋势强度条件（BBW扩张）
 
-      // 按照strategy-v2.md的日线趋势过滤逻辑
-      // 多头趋势：价格在MA200上方 + MA20 > MA50 + ADX > 20 + 布林带开口扩张
-      if (latestClose > latestMA200 && 
-          latestMA20 > latestMA50 && 
-          hasValidADX && latestADX > 20 && 
-          hasValidBollinger && bollingerExpansion) {
-        trend = 'UPTREND';
-        trendStrength = latestADX > 30 ? 'STRONG' : 'MODERATE';
+      // 多头趋势基础条件：价格在MA200上方 + MA20 > MA50
+      const uptrendBasic = latestClose > latestMA200 && latestMA20 > latestMA50;
+      // 空头趋势基础条件：价格在MA200下方 + MA20 < MA50  
+      const downtrendBasic = latestClose < latestMA200 && latestMA20 < latestMA50;
+
+      // 趋势强度条件：BBW扩张
+      const strengthCondition = !bbwError && bbwExpanding;
+
+      if (uptrendBasic && strengthCondition) {
+        trend = '多头趋势';
+        trendStrength = 'STRONG';
       }
-      // 空头趋势：价格在MA200下方 + MA20 < MA50 + ADX > 20 + 布林带开口扩张
-      else if (latestClose < latestMA200 && 
-               latestMA20 < latestMA50 && 
-               hasValidADX && latestADX > 20 && 
-               hasValidBollinger && bollingerExpansion) {
-        trend = 'DOWNTREND';
-        trendStrength = latestADX > 30 ? 'STRONG' : 'MODERATE';
+      else if (downtrendBasic && strengthCondition) {
+        trend = '空头趋势';
+        trendStrength = 'STRONG';
+      }
+      // 如果只有基础条件满足，但强度条件不满足，仍然认为是趋势但强度较弱
+      else if (uptrendBasic) {
+        trend = '多头趋势';
+        trendStrength = 'WEAK';
+      }
+      else if (downtrendBasic) {
+        trend = '空头趋势';
+        trendStrength = 'WEAK';
       }
 
       // 记录指标计算错误
-      if (adxError) {
-        this.dataMonitor.recordDataQualityIssue(symbol, '日线趋势分析', `ADX计算错误: ${adxError}`);
-      }
-      if (bollingerError) {
-        this.dataMonitor.recordDataQualityIssue(symbol, '日线趋势分析', `布林带开口扩张计算错误: ${bollingerError}`);
+      if (bbwError) {
+        this.dataMonitor.recordDataQualityIssue(symbol, '日线趋势分析', `BBW计算错误: ${bbwError}`);
       }
 
       return {
@@ -99,8 +95,7 @@ class SmartFlowStrategy {
         ma20: latestMA20,
         ma50: latestMA50,
         ma200: latestMA200,
-        adx: latestADX,
-        bollingerExpansion,
+        bbwExpanding,
         currentPrice: latestClose,
         dataValid: true
       };
@@ -114,37 +109,24 @@ class SmartFlowStrategy {
     }
   }
 
-  static async analyzeHourlyConfirmation(symbol, symbolData = null) {
+  /**
+   * 小时级趋势加强判断 - 多因子打分系统
+   * 严格按照strategy-v2.md中的calculateTrendScore函数实现
+   * @param {string} symbol - 交易对
+   * @param {string} trend - 天级趋势结果
+   * @param {Object} symbolData - 可选的数据对象
+   * @returns {Object} 小时级趋势分析结果
+   */
+  static async analyzeHourlyConfirmation(symbol, trend, symbolData = null) {
     try {
-      console.log(`🔍 [${symbol}] 开始获取数据...`);
-      const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '1h', 200);
-      const ticker = symbolData?.ticker || await BinanceAPI.get24hrTicker(symbol);
+      console.log(`🔍 [${symbol}] 开始获取小时级数据...`);
+      const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '1h', 50);
       const funding = symbolData?.funding || await BinanceAPI.getFundingRate(symbol);
       const openInterestHist = symbolData?.openInterestHist || await BinanceAPI.getOpenInterestHist(symbol, '1h', 6);
 
-      console.log(`📊 [${symbol}] 数据获取完成:`, {
-        klinesLength: klines?.length || 0,
-        tickerLastPrice: ticker?.lastPrice || 'N/A',
-        fundingLength: funding?.length || 0,
-        openInterestLength: openInterestHist?.length || 0
-      });
-
-      // 严格数据验证
-      if (!klines || klines.length === 0) {
-        throw new Error(`K线数据为空 - 请检查API连接或交易对是否有效`);
-      }
-      if (!ticker || !ticker.lastPrice) {
-        throw new Error(`24小时行情数据无效 - 请检查API响应格式`);
-      }
-      if (!funding || !Array.isArray(funding) || funding.length === 0 || !funding[0].fundingRate) {
-        throw new Error(`资金费率数据无效 - 请检查API响应格式或交易对是否支持`);
-      }
-      if (!openInterestHist || openInterestHist.length === 0) {
-        throw new Error(`持仓量历史数据为空 - 请检查API响应或时间范围`);
-      }
-
       // 将数组格式的K线数据转换为对象格式
       const klinesObjects = klines.map(k => ({
+        time: k[0],
         open: parseFloat(k[1]),
         high: parseFloat(k[2]),
         low: parseFloat(k[3]),
@@ -152,158 +134,104 @@ class SmartFlowStrategy {
         volume: parseFloat(k[5])
       }));
 
-      const closes = klinesObjects.map(k => k.close);
-      const volumes = klinesObjects.map(k => k.volume);
-      const highs = klinesObjects.map(k => k.high);
-      const lows = klinesObjects.map(k => k.low);
-
-      // 计算VWAP
-      const vwap = TechnicalIndicators.calculateVWAP(klinesObjects);
-      const lastVWAP = vwap[vwap.length - 1];
-      const lastClose = closes[closes.length - 1];
-
-      // 计算成交量倍数
-      const volSMA = TechnicalIndicators.calculateSMA(volumes, 20);
-      const avgVol = volSMA[volSMA.length - 1];
-      const lastVol = volumes[volumes.length - 1];
-      const volumeRatio = avgVol > 0 ? lastVol / avgVol : 0;
-
-      // 检查突破
-      const recentHighs = highs.slice(-20);
-      const recentLows = lows.slice(-20);
-      const breakoutUp = lastClose > Math.max(...recentHighs);
-      const breakoutDown = lastClose < Math.min(...recentLows);
-
-      // 计算OI变化
-      const oiChange = openInterestHist.length > 1 ?
-        ((openInterestHist[openInterestHist.length - 1].sumOpenInterest - openInterestHist[0].sumOpenInterest) / openInterestHist[0].sumOpenInterest) * 100 : 0;
-
-      // 计算Delta和CVD
-      let deltas = [];
-      let cvd = [];
-      let lastCVD = 0;
-      let lastDelta = 0;
-      let deltaConfirmed = false;
-      let deltaError = null;
-      
-      try {
-        deltas = TechnicalIndicators.calculateDelta(klinesObjects);
-        cvd = TechnicalIndicators.calculateCVD(klinesObjects);
-        
-        if (deltas.length === 0 || cvd.length === 0) {
-          throw new Error('Delta或CVD计算结果为空');
-        }
-        
-        lastCVD = cvd[cvd.length - 1];
-        lastDelta = deltas[deltas.length - 1];
-        
-        // 计算Delta确认：当前Delta是否显著放大
-        const avgDelta = deltas.slice(-20).reduce((sum, d) => sum + Math.abs(d), 0) / 20;
-        deltaConfirmed = Math.abs(lastDelta) > avgDelta * 2;
-      } catch (error) {
-        deltaError = error.message;
-        this.dataMonitor.recordDataQualityIssue(symbol, '小时确认分析', `Delta/CVD计算失败: ${error.message}`);
-        console.error(`Delta/CVD计算失败 ${symbol}:`, error);
-      }
-
-      // 按照strategy-v2.md的多因子打分体系
       let score = 0;
       const scoreDetails = {};
 
-      // 1. VWAP方向一致：收盘价在VWAP上方/下方
-      const priceVsVwap = lastClose - lastVWAP;
-      if (priceVsVwap > 0) {
-        scoreDetails.vwapDirection = 'BULLISH';
+      // 1. VWAP方向 - 严格按照文档逻辑
+      const vwap = TechnicalIndicators.calculateVWAP(klinesObjects);
+      const lastClose = klinesObjects[klinesObjects.length - 1].close;
+      if ((trend === "多头趋势" && lastClose > vwap) ||
+        (trend === "空头趋势" && lastClose < vwap)) {
         score += 1;
-      } else if (priceVsVwap < 0) {
-        scoreDetails.vwapDirection = 'BEARISH';
-        score += 1;
+        scoreDetails.vwapDirection = trend === "多头趋势" ? 'BULLISH' : 'BEARISH';
       } else {
         scoreDetails.vwapDirection = 'NEUTRAL';
       }
 
-      // 2. 突破结构：收盘价突破最近20根K线的最高点/最低点
-      if (breakoutUp) {
-        scoreDetails.breakout = 'UP';
+      // 2. 突破结构 - 严格按照文档逻辑
+      const breakout = TechnicalIndicators.calculateBreakout(klinesObjects, 20);
+      if ((trend === "多头趋势" && breakout.breakoutLong) ||
+        (trend === "空头趋势" && breakout.breakoutShort)) {
         score += 1;
-      } else if (breakoutDown) {
-        scoreDetails.breakout = 'DOWN';
-        score += 1;
+        scoreDetails.breakout = trend === "多头趋势" ? 'UP' : 'DOWN';
       } else {
         scoreDetails.breakout = 'NONE';
       }
 
-      // 3. 成交量确认：当前K线成交量 ≥ 1.5 × 20期平均成交量
-      if (volumeRatio >= 1.5) {
-        scoreDetails.volume = 'CONFIRMED';
+      // 3. 成交量确认 - 严格按照文档逻辑
+      if (TechnicalIndicators.isVolumeConfirmed(klinesObjects)) {
         score += 1;
+        scoreDetails.volume = 'CONFIRMED';
       } else {
         scoreDetails.volume = 'WEAK';
       }
 
-      // 4. OI确认：未平仓合约OI在6h内上涨≥+2%或下降≥-2%
-      if (oiChange >= 2) {
+      // 4. OI确认 - 严格按照文档逻辑
+      const oi = openInterestHist[openInterestHist.length - 1].sumOpenInterest;
+      const oiChange = openInterestHist.length > 1 ?
+        ((openInterestHist[openInterestHist.length - 1].sumOpenInterest - openInterestHist[0].sumOpenInterest) / openInterestHist[0].sumOpenInterest) * 100 : 0;
+
+      if (trend === "多头趋势" && oiChange >= 2) {
+        score += 1;
         scoreDetails.oi = 'INCREASING';
+      } else if (trend === "空头趋势" && oiChange <= -2) {
         score += 1;
-      } else if (oiChange <= -2) {
         scoreDetails.oi = 'DECREASING';
-        score += 1;
       } else {
         scoreDetails.oi = 'STABLE';
       }
 
-      // 5. 资金费率：资金费率 ≤ 0.15%/8h
+      // 5. 资金费率 - 严格按照文档逻辑
       const fundingRate = parseFloat(funding[0].fundingRate);
       if (Math.abs(fundingRate) <= 0.0015) {
-        scoreDetails.funding = 'LOW';
         score += 1;
+        scoreDetails.funding = 'LOW';
       } else {
         scoreDetails.funding = 'HIGH';
       }
 
-      // 6. Delta确认：买卖盘不平衡
-      if (deltaError) {
-        scoreDetails.delta = 'ERROR';
-        this.dataMonitor.recordDataQualityIssue(symbol, '小时确认分析', `Delta确认计算错误: ${deltaError}`);
-      } else if (deltaConfirmed) {
-        scoreDetails.delta = 'CONFIRMED';
+      // 6. Delta确认 - 严格按照文档逻辑
+      if ((trend === "多头趋势" && TechnicalIndicators.isDeltaPositive(klinesObjects)) ||
+        (trend === "空头趋势" && !TechnicalIndicators.isDeltaPositive(klinesObjects))) {
         score += 1;
+        scoreDetails.delta = 'CONFIRMED';
       } else {
         scoreDetails.delta = 'WEAK';
+      }
+
+      // 最终判断 - 严格按照文档逻辑
+      let action = "观望/不做";
+      if (score >= 4) {
+        action = trend === "多头趋势" ? "做多" : "做空";
       }
 
       // 判断信号强度
       let signalStrength = 'NONE';
       if (score >= 4) {
-        signalStrength = 'STRONG'; // 优先级最高
+        signalStrength = 'STRONG';
       } else if (score >= 2) {
-        signalStrength = 'MODERATE'; // 可以进入15m观察
+        signalStrength = 'MODERATE';
       }
 
       return {
+        symbol,
+        trend,
         score,
+        action,
         signalStrength,
         scoreDetails,
-        priceVsVwap,
-        vwap: lastVWAP,
-        volumeRatio,
-        breakoutUp,
-        breakoutDown,
-        oiChange,
-        fundingRate,
-        delta: lastDelta,
-        deltaConfirmed,
-        cvd: {
-          value: lastCVD,
-          direction: lastCVD > 0 ? 'BULLISH' : lastCVD < 0 ? 'BEARISH' : 'NEUTRAL',
-          isActive: Math.abs(lastCVD) > 0
-        },
+        vwap: vwap,
+        oiChange: oiChange,
+        fundingRate: fundingRate,
         dataValid: true
       };
     } catch (error) {
       console.error(`小时确认分析失败 ${symbol}:`, error);
       return {
+        symbol,
+        trend,
         score: 0,
+        action: "观望/不做",
         signalStrength: 'NONE',
         dataValid: false,
         error: error.message
@@ -311,7 +239,16 @@ class SmartFlowStrategy {
     }
   }
 
-  static async analyze15mExecution(symbol, symbolData = null) {
+  /**
+   * 15分钟级别入场判断 - 模式A和模式B
+   * 严格按照strategy-v2.md中的calculateEntryAndRisk函数实现
+   * @param {string} symbol - 交易对
+   * @param {string} trend - 天级趋势结果
+   * @param {number} score - 小时级得分
+   * @param {Object} symbolData - 可选的数据对象
+   * @returns {Object} 15分钟入场分析结果
+   */
+  static async analyze15mExecution(symbol, trend, score, symbolData = null) {
     try {
       const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '15m', 50);
 
@@ -325,147 +262,92 @@ class SmartFlowStrategy {
       }));
 
       const closes = klinesObjects.map(k => k.close);
-      const highs = klinesObjects.map(k => k.high);
-      const lows = klinesObjects.map(k => k.low);
-      const volumes = klinesObjects.map(k => k.volume);
 
       // 计算EMA
       const ema20 = TechnicalIndicators.calculateEMA(closes, 20);
       const ema50 = TechnicalIndicators.calculateEMA(closes, 50);
 
-      const lastClose = closes[closes.length - 1];
-      const lastEMA20 = ema20[ema20.length - 1];
-      const lastEMA50 = ema50[ema50.length - 1];
-
-      // 识别setup candle（前一根K线）
-      const setupCandle = klines[klines.length - 2];
-      const setupHigh = parseFloat(setupCandle.high);
-      const setupLow = parseFloat(setupCandle.low);
-
       // 计算ATR
-      const atr = TechnicalIndicators.calculateATR(klines, 14);
+      const atr = TechnicalIndicators.calculateATR(klinesObjects, 14);
       const lastATR = atr[atr.length - 1];
 
-      // 计算成交量放大
-      const volSMA = TechnicalIndicators.calculateSMA(volumes, 20);
-      const avgVol = volSMA[volSMA.length - 1];
-      const lastVol = volumes[volumes.length - 1];
-      const volumeExpansion = avgVol > 0 ? lastVol / avgVol : 0;
+      // 严格按照文档中的calculateEntryAndRisk函数实现
+      const last = klinesObjects[klinesObjects.length - 1];
+      const prev = klinesObjects[klinesObjects.length - 2]; // setup candle
+      const lastClose = last.close;
+      const lastHigh = last.high;
+      const lastLow = last.low;
+      const setupHigh = prev.high;
+      const setupLow = prev.low;
 
-      // 按照strategy-v2.md的15分钟执行逻辑
-      let executionMode = 'NONE';
-      let executionSignal = 'NO_SIGNAL';
-      let executionDetails = {};
+      let entrySignal = null;
+      let stopLoss = null;
+      let takeProfit = null;
+      let mode = null;
 
-      // 模式A：回踩确认模式（胜率高）
-      const pullbackToEma20 = Math.abs(lastClose - lastEMA20) / lastEMA20 < 0.02; // 2%以内
-      const pullbackToEma50 = Math.abs(lastClose - lastEMA50) / lastEMA50 < 0.02;
-      const pullbackToSupport = pullbackToEma20 || pullbackToEma50;
-
-      // 检查回踩时成交量是否缩小
-      const recentVolumes = volumes.slice(-5); // 最近5根K线
-      const avgRecentVol = recentVolumes.reduce((sum, v) => sum + v, 0) / recentVolumes.length;
-      const volumeContraction = avgRecentVol < avgVol * 0.8; // 成交量缩小20%以上
-
-      // 检查突破setup candle
-      const breakSetupHigh = lastClose > setupHigh;
-      const breakSetupLow = lastClose < setupLow;
-
-      // 模式B：动能突破模式（机会多）
-      const momentumBreakout = (breakSetupHigh || breakSetupLow) && volumeExpansion >= 1.5;
-
-      // 判断执行模式
-      if (pullbackToSupport && volumeContraction && (breakSetupHigh || breakSetupLow)) {
-        executionMode = 'PULLBACK_CONFIRMATION';
-        executionSignal = breakSetupHigh ? 'LONG_EXECUTE' : 'SHORT_EXECUTE';
-        executionDetails = {
-          pullbackToEma20,
-          pullbackToEma50,
-          volumeContraction,
-          breakSetupHigh,
-          breakSetupLow
-        };
-      } else if (momentumBreakout) {
-        executionMode = 'MOMENTUM_BREAKOUT';
-        executionSignal = breakSetupHigh ? 'LONG_EXECUTE' : 'SHORT_EXECUTE';
-        executionDetails = {
-          volumeExpansion,
-          breakSetupHigh,
-          breakSetupLow
-        };
+      // 只在明确趋势且打分足够时考虑入场
+      if (trend === "震荡/无趋势" || score < 2) {
+        return { entrySignal, stopLoss, takeProfit, mode, modeA: false, modeB: false, dataValid: true };
       }
 
-      // 计算止盈止损价格
-      let stopLoss = null;
-      let targetPrice = null;
-      let riskRewardRatio = 0;
-      let maxLeverage = 0;
-      let minMargin = 0;
-      let manualConfirmation = false;
+      // === 模式A：回踩确认 ===
+      const supportLevel = Math.min(ema20[ema20.length - 1], ema50[ema50.length - 1]);
+      const resistanceLevel = Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1]);
 
-      if (executionSignal.includes('EXECUTE')) {
-        if (executionSignal === 'LONG_EXECUTE') {
-          // 做多信号：止损 = setup candle另一端 或 1.2×ATR，取更远
-          const setupStop = setupLow;
-          const atrStop = lastClose - 1.2 * lastATR;
-          stopLoss = Math.min(setupStop, atrStop);
-
-          // 止盈：第一目标1.5R平掉50%，剩余跟踪止损
-          const risk = lastClose - stopLoss;
-          targetPrice = lastClose + 1.5 * risk; // 第一目标
-        } else if (executionSignal === 'SHORT_EXECUTE') {
-          // 做空信号：止损 = setup candle另一端 或 1.2×ATR，取更远
-          const setupStop = setupHigh;
-          const atrStop = lastClose + 1.2 * lastATR;
-          stopLoss = Math.max(setupStop, atrStop);
-
-          // 止盈：第一目标1.5R平掉50%，剩余跟踪止损
-          const risk = stopLoss - lastClose;
-          targetPrice = lastClose - 1.5 * risk; // 第一目标
+      if (trend === "多头趋势" && lastClose <= supportLevel && lastClose > prev.low) {
+        // 回踩EMA确认
+        if (lastHigh > setupHigh) {
+          entrySignal = lastHigh;          // 入场价为突破setup高点
+          stopLoss = Math.min(prev.low, lastClose - 1.2 * lastATR); // 取更远者
+          takeProfit = entrySignal + 2 * (entrySignal - stopLoss); // 风报比2:1
+          mode = "回踩确认A";
         }
-
-        // 计算风险回报比
-        if (stopLoss && targetPrice) {
-          const risk = Math.abs(lastClose - stopLoss);
-          const reward = Math.abs(targetPrice - lastClose);
-          riskRewardRatio = reward / risk;
+      } else if (trend === "空头趋势" && lastClose >= resistanceLevel && lastClose < prev.high) {
+        if (lastLow < setupLow) {
+          entrySignal = lastLow;
+          stopLoss = Math.max(prev.high, lastClose + 1.2 * lastATR);
+          takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
+          mode = "回踩确认A";
         }
+      }
 
-        // 计算杠杆和保证金
-        const riskPercentage = 0.02; // 2%风险
-        const stopDistance = Math.abs(lastClose - stopLoss) / lastClose;
-        maxLeverage = Math.min(20, Math.floor(riskPercentage / stopDistance));
-        minMargin = (lastClose * 0.1) / maxLeverage;
+      // === 模式B：动能突破 ===
+      const avgVol = klinesObjects.slice(-21, -1).reduce((a, k) => a + k.volume, 0) / 20;
+      const breakoutLong = lastHigh > setupHigh && last.volume >= 1.5 * avgVol;
+      const breakoutShort = lastLow < setupLow && last.volume >= 1.5 * avgVol;
 
-        // 人工确认条件
-        manualConfirmation = riskRewardRatio >= 1.5 && stopDistance >= 0.01;
+      if (!entrySignal) { // 如果模式A未触发
+        if (trend === "多头趋势" && breakoutLong) {
+          entrySignal = lastHigh;
+          stopLoss = Math.min(prev.low, lastClose - 1.2 * lastATR);
+          takeProfit = entrySignal + 2 * (entrySignal - stopLoss);
+          mode = "动能突破B";
+        } else if (trend === "空头趋势" && breakoutShort) {
+          entrySignal = lastLow;
+          stopLoss = Math.max(prev.high, lastClose + 1.2 * lastATR);
+          takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
+          mode = "动能突破B";
+        }
       }
 
       return {
-        executionMode,
-        executionSignal,
-        executionDetails,
-        pullbackToEma20,
-        pullbackToEma50,
-        breakSetupHigh,
-        breakSetupLow,
-        setupHigh,
-        setupLow,
-        atr: lastATR,
-        volumeExpansion,
+        entrySignal,
         stopLoss,
-        targetPrice,
-        riskRewardRatio,
-        maxLeverage,
-        minMargin,
-        manualConfirmation,
+        takeProfit,
+        mode,
+        modeA: mode === '回踩确认A',
+        modeB: mode === '动能突破B',
         dataValid: true
       };
     } catch (error) {
       console.error(`15分钟执行分析失败 ${symbol}:`, error);
       return {
-        executionMode: 'NONE',
-        executionSignal: 'NO_SIGNAL',
+        entrySignal: null,
+        stopLoss: null,
+        takeProfit: null,
+        mode: null,
+        modeA: false,
+        modeB: false,
         dataValid: false,
         error: error.message
       };
@@ -473,39 +355,10 @@ class SmartFlowStrategy {
   }
 
   /**
-   * 计算CVD (Cumulative Volume Delta)
-   * 根据strategy.md和auto-script.md的要求：
-   * - 基于主动买卖成交量差
-   * - 如果无法获取实时数据，使用成交量+OI作为替代
-   * @param {Array} klines - K线数据
-   * @returns {Array} CVD数组
+   * 综合分析 - 整合三个层级的分析结果
+   * @param {string} symbol - 交易对
+   * @returns {Object} 综合分析结果
    */
-  static calculateCVD(klines) {
-    const cvd = [];
-    let cumulativeDelta = 0;
-
-    for (let i = 0; i < klines.length; i++) {
-      const k = klines[i];
-      const close = parseFloat(k.close);
-      const open = parseFloat(k.open);
-      const high = parseFloat(k.high);
-      const low = parseFloat(k.low);
-      const volume = parseFloat(k.volume);
-
-      // 更精确的CVD计算：基于价格位置和成交量
-      // 如果收盘价在K线中上部（>50%位置），认为是买入主导
-      // 如果收盘价在K线中下部（<50%位置），认为是卖出主导
-      const priceRange = high - low;
-      const pricePosition = priceRange > 0 ? (close - low) / priceRange : 0.5;
-      const delta = pricePosition > 0.5 ? volume : -volume;
-
-      cumulativeDelta += delta;
-      cvd.push(cumulativeDelta);
-    }
-
-    return cvd;
-  }
-
   static async analyzeAll(symbol) {
     const startTime = Date.now();
 
@@ -514,16 +367,17 @@ class SmartFlowStrategy {
       this.dataMonitor.startAnalysis(symbol);
 
       // 获取所有需要的数据
-      const [klines, ticker, funding, openInterestHist] = await Promise.all([
-        BinanceAPI.getKlines(symbol, '1h', 200),
+      const [klines, ticker, funding, openInterestHist, klines15m] = await Promise.all([
+        BinanceAPI.getKlines(symbol, '1h', 50),
         BinanceAPI.get24hrTicker(symbol),
         BinanceAPI.getFundingRate(symbol),
-        BinanceAPI.getOpenInterestHist(symbol, '1h', 6)
+        BinanceAPI.getOpenInterestHist(symbol, '1h', 6),
+        BinanceAPI.getKlines(symbol, '15m', 50)
       ]);
 
-      const symbolData = { klines, ticker, funding, openInterestHist };
+      const symbolData = { klines, ticker, funding, openInterestHist, klines15m };
 
-      // 记录原始数据 - 添加数据验证
+      // 记录原始数据
       const dailyKlines = await BinanceAPI.getKlines(symbol, '1d', 250);
       const dailyKlinesValid = dailyKlines && dailyKlines.length > 0;
       this.dataMonitor.recordRawData(symbol, '日线K线', dailyKlines, dailyKlinesValid);
@@ -540,60 +394,66 @@ class SmartFlowStrategy {
       const oiValid = openInterestHist && openInterestHist.length > 0;
       this.dataMonitor.recordRawData(symbol, '持仓量历史', openInterestHist, oiValid);
 
-      // 分析各个阶段 - 添加错误处理
+      // 分析各个阶段 - 严格按照依赖关系
       let dailyTrend, hourlyConfirmation, execution15m;
 
+      // 1. 先进行天级趋势判断
       try {
-        dailyTrend = await this.analyzeDailyTrend(symbol, symbolData);
+        dailyTrend = await this.analyzeDailyTrend(symbol, { klines: dailyKlines });
+        console.log(`✅ 天级趋势分析完成 [${symbol}]:`, {
+          trend: dailyTrend.trend,
+          trendStrength: dailyTrend.trendStrength,
+          dataValid: dailyTrend.dataValid
+        });
       } catch (error) {
-        console.error(`日线趋势分析失败 [${symbol}]:`, error.message);
-        dailyTrend = { trend: 'UNKNOWN', ma20: 0, ma50: 0, ma200: 0 };
+        console.error(`❌ 日线趋势分析失败 [${symbol}]:`, error.message);
+        dailyTrend = { trend: 'UNKNOWN', trendStrength: 'WEAK', ma20: 0, ma50: 0, ma200: 0, dataValid: false };
       }
 
+      // 2. 基于天级趋势结果进行小时级趋势加强判断
       try {
         console.log(`🔍 开始分析小时确认 [${symbol}]...`);
-        hourlyConfirmation = await this.analyzeHourlyConfirmation(symbol, symbolData);
+        hourlyConfirmation = await this.analyzeHourlyConfirmation(symbol, dailyTrend.trend, symbolData);
         console.log(`✅ 小时确认分析成功 [${symbol}]:`, {
-          vwap: hourlyConfirmation.vwap,
-          volumeRatio: hourlyConfirmation.volumeRatio,
-          cvd: hourlyConfirmation.cvd,
+          score: hourlyConfirmation.score,
+          action: hourlyConfirmation.action,
+          signalStrength: hourlyConfirmation.signalStrength,
           dataValid: hourlyConfirmation.dataValid
         });
       } catch (error) {
         console.error(`❌ 小时确认分析失败 [${symbol}]: ${error.message}`);
-        console.error(`错误堆栈:`, error.stack);
-        // 记录数据质量问题到监控系统
         this.dataMonitor.recordDataQualityIssue(symbol, '小时确认分析', error.message);
         hourlyConfirmation = {
-          vwap: 0,
-          volumeRatio: 0,
-          oiChange: 0,
-          fundingRate: 0,
-          cvd: {
-            value: 0,
-            direction: 'NEUTRAL',
-            isActive: false
-          },
-          priceVsVwap: 0,
-          breakoutUp: false,
-          breakoutDown: false,
-          dataValid: false,
-          error: error.message
+          symbol,
+          trend: dailyTrend.trend,
+          score: 0,
+          action: "观望/不做",
+          signalStrength: 'NONE',
+          dataValid: false
         };
       }
 
+      // 3. 基于天级趋势和小时级得分进行15分钟入场判断
       try {
-        execution15m = await this.analyze15mExecution(symbol, symbolData);
+        console.log(`🔍 开始分析15分钟执行 [${symbol}]...`);
+        execution15m = await this.analyze15mExecution(symbol, dailyTrend.trend, hourlyConfirmation.score, symbolData);
+        console.log(`✅ 15分钟执行分析成功 [${symbol}]:`, {
+          entrySignal: execution15m.entrySignal,
+          mode: execution15m.mode,
+          modeA: execution15m.modeA,
+          modeB: execution15m.modeB,
+          dataValid: execution15m.dataValid
+        });
       } catch (error) {
-        console.error(`15分钟执行分析失败 [${symbol}]:`, error.message);
+        console.error(`❌ 15分钟执行分析失败 [${symbol}]:`, error.message);
         execution15m = {
-          signal: 'NO_SIGNAL',
-          stopLoss: 0,
-          targetPrice: 0,
-          riskRewardRatio: 0,
-          maxLeverage: 0,
-          minMargin: 0,
-          manualConfirmation: false
+          entrySignal: null,
+          stopLoss: null,
+          takeProfit: null,
+          mode: null,
+          modeA: false,
+          modeB: false,
+          dataValid: false
         };
       }
 
@@ -606,100 +466,79 @@ class SmartFlowStrategy {
 
       this.dataMonitor.recordIndicator(symbol, '小时VWAP', {
         vwap: hourlyConfirmation.vwap || 0,
-        volumeRatio: hourlyConfirmation.volumeRatio || 0
-      }, Date.now() - startTime);
-
-      this.dataMonitor.recordIndicator(symbol, '小时确认指标', {
-        oiChange: hourlyConfirmation.oiChange || 0,
-        fundingRate: hourlyConfirmation.fundingRate || 0,
-        cvdValue: hourlyConfirmation.cvd?.value || 0,
-        cvdDirection: hourlyConfirmation.cvd?.direction || 'N/A'
+        volumeConfirmed: hourlyConfirmation.volumeConfirmed || false
       }, Date.now() - startTime);
 
       // 按照strategy-v2.md的信号判断逻辑
+      // 信号列 = 小时级趋势加强判断的结果
       let signal = 'NO_SIGNAL';
       let signalStrength = 'NONE';
 
-      // 只有当日线趋势明确且小时级得分≥2分时才产生信号
-      if (dailyTrend.trend === 'UPTREND' && hourlyConfirmation.signalStrength !== 'NONE') {
-        // 做多条件：日线上升趋势 + 小时级得分≥2分
+      // 信号列直接使用小时级趋势加强判断的action结果
+      if (hourlyConfirmation.action === '做多') {
         signal = 'LONG';
         signalStrength = hourlyConfirmation.signalStrength;
-      } else if (dailyTrend.trend === 'DOWNTREND' && hourlyConfirmation.signalStrength !== 'NONE') {
-        // 做空条件：日线下降趋势 + 小时级得分≥2分
+      } else if (hourlyConfirmation.action === '做空') {
         signal = 'SHORT';
         signalStrength = hourlyConfirmation.signalStrength;
+      }
+
+      // 按照strategy-v2.md的入场执行逻辑
+      // 入场执行列 = 15分钟级别入场判断的结果
+      let execution = 'NO_EXECUTION';
+      let executionMode = 'NONE';
+
+      // 入场执行列显示触发了模式A还是模式B
+      if (execution15m.entrySignal) {
+        if (execution15m.modeA) {
+          execution = signal === 'LONG' ? 'LONG_EXECUTE' : 'SHORT_EXECUTE';
+          executionMode = '模式A';
+        } else if (execution15m.modeB) {
+          execution = signal === 'LONG' ? 'LONG_EXECUTE' : 'SHORT_EXECUTE';
+          executionMode = '模式B';
+        }
       }
 
       // 记录信号
       this.dataMonitor.recordSignal(symbol, '综合分析', {
         signal,
         trend: dailyTrend.trend,
-        confirmed: hourlyConfirmation.confirmed || false,
-        priceVsVwap: hourlyConfirmation.priceVsVwap || 0,
-        breakoutUp: hourlyConfirmation.breakoutUp || false,
-        breakoutDown: hourlyConfirmation.breakoutDown || false,
-        oiChange: hourlyConfirmation.oiChange || 0,
-        fundingRate: hourlyConfirmation.fundingRate || 0
+        confirmed: hourlyConfirmation.signalStrength !== 'NONE',
+        score: hourlyConfirmation.score,
+        modeA: execution15m.modeA,
+        modeB: execution15m.modeB
       }, true);
 
-      // 按照strategy-v2.md的入场执行逻辑
-      let execution = 'NO_EXECUTION';
-      let executionMode = 'NONE';
-
-      // 只有当日线趋势明确、小时级得分≥2分且15分钟有执行信号时才执行
-      if (signal === 'LONG' && execution15m.executionSignal === 'LONG_EXECUTE') {
-        execution = 'LONG_EXECUTE';
-        executionMode = execution15m.executionMode;
-      } else if (signal === 'SHORT' && execution15m.executionSignal === 'SHORT_EXECUTE') {
-        execution = 'SHORT_EXECUTE';
-        executionMode = execution15m.executionMode;
-      }
-
-      // 记录模拟交易 - 严格按照strategy.md的止损止盈规则
+      // 记录模拟交易
       if (execution.includes('EXECUTE')) {
-        const entryPrice = parseFloat(ticker.lastPrice);
-        const atr = execution15m.atr;
-
-        // 止损：setup candle另一端 或 1.2×ATR(14)（取更远）
-        let stopLoss;
-        if (execution === 'LONG_EXECUTE') {
-          const setupStop = execution15m.setupLow;
-          const atrStop = entryPrice - 1.2 * atr;
-          stopLoss = Math.min(setupStop, atrStop); // 取更远的（更小的值）
-        } else {
-          const setupStop = execution15m.setupHigh;
-          const atrStop = entryPrice + 1.2 * atr;
-          stopLoss = Math.max(setupStop, atrStop); // 取更远的（更大的值）
-        }
-
-        // 止盈：第一目标1.5R平掉50%，剩余跟踪止损
-        const risk = Math.abs(entryPrice - stopLoss);
-        const firstTarget = execution === 'LONG_EXECUTE' ?
-          entryPrice + risk * 1.5 :
-          entryPrice - risk * 1.5;
-        
-        // 第二目标：剩余仓位用追踪止损（跟随15m EMA20）
-        const secondTarget = execution === 'LONG_EXECUTE' ?
-          entryPrice + risk * 3 : // 3R作为最终目标
-          entryPrice - risk * 3;
+        const entryPrice = execution15m.entrySignal;
+        const stopLoss = execution15m.stopLoss;
+        const takeProfit = execution15m.takeProfit;
 
         const simulationData = {
           signal: execution,
           entryPrice,
           stopLoss,
-          takeProfit: firstTarget, // 第一目标1.5R
-          secondTarget: secondTarget, // 第二目标3R
-          riskReward: 1.5, // 第一目标风险回报比
-          secondRiskReward: 3.0, // 第二目标风险回报比
-          atr: atr,
-          setupHigh: execution15m.setupHigh,
-          setupLow: execution15m.setupLow,
+          takeProfit,
           executionMode: executionMode,
           timestamp: Date.now()
         };
         this.dataMonitor.recordSimulation(symbol, '交易信号', simulationData, true);
       }
+
+      // 记录完整的分析日志
+      this.dataMonitor.recordAnalysisLog(symbol, {
+        trend: dailyTrend.trend,
+        signal,
+        execution: execution15m.entrySignal ? execution : 'NO_EXECUTION',
+        executionMode: executionMode,
+        hourlyScore: hourlyConfirmation.score,
+        modeA: execution15m.modeA,
+        modeB: execution15m.modeB,
+        dailyTrend,
+        hourlyConfirmation,
+        execution15m
+      });
 
       // 完成数据收集
       this.dataMonitor.completeDataCollection(symbol, true);
@@ -707,24 +546,30 @@ class SmartFlowStrategy {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      // 调试信息
       console.log(`✅ ${symbol} 分析完成，耗时: ${duration}ms`);
-      console.log(`📊 ${symbol} 数据概览:`);
-      console.log(`  - VWAP: ${hourlyConfirmation.vwap || 0}`);
-      console.log(`  - 成交量倍数: ${hourlyConfirmation.volumeRatio || 0}x`);
-      console.log(`  - OI变化: ${hourlyConfirmation.oiChange || 0}%`);
-      console.log(`  - 资金费率: ${hourlyConfirmation.fundingRate || 0}`);
-      console.log(`  - CVD: ${hourlyConfirmation.cvd?.direction || 'N/A'} (${hourlyConfirmation.cvd?.value || 0})`);
 
       return {
         time: new Date().toISOString(),
         symbol,
+        // 趋势列 - 天级趋势判断结果
         trend: dailyTrend.trend,
+        trendStrength: dailyTrend.trendStrength,
+        // 信号列 - 小时级趋势加强判断结果（多因子得分）
         signal,
         signalStrength,
+        hourlyScore: hourlyConfirmation?.score || 0,
+        // 入场执行列 - 15分钟级别入场判断结果
         execution,
         executionMode,
+        modeA: execution15m?.modeA || false,
+        modeB: execution15m?.modeB || false,
+        entrySignal: execution15m?.entrySignal || null,
+        stopLoss: execution15m?.stopLoss || null,
+        takeProfit: execution15m?.takeProfit || null,
+        // 其他信息
         currentPrice: parseFloat(ticker.lastPrice),
+        dataCollectionRate: 100,
+        // 详细分析数据
         dailyTrend,
         hourlyConfirmation,
         execution15m

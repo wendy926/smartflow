@@ -1,7 +1,13 @@
 // modules/utils/TechnicalIndicators.js
-// 技术指标计算模块
+// 技术指标计算模块 - 优化版本
 
 class TechnicalIndicators {
+  /**
+   * 计算简单移动平均线 (SMA)
+   * @param {Array<number>} data - 价格数据数组
+   * @param {number} period - 计算周期
+   * @returns {Array<number>} SMA数组
+   */
   static calculateSMA(data, period) {
     if (data.length < period) return [];
 
@@ -13,6 +19,66 @@ class TechnicalIndicators {
     return result;
   }
 
+  /**
+   * 计算布林带带宽 (BBW) - 用于天级趋势判断
+   * @param {Array<number>} closes - 收盘价数组
+   * @param {number} period - 计算周期，默认20
+   * @param {number} k - 标准差倍数，默认2
+   * @returns {Array<number>} BBW数组
+   */
+  static calculateBBW(closes, period = 20, k = 2) {
+    if (closes.length < period) {
+      throw new Error("数据长度不足，至少需要等于 period 的K线数据");
+    }
+
+    const bbw = [];
+
+    for (let i = period - 1; i < closes.length; i++) {
+      // 取最近 N 根收盘价
+      const slice = closes.slice(i - period + 1, i + 1);
+
+      // 计算均值 (中轨 MB)
+      const mean = slice.reduce((a, b) => a + b, 0) / period;
+
+      // 计算标准差 σ
+      const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / period;
+      const stdDev = Math.sqrt(variance);
+
+      // 上下轨
+      const upper = mean + k * stdDev;
+      const lower = mean - k * stdDev;
+
+      // 带宽 (BBW)
+      const bbwValue = (upper - lower) / mean;
+      bbw.push(bbwValue);
+    }
+
+    return bbw;
+  }
+
+  /**
+   * 判断布林带是否处于扩张状态
+   * @param {Array<number>} closes - 收盘价数组
+   * @param {number} period - 计算周期，默认20
+   * @param {number} k - 标准差倍数，默认2
+   * @returns {boolean} 是否扩张
+   */
+  static isBBWExpanding(closes, period = 20, k = 2) {
+    const bbw = this.calculateBBW(closes, period, k);
+
+    // 最近两个BBW值
+    const n = bbw.length;
+    if (n < 2) return false;
+
+    // 判断最新BBW是否大于前一个BBW
+    return bbw[n - 1] > bbw[n - 2];
+  }
+
+  /**
+   * 计算成交量加权平均价格 (VWAP)
+   * @param {Array<Object>} klines - K线数据数组
+   * @returns {Array<number>} VWAP数组
+   */
   static calculateVWAP(klines) {
     let cumulativePV = 0;
     let cumulativeVol = 0;
@@ -26,6 +92,130 @@ class TechnicalIndicators {
 
       return cumulativePV / cumulativeVol;
     });
+  }
+
+  /**
+   * 计算突破结构 - 用于小时级趋势加强判断
+   * @param {Array<Object>} klines - K线数据数组
+   * @param {number} lookback - 回看周期，默认20
+   * @returns {Object} 突破结构信息
+   */
+  static calculateBreakout(klines, lookback = 20) {
+    if (klines.length < lookback + 1) {
+      return { breakoutLong: false, breakoutShort: false };
+    }
+
+    const lastClose = klines[klines.length - 1].close;
+    const last20 = klines.slice(-lookback - 1, -1); // 最近20根（排除当前K线）
+    const high20 = Math.max(...last20.map(k => k.high));
+    const low20 = Math.min(...last20.map(k => k.low));
+
+    return {
+      breakoutLong: lastClose > high20,
+      breakoutShort: lastClose < low20
+    };
+  }
+
+  /**
+   * 计算成交量确认 - 用于小时级趋势加强判断
+   * @param {Array<Object>} klines - K线数据数组
+   * @param {number} multiplier - 成交量倍数阈值，默认1.5
+   * @param {number} lookback - 回看周期，默认20
+   * @returns {boolean} 是否成交量确认
+   */
+  static isVolumeConfirmed(klines, multiplier = 1.5, lookback = 20) {
+    if (klines.length < lookback + 1) return false;
+
+    const lastClose = klines[klines.length - 1];
+    const avgVol = klines.slice(-lookback - 1, -1).reduce((a, k) => a + k.volume, 0) / lookback;
+    return lastClose.volume >= avgVol * multiplier;
+  }
+
+  /**
+   * 计算Delta（简化版）- 用于小时级趋势加强判断
+   * @param {Array<Object>} klines - K线数据数组
+   * @param {number} threshold - 阈值，默认1.0
+   * @returns {boolean} 是否Delta为正
+   */
+  static isDeltaPositive(klines, threshold = 1.0) {
+    if (klines.length === 0) return false;
+
+    const last = klines[klines.length - 1];
+    const delta = last.close - last.open; // 收-开 简化代替真实CVD
+    return delta > 0;
+  }
+
+  /**
+   * 计算入场信号和风控 - 用于15分钟级别入场判断
+   * @param {Object} params - 参数对象
+   * @param {string} params.trend - 趋势方向
+   * @param {number} params.score - 多因子得分
+   * @param {Array<Object>} params.klines15m - 15分钟K线数组
+   * @param {Array<number>} params.ema20 - EMA20数组
+   * @param {Array<number>} params.ema50 - EMA50数组
+   * @param {number} params.atr14 - ATR14最新值
+   * @returns {Object} 入场信号和风控信息
+   */
+  static calculateEntryAndRisk({ trend, score, klines15m, ema20, ema50, atr14 }) {
+    const last = klines15m[klines15m.length - 1];
+    const prev = klines15m[klines15m.length - 2]; // setup candle
+    const lastClose = last.close;
+    const lastHigh = last.high;
+    const lastLow = last.low;
+    const setupHigh = prev.high;
+    const setupLow = prev.low;
+
+    let entrySignal = null;
+    let stopLoss = null;
+    let takeProfit = null;
+    let mode = null;
+
+    // 只在明确趋势且打分足够时考虑入场
+    if (trend === "震荡/无趋势" || score < 2) {
+      return { entrySignal, stopLoss, takeProfit, mode };
+    }
+
+    // === 模式A：回踩确认 ===
+    const supportLevel = Math.min(ema20[ema20.length - 1], ema50[ema50.length - 1]);
+    const resistanceLevel = Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1]);
+
+    if (trend === "多头趋势" && lastClose <= supportLevel && lastClose > prev.low) {
+      // 回踩EMA确认
+      if (lastHigh > setupHigh) {
+        entrySignal = lastHigh;          // 入场价为突破setup高点
+        stopLoss = Math.min(prev.low, lastClose - 1.2 * atr14); // 取更远者
+        takeProfit = entrySignal + 2 * (entrySignal - stopLoss); // 风报比2:1
+        mode = "回踩确认A";
+      }
+    } else if (trend === "空头趋势" && lastClose >= resistanceLevel && lastClose < prev.high) {
+      if (lastLow < setupLow) {
+        entrySignal = lastLow;
+        stopLoss = Math.max(prev.high, lastClose + 1.2 * atr14);
+        takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
+        mode = "回踩确认A";
+      }
+    }
+
+    // === 模式B：动能突破 ===
+    const avgVol = klines15m.slice(-21, -1).reduce((a, k) => a + k.volume, 0) / 20;
+    const breakoutLong = lastHigh > setupHigh && last.volume >= 1.5 * avgVol;
+    const breakoutShort = lastLow < setupLow && last.volume >= 1.5 * avgVol;
+
+    if (!entrySignal) { // 如果模式A未触发
+      if (trend === "多头趋势" && breakoutLong) {
+        entrySignal = lastHigh;
+        stopLoss = Math.min(prev.low, lastClose - 1.2 * atr14);
+        takeProfit = entrySignal + 2 * (entrySignal - stopLoss);
+        mode = "动能突破B";
+      } else if (trend === "空头趋势" && breakoutShort) {
+        entrySignal = lastLow;
+        stopLoss = Math.max(prev.high, lastClose + 1.2 * atr14);
+        takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
+        mode = "动能突破B";
+      }
+    }
+
+    return { entrySignal, stopLoss, takeProfit, mode };
   }
 
   static calculateATR(klines, period = 14) {
@@ -223,11 +413,11 @@ class TechnicalIndicators {
     for (let i = 0; i < plusDI.length; i++) {
       const diSum = plusDI[i] + minusDI[i];
       const diDiff = Math.abs(plusDI[i] - minusDI[i]);
-      dx.push(diSum > 0 ? (diDiff / diSum) * 100 : 0);
+      dx.push(diSum > 0 ? 100 * (diDiff / diSum) : 0);
     }
 
-    // 计算ADX
-    const adx = this.calculateSMA(dx, period);
+    // 计算ADX - 使用Wilder's smoothing
+    const adx = this.calculateWilderSmoothing(dx, period);
 
     return adx;
   }
@@ -252,6 +442,32 @@ class TechnicalIndicators {
     for (let i = period; i < values.length; i++) {
       sum = (sum * (period - 1) + values[i]) / period;
       smoothed.push(sum);
+    }
+
+    return smoothed;
+  }
+
+  /**
+   * 计算Wilder's Smoothing for ADX
+   * @param {Array} values - 原始值数组
+   * @param {number} period - 平滑周期
+   * @returns {Array} 平滑后的值数组
+   */
+  static calculateWilderSmoothing(values, period) {
+    if (values.length === 0) return [];
+
+    const smoothed = [];
+
+    // 第一个值使用简单平均
+    const firstSum = values.slice(0, period).reduce((a, b) => a + b, 0);
+    smoothed.push(firstSum / period);
+
+    // 后续值使用Wilder's Smoothing: ADX = (前一ADX * (period-1) + DX) / period
+    for (let i = period; i < values.length; i++) {
+      const prevADX = smoothed[smoothed.length - 1];
+      const currentDX = values[i];
+      const newADX = (prevADX * (period - 1) + currentDX) / period;
+      smoothed.push(newADX);
     }
 
     return smoothed;
