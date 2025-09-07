@@ -287,27 +287,62 @@ class SmartFlowStrategy {
 
       // 只在明确趋势且打分足够时考虑入场
       if (trend === "震荡/无趋势" || score < 2) {
+        console.log(`⚠️ 不满足入场条件 [${symbol}]:`, { trend, score });
         return { entrySignal, stopLoss, takeProfit, mode, modeA: false, modeB: false, dataValid: true };
       }
+
+      console.log(`🔍 开始计算入场信号 [${symbol}]:`, {
+        trend,
+        score,
+        lastClose,
+        lastHigh,
+        lastLow,
+        setupHigh,
+        setupLow,
+        supportLevel: Math.min(ema20[ema20.length - 1], ema50[ema50.length - 1]),
+        resistanceLevel: Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1])
+      });
 
       // === 模式A：回踩确认 ===
       const supportLevel = Math.min(ema20[ema20.length - 1], ema50[ema50.length - 1]);
       const resistanceLevel = Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1]);
 
       if (trend === "多头趋势" && lastClose <= supportLevel && lastClose > prev.low) {
+        console.log(`🔍 模式A多头条件检查 [${symbol}]:`, {
+          lastClose,
+          supportLevel,
+          prevLow: prev.low,
+          lastHigh,
+          setupHigh,
+          condition1: lastClose <= supportLevel,
+          condition2: lastClose > prev.low,
+          condition3: lastHigh > setupHigh
+        });
         // 回踩EMA确认
         if (lastHigh > setupHigh) {
           entrySignal = lastHigh;          // 入场价为突破setup高点
           stopLoss = Math.min(prev.low, lastClose - 1.2 * lastATR); // 取更远者
           takeProfit = entrySignal + 2 * (entrySignal - stopLoss); // 风报比2:1
           mode = "回踩确认A";
+          console.log(`✅ 模式A多头触发 [${symbol}]:`, { entrySignal, stopLoss, takeProfit });
         }
       } else if (trend === "空头趋势" && lastClose >= resistanceLevel && lastClose < prev.high) {
+        console.log(`🔍 模式A空头条件检查 [${symbol}]:`, {
+          lastClose,
+          resistanceLevel,
+          prevHigh: prev.high,
+          lastLow,
+          setupLow,
+          condition1: lastClose >= resistanceLevel,
+          condition2: lastClose < prev.high,
+          condition3: lastLow < setupLow
+        });
         if (lastLow < setupLow) {
           entrySignal = lastLow;
           stopLoss = Math.max(prev.high, lastClose + 1.2 * lastATR);
           takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
           mode = "回踩确认A";
+          console.log(`✅ 模式A空头触发 [${symbol}]:`, { entrySignal, stopLoss, takeProfit });
         }
       }
 
