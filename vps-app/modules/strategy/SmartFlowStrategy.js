@@ -379,14 +379,14 @@ class SmartFlowStrategy {
           hasEntrySignal: !!entrySignal,
           hasStopLoss: !!stopLoss
         });
-        
+
         // 计算止损距离X%
         if (trend === "多头趋势") {
           stopLossDistance = (entrySignal - stopLoss) / entrySignal;
         } else if (trend === "空头趋势") {
           stopLossDistance = (stopLoss - entrySignal) / entrySignal;
         }
-        
+
         console.log(`🔍 止损距离计算 [${symbol}]:`, {
           trend,
           stopLossDistance,

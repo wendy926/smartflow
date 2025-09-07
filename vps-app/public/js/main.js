@@ -278,6 +278,8 @@ class SmartFlowApp {
                 <td>${dataManager.formatNumber(sim.take_profit_price)}</td>
                 <td>${sim.max_leverage}x</td>
                 <td>${dataManager.formatNumber(sim.min_margin)}</td>
+                <td>${sim.stop_loss_distance ? (sim.stop_loss_distance * 100).toFixed(2) + '%' : '--'}</td>
+                <td>${sim.atr_value ? dataManager.formatNumber(sim.atr_value) : '--'}</td>
                 <td>${dataManager.formatTime(sim.created_at)}</td>
                 <td>${dataManager.formatTime(sim.closed_at)}</td>
                 <td>${sim.exit_price ? dataManager.formatNumber(sim.exit_price) : '--'}</td>
@@ -644,12 +646,101 @@ async function loadHistory(symbol) {
       // 有入场执行信号时：只显示交易执行详情和模拟交易历史
       await loadExecutionDetails(contentDiv, symbol, signalData);
     } else {
-      // 没有入场执行信号时：显示完整的信号详情
-      await loadFullSignalDetails(contentDiv, symbol, signalData);
+      // 没有入场执行信号时：只显示模拟交易历史记录
+      await loadSimulationHistoryOnly(contentDiv, symbol);
     }
   } catch (error) {
     console.error('加载详细信息失败:', error);
     contentDiv.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
+  }
+}
+
+// 只加载模拟交易历史记录（当没有入场执行信号时）
+async function loadSimulationHistoryOnly(contentDiv, symbol) {
+  try {
+    // 获取该交易对的模拟交易历史
+    const response = await fetch(`/api/simulation/history/${symbol}`);
+    const history = await response.json();
+
+    if (history.length === 0) {
+      contentDiv.innerHTML = `
+        <div class="no-data">
+          <h5>📊 模拟交易历史</h5>
+          <p>该交易对暂无模拟交易记录</p>
+        </div>
+      `;
+      return;
+    }
+
+    // 构建模拟交易历史表格
+    const historyTable = `
+      <div class="simulation-history">
+        <h5>📊 模拟交易历史</h5>
+        <div class="table-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>交易对</th>
+                <th>入场价格</th>
+                <th>止损价格</th>
+                <th>止盈价格</th>
+                <th>杠杆倍数</th>
+                <th>最小保证金</th>
+                <th>止损距离</th>
+                <th>ATR值</th>
+                <th>入场时间</th>
+                <th>出场时间</th>
+                <th>出场价格</th>
+                <th>出场原因</th>
+                <th>触发原因</th>
+                <th>盈亏</th>
+                <th>结果</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${history.map(sim => {
+                const profitLoss = sim.profit_loss !== null ? sim.profit_loss : '--';
+                const isWin = sim.is_win;
+                let resultClass = '';
+                let resultText = '--';
+                
+                if (sim.status === 'CLOSED') {
+                  resultClass = isWin ? 'win' : 'loss';
+                  resultText = isWin ? '盈利' : '亏损';
+                } else if (sim.status === 'ACTIVE') {
+                  resultText = '进行中';
+                }
+
+                return `
+                  <tr>
+                    <td>${sim.symbol}</td>
+                    <td>${dataManager.formatNumber(sim.entry_price)}</td>
+                    <td>${dataManager.formatNumber(sim.stop_loss_price)}</td>
+                    <td>${dataManager.formatNumber(sim.take_profit_price)}</td>
+                    <td>${sim.max_leverage}x</td>
+                    <td>${dataManager.formatNumber(sim.min_margin)}</td>
+                    <td>${sim.stop_loss_distance ? (sim.stop_loss_distance * 100).toFixed(2) + '%' : '--'}</td>
+                    <td>${sim.atr_value ? dataManager.formatNumber(sim.atr_value) : '--'}</td>
+                    <td>${dataManager.formatTime(sim.created_at)}</td>
+                    <td>${dataManager.formatTime(sim.closed_at)}</td>
+                    <td>${sim.exit_price ? dataManager.formatNumber(sim.exit_price) : '--'}</td>
+                    <td>${sim.exit_reason || '--'}</td>
+                    <td>${sim.trigger_reason || '--'}</td>
+                    <td class="${resultClass}">${profitLoss === '--' ? '--' : dataManager.formatNumber(profitLoss)}</td>
+                    <td class="${resultClass}">${resultText}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    contentDiv.innerHTML = historyTable;
+  } catch (error) {
+    console.error('加载模拟交易历史失败:', error);
+    contentDiv.innerHTML = '<div class="error">加载模拟交易历史失败: ' + error.message + '</div>';
   }
 }
 

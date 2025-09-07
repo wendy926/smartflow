@@ -201,7 +201,9 @@ class SmartFlowServer {
           takeProfit,
           maxLeverage || 10,
           minMargin || 100,
-          `SIGNAL_${executionMode}_${direction}`
+          `SIGNAL_${executionMode}_${direction}`,
+          stopLossDistance,
+          atrValue
         );
 
         // 记录到数据监控

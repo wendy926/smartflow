@@ -161,15 +161,15 @@ class SimulationManager {
     }
   }
 
-  async createSimulation(symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin, triggerReason = 'SIGNAL') {
+  async createSimulation(symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin, triggerReason = 'SIGNAL', stopLossDistance = null, atrValue = null) {
     try {
       const result = await this.db.run(`
         INSERT INTO simulations 
-        (symbol, entry_price, stop_loss_price, take_profit_price, max_leverage, min_margin, trigger_reason, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin, triggerReason, 'ACTIVE']);
+        (symbol, entry_price, stop_loss_price, take_profit_price, max_leverage, min_margin, trigger_reason, status, stop_loss_distance, atr_value)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin, triggerReason, 'ACTIVE', stopLossDistance, atrValue]);
 
-      console.log(`✅ 创建模拟交易: ${symbol}, 入场价: ${entryPrice}, 止损: ${stopLossPrice}, 止盈: ${takeProfitPrice}`);
+      console.log(`✅ 创建模拟交易: ${symbol}, 入场价: ${entryPrice}, 止损: ${stopLossPrice}, 止盈: ${takeProfitPrice}, 杠杆: ${maxLeverage}x, 保证金: ${minMargin}, 止损距离: ${stopLossDistance}%, ATR: ${atrValue}`);
       return result.id;
     } catch (error) {
       console.error('创建模拟交易时出错:', error);
