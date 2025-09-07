@@ -79,6 +79,22 @@ class SmartFlowApp {
 
   async loadAllData() {
     try {
+      // 确保API客户端已初始化
+      if (!window.apiClient) {
+        console.warn('API客户端未初始化，等待初始化...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (!window.apiClient) {
+          throw new Error('API客户端初始化失败');
+        }
+      }
+
+      // 检查getUpdateTimes方法是否存在
+      if (typeof window.apiClient.getUpdateTimes !== 'function') {
+        console.error('getUpdateTimes方法不存在:', window.apiClient);
+        throw new Error('getUpdateTimes方法不存在');
+      }
+
+      console.log('开始加载数据...');
       const [signals, history, stats, updateTimes] = await Promise.all([
         dataManager.getAllSignals(),
         dataManager.getSimulationHistory(),
@@ -91,13 +107,26 @@ class SmartFlowApp {
       this.updateSimulationTable(history);
 
       // 使用服务器返回的更新时间
-      this.updateTimes.trend = updateTimes.trend;
-      this.updateTimes.signal = updateTimes.signal;
-      this.updateTimes.execution = updateTimes.execution;
+      if (updateTimes) {
+        this.updateTimes.trend = updateTimes.trend;
+        this.updateTimes.signal = updateTimes.signal;
+        this.updateTimes.execution = updateTimes.execution;
+      }
       this.updateStatusDisplay();
     } catch (error) {
       console.error('加载数据失败:', error);
-      throw error;
+      // 如果API调用失败，使用默认值继续
+      if (error.message.includes('API客户端')) {
+        console.warn('使用默认更新时间');
+        this.updateTimes = {
+          trend: null,
+          signal: null,
+          execution: null
+        };
+        this.updateStatusDisplay();
+      } else {
+        throw error;
+      }
     }
   }
 

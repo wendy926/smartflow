@@ -287,9 +287,17 @@ tr:hover {
 }
 
 @keyframes pulse-green {
-  0% { box-shadow: 0 0 5px rgba(40, 167, 69, 0.3); }
-  50% { box-shadow: 0 0 15px rgba(40, 167, 69, 0.6); }
-  100% { box-shadow: 0 0 5px rgba(40, 167, 69, 0.3); }
+  0% {
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.6);
+  }
+
+  100% {
+    box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
+  }
 }
 
 .score-moderate {
@@ -1983,6 +1991,7 @@ tr:hover {
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -1994,6 +2003,7 @@ tr:hover {
     transform: translateX(0);
     opacity: 1;
   }
+
   to {
     transform: translateX(100%);
     opacity: 0;
@@ -2033,10 +2043,14 @@ tr:hover {
 }
 
 @keyframes loadingDots {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     opacity: 0.3;
     transform: scale(0.8);
   }
+
   40% {
     opacity: 1;
     transform: scale(1);
