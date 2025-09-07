@@ -180,8 +180,11 @@ class SmartFlowApp {
 
   // 设置单元格背景颜色
   setCellBackgroundColors(row, signal) {
+    console.log(`🎨 开始设置 ${signal.symbol} 单元格背景颜色`);
+    
     // 获取所有单元格
     const cells = row.querySelectorAll('td');
+    console.log(`📊 找到 ${cells.length} 个单元格`);
 
     // 清除所有相关单元格的样式
     [2, 4, 5].forEach(index => {
@@ -194,46 +197,57 @@ class SmartFlowApp {
 
     // 趋势列（第3列，索引2）
     if (cells[2]) {
+      console.log(`📈 趋势列检查: ${signal.trend}`);
       if (signal.trend === '多头趋势') {
         cells[2].style.backgroundColor = '#d4edda'; // 绿色
         cells[2].style.border = '2px solid #28a745';
         cells[2].style.fontWeight = 'bold';
+        console.log(`✅ 设置趋势列为绿色`);
       } else if (signal.trend === '空头趋势') {
         cells[2].style.backgroundColor = '#f8d7da'; // 红色
         cells[2].style.border = '2px solid #dc3545';
         cells[2].style.fontWeight = 'bold';
+        console.log(`✅ 设置趋势列为红色`);
       }
     }
 
     // 信号列（第5列，索引4）
     if (cells[4]) {
+      console.log(`📊 信号列检查: ${signal.signal}`);
       // 检查信号字段，包括做多/做空信号
-      if (signal.signal === '做多' || signal.signal === 'LONG' ||
-        (signal.signal && signal.signal.includes('做多'))) {
+      if (signal.signal === '做多' || signal.signal === 'LONG' || 
+          (signal.signal && signal.signal.includes('做多'))) {
         cells[4].style.backgroundColor = '#d4edda'; // 绿色
         cells[4].style.border = '2px solid #28a745';
         cells[4].style.fontWeight = 'bold';
-      } else if (signal.signal === '做空' || signal.signal === 'SHORT' ||
-        (signal.signal && signal.signal.includes('做空'))) {
+        console.log(`✅ 设置信号列为绿色`);
+      } else if (signal.signal === '做空' || signal.signal === 'SHORT' || 
+                 (signal.signal && signal.signal.includes('做空'))) {
         cells[4].style.backgroundColor = '#f8d7da'; // 红色
         cells[4].style.border = '2px solid #dc3545';
         cells[4].style.fontWeight = 'bold';
+        console.log(`✅ 设置信号列为红色`);
       }
     }
 
     // 入场执行列（第6列，索引5）
     if (cells[5]) {
+      console.log(`⚡ 执行列检查: ${signal.execution}`);
       // 检查执行字段，包括做多_和做空_模式
       if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('LONG_'))) {
         cells[5].style.backgroundColor = '#d4edda'; // 绿色
         cells[5].style.border = '2px solid #28a745';
         cells[5].style.fontWeight = 'bold';
+        console.log(`✅ 设置执行列为绿色`);
       } else if (signal.execution && (signal.execution.includes('做空_') || signal.execution.includes('SHORT_'))) {
         cells[5].style.backgroundColor = '#f8d7da'; // 红色
         cells[5].style.border = '2px solid #dc3545';
         cells[5].style.fontWeight = 'bold';
+        console.log(`✅ 设置执行列为红色`);
       }
     }
+    
+    console.log(`🎨 完成设置 ${signal.symbol} 单元格背景颜色`);
   }
 
   updateSignalsTable(signals) {
