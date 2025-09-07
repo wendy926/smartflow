@@ -372,12 +372,26 @@ class SmartFlowStrategy {
       let atrValue = lastATR;
 
       if (entrySignal && stopLoss) {
+        console.log(`🔍 开始计算 [${symbol}]:`, {
+          entrySignal,
+          stopLoss,
+          trend,
+          hasEntrySignal: !!entrySignal,
+          hasStopLoss: !!stopLoss
+        });
+        
         // 计算止损距离X%
         if (trend === "多头趋势") {
           stopLossDistance = (entrySignal - stopLoss) / entrySignal;
         } else if (trend === "空头趋势") {
           stopLossDistance = (stopLoss - entrySignal) / entrySignal;
         }
+        
+        console.log(`🔍 止损距离计算 [${symbol}]:`, {
+          trend,
+          stopLossDistance,
+          isPositive: stopLossDistance > 0
+        });
 
         console.log(`📊 计算杠杆和保证金 [${symbol}]:`, {
           entrySignal,
