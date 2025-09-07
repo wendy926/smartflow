@@ -124,4 +124,7 @@ class APIClient {
 }
 
 // 创建全局API客户端实例
+console.log('🔧 正在初始化API客户端...');
 window.apiClient = new APIClient();
+console.log('✅ API客户端初始化完成:', window.apiClient);
+console.log('✅ getUpdateTimes方法:', typeof window.apiClient.getUpdateTimes);

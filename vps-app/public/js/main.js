@@ -79,6 +79,10 @@ class SmartFlowApp {
 
   async loadAllData() {
     try {
+      console.log('🔍 开始loadAllData，检查API客户端状态...');
+      console.log('window.apiClient:', window.apiClient);
+      console.log('typeof window.apiClient:', typeof window.apiClient);
+      
       // 确保API客户端已初始化
       if (!window.apiClient) {
         console.warn('API客户端未初始化，等待初始化...');
@@ -88,13 +92,18 @@ class SmartFlowApp {
         }
       }
 
+      console.log('API客户端已初始化，检查方法...');
+      console.log('window.apiClient.getUpdateTimes:', window.apiClient.getUpdateTimes);
+      console.log('typeof window.apiClient.getUpdateTimes:', typeof window.apiClient.getUpdateTimes);
+
       // 检查getUpdateTimes方法是否存在
       if (typeof window.apiClient.getUpdateTimes !== 'function') {
         console.error('getUpdateTimes方法不存在:', window.apiClient);
+        console.error('API客户端所有方法:', Object.getOwnPropertyNames(window.apiClient));
         throw new Error('getUpdateTimes方法不存在');
       }
 
-      console.log('开始加载数据...');
+      console.log('✅ 开始加载数据...');
       const [signals, history, stats, updateTimes] = await Promise.all([
         dataManager.getAllSignals(),
         dataManager.getSimulationHistory(),
@@ -1760,5 +1769,14 @@ function toggleSimulationHistory() {
 
 // 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 DOM加载完成，开始初始化应用...');
+  console.log('window.apiClient状态:', window.apiClient);
+  console.log('window.apiClient类型:', typeof window.apiClient);
+  
+  if (window.apiClient) {
+    console.log('API客户端方法列表:', Object.getOwnPropertyNames(window.apiClient));
+    console.log('getUpdateTimes方法:', typeof window.apiClient.getUpdateTimes);
+  }
+  
   window.app = new SmartFlowApp();
 });
