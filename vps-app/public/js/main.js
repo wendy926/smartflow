@@ -29,14 +29,14 @@ class SmartFlowApp {
       const settings = await window.apiClient.getUserSettings();
       if (settings) {
         this.userSettings = { ...this.userSettings, ...settings };
-        
+
         // 应用设置到UI
         const maxLossSelect = document.getElementById('maxLossAmount');
-        
+
         if (maxLossSelect && this.userSettings.maxLossAmount) {
           maxLossSelect.value = this.userSettings.maxLossAmount;
         }
-        
+
         console.log('✅ 用户设置加载完成:', this.userSettings);
       }
     } catch (error) {
@@ -79,21 +79,21 @@ class SmartFlowApp {
 
   async loadAllData() {
     try {
-      const [signals, history, stats] = await Promise.all([
+      const [signals, history, stats, updateTimes] = await Promise.all([
         dataManager.getAllSignals(),
         dataManager.getSimulationHistory(),
-        dataManager.getWinRateStats()
+        dataManager.getWinRateStats(),
+        window.apiClient.getUpdateTimes()
       ]);
 
       this.updateStatsDisplay(signals, stats);
       this.updateSignalsTable(signals);
       this.updateSimulationTable(history);
-      
-      // 记录更新时间
-      const now = Date.now();
-      this.updateTimes.trend = now;
-      this.updateTimes.signal = now;
-      this.updateTimes.execution = now;
+
+      // 使用服务器返回的更新时间
+      this.updateTimes.trend = updateTimes.trend;
+      this.updateTimes.signal = updateTimes.signal;
+      this.updateTimes.execution = updateTimes.execution;
       this.updateStatusDisplay();
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -134,9 +134,9 @@ class SmartFlowApp {
     signals.forEach(signal => {
       // 计算数据采集成功率
       const dataCollectionRate = signal.dataCollectionRate || 0;
-      const dataCollectionClass = dataCollectionRate >= 95 ? 'data-healthy' : 
-                                 dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
-      
+      const dataCollectionClass = dataCollectionRate >= 95 ? 'data-healthy' :
+        dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
+
       // 创建主行
       const row = document.createElement('tr');
       row.innerHTML = `
@@ -162,7 +162,7 @@ class SmartFlowApp {
                     </button>
                 </td>
             `;
-      
+
       // 创建折叠行
       const historyRow = document.createElement('tr');
       historyRow.id = `history-${signal.symbol}`;
@@ -181,7 +181,7 @@ class SmartFlowApp {
                     </div>
                 </td>
             `;
-      
+
       // 将行添加到表格
       tbody.appendChild(row);
       tbody.appendChild(historyRow);
@@ -239,12 +239,11 @@ class SmartFlowApp {
 
   // 更新状态显示
   updateStatusDisplay() {
-    const now = new Date();
     const formatTime = (time) => {
       if (!time) return '--';
       const date = new Date(time);
-      return date.toLocaleTimeString('zh-CN', { 
-        hour: '2-digit', 
+      return date.toLocaleTimeString('zh-CN', {
+        hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
       });
@@ -253,6 +252,12 @@ class SmartFlowApp {
     document.getElementById('trendUpdateTime').textContent = formatTime(this.updateTimes.trend);
     document.getElementById('signalUpdateTime').textContent = formatTime(this.updateTimes.signal);
     document.getElementById('executionUpdateTime').textContent = formatTime(this.updateTimes.execution);
+  }
+
+  // 更新特定层级的时间
+  updateLayerTime(layer, time) {
+    this.updateTimes[layer] = time;
+    this.updateStatusDisplay();
   }
 
   // 启动监控数据自动刷新（5分钟一次，不产生弹框）
@@ -319,7 +324,7 @@ async function refreshSymbol(symbol) {
 function toggleHistory(symbol) {
   const historyRow = document.getElementById(`history-${symbol}`);
   const expandBtn = event.target;
-  
+
   if (historyRow.style.display === 'none') {
     historyRow.style.display = 'table-row';
     expandBtn.textContent = '-';
@@ -341,7 +346,7 @@ async function loadHistory(symbol) {
     // 获取信号数据
     const signals = await dataManager.getAllSignals();
     const signalData = signals.find(s => s.symbol === symbol);
-    
+
     if (!signalData) {
       contentDiv.innerHTML = '<div class="error">数据不可用</div>';
       return;
@@ -404,8 +409,8 @@ async function loadHistory(symbol) {
     // 构建数据采集详情HTML
     let dataCollectionHtml = '';
     if (signalData.dataCollectionRate !== undefined) {
-      const statusClass = signalData.dataCollectionRate >= 95 ? 'data-healthy' : 
-                         signalData.dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
+      const statusClass = signalData.dataCollectionRate >= 95 ? 'data-healthy' :
+        signalData.dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
       dataCollectionHtml = `
         <div class="data-collection-details">
           <h5>📊 数据采集状态</h5>
@@ -417,7 +422,7 @@ async function loadHistory(symbol) {
       `;
     }
 
-  const content = `
+    const content = `
         <div style="padding: 20px;">
             <h4>${symbol} 信号详情</h4>
             <div style="margin: 15px 0;">
@@ -430,7 +435,7 @@ async function loadHistory(symbol) {
             ${dataCollectionHtml}
         </div>
     `;
-    
+
     contentDiv.innerHTML = content;
   } catch (error) {
     console.error('加载详细信息失败:', error);
@@ -443,7 +448,7 @@ async function showSignalDetails(symbol) {
     // 获取信号数据
     const signals = await dataManager.getAllSignals();
     const signalData = signals.find(s => s.symbol === symbol);
-    
+
     if (!signalData) {
       modal.showMessage(`${symbol} 数据不可用`, 'error');
       return;
@@ -506,8 +511,8 @@ async function showSignalDetails(symbol) {
     // 构建数据采集详情HTML
     let dataCollectionHtml = '';
     if (signalData.dataCollectionRate !== undefined) {
-      const statusClass = signalData.dataCollectionRate >= 95 ? 'data-healthy' : 
-                         signalData.dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
+      const statusClass = signalData.dataCollectionRate >= 95 ? 'data-healthy' :
+        signalData.dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
       dataCollectionHtml = `
         <div class="data-collection-details">
           <h5>📊 数据采集状态</h5>
@@ -532,7 +537,7 @@ async function showSignalDetails(symbol) {
             ${dataCollectionHtml}
         </div>
     `;
-  modal.show(`${symbol} 信号详情`, content);
+    modal.show(`${symbol} 信号详情`, content);
   } catch (error) {
     console.error('获取信号详情失败:', error);
     modal.showMessage('获取信号详情失败: ' + error.message, 'error');
@@ -542,7 +547,7 @@ async function showSignalDetails(symbol) {
 // 显示数据验证详情
 function showDataValidationDetails(errors) {
   const errorGroups = {};
-  
+
   // 按错误类型分组
   errors.forEach(error => {
     const parts = error.split(': ');
@@ -555,9 +560,9 @@ function showDataValidationDetails(errors) {
       errorGroups[errorType].push(symbol);
     }
   });
-  
+
   let content = '<div style="padding: 20px;"><h4>📊 数据验证错误详情</h4>';
-  
+
   Object.entries(errorGroups).forEach(([errorType, symbols]) => {
     content += `
       <div style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">
@@ -568,16 +573,16 @@ function showDataValidationDetails(errors) {
       </div>
     `;
   });
-  
+
   content += '</div>';
-  
+
   modal.show('数据验证错误详情', content);
 }
 
 // 显示数据质量问题详情
 function showDataQualityDetails(issues) {
   const issueGroups = {};
-  
+
   // 按问题类型分组
   issues.forEach(issue => {
     const parts = issue.split(': ');
@@ -590,9 +595,9 @@ function showDataQualityDetails(issues) {
       issueGroups[issueDetail].push(symbol);
     }
   });
-  
+
   let content = '<div style="padding: 20px;"><h4>⚠️ 数据质量问题详情</h4>';
-  
+
   Object.entries(issueGroups).forEach(([issueType, symbols]) => {
     content += `
       <div style="margin: 15px 0; padding: 10px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ff6b35;">
@@ -603,9 +608,9 @@ function showDataQualityDetails(issues) {
       </div>
     `;
   });
-  
+
   content += '</div>';
-  
+
   modal.show('数据质量问题详情', content);
 }
 
@@ -624,8 +629,6 @@ async function testAPIConnection() {
 
 async function loadUnifiedMonitoring() {
   try {
-    const data = await dataManager.getMonitoringData();
-
     // 检查是否已有监控面板打开
     const existingPanel = document.querySelector('.unified-monitoring-panel');
     if (existingPanel) {
@@ -634,127 +637,28 @@ async function loadUnifiedMonitoring() {
       return;
     }
 
-    // 创建监控面板HTML
-    const monitoringHtml = `
-            <div class="unified-monitoring-panel">
-                <div class="monitoring-content">
-                    <div class="monitoring-header">
-                        <h3>📊 SmartFlow 统一监控中心</h3>
-                        <div class="monitoring-controls">
-                            <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>
-                            <button class="btn secondary" onclick="testDataQualityAlert()">🧪 测试数据质量告警</button>
-                            <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
-                        </div>
-                    </div>
-                    <div class="monitoring-body">
-                        <div class="system-overview">
-                            <h4>📈 系统概览</h4>
-                            <div class="overview-cards">
-                                <div class="overview-card">
-                                    <span class="card-icon">📊</span>
-                                    <div class="card-content">
-                                        <div class="card-title">总交易对</div>
-                                        <div class="card-value" id="totalSymbols">${data.summary.totalSymbols}</div>
-                                    </div>
-                                </div>
-                                <div class="overview-card">
-                                    <span class="card-icon">✅</span>
-                                    <div class="card-content">
-                                        <div class="card-title">健康状态</div>
-                                        <div class="card-value" id="healthySymbols">${data.summary.healthySymbols}</div>
-                                    </div>
-                                </div>
-                                <div class="overview-card">
-                                    <span class="card-icon">⚠️</span>
-                                    <div class="card-content">
-                                        <div class="card-title">警告状态</div>
-                                        <div class="card-value" id="warningSymbols">${data.summary.warningSymbols}</div>
-                                    </div>
-                                </div>
-                                <div class="overview-card">
-                                    <span class="card-icon">📈</span>
-                                    <div class="card-content">
-                                        <div class="card-title">数据收集率</div>
-                                        <div class="card-value" id="dataCollectionRate">${data.summary.completionRates.dataCollection.toFixed(1)}%</div>
-                                    </div>
-                                </div>
-                                <div class="overview-card">
-                                    <span class="card-icon">🔍</span>
-                                    <div class="card-content">
-                                        <div class="card-title">数据验证</div>
-                                        <div class="card-value" id="dataValidationStatus">${data.summary.dataValidation?.hasErrors ? '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常'}</div>
-                                        ${data.summary.dataValidation?.hasErrors ? '<div class="card-details" id="dataValidationDetails" style="font-size: 0.8rem; color: #dc3545; margin-top: 5px;">点击查看详情</div>' : ''}
-                                    </div>
-                                </div>
-                                <div class="overview-card">
-                                    <span class="card-icon">⚠️</span>
-                                    <div class="card-content">
-                                        <div class="card-title">数据质量</div>
-                                        <div class="card-value" id="dataQualityStatus">${data.summary.dataQuality?.hasIssues ? '⚠️ ' + data.summary.dataQuality.issueCount + ' 问题' : '✅ 正常'}</div>
-                                        ${data.summary.dataQuality?.hasIssues ? '<div class="card-details" id="dataQualityDetails" style="font-size: 0.8rem; color: #ff6b35; margin-top: 5px;">点击查看详情</div>' : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="symbols-monitoring">
-                            <h4>🔍 交易对详细监控</h4>
-                            <div class="monitoring-tabs">
-                                <button class="tab-btn active" onclick="switchMonitoringTab('summary')">📊 汇总视图</button>
-                                <button class="tab-btn" onclick="switchMonitoringTab('detailed')">🔍 详细视图</button>
-                            </div>
-                            
-                            <!-- 汇总视图 -->
-                            <div id="summaryView" class="monitoring-view active">
-                                <div class="symbols-table-container">
-                                    <table class="symbols-table">
-                                        <thead>
-                                            <tr>
-                                                <th>交易对</th>
-                                                <th>数据收集率</th>
-                                                <th>信号分析率</th>
-                                                <th>模拟交易完成率</th>
-                                                <th>模拟交易进行率</th>
-                                                <th>刷新频率</th>
-                                                <th>整体状态</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="monitoringTableBody">
-                                            <!-- 动态填充 -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            
-                            <!-- 详细视图 -->
-                            <div id="detailedView" class="monitoring-view">
-                                <div class="symbols-table-container">
-                                    <table class="symbols-table">
-                                        <thead>
-                                            <tr>
-                                                <th>交易对</th>
-                                                <th>数据收集</th>
-                                                <th>信号分析</th>
-                                                <th>模拟交易</th>
-                                                <th>信号状态</th>
-                                                <th>最后更新</th>
-                                                <th>健康状态</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="detailedTableBody">
-                                            <!-- 动态填充 -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    // 显示加载状态
+    const loadingHtml = `
+      <div class="unified-monitoring-panel">
+        <div class="monitoring-content">
+          <div class="monitoring-header">
+            <h3>📊 SmartFlow 统一监控中心</h3>
+            <div class="monitoring-controls">
+              <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
             </div>
-        `;
+          </div>
+          <div class="monitoring-body">
+            <div class="loading-container">
+              <div class="loading-spinner"></div>
+              <p>正在加载监控数据...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
 
-    // 添加到页面
-    document.body.insertAdjacentHTML('beforeend', monitoringHtml);
+    // 先显示加载界面
+    document.body.insertAdjacentHTML('beforeend', loadingHtml);
 
     // 添加事件监听器
     const panel = document.querySelector('.unified-monitoring-panel');
@@ -771,13 +675,185 @@ async function loadUnifiedMonitoring() {
       }
     });
 
-    // 填充监控数据
-    await refreshMonitoringData();
+    // 异步加载数据并更新界面
+    try {
+      const data = await dataManager.getMonitoringData();
+      await updateMonitoringPanel(data);
+    } catch (error) {
+      console.error('加载监控数据失败:', error);
+      updateMonitoringPanelWithError(error.message);
+    }
 
   } catch (error) {
-    console.error('加载监控数据失败:', error);
-    modal.showMessage('监控数据加载失败: ' + error.message, 'error');
+    console.error('创建监控面板失败:', error);
+    modal.showMessage('监控面板创建失败: ' + error.message, 'error');
   }
+}
+
+// 更新监控面板内容
+async function updateMonitoringPanel(data) {
+  const panel = document.querySelector('.unified-monitoring-panel');
+  if (!panel) return;
+
+  // 创建完整的监控面板HTML
+  const monitoringHtml = `
+    <div class="monitoring-content">
+      <div class="monitoring-header">
+        <h3>📊 SmartFlow 统一监控中心</h3>
+        <div class="monitoring-controls">
+          <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>
+          <button class="btn secondary" onclick="testDataQualityAlert()">🧪 测试数据质量告警</button>
+          <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
+        </div>
+      </div>
+      <div class="monitoring-body">
+        <div class="system-overview">
+          <h4>📈 系统概览</h4>
+          <div class="overview-cards">
+            <div class="overview-card">
+              <span class="card-icon">📊</span>
+              <div class="card-content">
+                <div class="card-title">总交易对</div>
+                <div class="card-value" id="totalSymbols">${data.summary.totalSymbols}</div>
+              </div>
+            </div>
+            <div class="overview-card">
+              <span class="card-icon">✅</span>
+              <div class="card-content">
+                <div class="card-title">健康状态</div>
+                <div class="card-value" id="healthySymbols">${data.summary.healthySymbols}</div>
+              </div>
+            </div>
+            <div class="overview-card">
+              <span class="card-icon">⚠️</span>
+              <div class="card-content">
+                <div class="card-title">警告状态</div>
+                <div class="card-value" id="warningSymbols">${data.summary.warningSymbols}</div>
+              </div>
+            </div>
+            <div class="overview-card">
+              <span class="card-icon">📈</span>
+              <div class="card-content">
+                <div class="card-title">数据收集率</div>
+                <div class="card-value" id="dataCollectionRate">${data.summary.completionRates.dataCollection.toFixed(1)}%</div>
+              </div>
+            </div>
+            <div class="overview-card">
+              <span class="card-icon">🔍</span>
+              <div class="card-content">
+                <div class="card-title">数据验证</div>
+                <div class="card-value" id="dataValidationStatus">${data.summary.dataValidation?.hasErrors ? '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常'}</div>
+                ${data.summary.dataValidation?.hasErrors ? '<div class="card-details" id="dataValidationDetails" style="font-size: 0.8rem; color: #dc3545; margin-top: 5px; cursor: pointer;">点击查看详情</div>' : ''}
+              </div>
+            </div>
+            <div class="overview-card">
+              <span class="card-icon">⚠️</span>
+              <div class="card-content">
+                <div class="card-title">数据质量</div>
+                <div class="card-value" id="dataQualityStatus">${data.summary.dataQuality?.hasIssues ? '⚠️ ' + data.summary.dataQuality.issueCount + ' 问题' : '✅ 正常'}</div>
+                ${data.summary.dataQuality?.hasIssues ? '<div class="card-details" id="dataQualityDetails" style="font-size: 0.8rem; color: #ff6b35; margin-top: 5px; cursor: pointer;">点击查看详情</div>' : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="symbols-monitoring">
+          <h4>🔍 交易对详细监控</h4>
+          <div class="monitoring-tabs">
+            <button class="tab-btn active" onclick="switchMonitoringTab('summary')">📊 汇总视图</button>
+            <button class="tab-btn" onclick="switchMonitoringTab('detailed')">🔍 详细视图</button>
+          </div>
+          
+          <!-- 汇总视图 -->
+          <div id="summaryView" class="monitoring-view active">
+            <div class="symbols-table-container">
+              <table class="symbols-table">
+                <thead>
+                  <tr>
+                    <th>交易对</th>
+                    <th>数据收集率</th>
+                    <th>信号分析率</th>
+                    <th>模拟交易完成率</th>
+                    <th>模拟交易进行率</th>
+                    <th>刷新频率</th>
+                    <th>整体状态</th>
+                  </tr>
+                </thead>
+                <tbody id="monitoringTableBody">
+                  <!-- 动态填充 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- 详细视图 -->
+          <div id="detailedView" class="monitoring-view">
+            <div class="symbols-table-container">
+              <table class="symbols-table">
+                <thead>
+                  <tr>
+                    <th>交易对</th>
+                    <th>数据收集</th>
+                    <th>信号分析</th>
+                    <th>模拟交易</th>
+                    <th>信号状态</th>
+                    <th>最后更新</th>
+                    <th>健康状态</th>
+                  </tr>
+                </thead>
+                <tbody id="detailedTableBody">
+                  <!-- 动态填充 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 更新面板内容
+  panel.innerHTML = monitoringHtml;
+
+  // 更新表格数据
+  updateSummaryTable(data);
+  updateDetailedTable(data);
+
+  // 添加点击事件
+  const dataValidationDetails = document.getElementById('dataValidationDetails');
+  if (dataValidationDetails && data.summary.dataValidation?.hasErrors) {
+    dataValidationDetails.onclick = () => showDataValidationDetails(data.summary.dataValidation.errors);
+  }
+
+  const dataQualityDetails = document.getElementById('dataQualityDetails');
+  if (dataQualityDetails && data.summary.dataQuality?.hasIssues) {
+    dataQualityDetails.onclick = () => showDataQualityDetails(data.summary.dataQuality.issues);
+  }
+}
+
+// 显示错误信息
+function updateMonitoringPanelWithError(errorMessage) {
+  const panel = document.querySelector('.unified-monitoring-panel');
+  if (!panel) return;
+
+  panel.innerHTML = `
+    <div class="monitoring-content">
+      <div class="monitoring-header">
+        <h3>📊 SmartFlow 统一监控中心</h3>
+        <div class="monitoring-controls">
+          <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
+        </div>
+      </div>
+      <div class="monitoring-body">
+        <div class="error-container">
+          <div class="error-icon">❌</div>
+          <h4>加载失败</h4>
+          <p>${errorMessage}</p>
+          <button class="btn primary" onclick="loadUnifiedMonitoring()">重试</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // 刷新监控数据
@@ -797,10 +873,10 @@ async function refreshMonitoringData() {
     if (warningSymbolsEl) warningSymbolsEl.textContent = data.summary.warningSymbols;
     if (dataCollectionRateEl) dataCollectionRateEl.textContent = data.summary.completionRates.dataCollection.toFixed(1) + '%';
     if (dataValidationStatusEl) {
-      const validationStatus = data.summary.dataValidation?.hasErrors ? 
+      const validationStatus = data.summary.dataValidation?.hasErrors ?
         '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常';
       dataValidationStatusEl.textContent = validationStatus;
-      
+
       // 添加点击事件显示详细错误
       const detailsEl = document.getElementById('dataValidationDetails');
       if (detailsEl && data.summary.dataValidation?.hasErrors) {
@@ -812,10 +888,10 @@ async function refreshMonitoringData() {
     // 更新数据质量状态
     const dataQualityStatusEl = document.getElementById('dataQualityStatus');
     if (dataQualityStatusEl) {
-      const qualityStatus = data.summary.dataQuality?.hasIssues ? 
+      const qualityStatus = data.summary.dataQuality?.hasIssues ?
         '⚠️ ' + data.summary.dataQuality.issueCount + ' 问题' : '✅ 正常';
       dataQualityStatusEl.textContent = qualityStatus;
-      
+
       // 添加点击事件显示详细问题
       const qualityDetailsEl = document.getElementById('dataQualityDetails');
       if (qualityDetailsEl && data.summary.dataQuality?.hasIssues) {

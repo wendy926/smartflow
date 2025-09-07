@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>iPhone 16 Pro Max 适配测试</title>
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    /* 测试页面专用样式 */
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+
+    .test-container {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
+    .test-header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .test-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .test-btn {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .test-btn:hover {
+      background: #0056b3;
+    }
+
+    .device-info {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .device-info h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+
+    .device-info p {
+      margin: 5px 0;
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="test-container">
+    <div class="test-header">
+      <h1>📱 iPhone 16 Pro Max 适配测试</h1>
+      <p>测试统一监控中心在不同屏幕方向下的显示效果</p>
+    </div>
+
+    <div class="device-info">
+      <h3>设备信息</h3>
+      <p><strong>屏幕尺寸:</strong> <span id="screenSize">-</span></p>
+      <p><strong>视口尺寸:</strong> <span id="viewportSize">-</span></p>
+      <p><strong>设备像素比:</strong> <span id="devicePixelRatio">-</span></p>
+      <p><strong>当前方向:</strong> <span id="orientation">-</span></p>
+      <p><strong>媒体查询匹配:</strong> <span id="mediaQuery">-</span></p>
+    </div>
+
+    <div class="test-buttons">
+      <button class="test-btn" onclick="openMonitoringPanel()">打开监控面板</button>
+      <button class="test-btn" onclick="testOrientation()">测试方向切换</button>
+      <button class="test-btn" onclick="updateDeviceInfo()">刷新设备信息</button>
+    </div>
+
+    <div class="device-info">
+      <h3>测试说明</h3>
+      <p>• <strong>竖屏模式 (430×932):</strong> 监控面板采用垂直布局，卡片2列显示</p>
+      <p>• <strong>横屏模式 (932×430):</strong> 监控面板采用水平布局，卡片3列显示</p>
+      <p>• <strong>触摸优化:</strong> 按钮最小44px点击区域，支持触摸反馈</p>
+      <p>• <strong>滚动优化:</strong> 支持原生滚动，自定义滚动条样式</p>
+    </div>
+  </div>
+
+  <script>
+    // 更新设备信息
+    function updateDeviceInfo() {
+      document.getElementById('screenSize').textContent =
+        `${screen.width} × ${screen.height}`;
+      document.getElementById('viewportSize').textContent =
+        `${window.innerWidth} × ${window.innerHeight}`;
+      document.getElementById('devicePixelRatio').textContent =
+        window.devicePixelRatio;
+      document.getElementById('orientation').textContent =
+        screen.orientation ? screen.orientation.type : '未知';
+
+      // 检测媒体查询匹配
+      const mediaQuery = window.matchMedia('(max-width: 430px) and (max-height: 932px)');
+      const mediaQueryLandscape = window.matchMedia('(min-width: 932px) and (max-height: 430px)');
+
+      let mediaQueryText = '无匹配';
+      if (mediaQuery.matches) {
+        mediaQueryText = 'iPhone 16 Pro Max 竖屏';
+      } else if (mediaQueryLandscape.matches) {
+        mediaQueryText = 'iPhone 16 Pro Max 横屏';
+      } else if (window.innerWidth <= 768) {
+        mediaQueryText = '通用移动端';
+      } else {
+        mediaQueryText = '桌面端';
+      }
+
+      document.getElementById('mediaQuery').textContent = mediaQueryText;
+    }
+
+    // 打开监控面板
+    function openMonitoringPanel() {
+      // 模拟监控面板数据
+      const mockData = {
+        summary: {
+          totalSymbols: 4,
+          healthySymbols: 3,
+          warningSymbols: 1,
+          completionRates: {
+            dataCollection: 95.5,
+            signalAnalysis: 92.3,
+            simulationTrading: 88.7
+          },
+          dataValidation: {
+            hasErrors: false,
+            errorCount: 0,
+            errors: []
+          },
+          dataQuality: {
+            hasIssues: false,
+            issueCount: 0,
+            issues: []
+          }
+        },
+        detailedStats: [
+          {
+            symbol: 'BTCUSDT',
+            dataCollection: { rate: 98.5, successes: 197, attempts: 200, lastTime: Date.now() },
+            signalAnalysis: { rate: 95.0, successes: 95, attempts: 100, lastTime: Date.now() },
+            simulationCompletion: { rate: 90.0, triggers: 10, completions: 9 },
+            simulationProgress: { rate: 20.0, triggers: 10, inProgress: 2 },
+            refreshFrequency: 300,
+            overall: { rate: 96.8, status: 'HEALTHY' },
+            hasExecution: true,
+            hasSignal: true,
+            hasTrend: true,
+            priorityScore: 1110,
+            signalActivityScore: 150
+          },
+          {
+            symbol: 'ETHUSDT',
+            dataCollection: { rate: 97.0, successes: 194, attempts: 200, lastTime: Date.now() },
+            signalAnalysis: { rate: 92.0, successes: 92, attempts: 100, lastTime: Date.now() },
+            simulationCompletion: { rate: 85.0, triggers: 10, completions: 8.5 },
+            simulationProgress: { rate: 15.0, triggers: 10, inProgress: 1.5 },
+            refreshFrequency: 300,
+            overall: { rate: 94.5, status: 'HEALTHY' },
+            hasExecution: false,
+            hasSignal: true,
+            hasTrend: true,
+            priorityScore: 110,
+            signalActivityScore: 120
+          },
+          {
+            symbol: 'LINKUSDT',
+            dataCollection: { rate: 95.5, successes: 191, attempts: 200, lastTime: Date.now() },
+            signalAnalysis: { rate: 88.0, successes: 88, attempts: 100, lastTime: Date.now() },
+            simulationCompletion: { rate: 80.0, triggers: 10, completions: 8 },
+            simulationProgress: { rate: 10.0, triggers: 10, inProgress: 1 },
+            refreshFrequency: 300,
+            overall: { rate: 91.8, status: 'WARNING' },
+            hasExecution: false,
+            hasSignal: false,
+            hasTrend: true,
+            priorityScore: 10,
+            signalActivityScore: 100
+          },
+          {
+            symbol: 'LDOUSDT',
+            dataCollection: { rate: 93.0, successes: 186, attempts: 200, lastTime: Date.now() },
+            signalAnalysis: { rate: 85.0, successes: 85, attempts: 100, lastTime: Date.now() },
+            simulationCompletion: { rate: 75.0, triggers: 10, completions: 7.5 },
+            simulationProgress: { rate: 5.0, triggers: 10, inProgress: 0.5 },
+            refreshFrequency: 300,
+            overall: { rate: 89.0, status: 'WARNING' },
+            hasExecution: false,
+            hasSignal: false,
+            hasTrend: false,
+            priorityScore: 0,
+            signalActivityScore: 80
+          }
+        ]
+      };
+
+      // 创建监控面板
+      createMonitoringPanel(mockData);
+    }
+
+    // 创建监控面板
+    function createMonitoringPanel(data) {
+      // 移除现有面板
+      const existingPanel = document.querySelector('.unified-monitoring-panel');
+      if (existingPanel) {
+        existingPanel.remove();
+      }
+
+      // 创建监控面板HTML
+      const monitoringHtml = `
+                <div class="unified-monitoring-panel">
+                    <div class="monitoring-content">
+                        <div class="monitoring-header">
+                            <h3>📊 SmartFlow 统一监控中心</h3>
+                            <div class="monitoring-controls">
+                                <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>
+                                <button class="btn secondary" onclick="testDataQualityAlert()">🧪 测试告警</button>
+                                <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
+                            </div>
+                        </div>
+                        <div class="monitoring-body">
+                            <div class="system-overview">
+                                <h4>📈 系统概览</h4>
+                                <div class="overview-cards">
+                                    <div class="overview-card">
+                                        <span class="card-icon">📊</span>
+                                        <div class="card-content">
+                                            <div class="card-title">总交易对</div>
+                                            <div class="card-value">${data.summary.totalSymbols}</div>
+                                        </div>
+                                    </div>
+                                    <div class="overview-card">
+                                        <span class="card-icon">✅</span>
+                                        <div class="card-content">
+                                            <div class="card-title">健康状态</div>
+                                            <div class="card-value">${data.summary.healthySymbols}</div>
+                                        </div>
+                                    </div>
+                                    <div class="overview-card">
+                                        <span class="card-icon">⚠️</span>
+                                        <div class="card-content">
+                                            <div class="card-title">警告状态</div>
+                                            <div class="card-value">${data.summary.warningSymbols}</div>
+                                        </div>
+                                    </div>
+                                    <div class="overview-card">
+                                        <span class="card-icon">📈</span>
+                                        <div class="card-content">
+                                            <div class="card-title">数据收集率</div>
+                                            <div class="card-value">${data.summary.completionRates.dataCollection.toFixed(1)}%</div>
+                                        </div>
+                                    </div>
+                                    <div class="overview-card">
+                                        <span class="card-icon">🔍</span>
+                                        <div class="card-content">
+                                            <div class="card-title">数据验证</div>
+                                            <div class="card-value">${data.summary.dataValidation?.hasErrors ? '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常'}</div>
+                                        </div>
+                                    </div>
+                                    <div class="overview-card">
+                                        <span class="card-icon">⚠️</span>
+                                        <div class="card-content">
+                                            <div class="card-title">数据质量</div>
+                                            <div class="card-value">${data.summary.dataQuality?.hasIssues ? '⚠️ ' + data.summary.dataQuality.issueCount + ' 问题' : '✅ 正常'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="symbols-monitoring">
+                                <h4>🔍 交易对详细监控</h4>
+                                <div class="monitoring-tabs">
+                                    <button class="tab-btn active" onclick="switchMonitoringTab('summary')">📊 汇总视图</button>
+                                    <button class="tab-btn" onclick="switchMonitoringTab('detailed')">🔍 详细视图</button>
+                                </div>
+                                
+                                <!-- 汇总视图 -->
+                                <div id="summaryView" class="monitoring-view active">
+                                    <div class="symbols-table-container">
+                                        <table class="symbols-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>交易对</th>
+                                                    <th>数据收集率</th>
+                                                    <th>信号分析率</th>
+                                                    <th>模拟交易完成率</th>
+                                                    <th>模拟交易进行率</th>
+                                                    <th>刷新频率</th>
+                                                    <th>整体状态</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="monitoringTableBody">
+                                                ${data.detailedStats.map(symbol => `
+                                                    <tr class="symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}">
+                                                        <td class="symbol-name">
+                                                            ${symbol.symbol}
+                                                            ${symbol.hasExecution ? '<span class="signal-indicator execution">🚀</span>' : ''}
+                                                            ${symbol.hasSignal ? '<span class="signal-indicator signal">🎯</span>' : ''}
+                                                            ${symbol.hasTrend ? '<span class="signal-indicator trend">📈</span>' : ''}
+                                                            ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
+                                                        </td>
+                                                        <td>
+                                                            <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
+                                                            <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
+                                                            <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
+                                                            <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(1)}%</div>
+                                                            <div class="metric-details">${symbol.simulationProgress.inProgress}/${symbol.simulationProgress.triggers}</div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="metric-time">${symbol.refreshFrequency}秒</div>
+                                                        </td>
+                                                        <td>
+                                                            <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
+                                                                ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(1)}%
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- 详细视图 -->
+                                <div id="detailedView" class="monitoring-view">
+                                    <div class="symbols-table-container">
+                                        <table class="symbols-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>交易对</th>
+                                                    <th>数据收集</th>
+                                                    <th>信号分析</th>
+                                                    <th>模拟交易</th>
+                                                    <th>信号状态</th>
+                                                    <th>最后更新</th>
+                                                    <th>健康状态</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="detailedTableBody">
+                                                ${data.detailedStats.map(symbol => `
+                                                    <tr class="symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}">
+                                                        <td class="symbol-name">
+                                                            ${symbol.symbol}
+                                                            ${symbol.hasExecution ? '<span class="signal-indicator execution">🚀</span>' : ''}
+                                                            ${symbol.hasSignal ? '<span class="signal-indicator signal">🎯</span>' : ''}
+                                                            ${symbol.hasTrend ? '<span class="signal-indicator trend">📈</span>' : ''}
+                                                            ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
+                                                        </td>
+                                                        <td>
+                                                            <div class="metric-detail">
+                                                                <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
+                                                                <div class="metric-info">成功: ${symbol.dataCollection.successes} | 尝试: ${symbol.dataCollection.attempts}</div>
+                                                                <div class="metric-time">最后: ${new Date(symbol.dataCollection.lastTime).toLocaleTimeString('zh-CN')}</div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="metric-detail">
+                                                                <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
+                                                                <div class="metric-info">成功: ${symbol.signalAnalysis.successes} | 尝试: ${symbol.signalAnalysis.attempts}</div>
+                                                                <div class="metric-time">最后: ${new Date(symbol.signalAnalysis.lastTime).toLocaleTimeString('zh-CN')}</div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="metric-detail">
+                                                                <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
+                                                                <div class="metric-info">完成: ${symbol.simulationCompletion.completions} | 触发: ${symbol.simulationCompletion.triggers}</div>
+                                                                <div class="metric-rate">进行: ${symbol.simulationProgress.rate.toFixed(1)}%</div>
+                                                                <div class="metric-info">进行中: ${symbol.simulationProgress.inProgress} | 触发: ${symbol.simulationProgress.triggers}</div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="signal-status">
+                                                                <div class="signal-item ${symbol.hasExecution ? 'active' : ''}">
+                                                                    🚀 入场执行: ${symbol.hasExecution ? '是' : '否'}
+                                                                </div>
+                                                                <div class="signal-item ${symbol.hasSignal ? 'active' : ''}">
+                                                                    🎯 信号确认: ${symbol.hasSignal ? '是' : '否'}
+                                                                </div>
+                                                                <div class="signal-item ${symbol.hasTrend ? 'active' : ''}">
+                                                                    📈 趋势信号: ${symbol.hasTrend ? '是' : '否'}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="last-update">
+                                                                <div>数据收集: ${new Date(symbol.dataCollection.lastTime).toLocaleTimeString('zh-CN')}</div>
+                                                                <div>信号分析: ${new Date(symbol.signalAnalysis.lastTime).toLocaleTimeString('zh-CN')}</div>
+                                                                <div>刷新频率: ${symbol.refreshFrequency}秒</div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="health-status">
+                                                                <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
+                                                                    ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(1)}%
+                                                                </span>
+                                                                <div class="health-details">
+                                                                    <div>优先级: ${symbol.priorityScore}</div>
+                                                                    <div>活跃度: ${symbol.signalActivityScore}</div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+      // 添加到页面
+      document.body.insertAdjacentHTML('beforeend', monitoringHtml);
+
+      // 添加事件监听器
+      const panel = document.querySelector('.unified-monitoring-panel');
+      panel.addEventListener('click', (e) => {
+        if (e.target === panel) {
+          closeMonitoringPanel();
+        }
+      });
+
+      // 添加ESC键关闭
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.querySelector('.unified-monitoring-panel')) {
+          closeMonitoringPanel();
+        }
+      });
+    }
+
+    // 关闭监控面板
+    function closeMonitoringPanel() {
+      const panel = document.querySelector('.unified-monitoring-panel');
+      if (panel) {
+        panel.style.opacity = '0';
+        panel.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+          panel.remove();
+        }, 200);
+      }
+    }
+
+    // 切换监控标签页
+    function switchMonitoringTab(tabName) {
+      // 隐藏所有视图
+      document.querySelectorAll('.monitoring-view').forEach(view => {
+        view.classList.remove('active');
+      });
+
+      // 移除所有标签按钮的激活状态
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // 显示选中的视图
+      const targetView = document.getElementById(tabName + 'View');
+      const targetBtn = document.querySelector(`[onclick="switchMonitoringTab('${tabName}')"]`);
+
+      if (targetView) targetView.classList.add('active');
+      if (targetBtn) targetBtn.classList.add('active');
+    }
+
+    // 刷新监控数据
+    function refreshMonitoringData() {
+      console.log('刷新监控数据');
+      // 这里可以添加刷新逻辑
+    }
+
+    // 测试数据质量告警
+    function testDataQualityAlert() {
+      alert('数据质量告警测试');
+    }
+
+    // 测试方向切换
+    function testOrientation() {
+      if (screen.orientation) {
+        const newOrientation = screen.orientation.type.includes('portrait') ? 'landscape' : 'portrait';
+        screen.orientation.lock(newOrientation).catch(err => {
+          console.log('无法锁定方向:', err);
+          alert('请在设备设置中允许方向锁定');
+        });
+      } else {
+        alert('当前浏览器不支持方向锁定');
+      }
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      updateDeviceInfo();
+
+      // 监听方向变化
+      window.addEventListener('orientationchange', () => {
+        setTimeout(updateDeviceInfo, 100);
+      });
+
+      // 监听窗口大小变化
+      window.addEventListener('resize', () => {
+        updateDeviceInfo();
+      });
+    });
+  </script>
+</body>
+
+</html>

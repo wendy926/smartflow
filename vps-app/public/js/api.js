@@ -111,6 +111,11 @@ class APIClient {
       body: JSON.stringify({ key, value })
     });
   }
+
+  // 获取数据更新时间
+  async getUpdateTimes() {
+    return await this.request('/api/update-times');
+  }
 }
 
 // 创建全局API客户端实例

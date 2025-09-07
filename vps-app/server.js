@@ -52,17 +52,17 @@ class SmartFlowServer {
         for (const symbol of symbols) {
           try {
             const analysis = await SmartFlowStrategy.analyzeAll(symbol);
-            
+
             // 获取数据采集成功率
             let dataCollectionRate = 0;
             if (this.dataMonitor && this.dataMonitor.symbolStats) {
               const stats = this.dataMonitor.symbolStats.get(symbol);
               if (stats) {
-                dataCollectionRate = stats.dataCollectionAttempts > 0 ? 
+                dataCollectionRate = stats.dataCollectionAttempts > 0 ?
                   (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100 : 0;
               }
             }
-            
+
             signals.push({
               symbol,
               trend: analysis.trend,
@@ -200,6 +200,22 @@ class SmartFlowServer {
       }
     });
 
+    // 获取数据更新时间
+    this.app.get('/api/update-times', async (req, res) => {
+      try {
+        const now = Date.now();
+        const updateTimes = {
+          trend: this.getNextTrendUpdateTime(),
+          signal: this.getNextSignalUpdateTime(),
+          execution: this.getNextExecutionUpdateTime()
+        };
+        res.json(updateTimes);
+      } catch (error) {
+        console.error('获取更新时间失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 设置监控阈值
     this.app.post('/api/monitoring-thresholds', async (req, res) => {
       try {
@@ -289,7 +305,7 @@ class SmartFlowServer {
         if (!key || value === undefined) {
           return res.status(400).json({ error: '缺少必要参数' });
         }
-        
+
         const result = await this.db.setUserSetting(key, value);
         if (result.success) {
           res.json({ success: true, message: '设置保存成功' });
@@ -476,6 +492,52 @@ class SmartFlowServer {
         console.error('告警检查失败:', error);
       }
     }, 600000); // 10分钟
+  }
+
+  // 获取下次趋势更新时间（4小时周期）
+  getNextTrendUpdateTime() {
+    const now = new Date();
+    const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000)); // 转换为北京时间
+
+    // 趋势更新时间为：00:00、04:00、08:00、12:00、16:00、20:00
+    const updateHours = [0, 4, 8, 12, 16, 20];
+    const currentHour = beijingTime.getHours();
+    const currentMinute = beijingTime.getMinutes();
+
+    // 找到下一个更新时间
+    let nextHour = updateHours.find(hour => hour > currentHour || (hour === currentHour && currentMinute < 30));
+    if (!nextHour) {
+      // 如果今天没有更多更新时间，则明天00:00
+      nextHour = 0;
+      beijingTime.setDate(beijingTime.getDate() + 1);
+    }
+
+    beijingTime.setHours(nextHour, 0, 0, 0);
+    return beijingTime.getTime() - (8 * 60 * 60 * 1000); // 转换回UTC时间
+  }
+
+  // 获取下次信号更新时间（1小时周期）
+  getNextSignalUpdateTime() {
+    const now = new Date();
+    const nextHour = new Date(now);
+    nextHour.setHours(nextHour.getHours() + 1, 0, 0, 0);
+    return nextHour.getTime();
+  }
+
+  // 获取下次执行更新时间（15分钟周期）
+  getNextExecutionUpdateTime() {
+    const now = new Date();
+    const next15min = new Date(now);
+    const currentMinute = next15min.getMinutes();
+    const nextMinute = Math.ceil(currentMinute / 15) * 15;
+
+    if (nextMinute >= 60) {
+      next15min.setHours(next15min.getHours() + 1, 0, 0, 0);
+    } else {
+      next15min.setMinutes(nextMinute, 0, 0);
+    }
+
+    return next15min.getTime();
   }
 
   async shutdown() {
