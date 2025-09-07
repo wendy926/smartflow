@@ -122,29 +122,36 @@ class SmartFlowApp {
     }
   }
 
-  // 设置表格行背景颜色
-  setRowBackgroundColor(row, signal) {
-    // 重置背景颜色
-    row.style.backgroundColor = '';
-
-    // 优先级：入场执行 > 信号 > 趋势
-    // 入场执行列背景颜色（最高优先级）
-    if (signal.execution && signal.execution.includes('做多')) {
-      row.style.backgroundColor = '#e8f5e8'; // 浅绿色
-    } else if (signal.execution && signal.execution.includes('做空')) {
-      row.style.backgroundColor = '#ffeaea'; // 浅红色
+  // 设置单元格背景颜色
+  setCellBackgroundColors(row, signal) {
+    // 获取所有单元格
+    const cells = row.querySelectorAll('td');
+    
+    // 趋势列（第2列，索引1）
+    if (cells[1]) {
+      if (signal.trend === '多头趋势') {
+        cells[1].style.backgroundColor = '#e8f5e8'; // 浅绿色
+      } else if (signal.trend === '空头趋势') {
+        cells[1].style.backgroundColor = '#ffeaea'; // 浅红色
+      }
     }
-    // 信号列背景颜色（中等优先级）
-    else if (signal.signal === '做多') {
-      row.style.backgroundColor = '#e8f5e8'; // 浅绿色
-    } else if (signal.signal === '做空') {
-      row.style.backgroundColor = '#ffeaea'; // 浅红色
+    
+    // 信号列（第4列，索引3）
+    if (cells[3]) {
+      if (signal.signal === '做多') {
+        cells[3].style.backgroundColor = '#e8f5e8'; // 浅绿色
+      } else if (signal.signal === '做空') {
+        cells[3].style.backgroundColor = '#ffeaea'; // 浅红色
+      }
     }
-    // 趋势列背景颜色（最低优先级）
-    else if (signal.trend === '多头趋势') {
-      row.style.backgroundColor = '#e8f5e8'; // 浅绿色
-    } else if (signal.trend === '空头趋势') {
-      row.style.backgroundColor = '#ffeaea'; // 浅红色
+    
+    // 入场执行列（第5列，索引4）
+    if (cells[4]) {
+      if (signal.execution && signal.execution.includes('做多_')) {
+        cells[4].style.backgroundColor = '#e8f5e8'; // 浅绿色
+      } else if (signal.execution && signal.execution.includes('做空_')) {
+        cells[4].style.backgroundColor = '#ffeaea'; // 浅红色
+      }
     }
   }
 
@@ -177,8 +184,8 @@ class SmartFlowApp {
       const modeA = signal.modeA || false;
       const modeB = signal.modeB || false;
 
-      // 设置行背景颜色
-      this.setRowBackgroundColor(row, signal);
+      // 设置单元格背景颜色
+      this.setCellBackgroundColors(row, signal);
 
       // 构建入场执行列内容
       let executionDisplay = signal.execution || '--';
@@ -356,10 +363,10 @@ class SmartFlowApp {
           // 如果这个交易对还没有触发过模拟交易，则自动触发
           if (!triggeredSymbols.has(signal.symbol)) {
             console.log(`🚀 检测到新的入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution}`);
-            
+
             // 自动启动模拟交易
             await this.autoStartSimulation(signal);
-            
+
             // 添加到已触发列表，避免重复触发
             triggeredSymbols.add(signal.symbol);
           }
@@ -504,7 +511,7 @@ async function startSimulation(symbol) {
 async function viewTradeHistory(symbol) {
   try {
     console.log(`📊 查看交易历史: ${symbol} - 不会更新表格数据`);
-    
+
     const response = await fetch(`/api/simulation/history/${symbol}`);
     const history = await response.json();
 
@@ -608,7 +615,7 @@ function toggleHistory(symbol) {
 // 加载历史记录
 async function loadHistory(symbol) {
   const contentDiv = document.getElementById(`history-content-${symbol}`);
-  contentDiv.innerHTML = '<div class="loading">加载中...</div>';
+  contentDiv.innerHTML = '<div class="loading-dots">加载中<span>.</span><span>.</span><span>.</span></div>';
 
   try {
     // 获取信号数据
@@ -620,93 +627,158 @@ async function loadHistory(symbol) {
       return;
     }
 
+    // 检查是否有入场执行信号
+    const hasExecutionSignal = signalData.execution && (signalData.execution.includes('做多_') || signalData.execution.includes('做空_'));
+
+    if (hasExecutionSignal) {
+      // 有入场执行信号时：只显示交易执行详情和模拟交易历史
+      await loadExecutionDetails(contentDiv, symbol, signalData);
+    } else {
+      // 没有入场执行信号时：显示完整的信号详情
+      await loadFullSignalDetails(contentDiv, symbol, signalData);
+    }
+  } catch (error) {
+    console.error('加载详细信息失败:', error);
+    contentDiv.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
+  }
+}
+
+// 加载交易执行详情和模拟交易历史
+async function loadExecutionDetails(contentDiv, symbol, signalData) {
+  try {
+    // 获取该交易对的模拟交易历史
+    const response = await fetch(`/api/simulation/history/${symbol}`);
+    const history = await response.json();
+
     // 构建交易执行详情HTML
-    let executionDetailsHtml = '';
-    if (signalData.execution && (signalData.execution.includes('做多_') || signalData.execution.includes('做空_'))) {
-      executionDetailsHtml = `
-        <div class="execution-details">
-          <h5>🎯 交易执行详情</h5>
-          <div class="execution-grid">
-            <div class="execution-item">
-              <span class="label">入场价格:</span>
-              <span class="value">${signalData.entrySignal ? dataManager.formatNumber(signalData.entrySignal) : '--'}</span>
-            </div>
-            <div class="execution-item">
-              <span class="label">止损价格:</span>
-              <span class="value">${signalData.stopLoss ? dataManager.formatNumber(signalData.stopLoss) : '--'}</span>
-            </div>
-            <div class="execution-item">
-              <span class="label">止盈价格:</span>
-              <span class="value">${signalData.takeProfit ? dataManager.formatNumber(signalData.takeProfit) : '--'}</span>
-            </div>
-            <div class="execution-item">
-              <span class="label">最大杠杆数:</span>
-              <span class="value">${signalData.maxLeverage ? signalData.maxLeverage + 'x' : '--'}</span>
-            </div>
-            <div class="execution-item">
-              <span class="label">最小保证金:</span>
-              <span class="value">${signalData.minMargin ? dataManager.formatNumber(signalData.minMargin) + ' USDT' : '--'}</span>
-            </div>
-            <div class="execution-item">
-              <span class="label">ATR数值:</span>
-              <span class="value">${signalData.atrValue ? dataManager.formatNumber(signalData.atrValue) : '--'}</span>
-            </div>
-            <div class="execution-item">
-              <span class="label">止损距离:</span>
-              <span class="value">${signalData.stopLossDistance ? (signalData.stopLossDistance * 100).toFixed(2) + '%' : '--'}</span>
-            </div>
-            <div class="execution-item">
-              <span class="label">执行模式:</span>
-              <span class="value">${signalData.executionMode || '--'}</span>
-            </div>
+    const executionDetailsHtml = `
+      <div class="execution-details">
+        <h5>🎯 交易执行详情</h5>
+        <div class="execution-grid">
+          <div class="execution-item">
+            <span class="label">入场价格:</span>
+            <span class="value">${signalData.entrySignal ? dataManager.formatNumber(signalData.entrySignal) : '--'}</span>
           </div>
-          <div class="trade-actions" style="margin-top: 15px;">
-            <button class="btn primary" onclick="startSimulation('${symbol}')" style="margin-right: 10px;">
-              🚀 启动模拟交易
-            </button>
-            <button class="btn secondary" onclick="viewTradeHistory('${symbol}')">
-              📊 查看交易历史
-            </button>
+          <div class="execution-item">
+            <span class="label">止损价格:</span>
+            <span class="value">${signalData.stopLoss ? dataManager.formatNumber(signalData.stopLoss) : '--'}</span>
+          </div>
+          <div class="execution-item">
+            <span class="label">止盈价格:</span>
+            <span class="value">${signalData.takeProfit ? dataManager.formatNumber(signalData.takeProfit) : '--'}</span>
+          </div>
+          <div class="execution-item">
+            <span class="label">最大杠杆数:</span>
+            <span class="value">${signalData.maxLeverage ? signalData.maxLeverage + 'x' : '--'}</span>
+          </div>
+          <div class="execution-item">
+            <span class="label">最小保证金:</span>
+            <span class="value">${signalData.minMargin ? dataManager.formatNumber(signalData.minMargin) + ' USDT' : '--'}</span>
+          </div>
+          <div class="execution-item">
+            <span class="label">ATR数值:</span>
+            <span class="value">${signalData.atrValue ? dataManager.formatNumber(signalData.atrValue) : '--'}</span>
+          </div>
+          <div class="execution-item">
+            <span class="label">止损距离:</span>
+            <span class="value">${signalData.stopLossDistance ? (signalData.stopLossDistance * 100).toFixed(2) + '%' : '--'}</span>
+          </div>
+          <div class="execution-item">
+            <span class="label">执行模式:</span>
+            <span class="value">${signalData.executionMode || '--'}</span>
           </div>
         </div>
-      `;
-    }
+      </div>
+    `;
 
-    // 构建数据采集详情HTML
-    let dataCollectionHtml = '';
-    if (signalData.dataCollectionRate !== undefined) {
-      const statusClass = signalData.dataCollectionRate >= 95 ? 'data-healthy' :
-        signalData.dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
-      dataCollectionHtml = `
-        <div class="data-collection-details">
-          <h5>📊 数据采集状态</h5>
-          <div class="data-collection-item">
-            <span class="label">数据采集率:</span>
-            <span class="value ${statusClass}">${signalData.dataCollectionRate.toFixed(1)}%</span>
-          </div>
+    // 构建模拟交易历史HTML
+    let historyHtml = '';
+    if (history.length > 0) {
+      historyHtml = `
+        <div class="simulation-history">
+          <h5>📊 ${symbol} 模拟交易历史</h5>
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>方向</th>
+                <th>入场价格</th>
+                <th>止损价格</th>
+                <th>止盈价格</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${history.map(trade => `
+                <tr>
+                  <td>${new Date(trade.created_at).toLocaleString()}</td>
+                  <td>${trade.trigger_reason.includes('LONG') ? '做多' : '做空'}</td>
+                  <td>${dataManager.formatNumber(trade.entry_price)}</td>
+                  <td>${dataManager.formatNumber(trade.stop_loss_price)}</td>
+                  <td>${dataManager.formatNumber(trade.take_profit_price)}</td>
+                  <td>${trade.status === 'ACTIVE' ? '进行中' : trade.status}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } else {
+      historyHtml = `
+        <div class="simulation-history">
+          <h5>📊 ${symbol} 模拟交易历史</h5>
+          <p style="text-align: center; color: #666; padding: 20px;">暂无模拟交易记录</p>
         </div>
       `;
     }
 
     const content = `
-        <div style="padding: 20px;">
-            <h4>${symbol} 信号详情</h4>
-            <div style="margin: 15px 0;">
-              <h5>📈 信号分析</h5>
-              <p><strong>趋势:</strong> <span class="${dataManager.getSignalClass(signalData.trend)}">${signalData.trend || '--'}</span></p>
-              <p><strong>信号:</strong> <span class="${dataManager.getSignalClass(signalData.signal)}">${signalData.signal || '--'}</span></p>
-              <p><strong>执行:</strong> <span class="${dataManager.getExecutionClass(signalData.execution)}">${signalData.execution || '--'}</span></p>
-            </div>
-            ${executionDetailsHtml}
-            ${dataCollectionHtml}
-        </div>
+      <div style="padding: 20px;">
+        <h4>${symbol} 交易执行详情</h4>
+        ${executionDetailsHtml}
+        ${historyHtml}
+      </div>
     `;
 
     contentDiv.innerHTML = content;
   } catch (error) {
-    console.error('加载详细信息失败:', error);
-    contentDiv.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
+    console.error('加载执行详情失败:', error);
+    contentDiv.innerHTML = '<div class="error">加载执行详情失败: ' + error.message + '</div>';
   }
+}
+
+// 加载完整信号详情（没有入场执行信号时）
+async function loadFullSignalDetails(contentDiv, symbol, signalData) {
+  // 构建数据采集详情HTML
+  let dataCollectionHtml = '';
+  if (signalData.dataCollectionRate !== undefined) {
+    const statusClass = signalData.dataCollectionRate >= 95 ? 'data-healthy' :
+      signalData.dataCollectionRate >= 80 ? 'data-warning' : 'data-error';
+    dataCollectionHtml = `
+      <div class="data-collection-details">
+        <h5>📊 数据采集状态</h5>
+        <div class="data-collection-item">
+          <span class="label">数据采集率:</span>
+          <span class="value ${statusClass}">${signalData.dataCollectionRate.toFixed(1)}%</span>
+        </div>
+      </div>
+    `;
+  }
+
+  const content = `
+    <div style="padding: 20px;">
+      <h4>${symbol} 信号详情</h4>
+      <div style="margin: 15px 0;">
+        <h5>📈 信号分析</h5>
+        <p><strong>趋势:</strong> <span class="${dataManager.getSignalClass(signalData.trend)}">${signalData.trend || '--'}</span></p>
+        <p><strong>信号:</strong> <span class="${dataManager.getSignalClass(signalData.signal)}">${signalData.signal || '--'}</span></p>
+        <p><strong>执行:</strong> <span class="${dataManager.getExecutionClass(signalData.execution)}">${signalData.execution || '--'}</span></p>
+      </div>
+      ${dataCollectionHtml}
+    </div>
+  `;
+
+  contentDiv.innerHTML = content;
 }
 
 async function showSignalDetails(symbol) {
