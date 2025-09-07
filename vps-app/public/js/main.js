@@ -208,11 +208,6 @@ class SmartFlowApp {
                 <td class="${dataCollectionClass}" title="数据采集成功率: ${dataCollectionRate.toFixed(1)}%">
                     ${dataCollectionRate.toFixed(1)}%
                 </td>
-                <td>
-                    <button class="btn primary" onclick="refreshSymbol('${signal.symbol}')">
-                        刷新
-                    </button>
-                </td>
             `;
 
       // 创建折叠行
@@ -221,7 +216,7 @@ class SmartFlowApp {
       historyRow.className = 'history-row';
       historyRow.style.display = 'none';
       historyRow.innerHTML = `
-                <td colspan="9">
+                <td colspan="8">
                     <div class="history-container">
                         <div class="history-header">
                             <h4>📊 ${signal.symbol} 详细信息</h4>
@@ -245,7 +240,7 @@ class SmartFlowApp {
     tbody.innerHTML = '';
 
     if (history.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #6c757d;">暂无模拟交易记录</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #6c757d;">暂无模拟交易记录</td></tr>';
       return;
     }
 
@@ -349,7 +344,7 @@ async function startSimulation(symbol) {
     const signals = await dataManager.getAllSignals();
     const signalData = signals.find(s => s.symbol === symbol);
 
-    if (!signalData || !signalData.execution || (!signalData.execution.includes('做多') && !signalData.execution.includes('做空'))) {
+    if (!signalData || !signalData.execution || (!signalData.execution.includes('做多_') && !signalData.execution.includes('做空_'))) {
       alert('该交易对当前没有有效的交易信号');
       return;
     }
@@ -362,7 +357,7 @@ async function startSimulation(symbol) {
       maxLeverage: signalData.maxLeverage,
       minMargin: signalData.minMargin,
       executionMode: signalData.executionMode,
-      direction: signalData.execution.includes('做多') ? 'LONG' : 'SHORT',
+      direction: signalData.execution.includes('做多_') ? 'LONG' : 'SHORT',
       timestamp: new Date().toISOString()
     };
 
@@ -508,7 +503,7 @@ async function loadHistory(symbol) {
 
     // 构建交易执行详情HTML
     let executionDetailsHtml = '';
-    if (signalData.execution && (signalData.execution.includes('做多') || signalData.execution.includes('做空'))) {
+    if (signalData.execution && (signalData.execution.includes('做多_') || signalData.execution.includes('做空_'))) {
       executionDetailsHtml = `
         <div class="execution-details">
           <h5>🎯 交易执行详情</h5>
