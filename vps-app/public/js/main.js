@@ -104,8 +104,8 @@ class SmartFlowApp {
   updateStatsDisplay(signals, stats) {
     // 更新信号统计
     const totalSignals = signals.length;
-    const longSignals = signals.filter(s => s.signal === 'LONG').length;
-    const shortSignals = signals.filter(s => s.signal === 'SHORT').length;
+    const longSignals = signals.filter(s => s.signal === 'LONG' || s.signal === '做多' || (s.execution && s.execution.includes('做多_'))).length;
+    const shortSignals = signals.filter(s => s.signal === 'SHORT' || s.signal === '做空' || (s.execution && s.execution.includes('做空_'))).length;
 
     document.getElementById('totalSignals').textContent = totalSignals;
     document.getElementById('longSignals').textContent = longSignals;
