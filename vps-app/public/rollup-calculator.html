@@ -391,6 +391,66 @@
             transform: scale(1.2);
         }
 
+        /* 计算逻辑说明样式 */
+        .calculation-explanation {
+            margin-top: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 1px solid #e9ecef;
+        }
+
+        .calculation-explanation h3 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            text-align: center;
+        }
+
+        .explanation-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .explanation-section h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .explanation-section h5 {
+            color: #495057;
+            margin: 15px 0 10px 0;
+            font-size: 1.1rem;
+        }
+
+        .explanation-content {
+            line-height: 1.6;
+        }
+
+        .explanation-content p {
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .explanation-content ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .explanation-content li {
+            margin-bottom: 8px;
+            color: #666;
+        }
+
+        .explanation-content strong {
+            color: #333;
+            font-weight: 600;
+        }
+
         /* 手机端适配 */
         @media (max-width: 768px) {
             body {
@@ -698,11 +758,104 @@
                         <span id="errorMessage">发生错误</span>
                     </div>
                 </div>
+
+                <!-- 计算逻辑说明 -->
+                <div class="calculation-explanation">
+                    <h3>📚 计算逻辑说明</h3>
+                    
+                    <div class="explanation-section">
+                        <h4>1. 初始本金计算</h4>
+                        <div class="explanation-content">
+                            <p><strong>公式：</strong> 建议保证金 = 最大损失金额 ÷ (最大杠杆 × 止损距离)</p>
+                            <p><strong>其中：</strong></p>
+                            <ul>
+                                <li>最大损失金额：用户设定的愿意承担的最大损失</li>
+                                <li>最大杠杆：基于止损距离计算，确保风险可控</li>
+                                <li>止损距离：((订单区上沿 - 止损价格) ÷ 订单区上沿) × 100%</li>
+                                <li>止损价格：订单区下沿价格 - 4H级别ATR</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="explanation-section">
+                        <h4>2. 初始杠杆计算</h4>
+                        <div class="explanation-content">
+                            <p><strong>公式：</strong> 最大杠杆 = floor(1 ÷ (止损距离 ÷ 100 + 0.005))</p>
+                            <p><strong>说明：</strong> 基于止损距离计算最大可用杠杆，确保强平价距离止损点至少3倍以上</p>
+                        </div>
+                    </div>
+
+                    <div class="explanation-section">
+                        <h4>3. 杠杆策略滚仓路径</h4>
+                        <div class="explanation-content">
+                            <h5>固定序列策略 [30, 25, 20, 15, 10, 5]</h5>
+                            <ul>
+                                <li>使用预设的杠杆序列，从高到低递减</li>
+                                <li>保证金计算：所需保证金 = (可用利润 × 0.1) ÷ 杠杆倍数</li>
+                                <li>特点：高杠杆起步，风险较高但收益潜力大</li>
+                            </ul>
+                            
+                            <h5>动态计算策略</h5>
+                            <ul>
+                                <li>杠杆计算：baseLeverage × decayFactor，其中衰减因子 = max(0.6, 1 - 步骤 × 0.08)</li>
+                                <li>保证金计算：标准保证金 = 可用利润 ÷ 10</li>
+                                <li>特点：保守策略，风险较低但收益相对稳定</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="explanation-section">
+                        <h4>4. 斐波拉契回调位计算</h4>
+                        <div class="explanation-content">
+                            <p><strong>回调位：</strong> [0.236, 0.382, 0.5, 0.618, 0.786]</p>
+                            <p><strong>计算方式：</strong></p>
+                            <ul>
+                                <li>峰值价格 = 起始价格 + 回调位 × (目标价格 - 起始价格)</li>
+                                <li>回调价格 = 峰值价格 - 0.618 × (峰值价格 - 起始价格)</li>
+                                <li>在回调价格处进行加仓操作</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="explanation-section">
+                        <h4>5. 本金保护判断</h4>
+                        <div class="explanation-content">
+                            <p><strong>判断条件：</strong> 最坏情况损失 < 本金 × 0.8</p>
+                            <p><strong>计算方式：</strong></p>
+                            <ul>
+                                <li>加权平均入场价 = Σ(入场价 × 仓位价值) ÷ Σ(仓位价值)</li>
+                                <li>最坏情况损失 = |目标价格 - 加权平均入场价| × 总数量</li>
+                                <li>保护比例 = max(0, (本金 - 最坏情况损失) ÷ 本金)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="explanation-section">
+                        <h4>6. 最大回撤计算</h4>
+                        <div class="explanation-content">
+                            <p><strong>公式：</strong> 最大回撤 = 最坏情况损失 ÷ 本金 × 100%</p>
+                            <p><strong>风险等级：</strong></p>
+                            <ul>
+                                <li>绿色（安全）：回撤 < 20%</li>
+                                <li>黄色（中等）：20% ≤ 回撤 < 50%</li>
+                                <li>红色（高风险）：回撤 ≥ 50%</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="explanation-section">
+                        <h4>7. 止损价格计算</h4>
+                        <div class="explanation-content">
+                            <p><strong>公式：</strong> 止损价格 = 当前价格 × (1 - 止损距离)</p>
+                            <p><strong>其中：</strong> 止损距离 = 最大损失 ÷ (总数量 × 当前价格)</p>
+                            <p><strong>说明：</strong> 确保止损价格低于订单区下沿价格，保护本金安全</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <script src="rollup-calculator.js"></script>
-        <script src="popup.js"></script>
 </body>
 
 </html>
