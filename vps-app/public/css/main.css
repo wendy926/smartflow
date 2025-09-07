@@ -1499,7 +1499,8 @@ tr:hover {
 
   .symbols-table {
     font-size: 11px;
-    min-width: 600px; /* 确保表格有最小宽度，支持横向滚动 */
+    min-width: 600px;
+    /* 确保表格有最小宽度，支持横向滚动 */
   }
 
   .symbols-table th,
@@ -1551,8 +1552,15 @@ tr:hover {
   }
 
   @keyframes fadeInOut {
-    0%, 100% { opacity: 0.8; }
-    50% { opacity: 0.4; }
+
+    0%,
+    100% {
+      opacity: 0.8;
+    }
+
+    50% {
+      opacity: 0.4;
+    }
   }
 }
 
@@ -2191,4 +2199,61 @@ tr:hover {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* 系统测试结果样式 */
+.test-results {
+  text-align: left;
+  max-width: 500px;
+}
+
+.test-results h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.test-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.test-item {
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid;
+  background: #f8f9fa;
+}
+
+.test-item.success {
+  border-left-color: #28a745;
+  background: #d4edda;
+}
+
+.test-item.warning {
+  border-left-color: #ffc107;
+  background: #fff3cd;
+}
+
+.test-item.error {
+  border-left-color: #dc3545;
+  background: #f8d7da;
+}
+
+.test-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.test-status {
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.test-details {
+  font-size: 0.8rem;
+  color: #666;
 }

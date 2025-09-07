@@ -122,6 +122,19 @@ class DatabaseManager {
         last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
 
+      // 告警历史记录表
+      `CREATE TABLE IF NOT EXISTS alert_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        alert_type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        message TEXT NOT NULL,
+        details TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        resolved BOOLEAN DEFAULT FALSE,
+        resolved_at DATETIME
+      )`,
+
       // 自定义交易对表
       `CREATE TABLE IF NOT EXISTS custom_symbols (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -427,6 +440,57 @@ class DatabaseManager {
       return rows.length > 0 ? rows[0].setting_value : defaultValue;
     } catch (err) {
       return defaultValue;
+    }
+  }
+
+  // 记录告警历史
+  async recordAlert(symbol, alertType, severity, message, details = null) {
+    try {
+      await this.run(
+        `INSERT INTO alert_history (symbol, alert_type, severity, message, details) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [symbol, alertType, severity, message, details]
+      );
+      console.log(`📝 记录告警: ${symbol} - ${alertType} - ${severity}`);
+    } catch (error) {
+      console.error('记录告警失败:', error);
+    }
+  }
+
+  // 获取告警历史
+  async getAlertHistory(limit = 100, alertType = null) {
+    try {
+      let query = `
+        SELECT * FROM alert_history 
+        WHERE 1=1
+      `;
+      const params = [];
+      
+      if (alertType) {
+        query += ' AND alert_type = ?';
+        params.push(alertType);
+      }
+      
+      query += ' ORDER BY timestamp DESC LIMIT ?';
+      params.push(limit);
+      
+      return await this.runQuery(query, params);
+    } catch (error) {
+      console.error('获取告警历史失败:', error);
+      return [];
+    }
+  }
+
+  // 标记告警为已解决
+  async resolveAlert(alertId) {
+    try {
+      await this.run(
+        'UPDATE alert_history SET resolved = TRUE, resolved_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [alertId]
+      );
+      console.log(`✅ 告警已解决: ${alertId}`);
+    } catch (error) {
+      console.error('解决告警失败:', error);
     }
   }
 

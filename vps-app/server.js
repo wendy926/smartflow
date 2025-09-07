@@ -285,6 +285,33 @@ class SmartFlowServer {
       }
     });
 
+    // 获取告警历史
+    this.app.get('/api/alert-history', async (req, res) => {
+      try {
+        const { limit = 100, type } = req.query;
+        const alerts = await this.db.getAlertHistory(parseInt(limit), type);
+        res.json(alerts);
+      } catch (error) {
+        console.error('获取告警历史失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 解决告警
+    this.app.post('/api/alert-resolve', async (req, res) => {
+      try {
+        const { alertId } = req.body;
+        if (!alertId) {
+          return res.status(400).json({ error: '缺少告警ID' });
+        }
+        await this.db.resolveAlert(alertId);
+        res.json({ success: true });
+      } catch (error) {
+        console.error('解决告警失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 获取数据更新时间
     this.app.get('/api/update-times', async (req, res) => {
       try {

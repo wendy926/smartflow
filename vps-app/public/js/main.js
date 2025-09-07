@@ -1816,7 +1816,7 @@ function toggleSimulationHistory() {
 // 检查表格是否需要横向滚动
 function checkTableScrollability() {
   const containers = document.querySelectorAll('.symbols-table-container');
-  
+
   containers.forEach(container => {
     const table = container.querySelector('.symbols-table');
     if (!table) return;
@@ -1824,13 +1824,115 @@ function checkTableScrollability() {
     // 检查表格宽度是否超出容器
     const containerWidth = container.clientWidth;
     const tableWidth = table.scrollWidth;
-    
+
     if (tableWidth > containerWidth) {
       container.classList.add('scrollable');
     } else {
       container.classList.remove('scrollable');
     }
   });
+}
+
+// 系统综合测试
+async function runSystemTests() {
+  const modal = new Modal();
+  modal.showMessage('🧪 开始系统测试...', 'info');
+
+  try {
+    const results = [];
+
+    // 1. 测试API连接
+    try {
+      const startTime = Date.now();
+      await dataManager.getAllSignals();
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+
+      results.push({
+        test: 'API连接测试',
+        status: '✅ 成功',
+        details: `响应时间: ${responseTime}ms`,
+        color: 'success'
+      });
+    } catch (error) {
+      results.push({
+        test: 'API连接测试',
+        status: '❌ 失败',
+        details: error.message,
+        color: 'error'
+      });
+    }
+
+    // 2. 测试Telegram机器人
+    try {
+      await dataManager.testDataQualityAlert();
+      results.push({
+        test: 'Telegram机器人测试',
+        status: '✅ 成功',
+        details: '告警消息已发送',
+        color: 'success'
+      });
+    } catch (error) {
+      results.push({
+        test: 'Telegram机器人测试',
+        status: '❌ 失败',
+        details: error.message,
+        color: 'error'
+      });
+    }
+
+    // 3. 测试数据监控
+    try {
+      const monitoringData = await dataManager.getMonitoringDashboard();
+      const hasIssues = monitoringData.summary.dataQuality?.hasIssues ||
+        monitoringData.summary.dataValidation?.hasErrors;
+
+      results.push({
+        test: '数据监控测试',
+        status: hasIssues ? '⚠️ 有告警' : '✅ 正常',
+        details: hasIssues ? '发现数据质量问题' : '所有监控指标正常',
+        color: hasIssues ? 'warning' : 'success'
+      });
+    } catch (error) {
+      results.push({
+        test: '数据监控测试',
+        status: '❌ 失败',
+        details: error.message,
+        color: 'error'
+      });
+    }
+
+    // 显示测试结果
+    const successCount = results.filter(r => r.color === 'success').length;
+    const totalCount = results.length;
+
+    let resultHtml = `
+      <div class="test-results">
+        <h3>🧪 系统测试结果 (${successCount}/${totalCount} 通过)</h3>
+        <div class="test-items">
+    `;
+
+    results.forEach(result => {
+      resultHtml += `
+        <div class="test-item ${result.color}">
+          <div class="test-name">${result.test}</div>
+          <div class="test-status">${result.status}</div>
+          <div class="test-details">${result.details}</div>
+        </div>
+      `;
+    });
+
+    resultHtml += `
+        </div>
+      </div>
+    `;
+
+    modal.showMessage(resultHtml, successCount === totalCount ? 'success' : 'warning');
+
+  } catch (error) {
+    console.error('系统测试失败:', error);
+    modal.showMessage('系统测试失败: ' + error.message, 'error');
+  }
 }
 
 // 页面加载完成后初始化应用
