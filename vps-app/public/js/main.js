@@ -208,13 +208,13 @@ class SmartFlowApp {
     // 信号列（第5列，索引4）
     if (cells[4]) {
       // 检查信号字段，包括做多/做空信号
-      if (signal.signal === '做多' || signal.signal === 'LONG' || 
-          (signal.signal && signal.signal.includes('做多'))) {
+      if (signal.signal === '做多' || signal.signal === 'LONG' ||
+        (signal.signal && signal.signal.includes('做多'))) {
         cells[4].style.backgroundColor = '#d4edda'; // 绿色
         cells[4].style.border = '2px solid #28a745';
         cells[4].style.fontWeight = 'bold';
-      } else if (signal.signal === '做空' || signal.signal === 'SHORT' || 
-                 (signal.signal && signal.signal.includes('做空'))) {
+      } else if (signal.signal === '做空' || signal.signal === 'SHORT' ||
+        (signal.signal && signal.signal.includes('做空'))) {
         cells[4].style.backgroundColor = '#f8d7da'; // 红色
         cells[4].style.border = '2px solid #dc3545';
         cells[4].style.fontWeight = 'bold';
