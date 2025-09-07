@@ -210,7 +210,7 @@ class SimulationManager {
   }
 
   // 更新模拟交易状态（价格监控和结果判断）
-  async updateSimulationStatus(symbol, currentPrice) {
+  async updateSimulationStatus(symbol, currentPrice, dataMonitor = null) {
     try {
       // 获取该交易对的所有活跃模拟交易
       const activeSimulations = await this.db.runQuery(`
@@ -218,6 +218,8 @@ class SimulationManager {
         WHERE symbol = ? AND status = 'ACTIVE'
         ORDER BY created_at DESC
       `, [symbol]);
+
+      let completedCount = 0;
 
       for (const sim of activeSimulations) {
         let shouldClose = false;
@@ -271,11 +273,22 @@ class SimulationManager {
             WHERE id = ?
           `, [currentPrice, exitReason, isWin, profitLoss, sim.id]);
 
+          // 记录模拟交易完成
+          if (dataMonitor) {
+            dataMonitor.recordSimulation(symbol, 'COMPLETED', {
+              simulationId: sim.id,
+              exitReason,
+              isWin,
+              profitLoss
+            }, true);
+          }
+
+          completedCount++;
           console.log(`✅ 模拟交易平仓: ${sim.symbol} - ${exitReason} - ${isWin ? '盈利' : '亏损'} ${profitLoss.toFixed(2)} USDT`);
         }
       }
 
-      return activeSimulations.length;
+      return { activeCount: activeSimulations.length, completedCount };
     } catch (error) {
       console.error('更新模拟交易状态失败:', error);
       throw error;

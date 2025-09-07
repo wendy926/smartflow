@@ -255,8 +255,8 @@ class SmartFlowServer {
           return res.status(400).json({ error: '缺少必要参数' });
         }
 
-        const updatedCount = await this.simulationManager.updateSimulationStatus(symbol, currentPrice);
-        res.json({ success: true, updatedCount });
+        const result = await this.simulationManager.updateSimulationStatus(symbol, currentPrice, this.dataMonitor);
+        res.json({ success: true, updatedCount: result.activeCount });
       } catch (error) {
         console.error('更新模拟交易状态失败:', error);
         res.status(500).json({ error: error.message });
@@ -436,6 +436,9 @@ class SmartFlowServer {
       // 启动定期告警检查
       this.startPeriodicAlerts();
 
+      // 同步模拟交易统计
+      this.syncSimulationStats();
+
       // 启动服务器
       this.app.listen(this.port, () => {
         console.log(`🌐 服务器运行在 http://localhost:${this.port}`);
@@ -522,9 +525,12 @@ class SmartFlowServer {
             const currentPrice = parseFloat(ticker.lastPrice);
 
             // 更新模拟交易状态
-            const updatedCount = await this.simulationManager.updateSimulationStatus(symbol, currentPrice);
-            if (updatedCount > 0) {
-              console.log(`📊 更新了 ${symbol} 的 ${updatedCount} 个模拟交易状态`);
+            const result = await this.simulationManager.updateSimulationStatus(symbol, currentPrice, this.dataMonitor);
+            if (result.activeCount > 0) {
+              console.log(`📊 更新了 ${symbol} 的 ${result.activeCount} 个模拟交易状态`);
+            }
+            if (result.completedCount > 0) {
+              console.log(`✅ 完成了 ${symbol} 的 ${result.completedCount} 个模拟交易`);
             }
           } catch (error) {
             console.error(`模拟交易监控 ${symbol} 失败:`, error);
@@ -642,6 +648,16 @@ class SmartFlowServer {
         console.error('告警检查失败:', error);
       }
     }, 600000); // 10分钟
+  }
+
+  async syncSimulationStats() {
+    try {
+      console.log('🔄 开始同步模拟交易统计...');
+      await this.dataMonitor.syncSimulationStatsFromDB(this.db);
+      console.log('✅ 模拟交易统计同步完成');
+    } catch (error) {
+      console.error('同步模拟交易统计失败:', error);
+    }
   }
 
   // 获取下次趋势更新时间（4小时周期）

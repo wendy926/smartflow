@@ -285,6 +285,61 @@ class DataMonitor {
     };
   }
 
+  // 从数据库重新同步模拟交易统计
+  async syncSimulationStatsFromDB(db) {
+    try {
+      console.log('🔄 开始从数据库同步模拟交易统计...');
+      
+      // 获取所有模拟交易统计
+      const stats = await db.runQuery(`
+        SELECT 
+          symbol,
+          COUNT(*) as total_simulations,
+          SUM(CASE WHEN status = 'CLOSED' THEN 1 ELSE 0 END) as completed_simulations
+        FROM simulations 
+        GROUP BY symbol
+      `);
+
+      for (const stat of stats) {
+        const symbol = stat.symbol;
+        const totalSimulations = stat.total_simulations;
+        const completedSimulations = stat.completed_simulations;
+
+        // 确保symbolStats中有该交易对的记录
+        if (!this.symbolStats.has(symbol)) {
+          this.symbolStats.set(symbol, {
+            dataCollectionAttempts: 0,
+            dataCollectionSuccesses: 0,
+            signalAnalysisAttempts: 0,
+            signalAnalysisSuccesses: 0,
+            simulationTriggers: 0,
+            simulationCompletions: 0,
+            simulationInProgress: 0,
+            lastDataCollectionTime: 0,
+            lastSignalAnalysisTime: 0,
+            lastSimulationTime: 0
+          });
+        }
+
+        const symbolStats = this.symbolStats.get(symbol);
+        
+        // 更新模拟交易统计
+        symbolStats.simulationTriggers = totalSimulations;
+        symbolStats.simulationCompletions = completedSimulations;
+        symbolStats.simulationInProgress = totalSimulations - completedSimulations;
+
+        console.log(`📊 同步 ${symbol}: 总模拟交易 ${totalSimulations}, 已完成 ${completedSimulations}`);
+      }
+
+      // 重新计算完成率
+      this.calculateCompletionRates();
+      
+      console.log('✅ 模拟交易统计同步完成');
+    } catch (error) {
+      console.error('同步模拟交易统计失败:', error);
+    }
+  }
+
   checkHealthStatus() {
     const thresholds = this.alertThresholds;
 
