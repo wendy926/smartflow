@@ -622,6 +622,19 @@ class SmartFlowStrategy {
         }
       }
 
+      // 调试：显示execution15m对象内容
+      console.log(`🔍 analyzeAll中execution15m对象 [${symbol}]:`, {
+        entrySignal: execution15m?.entrySignal,
+        stopLoss: execution15m?.stopLoss,
+        takeProfit: execution15m?.takeProfit,
+        maxLeverage: execution15m?.maxLeverage,
+        minMargin: execution15m?.minMargin,
+        stopLossDistance: execution15m?.stopLossDistance,
+        atrValue: execution15m?.atrValue,
+        modeA: execution15m?.modeA,
+        modeB: execution15m?.modeB
+      });
+
       // 记录信号
       this.dataMonitor.recordSignal(symbol, '综合分析', {
         signal,
