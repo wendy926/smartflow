@@ -208,6 +208,93 @@ class SimulationManager {
     }
   }
 
+  // 更新模拟交易状态（价格监控和结果判断）
+  async updateSimulationStatus(symbol, currentPrice) {
+    try {
+      // 获取该交易对的所有活跃模拟交易
+      const activeSimulations = await this.db.runQuery(`
+        SELECT * FROM simulations 
+        WHERE symbol = ? AND status = 'ACTIVE'
+        ORDER BY created_at DESC
+      `, [symbol]);
+
+      for (const sim of activeSimulations) {
+        let shouldClose = false;
+        let exitReason = '';
+        let isWin = null;
+        let profitLoss = 0;
+
+        // 判断是否触发止损或止盈
+        if (sim.trigger_reason.includes('LONG')) {
+          // 多头交易
+          if (currentPrice <= sim.stop_loss_price) {
+            // 触发止损
+            shouldClose = true;
+            exitReason = '止损';
+            isWin = false;
+            profitLoss = -this.calculateLoss(sim.entry_price, sim.stop_loss_price, sim.min_margin, sim.max_leverage);
+          } else if (currentPrice >= sim.take_profit_price) {
+            // 触发止盈
+            shouldClose = true;
+            exitReason = '止盈';
+            isWin = true;
+            profitLoss = this.calculateProfit(sim.entry_price, sim.take_profit_price, sim.min_margin, sim.max_leverage);
+          }
+        } else if (sim.trigger_reason.includes('SHORT')) {
+          // 空头交易
+          if (currentPrice >= sim.stop_loss_price) {
+            // 触发止损
+            shouldClose = true;
+            exitReason = '止损';
+            isWin = false;
+            profitLoss = -this.calculateLoss(sim.entry_price, sim.stop_loss_price, sim.min_margin, sim.max_leverage);
+          } else if (currentPrice <= sim.take_profit_price) {
+            // 触发止盈
+            shouldClose = true;
+            exitReason = '止盈';
+            isWin = true;
+            profitLoss = this.calculateProfit(sim.entry_price, sim.take_profit_price, sim.min_margin, sim.max_leverage);
+          }
+        }
+
+        // 如果应该平仓，更新交易记录
+        if (shouldClose) {
+          await this.db.run(`
+            UPDATE simulations 
+            SET status = 'CLOSED', 
+                closed_at = datetime('now'), 
+                exit_price = ?, 
+                exit_reason = ?, 
+                is_win = ?, 
+                profit_loss = ?
+            WHERE id = ?
+          `, [currentPrice, exitReason, isWin, profitLoss, sim.id]);
+
+          console.log(`✅ 模拟交易平仓: ${sim.symbol} - ${exitReason} - ${isWin ? '盈利' : '亏损'} ${profitLoss.toFixed(2)} USDT`);
+        }
+      }
+
+      return activeSimulations.length;
+    } catch (error) {
+      console.error('更新模拟交易状态失败:', error);
+      throw error;
+    }
+  }
+
+  // 计算亏损金额
+  calculateLoss(entryPrice, exitPrice, minMargin, maxLeverage) {
+    // 亏损 = 保证金 × 杠杆 × 价格变化百分比
+    const priceChangePercent = Math.abs(exitPrice - entryPrice) / entryPrice;
+    return minMargin * maxLeverage * priceChangePercent;
+  }
+
+  // 计算盈利金额
+  calculateProfit(entryPrice, exitPrice, minMargin, maxLeverage) {
+    // 盈利 = 保证金 × 杠杆 × 价格变化百分比
+    const priceChangePercent = Math.abs(exitPrice - entryPrice) / entryPrice;
+    return minMargin * maxLeverage * priceChangePercent;
+  }
+
   async cleanOldData() {
     try {
       const cutoffDate = new Date();

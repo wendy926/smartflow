@@ -240,6 +240,22 @@ class SmartFlowServer {
       }
     });
 
+    // 更新模拟交易状态
+    this.app.post('/api/simulation/update-status', async (req, res) => {
+      try {
+        const { symbol, currentPrice } = req.body;
+        if (!symbol || !currentPrice) {
+          return res.status(400).json({ error: '缺少必要参数' });
+        }
+
+        const updatedCount = await this.simulationManager.updateSimulationStatus(symbol, currentPrice);
+        res.json({ success: true, updatedCount });
+      } catch (error) {
+        console.error('更新模拟交易状态失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 获取监控仪表板数据
     this.app.get('/api/monitoring-dashboard', async (req, res) => {
       try {
@@ -485,6 +501,34 @@ class SmartFlowServer {
         console.error('入场执行数据更新失败:', error);
       }
     }, 15 * 60 * 1000); // 15分钟
+
+    // 模拟交易状态监控：每30秒检查一次
+    this.simulationInterval = setInterval(async () => {
+      try {
+        const symbols = await this.db.getCustomSymbols();
+        console.log(`🔍 开始监控模拟交易状态 ${symbols.length} 个交易对...`);
+
+        for (const symbol of symbols) {
+          try {
+            // 获取当前价格
+            const ticker = await BinanceAPI.getTicker(symbol);
+            const currentPrice = parseFloat(ticker.lastPrice);
+
+            // 更新模拟交易状态
+            const updatedCount = await this.simulationManager.updateSimulationStatus(symbol, currentPrice);
+            if (updatedCount > 0) {
+              console.log(`📊 更新了 ${symbol} 的 ${updatedCount} 个模拟交易状态`);
+            }
+          } catch (error) {
+            console.error(`模拟交易监控 ${symbol} 失败:`, error);
+          }
+        }
+
+        console.log('✅ 模拟交易状态监控完成');
+      } catch (error) {
+        console.error('模拟交易状态监控失败:', error);
+      }
+    }, 30 * 1000); // 30秒
 
     // 立即执行一次完整分析
     this.performInitialAnalysis();

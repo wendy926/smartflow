@@ -126,7 +126,7 @@ class SmartFlowApp {
   setCellBackgroundColors(row, signal) {
     // 获取所有单元格
     const cells = row.querySelectorAll('td');
-    
+
     // 趋势列（第2列，索引1）
     if (cells[1]) {
       if (signal.trend === '多头趋势') {
@@ -135,7 +135,7 @@ class SmartFlowApp {
         cells[1].style.backgroundColor = '#ffeaea'; // 浅红色
       }
     }
-    
+
     // 信号列（第4列，索引3）
     if (cells[3]) {
       if (signal.signal === '做多') {
@@ -144,7 +144,7 @@ class SmartFlowApp {
         cells[3].style.backgroundColor = '#ffeaea'; // 浅红色
       }
     }
-    
+
     // 入场执行列（第5列，索引4）
     if (cells[4]) {
       if (signal.execution && signal.execution.includes('做多_')) {
@@ -256,10 +256,20 @@ class SmartFlowApp {
 
     history.forEach(sim => {
       const row = document.createElement('tr');
-      const profitLoss = sim.profit_loss || 0;
-      const isWin = sim.is_win;
-      const resultClass = isWin ? 'signal-long' : 'signal-short';
-      const resultText = isWin ? '盈利' : '亏损';
+      
+      // 只有在交易结束时才显示盈亏和结果
+      let profitLoss = '--';
+      let resultClass = '';
+      let resultText = '--';
+      
+      if (sim.status === 'CLOSED') {
+        profitLoss = sim.profit_loss || 0;
+        const isWin = sim.is_win;
+        resultClass = isWin ? 'signal-long' : 'signal-short';
+        resultText = isWin ? '盈利' : '亏损';
+      } else if (sim.status === 'ACTIVE') {
+        resultText = '进行中';
+      }
 
       row.innerHTML = `
                 <td>${sim.symbol}</td>
@@ -273,7 +283,7 @@ class SmartFlowApp {
                 <td>${dataManager.formatNumber(sim.exit_price || 0)}</td>
                 <td>${sim.exit_reason || '--'}</td>
                 <td>${sim.trigger_reason || '--'}</td>
-                <td class="${resultClass}">${dataManager.formatNumber(profitLoss)}</td>
+                <td class="${resultClass}">${profitLoss === '--' ? '--' : dataManager.formatNumber(profitLoss)}</td>
                 <td class="${resultClass}">${resultText}</td>
             `;
       tbody.appendChild(row);
