@@ -348,25 +348,121 @@ class SmartFlowServer {
   }
 
   startPeriodicAnalysis() {
-    // 每5分钟分析一次所有交易对
-    this.analysisInterval = setInterval(async () => {
+    // 趋势数据：每4小时更新一次（北京时间 00:00、04:00、08:00、12:00、16:00、20:00）
+    this.trendInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
-        console.log(`🔄 开始分析 ${symbols.length} 个交易对...`);
+        console.log(`📈 开始更新趋势数据 ${symbols.length} 个交易对...`);
 
         for (const symbol of symbols) {
           try {
-            await SmartFlowStrategy.analyzeAll(symbol);
+            await this.updateTrendData(symbol);
           } catch (error) {
-            console.error(`分析 ${symbol} 失败:`, error);
+            console.error(`趋势更新 ${symbol} 失败:`, error);
           }
         }
 
-        console.log('✅ 分析完成');
+        console.log('✅ 趋势数据更新完成');
       } catch (error) {
-        console.error('定期分析失败:', error);
+        console.error('趋势数据更新失败:', error);
       }
-    }, 300000); // 5分钟
+    }, 4 * 60 * 60 * 1000); // 4小时
+
+    // 信号数据：每1小时更新一次
+    this.signalInterval = setInterval(async () => {
+      try {
+        const symbols = await this.db.getCustomSymbols();
+        console.log(`📊 开始更新信号数据 ${symbols.length} 个交易对...`);
+
+        for (const symbol of symbols) {
+          try {
+            await this.updateSignalData(symbol);
+          } catch (error) {
+            console.error(`信号更新 ${symbol} 失败:`, error);
+          }
+        }
+
+        console.log('✅ 信号数据更新完成');
+      } catch (error) {
+        console.error('信号数据更新失败:', error);
+      }
+    }, 60 * 60 * 1000); // 1小时
+
+    // 入场执行：每15分钟更新一次
+    this.executionInterval = setInterval(async () => {
+      try {
+        const symbols = await this.db.getCustomSymbols();
+        console.log(`⚡ 开始更新入场执行数据 ${symbols.length} 个交易对...`);
+
+        for (const symbol of symbols) {
+          try {
+            await this.updateExecutionData(symbol);
+          } catch (error) {
+            console.error(`执行更新 ${symbol} 失败:`, error);
+          }
+        }
+
+        console.log('✅ 入场执行数据更新完成');
+      } catch (error) {
+        console.error('入场执行数据更新失败:', error);
+      }
+    }, 15 * 60 * 1000); // 15分钟
+
+    // 立即执行一次完整分析
+    this.performInitialAnalysis();
+  }
+
+  // 执行初始完整分析
+  async performInitialAnalysis() {
+    try {
+      const symbols = await this.db.getCustomSymbols();
+      console.log(`🚀 执行初始完整分析 ${symbols.length} 个交易对...`);
+
+      for (const symbol of symbols) {
+        try {
+          await SmartFlowStrategy.analyzeAll(symbol);
+        } catch (error) {
+          console.error(`初始分析 ${symbol} 失败:`, error);
+        }
+      }
+
+      console.log('✅ 初始分析完成');
+    } catch (error) {
+      console.error('初始分析失败:', error);
+    }
+  }
+
+  // 更新趋势数据（日线分析）
+  async updateTrendData(symbol) {
+    try {
+      const dailyTrend = await SmartFlowStrategy.analyzeDailyTrend(symbol);
+      // 只更新趋势相关数据，不触发信号分析
+      console.log(`📈 趋势更新完成 [${symbol}]: ${dailyTrend.trend}`);
+    } catch (error) {
+      console.error(`趋势更新失败 [${symbol}]:`, error);
+    }
+  }
+
+  // 更新信号数据（小时确认分析）
+  async updateSignalData(symbol) {
+    try {
+      const hourlyConfirmation = await SmartFlowStrategy.analyzeHourlyConfirmation(symbol);
+      // 只更新信号相关数据，不触发执行分析
+      console.log(`📊 信号更新完成 [${symbol}]: 确认=${hourlyConfirmation.confirmed}`);
+    } catch (error) {
+      console.error(`信号更新失败 [${symbol}]:`, error);
+    }
+  }
+
+  // 更新入场执行数据（15分钟执行分析）
+  async updateExecutionData(symbol) {
+    try {
+      const execution15m = await SmartFlowStrategy.analyze15mExecution(symbol);
+      // 只更新执行相关数据
+      console.log(`⚡ 执行更新完成 [${symbol}]: 信号=${execution15m.signal}`);
+    } catch (error) {
+      console.error(`执行更新失败 [${symbol}]:`, error);
+    }
   }
 
   startPeriodicAlerts() {

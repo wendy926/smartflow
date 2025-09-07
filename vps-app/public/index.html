@@ -19,19 +19,22 @@
     <!-- 控制面板 -->
     <div class="controls">
       <div class="control-group">
-        <label for="refreshInterval">⏰ 自动刷新</label>
-        <select id="refreshInterval">
-          <option value="300000">5分钟</option>
-          <option value="900000">15分钟</option>
-          <option value="1800000">30分钟</option>
-          <option value="3600000">1小时</option>
-          <option value="14400000">4小时</option>
-          <option value="86400000">1天</option>
-        </select>
+        <button class="btn primary" onclick="refreshAllSignals()">🔄 手动刷新</button>
       </div>
 
       <div class="control-group">
-        <button class="btn primary" onclick="refreshAllSignals()">🔄 手动刷新</button>
+        <div class="update-status">
+          <span class="status-label">📈 趋势更新：</span>
+          <span id="trendUpdateTime" class="status-time">--</span>
+        </div>
+        <div class="update-status">
+          <span class="status-label">📊 信号更新：</span>
+          <span id="signalUpdateTime" class="status-time">--</span>
+        </div>
+        <div class="update-status">
+          <span class="status-label">⚡ 执行更新：</span>
+          <span id="executionUpdateTime" class="status-time">--</span>
+        </div>
       </div>
 
       <div class="control-group">

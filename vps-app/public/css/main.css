@@ -57,6 +57,23 @@ body {
   margin-bottom: 20px;
 }
 
+.update-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+}
+
+.status-label {
+  font-weight: 500;
+  color: #666;
+}
+
+.status-time {
+  color: #28a745;
+  font-weight: 600;
+}
+
 .control-group label {
   font-weight: 600;
   color: #555;

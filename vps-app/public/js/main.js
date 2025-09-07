@@ -4,10 +4,13 @@ class SmartFlowApp {
   constructor() {
     this.allSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT'];
     this.isLoading = false;
-    this.autoRefreshInterval = null;
     this.userSettings = {
-      refreshInterval: '300000', // 默认5分钟
       maxLossAmount: '100' // 默认100 USDT
+    };
+    this.updateTimes = {
+      trend: null,
+      signal: null,
+      execution: null
     };
     this.init();
   }
@@ -16,8 +19,8 @@ class SmartFlowApp {
     this.setupEventListeners();
     await this.loadUserSettings();
     this.loadInitialData();
-    this.startAutoRefresh();
     this.startMonitoringRefresh(); // 启动监控数据自动刷新
+    this.updateStatusDisplay(); // 更新状态显示
   }
 
   // 加载用户设置
@@ -28,12 +31,7 @@ class SmartFlowApp {
         this.userSettings = { ...this.userSettings, ...settings };
         
         // 应用设置到UI
-        const refreshSelect = document.getElementById('refreshInterval');
         const maxLossSelect = document.getElementById('maxLossAmount');
-        
-        if (refreshSelect && this.userSettings.refreshInterval) {
-          refreshSelect.value = this.userSettings.refreshInterval;
-        }
         
         if (maxLossSelect && this.userSettings.maxLossAmount) {
           maxLossSelect.value = this.userSettings.maxLossAmount;
@@ -58,13 +56,6 @@ class SmartFlowApp {
   }
 
   setupEventListeners() {
-    // 刷新间隔变化
-    document.getElementById('refreshInterval').addEventListener('change', async (e) => {
-      const value = e.target.value;
-      await this.saveUserSetting('refreshInterval', value);
-      this.startAutoRefresh(parseInt(value));
-    });
-
     // 最大损失金额变化
     document.getElementById('maxLossAmount').addEventListener('change', async (e) => {
       const value = e.target.value;
@@ -72,14 +63,6 @@ class SmartFlowApp {
       console.log('💰 最大损失金额已更新为:', value, 'USDT');
     });
 
-    // 页面可见性变化时暂停/恢复自动刷新
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        this.stopAutoRefresh();
-      } else {
-        this.startAutoRefresh();
-      }
-    });
   }
 
   async loadInitialData() {
@@ -105,6 +88,13 @@ class SmartFlowApp {
       this.updateStatsDisplay(signals, stats);
       this.updateSignalsTable(signals);
       this.updateSimulationTable(history);
+      
+      // 记录更新时间
+      const now = Date.now();
+      this.updateTimes.trend = now;
+      this.updateTimes.signal = now;
+      this.updateTimes.execution = now;
+      this.updateStatusDisplay();
     } catch (error) {
       console.error('加载数据失败:', error);
       throw error;
@@ -247,18 +237,22 @@ class SmartFlowApp {
     }
   }
 
-  startAutoRefresh(interval = null) {
-    this.stopAutoRefresh();
+  // 更新状态显示
+  updateStatusDisplay() {
+    const now = new Date();
+    const formatTime = (time) => {
+      if (!time) return '--';
+      const date = new Date(time);
+      return date.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    };
 
-    const refreshInterval = interval || parseInt(this.userSettings.refreshInterval || document.getElementById('refreshInterval').value);
-    this.autoRefreshInterval = setInterval(async () => {
-      try {
-        await this.loadAllData();
-        console.log('数据自动刷新完成');
-      } catch (error) {
-        console.error('自动刷新失败:', error);
-      }
-    }, refreshInterval);
+    document.getElementById('trendUpdateTime').textContent = formatTime(this.updateTimes.trend);
+    document.getElementById('signalUpdateTime').textContent = formatTime(this.updateTimes.signal);
+    document.getElementById('executionUpdateTime').textContent = formatTime(this.updateTimes.execution);
   }
 
   // 启动监控数据自动刷新（5分钟一次，不产生弹框）
@@ -290,12 +284,6 @@ class SmartFlowApp {
     }
   }
 
-  stopAutoRefresh() {
-    if (this.autoRefreshInterval) {
-      clearInterval(this.autoRefreshInterval);
-      this.autoRefreshInterval = null;
-    }
-  }
 }
 
 // 全局函数
