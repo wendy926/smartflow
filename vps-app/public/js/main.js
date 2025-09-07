@@ -1359,6 +1359,11 @@ async function updateMonitoringPanel(data) {
   updateSummaryTable(data);
   updateDetailedTable(data);
 
+  // 延迟检查表格滚动性
+  setTimeout(() => {
+    checkTableScrollability();
+  }, 100);
+
   // 添加点击事件
   const dataValidationDetails = document.getElementById('dataValidationDetails');
   if (dataValidationDetails && data.summary.dataValidation?.hasErrors) {
@@ -1806,6 +1811,26 @@ function toggleSimulationHistory() {
   } else {
     table.style.display = 'none';
   }
+}
+
+// 检查表格是否需要横向滚动
+function checkTableScrollability() {
+  const containers = document.querySelectorAll('.symbols-table-container');
+  
+  containers.forEach(container => {
+    const table = container.querySelector('.symbols-table');
+    if (!table) return;
+
+    // 检查表格宽度是否超出容器
+    const containerWidth = container.clientWidth;
+    const tableWidth = table.scrollWidth;
+    
+    if (tableWidth > containerWidth) {
+      container.classList.add('scrollable');
+    } else {
+      container.classList.remove('scrollable');
+    }
+  });
 }
 
 // 页面加载完成后初始化应用

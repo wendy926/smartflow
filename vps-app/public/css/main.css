@@ -1420,8 +1420,144 @@ tr:hover {
   }
 }
 
+/* iPhone 16 Pro Max 竖屏适配 (430×932) */
+@media screen and (max-width: 430px) and (max-height: 932px) {
+  .unified-monitoring-panel {
+    padding: 5px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+
+  .monitoring-content {
+    max-width: 100%;
+    max-height: calc(100vh - 40px);
+    width: 100%;
+    border-radius: 12px;
+  }
+
+  .monitoring-header {
+    padding: 12px 16px;
+    flex-direction: row;
+    gap: 10px;
+    text-align: left;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .monitoring-header h3 {
+    font-size: 1.1rem;
+    flex: 1;
+  }
+
+  .monitoring-controls {
+    gap: 8px;
+  }
+
+  .monitoring-controls .btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 36px;
+  }
+
+  .monitoring-controls .btn.secondary {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+
+  .monitoring-body {
+    padding: 16px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .overview-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .overview-card {
+    padding: 12px;
+  }
+
+  .card-title {
+    font-size: 0.8rem;
+  }
+
+  .card-value {
+    font-size: 1.1rem;
+  }
+
+  .symbols-table-container {
+    max-height: 200px;
+    border-radius: 8px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+
+  .symbols-table {
+    font-size: 11px;
+    min-width: 600px; /* 确保表格有最小宽度，支持横向滚动 */
+  }
+
+  .symbols-table th,
+  .symbols-table td {
+    padding: 6px 4px;
+    white-space: nowrap;
+  }
+
+  .symbol-name {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+  }
+
+  .signal-indicator {
+    font-size: 10px;
+    padding: 1px 3px;
+  }
+
+  .metric-rate {
+    font-size: 0.9rem;
+  }
+
+  .metric-details {
+    font-size: 0.7rem;
+  }
+
+  /* 优化表格横向滚动提示 */
+  .symbols-table-container.scrollable::after {
+    content: '← 滑动查看更多 →';
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    z-index: 20;
+    pointer-events: none;
+    opacity: 0.8;
+    animation: fadeInOut 3s infinite;
+  }
+
+  .symbols-table-container:not(.scrollable)::after {
+    display: none;
+  }
+
+  @keyframes fadeInOut {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.4; }
+  }
+}
+
 /* 移动端适配 */
-@media (max-width: 768px) {
+@media (max-width: 768px) and (min-width: 431px) {
   .unified-monitoring-panel {
     padding: 10px;
   }
