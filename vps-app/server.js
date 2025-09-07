@@ -188,7 +188,7 @@ class SmartFlowServer {
     // 启动模拟交易
     this.app.post('/api/simulation/start', async (req, res) => {
       try {
-        const { symbol, entryPrice, stopLoss, takeProfit, maxLeverage, minMargin, executionMode, direction } = req.body;
+        const { symbol, entryPrice, stopLoss, takeProfit, maxLeverage, minMargin, executionMode, direction, stopLossDistance, atrValue } = req.body;
 
         if (!symbol || !entryPrice || !stopLoss || !takeProfit) {
           return res.status(400).json({ error: '缺少必要参数' });
@@ -202,8 +202,8 @@ class SmartFlowServer {
           maxLeverage || 10,
           minMargin || 100,
           `SIGNAL_${executionMode}_${direction}`,
-          stopLossDistance,
-          atrValue
+          stopLossDistance || null,
+          atrValue || null
         );
 
         // 记录到数据监控

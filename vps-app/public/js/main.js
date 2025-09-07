@@ -401,6 +401,8 @@ class SmartFlowApp {
         takeProfit: signalData.takeProfit,
         maxLeverage: signalData.maxLeverage,
         minMargin: signalData.minMargin,
+        stopLossDistance: signalData.stopLossDistance,
+        atrValue: signalData.atrValue,
         executionMode: signalData.executionMode,
         direction: signalData.execution.includes('做多_') ? 'LONG' : 'SHORT',
         timestamp: new Date().toISOString()
@@ -699,19 +701,19 @@ async function loadSimulationHistoryOnly(contentDiv, symbol) {
             </thead>
             <tbody>
               ${history.map(sim => {
-                const profitLoss = sim.profit_loss !== null ? sim.profit_loss : '--';
-                const isWin = sim.is_win;
-                let resultClass = '';
-                let resultText = '--';
-                
-                if (sim.status === 'CLOSED') {
-                  resultClass = isWin ? 'win' : 'loss';
-                  resultText = isWin ? '盈利' : '亏损';
-                } else if (sim.status === 'ACTIVE') {
-                  resultText = '进行中';
-                }
+      const profitLoss = sim.profit_loss !== null ? sim.profit_loss : '--';
+      const isWin = sim.is_win;
+      let resultClass = '';
+      let resultText = '--';
 
-                return `
+      if (sim.status === 'CLOSED') {
+        resultClass = isWin ? 'win' : 'loss';
+        resultText = isWin ? '盈利' : '亏损';
+      } else if (sim.status === 'ACTIVE') {
+        resultText = '进行中';
+      }
+
+      return `
                   <tr>
                     <td>${sim.symbol}</td>
                     <td>${dataManager.formatNumber(sim.entry_price)}</td>
@@ -730,7 +732,7 @@ async function loadSimulationHistoryOnly(contentDiv, symbol) {
                     <td class="${resultClass}">${resultText}</td>
                   </tr>
                 `;
-              }).join('')}
+    }).join('')}
             </tbody>
           </table>
         </div>
