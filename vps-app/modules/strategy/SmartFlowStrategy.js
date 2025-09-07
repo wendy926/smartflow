@@ -42,8 +42,13 @@ class SmartFlowStrategy {
         bbwExpanding = TechnicalIndicators.isBBWExpanding(closes, 20, 2);
       } catch (error) {
         bbwError = error.message;
-        this.dataMonitor.recordDataQualityIssue(symbol, '日线趋势分析', `BBW计算失败: ${error.message}`);
-        console.error(`BBW计算失败 ${symbol}:`, error);
+        // 只有在严重错误时才记录数据质量问题
+        if (error.message.includes('数据长度不足')) {
+          console.warn(`BBW数据不足 ${symbol}: ${error.message}`);
+        } else {
+          this.dataMonitor.recordDataQualityIssue(symbol, '日线趋势分析', `BBW计算失败: ${error.message}`);
+          console.error(`BBW计算失败 ${symbol}:`, error);
+        }
       }
 
       const latestClose = closes[closes.length - 1];

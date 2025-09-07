@@ -28,7 +28,8 @@ class TechnicalIndicators {
    */
   static calculateBBW(closes, period = 20, k = 2) {
     if (closes.length < period) {
-      throw new Error("数据长度不足，至少需要等于 period 的K线数据");
+      console.warn(`BBW计算数据不足: 需要${period}根K线，实际${closes.length}根`);
+      return []; // 返回空数组而不是抛出异常
     }
 
     const bbw = [];
@@ -64,14 +65,22 @@ class TechnicalIndicators {
    * @returns {boolean} 是否扩张
    */
   static isBBWExpanding(closes, period = 20, k = 2) {
-    const bbw = this.calculateBBW(closes, period, k);
+    try {
+      const bbw = this.calculateBBW(closes, period, k);
 
-    // 最近两个BBW值
-    const n = bbw.length;
-    if (n < 2) return false;
+      // 最近两个BBW值
+      const n = bbw.length;
+      if (n < 2) {
+        console.warn(`BBW数据不足，无法判断扩张: 需要至少2个值，实际${n}个`);
+        return false;
+      }
 
-    // 判断最新BBW是否大于前一个BBW
-    return bbw[n - 1] > bbw[n - 2];
+      // 判断最新BBW是否大于前一个BBW
+      return bbw[n - 1] > bbw[n - 2];
+    } catch (error) {
+      console.warn(`BBW扩张判断失败: ${error.message}`);
+      return false; // 默认返回false，不影响整体分析
+    }
   }
 
   /**

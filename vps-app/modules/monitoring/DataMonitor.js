@@ -16,9 +16,9 @@ class DataMonitor {
       simulationTrading: 'HEALTHY'
     };
     this.alertThresholds = {
-      dataCollection: 99,
-      signalAnalysis: 99,
-      simulationTrading: 99
+      dataCollection: 95, // 降低阈值，95%以上认为正常
+      signalAnalysis: 95, // 降低阈值，95%以上认为正常
+      simulationTrading: 90 // 降低阈值，90%以上认为正常
     };
     this.symbolStats = new Map();
     this.dataQualityIssues = new Map(); // 数据质量问题记录
@@ -130,10 +130,15 @@ class DataMonitor {
       severity: 'HIGH' // 数据质量问题都是高严重性
     });
 
-    // 只保留最近10个问题
-    if (issues.length > 10) {
-      issues.splice(0, issues.length - 10);
+    // 只保留最近5个问题，减少误报
+    if (issues.length > 5) {
+      issues.splice(0, issues.length - 5);
     }
+
+    // 自动清理超过1小时的问题
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const validIssues = issues.filter(issue => issue.timestamp > oneHourAgo);
+    this.dataQualityIssues.set(symbol, validIssues);
   }
 
   recordIndicator(symbol, indicatorType, data, calculationTime) {
