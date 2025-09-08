@@ -15,18 +15,11 @@
             min-height: 100vh;
         }
 
-        .calculator-page {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
         .calculator-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 30px;
             text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .calculator-header h1 {
@@ -67,15 +60,12 @@
         }
 
         .calculator-content {
-            flex: 1;
             padding: 30px;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-            box-sizing: border-box;
         }
 
         .calculator-container {
+            max-width: 1400px;
+            margin: 0 auto;
             background: white;
             border-radius: 15px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
@@ -87,22 +77,6 @@
             padding: 30px;
         }
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
 
         .content {
             padding: 30px;
@@ -566,7 +540,7 @@
 </head>
 
 <body>
-    <div class="calculator-page">
+    <div class="calculator-container">
         <header class="calculator-header">
             <h1>📊 斐波拉契滚仓计算器</h1>
             <p>基于0.618黄金回调法的滚仓策略计算</p>
@@ -576,7 +550,6 @@
         </header>
 
         <div class="calculator-content">
-            <div class="calculator-container">
                 <form id="rollupForm" class="input-form">
                     <div class="input-group">
                         <label for="maxLossAmount">最大损失金额 (U)</label>
@@ -888,7 +861,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
 

@@ -221,6 +221,7 @@ class SmartFlowApp {
       const cacheData = {
         signals,
         stats,
+        updateTimes: this.updateTimes,
         timestamp: Date.now()
       };
       localStorage.setItem('smartflow_cached_data', JSON.stringify(cacheData));
