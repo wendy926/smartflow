@@ -18,9 +18,20 @@ class SmartFlowApp {
   async init() {
     this.setupEventListeners();
     await this.loadUserSettings();
-    this.loadInitialData();
+    
+    // 检查是否是首次加载还是从其他页面返回
+    const isFirstLoad = !sessionStorage.getItem('smartflow_initialized');
+    if (isFirstLoad) {
+      // 首次加载时才加载数据
+      this.loadInitialData();
+      sessionStorage.setItem('smartflow_initialized', 'true');
+    } else {
+      // 从其他页面返回时只更新状态显示，不刷新数据
+      console.log('🔄 从其他页面返回，不刷新数据');
+      this.updateStatusDisplay();
+    }
+    
     this.startMonitoringRefresh(); // 启动监控数据自动刷新
-    this.updateStatusDisplay(); // 更新状态显示
   }
 
   // 加载用户设置
