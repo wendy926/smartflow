@@ -6,6 +6,12 @@ let currentMonitoringData = null;
 let alertHistory = [];
 let refreshInterval = null;
 
+// 格式化时间
+function formatTime(timestamp) {
+  if (!timestamp) return 'N/A';
+  return new Date(timestamp).toLocaleString('zh-CN');
+}
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 监控页面加载完成，开始初始化...');
@@ -111,31 +117,26 @@ function updateSystemOverview(data) {
   document.getElementById('totalSymbols').textContent = data.summary.totalSymbols || '--';
   document.getElementById('healthySymbols').textContent = data.summary.healthySymbols || '--';
   document.getElementById('warningSymbols').textContent = data.summary.warningSymbols || '--';
-  document.getElementById('errorSymbols').textContent = data.summary.errorSymbols || '--';
+  document.getElementById('errorSymbols').textContent = '0';
 }
 
 // 更新数据质量状态
 function updateDataQualityStatus(data) {
   if (!data.summary) return;
 
-  const dataCollection = data.summary.dataCollection || {};
-  const signalAnalysis = data.summary.signalAnalysis || {};
-  const simulationTrading = data.summary.simulationTrading || {};
+  const completionRates = data.summary.completionRates || {};
 
   document.getElementById('dataCollectionRate').textContent =
-    dataCollection.rate ? `${dataCollection.rate.toFixed(1)}%` : '--';
-  document.getElementById('dataCollectionDetails').textContent =
-    dataCollection.details || '--';
+    completionRates.dataCollection ? `${completionRates.dataCollection.toFixed(1)}%` : '--';
+  document.getElementById('dataCollectionDetails').textContent = '--';
 
   document.getElementById('signalAnalysisRate').textContent =
-    signalAnalysis.rate ? `${signalAnalysis.rate.toFixed(1)}%` : '--';
-  document.getElementById('signalAnalysisDetails').textContent =
-    signalAnalysis.details || '--';
+    completionRates.signalAnalysis ? `${completionRates.signalAnalysis.toFixed(1)}%` : '--';
+  document.getElementById('signalAnalysisDetails').textContent = '--';
 
   document.getElementById('simulationCompletionRate').textContent =
-    simulationTrading.rate ? `${simulationTrading.rate.toFixed(1)}%` : '--';
-  document.getElementById('simulationCompletionDetails').textContent =
-    simulationTrading.details || '--';
+    completionRates.simulationTrading ? `${completionRates.simulationTrading.toFixed(1)}%` : '--';
+  document.getElementById('simulationCompletionDetails').textContent = '--';
 }
 
 // 更新数据验证状态
@@ -181,25 +182,25 @@ function updateSummaryTable(data) {
                 </td>
                 <td>
                     <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.dataCollection.success}/${symbol.dataCollection.attempts}</div>
+                    <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
                 </td>
                 <td>
                     <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.signalAnalysis.success}/${symbol.signalAnalysis.attempts}</div>
+                    <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
                 </td>
                 <td>
-                    <div class="metric-rate">${symbol.simulationTrading.completionRate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.simulationTrading.completions}/${symbol.simulationTrading.triggers}</div>
+                    <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
+                    <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
                 </td>
                 <td>
-                    <div class="metric-rate">${symbol.simulationTrading.progressRate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.simulationTrading.inProgress}/${symbol.simulationTrading.triggers}</div>
+                    <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(1)}%</div>
+                    <div class="metric-details">${symbol.simulationProgress.inProgress}/${symbol.simulationProgress.triggers}</div>
                 </td>
                 <td>
                     <div class="refresh-frequency">${symbol.refreshFrequency}</div>
                 </td>
                 <td>
-                    <div class="health-status ${symbol.healthStatus.toLowerCase()}">${symbol.healthStatus}</div>
+                    <div class="health-status ${symbol.overall.status.toLowerCase()}">${symbol.overall.status}</div>
                 </td>
             `;
       tbody.appendChild(row);
@@ -227,11 +228,6 @@ function updateDetailedTable(data) {
       const row = document.createElement('tr');
       row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
 
-      // 格式化时间
-      const formatTime = (timestamp) => {
-        if (!timestamp) return 'N/A';
-        return new Date(timestamp).toLocaleString('zh-CN');
-      };
 
       row.innerHTML = `
                 <td class="symbol-name">
@@ -243,15 +239,15 @@ function updateDetailedTable(data) {
                 </td>
                 <td>
                     <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.dataCollection.success}/${symbol.dataCollection.attempts}</div>
+                    <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
                 </td>
                 <td>
                     <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.signalAnalysis.success}/${symbol.signalAnalysis.attempts}</div>
+                    <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
                 </td>
                 <td>
-                    <div class="metric-rate">${symbol.simulationTrading.completionRate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.simulationTrading.completions}/${symbol.simulationTrading.triggers}</div>
+                    <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
+                    <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
                 </td>
                 <td>
                     <div class="signal-status">
@@ -259,10 +255,10 @@ function updateDetailedTable(data) {
                     </div>
                 </td>
                 <td>
-                    <div class="last-update">${formatTime(symbol.lastUpdate)}</div>
+                    <div class="last-update">${formatTime(symbol.dataCollection.lastTime)}</div>
                 </td>
                 <td>
-                    <div class="health-status ${symbol.healthStatus.toLowerCase()}">${symbol.healthStatus}</div>
+                    <div class="health-status ${symbol.overall.status.toLowerCase()}">${symbol.overall.status}</div>
                 </td>
             `;
       tbody.appendChild(row);
