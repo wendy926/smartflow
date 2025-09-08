@@ -785,9 +785,13 @@ class SmartFlowServer {
 
       const latestSimulation = activeSimulations[0];
       const isLong = analysis.execution.includes('做多_');
-      const mode = analysis.execution.includes('模式A') ? '模式A' : '模式B';
-      const direction = isLong ? 'LONG' : 'SHORT';
-      const expectedTriggerReason = `SIGNAL_${mode}_${direction}`;
+      let mode = 'NONE';
+      if (analysis.execution.includes('多头回踩突破')) {
+        mode = '多头回踩突破';
+      } else if (analysis.execution.includes('空头反抽破位')) {
+        mode = '空头反抽破位';
+      }
+      const expectedTriggerReason = `SIGNAL_${mode}`;
 
       // 检查触发原因是否相同
       const sameTriggerReason = latestSimulation.trigger_reason === expectedTriggerReason;
