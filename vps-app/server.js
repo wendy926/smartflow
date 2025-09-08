@@ -343,9 +343,9 @@ class SmartFlowServer {
       try {
         const now = Date.now();
         const updateTimes = {
-          trend: this.getNextTrendUpdateTime(),
-          signal: this.getNextSignalUpdateTime(),
-          execution: this.getNextExecutionUpdateTime()
+          trend: new Date(this.getNextTrendUpdateTime()).toISOString(),
+          signal: new Date(this.getNextSignalUpdateTime()).toISOString(),
+          execution: new Date(this.getNextExecutionUpdateTime()).toISOString()
         };
         res.json(updateTimes);
       } catch (error) {
