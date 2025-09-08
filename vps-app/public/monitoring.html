@@ -425,6 +425,28 @@
       background: #f8f9fa;
     }
 
+    /* 确保表格内容可见 */
+    .symbols-table tbody tr {
+      display: table-row !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    .symbols-table tbody td {
+      display: table-cell !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    /* 调试样式 - 临时添加边框 */
+    .symbols-table tbody tr {
+      border: 1px solid #ddd !important;
+    }
+
+    .symbols-table tbody td {
+      border: 1px solid #eee !important;
+    }
+
     .symbol-name {
       font-weight: 600;
       color: #333;

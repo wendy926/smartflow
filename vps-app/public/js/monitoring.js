@@ -206,8 +206,14 @@ function updateDataValidationStatus(data) {
 
 // 更新汇总视图表格
 function updateSummaryTable(data) {
+  console.log('🔄 开始更新汇总视图表格...');
   const tbody = document.getElementById('monitoringTableBody');
-  if (!tbody) return;
+  console.log('📋 找到表格元素:', tbody);
+  
+  if (!tbody) {
+    console.error('❌ 找不到monitoringTableBody元素');
+    return;
+  }
 
   tbody.innerHTML = '';
 
@@ -251,7 +257,9 @@ function updateSummaryTable(data) {
             `;
       tbody.appendChild(row);
     });
+    console.log('✅ 汇总视图表格更新完成，添加了', data.detailedStats.length, '行数据');
   } else {
+    console.log('⚠️ 没有详细统计数据，显示暂无数据');
     tbody.innerHTML = `
             <tr>
                 <td colspan="7" style="text-align: center; color: #6c757d; padding: 20px;">
@@ -264,16 +272,22 @@ function updateSummaryTable(data) {
 
 // 更新详细视图表格
 function updateDetailedTable(data) {
+  console.log('🔄 开始更新详细视图表格...');
   const tbody = document.getElementById('detailedTableBody');
-  if (!tbody) return;
+  console.log('📋 找到详细表格元素:', tbody);
+  
+  if (!tbody) {
+    console.error('❌ 找不到detailedTableBody元素');
+    return;
+  }
 
   tbody.innerHTML = '';
 
   if (data.detailedStats && data.detailedStats.length > 0) {
+    console.log('📊 处理详细统计数据:', data.detailedStats.length, '个交易对');
     data.detailedStats.forEach(symbol => {
       const row = document.createElement('tr');
       row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
-
 
       row.innerHTML = `
                 <td class="symbol-name">
@@ -309,7 +323,9 @@ function updateDetailedTable(data) {
             `;
       tbody.appendChild(row);
     });
+    console.log('✅ 详细视图表格更新完成，添加了', data.detailedStats.length, '行数据');
   } else {
+    console.log('⚠️ 没有详细统计数据，显示暂无数据');
     tbody.innerHTML = `
             <tr>
                 <td colspan="7" style="text-align: center; color: #6c757d; padding: 20px;">
