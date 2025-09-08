@@ -15,8 +15,10 @@ function formatTime(timestamp) {
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 监控页面加载完成，开始初始化...');
+  
+  // 直接加载数据
   loadMonitoringData();
-
+  
   // 每30秒自动刷新数据
   refreshInterval = setInterval(loadMonitoringData, 30000);
 });
@@ -33,8 +35,24 @@ window.addEventListener('beforeunload', () => {
 async function loadMonitoringData() {
   try {
     console.log('🔄 加载监控数据...');
-    const data = await window.apiClient.getMonitoringDashboard();
+    
+    let data;
+    
+    // 优先使用API客户端，如果不可用则直接使用fetch
+    if (window.apiClient) {
+      console.log('📡 使用API客户端加载数据');
+      data = await window.apiClient.getMonitoringDashboard();
+    } else {
+      console.log('📡 使用fetch直接加载数据');
+      const response = await fetch('/api/monitoring-dashboard');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      data = await response.json();
+    }
+    
     console.log('📊 监控数据结构:', data);
+    console.log('📊 detailedStats长度:', data.detailedStats ? data.detailedStats.length : 'undefined');
     currentMonitoringData = data;
 
     // 更新各个视图
