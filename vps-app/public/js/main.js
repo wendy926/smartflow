@@ -350,7 +350,7 @@ class SmartFlowApp {
     tbody.innerHTML = '';
 
     if (history.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #6c757d;">暂无模拟交易记录</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="16" style="text-align: center; color: #6c757d;">暂无模拟交易记录</td></tr>';
       return;
     }
 
