@@ -804,6 +804,7 @@ async function loadSimulationHistoryOnly(contentDiv, symbol) {
             <thead>
               <tr>
                 <th>交易对</th>
+                <th>方向</th>
                 <th>入场价格</th>
                 <th>止损价格</th>
                 <th>止盈价格</th>
@@ -812,7 +813,6 @@ async function loadSimulationHistoryOnly(contentDiv, symbol) {
                 <th>止损距离</th>
                 <th>ATR值</th>
                 <th>入场时间</th>
-                <th>方向</th>
                 <th>出场时间</th>
                 <th>出场价格</th>
                 <th>出场原因</th>
