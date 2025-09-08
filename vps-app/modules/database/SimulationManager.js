@@ -197,11 +197,19 @@ class SimulationManager {
       const formattedStopLossPrice = parseFloat(stopLossPrice.toFixed(4));
       const formattedTakeProfitPrice = parseFloat(takeProfitPrice.toFixed(4));
       
+      // 根据triggerReason判断交易方向
+      let direction = 'SHORT'; // 默认空头
+      if (triggerReason.includes('多头') || triggerReason.includes('LONG')) {
+        direction = 'LONG';
+      } else if (triggerReason.includes('空头') || triggerReason.includes('SHORT')) {
+        direction = 'SHORT';
+      }
+
       const result = await this.db.run(`
         INSERT INTO simulations 
         (symbol, entry_price, stop_loss_price, take_profit_price, max_leverage, min_margin, trigger_reason, status, stop_loss_distance, atr_value, direction)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [symbol, formattedEntryPrice, formattedStopLossPrice, formattedTakeProfitPrice, maxLeverage, minMargin, triggerReason, 'ACTIVE', stopLossDistance, atrValue, triggerReason.includes('LONG') ? 'LONG' : 'SHORT']);
+      `, [symbol, formattedEntryPrice, formattedStopLossPrice, formattedTakeProfitPrice, maxLeverage, minMargin, triggerReason, 'ACTIVE', stopLossDistance, atrValue, direction]);
 
       console.log(`✅ 创建模拟交易: ${symbol}, 入场价: ${formattedEntryPrice}, 止损: ${formattedStopLossPrice}, 止盈: ${formattedTakeProfitPrice}, 杠杆: ${maxLeverage}x, 保证金: ${minMargin}, 止损距离: ${stopLossDistance}%, ATR: ${atrValue}`);
       return result.id;
