@@ -537,6 +537,9 @@ class SmartFlowServer {
         }
 
         console.log('✅ 入场执行数据更新完成');
+
+        // 更新完成后检查并触发模拟交易
+        await this.checkAndTriggerSimulations();
       } catch (error) {
         console.error('入场执行数据更新失败:', error);
       }
@@ -602,6 +605,9 @@ class SmartFlowServer {
       }
 
       console.log('✅ 初始分析完成');
+
+      // 初始分析完成后检查并触发模拟交易
+      await this.checkAndTriggerSimulations();
     } catch (error) {
       console.error('初始分析失败:', error);
     }
@@ -664,6 +670,17 @@ class SmartFlowServer {
       console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode}`);
     } catch (error) {
       console.error(`执行更新失败 [${symbol}]:`, error);
+    }
+  }
+
+  // 检查并触发模拟交易（在每次执行更新后调用）
+  async checkAndTriggerSimulations() {
+    try {
+      console.log('🔍 开始检查模拟交易触发...');
+      await this.checkAndAutoTriggerSimulation();
+      console.log('✅ 模拟交易触发检查完成');
+    } catch (error) {
+      console.error('模拟交易触发检查失败:', error);
     }
   }
 
