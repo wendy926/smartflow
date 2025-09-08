@@ -317,7 +317,7 @@ class SmartFlowStrategy {
       // === 多头模式：回踩确认 ===
       if (trend === "多头趋势" && oiChange6h >= 0.02) {
         const supportLevel = Math.min(ema20[ema20.length - 1], ema50[ema50.length - 1]);
-        
+
         // 回踩EMA20/50上方并突破setup candle高点
         if (lastClose >= supportLevel && lastHigh > setupHigh) {
           entrySignal = lastHigh;
@@ -331,12 +331,13 @@ class SmartFlowStrategy {
       // === 空头模式：反抽破位 ===
       if (trend === "空头趋势" && oiChange6h <= -0.02) {
         const resistanceLevel = Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1]);
-        
+
         // 反抽EMA20/50下方并跌破setup candle低点
         if (lastClose <= resistanceLevel && lastLow < setupLow) {
           entrySignal = lastLow;
           stopLoss = Math.max(setupHigh, lastClose + 1.2 * lastATR);
-          takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
+          // 空头模式：止盈1.2R-1.5R，这里取1.3R作为平衡
+          takeProfit = entrySignal - 1.3 * (stopLoss - entrySignal);
           mode = "空头反抽破位";
           console.log(`✅ 空头模式触发 [${symbol}]:`, { entrySignal, stopLoss, takeProfit });
         }
