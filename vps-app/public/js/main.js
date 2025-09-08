@@ -1963,6 +1963,20 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.apiClient) {
     console.log('API客户端方法列表:', Object.getOwnPropertyNames(window.apiClient));
     console.log('getUpdateTimes方法:', typeof window.apiClient.getUpdateTimes);
+  } else {
+    console.error('❌ API客户端未初始化，等待初始化...');
+    // 等待API客户端初始化
+    setTimeout(() => {
+      if (window.apiClient) {
+        console.log('✅ API客户端延迟初始化成功');
+        window.app = new SmartFlowApp();
+      } else {
+        console.error('❌ API客户端初始化失败');
+        // 即使API客户端失败，也创建应用实例
+        window.app = new SmartFlowApp();
+      }
+    }, 100);
+    return;
   }
 
   window.app = new SmartFlowApp();
