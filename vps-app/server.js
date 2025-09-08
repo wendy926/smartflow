@@ -678,6 +678,22 @@ class SmartFlowServer {
         console.error('告警检查失败:', error);
       }
     }, 600000); // 10分钟
+
+    // 内存清理：每30分钟清理一次
+    this.memoryCleanupInterval = setInterval(async () => {
+      try {
+        console.log('🧹 开始内存清理...');
+        this.dataMonitor.clearOldLogs();
+        
+        // 强制垃圾回收（如果可用）
+        if (global.gc) {
+          global.gc();
+          console.log('🗑️ 执行垃圾回收');
+        }
+      } catch (error) {
+        console.error('内存清理失败:', error);
+      }
+    }, 30 * 60 * 1000); // 30分钟
   }
 
   async syncSimulationStats() {
@@ -835,18 +851,42 @@ class SmartFlowServer {
   async shutdown() {
     console.log('🛑 正在关闭服务器...');
 
-    if (this.analysisInterval) {
-      clearInterval(this.analysisInterval);
+    // 清理所有定时器
+    if (this.trendInterval) {
+      clearInterval(this.trendInterval);
+      this.trendInterval = null;
+    }
+
+    if (this.signalInterval) {
+      clearInterval(this.signalInterval);
+      this.signalInterval = null;
+    }
+
+    if (this.executionInterval) {
+      clearInterval(this.executionInterval);
+      this.executionInterval = null;
+    }
+
+    if (this.simulationInterval) {
+      clearInterval(this.simulationInterval);
+      this.simulationInterval = null;
     }
 
     if (this.alertInterval) {
       clearInterval(this.alertInterval);
+      this.alertInterval = null;
+    }
+
+    if (this.memoryCleanupInterval) {
+      clearInterval(this.memoryCleanupInterval);
+      this.memoryCleanupInterval = null;
     }
 
     if (this.simulationManager) {
       // 停止价格监控
       if (this.simulationManager.priceCheckInterval) {
         clearInterval(this.simulationManager.priceCheckInterval);
+        this.simulationManager.priceCheckInterval = null;
       }
     }
 
@@ -863,8 +903,26 @@ class SmartFlowServer {
 const server = new SmartFlowServer();
 
 // 优雅关闭
-process.on('SIGINT', () => server.shutdown());
-process.on('SIGTERM', () => server.shutdown());
+process.on('SIGINT', async () => {
+  console.log('\n🛑 收到 SIGINT 信号，正在关闭服务器...');
+  await server.shutdown();
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n🛑 收到 SIGTERM 信号，正在关闭服务器...');
+  await server.shutdown();
+});
+
+// 处理未捕获的异常
+process.on('uncaughtException', async (error) => {
+  console.error('❌ 未捕获的异常:', error);
+  await server.shutdown();
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('❌ 未处理的 Promise 拒绝:', reason);
+  await server.shutdown();
+});
 
 // 启动服务器
 server.initialize();

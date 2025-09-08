@@ -4,14 +4,23 @@
 // 全局变量
 let currentMonitoringData = null;
 let alertHistory = [];
+let refreshInterval = null;
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 监控页面加载完成，开始初始化...');
   loadMonitoringData();
-
+  
   // 每30秒自动刷新数据
-  setInterval(loadMonitoringData, 30000);
+  refreshInterval = setInterval(loadMonitoringData, 30000);
+});
+
+// 页面卸载时清理定时器
+window.addEventListener('beforeunload', () => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
 });
 
 // 加载监控数据

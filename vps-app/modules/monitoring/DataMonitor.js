@@ -620,11 +620,35 @@ class DataMonitor {
 
   clearOldLogs() {
     const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24小时前
+    
+    // 清理分析日志
     for (const [symbol, log] of this.analysisLogs.entries()) {
       if (log.startTime < cutoffTime) {
         this.analysisLogs.delete(symbol);
       }
     }
+    
+    // 清理数据质量问题
+    for (const [symbol, issues] of this.dataQualityIssues.entries()) {
+      const validIssues = issues.filter(issue => issue.timestamp > cutoffTime);
+      if (validIssues.length === 0) {
+        this.dataQualityIssues.delete(symbol);
+      } else {
+        this.dataQualityIssues.set(symbol, validIssues);
+      }
+    }
+    
+    // 清理原始数据记录
+    for (const [symbol, data] of this.rawDataLogs.entries()) {
+      const validData = data.filter(record => record.timestamp > cutoffTime);
+      if (validData.length === 0) {
+        this.rawDataLogs.delete(symbol);
+      } else {
+        this.rawDataLogs.set(symbol, validData);
+      }
+    }
+    
+    console.log(`🧹 内存清理完成 - 分析日志: ${this.analysisLogs.size}, 数据质量: ${this.dataQualityIssues.size}, 原始数据: ${this.rawDataLogs.size}`);
   }
 
   setAlertThresholds(thresholds) {
