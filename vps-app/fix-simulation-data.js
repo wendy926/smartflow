@@ -1,9 +1,10 @@
-const Database = require('./modules/database/Database');
+const DatabaseManager = require('./modules/database/DatabaseManager');
 
 async function fixSimulationData() {
-  const db = new Database();
+  const db = new DatabaseManager();
   
   try {
+    await db.init();
     console.log('开始修复模拟交易数据...');
     
     // 获取所有已关闭的模拟交易
