@@ -290,9 +290,24 @@ document.addEventListener('DOMContentLoaded', function () {
   // 初单计算
   calculateInitialBtn.addEventListener('click', function () {
     try {
-      const maxLossAmount = parseFloat(document.getElementById('maxLossAmount').value);
-      const currentPrice = parseFloat(document.getElementById('currentPrice').value);
-      const stopLossPrice = parseFloat(document.getElementById('stopLossPrice').value);
+      // 调试：检查DOM元素是否存在
+      const maxLossElement = document.getElementById('maxLossAmount');
+      const currentPriceElement = document.getElementById('currentPrice');
+      const stopLossElement = document.getElementById('stopLossPrice');
+      
+      console.log('🔍 DOM元素检查:', {
+        maxLossElement: maxLossElement,
+        currentPriceElement: currentPriceElement,
+        stopLossElement: stopLossElement
+      });
+      
+      if (!maxLossElement || !currentPriceElement || !stopLossElement) {
+        throw new Error('无法找到必要的输入元素，请刷新页面重试');
+      }
+      
+      const maxLossAmount = parseFloat(maxLossElement.value);
+      const currentPrice = parseFloat(currentPriceElement.value);
+      const stopLossPrice = parseFloat(stopLossElement.value);
 
       if (isNaN(maxLossAmount) || isNaN(currentPrice) || isNaN(stopLossPrice)) {
         throw new Error('请输入有效的数值');
@@ -391,10 +406,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 显示初单计算结果
   function displayInitialCalculation(data) {
-    document.getElementById('calculatedPrincipal').textContent = calculator.formatNumber(data.suggestedMargin) + ' U';
-    document.getElementById('calculatedLeverage').textContent = data.maxLeverage;
-    document.getElementById('calculatedStopLoss').textContent = calculator.formatNumber(data.stopLossPrice) + ' U';
-    document.getElementById('calculatedStopLossDistance').textContent = calculator.formatNumber(data.stopLossDistance) + '%';
+    // 调试：检查DOM元素是否存在
+    const principalElement = document.getElementById('calculatedPrincipal');
+    const leverageElement = document.getElementById('calculatedLeverage');
+    const stopLossElement = document.getElementById('calculatedStopLoss');
+    const distanceElement = document.getElementById('calculatedStopLossDistance');
+    
+    console.log('🔍 显示结果DOM元素检查:', {
+      principalElement,
+      leverageElement,
+      stopLossElement,
+      distanceElement
+    });
+    
+    if (!principalElement || !leverageElement || !stopLossElement || !distanceElement) {
+      throw new Error('无法找到结果显示元素，请刷新页面重试');
+    }
+    
+    principalElement.textContent = calculator.formatNumber(data.suggestedMargin) + ' U';
+    leverageElement.textContent = data.maxLeverage;
+    stopLossElement.textContent = calculator.formatNumber(data.stopLossPrice) + ' U';
+    distanceElement.textContent = calculator.formatNumber(data.stopLossDistance) + '%';
 
     document.getElementById('initialCalculation').classList.remove('hidden');
     document.getElementById('error').classList.add('hidden');
