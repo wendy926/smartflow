@@ -537,9 +537,6 @@ class SmartFlowServer {
         }
 
         console.log('✅ 入场执行数据更新完成');
-
-        // 更新完成后检查并触发模拟交易
-        await this.checkAndTriggerSimulations();
       } catch (error) {
         console.error('入场执行数据更新失败:', error);
       }
@@ -599,15 +596,18 @@ class SmartFlowServer {
           } catch (dbError) {
             console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
           }
+
+          // 检查是否有入场执行信号，如果有则立即触发模拟交易
+          if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
+            console.log(`🚀 初始分析检测到入场执行信号，立即触发模拟交易: ${symbol} - ${analysis.execution}`);
+            await this.triggerSimulationWithRetry(symbol, analysis);
+          }
         } catch (error) {
           console.error(`初始分析 ${symbol} 失败:`, error);
         }
       }
 
       console.log('✅ 初始分析完成');
-
-      // 初始分析完成后检查并触发模拟交易
-      await this.checkAndTriggerSimulations();
     } catch (error) {
       console.error('初始分析失败:', error);
     }
@@ -628,6 +628,12 @@ class SmartFlowServer {
       }
 
       console.log(`📈 趋势更新完成 [${symbol}]: ${analysis.trend}`);
+
+      // 检查是否有入场执行信号，如果有则立即触发模拟交易
+      if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
+        console.log(`🚀 趋势更新检测到入场执行信号，立即触发模拟交易: ${symbol} - ${analysis.execution}`);
+        await this.triggerSimulationWithRetry(symbol, analysis);
+      }
     } catch (error) {
       console.error(`趋势更新失败 [${symbol}]:`, error);
     }
@@ -648,6 +654,12 @@ class SmartFlowServer {
       }
 
       console.log(`📊 信号更新完成 [${symbol}]: 得分=${analysis.hourlyScore}, 信号=${analysis.signal}`);
+
+      // 检查是否有入场执行信号，如果有则立即触发模拟交易
+      if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
+        console.log(`🚀 信号更新检测到入场执行信号，立即触发模拟交易: ${symbol} - ${analysis.execution}`);
+        await this.triggerSimulationWithRetry(symbol, analysis);
+      }
     } catch (error) {
       console.error(`信号更新失败 [${symbol}]:`, error);
     }
@@ -668,8 +680,96 @@ class SmartFlowServer {
       }
 
       console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode}`);
+
+      // 检查是否有入场执行信号，如果有则立即触发模拟交易
+      if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
+        console.log(`🚀 检测到入场执行信号，立即触发模拟交易: ${symbol} - ${analysis.execution}`);
+        await this.triggerSimulationWithRetry(symbol, analysis);
+      }
     } catch (error) {
       console.error(`执行更新失败 [${symbol}]:`, error);
+    }
+  }
+
+  // 带重试机制的模拟交易触发
+  async triggerSimulationWithRetry(symbol, analysis, maxRetries = 2) {
+    let retryCount = 0;
+    let lastError = null;
+
+    while (retryCount <= maxRetries) {
+      try {
+        console.log(`🔄 尝试触发模拟交易 [${symbol}] (第${retryCount + 1}次尝试)...`);
+        
+        // 检查是否已经存在相同的活跃模拟交易
+        const existingSimulation = await this.checkExistingSimulation(symbol, analysis);
+        if (existingSimulation) {
+          console.log(`⏭️ 跳过 ${symbol}：已存在相同的活跃模拟交易`);
+          return;
+        }
+
+        // 触发模拟交易
+        await this.autoStartSimulation({
+          symbol,
+          execution: analysis.execution,
+          entrySignal: analysis.entrySignal,
+          stopLoss: analysis.stopLoss,
+          takeProfit: analysis.takeProfit,
+          maxLeverage: analysis.maxLeverage,
+          minMargin: analysis.minMargin,
+          stopLossDistance: analysis.stopLossDistance,
+          atrValue: analysis.atrValue
+        });
+
+        console.log(`✅ 模拟交易触发成功 [${symbol}] (第${retryCount + 1}次尝试)`);
+        return; // 成功则退出重试循环
+
+      } catch (error) {
+        lastError = error;
+        retryCount++;
+        console.error(`❌ 模拟交易触发失败 [${symbol}] (第${retryCount}次尝试):`, error.message);
+        
+        if (retryCount <= maxRetries) {
+          const delay = Math.pow(2, retryCount) * 1000; // 指数退避：2秒、4秒
+          console.log(`⏳ 等待 ${delay}ms 后重试...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // 所有重试都失败了
+    console.error(`💥 模拟交易触发最终失败 [${symbol}] (已重试${maxRetries}次):`, lastError.message);
+    
+    // 记录失败到数据监控
+    if (this.dataMonitor) {
+      this.dataMonitor.recordSimulation(symbol, 'START_FAILED', { error: lastError.message }, false, lastError);
+    }
+  }
+
+  // 检查是否已存在相同的活跃模拟交易
+  async checkExistingSimulation(symbol, analysis) {
+    try {
+      const activeSimulations = await this.db.runQuery(`
+        SELECT * FROM simulations 
+        WHERE symbol = ? AND status = 'ACTIVE'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `, [symbol]);
+
+      if (activeSimulations.length === 0) {
+        return false;
+      }
+
+      const latestSimulation = activeSimulations[0];
+      const isLong = analysis.execution.includes('做多_');
+      const mode = analysis.execution.includes('模式A') ? '模式A' : '模式B';
+      const direction = isLong ? 'LONG' : 'SHORT';
+      const expectedTriggerReason = `SIGNAL_${mode}_${direction}`;
+
+      // 检查触发原因是否相同
+      return latestSimulation.trigger_reason === expectedTriggerReason;
+    } catch (error) {
+      console.error(`检查现有模拟交易失败 [${symbol}]:`, error);
+      return false; // 出错时允许创建新交易
     }
   }
 
