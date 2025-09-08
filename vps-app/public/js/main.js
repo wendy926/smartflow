@@ -382,7 +382,6 @@ class SmartFlowApp {
                 <td>${sim.stop_loss_distance ? (sim.stop_loss_distance * 100).toFixed(2) + '%' : '--'}</td>
                 <td>${sim.atr_value ? dataManager.formatPrice(sim.atr_value) : '--'}</td>
                 <td>${dataManager.formatTime(sim.created_at)}</td>
-                <td>${sim.direction === 'LONG' ? '做多' : sim.direction === 'SHORT' ? '做空' : '--'}</td>
                 <td>${dataManager.formatTime(sim.closed_at)}</td>
                 <td>${sim.exit_price ? dataManager.formatPrice(sim.exit_price) : '--'}</td>
                 <td>${sim.exit_reason || '--'}</td>
@@ -844,7 +843,6 @@ async function loadSimulationHistoryOnly(contentDiv, symbol) {
                     <td>${sim.stop_loss_distance ? (sim.stop_loss_distance * 100).toFixed(2) + '%' : '--'}</td>
                     <td>${sim.atr_value ? dataManager.formatPrice(sim.atr_value) : '--'}</td>
                     <td>${dataManager.formatTime(sim.created_at)}</td>
-                    <td>${sim.direction === 'LONG' ? '做多' : sim.direction === 'SHORT' ? '做空' : '--'}</td>
                     <td>${dataManager.formatTime(sim.closed_at)}</td>
                     <td>${sim.exit_price ? dataManager.formatPrice(sim.exit_price) : '--'}</td>
                     <td>${sim.exit_reason || '--'}</td>
