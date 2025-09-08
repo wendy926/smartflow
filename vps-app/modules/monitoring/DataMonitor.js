@@ -348,6 +348,35 @@ class DataMonitor {
     }
   }
 
+  // 从数据库获取最新的信号状态
+  async getLatestSignalStatusFromDB(db, symbol) {
+    try {
+      // 获取最新的策略分析结果
+      const analysis = await db.runQuery(`
+        SELECT trend, signal, execution, execution_mode, created_at
+        FROM strategy_analysis 
+        WHERE symbol = ? 
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `, [symbol]);
+
+      if (analysis.length > 0) {
+        const latest = analysis[0];
+        return {
+          trend: latest.trend,
+          signal: latest.signal,
+          execution: latest.execution,
+          executionMode: latest.execution_mode,
+          lastUpdate: latest.created_at
+        };
+      }
+    } catch (error) {
+      console.error(`获取 ${symbol} 信号状态失败:`, error);
+    }
+    
+    return null;
+  }
+
   checkHealthStatus() {
     const thresholds = this.alertThresholds;
 
@@ -365,6 +394,15 @@ class DataMonitor {
   async getMonitoringDashboard() {
     this.calculateCompletionRates();
     this.checkHealthStatus();
+
+    // 优先从数据库同步模拟交易统计
+    if (this.db) {
+      try {
+        await this.syncSimulationStatsFromDB(this.db);
+      } catch (error) {
+        console.error('同步模拟交易统计失败:', error);
+      }
+    }
 
     // 获取所有交易对，优先从数据库获取
     let allSymbols = [];
@@ -457,7 +495,7 @@ class DataMonitor {
       allSymbols = recentLogs.map(log => log.symbol).filter(symbol => symbol && symbol.trim() !== '');
     }
 
-    const detailedStats = allSymbols.map(symbol => {
+    const detailedStats = await Promise.all(allSymbols.map(async symbol => {
       const stats = this.symbolStats.get(symbol);
       const log = this.getAnalysisLog(symbol);
 
@@ -506,7 +544,7 @@ class DataMonitor {
         }
       }
 
-      // 检查各阶段信号状态
+      // 检查各阶段信号状态 - 优先使用数据库数据
       let hasExecution = false;
       let hasSignal = false;
       let hasTrend = false;
@@ -515,7 +553,23 @@ class DataMonitor {
       let modeA = false;
       let modeB = false;
 
-      if (log) {
+      // 优先从数据库获取最新的信号状态
+      let dbSignalStatus = null;
+      if (this.db) {
+        dbSignalStatus = await this.getLatestSignalStatusFromDB(this.db, symbol);
+      }
+
+      if (dbSignalStatus) {
+        // 使用数据库中的信号状态
+        hasExecution = dbSignalStatus.execution && dbSignalStatus.execution !== 'NO_EXECUTION' && 
+                      (dbSignalStatus.execution.includes('做多_') || dbSignalStatus.execution.includes('做空_'));
+        hasSignal = dbSignalStatus.signal && dbSignalStatus.signal !== 'NO_SIGNAL' && 
+                   (dbSignalStatus.signal === 'LONG' || dbSignalStatus.signal === 'SHORT');
+        hasTrend = dbSignalStatus.trend && dbSignalStatus.trend !== 'RANGE' && 
+                  (dbSignalStatus.trend === 'UPTREND' || dbSignalStatus.trend === 'DOWNTREND');
+        executionMode = dbSignalStatus.executionMode || 'NONE';
+      } else if (log) {
+        // 回退到内存中的日志数据
         if (log.execution && log.execution !== 'NO_EXECUTION' && log.execution.includes('EXECUTE')) {
           hasExecution = true;
         }
@@ -588,7 +642,7 @@ class DataMonitor {
         priorityScore,
         signalActivityScore
       };
-    });
+    }));
 
     // 按优先级排序
     detailedStats.sort((a, b) => {
