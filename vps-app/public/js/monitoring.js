@@ -121,23 +121,48 @@ function updateSystemOverview(data) {
   document.getElementById('errorSymbols').textContent = '0';
 }
 
+// 更新状态指示器
+function updateStatusIndicator(elementId, rate) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+
+  let status, text;
+  if (rate >= 95) {
+    status = 'healthy';
+    text = '✅ 健康';
+  } else if (rate >= 80) {
+    status = 'warning';
+    text = '⚠️ 警告';
+  } else {
+    status = 'error';
+    text = '❌ 异常';
+  }
+
+  element.textContent = text;
+  element.className = `status-indicator ${status}`;
+}
+
 // 更新数据质量状态
 function updateDataQualityStatus(data) {
   if (!data.summary) return;
 
   const completionRates = data.summary.completionRates || {};
 
-  document.getElementById('dataCollectionRate').textContent =
-    completionRates.dataCollection ? `${completionRates.dataCollection.toFixed(1)}%` : '--';
+  const dataCollectionRate = completionRates.dataCollection || 0;
+  const signalAnalysisRate = completionRates.signalAnalysis || 0;
+  const simulationTradingRate = completionRates.simulationTrading || 0;
+
+  document.getElementById('dataCollectionRate').textContent = `${dataCollectionRate.toFixed(1)}%`;
   document.getElementById('dataCollectionDetails').textContent = '--';
+  updateStatusIndicator('dataCollectionStatus', dataCollectionRate);
 
-  document.getElementById('signalAnalysisRate').textContent =
-    completionRates.signalAnalysis ? `${completionRates.signalAnalysis.toFixed(1)}%` : '--';
+  document.getElementById('signalAnalysisRate').textContent = `${signalAnalysisRate.toFixed(1)}%`;
   document.getElementById('signalAnalysisDetails').textContent = '--';
+  updateStatusIndicator('signalAnalysisStatus', signalAnalysisRate);
 
-  document.getElementById('simulationCompletionRate').textContent =
-    completionRates.simulationTrading ? `${completionRates.simulationTrading.toFixed(1)}%` : '--';
+  document.getElementById('simulationCompletionRate').textContent = `${simulationTradingRate.toFixed(1)}%`;
   document.getElementById('simulationCompletionDetails').textContent = '--';
+  updateStatusIndicator('simulationCompletionStatus', simulationTradingRate);
 }
 
 // 更新数据验证状态

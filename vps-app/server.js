@@ -714,10 +714,10 @@ class SmartFlowServer {
   async checkAndAutoTriggerSimulation() {
     try {
       console.log('🔍 开始检查自动触发模拟交易...');
-      
+
       // 获取当前所有信号
       const signals = await this.getSignals();
-      
+
       // 检查每个信号
       for (const signal of signals) {
         // 检查是否有入场执行信号
@@ -728,7 +728,7 @@ class SmartFlowServer {
           await this.autoStartSimulation(signal);
         }
       }
-      
+
       console.log('✅ 自动触发模拟交易检查完成');
     } catch (error) {
       console.error('自动触发模拟交易检查失败:', error);
