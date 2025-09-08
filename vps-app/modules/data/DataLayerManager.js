@@ -55,11 +55,6 @@ class DataLayerManager {
    * 设置数据变更监听
    */
   setupDataChangeListeners() {
-    // 监听数据变更，自动标记为待持久化
-    this.dal.cache.on('dataChanged', (dataType, key, data) => {
-      this.persistenceManager.markForPersistence(dataType, key, data);
-    });
-
     // 监听冲突事件
     this.consistencyManager.on('conflict', (conflict) => {
       console.log('⚠️ 检测到数据冲突:', conflict);
