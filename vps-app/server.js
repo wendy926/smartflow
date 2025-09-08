@@ -811,7 +811,7 @@ class SmartFlowServer {
         });
         return true;
       }
-      
+
       console.log(`🔍 去重检查 ${symbol}：`, {
         latestTriggerReason: latestSimulation.trigger_reason,
         expectedTriggerReason,

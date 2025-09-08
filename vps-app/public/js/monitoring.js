@@ -129,6 +129,12 @@ function switchTradingPairsTab(tabName) {
   const targetView = viewsContainer.querySelector('#' + tabName + 'View');
   if (targetView) {
     targetView.classList.add('active');
+    
+    // 如果切换到详细视图且当前有数据，重新更新表格
+    if (tabName === 'detailed' && currentMonitoringData) {
+      console.log('🔄 切换到详细视图，重新更新表格...');
+      updateDetailedTable(currentMonitoringData);
+    }
   }
 }
 
