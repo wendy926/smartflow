@@ -449,7 +449,7 @@ class SmartFlowServer {
       console.log('✅ 模拟交易管理器启动');
 
       // 初始化Telegram通知
-      this.telegramNotifier = new TelegramNotifier();
+      this.telegramNotifier = new TelegramNotifier(this.databaseManager);
       console.log('✅ Telegram通知器初始化完成');
 
       // 初始化数据监控

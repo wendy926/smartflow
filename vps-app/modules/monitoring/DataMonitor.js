@@ -3,6 +3,11 @@
 
 class DataMonitor {
   constructor() {
+    // 限制内存使用 - 只保留最近的数据
+    this.maxLogsPerSymbol = 5; // 每个交易对最多保留5条日志
+    this.maxSymbols = 50; // 最多监控50个交易对
+    this.maxDataQualityIssues = 3; // 每个交易对最多保留3个数据质量问题
+    
     this.analysisLogs = new Map();
     this.completionRates = {
       dataCollection: 0,
@@ -26,6 +31,9 @@ class DataMonitor {
     this.lastRefreshTime = new Map();
     this.lastAlertTime = new Map(); // 记录上次告警时间，避免重复告警
     this.alertCooldown = 30 * 60 * 1000; // 30分钟冷却时间
+    
+    // 启动定期清理
+    this.startMemoryCleanup();
   }
 
   startAnalysis(symbol) {
@@ -130,9 +138,9 @@ class DataMonitor {
       severity: 'HIGH' // 数据质量问题都是高严重性
     });
 
-    // 只保留最近5个问题，减少误报
-    if (issues.length > 5) {
-      issues.splice(0, issues.length - 5);
+    // 只保留最近3个问题，减少内存使用
+    if (issues.length > this.maxDataQualityIssues) {
+      issues.splice(0, issues.length - this.maxDataQualityIssues);
     }
 
     // 自动清理超过1小时的问题
@@ -618,8 +626,36 @@ class DataMonitor {
     };
   }
 
+  // 启动定期内存清理
+  startMemoryCleanup() {
+    // 每5分钟清理一次内存
+    setInterval(() => {
+      this.clearOldLogs();
+    }, 5 * 60 * 1000);
+  }
+
+  // 限制交易对数量
+  limitSymbolCount() {
+    if (this.analysisLogs.size > this.maxSymbols) {
+      // 按时间排序，删除最旧的交易对
+      const sortedLogs = Array.from(this.analysisLogs.entries())
+        .sort((a, b) => a[1].startTime - b[1].startTime);
+      
+      const toDelete = sortedLogs.slice(0, this.analysisLogs.size - this.maxSymbols);
+      toDelete.forEach(([symbol]) => {
+        this.analysisLogs.delete(symbol);
+        this.symbolStats.delete(symbol);
+        this.dataQualityIssues.delete(symbol);
+        this.lastRefreshTime.delete(symbol);
+        this.lastAlertTime.delete(symbol);
+      });
+      
+      console.log(`🧹 限制交易对数量，删除了 ${toDelete.length} 个旧交易对`);
+    }
+  }
+
   clearOldLogs() {
-    const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24小时前
+    const cutoffTime = Date.now() - (2 * 60 * 60 * 1000); // 2小时前，更频繁清理
 
     // 清理分析日志
     for (const [symbol, log] of this.analysisLogs.entries()) {
@@ -638,17 +674,24 @@ class DataMonitor {
       }
     }
 
-    // 清理原始数据记录
-    for (const [symbol, data] of this.rawDataLogs.entries()) {
-      const validData = data.filter(record => record.timestamp > cutoffTime);
-      if (validData.length === 0) {
-        this.rawDataLogs.delete(symbol);
-      } else {
-        this.rawDataLogs.set(symbol, validData);
+    // 清理过期的刷新时间记录
+    for (const [symbol, time] of this.lastRefreshTime.entries()) {
+      if (time < cutoffTime) {
+        this.lastRefreshTime.delete(symbol);
       }
     }
 
-    console.log(`🧹 内存清理完成 - 分析日志: ${this.analysisLogs.size}, 数据质量: ${this.dataQualityIssues.size}, 原始数据: ${this.rawDataLogs.size}`);
+    // 清理过期的告警时间记录
+    for (const [symbol, time] of this.lastAlertTime.entries()) {
+      if (time < cutoffTime) {
+        this.lastAlertTime.delete(symbol);
+      }
+    }
+
+    // 限制交易对数量
+    this.limitSymbolCount();
+
+    console.log(`🧹 内存清理完成 - 分析日志: ${this.analysisLogs.size}, 数据质量: ${this.dataQualityIssues.size}, 刷新时间: ${this.lastRefreshTime.size}, 告警时间: ${this.lastAlertTime.size}`);
   }
 
   setAlertThresholds(thresholds) {

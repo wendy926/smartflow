@@ -6,6 +6,11 @@ const { SmartAPIRateLimiter } = require('./RateLimiter');
 class BinanceAPI {
   static BASE_URL = 'https://fapi.binance.com';
   static rateLimiter = new SmartAPIRateLimiter();
+  
+  // 启动RateLimiter的清理机制
+  static {
+    this.rateLimiter.startCleanup();
+  }
 
   static async getKlines(symbol, interval, limit = 500) {
     const endpoint = '/fapi/v1/klines';

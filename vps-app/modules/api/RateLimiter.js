@@ -184,6 +184,33 @@ class SmartAPIRateLimiter {
   cleanExpiredCache() {
     this.cache.clear();
   }
+
+  // 定期清理过期的使用记录
+  startCleanup() {
+    setInterval(() => {
+      this.cleanupExpiredUsage();
+    }, 5 * 60 * 1000); // 每5分钟清理一次
+  }
+
+  cleanupExpiredUsage() {
+    const now = Date.now();
+    const windowMs = 60 * 1000; // 1分钟窗口
+
+    for (const [endpoint, usage] of this.usage.entries()) {
+      if (now - usage.timestamp > windowMs) {
+        this.usage.delete(endpoint);
+      }
+    }
+
+    // 清理过期的优先级记录
+    for (const [symbol, priority] of this.symbolPriorities.entries()) {
+      if (now - priority.timestamp > 10 * 60 * 1000) { // 10分钟过期
+        this.symbolPriorities.delete(symbol);
+      }
+    }
+
+    console.log(`🧹 API限流器清理完成 - 使用记录: ${this.usage.size}, 优先级: ${this.symbolPriorities.size}`);
+  }
 }
 
 module.exports = { SmartAPIRateLimiter };

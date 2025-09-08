@@ -2,11 +2,12 @@
 // Telegram 通知模块
 
 class TelegramNotifier {
-  constructor() {
+  constructor(db = null) {
     this.botToken = process.env.TELEGRAM_BOT_TOKEN;
     this.chatId = process.env.TELEGRAM_CHAT_ID;
     this.enabled = !!(this.botToken && this.chatId);
-    this.lastExecutions = new Map(); // 记录上次的入场执行状态
+    this.db = db;
+    // 移除lastExecutions Map，使用数据库存储状态
   }
 
   async sendMessage(message) {

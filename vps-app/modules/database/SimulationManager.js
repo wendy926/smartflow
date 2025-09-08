@@ -6,7 +6,7 @@ const BinanceAPI = require('../api/BinanceAPI');
 class SimulationManager {
   constructor(db) {
     this.db = db;
-    this.activeSimulations = new Map();
+    // 移除activeSimulations Map，直接从数据库查询，避免重复存储
     this.priceCheckInterval = null;
   }
 
