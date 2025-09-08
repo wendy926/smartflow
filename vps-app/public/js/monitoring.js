@@ -63,7 +63,6 @@ async function loadMonitoringData() {
     updateDataQualityStatus(data);
     updateDataValidationStatus(data);
     updateSummaryTable(data);
-    updateDetailedTable(data);
     loadAlertHistory();
 
     console.log('✅ 监控数据加载完成');
@@ -111,32 +110,7 @@ function switchMonitoringTab(tabName) {
   }
 }
 
-// 切换交易对监控标签页
-function switchTradingPairsTab(tabName) {
-  // 更新标签按钮状态
-  const tabContainer = document.querySelector('#tradingPairsView .monitoring-tabs');
-  tabContainer.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  event.target.classList.add('active');
-
-  // 显示对应视图
-  const viewsContainer = document.querySelector('#tradingPairsView');
-  viewsContainer.querySelectorAll('.monitoring-view').forEach(view => {
-    view.classList.remove('active');
-  });
-
-  const targetView = viewsContainer.querySelector('#' + tabName + 'View');
-  if (targetView) {
-    targetView.classList.add('active');
-    
-    // 如果切换到详细视图且当前有数据，重新更新表格
-    if (tabName === 'detailed' && currentMonitoringData) {
-      console.log('🔄 切换到详细视图，重新更新表格...');
-      updateDetailedTable(currentMonitoringData);
-    }
-  }
-}
+// 切换交易对监控标签页 (已移除，只保留汇总视图)
 
 // 更新系统概览
 function updateSystemOverview(data) {
@@ -284,71 +258,7 @@ function updateSummaryTable(data) {
   }
 }
 
-// 更新详细视图表格
-function updateDetailedTable(data) {
-  console.log('🔄 开始更新详细视图表格...');
-  const tbody = document.getElementById('detailedTableBody');
-  console.log('📋 找到详细表格元素:', tbody);
-  
-  if (!tbody) {
-    console.error('❌ 找不到detailedTableBody元素');
-    return;
-  }
-
-  tbody.innerHTML = '';
-
-  if (data.detailedStats && data.detailedStats.length > 0) {
-    console.log('📊 处理详细统计数据:', data.detailedStats.length, '个交易对');
-    data.detailedStats.forEach(symbol => {
-      const row = document.createElement('tr');
-      row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
-
-      row.innerHTML = `
-                <td class="symbol-name">
-                    ${symbol.symbol}
-                    ${symbol.hasExecution ? '<span class="signal-indicator execution">🚀</span>' : ''}
-                    ${symbol.hasSignal ? '<span class="signal-indicator signal">🎯</span>' : ''}
-                    ${symbol.hasTrend ? '<span class="signal-indicator trend">📈</span>' : ''}
-                    ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
-                </td>
-                <td>
-                    <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
-                </td>
-                <td>
-                    <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
-                </td>
-                <td>
-                    <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
-                </td>
-                <td>
-                    <div class="signal-status">
-                        ${symbol.hasExecution ? '执行信号' : symbol.hasSignal ? '确认信号' : symbol.hasTrend ? '趋势信号' : '无信号'}
-                    </div>
-                </td>
-                <td>
-                    <div class="last-update">${formatTime(symbol.dataCollection.lastTime)}</div>
-                </td>
-                <td>
-                    <div class="health-status ${symbol.overall.status.toLowerCase()}">${symbol.overall.status}</div>
-                </td>
-            `;
-      tbody.appendChild(row);
-    });
-    console.log('✅ 详细视图表格更新完成，添加了', data.detailedStats.length, '行数据');
-  } else {
-    console.log('⚠️ 没有详细统计数据，显示暂无数据');
-    tbody.innerHTML = `
-            <tr>
-                <td colspan="7" style="text-align: center; color: #6c757d; padding: 20px;">
-                    暂无数据
-                </td>
-            </tr>
-        `;
-  }
-}
+// 更新详细视图表格 (已移除，只保留汇总视图)
 
 // 加载告警历史
 async function loadAlertHistory() {

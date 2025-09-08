@@ -394,7 +394,6 @@
       padding: 20px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       margin-bottom: 20px;
-      overflow-x: auto;
     }
 
     .symbols-table {
@@ -698,53 +697,25 @@
       <div id="tradingPairsView" class="monitoring-view active">
         <div class="symbols-monitoring">
           <h4>🔍 交易对详细监控</h4>
-          <div class="monitoring-tabs">
-            <button class="tab-btn active" onclick="switchTradingPairsTab('summary')">📊 汇总视图</button>
-            <button class="tab-btn" onclick="switchTradingPairsTab('detailed')">🔍 详细视图</button>
-          </div>
-
-          <!-- 汇总视图 -->
-          <div id="summaryView" class="monitoring-view active">
-            <div class="symbols-table-container">
-              <table class="symbols-table">
-                <thead>
-                  <tr>
-                    <th>交易对</th>
-                    <th>数据收集率</th>
-                    <th>信号分析率</th>
-                    <th>模拟交易完成率</th>
-                    <th>模拟交易进行率</th>
-                    <th>刷新频率</th>
-                    <th>整体状态</th>
-                  </tr>
-                </thead>
-                <tbody id="monitoringTableBody">
-                  <!-- 动态填充 -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- 详细视图 -->
-          <div id="detailedView" class="monitoring-view">
-            <div class="symbols-table-container">
-              <table class="symbols-table">
-                <thead>
-                  <tr>
-                    <th>交易对</th>
-                    <th>数据收集</th>
-                    <th>信号分析</th>
-                    <th>模拟交易</th>
-                    <th>信号状态</th>
-                    <th>最后更新</th>
-                    <th>健康状态</th>
-                  </tr>
-                </thead>
-                <tbody id="detailedTableBody">
-                  <!-- 动态填充 -->
-                </tbody>
-              </table>
-            </div>
+          
+          <!-- 汇总表格 -->
+          <div class="symbols-table-container">
+            <table class="symbols-table">
+              <thead>
+                <tr>
+                  <th>交易对</th>
+                  <th>数据收集率</th>
+                  <th>信号分析率</th>
+                  <th>模拟交易完成率</th>
+                  <th>模拟交易进行率</th>
+                  <th>刷新频率</th>
+                  <th>整体状态</th>
+                </tr>
+              </thead>
+              <tbody id="monitoringTableBody">
+                <!-- 动态填充 -->
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
