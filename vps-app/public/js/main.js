@@ -26,9 +26,9 @@ class SmartFlowApp {
       this.loadInitialData();
       sessionStorage.setItem('smartflow_initialized', 'true');
     } else {
-      // 从其他页面返回时只更新状态显示，不刷新数据
-      console.log('🔄 从其他页面返回，不刷新数据');
-      this.updateStatusDisplay();
+      // 从其他页面返回时，先尝试从缓存加载数据，再更新状态显示
+      console.log('🔄 从其他页面返回，尝试从缓存加载数据');
+      await this.loadDataFromCache();
     }
     
     this.startMonitoringRefresh(); // 启动监控数据自动刷新
@@ -158,6 +158,9 @@ class SmartFlowApp {
       this.updateStatsDisplay(signals, stats);
       this.updateSignalsTable(signals);
 
+      // 保存数据到缓存
+      this.saveDataToCache(signals, stats);
+
       // 使用服务器返回的更新时间
       if (updateTimes) {
         this.updateTimes.trend = updateTimes.trend;
@@ -179,6 +182,51 @@ class SmartFlowApp {
       } else {
         throw error;
       }
+    }
+  }
+
+  // 从缓存加载数据
+  async loadDataFromCache() {
+    try {
+      const cachedData = localStorage.getItem('smartflow_cached_data');
+      if (cachedData) {
+        const { signals, stats, timestamp } = JSON.parse(cachedData);
+        const now = Date.now();
+        const cacheAge = now - timestamp;
+        
+        // 如果缓存数据不超过10分钟，使用缓存数据
+        if (cacheAge < 10 * 60 * 1000) {
+          console.log('📦 使用缓存数据，缓存时间:', new Date(timestamp).toLocaleTimeString());
+          this.updateStatsDisplay(signals, stats);
+          this.updateSignalsTable(signals);
+          this.updateStatusDisplay();
+          return;
+        } else {
+          console.log('📦 缓存数据过期，重新加载');
+        }
+      }
+      
+      // 如果没有缓存或缓存过期，重新加载数据
+      await this.loadAllData();
+    } catch (error) {
+      console.error('从缓存加载数据失败:', error);
+      // 如果缓存加载失败，重新加载数据
+      await this.loadAllData();
+    }
+  }
+
+  // 保存数据到缓存
+  saveDataToCache(signals, stats) {
+    try {
+      const cacheData = {
+        signals,
+        stats,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('smartflow_cached_data', JSON.stringify(cacheData));
+      console.log('💾 数据已保存到缓存');
+    } catch (error) {
+      console.error('保存数据到缓存失败:', error);
     }
   }
 
