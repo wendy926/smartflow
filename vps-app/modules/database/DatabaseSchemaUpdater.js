@@ -221,7 +221,7 @@ class DatabaseSchemaUpdater {
       {
         table: 'simulations',
         column: 'last_updated',
-        definition: 'DATETIME DEFAULT CURRENT_TIMESTAMP'
+        definition: 'DATETIME'
       }
     ];
 
@@ -384,9 +384,20 @@ class DatabaseSchemaUpdater {
     // 更新现有模拟交易数据的版本信息
     await this.db.runQuery(`
       UPDATE simulations 
-      SET cache_version = 1, last_updated = created_at 
+      SET cache_version = 1 
       WHERE cache_version IS NULL
     `);
+    
+    // 如果last_updated列存在，则更新它
+    try {
+      await this.db.runQuery(`
+        UPDATE simulations 
+        SET last_updated = created_at 
+        WHERE last_updated IS NULL
+      `);
+    } catch (error) {
+      console.log('ℹ️ last_updated列不存在，跳过更新');
+    }
     
     console.log('🎯 模拟交易数据迁移完成');
   }
