@@ -151,8 +151,8 @@ class DataConsistencyManager extends EventEmitter {
         // 合并数据
         const mergedData = this.mergeData(cacheData, dbData);
         await this.updateDatabase(dataType, key, mergedData);
-        const cacheKey = this.getCacheKey(dataType, key);
-        this.dal.cache.set(cacheKey, mergedData, this.dal.cacheConfig[dataType]);
+        const mergedCacheKey = this.getCacheKey(dataType, key);
+        this.dal.cache.set(mergedCacheKey, mergedData, this.dal.cacheConfig[dataType]);
         console.log(`🔄 合并数据: ${dataType}:${key}`);
         return { action: 'merge', data: mergedData };
 
