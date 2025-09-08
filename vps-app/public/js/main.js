@@ -762,16 +762,9 @@ async function loadHistory(symbol) {
       return;
     }
 
-    // 检查是否有入场执行信号
-    const hasExecutionSignal = signalData.execution && (signalData.execution.includes('做多_') || signalData.execution.includes('做空_'));
-
-    if (hasExecutionSignal) {
-      // 有入场执行信号时：只显示交易执行详情和模拟交易历史
-      await loadExecutionDetails(contentDiv, symbol, signalData);
-    } else {
-      // 没有入场执行信号时：只显示模拟交易历史记录
-      await loadSimulationHistoryOnly(contentDiv, symbol);
-    }
+    // 统一使用loadExecutionDetails格式显示所有交易对的详情
+    // 这样确保所有交易对的展开详情展示格式一致
+    await loadExecutionDetails(contentDiv, symbol, signalData);
   } catch (error) {
     console.error('加载详细信息失败:', error);
     contentDiv.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
