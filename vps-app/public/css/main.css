@@ -623,6 +623,19 @@ tr:hover {
   min-width: 120px;
 }
 
+/* 功能按钮区域样式 */
+.function-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+  margin: 20px 0;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
 /* 底部控制按钮样式 */
 .bottom-controls {
   display: flex;
@@ -666,6 +679,7 @@ tr:hover {
     font-size: 0.9rem;
   }
 
+  .function-buttons,
   .bottom-controls {
     flex-direction: column;
     align-items: center;
@@ -688,6 +702,7 @@ tr:hover {
     padding: 6px 12px;
   }
 
+  .function-buttons,
   .bottom-controls {
     flex-direction: column;
     gap: 8px;

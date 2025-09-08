@@ -1935,6 +1935,10 @@ async function runSystemTests() {
 
     resultHtml += `
         </div>
+        <div class="test-actions" style="margin-top: 20px; text-align: center;">
+          <button class="btn primary" onclick="viewTelegramConfig()">📱 查看Telegram配置</button>
+          <button class="btn secondary" onclick="modal.close()">关闭</button>
+        </div>
       </div>
     `;
 
