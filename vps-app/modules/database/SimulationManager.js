@@ -56,26 +56,28 @@ class SimulationManager {
   }
 
   checkExitConditions(simulation, currentPrice) {
-    const { entry_price, stop_loss_price, take_profit_price, created_at } = simulation;
-    const entryTime = new Date(created_at);
-    const now = new Date();
-    const hoursSinceEntry = (now - entryTime) / (1000 * 60 * 60);
+    const { entry_price, stop_loss_price, take_profit_price, trigger_reason } = simulation;
 
-    // 止损条件
-    if (currentPrice <= stop_loss_price) {
-      return { shouldExit: true, reason: 'STOP_LOSS' };
+    // 根据交易方向判断止损和止盈条件
+    if (trigger_reason.includes('LONG')) {
+      // 多头交易：价格跌破止损价则止损，价格突破止盈价则止盈
+      if (currentPrice <= stop_loss_price) {
+        return { shouldExit: true, reason: 'STOP_LOSS' };
+      }
+      if (currentPrice >= take_profit_price) {
+        return { shouldExit: true, reason: 'TAKE_PROFIT' };
+      }
+    } else if (trigger_reason.includes('SHORT')) {
+      // 空头交易：价格突破止损价则止损，价格跌破止盈价则止盈
+      if (currentPrice >= stop_loss_price) {
+        return { shouldExit: true, reason: 'STOP_LOSS' };
+      }
+      if (currentPrice <= take_profit_price) {
+        return { shouldExit: true, reason: 'TAKE_PROFIT' };
+      }
     }
 
-    // 止盈条件
-    if (currentPrice >= take_profit_price) {
-      return { shouldExit: true, reason: 'TAKE_PROFIT' };
-    }
-
-    // 时间止损（8小时）
-    if (hoursSinceEntry >= 8) {
-      return { shouldExit: true, reason: 'TIME_STOP' };
-    }
-
+    // 只有止盈或止损才能结束交易，没有时间限制
     return { shouldExit: false };
   }
 
@@ -243,32 +245,32 @@ class SimulationManager {
 
         // 判断是否触发止损或止盈
         if (sim.trigger_reason.includes('LONG')) {
-          // 多头交易
+          // 多头交易：价格跌破止损价则止损，价格突破止盈价则止盈
           if (currentPrice <= sim.stop_loss_price) {
             // 触发止损
             shouldClose = true;
-            exitReason = '止损';
+            exitReason = 'STOP_LOSS';
             isWin = false;
             profitLoss = -this.calculateLoss(sim.entry_price, sim.stop_loss_price, sim.min_margin, sim.max_leverage);
           } else if (currentPrice >= sim.take_profit_price) {
             // 触发止盈
             shouldClose = true;
-            exitReason = '止盈';
+            exitReason = 'TAKE_PROFIT';
             isWin = true;
             profitLoss = this.calculateProfit(sim.entry_price, sim.take_profit_price, sim.min_margin, sim.max_leverage);
           }
         } else if (sim.trigger_reason.includes('SHORT')) {
-          // 空头交易
+          // 空头交易：价格突破止损价则止损，价格跌破止盈价则止盈
           if (currentPrice >= sim.stop_loss_price) {
             // 触发止损
             shouldClose = true;
-            exitReason = '止损';
+            exitReason = 'STOP_LOSS';
             isWin = false;
             profitLoss = -this.calculateLoss(sim.entry_price, sim.stop_loss_price, sim.min_margin, sim.max_leverage);
           } else if (currentPrice <= sim.take_profit_price) {
             // 触发止盈
             shouldClose = true;
-            exitReason = '止盈';
+            exitReason = 'TAKE_PROFIT';
             isWin = true;
             profitLoss = this.calculateProfit(sim.entry_price, sim.take_profit_price, sim.min_margin, sim.max_leverage);
           }

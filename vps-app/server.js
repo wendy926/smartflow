@@ -776,7 +776,7 @@ class SmartFlowServer {
         SELECT * FROM simulations 
         WHERE symbol = ? AND status = 'ACTIVE'
         ORDER BY created_at DESC
-        LIMIT 1
+        LIMIT 2
       `, [symbol]);
 
       if (activeSimulations.length === 0) {
@@ -790,7 +790,25 @@ class SmartFlowServer {
       const expectedTriggerReason = `SIGNAL_${mode}_${direction}`;
 
       // 检查触发原因是否相同
-      return latestSimulation.trigger_reason === expectedTriggerReason;
+      const sameTriggerReason = latestSimulation.trigger_reason === expectedTriggerReason;
+      
+      // 检查入场价格是否相同（连续两个模拟交易入场价格相同时，不进行第二个模拟交易）
+      const sameEntryPrice = Math.abs(parseFloat(latestSimulation.entry_price) - parseFloat(analysis.entrySignal)) < 0.0001;
+      
+      // 如果触发原因相同且入场价格相同，则跳过
+      if (sameTriggerReason && sameEntryPrice) {
+        console.log(`⏭️ 跳过 ${symbol}：存在相同触发原因和入场价格的活跃模拟交易`);
+        return true;
+      }
+
+      // 如果只有触发原因相同但入场价格不同，允许创建新交易
+      if (sameTriggerReason && !sameEntryPrice) {
+        console.log(`ℹ️ ${symbol}：存在相同触发原因但不同入场价格的模拟交易，允许创建新交易`);
+        return false;
+      }
+
+      // 如果触发原因不同，允许创建新交易
+      return false;
     } catch (error) {
       console.error(`检查现有模拟交易失败 [${symbol}]:`, error);
       return false; // 出错时允许创建新交易
