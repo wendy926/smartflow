@@ -709,51 +709,26 @@ class SmartFlowServer {
   /**
    * 检查并自动触发模拟交易
    * 当检测到新的入场执行信号时，自动启动模拟交易
+   * 每次入场执行信号都会触发模拟交易，不进行去重
    */
   async checkAndAutoTriggerSimulation() {
     try {
       console.log('🔍 开始检查自动触发模拟交易...');
-
+      
       // 获取当前所有信号
       const signals = await this.getSignals();
-
-      // 获取最近1分钟内的模拟交易记录，避免极短时间内重复创建
-      const recentHistory = await this.simulationManager.getRecentSimulations(1); // 1分钟
-
-      // 创建最近已触发信号的映射，基于交易对+执行信号类型+时间戳
-      const recentTriggeredSignals = new Map();
-      recentHistory.forEach(trade => {
-        const key = `${trade.symbol}_${trade.trigger_reason}`;
-        recentTriggeredSignals.set(key, trade);
-      });
-
+      
       // 检查每个信号
       for (const signal of signals) {
         // 检查是否有入场执行信号
         if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
-          // 从execution中提取模式信息
-          const isLong = signal.execution.includes('做多_');
-          const mode = signal.execution.includes('模式A') ? '模式A' : '模式B';
-          const direction = isLong ? 'LONG' : 'SHORT';
+          console.log(`🚀 检测到入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution}`);
 
-          // 创建与数据库中trigger_reason格式一致的键
-          const signalKey = `${signal.symbol}_SIGNAL_${mode}_${direction}`;
-
-          // 检查是否在最近1分钟内已经为这个特定的信号创建过模拟交易
-          if (!recentTriggeredSignals.has(signalKey)) {
-            console.log(`🚀 检测到新的入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution} (${signalKey})`);
-
-            // 自动启动模拟交易
-            await this.autoStartSimulation(signal);
-
-            // 添加到最近已触发列表，避免极短时间内重复触发相同的信号
-            recentTriggeredSignals.set(signalKey, { symbol: signal.symbol, execution: signal.execution });
-          } else {
-            console.log(`⏭️ 跳过最近已触发的信号: ${signal.symbol} - ${signal.execution} (${signalKey})`);
-          }
+          // 自动启动模拟交易
+          await this.autoStartSimulation(signal);
         }
       }
-
+      
       console.log('✅ 自动触发模拟交易检查完成');
     } catch (error) {
       console.error('自动触发模拟交易检查失败:', error);
