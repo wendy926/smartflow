@@ -210,7 +210,7 @@ class SmartFlowServer {
           takeProfit,
           maxLeverage || 10,
           minMargin || 100,
-          `SIGNAL_${executionMode}_${direction}`,
+          `SIGNAL_${executionMode}`,
           stopLossDistance || null,
           atrValue || null
         );
@@ -978,9 +978,13 @@ class SmartFlowServer {
 
       // 确定执行模式和方向
       const isLong = execution.includes('做多_');
-      const mode = execution.includes('模式A') ? '模式A' : '模式B';
-      const direction = isLong ? 'LONG' : 'SHORT';
-      const triggerReason = `SIGNAL_${mode}_${direction}`;
+      let mode = 'NONE';
+      if (execution.includes('多头回踩突破')) {
+        mode = '多头回踩突破';
+      } else if (execution.includes('空头反抽破位')) {
+        mode = '空头反抽破位';
+      }
+      const triggerReason = `SIGNAL_${mode}`;
 
       // 创建模拟交易
       const simulationId = await this.simulationManager.createSimulation(

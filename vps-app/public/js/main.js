@@ -275,17 +275,16 @@ class SmartFlowApp {
       const executionMode = signal.executionMode || 'NONE';
       const signalStrength = signal.signalStrength || 'NONE';
 
-      // 获取模式A和模式B的判断结果
-      const modeA = signal.modeA || false;
-      const modeB = signal.modeB || false;
+      // 获取多头和空头模式的判断结果
+      const mode = signal.mode || 'NONE';
 
       // 构建入场执行列内容
       let executionDisplay = signal.execution || '--';
       if (signal.execution && signal.execution.includes('EXECUTE')) {
-        if (modeA) {
-          executionDisplay = `${signal.execution} (模式A)`;
-        } else if (modeB) {
-          executionDisplay = `${signal.execution} (模式B)`;
+        if (mode === '多头回踩突破') {
+          executionDisplay = `${signal.execution} (多头回踩突破)`;
+        } else if (mode === '空头反抽破位') {
+          executionDisplay = `${signal.execution} (空头反抽破位)`;
         }
       }
 
@@ -481,11 +480,16 @@ class SmartFlowApp {
         if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
           // 从execution中提取模式信息
           const isLong = signal.execution.includes('做多_');
-          const mode = signal.execution.includes('模式A') ? '模式A' : '模式B';
+          let mode = 'NONE';
+          if (signal.execution.includes('多头回踩突破')) {
+            mode = '多头回踩突破';
+          } else if (signal.execution.includes('空头反抽破位')) {
+            mode = '空头反抽破位';
+          }
           const direction = isLong ? 'LONG' : 'SHORT';
 
           // 创建与数据库中trigger_reason格式一致的键
-          const signalKey = `${signal.symbol}_SIGNAL_${mode}_${direction}`;
+          const signalKey = `${signal.symbol}_SIGNAL_${mode}`;
 
           // 检查是否已经为这个特定的信号创建过模拟交易
           if (!triggeredSignals.has(signalKey)) {

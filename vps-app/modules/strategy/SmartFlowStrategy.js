@@ -256,6 +256,7 @@ class SmartFlowStrategy {
   static async analyze15mExecution(symbol, trend, score, symbolData = null, maxLossAmount = 100) {
     try {
       const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '15m', 50);
+      const openInterestHist = symbolData?.openInterestHist || await BinanceAPI.getOpenInterestHist(symbol, '1h', 6);
 
       // 将数组格式的K线数据转换为对象格式
       const klinesObjects = klines.map(k => ({
@@ -275,6 +276,10 @@ class SmartFlowStrategy {
       // 计算ATR
       const atr = TechnicalIndicators.calculateATR(klinesObjects, 14);
       const lastATR = atr[atr.length - 1];
+
+      // 计算OI变动百分比
+      const oiChange6h = openInterestHist && openInterestHist.length > 1 ?
+        (openInterestHist[openInterestHist.length - 1].sumOpenInterest - openInterestHist[0].sumOpenInterest) / openInterestHist[0].sumOpenInterest : 0;
 
       // 严格按照文档中的calculateEntryAndRisk函数实现
       const last = klinesObjects[klinesObjects.length - 1];
@@ -305,68 +310,35 @@ class SmartFlowStrategy {
         setupHigh,
         setupLow,
         supportLevel: Math.min(ema20[ema20.length - 1], ema50[ema50.length - 1]),
-        resistanceLevel: Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1])
+        resistanceLevel: Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1]),
+        oiChange6h: (oiChange6h * 100).toFixed(2) + '%'
       });
 
-      // === 模式A：回踩确认 ===
-      const supportLevel = Math.min(ema20[ema20.length - 1], ema50[ema50.length - 1]);
-      const resistanceLevel = Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1]);
-
-      if (trend === "多头趋势" && lastClose <= supportLevel && lastClose > prev.low) {
-        console.log(`🔍 模式A多头条件检查 [${symbol}]:`, {
-          lastClose,
-          supportLevel,
-          prevLow: prev.low,
-          lastHigh,
-          setupHigh,
-          condition1: lastClose <= supportLevel,
-          condition2: lastClose > prev.low,
-          condition3: lastHigh > setupHigh
-        });
-        // 回踩EMA确认
-        if (lastHigh > setupHigh) {
-          entrySignal = lastHigh;          // 入场价为突破setup高点
-          stopLoss = Math.min(prev.low, lastClose - 1.2 * lastATR); // 取更远者
-          takeProfit = entrySignal + 2 * (entrySignal - stopLoss); // 风报比2:1
-          mode = "回踩确认A";
-          console.log(`✅ 模式A多头触发 [${symbol}]:`, { entrySignal, stopLoss, takeProfit });
-        }
-      } else if (trend === "空头趋势" && lastClose >= resistanceLevel && lastClose < prev.high) {
-        console.log(`🔍 模式A空头条件检查 [${symbol}]:`, {
-          lastClose,
-          resistanceLevel,
-          prevHigh: prev.high,
-          lastLow,
-          setupLow,
-          condition1: lastClose >= resistanceLevel,
-          condition2: lastClose < prev.high,
-          condition3: lastLow < setupLow
-        });
-        if (lastLow < setupLow) {
-          entrySignal = lastLow;
-          stopLoss = Math.max(prev.high, lastClose + 1.2 * lastATR);
-          takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
-          mode = "回踩确认A";
-          console.log(`✅ 模式A空头触发 [${symbol}]:`, { entrySignal, stopLoss, takeProfit });
+      // === 多头模式：回踩确认 ===
+      if (trend === "多头趋势" && oiChange6h >= 0.02) {
+        const supportLevel = Math.min(ema20[ema20.length - 1], ema50[ema50.length - 1]);
+        
+        // 回踩EMA20/50上方并突破setup candle高点
+        if (lastClose >= supportLevel && lastHigh > setupHigh) {
+          entrySignal = lastHigh;
+          stopLoss = Math.min(setupLow, lastClose - 1.2 * lastATR);
+          takeProfit = entrySignal + 2 * (entrySignal - stopLoss);
+          mode = "多头回踩突破";
+          console.log(`✅ 多头模式触发 [${symbol}]:`, { entrySignal, stopLoss, takeProfit });
         }
       }
 
-      // === 模式B：动能突破 ===
-      const avgVol = klinesObjects.slice(-21, -1).reduce((a, k) => a + k.volume, 0) / 20;
-      const breakoutLong = lastHigh > setupHigh && last.volume >= 1.5 * avgVol;
-      const breakoutShort = lastLow < setupLow && last.volume >= 1.5 * avgVol;
-
-      if (!entrySignal) { // 如果模式A未触发
-        if (trend === "多头趋势" && breakoutLong) {
-          entrySignal = lastHigh;
-          stopLoss = Math.min(prev.low, lastClose - 1.2 * lastATR);
-          takeProfit = entrySignal + 2 * (entrySignal - stopLoss);
-          mode = "动能突破B";
-        } else if (trend === "空头趋势" && breakoutShort) {
+      // === 空头模式：反抽破位 ===
+      if (trend === "空头趋势" && oiChange6h <= -0.02) {
+        const resistanceLevel = Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1]);
+        
+        // 反抽EMA20/50下方并跌破setup candle低点
+        if (lastClose <= resistanceLevel && lastLow < setupLow) {
           entrySignal = lastLow;
-          stopLoss = Math.max(prev.high, lastClose + 1.2 * lastATR);
+          stopLoss = Math.max(setupHigh, lastClose + 1.2 * lastATR);
           takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
-          mode = "动能突破B";
+          mode = "空头反抽破位";
+          console.log(`✅ 空头模式触发 [${symbol}]:`, { entrySignal, stopLoss, takeProfit });
         }
       }
 
@@ -436,8 +408,6 @@ class SmartFlowStrategy {
         stopLoss,
         takeProfit,
         mode,
-        modeA: mode === '回踩确认A',
-        modeB: mode === '动能突破B',
         maxLeverage,
         minMargin,
         stopLossDistance,
@@ -451,8 +421,6 @@ class SmartFlowStrategy {
         stopLoss: null,
         takeProfit: null,
         mode: null,
-        modeA: false,
-        modeB: false,
         dataValid: false,
         error: error.message
       };
@@ -545,8 +513,6 @@ class SmartFlowStrategy {
         console.log(`✅ 15分钟执行分析成功 [${symbol}]:`, {
           entrySignal: execution15m.entrySignal,
           mode: execution15m.mode,
-          modeA: execution15m.modeA,
-          modeB: execution15m.modeB,
           maxLeverage: execution15m.maxLeverage,
           minMargin: execution15m.minMargin,
           stopLossDistance: execution15m.stopLossDistance,
@@ -560,8 +526,6 @@ class SmartFlowStrategy {
           stopLoss: null,
           takeProfit: null,
           mode: null,
-          modeA: false,
-          modeB: false,
           dataValid: false
         };
       }
@@ -607,23 +571,15 @@ class SmartFlowStrategy {
       let execution = 'NO_EXECUTION';
       let executionMode = 'NONE';
 
-      // 入场执行列显示触发了模式A还是模式B
+      // 入场执行列显示触发了多头模式还是空头模式
       // 只有当趋势明确且得分≥2时，才可能触发入场执行
       if (execution15m.entrySignal && hourlyConfirmation.score >= 2) {
-        if (execution15m.modeA) {
-          if (dailyTrend.trend === '多头趋势') {
-            execution = '做多_模式A';
-          } else if (dailyTrend.trend === '空头趋势') {
-            execution = '做空_模式A';
-          }
-          executionMode = '模式A';
-        } else if (execution15m.modeB) {
-          if (dailyTrend.trend === '多头趋势') {
-            execution = '做多_模式B';
-          } else if (dailyTrend.trend === '空头趋势') {
-            execution = '做空_模式B';
-          }
-          executionMode = '模式B';
+        if (execution15m.mode === '多头回踩突破') {
+          execution = '做多_多头回踩突破';
+          executionMode = '多头回踩突破';
+        } else if (execution15m.mode === '空头反抽破位') {
+          execution = '做空_空头反抽破位';
+          executionMode = '空头反抽破位';
         }
       }
 
@@ -636,8 +592,7 @@ class SmartFlowStrategy {
         minMargin: execution15m?.minMargin,
         stopLossDistance: execution15m?.stopLossDistance,
         atrValue: execution15m?.atrValue,
-        modeA: execution15m?.modeA,
-        modeB: execution15m?.modeB
+        mode: execution15m?.mode
       });
 
       // 记录信号

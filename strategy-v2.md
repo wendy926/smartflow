@@ -53,28 +53,19 @@ Delta确认的判断逻辑说明：
 
 **步骤 3：小周期执行（15m） → 入场与风控**
 
-要求：两种入场模式同时执行，避免错过机会。
+**🟢 多头模式（趋势跟随型）**
 
-**模式 A：回踩确认模式（胜率高）**
+- 入场逻辑：回踩EMA20/50 或 前高/前低支撑 → setup candle突破确认。
+- 止盈：≥ 2R（可分批出场）。
+- 止损：setup candle 另一端 或 ATR1.2×。
+- 特点：持仓周期可以更久，因为上涨趋势延续性强。
 
-- 等价格回踩到 EMA20/50 或前高/前低支撑位。
-- 回踩时成交量缩小，价格不有效跌破支撑。
-- 下一根 K 线突破 setup candle 的高点（做多）/低点（做空） → 入场。
+**🔴 空头模式（动能短线型）**
 
-**模式 B：动能突破模式（机会多）**
-
-- 当价格突破 setup candle 的高点/低点时，如果 15m 成交量 & OI 同步放大，直接追单入场，不等回踩。
-
-止损止盈计算逻辑：
-
-👉 止损：
-
-- 设置在 setup candle 的另一端 或 1.2 × ATR(14)，取更远的位置。
-
-👉 止盈：
-
-- 第一目标：1.5R 平掉 50% 仓位。
-- 第二目标：剩余仓位用 追踪止损（如跟随 15m EMA20 / 前一小时低点）直到被动出场。
+- 入场逻辑：强趋势确认后，15m 或 5m 出现 放量跌破前低 → 直接做空。
+- 止盈：1.2R ~ 1.5R 就平大部分仓位，剩余用移动止损跟踪。
+- 止损：setup candle 高点 或 ATR1.2×。
+- 特点：强调“快进快出”，不吃长波段，避免空头反抽。
 
 # **🔹 执行流程简述**
 
@@ -325,18 +316,24 @@ async function calculateTrendScore(symbol, trend) {
 # 15分钟级别入场判断代码逻辑
 ```jsx
 /**
- * 入场信号与风控计算（结合趋势判断 + 打分系统）
- * 模式A：回踩确认
- * 模式B：动能突破
+ * 15分钟级别入场信号判断
+ * @param {Object} params
+ * @param {string} params.dailyTrend - 日线趋势结果 ("多头" | "空头" | "震荡")
+ * @param {string} params.hourlyConfirm - 小时级别确认结果 ("看多" | "看空" | "无信号")
+ * @param {Array} params.klines15m - 15m K线数组 [{open, high, low, close, volume}]
+ * @param {Array} params.ema20 - EMA20 数组
+ * @param {Array} params.ema50 - EMA50 数组
+ * @param {number} params.atr14 - 最新 ATR14 值
+ * @param {number} params.oiChange6h - 最近6h OI 变动百分比（如 +0.025 = +2.5%）
  */
-
-function calculateEntryAndRisk({
-  trend,          // 从趋势判断模块得到: "多头趋势" / "空头趋势" / "震荡"
-  score,          // 打分系统输出: 0-6
-  klines15m,      // 15分钟K线数组 [{open, high, low, close, volume}]
-  ema20,          // EMA20数组
-  ema50,          // EMA50数组
-  atr14           // ATR14最新值
+function calculateEntry15m({ 
+  dailyTrend, 
+  hourlyConfirm, 
+  klines15m, 
+  ema20, 
+  ema50, 
+  atr14, 
+  oiChange6h 
 }) {
   const last = klines15m[klines15m.length - 1];
   const prev = klines15m[klines15m.length - 2]; // setup candle
@@ -349,59 +346,55 @@ function calculateEntryAndRisk({
   let entrySignal = null;
   let stopLoss = null;
   let takeProfit = null;
+  let stopLossPct = null;
   let mode = null;
 
-  // 只在明确趋势且打分足够时考虑入场
-  if (trend === "震荡/无趋势" || score < 2) {
-    return { entrySignal, stopLoss, takeProfit, mode };
+  // === 过滤条件 ===
+  // 必须日线趋势和小时级确认一致，才考虑入场
+  if ((dailyTrend === "多头" && hourlyConfirm !== "看多") ||
+      (dailyTrend === "空头" && hourlyConfirm !== "看空")) {
+    return { entrySignal, stopLoss, takeProfit, stopLossPct, mode };
   }
 
-  // === 模式A：回踩确认 ===
-  const supportLevel = Math.min(ema20[ema20.length - 1], ema50[ema50.length - 1]);
-  const resistanceLevel = Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1]);
+  // === 多头模式 ===
+  if (dailyTrend === "多头" && oiChange6h >= 0.02) {
+    const supportLevel = Math.min(
+      ema20[ema20.length - 1],
+      ema50[ema50.length - 1]
+    );
 
-  if (trend === "多头趋势" && lastClose <= supportLevel && lastClose > prev.low) {
-    // 回踩EMA确认
-    if (lastHigh > setupHigh) {
-      entrySignal = lastHigh;          // 入场价为突破setup高点
-      stopLoss = Math.min(prev.low, lastClose - 1.2 * atr14); // 取更远者
-      takeProfit = entrySignal + 2 * (entrySignal - stopLoss); // 风报比2:1
-      mode = "回踩确认A";
-    }
-  } else if (trend === "空头趋势" && lastClose >= resistanceLevel && lastClose < prev.high) {
-    if (lastLow < setupLow) {
-      entrySignal = lastLow;
-      stopLoss = Math.max(prev.high, lastClose + 1.2 * atr14);
-      takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
-      mode = "回踩确认A";
-    }
-  }
-
-  // === 模式B：动能突破 ===
-  const avgVol = klines15m.slice(-21, -1).reduce((a, k) => a + k.volume, 0) / 20;
-  const breakoutLong = lastHigh > setupHigh && last.volume >= 1.5 * avgVol;
-  const breakoutShort = lastLow < setupLow && last.volume >= 1.5 * avgVol;
-
-  if (!entrySignal) { // 如果模式A未触发
-    if (trend === "多头趋势" && breakoutLong) {
+    // 回踩 EMA20/50 上方并突破 setup candle 高点
+    if (lastClose >= supportLevel && lastHigh > setupHigh) {
       entrySignal = lastHigh;
-      stopLoss = Math.min(prev.low, lastClose - 1.2 * atr14);
+      stopLoss = Math.min(setupLow, lastClose - 1.2 * atr14);
       takeProfit = entrySignal + 2 * (entrySignal - stopLoss);
-      mode = "动能突破B";
-    } else if (trend === "空头趋势" && breakoutShort) {
-      entrySignal = lastLow;
-      stopLoss = Math.max(prev.high, lastClose + 1.2 * atr14);
-      takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
-      mode = "动能突破B";
+      stopLossPct = ((entrySignal - stopLoss) / entrySignal) * 100;
+      mode = "多头回踩突破";
     }
   }
 
-  return { entrySignal, stopLoss, takeProfit, mode };
+  // === 空头模式 ===
+  if (dailyTrend === "空头" && oiChange6h <= -0.02) {
+    const resistanceLevel = Math.max(
+      ema20[ema20.length - 1],
+      ema50[ema50.length - 1]
+    );
+
+    // 反抽 EMA20/50 下方并跌破 setup candle 低点
+    if (lastClose <= resistanceLevel && lastLow < setupLow) {
+      entrySignal = lastLow;
+      stopLoss = Math.max(setupHigh, lastClose + 1.2 * atr14);
+      takeProfit = entrySignal - 2 * (stopLoss - entrySignal);
+      stopLossPct = ((stopLoss - entrySignal) / entrySignal) * 100;
+      mode = "空头反抽破位";
+    }
+  }
+
+  return { entrySignal, stopLoss, takeProfit, stopLossPct, mode };
 }
 
 // ==== 示例调用 ====
 const klines15m = [
-  // 15m K线示例数据
   {open: 100, high: 102, low: 99, close: 101, volume: 10},
   {open: 101, high: 103, low: 100, close: 102, volume: 12},
   {open: 102, high: 104, low: 101, close: 103, volume: 15},
@@ -411,20 +404,26 @@ const ema20 = [100, 101, 102];
 const ema50 = [99, 100, 101];
 const atr14 = 1.5;
 
-const trend = "多头趋势";
-const score = 4; // 假设打分系统输出
-
-const result = calculateEntryAndRisk({trend, score, klines15m, ema20, ema50, atr14});
+const result = calculateEntry15m({
+  dailyTrend: "多头",
+  hourlyConfirm: "看多",
+  klines15m,
+  ema20,
+  ema50,
+  atr14,
+  oiChange6h: 0.03  // OI +3%
+});
 
 console.log(result);
 
 /**
 输出示例:
 {
-  entrySignal: 104,
-  stopLoss: 101.5,
-  takeProfit: 106.5,
-  mode: '动能突破B'
+  entrySignal: 103,
+  stopLoss: 100,
+  takeProfit: 106,
+  stopLossPct: 2.91,
+  mode: "多头回踩突破"
 }
 */
 ```
