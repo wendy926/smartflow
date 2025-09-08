@@ -466,7 +466,7 @@ class SmartFlowApp {
     try {
       // 获取当前已触发的模拟交易记录
       const currentHistory = await dataManager.getSimulationHistory();
-      
+
       // 创建已触发信号的映射，基于交易对+执行信号类型
       const triggeredSignals = new Map();
       currentHistory.forEach(trade => {
@@ -482,10 +482,10 @@ class SmartFlowApp {
           const isLong = signal.execution.includes('做多_');
           const mode = signal.execution.includes('模式A') ? '模式A' : '模式B';
           const direction = isLong ? 'LONG' : 'SHORT';
-          
+
           // 创建与数据库中trigger_reason格式一致的键
           const signalKey = `${signal.symbol}_SIGNAL_${mode}_${direction}`;
-          
+
           // 检查是否已经为这个特定的信号创建过模拟交易
           if (!triggeredSignals.has(signalKey)) {
             console.log(`🚀 检测到新的入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution} (${signalKey})`);

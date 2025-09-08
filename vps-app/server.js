@@ -701,14 +701,14 @@ class SmartFlowServer {
       // 获取当前所有信号
       const signals = await this.getAllSignals();
       
-      // 获取当前已触发的模拟交易记录
-      const currentHistory = await this.simulationManager.getSimulationHistory();
+      // 获取最近1分钟内的模拟交易记录，避免极短时间内重复创建
+      const recentHistory = await this.simulationManager.getRecentSimulations(1); // 1分钟
       
-      // 创建已触发信号的映射，基于交易对+执行信号类型
-      const triggeredSignals = new Map();
-      currentHistory.forEach(trade => {
+      // 创建最近已触发信号的映射，基于交易对+执行信号类型+时间戳
+      const recentTriggeredSignals = new Map();
+      recentHistory.forEach(trade => {
         const key = `${trade.symbol}_${trade.trigger_reason}`;
-        triggeredSignals.set(key, trade);
+        recentTriggeredSignals.set(key, trade);
       });
 
       // 检查每个信号
@@ -723,17 +723,17 @@ class SmartFlowServer {
           // 创建与数据库中trigger_reason格式一致的键
           const signalKey = `${signal.symbol}_SIGNAL_${mode}_${direction}`;
           
-          // 检查是否已经为这个特定的信号创建过模拟交易
-          if (!triggeredSignals.has(signalKey)) {
+          // 检查是否在最近1分钟内已经为这个特定的信号创建过模拟交易
+          if (!recentTriggeredSignals.has(signalKey)) {
             console.log(`🚀 检测到新的入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution} (${signalKey})`);
 
             // 自动启动模拟交易
             await this.autoStartSimulation(signal);
 
-            // 添加到已触发列表，避免重复触发相同的信号
-            triggeredSignals.set(signalKey, { symbol: signal.symbol, execution: signal.execution });
+            // 添加到最近已触发列表，避免极短时间内重复触发相同的信号
+            recentTriggeredSignals.set(signalKey, { symbol: signal.symbol, execution: signal.execution });
           } else {
-            console.log(`⏭️ 跳过已触发的信号: ${signal.symbol} - ${signal.execution} (${signalKey})`);
+            console.log(`⏭️ 跳过最近已触发的信号: ${signal.symbol} - ${signal.execution} (${signalKey})`);
           }
         }
       }
@@ -750,7 +750,7 @@ class SmartFlowServer {
   async autoStartSimulation(signalData) {
     try {
       const { symbol, execution, entrySignal, stopLoss, takeProfit, maxLeverage, minMargin, stopLossDistance, atrValue } = signalData;
-      
+
       if (!symbol || !entrySignal || !stopLoss || !takeProfit) {
         console.log(`❌ 跳过 ${symbol}：缺少必要参数`);
         return;

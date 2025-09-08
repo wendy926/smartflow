@@ -209,6 +209,20 @@ class SimulationManager {
     }
   }
 
+  async getRecentSimulations(minutes = 5) {
+    try {
+      const history = await this.db.runQuery(`
+        SELECT * FROM simulations 
+        WHERE created_at >= datetime('now', '-${minutes} minutes')
+        ORDER BY created_at DESC
+      `);
+      return history;
+    } catch (error) {
+      console.error('获取最近模拟交易记录失败:', error);
+      return [];
+    }
+  }
+
   // 更新模拟交易状态（价格监控和结果判断）
   async updateSimulationStatus(symbol, currentPrice, dataMonitor = null) {
     try {

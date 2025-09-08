@@ -16,10 +16,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 加载监控数据
 async function loadMonitoringData() {
-    try {
-        console.log('🔄 加载监控数据...');
-        const data = await window.apiClient.getMonitoringDashboard();
-        currentMonitoringData = data;
+  try {
+    console.log('🔄 加载监控数据...');
+    const data = await window.apiClient.getMonitoringDashboard();
+    currentMonitoringData = data;
 
     // 更新各个视图
     updateSystemOverview(data);
