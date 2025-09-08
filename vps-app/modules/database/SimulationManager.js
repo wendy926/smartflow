@@ -108,13 +108,8 @@ class SimulationManager {
       // 计算盈亏
       const profitLoss = this.calculateProfitLoss(sim, actualExitPrice);
       
-      // 根据出场原因判断盈亏
-      let isWin = false;
-      if (exitReason === 'TAKE_PROFIT') {
-        isWin = true; // 止盈总是盈利
-      } else if (exitReason === 'STOP_LOSS') {
-        isWin = false; // 止损总是亏损
-      }
+      // 根据实际盈亏结果判断胜负
+      const isWin = profitLoss > 0;
 
       // 更新数据库
       await this.db.run(
@@ -134,8 +129,20 @@ class SimulationManager {
   }
 
   calculateProfitLoss(simulation, exitPrice) {
-    const { entry_price, max_leverage, min_margin } = simulation;
-    const priceChange = (exitPrice - entry_price) / entry_price;
+    const { entry_price, max_leverage, min_margin, direction } = simulation;
+    
+    let priceChange;
+    if (direction === 'LONG') {
+      // 做多：价格上涨为盈利
+      priceChange = (exitPrice - entry_price) / entry_price;
+    } else if (direction === 'SHORT') {
+      // 做空：价格下跌为盈利
+      priceChange = (entry_price - exitPrice) / entry_price;
+    } else {
+      // 兼容旧数据，假设为做多
+      priceChange = (exitPrice - entry_price) / entry_price;
+    }
+    
     const leveragedReturn = priceChange * max_leverage;
     return parseFloat((min_margin * leveragedReturn).toFixed(4));
   }
@@ -274,13 +281,11 @@ class SimulationManager {
             // 触发止损
             shouldClose = true;
             exitReason = 'STOP_LOSS';
-            isWin = false;
             profitLoss = this.calculateProfitLoss(sim, sim.stop_loss_price);
           } else if (currentPrice >= sim.take_profit_price) {
             // 触发止盈
             shouldClose = true;
             exitReason = 'TAKE_PROFIT';
-            isWin = true;
             profitLoss = this.calculateProfitLoss(sim, sim.take_profit_price);
           }
         } else if (sim.trigger_reason.includes('SHORT')) {
@@ -289,15 +294,18 @@ class SimulationManager {
             // 触发止损
             shouldClose = true;
             exitReason = 'STOP_LOSS';
-            isWin = false;
             profitLoss = this.calculateProfitLoss(sim, sim.stop_loss_price);
           } else if (currentPrice <= sim.take_profit_price) {
             // 触发止盈
             shouldClose = true;
             exitReason = 'TAKE_PROFIT';
-            isWin = true;
             profitLoss = this.calculateProfitLoss(sim, sim.take_profit_price);
           }
+        }
+        
+        // 根据实际盈亏结果判断胜负
+        if (shouldClose) {
+          isWin = profitLoss > 0;
         }
 
         // 如果应该平仓，更新交易记录
