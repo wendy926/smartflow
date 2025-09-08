@@ -63,6 +63,22 @@ class SmartFlowApp {
       console.log('💰 最大损失金额已更新为:', value, 'USDT');
     });
 
+    // 页面可见性变化监听 - 但不自动刷新数据
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        console.log('📱 页面重新可见，但不自动刷新数据');
+        // 只更新状态显示，不刷新数据
+        this.updateStatusDisplay();
+      }
+    });
+
+    // 页面重新获得焦点时 - 但不自动刷新数据
+    window.addEventListener('focus', () => {
+      console.log('🎯 页面重新获得焦点，但不自动刷新数据');
+      // 只更新状态显示，不刷新数据
+      this.updateStatusDisplay();
+    });
+
   }
 
   async loadInitialData() {
