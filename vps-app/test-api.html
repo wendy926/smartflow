@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API测试</title>
+</head>
+<body>
+    <h1>API测试</h1>
+    <div id="result"></div>
+    
+    <script>
+        async function testAPI() {
+            try {
+                const response = await fetch('/api/simulation-history');
+                const data = await response.json();
+                console.log('API返回数据:', data);
+                
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `
+                    <h2>API测试结果</h2>
+                    <p>数据条数: ${data.length}</p>
+                    <h3>前3条记录:</h3>
+                    <table border="1">
+                        <tr>
+                            <th>交易对</th>
+                            <th>方向</th>
+                            <th>入场价格</th>
+                            <th>状态</th>
+                        </tr>
+                        ${data.slice(0, 3).map(item => `
+                            <tr>
+                                <td>${item.symbol}</td>
+                                <td>${item.direction === 'LONG' ? '做多' : item.direction === 'SHORT' ? '做空' : '--'}</td>
+                                <td>${item.entry_price}</td>
+                                <td>${item.status}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                `;
+            } catch (error) {
+                console.error('API调用失败:', error);
+                document.getElementById('result').innerHTML = `<p>错误: ${error.message}</p>`;
+            }
+        }
+        
+        // 页面加载完成后执行测试
+        window.addEventListener('load', testAPI);
+    </script>
+</body>
+</html>
