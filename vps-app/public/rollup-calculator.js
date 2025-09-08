@@ -24,9 +24,8 @@ class RollupCalculator {
   }
 
   // 计算止损距离
-  calculateStopLossDistance({ orderZoneHigh, orderZoneLow, atr4h }) {
-    const stopLossPrice = orderZoneLow - atr4h;
-    const stopLossDistance = ((orderZoneHigh - stopLossPrice) / orderZoneHigh) * 100;
+  calculateStopLossDistance({ currentPrice, stopLossPrice }) {
+    const stopLossDistance = (Math.abs(currentPrice - stopLossPrice) / currentPrice) * 100;
     return {
       stopLossPrice: this.round2(stopLossPrice),
       stopLossDistance: this.round2(stopLossDistance)
@@ -35,24 +34,24 @@ class RollupCalculator {
 
   // 计算初始杠杆
   calculateInitialLeverage(params) {
-    const { maxLossAmount, orderZoneHigh, orderZoneLow, atr4h } = params;
+    const { maxLossAmount, currentPrice, stopLossPrice } = params;
 
     try {
-      if (maxLossAmount <= 0 || orderZoneHigh <= 0 || orderZoneLow <= 0 || atr4h <= 0) {
+      if (maxLossAmount <= 0 || currentPrice <= 0 || stopLossPrice <= 0) {
         throw new Error('所有参数必须大于0');
       }
-      if (orderZoneHigh <= orderZoneLow) {
-        throw new Error('订单区上沿价格必须大于下沿价格');
+      if (currentPrice <= stopLossPrice) {
+        throw new Error('当前价格必须大于止损价格');
       }
 
-      const stopLossData = this.calculateStopLossDistance({ orderZoneHigh, orderZoneLow, atr4h });
-      const { stopLossPrice, stopLossDistance } = stopLossData;
+      const stopLossData = this.calculateStopLossDistance({ currentPrice, stopLossPrice });
+      const { stopLossDistance } = stopLossData;
 
       const maxLeverage = Math.floor(1 / (stopLossDistance / 100 + 0.005));
       const suggestedMargin = maxLossAmount / (maxLeverage * stopLossDistance / 100);
-      const riskRatio = (suggestedMargin / orderZoneHigh) * 100;
+      const riskRatio = (suggestedMargin / currentPrice) * 100;
       const positionValue = suggestedMargin * maxLeverage;
-      const tokenQuantity = positionValue / orderZoneHigh;
+      const tokenQuantity = positionValue / currentPrice;
 
       return {
         maxLeverage,
@@ -60,7 +59,7 @@ class RollupCalculator {
         riskRatio: this.round2(riskRatio),
         stopLossPrice: this.round2(stopLossPrice),
         stopLossDistance: this.round2(stopLossDistance),
-        entryPrice: orderZoneHigh,
+        entryPrice: currentPrice,
         positionValue: this.round2(positionValue),
         tokenQuantity: this.round2(tokenQuantity),
         maxLossAmount
@@ -292,27 +291,25 @@ document.addEventListener('DOMContentLoaded', function () {
   calculateInitialBtn.addEventListener('click', function () {
     try {
       const maxLossAmount = parseFloat(document.getElementById('maxLossAmount').value);
-      const orderZoneHigh = parseFloat(document.getElementById('orderZoneHigh').value);
-      const orderZoneLow = parseFloat(document.getElementById('orderZoneLow').value);
-      const atr4h = parseFloat(document.getElementById('atr4h').value);
+      const currentPrice = parseFloat(document.getElementById('currentPrice').value);
+      const stopLossPrice = parseFloat(document.getElementById('stopLossPrice').value);
 
-      if (isNaN(maxLossAmount) || isNaN(orderZoneHigh) || isNaN(orderZoneLow) || isNaN(atr4h)) {
+      if (isNaN(maxLossAmount) || isNaN(currentPrice) || isNaN(stopLossPrice)) {
         throw new Error('请输入有效的数值');
       }
 
-      if (maxLossAmount <= 0 || orderZoneHigh <= 0 || orderZoneLow <= 0 || atr4h <= 0) {
+      if (maxLossAmount <= 0 || currentPrice <= 0 || stopLossPrice <= 0) {
         throw new Error('所有数值必须大于0');
       }
 
-      if (orderZoneHigh <= orderZoneLow) {
-        throw new Error('订单区上沿价格必须大于下沿价格');
+      if (currentPrice <= stopLossPrice) {
+        throw new Error('当前价格必须大于止损价格');
       }
 
       const result = calculator.calculateInitialLeverage({
         maxLossAmount,
-        orderZoneHigh,
-        orderZoneLow,
-        atr4h
+        currentPrice,
+        stopLossPrice
       });
 
       // 存储计算结果
@@ -320,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
       window.calculatedLeverage = result.maxLeverage;
       window.calculatedStopLoss = result.stopLossPrice;
       window.calculatedStopLossDistance = result.stopLossDistance;
-      window.calculatedEntryPrice = result.entryPrice;
+      window.calculatedCurrentPrice = result.entryPrice;
 
       displayInitialCalculation(result);
 
@@ -341,8 +338,8 @@ document.addEventListener('DOMContentLoaded', function () {
         throw new Error('请输入有效的目标价格');
       }
 
-      if (targetPrice <= window.calculatedEntryPrice) {
-        throw new Error('目标价格必须大于初始开仓价');
+      if (targetPrice <= window.calculatedCurrentPrice) {
+        throw new Error('目标价格必须大于当前价格');
       }
 
       compareStrategies(calculator, {
@@ -350,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function () {
         maxLeverage: window.calculatedLeverage,
         stopLossPrice: window.calculatedStopLoss,
         stopLossDistance: window.calculatedStopLossDistance,
-        entryPrice: window.calculatedEntryPrice
+        entryPrice: window.calculatedCurrentPrice
       }, targetPrice);
 
     } catch (err) {
@@ -372,14 +369,14 @@ document.addEventListener('DOMContentLoaded', function () {
         throw new Error('请输入有效的目标价格');
       }
 
-      if (targetPrice <= window.calculatedEntryPrice) {
-        throw new Error('目标价格必须大于初始开仓价');
+      if (targetPrice <= window.calculatedCurrentPrice) {
+        throw new Error('目标价格必须大于当前价格');
       }
 
       const result = calculator.simulateRollup({
         principal: window.calculatedPrincipal,
         initLeverage: window.calculatedLeverage,
-        entryPrice: window.calculatedEntryPrice,
+        entryPrice: window.calculatedCurrentPrice,
         targetPrice: targetPrice,
         leverageStrategy: leverageStrategy,
         maxDrawdownRatio: 0.8

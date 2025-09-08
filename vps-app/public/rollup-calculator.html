@@ -544,23 +544,17 @@
                     </div>
 
                     <div class="input-group">
-                        <label for="orderZoneHigh">订单区上沿价格 (U)</label>
-                        <input type="number" id="orderZoneHigh" name="orderZoneHigh" value="4500" min="1" step="0.01"
+                        <label for="currentPrice">当前价格 (U)</label>
+                        <input type="number" id="currentPrice" name="currentPrice" value="4500" min="1" step="0.01"
                             required>
-                        <small class="input-hint">订单区上沿价格，作为初始开仓价</small>
+                        <small class="input-hint">当前价格，作为初始开仓价</small>
                     </div>
 
                     <div class="input-group">
-                        <label for="orderZoneLow">订单区下沿价格 (U)</label>
-                        <input type="number" id="orderZoneLow" name="orderZoneLow" value="4300" min="1" step="0.01"
+                        <label for="stopLossPrice">止损价格 (U)</label>
+                        <input type="number" id="stopLossPrice" name="stopLossPrice" value="4300" min="1" step="0.01"
                             required>
-                        <small class="input-hint">订单区下沿价格，用于计算止损价格</small>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="atr4h">4H级别图ATR (U)</label>
-                        <input type="number" id="atr4h" name="atr4h" value="50" min="0.01" step="0.01" required>
-                        <small class="input-hint">4小时级别图的平均真实波幅</small>
+                        <small class="input-hint">止损价格，用于计算止损距离</small>
                     </div>
 
                     <div class="input-group">
@@ -771,8 +765,8 @@
                             <ul>
                                 <li>最大损失金额：用户设定的愿意承担的最大损失</li>
                                 <li>最大杠杆：基于止损距离计算，确保风险可控</li>
-                                <li>止损距离：((订单区上沿 - 止损价格) ÷ 订单区上沿) × 100%</li>
-                                <li>止损价格：订单区下沿价格 - 4H级别ATR</li>
+                                <li>止损距离：(|当前价格 - 止损价格| ÷ 当前价格) × 100%</li>
+                                <li>止损价格：用户直接输入的止损价格</li>
                             </ul>
                         </div>
                     </div>
