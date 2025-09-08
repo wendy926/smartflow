@@ -190,13 +190,20 @@ class SmartFlowApp {
     try {
       const cachedData = localStorage.getItem('smartflow_cached_data');
       if (cachedData) {
-        const { signals, stats, timestamp } = JSON.parse(cachedData);
+        const { signals, stats, updateTimes, timestamp } = JSON.parse(cachedData);
         const now = Date.now();
         const cacheAge = now - timestamp;
         
         // 如果缓存数据不超过10分钟，使用缓存数据
         if (cacheAge < 10 * 60 * 1000) {
           console.log('📦 使用缓存数据，缓存时间:', new Date(timestamp).toLocaleTimeString());
+          
+          // 恢复更新时间信息
+          if (updateTimes) {
+            this.updateTimes = updateTimes;
+            console.log('📦 恢复更新时间:', updateTimes);
+          }
+          
           this.updateStatsDisplay(signals, stats);
           this.updateSignalsTable(signals);
           this.updateStatusDisplay();
