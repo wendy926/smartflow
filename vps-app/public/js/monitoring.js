@@ -215,6 +215,11 @@ function updateSummaryTable(data) {
   
   if (!tbody) {
     console.error('❌ 找不到monitoringTableBody元素');
+    // 尝试查找所有可能的表格元素
+    const allTables = document.querySelectorAll('table');
+    console.log('🔍 页面中的所有表格:', allTables);
+    const allTbodies = document.querySelectorAll('tbody');
+    console.log('🔍 页面中的所有tbody:', allTbodies);
     return;
   }
 

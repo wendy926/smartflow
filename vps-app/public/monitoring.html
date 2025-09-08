@@ -624,13 +624,13 @@
 
     <div class="monitoring-content">
       <div class="monitoring-tabs">
-        <button class="tab-btn active" onclick="switchMonitoringTab('overview')">📈 系统概览</button>
-        <button class="tab-btn" onclick="switchMonitoringTab('trading-pairs')">🔍 交易对详细监控</button>
+        <button class="tab-btn" onclick="switchMonitoringTab('overview')">📈 系统概览</button>
+        <button class="tab-btn active" onclick="switchMonitoringTab('trading-pairs')">🔍 交易对详细监控</button>
         <button class="tab-btn" onclick="switchMonitoringTab('alerts')">🚨 数据监控告警明细</button>
       </div>
 
       <!-- 系统概览 -->
-      <div id="overviewView" class="monitoring-view active">
+      <div id="overviewView" class="monitoring-view">
         <div class="system-overview">
           <h4>📈 系统概览</h4>
           <div class="overview-cards">
@@ -695,7 +695,7 @@
       </div>
 
       <!-- 交易对详细监控 -->
-      <div id="tradingPairsView" class="monitoring-view">
+      <div id="tradingPairsView" class="monitoring-view active">
         <div class="symbols-monitoring">
           <h4>🔍 交易对详细监控</h4>
           <div class="monitoring-tabs">
