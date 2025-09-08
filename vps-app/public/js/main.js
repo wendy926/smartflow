@@ -1689,27 +1689,6 @@ async function testDataQualityAlert() {
   }
 }
 
-function openRollupCalculator() {
-  const currentMaxLoss = app.userSettings.maxLossAmount || document.getElementById('maxLossAmount').value;
-  const calculatorWindow = window.open(
-    'rollup-calculator.html',
-    'rollupCalculator',
-    'width=1200,height=800,scrollbars=yes,resizable=yes,status=yes,toolbar=no,menubar=no,location=no'
-  );
-
-  if (calculatorWindow) {
-    calculatorWindow.addEventListener('load', function () {
-      try {
-        const maxLossInput = calculatorWindow.document.getElementById('maxLossAmount');
-        if (maxLossInput) {
-          maxLossInput.value = currentMaxLoss;
-        }
-      } catch (error) {
-        console.log('无法设置默认值:', error);
-      }
-    });
-  }
-}
 
 async function showSymbolsList() {
   try {
