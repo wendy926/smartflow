@@ -723,7 +723,7 @@ class SmartFlowServer {
     while (retryCount <= maxRetries) {
       try {
         console.log(`🔄 尝试触发模拟交易 [${symbol}] (第${retryCount + 1}次尝试)...`);
-        
+
         // 检查是否已经存在相同的活跃模拟交易
         const existingSimulation = await this.checkExistingSimulation(symbol, analysis);
         if (existingSimulation) {
@@ -751,7 +751,7 @@ class SmartFlowServer {
         lastError = error;
         retryCount++;
         console.error(`❌ 模拟交易触发失败 [${symbol}] (第${retryCount}次尝试):`, error.message);
-        
+
         if (retryCount <= maxRetries) {
           const delay = Math.pow(2, retryCount) * 1000; // 指数退避：2秒、4秒
           console.log(`⏳ 等待 ${delay}ms 后重试...`);
@@ -762,7 +762,7 @@ class SmartFlowServer {
 
     // 所有重试都失败了
     console.error(`💥 模拟交易触发最终失败 [${symbol}] (已重试${maxRetries}次):`, lastError.message);
-    
+
     // 记录失败到数据监控
     if (this.dataMonitor) {
       this.dataMonitor.recordSimulation(symbol, 'START_FAILED', { error: lastError.message }, false, lastError);
@@ -795,15 +795,32 @@ class SmartFlowServer {
 
       // 检查触发原因是否相同
       const sameTriggerReason = latestSimulation.trigger_reason === expectedTriggerReason;
-      
+
       // 检查入场价格是否相同（连续两个模拟交易入场价格相同时，不进行第二个模拟交易）
       const sameEntryPrice = Math.abs(parseFloat(latestSimulation.entry_price) - parseFloat(analysis.entrySignal)) < 0.0001;
-      
+
       // 如果触发原因相同且入场价格相同，则跳过
       if (sameTriggerReason && sameEntryPrice) {
-        console.log(`⏭️ 跳过 ${symbol}：存在相同触发原因和入场价格的活跃模拟交易`);
+        console.log(`⏭️ 跳过 ${symbol}：存在相同触发原因和入场价格的活跃模拟交易`, {
+          latestTriggerReason: latestSimulation.trigger_reason,
+          expectedTriggerReason,
+          latestEntryPrice: latestSimulation.entry_price,
+          currentEntryPrice: analysis.entrySignal,
+          sameTriggerReason,
+          sameEntryPrice
+        });
         return true;
       }
+      
+      console.log(`🔍 去重检查 ${symbol}：`, {
+        latestTriggerReason: latestSimulation.trigger_reason,
+        expectedTriggerReason,
+        latestEntryPrice: latestSimulation.entry_price,
+        currentEntryPrice: analysis.entrySignal,
+        sameTriggerReason,
+        sameEntryPrice,
+        willProceed: !(sameTriggerReason && sameEntryPrice)
+      });
 
       // 如果只有触发原因相同但入场价格不同，允许创建新交易
       if (sameTriggerReason && !sameEntryPrice) {
@@ -948,8 +965,8 @@ class SmartFlowServer {
     try {
       console.log('🔍 开始检查自动触发模拟交易...');
 
-  // 获取当前所有信号
-  const signals = await this.getAllSignals();
+      // 获取当前所有信号
+      const signals = await this.getAllSignals();
 
       // 检查每个信号
       for (const signal of signals) {
