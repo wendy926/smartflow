@@ -10,7 +10,7 @@ let refreshInterval = null;
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 监控页面加载完成，开始初始化...');
   loadMonitoringData();
-  
+
   // 每30秒自动刷新数据
   refreshInterval = setInterval(loadMonitoringData, 30000);
 });
