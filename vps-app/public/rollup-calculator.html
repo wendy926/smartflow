@@ -35,6 +35,30 @@
             opacity: 0.9;
         }
 
+        .header-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
         .calculator-content {
             padding: 30px;
         }
@@ -532,6 +556,9 @@
             <header class="calculator-header">
                 <h1>📊 斐波拉契滚仓计算器</h1>
                 <p>基于0.618黄金回调法的滚仓策略计算</p>
+                <div class="header-controls">
+                    <a href="index.html" class="back-btn">← 返回主页</a>
+                </div>
             </header>
 
             <div class="calculator-content">

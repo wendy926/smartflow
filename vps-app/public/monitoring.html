@@ -22,20 +22,24 @@
     }
 
     .monitoring-header {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      padding: 20px 30px;
-      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
 
     .monitoring-header h1 {
-      margin: 0;
-      color: #333;
-      font-size: 1.8rem;
+      margin: 0 0 10px 0;
+      font-size: 2.5rem;
       font-weight: 600;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .monitoring-header p {
+      margin: 0;
+      font-size: 1.1rem;
+      opacity: 0.9;
     }
 
     .header-controls {
@@ -617,6 +621,7 @@
   <div class="monitoring-page">
     <div class="monitoring-header">
       <h1>📊 SmartFlow 统一监控中心</h1>
+      <p>实时监控交易信号和系统状态</p>
       <div class="header-controls">
         <a href="index.html" class="back-btn">← 返回主页</a>
         <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>

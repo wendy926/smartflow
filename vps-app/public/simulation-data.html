@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模拟交易数据 - SmartFlow</title>
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        /* 模拟交易数据页面特定样式 */
+        .simulation-data-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .simulation-data-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .simulation-data-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .simulation-data-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .simulation-data-content {
+            padding: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .stat-value.positive {
+            color: #28a745;
+        }
+
+        .stat-value.negative {
+            color: #dc3545;
+        }
+
+        .stat-value.neutral {
+            color: #6c757d;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .section-title {
+            color: #333;
+            margin: 30px 0 20px 0;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .table-container {
+            margin-bottom: 30px;
+        }
+
+        .table-container h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .win-rate {
+            font-weight: 600;
+        }
+
+        .win-rate.high {
+            color: #28a745;
+        }
+
+        .win-rate.medium {
+            color: #ffc107;
+        }
+
+        .win-rate.low {
+            color: #dc3545;
+        }
+
+        .profit-loss {
+            font-weight: 600;
+        }
+
+        .profit-loss.positive {
+            color: #28a745;
+        }
+
+        .profit-loss.negative {
+            color: #dc3545;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+            margin: 20px 0;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .header-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        /* 手机端适配 */
+        @media (max-width: 768px) {
+            .simulation-data-content {
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .stat-card {
+                padding: 15px;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+
+            .table-wrapper {
+                font-size: 0.8rem;
+            }
+
+            th,
+            td {
+                padding: 8px 6px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="simulation-data-container">
+        <header class="simulation-data-header">
+            <h1>📊 模拟交易数据</h1>
+            <p>详细的交易统计分析和历史记录</p>
+            <div class="header-controls">
+                <a href="index.html" class="back-btn">← 返回主页</a>
+            </div>
+        </header>
+
+        <div class="simulation-data-content">
+            <button id="refreshBtn" class="refresh-btn">🔄 刷新数据</button>
+
+            <!-- 整体统计 -->
+            <div class="stats-grid" id="overallStats">
+                <div class="stat-card">
+                    <h3>📈 整体胜率</h3>
+                    <div id="overallWinRate" class="stat-value neutral">--</div>
+                    <div class="stat-label">已完成交易胜率</div>
+                </div>
+                <div class="stat-card">
+                    <h3>💰 整体盈亏</h3>
+                    <div id="overallProfitLoss" class="stat-value neutral">--</div>
+                    <div class="stat-label">累计盈亏金额 (USDT)</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📊 总交易数</h3>
+                    <div id="totalTrades" class="stat-value neutral">--</div>
+                    <div class="stat-label">已完成交易数量</div>
+                </div>
+                <div class="stat-card">
+                    <h3>🎯 盈利交易</h3>
+                    <div id="winningTrades" class="stat-value neutral">--</div>
+                    <div class="stat-label">盈利交易数量</div>
+                </div>
+            </div>
+
+            <!-- 方向统计 -->
+            <h2 class="section-title">📊 方向统计</h2>
+            <div class="stats-grid" id="directionStats">
+                <div class="stat-card">
+                    <h3>📈 做多胜率</h3>
+                    <div id="longWinRate" class="stat-value neutral">--</div>
+                    <div class="stat-label">做多交易胜率</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📉 做空胜率</h3>
+                    <div id="shortWinRate" class="stat-value neutral">--</div>
+                    <div class="stat-label">做空交易胜率</div>
+                </div>
+                <div class="stat-card">
+                    <h3>💰 做多盈亏</h3>
+                    <div id="longProfitLoss" class="stat-value neutral">--</div>
+                    <div class="stat-label">做多交易盈亏 (USDT)</div>
+                </div>
+                <div class="stat-card">
+                    <h3>💰 做空盈亏</h3>
+                    <div id="shortProfitLoss" class="stat-value neutral">--</div>
+                    <div class="stat-label">做空交易盈亏 (USDT)</div>
+                </div>
+            </div>
+
+            <!-- 交易对统计 -->
+            <h2 class="section-title">📊 交易对统计</h2>
+            <div class="table-container">
+                <h3>各交易对胜率与盈亏统计</h3>
+                <div class="table-wrapper">
+                    <table id="symbolStatsTable">
+                        <thead>
+                            <tr>
+                                <th>交易对</th>
+                                <th>总交易数</th>
+                                <th>盈利交易</th>
+                                <th>胜率</th>
+                                <th>盈亏金额</th>
+                                <th>平均盈亏</th>
+                            </tr>
+                        </thead>
+                        <tbody id="symbolStatsBody">
+                            <tr>
+                                <td colspan="6" class="loading">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 模拟交易历史 -->
+            <h2 class="section-title">📈 模拟交易历史</h2>
+            <div class="table-container">
+                <h3>所有模拟交易记录</h3>
+                <div class="table-wrapper">
+                    <table id="simulationHistoryTable">
+                        <thead>
+                            <tr>
+                                <th>交易对</th>
+                                <th>方向</th>
+                                <th>入场价格</th>
+                                <th>止损价格</th>
+                                <th>止盈价格</th>
+                                <th>杠杆倍数</th>
+                                <th>最小保证金</th>
+                                <th>止损距离</th>
+                                <th>ATR值</th>
+                                <th>入场时间</th>
+                                <th>出场时间</th>
+                                <th>出场价格</th>
+                                <th>出场原因</th>
+                                <th>触发原因</th>
+                                <th>盈亏</th>
+                                <th>结果</th>
+                            </tr>
+                        </thead>
+                        <tbody id="simulationHistoryBody">
+                            <tr>
+                                <td colspan="16" class="loading">加载中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载JavaScript模块 -->
+    <script src="js/api.js?v=20250108-4"></script>
+    <script src="js/components/Modal.js?v=20250108-4"></script>
+    <script src="js/data/DataManager.js?v=20250108-4"></script>
+    <script src="js/simulation-data.js?v=20250108-1"></script>
+</body>
+
+</html>
