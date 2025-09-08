@@ -11,6 +11,7 @@ const BinanceAPI = require('./modules/api/BinanceAPI');
 const TelegramNotifier = require('./modules/notifications/TelegramNotifier');
 const { SmartFlowStrategy } = require('./modules/strategy/SmartFlowStrategy');
 const { DataMonitor } = require('./modules/monitoring/DataMonitor');
+const { dataLayerIntegration } = require('./modules/data/DataLayerIntegration');
 
 class SmartFlowServer {
   constructor() {
@@ -288,6 +289,28 @@ class SmartFlowServer {
       }
     });
 
+    // 获取数据层健康检查
+    this.app.get('/api/data-layer-health', async (req, res) => {
+      try {
+        const health = await dataLayerIntegration.healthCheck();
+        res.json(health);
+      } catch (error) {
+        console.error('数据层健康检查失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取数据层状态
+    this.app.get('/api/data-layer-status', async (req, res) => {
+      try {
+        const status = dataLayerIntegration.getSystemStatus();
+        res.json(status);
+      } catch (error) {
+        console.error('获取数据层状态失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 获取告警历史
     this.app.get('/api/alert-history', async (req, res) => {
       try {
@@ -438,10 +461,11 @@ class SmartFlowServer {
     try {
       console.log('🚀 启动 SmartFlow 服务器...');
 
-      // 初始化数据库
-      this.db = new DatabaseManager();
-      await this.db.init();
-      console.log('✅ 数据库初始化完成');
+      // 初始化数据层架构
+      await dataLayerIntegration.init();
+      this.db = dataLayerIntegration.getDatabase();
+      this.dataLayer = dataLayerIntegration.getDataLayer();
+      console.log('✅ 数据层架构初始化完成');
 
       // 初始化模拟交易管理器
       this.simulationManager = new SimulationManager(this.db);
@@ -449,7 +473,7 @@ class SmartFlowServer {
       console.log('✅ 模拟交易管理器启动');
 
       // 初始化Telegram通知
-      this.telegramNotifier = new TelegramNotifier(this.databaseManager);
+      this.telegramNotifier = new TelegramNotifier(this.db);
       console.log('✅ Telegram通知器初始化完成');
 
       // 初始化数据监控
@@ -1052,8 +1076,11 @@ class SmartFlowServer {
       }
     }
 
-    if (this.db) {
-      await this.db.close();
+    // 优雅关闭数据层架构
+    try {
+      await dataLayerIntegration.gracefulShutdown();
+    } catch (error) {
+      console.error('数据层架构关闭失败:', error);
     }
 
     console.log('✅ 服务器已关闭');
