@@ -221,6 +221,35 @@ class DataManager {
       return 'execution-no';
     }
   }
+
+  // 测试数据质量告警
+  async testDataQualityAlert() {
+    try {
+      const response = await window.apiClient.testDataQualityAlert();
+      return response;
+    } catch (error) {
+      console.error('测试数据质量告警失败:', error);
+      throw error;
+    }
+  }
+
+  // 获取监控仪表板数据
+  async getMonitoringDashboard() {
+    const cacheKey = 'monitoringDashboard';
+    let data = this.getCache(cacheKey);
+
+    if (!data) {
+      try {
+        data = await window.apiClient.getMonitoringDashboard();
+        this.setCache(cacheKey, data);
+      } catch (error) {
+        console.error('获取监控仪表板数据失败:', error);
+        throw error;
+      }
+    }
+
+    return data;
+  }
 }
 
 // 创建全局数据管理器实例
