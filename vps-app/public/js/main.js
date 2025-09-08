@@ -678,7 +678,7 @@ async function viewTradeHistory(symbol) {
               ${history.map(trade => `
                 <tr>
                   <td>${new Date(trade.timestamp).toLocaleString()}</td>
-                  <td>${trade.direction}</td>
+                  <td>${trade.direction === 'LONG' ? '做多' : trade.direction === 'SHORT' ? '做空' : '--'}</td>
                   <td>${dataManager.formatNumber(trade.entryPrice)}</td>
                   <td>${dataManager.formatNumber(trade.stopLoss)}</td>
                   <td>${dataManager.formatNumber(trade.takeProfit)}</td>
