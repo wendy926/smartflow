@@ -107,6 +107,12 @@ function switchMonitoringTab(tabName) {
   const targetView = document.getElementById(tabName + 'View');
   if (targetView) {
     targetView.classList.add('active');
+    
+    // 如果切换到交易对详细监控且当前有数据，重新更新表格
+    if (tabName === 'trading-pairs' && currentMonitoringData) {
+      console.log('🔄 切换到交易对详细监控，重新更新表格...');
+      updateSummaryTable(currentMonitoringData);
+    }
   }
 }
 
