@@ -16,8 +16,11 @@ function formatTime(timestamp) {
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 监控页面加载完成，开始初始化...');
   
-  // 直接加载数据
-  loadMonitoringData();
+  // 延迟加载数据，确保DOM完全准备好
+  setTimeout(() => {
+    console.log('⏰ 延迟加载监控数据...');
+    loadMonitoringData();
+  }, 100);
   
   // 每30秒自动刷新数据
   refreshInterval = setInterval(loadMonitoringData, 30000);
@@ -485,4 +488,43 @@ function showErrorMessage(message) {
   setTimeout(() => {
     document.body.removeChild(notification);
   }, 5000);
+}
+
+// 调试监控数据
+function debugMonitoringData() {
+  console.log('🐛 开始调试监控数据...');
+  
+  // 检查当前数据
+  console.log('📊 当前监控数据:', currentMonitoringData);
+  
+  // 检查表格元素
+  const monitoringTableBody = document.getElementById('monitoringTableBody');
+  const detailedTableBody = document.getElementById('detailedTableBody');
+  
+  console.log('📋 表格元素检查:');
+  console.log('- monitoringTableBody:', monitoringTableBody);
+  console.log('- detailedTableBody:', detailedTableBody);
+  
+  if (monitoringTableBody) {
+    console.log('- monitoringTableBody子元素数量:', monitoringTableBody.children.length);
+    console.log('- monitoringTableBody内容:', monitoringTableBody.innerHTML);
+  }
+  
+  if (detailedTableBody) {
+    console.log('- detailedTableBody子元素数量:', detailedTableBody.children.length);
+    console.log('- detailedTableBody内容:', detailedTableBody.innerHTML);
+  }
+  
+  // 强制重新加载数据
+  console.log('🔄 强制重新加载数据...');
+  loadMonitoringData();
+  
+  // 显示调试信息
+  let debugInfo = '调试信息:\n';
+  debugInfo += `- 当前数据: ${currentMonitoringData ? '有' : '无'}\n`;
+  debugInfo += `- 详细统计: ${currentMonitoringData && currentMonitoringData.detailedStats ? currentMonitoringData.detailedStats.length : 0}个\n`;
+  debugInfo += `- 汇总表格: ${monitoringTableBody ? '找到' : '未找到'}\n`;
+  debugInfo += `- 详细表格: ${detailedTableBody ? '找到' : '未找到'}\n`;
+  
+  alert(debugInfo);
 }
