@@ -158,15 +158,16 @@ class SmartFlowApp {
       this.updateStatsDisplay(signals, stats);
       this.updateSignalsTable(signals);
 
-      // 保存数据到缓存
-      this.saveDataToCache(signals, stats);
-
       // 使用服务器返回的更新时间
       if (updateTimes) {
         this.updateTimes.trend = updateTimes.trend;
         this.updateTimes.signal = updateTimes.signal;
         this.updateTimes.execution = updateTimes.execution;
       }
+
+      // 保存数据到缓存（包含updateTimes）
+      this.saveDataToCache(signals, stats);
+
       this.updateStatusDisplay();
     } catch (error) {
       console.error('加载数据失败:', error);
