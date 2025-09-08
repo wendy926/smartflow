@@ -34,6 +34,7 @@ async function loadMonitoringData() {
   try {
     console.log('🔄 加载监控数据...');
     const data = await window.apiClient.getMonitoringDashboard();
+    console.log('📊 监控数据结构:', data);
     currentMonitoringData = data;
 
     // 更新各个视图
@@ -168,7 +169,9 @@ function updateSummaryTable(data) {
   tbody.innerHTML = '';
 
   if (data.detailedStats && data.detailedStats.length > 0) {
-    data.detailedStats.forEach(symbol => {
+    console.log('📊 处理详细统计数据:', data.detailedStats.length, '个交易对');
+    data.detailedStats.forEach((symbol, index) => {
+      console.log(`📊 处理交易对 ${index + 1}:`, symbol.symbol, symbol);
       const row = document.createElement('tr');
       row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
 
