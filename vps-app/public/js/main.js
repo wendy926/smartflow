@@ -373,16 +373,18 @@ class SmartFlowApp {
 
       row.innerHTML = `
                 <td>${sim.symbol}</td>
-                <td>${dataManager.formatNumber(sim.entry_price)}</td>
-                <td>${dataManager.formatNumber(sim.stop_loss_price)}</td>
-                <td>${dataManager.formatNumber(sim.take_profit_price)}</td>
+                <td>${sim.direction === 'LONG' ? '做多' : sim.direction === 'SHORT' ? '做空' : '--'}</td>
+                <td>${dataManager.formatPrice(sim.entry_price)}</td>
+                <td>${dataManager.formatPrice(sim.stop_loss_price)}</td>
+                <td>${dataManager.formatPrice(sim.take_profit_price)}</td>
                 <td>${sim.max_leverage}x</td>
                 <td>${dataManager.formatNumber(sim.min_margin)}</td>
                 <td>${sim.stop_loss_distance ? (sim.stop_loss_distance * 100).toFixed(2) + '%' : '--'}</td>
-                <td>${sim.atr_value ? dataManager.formatNumber(sim.atr_value) : '--'}</td>
+                <td>${sim.atr_value ? dataManager.formatPrice(sim.atr_value) : '--'}</td>
                 <td>${dataManager.formatTime(sim.created_at)}</td>
+                <td>${sim.direction === 'LONG' ? '做多' : sim.direction === 'SHORT' ? '做空' : '--'}</td>
                 <td>${dataManager.formatTime(sim.closed_at)}</td>
-                <td>${sim.exit_price ? dataManager.formatNumber(sim.exit_price) : '--'}</td>
+                <td>${sim.exit_price ? dataManager.formatPrice(sim.exit_price) : '--'}</td>
                 <td>${sim.exit_reason || '--'}</td>
                 <td>${sim.trigger_reason || '--'}</td>
                 <td class="${resultClass}">${profitLoss === '--' ? '--' : dataManager.formatNumber(profitLoss)}</td>
@@ -807,6 +809,7 @@ async function loadSimulationHistoryOnly(contentDiv, symbol) {
                 <th>止损距离</th>
                 <th>ATR值</th>
                 <th>入场时间</th>
+                <th>方向</th>
                 <th>出场时间</th>
                 <th>出场价格</th>
                 <th>出场原因</th>
@@ -832,16 +835,18 @@ async function loadSimulationHistoryOnly(contentDiv, symbol) {
       return `
                   <tr>
                     <td>${sim.symbol}</td>
-                    <td>${dataManager.formatNumber(sim.entry_price)}</td>
-                    <td>${dataManager.formatNumber(sim.stop_loss_price)}</td>
-                    <td>${dataManager.formatNumber(sim.take_profit_price)}</td>
+                    <td>${sim.direction === 'LONG' ? '做多' : sim.direction === 'SHORT' ? '做空' : '--'}</td>
+                    <td>${dataManager.formatPrice(sim.entry_price)}</td>
+                    <td>${dataManager.formatPrice(sim.stop_loss_price)}</td>
+                    <td>${dataManager.formatPrice(sim.take_profit_price)}</td>
                     <td>${sim.max_leverage}x</td>
                     <td>${dataManager.formatNumber(sim.min_margin)}</td>
                     <td>${sim.stop_loss_distance ? (sim.stop_loss_distance * 100).toFixed(2) + '%' : '--'}</td>
-                    <td>${sim.atr_value ? dataManager.formatNumber(sim.atr_value) : '--'}</td>
+                    <td>${sim.atr_value ? dataManager.formatPrice(sim.atr_value) : '--'}</td>
                     <td>${dataManager.formatTime(sim.created_at)}</td>
+                    <td>${sim.direction === 'LONG' ? '做多' : sim.direction === 'SHORT' ? '做空' : '--'}</td>
                     <td>${dataManager.formatTime(sim.closed_at)}</td>
-                    <td>${sim.exit_price ? dataManager.formatNumber(sim.exit_price) : '--'}</td>
+                    <td>${sim.exit_price ? dataManager.formatPrice(sim.exit_price) : '--'}</td>
                     <td>${sim.exit_reason || '--'}</td>
                     <td>${sim.trigger_reason || '--'}</td>
                     <td class="${resultClass}">${profitLoss === '--' ? '--' : dataManager.formatNumber(profitLoss)}</td>
@@ -931,10 +936,10 @@ async function loadExecutionDetails(contentDiv, symbol, signalData) {
               ${history.map(trade => `
                 <tr>
                   <td>${new Date(trade.created_at).toLocaleString()}</td>
-                  <td>${trade.trigger_reason.includes('LONG') ? '做多' : '做空'}</td>
-                  <td>${dataManager.formatNumber(trade.entry_price)}</td>
-                  <td>${dataManager.formatNumber(trade.stop_loss_price)}</td>
-                  <td>${dataManager.formatNumber(trade.take_profit_price)}</td>
+                  <td>${trade.direction === 'LONG' ? '做多' : trade.direction === 'SHORT' ? '做空' : '--'}</td>
+                  <td>${dataManager.formatPrice(trade.entry_price)}</td>
+                  <td>${dataManager.formatPrice(trade.stop_loss_price)}</td>
+                  <td>${dataManager.formatPrice(trade.take_profit_price)}</td>
                   <td>${trade.status === 'ACTIVE' ? '进行中' : trade.status}</td>
                 </tr>
               `).join('')}

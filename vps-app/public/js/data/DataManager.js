@@ -160,6 +160,12 @@ class DataManager {
     return num.toFixed(decimals);
   }
 
+  // 格式化价格（保留4位小数）
+  formatPrice(price) {
+    if (typeof price !== 'number' || isNaN(price)) return '0.0000';
+    return price.toFixed(4);
+  }
+
   // 格式化百分比
   formatPercentage(num, decimals = 1) {
     if (typeof num !== 'number' || isNaN(num)) return '0%';
