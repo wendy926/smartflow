@@ -373,6 +373,7 @@ class DataMonitor {
       try {
         const dbSymbols = await this.db.getCustomSymbols();
         allSymbols = dbSymbols.filter(symbol => symbol && symbol.trim() !== '');
+        console.log(`📊 从数据库获取到 ${allSymbols.length} 个交易对:`, allSymbols);
       } catch (error) {
         console.error('获取数据库交易对失败:', error);
       }
@@ -383,6 +384,7 @@ class DataMonitor {
       const statsSymbols = Array.from(this.symbolStats.keys()).filter(symbol => symbol && symbol.trim() !== '');
       const logSymbols = Array.from(this.analysisLogs.keys()).filter(symbol => symbol && symbol.trim() !== '');
       allSymbols = [...new Set([...statsSymbols, ...logSymbols])];
+      console.log(`📊 从统计中获取到 ${allSymbols.length} 个交易对:`, allSymbols);
     }
 
     // 计算实际的数据收集成功率
@@ -448,6 +450,12 @@ class DataMonitor {
     }
 
     const recentLogs = allSymbols.map(symbol => this.getAnalysisLog(symbol)).filter(log => log !== null);
+
+    // 确保allSymbols不为空
+    if (allSymbols.length === 0) {
+      console.log('⚠️ 没有找到任何交易对，使用recentLogs中的交易对');
+      allSymbols = recentLogs.map(log => log.symbol).filter(symbol => symbol && symbol.trim() !== '');
+    }
 
     const detailedStats = allSymbols.map(symbol => {
       const stats = this.symbolStats.get(symbol);
@@ -658,9 +666,11 @@ class DataMonitor {
     const cutoffTime = Date.now() - (2 * 60 * 60 * 1000); // 2小时前，更频繁清理
 
     // 清理分析日志
-    for (const [symbol, log] of this.analysisLogs.entries()) {
-      if (log.startTime < cutoffTime) {
-        this.analysisLogs.delete(symbol);
+    if (this.analysisLogs && this.analysisLogs.entries) {
+      for (const [symbol, log] of this.analysisLogs.entries()) {
+        if (log && log.startTime && log.startTime < cutoffTime) {
+          this.analysisLogs.delete(symbol);
+        }
       }
     }
 

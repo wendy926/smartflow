@@ -706,6 +706,76 @@ class SmartFlowServer {
     }
   }
 
+  // 获取所有信号数据
+  async getAllSignals() {
+    try {
+      const symbols = await this.db.getCustomSymbols();
+      const signals = [];
+
+      // 获取用户设置的最大损失金额
+      const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
+
+      for (const symbol of symbols) {
+        try {
+          // 只更新信号和执行数据，不重新计算趋势数据
+          const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
+
+          // 获取数据采集成功率
+          let dataCollectionRate = 0;
+          if (this.dataMonitor && this.dataMonitor.symbolStats) {
+            const stats = this.dataMonitor.symbolStats.get(symbol);
+            if (stats) {
+              dataCollectionRate = stats.dataCollectionAttempts > 0 ?
+                (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100 : 0;
+            }
+          }
+
+          // 存储策略分析结果到数据库
+          try {
+            await this.db.recordStrategyAnalysis(analysis);
+          } catch (dbError) {
+            console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
+          }
+
+          signals.push({
+            symbol,
+            // 使用新的策略分析结果结构
+            trend: analysis.trend,
+            trendStrength: analysis.trendStrength,
+            signal: analysis.signal,
+            signalStrength: analysis.signalStrength,
+            hourlyScore: analysis.hourlyScore,
+            execution: analysis.execution,
+            executionMode: analysis.executionMode,
+            modeA: analysis.modeA,
+            modeB: analysis.modeB,
+            entrySignal: analysis.entrySignal,
+            stopLoss: analysis.stopLoss,
+            takeProfit: analysis.takeProfit,
+            currentPrice: analysis.currentPrice,
+            dataCollectionRate: Math.round(dataCollectionRate),
+            // 交易执行详情
+            maxLeverage: analysis.maxLeverage,
+            minMargin: analysis.minMargin,
+            stopLossDistance: analysis.stopLossDistance,
+            atrValue: analysis.atrValue,
+            // 详细分析数据
+            dailyTrend: analysis.dailyTrend,
+            hourlyConfirmation: analysis.hourlyConfirmation,
+            execution15m: analysis.execution15m
+          });
+        } catch (error) {
+          console.error(`分析 ${symbol} 失败:`, error);
+        }
+      }
+
+      return signals;
+    } catch (error) {
+      console.error('获取信号失败:', error);
+      return [];
+    }
+  }
+
   /**
    * 检查并自动触发模拟交易
    * 当检测到新的入场执行信号时，自动启动模拟交易
@@ -715,8 +785,8 @@ class SmartFlowServer {
     try {
       console.log('🔍 开始检查自动触发模拟交易...');
 
-      // 获取当前所有信号
-      const signals = await this.getSignals();
+  // 获取当前所有信号
+  const signals = await this.getAllSignals();
 
       // 检查每个信号
       for (const signal of signals) {
