@@ -353,10 +353,10 @@ class DataMonitor {
     try {
       // 获取最新的策略分析结果
       const analysis = await db.runQuery(`
-        SELECT trend, signal, execution, execution_mode, created_at
+        SELECT trend, signal, execution, execution_mode, timestamp
         FROM strategy_analysis 
         WHERE symbol = ? 
-        ORDER BY created_at DESC 
+        ORDER BY timestamp DESC 
         LIMIT 1
       `, [symbol]);
 
@@ -367,7 +367,7 @@ class DataMonitor {
           signal: latest.signal,
           execution: latest.execution,
           executionMode: latest.execution_mode,
-          lastUpdate: latest.created_at
+          lastUpdate: latest.timestamp
         };
       }
     } catch (error) {
