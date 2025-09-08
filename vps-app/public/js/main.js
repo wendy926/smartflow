@@ -123,15 +123,13 @@ class SmartFlowApp {
         console.warn('⚠️ getUpdateTimes方法不存在，使用默认值');
       }
 
-      const [signals, history, stats] = await Promise.all([
+      const [signals, stats] = await Promise.all([
         dataManager.getAllSignals(),
-        dataManager.getSimulationHistory(),
         dataManager.getWinRateStats()
       ]);
 
       this.updateStatsDisplay(signals, stats);
       this.updateSignalsTable(signals);
-      this.updateSimulationTable(history);
 
       // 使用服务器返回的更新时间
       if (updateTimes) {
@@ -344,53 +342,6 @@ class SmartFlowApp {
     });
   }
 
-  updateSimulationTable(history) {
-    const tbody = document.getElementById('simulationTableBody');
-    tbody.innerHTML = '';
-
-    if (history.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="16" style="text-align: center; color: #6c757d;">暂无模拟交易记录</td></tr>';
-      return;
-    }
-
-    history.forEach(sim => {
-      const row = document.createElement('tr');
-
-      // 只有在交易结束时才显示盈亏和结果
-      let profitLoss = '--';
-      let resultClass = '';
-      let resultText = '--';
-
-      if (sim.status === 'CLOSED') {
-        profitLoss = sim.profit_loss || 0;
-        const isWin = sim.is_win;
-        resultClass = isWin ? 'signal-long' : 'signal-short';
-        resultText = isWin ? '盈利' : '亏损';
-      } else if (sim.status === 'ACTIVE') {
-        resultText = '进行中';
-      }
-
-      row.innerHTML = `
-                <td>${sim.symbol}</td>
-                <td>${sim.direction === 'LONG' ? '做多' : sim.direction === 'SHORT' ? '做空' : '--'}</td>
-                <td>${dataManager.formatPrice(sim.entry_price)}</td>
-                <td>${dataManager.formatPrice(sim.stop_loss_price)}</td>
-                <td>${dataManager.formatPrice(sim.take_profit_price)}</td>
-                <td>${sim.max_leverage}x</td>
-                <td>${dataManager.formatNumber(sim.min_margin)}</td>
-                <td>${sim.stop_loss_distance ? (sim.stop_loss_distance * 100).toFixed(2) + '%' : '--'}</td>
-                <td>${sim.atr_value ? dataManager.formatPrice(sim.atr_value) : '--'}</td>
-                <td>${dataManager.formatTime(sim.created_at)}</td>
-                <td>${dataManager.formatTime(sim.closed_at)}</td>
-                <td>${sim.exit_price ? dataManager.formatPrice(sim.exit_price) : '--'}</td>
-                <td>${sim.exit_reason || '--'}</td>
-                <td>${sim.trigger_reason || '--'}</td>
-                <td class="${resultClass}">${profitLoss === '--' ? '--' : dataManager.formatNumber(profitLoss)}</td>
-                <td class="${resultClass}">${resultText}</td>
-            `;
-      tbody.appendChild(row);
-    });
-  }
 
   showLoading(show) {
     this.isLoading = show;
@@ -434,15 +385,13 @@ class SmartFlowApp {
     this.monitoringInterval = setInterval(async () => {
       try {
         // 静默刷新监控数据，不显示加载状态和消息
-        const [signals, history, stats] = await Promise.all([
+        const [signals, stats] = await Promise.all([
           dataManager.getAllSignals(),
-          dataManager.getSimulationHistory(),
           dataManager.getWinRateStats()
         ]);
 
         this.updateStatsDisplay(signals, stats);
         this.updateSignalsTable(signals);
-        this.updateSimulationTable(history);
 
         console.log('监控数据静默刷新完成');
       } catch (error) {
@@ -1819,15 +1768,6 @@ async function removeCustomSymbol(symbol) {
   }
 }
 
-function toggleSimulationHistory() {
-  const table = document.getElementById('simulationTable').closest('.table-container');
-  if (table.style.display === 'none') {
-    table.style.display = 'block';
-    app.loadAllData();
-  } else {
-    table.style.display = 'none';
-  }
-}
 
 // 检查表格是否需要横向滚动
 function checkTableScrollability() {

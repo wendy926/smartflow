@@ -7,14 +7,18 @@
     <title>斐波拉契滚仓计算器 - SmartFlow</title>
     <link rel="stylesheet" href="css/main.css">
     <style>
-        /* 斐波拉契滚仓计算器特定样式 */
-        .calculator-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+        /* 独立页面样式 */
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .calculator-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .calculator-header {
@@ -22,15 +26,18 @@
             color: white;
             padding: 30px;
             text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .calculator-header h1 {
+            margin: 0 0 10px 0;
             font-size: 2.5rem;
-            margin-bottom: 10px;
+            font-weight: 600;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .calculator-header p {
+            margin: 0;
             font-size: 1.1rem;
             opacity: 0.9;
         }
@@ -60,16 +67,24 @@
         }
 
         .calculator-content {
+            flex: 1;
             padding: 30px;
-        }
-
-        .container {
             max-width: 1200px;
             margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .calculator-container {
             background: white;
             border-radius: 15px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+        }
+
+
+        .calculator-container .calculator-content {
+            padding: 30px;
         }
 
         .header {
@@ -551,17 +566,17 @@
 </head>
 
 <body>
-    <div class="container">
-        <div class="calculator-container">
-            <header class="calculator-header">
-                <h1>📊 斐波拉契滚仓计算器</h1>
-                <p>基于0.618黄金回调法的滚仓策略计算</p>
-                <div class="header-controls">
-                    <a href="index.html" class="back-btn">← 返回主页</a>
-                </div>
-            </header>
+    <div class="calculator-page">
+        <header class="calculator-header">
+            <h1>📊 斐波拉契滚仓计算器</h1>
+            <p>基于0.618黄金回调法的滚仓策略计算</p>
+            <div class="header-controls">
+                <a href="index.html" class="back-btn">← 返回主页</a>
+            </div>
+        </header>
 
-            <div class="calculator-content">
+        <div class="calculator-content">
+            <div class="calculator-container">
                 <form id="rollupForm" class="input-form">
                     <div class="input-group">
                         <label for="maxLossAmount">最大损失金额 (U)</label>
@@ -875,8 +890,9 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <script src="rollup-calculator.js"></script>
+    <script src="rollup-calculator.js"></script>
 </body>
 
 </html>
