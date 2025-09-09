@@ -235,11 +235,19 @@ class StrategyV3Execution {
 
     // 计算止损和止盈
     let stopLoss, takeProfit;
+    
+    // 确保ATR值有效，如果为空则使用默认值
+    const effectiveATR = atr14 && atr14 > 0 ? atr14 : entryPrice * 0.01; // 默认1%的ATR
+    
     if (position === 'LONG') {
-      stopLoss = Math.min(setupCandleLow, entryPrice - 1.2 * atr14);
+      // 做多：止损价低于入场价
+      const stopLossByATR = entryPrice - 1.2 * effectiveATR;
+      stopLoss = setupCandleLow ? Math.min(setupCandleLow, stopLossByATR) : stopLossByATR;
       takeProfit = entryPrice + 2 * (entryPrice - stopLoss);
     } else {
-      stopLoss = Math.max(setupCandleHigh, entryPrice + 1.2 * atr14);
+      // 做空：止损价高于入场价
+      const stopLossByATR = entryPrice + 1.2 * effectiveATR;
+      stopLoss = setupCandleHigh ? Math.max(setupCandleHigh, stopLossByATR) : stopLossByATR;
       takeProfit = entryPrice - 2 * (stopLoss - entryPrice);
     }
 
