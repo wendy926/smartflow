@@ -157,7 +157,7 @@ class SmartFlowServer {
         for (const symbol of symbols) {
           try {
             // 只更新信号和执行数据，不更新趋势数据
-            const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
+            const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
             // 存储策略分析结果到数据库
             try {
@@ -786,7 +786,7 @@ class SmartFlowServer {
 
       for (const symbol of symbols) {
         try {
-          const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
+          const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
           // 存储策略分析结果到数据库
           try {
@@ -816,7 +816,7 @@ class SmartFlowServer {
     try {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
-      const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
+      const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
       // 存储策略分析结果到数据库
       try {
@@ -842,7 +842,7 @@ class SmartFlowServer {
     try {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
-      const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
+      const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
       // 存储策略分析结果到数据库
       try {
@@ -868,7 +868,7 @@ class SmartFlowServer {
     try {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
-      const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
+      const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
       // 存储策略分析结果到数据库
       try {
@@ -1095,7 +1095,7 @@ class SmartFlowServer {
       for (const symbol of symbols) {
         try {
           // 只更新信号和执行数据，不重新计算趋势数据
-          const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
+          const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
           // 获取数据采集成功率
           let dataCollectionRate = 0;
