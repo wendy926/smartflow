@@ -78,7 +78,27 @@ class SmartFlowServer {
             // 使用V3策略进行分析
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
-            // 获取数据采集成功率 - 使用与监控中心相同的数据源
+            // 存储到监控系统用于数据验证 - 先记录分析日志
+            if (this.dataMonitor) {
+              this.dataMonitor.recordAnalysisLog(symbol, {
+                success: true,
+                symbol,
+                phases: {
+                  dataCollection: { success: true },
+                  signalAnalysis: { success: true },
+                  simulationTrading: { success: true }
+                },
+                trend: analysis.trend4h,
+                signal: analysis.signal,
+                execution: analysis.execution,
+                executionMode: analysis.executionMode,
+                hourlyScore: analysis.score1h,
+                modeA: analysis.modeA,
+                modeB: analysis.modeB
+              });
+            }
+
+            // 获取数据采集成功率 - 在记录分析日志后计算
             let dataCollectionRate = 0;
             if (this.dataMonitor) {
               // 确保统计数据是最新的
@@ -108,46 +128,6 @@ class SmartFlowServer {
               marketType: analysis.marketType
             });
 
-            // 存储到监控系统用于数据验证
-            if (this.dataMonitor) {
-              this.dataMonitor.recordAnalysisLog(symbol, {
-                success: true,
-                symbol,
-                phases: {
-                  dataCollection: { success: true },
-                  signalAnalysis: { success: true },
-                  simulationTrading: { success: true }
-                },
-                rawData: {}, // V3策略不提供rawData
-                indicators: {
-                  'ma20': { value: analysis.ma20 },
-                  'ma50': { value: analysis.ma50 },
-                  'ma200': { value: analysis.ma200 },
-                  'vwap': { value: analysis.vwap },
-                  'adx14': { value: analysis.adx14 },
-                  'bbw': { value: analysis.bbw }
-                },
-                signals: {
-                  trend: analysis.trend4h,
-                  signal: analysis.signal,
-                  execution: analysis.execution
-                },
-                simulation: {},
-                errors: [],
-                totalTime: 0,
-                // V3策略特有字段
-                strategyVersion: 'V3',
-                marketType: analysis.marketType,
-                score1h: analysis.score1h,
-                vwapDirectionConsistent: analysis.vwapDirectionConsistent,
-                factors: analysis.factors,
-                vol15mRatio: analysis.vol15mRatio,
-                vol1hRatio: analysis.vol1hRatio,
-                oiChange6h: analysis.oiChange6h,
-                fundingRate: analysis.fundingRate,
-                deltaImbalance: analysis.deltaImbalance
-              });
-            }
 
             signals.push({
               symbol,
