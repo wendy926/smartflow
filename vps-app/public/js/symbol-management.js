@@ -18,11 +18,11 @@ class SymbolManagement {
       // 加载当前已添加的交易对
       await this.loadCurrentSymbols();
       
-      // 加载交易次数统计
-      await this.loadTradeCounts();
-      
-      // 加载各类交易对数据
-      await this.loadAllCategories();
+      // 并行加载交易次数统计和各类交易对数据
+      await Promise.all([
+        this.loadTradeCounts(),
+        this.loadAllCategories()
+      ]);
     } catch (error) {
       console.error('初始化失败:', error);
       this.showError('初始化失败: ' + error.message);
@@ -84,6 +84,10 @@ class SymbolManagement {
     for (const category of categories) {
       await this.loadCategory(category);
     }
+    
+    // 确保所有分类加载完成后，重新渲染所有分类以显示交易统计
+    console.log('所有分类加载完成，重新渲染所有分类');
+    this.updateAllCategoryDisplays();
   }
 
   async loadCategory(category) {
@@ -209,6 +213,16 @@ class SymbolManagement {
     const categories = ['mainstream', 'highcap', 'trending', 'smallcap'];
     categories.forEach(category => {
       if (this.symbolData[category].length > 0) {
+        this.renderCategory(category, this.symbolData[category]);
+      }
+    });
+  }
+
+  updateAllCategoryDisplays() {
+    const categories = ['mainstream', 'highcap', 'trending', 'smallcap'];
+    categories.forEach(category => {
+      if (this.symbolData[category].length > 0) {
+        console.log(`重新渲染 ${category} 分类`);
         this.renderCategory(category, this.symbolData[category]);
       }
     });
