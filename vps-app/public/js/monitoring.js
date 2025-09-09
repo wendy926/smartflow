@@ -172,7 +172,7 @@ function updateSystemOverview(data) {
   document.getElementById('healthySymbols').textContent = data.summary.healthySymbols || '--';
   document.getElementById('warningSymbols').textContent = data.summary.warningSymbols || '--';
   document.getElementById('errorSymbols').textContent = data.summary.errorSymbols || '0';
-  
+
   // 告警总数（从数据验证和数据质量错误计算）
   const totalAlerts = (data.summary.dataValidation?.errorCount || 0) + (data.summary.dataQuality?.issueCount || 0);
   document.getElementById('totalAlerts').textContent = totalAlerts;
@@ -180,18 +180,18 @@ function updateSystemOverview(data) {
   // 指标维度数据
   const completionRates = data.summary.completionRates || {};
   document.getElementById('dataCollectionRate').textContent = `${completionRates.dataCollection || 0}%`;
-  
+
   // 数据验证状态
   const dataValidation = data.summary.dataValidation || {};
   const validationStatus = dataValidation.hasErrors ? '❌ 异常' : '✅ 正常';
   const validationDetails = dataValidation.hasErrors ? `(${dataValidation.errorCount}个错误)` : '';
   document.getElementById('dataValidationStatus').textContent = validationStatus;
   document.getElementById('dataValidationIndicator').textContent = validationDetails;
-  
+
   // 模拟交易完成率
   const simulationRate = completionRates.simulationTrading || 0;
   document.getElementById('simulationCompletionRate').textContent = `${simulationRate}%`;
-  
+
   // 计算模拟交易完成次数/总次数
   let totalTriggers = 0;
   let totalCompletions = 0;
@@ -202,7 +202,7 @@ function updateSystemOverview(data) {
     });
   }
   document.getElementById('simulationCompletionDetails').textContent = `${totalCompletions}/${totalTriggers}`;
-  
+
   // 更新数据收集率状态指示器
   updateStatusIndicator('dataCollectionStatus', completionRates.dataCollection || 0);
 }

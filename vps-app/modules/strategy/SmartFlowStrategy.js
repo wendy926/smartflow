@@ -191,7 +191,6 @@ class SmartFlowStrategy {
    */
   static async analyzeHourlyConfirmation(symbol, trend, symbolData = null) {
     try {
-      console.log(`🔍 [${symbol}] 开始获取小时级数据...`);
       const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '1h', 50);
       const funding = symbolData?.funding || await BinanceAPI.getFundingRate(symbol);
       const openInterestHist = symbolData?.openInterestHist || await BinanceAPI.getOpenInterestHist(symbol, '1h', 6);
@@ -341,6 +340,7 @@ class SmartFlowStrategy {
   /**
    * 15分钟级别入场判断 - 多头回踩突破和空头反抽破位
    * 严格按照strategy-v2.md中的calculateEntry15m函数实现
+   * 前提条件：4H趋势明确 + 1H VWAP方向一致且1H得分≥3分
    * @param {string} symbol - 交易对
    * @param {string} trend - 4H级别趋势结果
    * @param {number} score - 小时级得分
@@ -375,7 +375,7 @@ class SmartFlowStrategy {
       const oiChange6h = openInterestHist && openInterestHist.length > 1 ?
         (openInterestHist[openInterestHist.length - 1].sumOpenInterest - openInterestHist[0].sumOpenInterest) / openInterestHist[0].sumOpenInterest : 0;
 
-      // 严格按照文档中的calculateEntryAndRisk函数实现
+      // 严格按照文档中的calculateEntry15m函数实现
       const last = klinesObjects[klinesObjects.length - 1];
       const prev = klinesObjects[klinesObjects.length - 2]; // setup candle
       const lastClose = last.close;
@@ -389,24 +389,12 @@ class SmartFlowStrategy {
       let takeProfit = null;
       let mode = null;
 
-      // 只在明确趋势且打分足够时考虑入场（按照strategy-v2.md：总分≥3分）
+      // === 过滤条件：严格按照文档要求 ===
+      // 必须4H趋势明确 + 1H得分≥3分，才考虑入场
       if (trend === "震荡/无趋势" || score < 3) {
-        console.log(`⚠️ 不满足入场条件 [${symbol}]:`, { trend, score });
         return { entrySignal, stopLoss, takeProfit, mode, dataValid: true };
       }
 
-      console.log(`🔍 开始计算入场信号 [${symbol}]:`, {
-        trend,
-        score,
-        lastClose,
-        lastHigh,
-        lastLow,
-        setupHigh,
-        setupLow,
-        supportLevel: Math.min(ema20[ema20.length - 1], ema50[ema50.length - 1]),
-        resistanceLevel: Math.max(ema20[ema20.length - 1], ema50[ema50.length - 1]),
-        oiChange6h: (oiChange6h * 100).toFixed(2) + '%'
-      });
 
       // === 多头模式：回踩确认 ===
       if (trend === "多头趋势" && oiChange6h >= 0.02) {
@@ -418,7 +406,6 @@ class SmartFlowStrategy {
           stopLoss = Math.min(setupLow, lastClose - 1.2 * lastATR);
           takeProfit = entrySignal + 2 * (entrySignal - stopLoss);
           mode = "多头回踩突破";
-          console.log(`✅ 多头模式触发 [${symbol}]:`, { entrySignal, stopLoss, takeProfit });
         }
       }
 
@@ -433,7 +420,6 @@ class SmartFlowStrategy {
           // 空头模式：止盈1.2R-1.5R，这里取1.2R作为保守策略
           takeProfit = entrySignal - 1.2 * (stopLoss - entrySignal);
           mode = "空头反抽破位";
-          console.log(`✅ 空头模式触发 [${symbol}]:`, { entrySignal, stopLoss, takeProfit });
         }
       }
 
@@ -444,34 +430,12 @@ class SmartFlowStrategy {
       let atrValue = lastATR;
 
       if (entrySignal && stopLoss) {
-        console.log(`🔍 开始计算 [${symbol}]:`, {
-          entrySignal,
-          stopLoss,
-          trend,
-          hasEntrySignal: !!entrySignal,
-          hasStopLoss: !!stopLoss
-        });
-
         // 计算止损距离X%
         if (trend === "多头趋势") {
           stopLossDistance = (entrySignal - stopLoss) / entrySignal;
         } else if (trend === "空头趋势") {
           stopLossDistance = (stopLoss - entrySignal) / entrySignal;
         }
-
-        console.log(`🔍 止损距离计算 [${symbol}]:`, {
-          trend,
-          stopLossDistance,
-          isPositive: stopLossDistance > 0
-        });
-
-        console.log(`📊 计算杠杆和保证金 [${symbol}]:`, {
-          entrySignal,
-          stopLoss,
-          trend,
-          stopLossDistance: (stopLossDistance * 100).toFixed(2) + '%',
-          maxLossAmount
-        });
 
         // 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
         if (stopLossDistance > 0) {
@@ -483,19 +447,6 @@ class SmartFlowStrategy {
           minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
         }
 
-        console.log(`📊 计算结果 [${symbol}]:`, {
-          maxLeverage,
-          minMargin,
-          stopLossDistance: (stopLossDistance * 100).toFixed(2) + '%',
-          atrValue
-        });
-      } else {
-        console.log(`⚠️ 缺少必要数据 [${symbol}]:`, {
-          entrySignal,
-          stopLoss,
-          hasEntrySignal: !!entrySignal,
-          hasStopLoss: !!stopLoss
-        });
       }
 
       return {
@@ -568,11 +519,6 @@ class SmartFlowStrategy {
       // 1. 先进行4H级别趋势判断
       try {
         trend4h = await this.analyze4HTrend(symbol, { klines: trend4hKlines });
-        console.log(`✅ 4H级别趋势分析完成 [${symbol}]:`, {
-          trend: trend4h.trend,
-          trendStrength: trend4h.trendStrength,
-          dataValid: trend4h.dataValid
-        });
       } catch (error) {
         console.error(`❌ 4H级别趋势分析失败 [${symbol}]:`, error.message);
         trend4h = { trend: 'UNKNOWN', trendStrength: 'WEAK', ma20: 0, ma50: 0, ma200: 0, dataValid: false };
@@ -580,14 +526,7 @@ class SmartFlowStrategy {
 
       // 2. 基于4H级别趋势结果进行小时级趋势加强判断
       try {
-        console.log(`🔍 开始分析小时确认 [${symbol}]...`);
         hourlyConfirmation = await this.analyzeHourlyConfirmation(symbol, trend4h.trend, symbolData);
-        console.log(`✅ 小时确认分析成功 [${symbol}]:`, {
-          score: hourlyConfirmation.score,
-          action: hourlyConfirmation.action,
-          signalStrength: hourlyConfirmation.signalStrength,
-          dataValid: hourlyConfirmation.dataValid
-        });
       } catch (error) {
         console.error(`❌ 小时确认分析失败 [${symbol}]: ${error.message}`);
         this.dataMonitor.recordDataQualityIssue(symbol, '小时确认分析', error.message);
@@ -603,17 +542,7 @@ class SmartFlowStrategy {
 
       // 3. 基于4H级别趋势和小时级得分进行15分钟入场判断
       try {
-        console.log(`🔍 开始分析15分钟执行 [${symbol}]...`);
         execution15m = await this.analyze15mExecution(symbol, trend4h.trend, hourlyConfirmation.score, symbolData, maxLossAmount);
-        console.log(`✅ 15分钟执行分析成功 [${symbol}]:`, {
-          entrySignal: execution15m.entrySignal,
-          mode: execution15m.mode,
-          maxLeverage: execution15m.maxLeverage,
-          minMargin: execution15m.minMargin,
-          stopLossDistance: execution15m.stopLossDistance,
-          atrValue: execution15m.atrValue,
-          dataValid: execution15m.dataValid
-        });
       } catch (error) {
         console.error(`❌ 15分钟执行分析失败 [${symbol}]:`, error.message);
         execution15m = {
@@ -671,17 +600,6 @@ class SmartFlowStrategy {
         }
       }
 
-      // 调试：显示execution15m对象内容
-      console.log(`🔍 analyzeAll中execution15m对象 [${symbol}]:`, {
-        entrySignal: execution15m?.entrySignal,
-        stopLoss: execution15m?.stopLoss,
-        takeProfit: execution15m?.takeProfit,
-        maxLeverage: execution15m?.maxLeverage,
-        minMargin: execution15m?.minMargin,
-        stopLossDistance: execution15m?.stopLossDistance,
-        atrValue: execution15m?.atrValue,
-        mode: execution15m?.mode
-      });
 
       // 记录信号
       this.dataMonitor.recordSignal(symbol, '综合分析', {
