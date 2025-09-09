@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>胜率统计测试</title>
+</head>
+<body>
+    <h1>胜率统计测试</h1>
+    <div id="result"></div>
+    
+    <script>
+        async function testWinRate() {
+            try {
+                console.log('开始测试胜率统计API...');
+                const response = await fetch('/api/win-rate-stats');
+                const data = await response.json();
+                console.log('API响应:', data);
+                
+                document.getElementById('result').innerHTML = `
+                    <h2>API响应结果：</h2>
+                    <p>总交易数: ${data.total_trades}</p>
+                    <p>盈利交易数: ${data.winning_trades}</p>
+                    <p>亏损交易数: ${data.losing_trades}</p>
+                    <p>胜率: ${data.win_rate}%</p>
+                    <p>最后更新: ${data.last_updated}</p>
+                `;
+            } catch (error) {
+                console.error('API调用失败:', error);
+                document.getElementById('result').innerHTML = `<p style="color: red;">API调用失败: ${error.message}</p>`;
+            }
+        }
+        
+        // 页面加载时自动测试
+        window.onload = testWinRate;
+    </script>
+</body>
+</html>
