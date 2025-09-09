@@ -1043,9 +1043,18 @@ class SmartFlowServer {
 
       console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode}`);
 
-      // 检查是否有入场执行信号（仅记录，不自动触发）
+      // 检查是否有入场执行信号，如果有则检查条件后触发模拟交易
       if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
-        console.log(`🚀 检测到入场执行信号: ${symbol} - ${analysis.execution} (已禁用自动触发)`);
+        console.log(`🚀 检测到入场执行信号: ${symbol} - ${analysis.execution}`);
+        
+        // 检查是否满足触发条件：该交易对没有进行中的模拟交易
+        const canTrigger = await this.checkSimulationTriggerConditions(symbol, analysis);
+        if (canTrigger) {
+          console.log(`✅ 满足触发条件，开始模拟交易: ${symbol}`);
+          await this.triggerSimulationWithRetry(symbol, analysis);
+        } else {
+          console.log(`⏭️ 跳过模拟交易触发: ${symbol} - 不满足触发条件`);
+        }
       }
     } catch (error) {
       console.error(`执行更新失败 [${symbol}]:`, error);
