@@ -81,7 +81,7 @@ async function loadMonitoringData() {
   }
 }
 
-// 刷新监控数据
+// 刷新监控数据（合并了强制刷新表格功能）
 async function refreshMonitoringData() {
   const refreshBtn = document.querySelector('.header-controls .btn');
   const originalText = refreshBtn.textContent;
@@ -91,6 +91,13 @@ async function refreshMonitoringData() {
 
   try {
     await loadMonitoringData();
+    
+    // 强制刷新表格数据
+    if (currentMonitoringData && currentMonitoringData.detailedStats) {
+      console.log('📊 强制刷新表格数据...');
+      updateSummaryTable(currentMonitoringData);
+    }
+    
     showSuccessMessage('数据刷新成功');
   } catch (error) {
     showErrorMessage('数据刷新失败: ' + error.message);
