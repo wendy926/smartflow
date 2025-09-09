@@ -105,12 +105,30 @@ class BinanceAPI {
     const { default: fetch } = await import('node-fetch');
     const url = `${this.BASE_URL}${endpoint}`;
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Binance API 错误: ${response.status} ${response.statusText}`);
-    }
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Binance API 错误: ${response.status} ${response.statusText}`;
+        
+        // 检查是否是地理位置限制错误
+        if (response.status === 403 && errorText.includes('restricted location')) {
+          errorMessage = `交易对 ${symbol} 在当前位置无法访问 (地理位置限制)`;
+        } else if (response.status === 400 && errorText.includes('Invalid symbol')) {
+          errorMessage = `交易对 ${symbol} 不存在或已下架`;
+        }
+        
+        throw new Error(errorMessage);
+      }
 
-    return await response.json();
+      return await response.json();
+    } catch (error) {
+      // 如果是网络错误或其他异常
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`网络连接失败，无法访问Binance API (${symbol})`);
+      }
+      throw error;
+    }
   }
 }
 

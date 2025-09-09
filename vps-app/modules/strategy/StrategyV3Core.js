@@ -235,7 +235,18 @@ class StrategyV3Core {
 
     } catch (error) {
       console.error(`4H趋势分析失败 [${symbol}]:`, error);
-      return { trend4h: 'NONE', marketType: 'NONE', error: error.message };
+      
+      // 根据错误类型提供更详细的错误信息
+      let errorMessage = error.message;
+      if (error.message.includes('地理位置限制')) {
+        errorMessage = `交易对 ${symbol} 在VPS位置无法访问，建议移除该交易对`;
+      } else if (error.message.includes('不存在或已下架')) {
+        errorMessage = `交易对 ${symbol} 不存在或已下架，建议移除该交易对`;
+      } else if (error.message.includes('网络连接失败')) {
+        errorMessage = `网络连接失败，无法获取 ${symbol} 数据`;
+      }
+      
+      return { trend4h: 'NONE', marketType: 'NONE', error: errorMessage };
     }
   }
 
