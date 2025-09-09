@@ -101,6 +101,8 @@ class SmartFlowApp {
   async loadInitialData() {
     try {
       this.showLoading(true);
+      // 清除所有缓存，强制刷新数据
+      dataManager.clearCache();
       await this.loadAllData();
     } catch (error) {
       console.error('加载初始数据失败:', error);
@@ -157,7 +159,7 @@ class SmartFlowApp {
       }
 
       const [signals, stats] = await Promise.all([
-        dataManager.getAllSignals(),
+        dataManager.getAllSignals(true), // 强制刷新信号数据
         dataManager.refreshWinRateStats() // 强制刷新胜率统计
       ]);
 
@@ -2054,3 +2056,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.app = new SmartFlowApp();
 });
+
+// 刷新数据函数
+async function refreshData() {
+  try {
+    console.log('🔄 手动刷新数据...');
+    // 清除所有缓存
+    dataManager.clearCache();
+    // 重新加载数据
+    await app.loadAllData();
+    console.log('✅ 数据刷新完成');
+  } catch (error) {
+    console.error('刷新数据失败:', error);
+    modal.showMessage('刷新数据失败: ' + error.message, 'error');
+  }
+}
