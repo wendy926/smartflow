@@ -686,8 +686,8 @@ class DataMonitor {
         totalErrors: totalErrors, // 添加总错误数
         overallHealth: totalErrors > 0 ? 'ERROR' : (errorSymbols > 0 ? 'WARNING' : 'HEALTHY'),
         completionRates: {
-          dataCollection: actualDataCollectionRate,
-          signalAnalysis: actualSignalAnalysisRate,
+          dataCollection: this.completionRates.dataCollection,
+          signalAnalysis: this.completionRates.signalAnalysis,
           simulationTrading: this.completionRates.simulationTrading
         },
         // 保留原始统计数据用于调试
