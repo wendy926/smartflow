@@ -42,7 +42,9 @@ class SymbolManagement {
 
   async loadTradeCounts() {
     try {
+      console.log('开始加载交易次数统计...');
       const counts = await this.apiClient.getSymbolTradeCounts();
+      console.log('获取到的交易次数数据:', counts);
       this.tradeCounts.clear();
       counts.forEach(count => {
         this.tradeCounts.set(count.symbol, {
@@ -50,6 +52,7 @@ class SymbolManagement {
           weekly: count.weekly_count || 0
         });
       });
+      console.log('交易次数统计加载完成:', this.tradeCounts);
     } catch (error) {
       console.error('加载交易次数统计失败:', error);
       // 不显示错误，因为这是可选功能
@@ -126,6 +129,7 @@ class SymbolManagement {
       const marketCapText = this.formatMarketCap(symbol.marketCap);
       const priceText = this.formatPrice(symbol.price);
       const tradeStats = this.tradeCounts.get(symbol.symbol) || { daily: 0, weekly: 0 };
+      console.log(`渲染 ${symbol.symbol}，交易统计:`, tradeStats);
 
       return `
         <div class="symbol-card ${isAdded ? 'added' : ''}">
