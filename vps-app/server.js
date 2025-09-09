@@ -264,6 +264,18 @@ class SmartFlowServer {
       }
     });
 
+    // 手动更新胜率统计（调试用）
+    this.app.post('/api/update-win-rate-stats', async (req, res) => {
+      try {
+        await this.simulationManager.updateWinRateStats();
+        const stats = await this.simulationManager.getWinRateStats();
+        res.json({ success: true, stats });
+      } catch (error) {
+        console.error('更新胜率统计失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 获取Delta数据
     this.app.get('/api/delta-data', async (req, res) => {
       try {
