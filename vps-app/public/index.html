@@ -115,17 +115,18 @@
 
       <div class="strategy-overview">
         <h3>🎯 系统结构（3层共振）</h3>
-        <p>天级趋势判断（日线） → 小时级趋势加强判断（1H） → 15分钟级别入场判断（15m）</p>
-        <p><strong>依赖关系：</strong> 趋势加强判断依赖趋势列结果，入场执行判断依赖趋势列和信号列结果</p>
+        <p>4H级趋势判断（4H） → 1H级多因子打分（1H） → 15分钟级别入场判断（15m）</p>
+        <p><strong>依赖关系：</strong> 1H打分依赖4H趋势结果，15m入场判断依赖4H趋势和1H打分结果</p>
+        <p><strong>更新频率：</strong> 4H趋势每1小时更新，1H打分每5分钟更新，15m入场每2分钟更新</p>
       </div>
 
       <div class="strategy-details">
         <div class="strategy-phase">
-          <h3>📈 1. 天级趋势判断（日线）</h3>
+          <h3>📈 1. 4H级趋势判断（4H）</h3>
           <div class="phase-content">
             <h4>数据来源：</h4>
             <ul>
-              <li><strong>K线数据：</strong> Binance Futures API `/fapi/v1/klines?symbol={symbol}&interval=1d&limit=250`
+              <li><strong>K线数据：</strong> Binance Futures API `/fapi/v1/klines?symbol={symbol}&interval=4h&limit=250`
               </li>
             </ul>
 
@@ -134,21 +135,22 @@
               <li><strong>MA20：</strong> SMA(收盘价, 20) = Σ(收盘价[i-19:i]) / 20</li>
               <li><strong>MA50：</strong> SMA(收盘价, 50) = Σ(收盘价[i-49:i]) / 50</li>
               <li><strong>MA200：</strong> SMA(收盘价, 200) = Σ(收盘价[i-199:i]) / 200</li>
+              <li><strong>ADX：</strong> 平均方向指数，使用Wilder平滑法计算，周期14</li>
               <li><strong>BBW（布林带带宽）：</strong> (上轨 - 下轨) / 中轨，其中中轨 = MA20，上下轨 = 中轨 ± 2×标准差</li>
             </ul>
 
             <h4>判断逻辑：</h4>
             <ul>
-              <li><strong>多头趋势基础条件：</strong> 收盘价 > MA200 且 MA20 > MA50</li>
-              <li><strong>空头趋势基础条件：</strong> 收盘价 < MA200 且 MA20 < MA50</li>
-              <li><strong>趋势强度条件：</strong> BBW扩张（最新BBW > 前一个BBW）</li>
+              <li><strong>多头趋势基础条件：</strong> 收盘价 > MA20 且 MA20 > MA50 且 MA50 > MA200</li>
+              <li><strong>空头趋势基础条件：</strong> 收盘价 < MA20 且 MA20 < MA50 且 MA50 < MA200</li>
+              <li><strong>趋势强度条件：</strong> ADX > 20 或 BBW扩张（最近20根K线后半段平均宽度 > 前半段平均宽度 × 1.15）</li>
               <li><strong>最终判断：</strong> 基础条件 + 强度条件 = 强趋势，仅基础条件 = 弱趋势</li>
             </ul>
           </div>
         </div>
 
         <div class="strategy-phase">
-          <h3>⏰ 2. 小时级趋势加强判断（1H）</h3>
+          <h3>⏰ 2. 1H级多因子打分（1H）</h3>
           <div class="phase-content">
             <h4>数据来源：</h4>
             <ul>
@@ -156,24 +158,26 @@
               <li><strong>24小时行情：</strong> `/fapi/v1/ticker/24hr?symbol={symbol}`</li>
               <li><strong>资金费率：</strong> `/fapi/v1/fundingRate?symbol={symbol}&limit=1`</li>
               <li><strong>持仓量历史：</strong> `/futures/data/openInterestHist?symbol={symbol}&period=1h&limit=6`</li>
+              <li><strong>Delta数据：</strong> WebSocket实时数据，计算买卖盘不平衡</li>
             </ul>
 
             <h4>多因子打分系统（0-6分）：</h4>
             <ul>
-              <li><strong>VWAP方向（1分）：</strong> 收盘价 > VWAP（多头趋势）或 收盘价 < VWAP（空头趋势）</li>
+              <li><strong>VWAP方向（必须满足）：</strong> 收盘价 > VWAP（多头趋势）或 收盘价 < VWAP（空头趋势）</li>
               <li><strong>突破结构（1分）：</strong> 收盘价突破最近20根K线高点（多头）或低点（空头）</li>
               <li><strong>成交量确认（1分）：</strong> 当前成交量 ≥ 1.5 × 20期平均成交量</li>
               <li><strong>OI确认（1分）：</strong> OI 6小时变动 ≥ +2%（多头）或 ≤ -2%（空头）</li>
               <li><strong>资金费率（1分）：</strong> |资金费率| ≤ 0.15%/8h</li>
-              <li><strong>Delta确认（1分）：</strong> 收盘价 > 开盘价（多头）或 收盘价 < 开盘价（空头）</li>
+              <li><strong>Delta确认（1分）：</strong> 15m Delta > 过去20根平均Delta的2倍</li>
             </ul>
 
             <h4>判断逻辑：</h4>
             <ul>
-              <li><strong>得分 ≥ 4分：</strong> 强信号，可进入15分钟观察</li>
-              <li><strong>得分 2-3分：</strong> 中等信号，谨慎观察</li>
-              <li><strong>得分 < 2分：</strong> 弱信号，观望</li>
-              <li><strong>最终action：</strong> 得分 ≥ 4分时，多头趋势→做多，空头趋势→做空</li>
+              <li><strong>VWAP方向必须满足，否则得分=0</strong></li>
+              <li><strong>得分 ≥ 5分：</strong> 强信号（STRONG）</li>
+              <li><strong>得分 3-4分：</strong> 中等信号（MODERATE）</li>
+              <li><strong>得分 < 3分：</strong> 无信号（NONE）</li>
+              <li><strong>最终action：</strong> 得分 ≥ 3分时，多头趋势→做多，空头趋势→做空</li>
             </ul>
           </div>
         </div>
@@ -193,19 +197,19 @@
               <li><strong>ATR14：</strong> ATR(14) = SMA(真实波幅, 14)，真实波幅 = max(最高价-最低价, |最高价-前收盘价|, |最低价-前收盘价|)</li>
             </ul>
 
-            <h4>入场模式：</h4>
+            <h4>入场模式（分离多头和空头）：</h4>
             <ul>
-              <li><strong>模式A（回踩确认）：</strong> 价格回踩到EMA20/50支撑位，突破setup candle高点/低点</li>
-              <li><strong>模式B（动能突破）：</strong> 成交量放大1.5倍以上，突破setup candle高点/低点</li>
+              <li><strong>多头模式（多头回踩突破）：</strong> 价格回踩到EMA20/50支撑位，突破setup candle高点</li>
+              <li><strong>空头模式（空头反抽破位）：</strong> 价格反抽到EMA20/50阻力位，跌破setup candle低点</li>
             </ul>
 
             <h4>判断逻辑：</h4>
             <ul>
-              <li><strong>前提条件：</strong> 天级趋势明确 + 小时级得分 ≥ 2分</li>
-              <li><strong>模式A触发：</strong> 多头趋势 + 收盘价 ≤ EMA支撑 + 突破setup高点</li>
-              <li><strong>模式B触发：</strong> 多头趋势 + 突破setup高点 + 成交量 ≥ 1.5×平均量</li>
+              <li><strong>前提条件：</strong> 4H趋势明确 + 1H得分 ≥ 3分</li>
+              <li><strong>多头模式触发：</strong> 多头趋势 + 收盘价 ≤ EMA支撑 + 突破setup高点</li>
+              <li><strong>空头模式触发：</strong> 空头趋势 + 收盘价 ≥ EMA阻力 + 跌破setup低点</li>
               <li><strong>止损设置：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
-              <li><strong>止盈目标：</strong> 2R（风险回报比1:2）</li>
+              <li><strong>止盈目标：</strong> 多头2R，空头1.2R-1.5R</li>
             </ul>
           </div>
         </div>

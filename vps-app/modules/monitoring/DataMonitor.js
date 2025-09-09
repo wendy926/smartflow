@@ -1,9 +1,12 @@
 // modules/monitoring/DataMonitor.js
 // 数据监控模块
 
+const { DataValidationSystem } = require('./DataValidationSystem');
+
 class DataMonitor {
   constructor(database = null) {
     this.database = database; // 数据库引用
+    this.validationSystem = new DataValidationSystem(database); // 数据验证系统
     // 限制内存使用 - 只保留最近的数据
     this.maxLogsPerSymbol = 5; // 每个交易对最多保留5条日志
     this.maxSymbols = 50; // 最多监控50个交易对
@@ -437,50 +440,39 @@ class DataMonitor {
       let successfulDataCollections = 0;
       let successfulSignalAnalyses = 0;
 
+      // 使用新的验证系统
       for (const symbol of allSymbols) {
         const log = this.getAnalysisLog(symbol);
         const stats = this.symbolStats.get(symbol);
 
-        // 验证数据完整性
+        // 使用统一验证系统
+        const validationResult = await this.validationSystem.validateSymbol(symbol, log);
+        
+        // 记录验证结果到数据库
+        await this.validationSystem.recordValidationResult(symbol, validationResult);
+
+        // 收集验证错误
+        if (validationResult.errors.length > 0) {
+          dataValidationErrors.push(...validationResult.errors.map(error => `${symbol}: ${error}`));
+        }
+
+        // 收集数据质量问题
+        if (this.dataQualityIssues.has(symbol)) {
+          const issues = this.dataQualityIssues.get(symbol);
+          issues.forEach(issue => {
+            dataQualityIssues.push(`${symbol}: ${issue.analysisType} - ${issue.errorMessage}`);
+          });
+        }
+
+        // 统计成功率
         if (log) {
-          // 检查原始数据质量
-          let hasValidData = true;
-          const requiredDataTypes = ['4H K线', '小时K线', '24小时行情', '资金费率', '持仓量历史'];
-
-          for (const dataType of requiredDataTypes) {
-            const dataInfo = log.rawData[dataType];
-            if (!dataInfo || !dataInfo.success || !dataInfo.data) {
-              hasValidData = false;
-              dataValidationErrors.push(`${symbol}: ${dataType}数据无效`);
-            }
-          }
-
-          // 收集数据质量问题
-          if (this.dataQualityIssues.has(symbol)) {
-            const issues = this.dataQualityIssues.get(symbol);
-            issues.forEach(issue => {
-              dataQualityIssues.push(`${symbol}: ${issue.analysisType} - ${issue.errorMessage}`);
-            });
-          }
-
-          if (hasValidData) {
+          if (validationResult.details.rawData?.valid) {
             successfulDataCollections++;
           }
 
-          if (log.phases.signalAnalysis.success) {
+          if (log.phases.signalAnalysis?.success) {
             successfulSignalAnalyses++;
           }
-
-          // 检查数据质量
-          if (log.rawData && Object.keys(log.rawData).length === 0) {
-            dataValidationErrors.push(`${symbol}: 缺少原始数据`);
-          }
-
-          if (log.indicators && Object.keys(log.indicators).length === 0) {
-            dataValidationErrors.push(`${symbol}: 缺少技术指标数据`);
-          }
-        } else {
-          dataValidationErrors.push(`${symbol}: 缺少分析日志`);
         }
       }
 

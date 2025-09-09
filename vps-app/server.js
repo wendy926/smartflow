@@ -342,6 +342,30 @@ class SmartFlowServer {
       }
     });
 
+    // 获取数据验证详情
+    this.app.get('/api/data-validation-details', async (req, res) => {
+      try {
+        const validationResults = this.dataMonitor.validationSystem.getAllValidationResults();
+        res.json(validationResults);
+      } catch (error) {
+        console.error('获取数据验证详情失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取单个交易对的验证详情
+    this.app.get('/api/data-validation/:symbol', async (req, res) => {
+      try {
+        const { symbol } = req.params;
+        const analysisLog = this.dataMonitor.getAnalysisLog(symbol);
+        const validationResult = await this.dataMonitor.validationSystem.validateSymbol(symbol, analysisLog);
+        res.json(validationResult);
+      } catch (error) {
+        console.error('获取交易对验证详情失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 解决告警
     this.app.post('/api/alert-resolve', async (req, res) => {
       try {

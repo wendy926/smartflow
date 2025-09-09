@@ -92,12 +92,22 @@ async function refreshMonitoringData() {
 }
 
 // 切换监控标签页
-function switchMonitoringTab(tabName) {
+function switchMonitoringTab(tabName, event) {
   // 更新标签按钮状态
   document.querySelectorAll('.monitoring-tabs .tab-btn').forEach(btn => {
     btn.classList.remove('active');
   });
-  event.target.classList.add('active');
+  
+  // 如果提供了event参数，激活对应的按钮
+  if (event && event.target) {
+    event.target.classList.add('active');
+  } else {
+    // 否则根据tabName找到对应的按钮
+    const targetBtn = document.querySelector(`[onclick*="${tabName}"]`);
+    if (targetBtn) {
+      targetBtn.classList.add('active');
+    }
+  }
 
   // 显示对应视图
   document.querySelectorAll('.monitoring-view').forEach(view => {
