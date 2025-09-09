@@ -103,7 +103,7 @@ async function refreshMonitoringData() {
 // 切换监控标签页
 function switchMonitoringTab(tabName, event) {
   console.log('🔄 切换到标签页:', tabName);
-  
+
   // 更新标签按钮状态
   document.querySelectorAll('.monitoring-tabs .tab-btn').forEach(btn => {
     btn.classList.remove('active');
@@ -133,7 +133,7 @@ function switchMonitoringTab(tabName, event) {
     // 如果切换到交易对详细监控，确保数据正确显示
     if (tabName === 'trading-pairs') {
       console.log('🔄 切换到交易对详细监控，检查数据状态...');
-      
+
       // 如果当前有数据，立即更新表格
       if (currentMonitoringData && currentMonitoringData.detailedStats) {
         console.log('📊 当前有数据，立即更新表格...');
@@ -236,10 +236,10 @@ function updateDataValidationStatus(data) {
 // 更新汇总视图表格
 function updateSummaryTable(data) {
   console.log('🔄 开始更新汇总视图表格...');
-  
+
   // 使用更健壮的元素查找方式
   let tbody = document.getElementById('monitoringTableBody');
-  
+
   if (!tbody) {
     console.warn('⚠️ 第一次查找monitoringTableBody失败，尝试其他方式...');
     // 尝试通过父元素查找
@@ -249,7 +249,7 @@ function updateSummaryTable(data) {
       console.log('📋 通过父元素找到表格:', tbody);
     }
   }
-  
+
   if (!tbody) {
     console.warn('⚠️ 第二次查找失败，尝试通过类名查找...');
     // 尝试通过类名查找
@@ -266,7 +266,7 @@ function updateSummaryTable(data) {
     const allTbodies = document.querySelectorAll('tbody');
     console.log('🔍 页面中的所有表格:', allTables.length);
     console.log('🔍 页面中的所有tbody:', allTbodies.length);
-    
+
     // 如果还是找不到，等待一下再重试
     setTimeout(() => {
       console.log('🔄 延迟重试更新表格...');
@@ -274,7 +274,7 @@ function updateSummaryTable(data) {
     }, 1000);
     return;
   }
-  
+
   console.log('✅ 成功找到表格元素:', tbody);
 
   tbody.innerHTML = '';
@@ -533,7 +533,7 @@ function debugMonitoringData() {
 // 强制刷新表格数据
 function forceRefreshTable() {
   console.log('🔄 强制刷新表格数据...');
-  
+
   if (currentMonitoringData && currentMonitoringData.detailedStats) {
     console.log('📊 使用当前数据更新表格...');
     updateSummaryTable(currentMonitoringData);

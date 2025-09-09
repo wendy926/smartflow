@@ -129,14 +129,29 @@ class DataValidationSystem {
       const indicatorData = analysisLog?.indicators?.[indicator];
       if (indicatorData) {
         indicatorResult.available = true;
-        indicatorResult.value = indicatorData.value;
+        
+        // 根据不同的指标类型获取值
+        let indicatorValue = null;
+        if (indicator === '4H MA指标' && indicatorData.data) {
+          // 4H MA指标有ma20, ma50, ma200三个值，取ma20作为代表
+          indicatorValue = indicatorData.data.ma20;
+        } else if (indicator === '小时VWAP' && indicatorData.data && indicatorData.data.vwap) {
+          // VWAP是数组，取最后一个值
+          const vwapArray = indicatorData.data.vwap;
+          indicatorValue = vwapArray[vwapArray.length - 1];
+        } else if (indicatorData.value) {
+          // 其他指标使用value字段
+          indicatorValue = indicatorData.value;
+        }
+        
+        indicatorResult.value = indicatorValue;
 
         // 验证指标值的合理性
-        if (typeof indicatorData.value === 'number' && !isNaN(indicatorData.value)) {
+        if (typeof indicatorValue === 'number' && !isNaN(indicatorValue)) {
           indicatorResult.valid = true;
         } else {
           indicatorResult.error = '指标值无效';
-          result.errors.push(`${indicator}: 指标值无效 (${indicatorData.value})`);
+          result.errors.push(`${indicator}: 指标值无效 (${indicatorValue})`);
           result.valid = false;
         }
       } else {
@@ -189,9 +204,15 @@ class DataValidationSystem {
             phaseResult.valid = true;
           }
         } else {
-          phaseResult.error = phaseData.error || '分析失败';
-          result.errors.push(`${phase}: ${phaseResult.error}`);
-          result.valid = false;
+          // 对于simulationTrading阶段，失败是正常的（没有触发条件）
+          if (phase === 'simulationTrading') {
+            phaseResult.valid = true; // 模拟交易失败不算错误
+            phaseResult.error = null;
+          } else {
+            phaseResult.error = phaseData.error || '分析失败';
+            result.errors.push(`${phase}: ${phaseResult.error}`);
+            result.valid = false;
+          }
         }
       } else {
         phaseResult.error = '阶段数据不存在';
