@@ -207,46 +207,101 @@ class DatabaseManager {
     });
   }
 
-  // 记录策略分析结果 - 新方法
+  // 记录策略分析结果 - 适配V3策略
   async recordStrategyAnalysis(analysisData) {
-    const sql = `
-      INSERT INTO strategy_analysis (
-        symbol, trend, trend_strength, ma20, ma50, ma200, bbw_expanding,
-        signal, signal_strength, hourly_score, vwap, oi_change, funding_rate,
-        execution, execution_mode, mode_a, mode_b, entry_signal, stop_loss, take_profit,
-        current_price, data_collection_rate, full_analysis_data, data_valid, error_message
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+    // 检查是否是V3策略数据
+    const isV3Strategy = analysisData.strategyVersion === 'V3';
+    
+    if (isV3Strategy) {
+      // V3策略数据结构
+      const sql = `
+        INSERT INTO strategy_analysis (
+          symbol, trend, trend_strength, ma20, ma50, ma200, bbw_expanding,
+          signal, signal_strength, hourly_score, vwap, oi_change, funding_rate,
+          execution, execution_mode, mode_a, mode_b, entry_signal, stop_loss, take_profit,
+          current_price, data_collection_rate, full_analysis_data, data_valid, error_message,
+          market_type, vwap_direction_consistent, factors, vol15m_ratio, vol1h_ratio,
+          delta_imbalance, strategy_version
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
 
-    const params = [
-      analysisData.symbol,
-      analysisData.trend,
-      analysisData.trendStrength,
-      analysisData.dailyTrend?.ma20,
-      analysisData.dailyTrend?.ma50,
-      analysisData.dailyTrend?.ma200,
-      analysisData.dailyTrend?.bbwExpanding,
-      analysisData.signal,
-      analysisData.signalStrength,
-      analysisData.hourlyScore,
-      analysisData.hourlyConfirmation?.vwap,
-      analysisData.hourlyConfirmation?.oiChange,
-      analysisData.hourlyConfirmation?.fundingRate,
-      analysisData.execution,
-      analysisData.executionMode,
-      analysisData.modeA,
-      analysisData.modeB,
-      analysisData.entrySignal,
-      analysisData.stopLoss,
-      analysisData.takeProfit,
-      analysisData.currentPrice,
-      analysisData.dataCollectionRate,
-      JSON.stringify(analysisData),
-      analysisData.dataValid !== false,
-      analysisData.error || null
-    ];
+      const params = [
+        analysisData.symbol,
+        analysisData.trend4h || analysisData.trend, // V3使用trend4h
+        analysisData.trendStrength,
+        analysisData.ma20,
+        analysisData.ma50,
+        analysisData.ma200,
+        analysisData.bbwExpanding,
+        analysisData.signal,
+        analysisData.signalStrength,
+        analysisData.score1h || analysisData.hourlyScore, // V3使用score1h
+        analysisData.vwap,
+        analysisData.oiChange6h || analysisData.oiChange,
+        analysisData.fundingRate,
+        analysisData.execution,
+        analysisData.executionMode,
+        analysisData.modeA,
+        analysisData.modeB,
+        analysisData.entrySignal,
+        analysisData.stopLoss,
+        analysisData.takeProfit,
+        analysisData.currentPrice,
+        analysisData.dataCollectionRate,
+        JSON.stringify(analysisData),
+        analysisData.dataValid !== false,
+        analysisData.error || null,
+        analysisData.marketType,
+        analysisData.vwapDirectionConsistent,
+        JSON.stringify(analysisData.factors || {}),
+        analysisData.vol15mRatio,
+        analysisData.vol1hRatio,
+        analysisData.deltaImbalance,
+        analysisData.strategyVersion
+      ];
 
-    return await this.run(sql, params);
+      return await this.run(sql, params);
+    } else {
+      // V2策略数据结构（向后兼容）
+      const sql = `
+        INSERT INTO strategy_analysis (
+          symbol, trend, trend_strength, ma20, ma50, ma200, bbw_expanding,
+          signal, signal_strength, hourly_score, vwap, oi_change, funding_rate,
+          execution, execution_mode, mode_a, mode_b, entry_signal, stop_loss, take_profit,
+          current_price, data_collection_rate, full_analysis_data, data_valid, error_message
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      const params = [
+        analysisData.symbol,
+        analysisData.trend,
+        analysisData.trendStrength,
+        analysisData.dailyTrend?.ma20,
+        analysisData.dailyTrend?.ma50,
+        analysisData.dailyTrend?.ma200,
+        analysisData.dailyTrend?.bbwExpanding,
+        analysisData.signal,
+        analysisData.signalStrength,
+        analysisData.hourlyScore,
+        analysisData.hourlyConfirmation?.vwap,
+        analysisData.hourlyConfirmation?.oiChange,
+        analysisData.hourlyConfirmation?.fundingRate,
+        analysisData.execution,
+        analysisData.executionMode,
+        analysisData.modeA,
+        analysisData.modeB,
+        analysisData.entrySignal,
+        analysisData.stopLoss,
+        analysisData.takeProfit,
+        analysisData.currentPrice,
+        analysisData.dataCollectionRate,
+        JSON.stringify(analysisData),
+        analysisData.dataValid !== false,
+        analysisData.error || null
+      ];
+
+      return await this.run(sql, params);
+    }
   }
 
   // 记录信号 - 保持向后兼容

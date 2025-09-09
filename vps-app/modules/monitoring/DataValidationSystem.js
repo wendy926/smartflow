@@ -67,40 +67,69 @@ class DataValidationSystem {
       dataTypes: {}
     };
 
-    const requiredDataTypes = [
-      '4H K线', '小时K线', '24小时行情', '资金费率', '持仓量历史'
-    ];
+    // 检查是否是V3策略
+    const isV3Strategy = analysisLog?.strategyVersion === 'V3';
+    
+    if (isV3Strategy) {
+      // V3策略：验证关键数据字段是否存在
+      const requiredFields = [
+        'trend4h', 'marketType', 'score1h', 'vwapDirectionConsistent', 
+        'vwap', 'fundingRate', 'factors'
+      ];
 
-    for (const dataType of requiredDataTypes) {
-      const dataInfo = analysisLog?.rawData?.[dataType];
-      const dataTypeResult = {
-        available: false,
-        success: false,
-        dataLength: 0,
-        error: null
-      };
+      for (const field of requiredFields) {
+        const fieldResult = {
+          available: analysisLog[field] !== undefined,
+          success: analysisLog[field] !== undefined,
+          dataLength: 0,
+          error: null
+        };
 
-      if (dataInfo) {
-        dataTypeResult.available = true;
-        dataTypeResult.success = dataInfo.success || false;
-        dataTypeResult.dataLength = dataInfo.data ? dataInfo.data.length : 0;
-
-        if (!dataInfo.success) {
-          dataTypeResult.error = dataInfo.error || '数据获取失败';
-          result.errors.push(`${dataType}: ${dataTypeResult.error}`);
-          result.valid = false;
-        } else if (!dataInfo.data || dataInfo.data.length === 0) {
-          dataTypeResult.error = '数据为空';
-          result.errors.push(`${dataType}: 数据为空`);
+        if (!fieldResult.available) {
+          fieldResult.error = '字段不存在';
+          result.errors.push(`${field}: ${fieldResult.error}`);
           result.valid = false;
         }
-      } else {
-        dataTypeResult.error = '数据不存在';
-        result.errors.push(`${dataType}: 数据不存在`);
-        result.valid = false;
-      }
 
-      result.dataTypes[dataType] = dataTypeResult;
+        result.dataTypes[field] = fieldResult;
+      }
+    } else {
+      // V2策略：验证原始数据
+      const requiredDataTypes = [
+        '4H K线', '小时K线', '24小时行情', '资金费率', '持仓量历史'
+      ];
+
+      for (const dataType of requiredDataTypes) {
+        const dataInfo = analysisLog?.rawData?.[dataType];
+        const dataTypeResult = {
+          available: false,
+          success: false,
+          dataLength: 0,
+          error: null
+        };
+
+        if (dataInfo) {
+          dataTypeResult.available = true;
+          dataTypeResult.success = dataInfo.success || false;
+          dataTypeResult.dataLength = dataInfo.data ? dataInfo.data.length : 0;
+
+          if (!dataInfo.success) {
+            dataTypeResult.error = dataInfo.error || '数据获取失败';
+            result.errors.push(`${dataType}: ${dataTypeResult.error}`);
+            result.valid = false;
+          } else if (!dataInfo.data || dataInfo.data.length === 0) {
+            dataTypeResult.error = '数据为空';
+            result.errors.push(`${dataType}: 数据为空`);
+            result.valid = false;
+          }
+        } else {
+          dataTypeResult.error = '数据不存在';
+          result.errors.push(`${dataType}: 数据不存在`);
+          result.valid = false;
+        }
+
+        result.dataTypes[dataType] = dataTypeResult;
+      }
     }
 
     return result;
@@ -114,53 +143,94 @@ class DataValidationSystem {
       indicators: {}
     };
 
-    const requiredIndicators = [
-      '4H MA指标', '小时VWAP'
-    ];
+    // 检查是否是V3策略
+    const isV3Strategy = analysisLog?.strategyVersion === 'V3';
+    
+    if (isV3Strategy) {
+      // V3策略：验证关键指标字段
+      const requiredIndicators = [
+        'ma20', 'ma50', 'ma200', 'vwap', 'adx14', 'bbw'
+      ];
 
-    for (const indicator of requiredIndicators) {
-      const indicatorResult = {
-        available: false,
-        valid: false,
-        value: null,
-        error: null
-      };
+      for (const indicator of requiredIndicators) {
+        const indicatorResult = {
+          available: false,
+          valid: false,
+          value: null,
+          error: null
+        };
 
-      const indicatorData = analysisLog?.indicators?.[indicator];
-      if (indicatorData) {
-        indicatorResult.available = true;
-
-        // 根据不同的指标类型获取值
-        let indicatorValue = null;
-        if (indicator === '4H MA指标' && indicatorData.data) {
-          // 4H MA指标有ma20, ma50, ma200三个值，取ma20作为代表
-          indicatorValue = indicatorData.data.ma20;
-        } else if (indicator === '小时VWAP' && indicatorData.data && indicatorData.data.vwap) {
-          // VWAP是数组，取最后一个值
-          const vwapArray = indicatorData.data.vwap;
-          indicatorValue = vwapArray[vwapArray.length - 1];
-        } else if (indicatorData.value) {
-          // 其他指标使用value字段
-          indicatorValue = indicatorData.value;
-        }
-
+        const indicatorValue = analysisLog[indicator];
+        indicatorResult.available = indicatorValue !== undefined;
         indicatorResult.value = indicatorValue;
 
-        // 验证指标值的合理性
-        if (typeof indicatorValue === 'number' && !isNaN(indicatorValue)) {
-          indicatorResult.valid = true;
+        if (indicatorValue !== undefined) {
+          // 验证指标值的合理性
+          if (typeof indicatorValue === 'number' && !isNaN(indicatorValue)) {
+            indicatorResult.valid = true;
+          } else {
+            indicatorResult.error = '指标值无效';
+            result.errors.push(`${indicator}: 指标值无效 (${indicatorValue})`);
+            result.valid = false;
+          }
         } else {
-          indicatorResult.error = '指标值无效';
-          result.errors.push(`${indicator}: 指标值无效 (${indicatorValue})`);
+          indicatorResult.error = '指标不存在';
+          result.errors.push(`${indicator}: 指标不存在`);
           result.valid = false;
         }
-      } else {
-        indicatorResult.error = '指标不存在';
-        result.errors.push(`${indicator}: 指标不存在`);
-        result.valid = false;
-      }
 
-      result.indicators[indicator] = indicatorResult;
+        result.indicators[indicator] = indicatorResult;
+      }
+    } else {
+      // V2策略：验证原始指标数据
+      const requiredIndicators = [
+        '4H MA指标', '小时VWAP'
+      ];
+
+      for (const indicator of requiredIndicators) {
+        const indicatorResult = {
+          available: false,
+          valid: false,
+          value: null,
+          error: null
+        };
+
+        const indicatorData = analysisLog?.indicators?.[indicator];
+        if (indicatorData) {
+          indicatorResult.available = true;
+
+          // 根据不同的指标类型获取值
+          let indicatorValue = null;
+          if (indicator === '4H MA指标' && indicatorData.data) {
+            // 4H MA指标有ma20, ma50, ma200三个值，取ma20作为代表
+            indicatorValue = indicatorData.data.ma20;
+          } else if (indicator === '小时VWAP' && indicatorData.data && indicatorData.data.vwap) {
+            // VWAP是数组，取最后一个值
+            const vwapArray = indicatorData.data.vwap;
+            indicatorValue = vwapArray[vwapArray.length - 1];
+          } else if (indicatorData.value) {
+            // 其他指标使用value字段
+            indicatorValue = indicatorData.value;
+          }
+
+          indicatorResult.value = indicatorValue;
+
+          // 验证指标值的合理性
+          if (typeof indicatorValue === 'number' && !isNaN(indicatorValue)) {
+            indicatorResult.valid = true;
+          } else {
+            indicatorResult.error = '指标值无效';
+            result.errors.push(`${indicator}: 指标值无效 (${indicatorValue})`);
+            result.valid = false;
+          }
+        } else {
+          indicatorResult.error = '指标不存在';
+          result.errors.push(`${indicator}: 指标不存在`);
+          result.valid = false;
+        }
+
+        result.indicators[indicator] = indicatorResult;
+      }
     }
 
     return result;

@@ -47,6 +47,13 @@ class StrategyV3Migration {
       `ALTER TABLE strategy_analysis ADD COLUMN delta_buy REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN delta_sell REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN delta_imbalance REAL`,
+      
+      // V3策略新增字段
+      `ALTER TABLE strategy_analysis ADD COLUMN market_type TEXT`,
+      `ALTER TABLE strategy_analysis ADD COLUMN factors TEXT`, // JSON格式存储因子信息
+      `ALTER TABLE strategy_analysis ADD COLUMN vol15m_ratio REAL`,
+      `ALTER TABLE strategy_analysis ADD COLUMN vol1h_ratio REAL`,
+      `ALTER TABLE strategy_analysis ADD COLUMN strategy_version TEXT DEFAULT 'V2'`,
 
       // 震荡市相关字段
       `ALTER TABLE strategy_analysis ADD COLUMN range_lower_boundary_valid BOOLEAN DEFAULT FALSE`,
