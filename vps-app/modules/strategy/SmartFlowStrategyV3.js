@@ -125,7 +125,10 @@ class SmartFlowStrategyV3 {
         candles1h
       );
 
-      // 4. 合并结果
+      // 4. 计算杠杆和保证金数据
+      const leverageData = await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14);
+
+      // 5. 合并结果
       return {
         marketType: '趋势市',
         score1h: scoringResult.score,
@@ -146,6 +149,10 @@ class SmartFlowStrategyV3 {
         setupCandleHigh: executionResult.setupCandleHigh,
         setupCandleLow: executionResult.setupCandleLow,
         atr14: executionResult.atr14,
+        maxLeverage: leverageData.maxLeverage,
+        minMargin: leverageData.minMargin,
+        stopLossDistance: leverageData.stopLossDistance,
+        atrValue: leverageData.atrValue,
         reason: executionResult.reason
       };
 
@@ -200,7 +207,10 @@ class SmartFlowStrategyV3 {
         candles1h
       );
 
-      // 4. 合并结果
+      // 4. 计算杠杆和保证金数据
+      const leverageData = await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14);
+
+      // 5. 合并结果
       return {
         marketType: '震荡市',
         // 震荡市不需要1H多因子打分，但为了前端兼容性添加默认值
@@ -233,12 +243,67 @@ class SmartFlowStrategyV3 {
         takeProfit: executionResult.takeProfit,
         setupCandleHigh: executionResult.setupCandleHigh,
         setupCandleLow: executionResult.setupCandleLow,
+        maxLeverage: leverageData.maxLeverage,
+        minMargin: leverageData.minMargin,
+        stopLossDistance: leverageData.stopLossDistance,
+        atrValue: leverageData.atrValue,
         reason: executionResult.reason
       };
 
     } catch (error) {
       console.error(`震荡市分析失败 [${symbol}]:`, error);
       return this.createNoSignalResult(symbol, '震荡市分析异常: ' + error.message);
+    }
+  }
+
+  /**
+   * 计算杠杆和保证金数据
+   */
+  static async calculateLeverageData(entryPrice, stopLossPrice, atr14) {
+    try {
+      // 获取全局最大损失设置
+      const DatabaseManager = require('../database/DatabaseManager');
+      const dbManager = new DatabaseManager();
+      await dbManager.init();
+      
+      const globalMaxLoss = await dbManager.getUserSetting('maxLossAmount', 100);
+      const maxLossAmount = parseFloat(globalMaxLoss);
+      
+      let maxLeverage = 0;
+      let minMargin = 0;
+      let stopLossDistance = 0;
+
+      if (entryPrice && stopLossPrice && entryPrice > 0) {
+        // 计算止损距离百分比
+        stopLossDistance = Math.abs(entryPrice - stopLossPrice) / entryPrice;
+        
+        // 最大杠杆数：1/(止损距离% + 0.5%) 数值向下取整
+        if (stopLossDistance > 0) {
+          maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+        }
+        
+        // 最小保证金：最大损失金额/(杠杆数 × 止损距离%) 数值向上取整
+        if (maxLeverage > 0 && stopLossDistance > 0) {
+          minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
+        }
+      }
+
+      await dbManager.close();
+      
+      return {
+        maxLeverage: Math.max(1, maxLeverage),
+        minMargin: Math.max(10, minMargin), // 最小保证金10 USDT
+        stopLossDistance: stopLossDistance * 100, // 转换为百分比
+        atrValue: atr14
+      };
+    } catch (error) {
+      console.error('计算杠杆数据失败:', error);
+      return {
+        maxLeverage: 10,
+        minMargin: 100,
+        stopLossDistance: 0,
+        atrValue: atr14
+      };
     }
   }
 
@@ -263,6 +328,10 @@ class SmartFlowStrategyV3 {
       entrySignal: null,
       stopLoss: null,
       takeProfit: null,
+      maxLeverage: 0,
+      minMargin: 0,
+      stopLossDistance: 0,
+      atrValue: null,
       reason,
       score1h: 0,
       vwapDirectionConsistent: false,

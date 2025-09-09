@@ -748,6 +748,8 @@ async function startSimulation(symbol) {
       takeProfit: signalData.takeProfit,
       maxLeverage: signalData.maxLeverage,
       minMargin: signalData.minMargin,
+      stopLossDistance: signalData.stopLossDistance,
+      atrValue: signalData.atrValue,
       executionMode: signalData.executionMode,
       direction: signalData.execution.includes('做多_') ? 'LONG' : 'SHORT',
       timestamp: new Date().toISOString()
