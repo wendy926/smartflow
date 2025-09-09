@@ -100,11 +100,11 @@ class StrategyV3Execution {
         }
       }
 
-      return { signal: 'NONE', mode: 'NONE', reason: '未满足趋势市入场条件' };
+      return { signal: 'NONE', mode: 'NONE', reason: '未满足趋势市入场条件', atr14: lastATR };
 
     } catch (error) {
       console.error(`趋势市15m执行分析失败 [${symbol}]:`, error);
-      return { signal: 'NONE', mode: 'NONE', reason: '分析错误: ' + error.message };
+      return { signal: 'NONE', mode: 'NONE', reason: '分析错误: ' + error.message, atr14: null };
     }
   }
 
@@ -114,7 +114,7 @@ class StrategyV3Execution {
   analyzeRangeExecution(symbol, rangeResult, candles15m, candles1h) {
     try {
       if (!candles15m || candles15m.length < 20) {
-        return { signal: 'NONE', mode: 'NONE', reason: '15m数据不足' };
+        return { signal: 'NONE', mode: 'NONE', reason: '15m数据不足', atr14: null };
       }
 
       const { lowerBoundaryValid, upperBoundaryValid, bbUpper, bbMiddle, bbLower } = rangeResult;
@@ -238,11 +238,11 @@ class StrategyV3Execution {
         };
       }
 
-      return { signal: 'NONE', mode: 'NONE', reason: '未满足震荡市入场条件' };
+      return { signal: 'NONE', mode: 'NONE', reason: '未满足震荡市入场条件', atr14: lastATR };
 
     } catch (error) {
       console.error(`震荡市15m执行分析失败 [${symbol}]:`, error);
-      return { signal: 'NONE', mode: 'NONE', reason: '分析错误: ' + error.message };
+      return { signal: 'NONE', mode: 'NONE', reason: '分析错误: ' + error.message, atr14: null };
     }
   }
 
