@@ -387,17 +387,48 @@ class SmartFlowApp {
         priceDisplay += `<br><small style="color: #666;">入场: ${dataManager.formatNumber(signal.entrySignal)}</small>`;
       }
 
+      // V3策略显示逻辑
+      const trend4h = signal.trend4h || signal.trend || '--';
+      const marketType = signal.marketType || '--';
+      const strategyVersion = signal.strategyVersion || 'V2';
+      
+      // 构建趋势列显示（4H趋势 + 市场类型）
+      let trendDisplay = trend4h;
+      if (strategyVersion === 'V3') {
+        trendDisplay = `${trend4h}<br><small style="color: #666;">${marketType}</small>`;
+      }
+
+      // 构建信号列显示（1H加强趋势）
+      let signalDisplay = signal.signal || '--';
+      if (strategyVersion === 'V3' && signal.vwapDirectionConsistent !== undefined) {
+        const vwapStatus = signal.vwapDirectionConsistent ? '✅' : '❌';
+        signalDisplay = `${signal.signal || '--'}<br><small style="color: #666;">VWAP: ${vwapStatus}</small>`;
+      }
+
+      // 构建15分钟信号列显示
+      let executionDisplay = signal.execution || '--';
+      if (signal.execution && signal.execution.includes('做多_') || signal.execution.includes('做空_')) {
+        const mode = signal.executionMode || 'NONE';
+        executionDisplay = `${signal.execution}<br><small style="color: #666;">${mode}</small>`;
+      }
+
       row.innerHTML = `
                 <td>
                     <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
                 </td>
                 <td>${signal.symbol}</td>
-                <td class="${dataManager.getTrendClass(signal.trend)}">${signal.trend || '--'}</td>
-                <td class="${hourlyScore >= 4 ? 'score-strong' : hourlyScore >= 2 ? 'score-moderate' : 'score-weak'}" title="小时级多因子得分: ${hourlyScore}/6">
+                <td class="${dataManager.getTrendClass(trend4h)}" title="4H趋势: ${trend4h} | 市场类型: ${marketType}">
+                    ${trendDisplay}
+                </td>
+                <td class="${hourlyScore >= 3 ? 'score-strong' : hourlyScore >= 2 ? 'score-moderate' : 'score-weak'}" title="1H多因子得分: ${hourlyScore}/6">
                     ${hourlyScore}
                 </td>
-                <td class="${dataManager.getSignalClass(signal.signal)}">${signal.signal || '--'}</td>
-                <td class="${dataManager.getExecutionClass(signal.execution)}">${executionDisplay}</td>
+                <td class="${dataManager.getSignalClass(signal.signal)}" title="1H加强趋势">
+                    ${signalDisplay}
+                </td>
+                <td class="${dataManager.getExecutionClass(signal.execution)}" title="15分钟信号">
+                    ${executionDisplay}
+                </td>
                 <td>${priceDisplay}</td>
                 <td class="${dataCollectionClass}" title="数据采集成功率: ${dataCollectionRate.toFixed(1)}%">
                     ${dataCollectionRate.toFixed(1)}%

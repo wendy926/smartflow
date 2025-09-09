@@ -10,6 +10,8 @@ const SimulationManager = require('./modules/database/SimulationManager');
 const BinanceAPI = require('./modules/api/BinanceAPI');
 const TelegramNotifier = require('./modules/notifications/TelegramNotifier');
 const { SmartFlowStrategy } = require('./modules/strategy/SmartFlowStrategy');
+const SmartFlowStrategyV3 = require('./modules/strategy/SmartFlowStrategyV3');
+const StrategyV3Migration = require('./modules/database/StrategyV3Migration');
 const { DataMonitor } = require('./modules/monitoring/DataMonitor');
 const { dataLayerIntegration } = require('./modules/data/DataLayerIntegration');
 const DeltaManager = require('./modules/data/DeltaManager');
@@ -57,7 +59,7 @@ class SmartFlowServer {
       }
     });
 
-    // 获取所有信号
+    // 获取所有信号 - V3策略
     this.app.get('/api/signals', async (req, res) => {
       try {
         const symbols = await this.db.getCustomSymbols();
@@ -68,8 +70,8 @@ class SmartFlowServer {
 
         for (const symbol of symbols) {
           try {
-            // 只更新信号和执行数据，不重新计算趋势数据
-            const analysis = await SmartFlowStrategy.analyzeAll(symbol, parseFloat(maxLossAmount));
+            // 使用V3策略进行分析
+            const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
             // 获取数据采集成功率
             let dataCollectionRate = 0;
@@ -90,30 +92,47 @@ class SmartFlowServer {
 
             signals.push({
               symbol,
-              // 使用新的策略分析结果结构
-              trend: analysis.trend,
-              trendStrength: analysis.trendStrength,
+              // V3策略分析结果结构
+              trend4h: analysis.trend4h,
+              marketType: analysis.marketType,
+              trend: analysis.trend4h, // 保持向后兼容
+              trendStrength: analysis.trendConfirmed ? '强' : '弱',
               signal: analysis.signal,
-              signalStrength: analysis.signalStrength,
-              hourlyScore: analysis.hourlyScore,
+              signalStrength: analysis.score1h >= 3 ? '强' : '弱',
+              hourlyScore: analysis.score1h,
               execution: analysis.execution,
               executionMode: analysis.executionMode,
-              modeA: analysis.modeA,
-              modeB: analysis.modeB,
               entrySignal: analysis.entrySignal,
               stopLoss: analysis.stopLoss,
               takeProfit: analysis.takeProfit,
-              currentPrice: analysis.currentPrice,
+              currentPrice: analysis.closePrice,
               dataCollectionRate: Math.round(dataCollectionRate),
-              // 交易执行详情
-              maxLeverage: analysis.maxLeverage,
-              minMargin: analysis.minMargin,
-              stopLossDistance: analysis.stopLossDistance,
-              atrValue: analysis.atrValue,
-              // 详细分析数据
-              dailyTrend: analysis.dailyTrend,
-              hourlyConfirmation: analysis.hourlyConfirmation,
-              execution15m: analysis.execution15m
+              // V3新增字段
+              vwapDirectionConsistent: analysis.vwapDirectionConsistent,
+              factors: analysis.factors,
+              vwap: analysis.vwap,
+              vol15mRatio: analysis.vol15mRatio,
+              vol1hRatio: analysis.vol1hRatio,
+              oiChange6h: analysis.oiChange6h,
+              fundingRate: analysis.fundingRate,
+              deltaImbalance: analysis.deltaImbalance,
+              // 震荡市字段
+              rangeLowerBoundaryValid: analysis.rangeLowerBoundaryValid,
+              rangeUpperBoundaryValid: analysis.rangeUpperBoundaryValid,
+              bbUpper: analysis.bbUpper,
+              bbMiddle: analysis.bbMiddle,
+              bbLower: analysis.bbLower,
+              // 技术指标
+              ma20: analysis.ma20,
+              ma50: analysis.ma50,
+              ma200: analysis.ma200,
+              adx14: analysis.adx14,
+              bbw: analysis.bbw,
+              setupCandleHigh: analysis.setupCandleHigh,
+              setupCandleLow: analysis.setupCandleLow,
+              atr14: analysis.atr14,
+              reason: analysis.reason,
+              strategyVersion: 'V3'
             });
           } catch (error) {
             console.error(`分析 ${symbol} 失败:`, error);
@@ -548,6 +567,26 @@ class SmartFlowServer {
     });
   }
 
+  /**
+   * 初始化V3策略
+   */
+  async initializeV3Strategy() {
+    try {
+      // 执行数据库迁移
+      const migration = new StrategyV3Migration(this.db);
+      await migration.migrateToV3();
+
+      // 设置V3策略的数据管理器
+      SmartFlowStrategyV3.setDataManager(this.db);
+      SmartFlowStrategyV3.setDeltaManager(this.deltaManager);
+
+      console.log('✅ V3策略数据库迁移完成');
+    } catch (error) {
+      console.error('❌ V3策略初始化失败:', error);
+      throw error;
+    }
+  }
+
   async initialize() {
     try {
       console.log('🚀 启动 SmartFlow 服务器...');
@@ -580,6 +619,10 @@ class SmartFlowServer {
       // 将DeltaManager实例传递给SmartFlowStrategy
       SmartFlowStrategy.deltaManager = this.deltaManager;
       console.log('✅ Delta数据管理器初始化完成');
+
+      // 初始化V3策略
+      await this.initializeV3Strategy();
+      console.log('✅ V3策略初始化完成');
 
       // 启动定期分析
       this.startPeriodicAnalysis();
