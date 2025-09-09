@@ -210,6 +210,28 @@ class SimulationManager {
 
   async createSimulation(symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin, triggerReason = 'SIGNAL', stopLossDistance = null, atrValue = null) {
     try {
+      // 根据triggerReason判断交易方向
+      let direction = 'SHORT'; // 默认空头
+      if (triggerReason.includes('多头') || triggerReason.includes('LONG')) {
+        direction = 'LONG';
+      } else if (triggerReason.includes('空头') || triggerReason.includes('SHORT')) {
+        direction = 'SHORT';
+      }
+
+      // 检查是否在最近10分钟内已经为同一交易对创建了相同方向的模拟交易
+      const recentSimulations = await this.db.runQuery(`
+        SELECT * FROM simulations 
+        WHERE symbol = ? AND direction = ? AND created_at > datetime('now', '-10 minutes')
+        ORDER BY created_at DESC
+        LIMIT 1
+      `, [symbol, direction]);
+
+      if (recentSimulations.length > 0) {
+        const recentSim = recentSimulations[0];
+        console.log(`⏭️ 跳过重复模拟交易: ${symbol} ${direction} (最近10分钟内已存在 ID: ${recentSim.id})`);
+        return { id: recentSim.id, message: '重复交易已跳过' };
+      }
+
       // 获取全局最大损失设置进行验证
       const globalMaxLoss = await this.db.getUserSetting('maxLossAmount', 100);
       const maxLossAmount = parseFloat(globalMaxLoss);
@@ -228,14 +250,6 @@ class SimulationManager {
       const formattedEntryPrice = parseFloat(entryPrice.toFixed(4));
       const formattedStopLossPrice = parseFloat(stopLossPrice.toFixed(4));
       const formattedTakeProfitPrice = parseFloat(takeProfitPrice.toFixed(4));
-
-      // 根据triggerReason判断交易方向
-      let direction = 'SHORT'; // 默认空头
-      if (triggerReason.includes('多头') || triggerReason.includes('LONG')) {
-        direction = 'LONG';
-      } else if (triggerReason.includes('空头') || triggerReason.includes('SHORT')) {
-        direction = 'SHORT';
-      }
 
       const result = await this.db.run(`
         INSERT INTO simulations 

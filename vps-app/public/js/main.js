@@ -584,11 +584,18 @@ class SmartFlowApp {
       // 获取当前已触发的模拟交易记录
       const currentHistory = await dataManager.getSimulationHistory();
 
-      // 创建已触发信号的映射，基于交易对+执行信号类型
+      // 创建已触发信号的映射，基于交易对+执行信号类型+时间窗口（最近10分钟）
       const triggeredSignals = new Map();
+      const now = Date.now();
+      const timeWindow = 10 * 60 * 1000; // 10分钟时间窗口
+
       currentHistory.forEach(trade => {
-        const key = `${trade.symbol}_${trade.trigger_reason}`;
-        triggeredSignals.set(key, trade);
+        const tradeTime = new Date(trade.created_at).getTime();
+        // 只考虑最近10分钟内的交易
+        if (now - tradeTime < timeWindow) {
+          const key = `${trade.symbol}_${trade.trigger_reason}_${trade.direction}`;
+          triggeredSignals.set(key, trade);
+        }
       });
 
       // 检查每个信号
@@ -602,11 +609,17 @@ class SmartFlowApp {
             mode = '多头回踩突破';
           } else if (signal.execution.includes('空头反抽破位')) {
             mode = '空头反抽破位';
+          } else if (signal.execution.includes('区间多头')) {
+            mode = '区间多头';
+          } else if (signal.execution.includes('区间空头')) {
+            mode = '区间空头';
+          } else if (signal.execution.includes('假突破反手')) {
+            mode = '假突破反手';
           }
           const direction = isLong ? 'LONG' : 'SHORT';
 
-          // 创建与数据库中trigger_reason格式一致的键
-          const signalKey = `${signal.symbol}_SIGNAL_${mode}`;
+          // 创建更精确的去重键，包含交易对+模式+方向
+          const signalKey = `${signal.symbol}_SIGNAL_${mode}_${direction}`;
 
           // 检查是否已经为这个特定的信号创建过模拟交易
           if (!triggeredSignals.has(signalKey)) {
@@ -616,7 +629,11 @@ class SmartFlowApp {
             await this.autoStartSimulation(signal);
 
             // 添加到已触发列表，避免重复触发相同的信号
-            triggeredSignals.set(signalKey, { symbol: signal.symbol, execution: signal.execution });
+            triggeredSignals.set(signalKey, { 
+              symbol: signal.symbol, 
+              execution: signal.execution,
+              timestamp: now 
+            });
           } else {
             console.log(`⏭️ 跳过已触发的信号: ${signal.symbol} - ${signal.execution} (${signalKey})`);
           }
