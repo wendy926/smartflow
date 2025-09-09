@@ -900,21 +900,38 @@ class SmartFlowServer {
     }
   }
 
-  // 检查是否已存在相同的活跃模拟交易
+  // 检查是否已存在相同的模拟交易（包括最近关闭的）
   async checkExistingSimulation(symbol, analysis) {
     try {
+      // 检查活跃的模拟交易
       const activeSimulations = await this.db.runQuery(`
         SELECT * FROM simulations 
         WHERE symbol = ? AND status = 'ACTIVE'
         ORDER BY created_at DESC
-        LIMIT 2
+        LIMIT 1
       `, [symbol]);
 
-      if (activeSimulations.length === 0) {
+      // 如果有活跃交易，直接跳过
+      if (activeSimulations.length > 0) {
+        console.log(`⏭️ 跳过 ${symbol}：存在活跃的模拟交易`, {
+          activeId: activeSimulations[0].id,
+          activeCreatedAt: activeSimulations[0].created_at
+        });
+        return true;
+      }
+
+      // 检查最近10分钟内的模拟交易（包括已关闭的）
+      const recentSimulations = await this.db.runQuery(`
+        SELECT * FROM simulations 
+        WHERE symbol = ? AND created_at > datetime('now', '-10 minutes')
+        ORDER BY created_at DESC
+        LIMIT 5
+      `, [symbol]);
+
+      if (recentSimulations.length === 0) {
         return false;
       }
 
-      const latestSimulation = activeSimulations[0];
       const isLong = analysis.execution.includes('做多_');
       let mode = 'NONE';
       if (analysis.execution.includes('多头回踩突破')) {
@@ -924,42 +941,48 @@ class SmartFlowServer {
       }
       const expectedTriggerReason = `SIGNAL_${mode}`;
 
-      // 检查触发原因是否相同
-      const sameTriggerReason = latestSimulation.trigger_reason === expectedTriggerReason;
+      // 检查最近交易中是否有相同触发原因和入场价格的
+      for (const recentSim of recentSimulations) {
+        const sameTriggerReason = recentSim.trigger_reason === expectedTriggerReason;
+        const sameEntryPrice = Math.abs(parseFloat(recentSim.entry_price) - parseFloat(analysis.entrySignal)) < 0.0001;
 
-      // 检查入场价格是否相同（连续两个模拟交易入场价格相同时，不进行第二个模拟交易）
-      const sameEntryPrice = Math.abs(parseFloat(latestSimulation.entry_price) - parseFloat(analysis.entrySignal)) < 0.0001;
+        // 计算时间间隔（分钟）
+        const recentTime = new Date(recentSim.created_at);
+        const currentTime = new Date();
+        const timeDiffMinutes = (currentTime - recentTime) / (1000 * 60);
 
-      // 如果触发原因相同且入场价格相同，则跳过
-      if (sameTriggerReason && sameEntryPrice) {
-        console.log(`⏭️ 跳过 ${symbol}：存在相同触发原因和入场价格的活跃模拟交易`, {
-          latestTriggerReason: latestSimulation.trigger_reason,
-          expectedTriggerReason,
-          latestEntryPrice: latestSimulation.entry_price,
-          currentEntryPrice: analysis.entrySignal,
-          sameTriggerReason,
-          sameEntryPrice
-        });
-        return true;
+        // 如果触发原因和入场价格都相同，直接跳过
+        if (sameTriggerReason && sameEntryPrice) {
+          console.log(`⏭️ 跳过 ${symbol}：10分钟内存在相同触发原因和入场价格的模拟交易`, {
+            recentId: recentSim.id,
+            recentTriggerReason: recentSim.trigger_reason,
+            expectedTriggerReason,
+            recentEntryPrice: recentSim.entry_price,
+            currentEntryPrice: analysis.entrySignal,
+            recentCreatedAt: recentSim.created_at,
+            recentStatus: recentSim.status,
+            timeDiffMinutes: timeDiffMinutes.toFixed(2)
+          });
+          return true;
+        }
+
+        // 如果时间间隔小于2分钟，跳过（无论触发原因和价格是否相同）
+        if (timeDiffMinutes < 2) {
+          console.log(`⏭️ 跳过 ${symbol}：距离上一个模拟交易时间过短（${timeDiffMinutes.toFixed(2)}分钟 < 2分钟）`, {
+            recentId: recentSim.id,
+            recentCreatedAt: recentSim.created_at,
+            timeDiffMinutes: timeDiffMinutes.toFixed(2)
+          });
+          return true;
+        }
       }
 
-      console.log(`🔍 去重检查 ${symbol}：`, {
-        latestTriggerReason: latestSimulation.trigger_reason,
+      console.log(`🔍 去重检查 ${symbol}：通过检查`, {
+        recentCount: recentSimulations.length,
         expectedTriggerReason,
-        latestEntryPrice: latestSimulation.entry_price,
-        currentEntryPrice: analysis.entrySignal,
-        sameTriggerReason,
-        sameEntryPrice,
-        willProceed: !(sameTriggerReason && sameEntryPrice)
+        currentEntryPrice: analysis.entrySignal
       });
 
-      // 如果只有触发原因相同但入场价格不同，允许创建新交易
-      if (sameTriggerReason && !sameEntryPrice) {
-        console.log(`ℹ️ ${symbol}：存在相同触发原因但不同入场价格的模拟交易，允许创建新交易`);
-        return false;
-      }
-
-      // 如果触发原因不同，允许创建新交易
       return false;
     } catch (error) {
       console.error(`检查现有模拟交易失败 [${symbol}]:`, error);
