@@ -157,6 +157,7 @@ class SmartFlowServer {
               currentPrice: analysis.closePrice,
               dataCollectionRate: Math.round(dataCollectionRate),
               // V3新增字段
+              score1h: analysis.score1h, // 添加score1h字段
               vwapDirectionConsistent: analysis.vwapDirectionConsistent,
               factors: analysis.factors,
               vwap: analysis.vwap,
