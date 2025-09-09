@@ -1043,18 +1043,9 @@ class SmartFlowServer {
 
       console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode}`);
 
-      // 检查是否有入场执行信号，如果有则检查条件后触发模拟交易
+      // 检查是否有入场执行信号（仅记录，不自动触发）
       if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
-        console.log(`🚀 检测到入场执行信号: ${symbol} - ${analysis.execution}`);
-        
-        // 检查是否满足触发条件：该交易对没有进行中的模拟交易
-        const canTrigger = await this.checkSimulationTriggerConditions(symbol, analysis);
-        if (canTrigger) {
-          console.log(`✅ 满足触发条件，开始模拟交易: ${symbol}`);
-          await this.triggerSimulationWithRetry(symbol, analysis);
-        } else {
-          console.log(`⏭️ 跳过模拟交易触发: ${symbol} - 不满足触发条件`);
-        }
+        console.log(`🚀 检测到入场执行信号: ${symbol} - ${analysis.execution} (已禁用自动触发)`);
       }
     } catch (error) {
       console.error(`执行更新失败 [${symbol}]:`, error);
@@ -1112,7 +1103,7 @@ class SmartFlowServer {
   }
 
   // 带重试机制的模拟交易触发
-  async triggerSimulationWithRetry(symbol, analysis, maxRetries = 2) {
+  async triggerSimulationWithRetry(symbol, analysis, maxRetries = 1) {
     let retryCount = 0;
     let lastError = null;
 
@@ -1132,7 +1123,8 @@ class SmartFlowServer {
           maxLeverage: analysis.maxLeverage,
           minMargin: analysis.minMargin,
           stopLossDistance: analysis.stopLossDistance,
-          atrValue: analysis.atrValue
+          atrValue: analysis.atrValue,
+          atr14: analysis.atr14
         });
 
         console.log(`✅ 模拟交易触发成功 [${symbol}] (第${retryCount + 1}次尝试)`);
@@ -1391,7 +1383,7 @@ class SmartFlowServer {
    */
   async autoStartSimulation(signalData) {
     try {
-      const { symbol, execution, entrySignal, stopLoss, takeProfit, maxLeverage, minMargin, stopLossDistance, atrValue } = signalData;
+      const { symbol, execution, entrySignal, stopLoss, takeProfit, maxLeverage, minMargin, stopLossDistance, atrValue, atr14 } = signalData;
 
       if (!symbol || !entrySignal || !stopLoss || !takeProfit) {
         console.log(`❌ 跳过 ${symbol}：缺少必要参数`);
@@ -1418,7 +1410,8 @@ class SmartFlowServer {
         minMargin || 100,
         triggerReason,
         stopLossDistance || null,
-        atrValue || null
+        atrValue || null,
+        atr14 || null
       );
 
       // 记录到数据监控
