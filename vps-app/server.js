@@ -230,6 +230,18 @@ class SmartFlowServer {
     this.app.post('/api/add-symbol', async (req, res) => {
       try {
         const { symbol } = req.body;
+        
+        // 检查Binance合约可用性
+        console.log(`🔍 检查交易对 ${symbol} 的Binance合约可用性...`);
+        const isAvailable = await SymbolCategoryManager.contractChecker.isContractAvailable(symbol);
+        
+        if (!isAvailable) {
+          return res.json({
+            success: false,
+            message: `交易对 ${symbol} 在Binance期货中不可用，请选择其他交易对`
+          });
+        }
+        
         const result = await this.db.addCustomSymbol(symbol);
         res.json(result);
       } catch (error) {
@@ -1583,7 +1595,10 @@ process.on('unhandledRejection', async (reason, promise) => {
 });
 
 // 添加交易对分类获取方法
+const BinanceContractChecker = require('./modules/api/BinanceContractChecker');
+
 class SymbolCategoryManager {
+  static contractChecker = new BinanceContractChecker();
   // 获取主流币交易对（BTC, ETH）
   static async getMainstreamSymbols() {
     try {
@@ -1628,7 +1643,18 @@ class SymbolCategoryManager {
           suggestedHoldingPeriod: '趋势市：0.5–3 天；震荡市：数小时内（避免高费率磨损）'
         }));
       
-      return highCapSymbols;
+      // 检查Binance合约可用性
+      console.log('🔍 检查高市值币的Binance合约可用性...');
+      const symbolsToCheck = highCapSymbols.map(item => item.symbol);
+      const availableContracts = await this.contractChecker.filterAvailableContracts(symbolsToCheck);
+      
+      const filteredSymbols = highCapSymbols.filter(item => 
+        availableContracts.includes(item.symbol)
+      );
+      
+      console.log(`✅ 高市值币: ${filteredSymbols.length}/${highCapSymbols.length} 个在Binance期货中可用`);
+      
+      return filteredSymbols;
     } catch (error) {
       console.error('获取高市值币失败:', error);
       return [];
@@ -1654,7 +1680,18 @@ class SymbolCategoryManager {
           suggestedHoldingPeriod: '趋势市：6–24 小时（高波动快速止盈止损）；震荡市：1–3 小时以内'
         }));
       
-      return trendingSymbols;
+      // 检查Binance合约可用性
+      console.log('🔍 检查热点币的Binance合约可用性...');
+      const symbolsToCheck = trendingSymbols.map(item => item.symbol);
+      const availableContracts = await this.contractChecker.filterAvailableContracts(symbolsToCheck);
+      
+      const filteredSymbols = trendingSymbols.filter(item => 
+        availableContracts.includes(item.symbol)
+      );
+      
+      console.log(`✅ 热点币: ${filteredSymbols.length}/${trendingSymbols.length} 个在Binance期货中可用`);
+      
+      return filteredSymbols;
     } catch (error) {
       console.error('获取热点币失败:', error);
       return [];
@@ -1680,7 +1717,18 @@ class SymbolCategoryManager {
           suggestedHoldingPeriod: '仅震荡市：0.5–2 小时（避免爆仓风险）；不建议长时间持有'
         }));
       
-      return smallCapSymbols;
+      // 检查Binance合约可用性
+      console.log('🔍 检查小币的Binance合约可用性...');
+      const symbolsToCheck = smallCapSymbols.map(item => item.symbol);
+      const availableContracts = await this.contractChecker.filterAvailableContracts(symbolsToCheck);
+      
+      const filteredSymbols = smallCapSymbols.filter(item => 
+        availableContracts.includes(item.symbol)
+      );
+      
+      console.log(`✅ 小币: ${filteredSymbols.length}/${smallCapSymbols.length} 个在Binance期货中可用`);
+      
+      return filteredSymbols;
     } catch (error) {
       console.error('获取小币失败:', error);
       return [];
