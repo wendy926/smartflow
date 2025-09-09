@@ -278,7 +278,24 @@ class SmartFlowServer {
           return res.status(400).json({ error: '缺少必要参数' });
         }
 
-        const result = await this.simulationManager.updateSimulationStatus(symbol, currentPrice, this.dataMonitor);
+        // 获取分析数据用于出场判断
+        let analysisData = null;
+        try {
+          const analysisLog = this.dataMonitor.getAnalysisLog(symbol);
+          if (analysisLog) {
+            analysisData = {
+              trend4h: analysisLog.phases?.trend4h,
+              hourlyConfirmation: analysisLog.phases?.hourlyConfirmation,
+              indicators: analysisLog.indicators,
+              rawData: analysisLog.rawData,
+              deltaData: this.deltaManager ? this.deltaManager.getDeltaData(symbol) : null
+            };
+          }
+        } catch (error) {
+          console.warn(`获取 ${symbol} 分析数据失败:`, error.message);
+        }
+
+        const result = await this.simulationManager.updateSimulationStatus(symbol, currentPrice, this.dataMonitor, analysisData);
         res.json({ success: true, updatedCount: result.activeCount });
       } catch (error) {
         console.error('更新模拟交易状态失败:', error);
@@ -632,8 +649,25 @@ class SmartFlowServer {
             const ticker = await BinanceAPI.getTicker(symbol);
             const currentPrice = parseFloat(ticker.lastPrice);
 
+            // 获取分析数据用于出场判断
+            let analysisData = null;
+            try {
+              const analysisLog = this.dataMonitor.getAnalysisLog(symbol);
+              if (analysisLog) {
+                analysisData = {
+                  trend4h: analysisLog.phases?.trend4h,
+                  hourlyConfirmation: analysisLog.phases?.hourlyConfirmation,
+                  indicators: analysisLog.indicators,
+                  rawData: analysisLog.rawData,
+                  deltaData: this.deltaManager ? this.deltaManager.getDeltaData(symbol) : null
+                };
+              }
+            } catch (error) {
+              console.warn(`获取 ${symbol} 分析数据失败:`, error.message);
+            }
+
             // 更新模拟交易状态
-            const result = await this.simulationManager.updateSimulationStatus(symbol, currentPrice, this.dataMonitor);
+            const result = await this.simulationManager.updateSimulationStatus(symbol, currentPrice, this.dataMonitor, analysisData);
             if (result.activeCount > 0) {
               console.log(`📊 更新了 ${symbol} 的 ${result.activeCount} 个模拟交易状态`);
             }

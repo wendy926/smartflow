@@ -11,7 +11,7 @@ class DataMonitor {
     this.maxLogsPerSymbol = 5; // 每个交易对最多保留5条日志
     this.maxSymbols = 50; // 最多监控50个交易对
     this.maxDataQualityIssues = 3; // 每个交易对最多保留3个数据质量问题
-    
+
     this.analysisLogs = new Map();
     this.completionRates = {
       dataCollection: 0,
@@ -35,7 +35,7 @@ class DataMonitor {
     this.lastRefreshTime = new Map();
     this.lastAlertTime = new Map(); // 记录上次告警时间，避免重复告警
     this.alertCooldown = 30 * 60 * 1000; // 30分钟冷却时间
-    
+
     // 启动定期清理
     this.startMemoryCleanup();
   }
@@ -377,7 +377,7 @@ class DataMonitor {
     } catch (error) {
       console.error(`获取 ${symbol} 信号状态失败:`, error);
     }
-    
+
     return null;
   }
 
@@ -447,7 +447,7 @@ class DataMonitor {
 
         // 使用统一验证系统
         const validationResult = await this.validationSystem.validateSymbol(symbol, log);
-        
+
         // 记录验证结果到数据库
         await this.validationSystem.recordValidationResult(symbol, validationResult);
 
@@ -554,12 +554,12 @@ class DataMonitor {
 
       if (dbSignalStatus) {
         // 使用数据库中的信号状态
-        hasExecution = dbSignalStatus.execution && dbSignalStatus.execution !== 'NO_EXECUTION' && 
-                      (dbSignalStatus.execution.includes('做多_') || dbSignalStatus.execution.includes('做空_'));
-        hasSignal = dbSignalStatus.signal && dbSignalStatus.signal !== 'NO_SIGNAL' && 
-                   (dbSignalStatus.signal === 'LONG' || dbSignalStatus.signal === 'SHORT');
-        hasTrend = dbSignalStatus.trend && dbSignalStatus.trend !== 'RANGE' && 
-                  (dbSignalStatus.trend === 'UPTREND' || dbSignalStatus.trend === 'DOWNTREND');
+        hasExecution = dbSignalStatus.execution && dbSignalStatus.execution !== 'NO_EXECUTION' &&
+          (dbSignalStatus.execution.includes('做多_') || dbSignalStatus.execution.includes('做空_'));
+        hasSignal = dbSignalStatus.signal && dbSignalStatus.signal !== 'NO_SIGNAL' &&
+          (dbSignalStatus.signal === 'LONG' || dbSignalStatus.signal === 'SHORT');
+        hasTrend = dbSignalStatus.trend && dbSignalStatus.trend !== 'RANGE' &&
+          (dbSignalStatus.trend === 'UPTREND' || dbSignalStatus.trend === 'DOWNTREND');
         executionMode = dbSignalStatus.executionMode || 'NONE';
       } else if (log) {
         // 回退到内存中的日志数据
@@ -699,7 +699,7 @@ class DataMonitor {
       // 按时间排序，删除最旧的交易对
       const sortedLogs = Array.from(this.analysisLogs.entries())
         .sort((a, b) => a[1].startTime - b[1].startTime);
-      
+
       const toDelete = sortedLogs.slice(0, this.analysisLogs.size - this.maxSymbols);
       toDelete.forEach(([symbol]) => {
         this.analysisLogs.delete(symbol);
@@ -708,7 +708,7 @@ class DataMonitor {
         this.lastRefreshTime.delete(symbol);
         this.lastAlertTime.delete(symbol);
       });
-      
+
       console.log(`🧹 限制交易对数量，删除了 ${toDelete.length} 个旧交易对`);
     }
   }

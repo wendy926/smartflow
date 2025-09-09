@@ -15,13 +15,13 @@ function formatTime(timestamp) {
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 监控页面加载完成，开始初始化...');
-  
+
   // 延迟加载数据，确保DOM完全准备好
   setTimeout(() => {
     console.log('⏰ 延迟加载监控数据...');
     loadMonitoringData();
   }, 100);
-  
+
   // 每30秒自动刷新数据
   refreshInterval = setInterval(loadMonitoringData, 30000);
 });
@@ -38,9 +38,9 @@ window.addEventListener('beforeunload', () => {
 async function loadMonitoringData() {
   try {
     console.log('🔄 加载监控数据...');
-    
+
     let data;
-    
+
     // 优先使用API客户端，如果不可用则直接使用fetch
     if (window.apiClient) {
       console.log('📡 使用API客户端加载数据');
@@ -53,7 +53,7 @@ async function loadMonitoringData() {
       }
       data = await response.json();
     }
-    
+
     console.log('📊 监控数据结构:', data);
     console.log('📊 detailedStats长度:', data.detailedStats ? data.detailedStats.length : 'undefined');
     currentMonitoringData = data;
@@ -97,7 +97,7 @@ function switchMonitoringTab(tabName, event) {
   document.querySelectorAll('.monitoring-tabs .tab-btn').forEach(btn => {
     btn.classList.remove('active');
   });
-  
+
   // 如果提供了event参数，激活对应的按钮
   if (event && event.target) {
     event.target.classList.add('active');
@@ -117,7 +117,7 @@ function switchMonitoringTab(tabName, event) {
   const targetView = document.getElementById(tabName + 'View');
   if (targetView) {
     targetView.classList.add('active');
-    
+
     // 如果切换到交易对详细监控且当前有数据，重新更新表格
     if (tabName === 'trading-pairs' && currentMonitoringData) {
       console.log('🔄 切换到交易对详细监控，重新更新表格...');
@@ -208,7 +208,7 @@ function updateSummaryTable(data) {
   console.log('🔄 开始更新汇总视图表格...');
   const tbody = document.getElementById('monitoringTableBody');
   console.log('📋 找到表格元素:', tbody);
-  
+
   if (!tbody) {
     console.error('❌ 找不到monitoringTableBody元素');
     // 尝试查找所有可能的表格元素
@@ -430,38 +430,38 @@ function showErrorMessage(message) {
 // 调试监控数据
 function debugMonitoringData() {
   console.log('🐛 开始调试监控数据...');
-  
+
   // 检查当前数据
   console.log('📊 当前监控数据:', currentMonitoringData);
-  
+
   // 检查表格元素
   const monitoringTableBody = document.getElementById('monitoringTableBody');
   const detailedTableBody = document.getElementById('detailedTableBody');
-  
+
   console.log('📋 表格元素检查:');
   console.log('- monitoringTableBody:', monitoringTableBody);
   console.log('- detailedTableBody:', detailedTableBody);
-  
+
   if (monitoringTableBody) {
     console.log('- monitoringTableBody子元素数量:', monitoringTableBody.children.length);
     console.log('- monitoringTableBody内容:', monitoringTableBody.innerHTML);
   }
-  
+
   if (detailedTableBody) {
     console.log('- detailedTableBody子元素数量:', detailedTableBody.children.length);
     console.log('- detailedTableBody内容:', detailedTableBody.innerHTML);
   }
-  
+
   // 强制重新加载数据
   console.log('🔄 强制重新加载数据...');
   loadMonitoringData();
-  
+
   // 显示调试信息
   let debugInfo = '调试信息:\n';
   debugInfo += `- 当前数据: ${currentMonitoringData ? '有' : '无'}\n`;
   debugInfo += `- 详细统计: ${currentMonitoringData && currentMonitoringData.detailedStats ? currentMonitoringData.detailedStats.length : 0}个\n`;
   debugInfo += `- 汇总表格: ${monitoringTableBody ? '找到' : '未找到'}\n`;
   debugInfo += `- 详细表格: ${detailedTableBody ? '找到' : '未找到'}\n`;
-  
+
   alert(debugInfo);
 }

@@ -84,7 +84,7 @@ class DataValidationSystem {
         dataTypeResult.available = true;
         dataTypeResult.success = dataInfo.success || false;
         dataTypeResult.dataLength = dataInfo.data ? dataInfo.data.length : 0;
-        
+
         if (!dataInfo.success) {
           dataTypeResult.error = dataInfo.error || '数据获取失败';
           result.errors.push(`${dataType}: ${dataTypeResult.error}`);
@@ -130,7 +130,7 @@ class DataValidationSystem {
       if (indicatorData) {
         indicatorResult.available = true;
         indicatorResult.value = indicatorData.value;
-        
+
         // 验证指标值的合理性
         if (typeof indicatorData.value === 'number' && !isNaN(indicatorData.value)) {
           indicatorResult.valid = true;
@@ -160,7 +160,7 @@ class DataValidationSystem {
     };
 
     const phases = ['trend4h', 'hourlyConfirmation', 'execution15m'];
-    
+
     for (const phase of phases) {
       const phaseResult = {
         available: false,
@@ -173,14 +173,14 @@ class DataValidationSystem {
       if (phaseData) {
         phaseResult.available = true;
         phaseResult.success = phaseData.success || false;
-        
+
         if (phaseData.success) {
           // 验证必要字段
           const requiredFields = this.getRequiredFieldsForPhase(phase);
-          const missingFields = requiredFields.filter(field => 
+          const missingFields = requiredFields.filter(field =>
             phaseData[field] === undefined || phaseData[field] === null
           );
-          
+
           if (missingFields.length > 0) {
             phaseResult.error = `缺少必要字段: ${missingFields.join(', ')}`;
             result.errors.push(`${phase}: ${phaseResult.error}`);
@@ -250,14 +250,14 @@ class DataValidationSystem {
     try {
       const klines4h = analysisLog?.rawData?.['4H K线']?.data;
       const klines1h = analysisLog?.rawData?.['小时K线']?.data;
-      
+
       if (klines4h && klines1h && klines4h.length > 0 && klines1h.length > 0) {
         const latest4h = klines4h[klines4h.length - 1];
         const latest1h = klines1h[klines1h.length - 1];
-        
+
         const price4h = parseFloat(latest4h.close);
         const price1h = parseFloat(latest1h.close);
-        
+
         const priceDiff = Math.abs(price4h - price1h) / price1h;
         if (priceDiff > 0.01) { // 价格差异超过1%
           result.warnings.push(`4H和1H价格差异过大: ${(priceDiff * 100).toFixed(2)}%`);
@@ -282,14 +282,14 @@ class DataValidationSystem {
     try {
       const klines4h = analysisLog?.rawData?.['4H K线']?.data;
       const klines1h = analysisLog?.rawData?.['小时K线']?.data;
-      
+
       if (klines4h && klines1h && klines4h.length > 0 && klines1h.length > 0) {
         const latest4hTime = parseInt(klines4h[klines4h.length - 1].openTime);
         const latest1hTime = parseInt(klines1h[klines1h.length - 1].openTime);
-        
+
         const timeDiff = Math.abs(latest4hTime - latest1hTime);
         const maxAllowedDiff = 4 * 60 * 60 * 1000; // 4小时
-        
+
         if (timeDiff > maxAllowedDiff) {
           result.warnings.push(`4H和1H时间差异过大: ${Math.round(timeDiff / (60 * 60 * 1000))}小时`);
           result.valid = false;

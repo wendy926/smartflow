@@ -265,7 +265,7 @@ class SimulationManager {
   }
 
   // 更新模拟交易状态（价格监控和结果判断）
-  async updateSimulationStatus(symbol, currentPrice, dataMonitor = null) {
+  async updateSimulationStatus(symbol, currentPrice, dataMonitor = null, analysisData = null) {
     try {
       // 获取该交易对的所有活跃模拟交易
       const activeSimulations = await this.db.runQuery(`
@@ -277,56 +277,12 @@ class SimulationManager {
       let completedCount = 0;
 
       for (const sim of activeSimulations) {
-        let shouldClose = false;
-        let exitReason = '';
-        let isWin = null;
-        let profitLoss = 0;
-
-        // 判断是否触发止损或止盈
-        if (sim.trigger_reason.includes('LONG')) {
-          // 多头交易：价格跌破止损价则止损，价格突破止盈价则止盈
-          if (currentPrice <= sim.stop_loss_price) {
-            // 触发止损
-            shouldClose = true;
-            exitReason = 'STOP_LOSS';
-            profitLoss = this.calculateProfitLoss(sim, sim.stop_loss_price);
-          } else if (currentPrice >= sim.take_profit_price) {
-            // 触发止盈
-            shouldClose = true;
-            exitReason = 'TAKE_PROFIT';
-            profitLoss = this.calculateProfitLoss(sim, sim.take_profit_price);
-          }
-        } else if (sim.trigger_reason.includes('SHORT')) {
-          // 空头交易：价格突破止损价则止损，价格跌破止盈价则止盈
-          if (currentPrice >= sim.stop_loss_price) {
-            // 触发止损
-            shouldClose = true;
-            exitReason = 'STOP_LOSS';
-            profitLoss = this.calculateProfitLoss(sim, sim.stop_loss_price);
-          } else if (currentPrice <= sim.take_profit_price) {
-            // 触发止盈
-            shouldClose = true;
-            exitReason = 'TAKE_PROFIT';
-            profitLoss = this.calculateProfitLoss(sim, sim.take_profit_price);
-          }
-        }
+        // 使用新的出场检查逻辑
+        const exitResult = this.checkExitConditions(sim, currentPrice, analysisData);
         
-        // 根据实际盈亏结果判断胜负
-        if (shouldClose) {
-          isWin = profitLoss > 0;
-        }
-
-        // 如果应该平仓，更新交易记录
-        if (shouldClose) {
-          // 确定正确的出场价格
-          let actualExitPrice = currentPrice;
-          if (exitReason === 'STOP_LOSS') {
-            actualExitPrice = parseFloat(sim.stop_loss_price.toFixed(4));
-          } else if (exitReason === 'TAKE_PROFIT') {
-            actualExitPrice = parseFloat(sim.take_profit_price.toFixed(4));
-          } else {
-            actualExitPrice = parseFloat(currentPrice.toFixed(4));
-          }
+        if (exitResult.exit) {
+          const profitLoss = this.calculateProfitLoss(sim, exitResult.exitPrice);
+          const isWin = profitLoss > 0;
           
           await this.db.run(`
             UPDATE simulations 
@@ -337,20 +293,20 @@ class SimulationManager {
                 is_win = ?, 
                 profit_loss = ?
             WHERE id = ?
-          `, [actualExitPrice, exitReason, isWin, profitLoss, sim.id]);
+          `, [exitResult.exitPrice, exitResult.reason, isWin, profitLoss, sim.id]);
 
           // 记录模拟交易完成
           if (dataMonitor) {
             dataMonitor.recordSimulation(symbol, 'COMPLETED', {
               simulationId: sim.id,
-              exitReason,
+              exitReason: exitResult.reason,
               isWin,
               profitLoss
             }, true);
           }
 
           completedCount++;
-          console.log(`✅ 模拟交易平仓: ${sim.symbol} - ${exitReason} - ${isWin ? '盈利' : '亏损'} ${profitLoss.toFixed(2)} USDT`);
+          console.log(`✅ 模拟交易平仓: ${sim.symbol} - ${exitResult.reason} - ${isWin ? '盈利' : '亏损'} ${profitLoss.toFixed(2)} USDT`);
         }
       }
 
@@ -359,6 +315,103 @@ class SimulationManager {
       console.error('更新模拟交易状态失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 出场判断（严格按照strategy-v2.md文档实现）
+   * @param {Object} sim - 模拟交易记录
+   * @param {number} currentPrice - 当前价格
+   * @param {Object} analysisData - 分析数据
+   * @returns {Object} { exit: boolean, reason: string, exitPrice: number }
+   */
+  checkExitConditions(sim, currentPrice, analysisData = null) {
+    const position = sim.direction === 'LONG' ? 'long' : 'short';
+    const entryPrice = parseFloat(sim.entry_price);
+    const stopLoss = parseFloat(sim.stop_loss_price);
+    const takeProfit = parseFloat(sim.take_profit_price);
+    const atr14 = parseFloat(sim.atr_value);
+    
+    // 计算已持仓时间（15分钟K线数）
+    const createdTime = new Date(sim.created_at);
+    const now = new Date();
+    const timeInPosition = Math.floor((now - createdTime) / (15 * 60 * 1000)); // 15分钟K线数
+    const maxTimeInPosition = 12; // 最大允许12根15m K线（3小时）
+
+    // 从分析数据中获取必要信息
+    let score1h = 0;
+    let trend4h = '震荡';
+    let deltaBuy = 0;
+    let deltaSell = 0;
+    let ema20 = 0;
+    let ema50 = 0;
+    let prevHigh = 0;
+    let prevLow = 0;
+
+    if (analysisData) {
+      score1h = analysisData.hourlyConfirmation?.score || 0;
+      trend4h = analysisData.trend4h?.trend === 'UPTREND' ? '多头' : 
+                analysisData.trend4h?.trend === 'DOWNTREND' ? '空头' : '震荡';
+      
+      // 从Delta数据获取买卖盘信息
+      if (analysisData.deltaData) {
+        deltaBuy = analysisData.deltaData.deltaBuy || 0;
+        deltaSell = analysisData.deltaData.deltaSell || 0;
+      }
+      
+      // 从技术指标获取EMA和价格信息
+      if (analysisData.indicators) {
+        ema20 = analysisData.indicators.EMA20?.value || 0;
+        ema50 = analysisData.indicators.EMA50?.value || 0;
+      }
+      
+      // 从K线数据获取前高前低
+      if (analysisData.rawData && analysisData.rawData['15m K线']?.data) {
+        const klines15m = analysisData.rawData['15m K线'].data;
+        if (klines15m.length > 0) {
+          const recentKlines = klines15m.slice(-20); // 最近20根K线
+          prevHigh = Math.max(...recentKlines.map(k => parseFloat(k.high)));
+          prevLow = Math.min(...recentKlines.map(k => parseFloat(k.low)));
+        }
+      }
+    }
+
+    // 1️⃣ 止损触发
+    if ((position === 'long' && currentPrice <= stopLoss) ||
+        (position === 'short' && currentPrice >= stopLoss)) {
+      return { exit: true, reason: 'STOP_LOSS', exitPrice: stopLoss };
+    }
+
+    // 2️⃣ 止盈触发
+    if ((position === 'long' && currentPrice >= takeProfit) ||
+        (position === 'short' && currentPrice <= takeProfit)) {
+      return { exit: true, reason: 'TAKE_PROFIT', exitPrice: takeProfit };
+    }
+
+    // 3️⃣ 趋势反转
+    if ((position === 'long' && (trend4h !== '多头' || score1h < 3)) ||
+        (position === 'short' && (trend4h !== '空头' || score1h < 3))) {
+      return { exit: true, reason: 'TREND_REVERSAL', exitPrice: currentPrice };
+    }
+
+    // 4️⃣ Delta / 买卖盘减弱
+    if ((position === 'long' && deltaBuy / (deltaSell || 1) < 1.1) ||
+        (position === 'short' && deltaSell / (deltaBuy || 1) < 1.1)) {
+      return { exit: true, reason: 'DELTA_WEAKENING', exitPrice: currentPrice };
+    }
+
+    // 5️⃣ 价格跌破关键支撑 / 突破关键阻力
+    if ((position === 'long' && (currentPrice < ema20 || currentPrice < ema50 || currentPrice < prevLow)) ||
+        (position === 'short' && (currentPrice > ema20 || currentPrice > ema50 || currentPrice > prevHigh))) {
+      return { exit: true, reason: 'SUPPORT_RESISTANCE_BREAK', exitPrice: currentPrice };
+    }
+
+    // 6️⃣ 时间止损
+    if (timeInPosition >= maxTimeInPosition) {
+      return { exit: true, reason: 'TIME_STOP', exitPrice: currentPrice };
+    }
+
+    // 否则继续持仓
+    return { exit: false, reason: '', exitPrice: null };
   }
 
   // 计算亏损金额
