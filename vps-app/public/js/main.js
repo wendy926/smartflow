@@ -72,6 +72,11 @@ class SmartFlowApp {
       const value = e.target.value;
       await this.saveUserSetting('maxLossAmount', value);
       console.log('💰 最大损失金额已更新为:', value, 'USDT');
+      
+      // 广播全局设置变化事件
+      window.dispatchEvent(new CustomEvent('globalSettingsChanged', {
+        detail: { maxLossAmount: value }
+      }));
     });
 
     // 页面可见性变化监听 - 但不自动刷新数据

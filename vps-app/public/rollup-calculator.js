@@ -287,6 +287,53 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const calculator = new RollupCalculator();
 
+  // 加载全局设置
+  async function loadGlobalSettings() {
+    try {
+      if (window.apiClient && typeof window.apiClient.getUserSettings === 'function') {
+        const settings = await window.apiClient.getUserSettings();
+        if (settings && settings.maxLossAmount) {
+          const maxLossElement = document.getElementById('maxLossAmount');
+          if (maxLossElement) {
+            maxLossElement.value = settings.maxLossAmount;
+            console.log('✅ 已加载全局最大损失设置:', settings.maxLossAmount, 'USDT');
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ 加载全局设置失败，使用默认值:', error);
+    }
+  }
+
+  // 初始化时加载全局设置
+  loadGlobalSettings();
+
+  // 监听最大损失金额变化，同步到全局设置
+  const maxLossElement = document.getElementById('maxLossAmount');
+  if (maxLossElement) {
+    maxLossElement.addEventListener('change', async function() {
+      try {
+        if (window.apiClient && typeof window.apiClient.setUserSetting === 'function') {
+          await window.apiClient.setUserSetting('maxLossAmount', this.value);
+          console.log('✅ 最大损失金额已同步到全局设置:', this.value, 'USDT');
+        }
+      } catch (error) {
+        console.warn('⚠️ 同步全局设置失败:', error);
+      }
+    });
+  }
+
+  // 监听全局设置变化事件，实时同步
+  window.addEventListener('globalSettingsChanged', function(event) {
+    if (event.detail && event.detail.maxLossAmount) {
+      const maxLossElement = document.getElementById('maxLossAmount');
+      if (maxLossElement && maxLossElement.value !== event.detail.maxLossAmount) {
+        maxLossElement.value = event.detail.maxLossAmount;
+        console.log('🔄 已同步全局最大损失设置:', event.detail.maxLossAmount, 'USDT');
+      }
+    }
+  });
+
   // 初单计算
   calculateInitialBtn.addEventListener('click', function () {
     try {

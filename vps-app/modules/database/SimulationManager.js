@@ -210,6 +210,20 @@ class SimulationManager {
 
   async createSimulation(symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin, triggerReason = 'SIGNAL', stopLossDistance = null, atrValue = null) {
     try {
+      // 获取全局最大损失设置进行验证
+      const globalMaxLoss = await this.db.getUserSetting('maxLossAmount', 100);
+      const maxLossAmount = parseFloat(globalMaxLoss);
+      
+      // 计算实际损失金额进行验证
+      const actualLoss = Math.abs(entryPrice - stopLossPrice) * minMargin / entryPrice;
+      if (actualLoss > maxLossAmount) {
+        console.warn(`⚠️ 模拟交易 ${symbol} 实际损失 ${actualLoss.toFixed(2)} USDT 超过全局设置 ${maxLossAmount} USDT，已调整杠杆`);
+        // 调整杠杆以符合全局最大损失设置
+        const adjustedLeverage = Math.floor(maxLossAmount * entryPrice / (Math.abs(entryPrice - stopLossPrice) * minMargin));
+        maxLeverage = Math.max(1, Math.min(maxLeverage, adjustedLeverage));
+        console.log(`🔧 调整后杠杆: ${maxLeverage}x`);
+      }
+
       // 确保价格保留4位小数
       const formattedEntryPrice = parseFloat(entryPrice.toFixed(4));
       const formattedStopLossPrice = parseFloat(stopLossPrice.toFixed(4));
@@ -229,7 +243,7 @@ class SimulationManager {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [symbol, formattedEntryPrice, formattedStopLossPrice, formattedTakeProfitPrice, maxLeverage, minMargin, triggerReason, 'ACTIVE', stopLossDistance, atrValue, direction]);
 
-      console.log(`✅ 创建模拟交易: ${symbol}, 入场价: ${formattedEntryPrice}, 止损: ${formattedStopLossPrice}, 止盈: ${formattedTakeProfitPrice}, 杠杆: ${maxLeverage}x, 保证金: ${minMargin}, 止损距离: ${stopLossDistance}%, ATR: ${atrValue}`);
+      console.log(`✅ 创建模拟交易: ${symbol}, 入场价: ${formattedEntryPrice}, 止损: ${formattedStopLossPrice}, 止盈: ${formattedTakeProfitPrice}, 杠杆: ${maxLeverage}x, 保证金: ${minMargin}, 止损距离: ${stopLossDistance}%, ATR: ${atrValue}, 全局最大损失: ${maxLossAmount} USDT`);
 
       // 发送Telegram通知
       const simulationData = {
