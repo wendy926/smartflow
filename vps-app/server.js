@@ -80,11 +80,16 @@ class SmartFlowServer {
 
             // 获取数据采集成功率
             let dataCollectionRate = 0;
-            if (this.dataMonitor && this.dataMonitor.symbolStats) {
-              const stats = this.dataMonitor.symbolStats.get(symbol);
-              if (stats) {
-                dataCollectionRate = stats.dataCollectionAttempts > 0 ?
-                  (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100 : 0;
+            if (this.dataMonitor) {
+              // 先更新统计数据
+              this.dataMonitor.calculateCompletionRates();
+              
+              if (this.dataMonitor.symbolStats) {
+                const stats = this.dataMonitor.symbolStats.get(symbol);
+                if (stats) {
+                  dataCollectionRate = stats.dataCollectionAttempts > 0 ?
+                    (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100 : 0;
+                }
               }
             }
 
