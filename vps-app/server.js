@@ -267,6 +267,17 @@ class SmartFlowServer {
       }
     });
 
+    // 获取所有模拟交易历史（无限制）
+    this.app.get('/api/simulation-history-all', async (req, res) => {
+      try {
+        const history = await this.simulationManager.getSimulationHistory(-1);
+        res.json(history);
+      } catch (error) {
+        console.error('获取所有模拟交易历史失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 启动模拟交易
     this.app.post('/api/simulation/start', async (req, res) => {
       try {

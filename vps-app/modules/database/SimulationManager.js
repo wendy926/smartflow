@@ -306,11 +306,20 @@ class SimulationManager {
 
   async getSimulationHistory(limit = 50) {
     try {
-      return await this.db.runQuery(`
-        SELECT * FROM simulations 
-        ORDER BY created_at DESC 
-        LIMIT ?
-      `, [limit]);
+      if (limit === -1) {
+        // 无限制，返回所有记录
+        return await this.db.runQuery(`
+          SELECT * FROM simulations 
+          ORDER BY created_at DESC
+        `);
+      } else {
+        // 限制记录数
+        return await this.db.runQuery(`
+          SELECT * FROM simulations 
+          ORDER BY created_at DESC 
+          LIMIT ?
+        `, [limit]);
+      }
     } catch (error) {
       console.error('获取模拟交易历史时出错:', error);
       return [];
