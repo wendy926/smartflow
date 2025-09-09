@@ -90,6 +90,14 @@ class SmartFlowServer {
               console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
             }
 
+            // 调试：打印V3策略返回的数据结构
+            console.log(`🔍 V3策略返回数据 [${symbol}]:`, {
+              score1h: analysis.score1h,
+              vwapDirectionConsistent: analysis.vwapDirectionConsistent,
+              factors: analysis.factors,
+              marketType: analysis.marketType
+            });
+
             // 存储到监控系统用于数据验证
             if (this.dataMonitor) {
               this.dataMonitor.recordAnalysisLog(symbol, {
