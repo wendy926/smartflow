@@ -1612,7 +1612,7 @@ class SymbolCategoryManager {
       
       const highCapSymbols = data
         .filter(coin => !['bitcoin', 'ethereum', 'tether', 'usd-coin', 'binancecoin'].includes(coin.id))
-        .slice(0, 17) // 取排名3-20
+        .slice(0, 15) // 显示top15，排除BTC和ETH
         .map(coin => ({
           symbol: coin.symbol.toUpperCase() + 'USDT',
           name: coin.name,
@@ -1637,6 +1637,7 @@ class SymbolCategoryManager {
       const data = await response.json();
       
       const trendingSymbols = data.coins
+        .slice(0, 5) // 只显示top5
         .map(coin => coin.item)
         .map(coin => ({
           symbol: coin.symbol.toUpperCase() + 'USDT',
