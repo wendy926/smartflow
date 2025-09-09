@@ -141,6 +141,7 @@ class SymbolManagement {
           </div>
           
           <div class="symbol-frequency">${symbol.suggestedFrequency}</div>
+          <div class="symbol-holding-period">⏱️ ${symbol.suggestedHoldingPeriod}</div>
           
           <div class="symbol-stats">
             <h4>📊 模拟交易统计</h4>

@@ -944,13 +944,13 @@ flowchart TD
 
 # 交易对选择及交易频率建议
 
-| **类别** | **典型代币** | **查询网站** | **推荐 API / 接口** | **查询 JS 片段** | **查询频率** | **建议交易频率** |
-| --- | --- | --- | --- | --- | --- | --- |
-| 主流币（高流动性） | BTC, ETH | [CoinMarketCap](https://coinmarketcap.com/), [CoinGecko](https://www.coingecko.com/) | CoinGecko /coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1 | fetchTopN(10) | 每月 1 次（00:00 UTC 更新） | 趋势市：每周 1–3 笔；震荡市：每天 0–2 笔 |
-| 高市值强趋势币 | BNB, SOL, XRP, ADA, DOGE, DOT, LTC, TRX, BCH, ETC | 同上 | 同上 API，过滤 BTC/ETH/稳定币，取 rank 3–20 | fetchTopN(30) + 过滤 | 每周 1 次 | 趋势市：每周 1–2 笔；震荡市：每天 1–3 笔 |
-| 热点币（Trending / 热搜） | 实时变化（如 Worldcoin, Avantis 等） | [CoinGecko Trending](https://www.coingecko.com/en/trending) | CoinGecko /search/trending | fetchTrending() | 每小时 1 次 | 趋势市：每周 1–2 笔；震荡市：每天 2–4 笔（需严格风控） |
-| 小币（低流动性） | 市值 < $50M 的长尾币 | CoinGecko 市值排序 | CoinGecko /coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1 + 本地过滤 | fetchSmallCaps(1e6, 5e7) | 每天 1 次 | 不做趋势；震荡市：每天 1–2 笔（小仓位 ≤1% 风险） |
-| Binance 合约可用性检查 | Binance Futures 所有合约对 | [Binance Futures Products](https://www.binance.com/en/futures) | Binance /fapi/v1/exchangeInfo | checkBinanceContracts() | 每天 1 次 | —（仅检查是否可交易，不直接决定频率） |
+| **类别** | **典型代币** | **查询网站** | **推荐 API / 接口** | **查询 JS 片段** | **查询频率** | **建议交易频率** | **建议持仓时长** |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 主流币（高流动性） | BTC, ETH | [CoinMarketCap](https://coinmarketcap.com/), [CoinGecko](https://www.coingecko.com/) | CoinGecko /coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1 | fetchTopN(10) | 每月 1 次（00:00 UTC 更新） | 趋势市：每周 1–3 笔；震荡市：每天 0–2 笔 | 趋势市：可持仓 1–7 天（跟随趋势）；震荡市：1–12 小时（避免费率吃掉利润） |
+| 高市值强趋势币 | BNB, SOL, XRP, ADA, DOGE, DOT, LTC, TRX, BCH, ETC | 同上 | 同上 API，过滤 BTC/ETH/稳定币，取 rank 3–20 | fetchTopN(30) + 过滤 | 每周 1 次 | 趋势市：每周 1–2 笔；震荡市：每天 1–3 笔 | 趋势市：0.5–3 天；震荡市：数小时内（避免高费率磨损） |
+| 热点币（Trending / 热搜） | 实时变化（如 Worldcoin, Avantis 等） | [CoinGecko Trending](https://www.coingecko.com/en/trending) | CoinGecko /search/trending | fetchTrending() | 每小时 1 次 | 趋势市：每周 1–2 笔；震荡市：每天 2–4 笔（需严格风控） | 趋势市：6–24 小时（高波动快速止盈止损）；震荡市：1–3 小时以内 |
+| 小币（低流动性） | 市值 < $50M 的长尾币 | CoinGecko 市值排序 | CoinGecko /coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1 + 本地过滤 | fetchSmallCaps(1e6, 5e7) | 每天 1 次 | 不做趋势；震荡市：每天 1–2 笔（小仓位 ≤1% 风险） | 仅震荡市：0.5–2 小时（避免爆仓风险）；不建议长时间持有 |
+| Binance 合约可用性检查 | Binance Futures 所有合约对 | [Binance Futures Products](https://www.binance.com/en/futures) | Binance /fapi/v1/exchangeInfo | checkBinanceContracts() | 每天 1 次 | —（仅检查是否可交易，不直接决定频率） | 仅确认可交易性，不决定持仓 |
 
 # 最大杠杆和最小保证金计算方式
 采用逐仓模式，止损距离，最大杠杆数和最小保证金数计算方式：

@@ -1593,7 +1593,8 @@ class SymbolCategoryManager {
           marketCap: coin.market_cap,
           price: coin.current_price,
           category: 'mainstream',
-          suggestedFrequency: '趋势市：每周 1–3 笔；震荡市：每天 0–2 笔'
+          suggestedFrequency: '趋势市：每周 1–3 笔；震荡市：每天 0–2 笔',
+          suggestedHoldingPeriod: '趋势市：可持仓 1–7 天（跟随趋势）；震荡市：1–12 小时（避免费率吃掉利润）'
         }));
       
       return mainstreamSymbols;
@@ -1618,7 +1619,8 @@ class SymbolCategoryManager {
           marketCap: coin.market_cap,
           price: coin.current_price,
           category: 'highcap',
-          suggestedFrequency: '趋势市：每周 1–2 笔；震荡市：每天 1–3 笔'
+          suggestedFrequency: '趋势市：每周 1–2 笔；震荡市：每天 1–3 笔',
+          suggestedHoldingPeriod: '趋势市：0.5–3 天；震荡市：数小时内（避免高费率磨损）'
         }));
       
       return highCapSymbols;
@@ -1642,7 +1644,8 @@ class SymbolCategoryManager {
           marketCap: coin.market_cap_rank ? `#${coin.market_cap_rank}` : 'N/A',
           price: coin.price_btc ? `₿${coin.price_btc}` : 'N/A',
           category: 'trending',
-          suggestedFrequency: '趋势市：每周 1–2 笔；震荡市：每天 2–4 笔（需严格风控）'
+          suggestedFrequency: '趋势市：每周 1–2 笔；震荡市：每天 2–4 笔（需严格风控）',
+          suggestedHoldingPeriod: '趋势市：6–24 小时（高波动快速止盈止损）；震荡市：1–3 小时以内'
         }));
       
       return trendingSymbols;
@@ -1667,7 +1670,8 @@ class SymbolCategoryManager {
           marketCap: coin.market_cap,
           price: coin.current_price,
           category: 'smallcap',
-          suggestedFrequency: '不做趋势；震荡市：每天 1–2 笔（小仓位 ≤1% 风险）'
+          suggestedFrequency: '不做趋势；震荡市：每天 1–2 笔（小仓位 ≤1% 风险）',
+          suggestedHoldingPeriod: '仅震荡市：0.5–2 小时（避免爆仓风险）；不建议长时间持有'
         }));
       
       return smallCapSymbols;
