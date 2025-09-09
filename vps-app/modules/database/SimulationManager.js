@@ -2,12 +2,14 @@
 // 模拟交易管理模块
 
 const BinanceAPI = require('../api/BinanceAPI');
+const TelegramNotifier = require('../notifications/TelegramNotifier');
 
 class SimulationManager {
   constructor(db) {
     this.db = db;
     // 移除activeSimulations Map，直接从数据库查询，避免重复存储
     this.priceCheckInterval = null;
+    this.telegramNotifier = new TelegramNotifier(db);
   }
 
   startPriceMonitoring() {
@@ -123,6 +125,26 @@ class SimulationManager {
       await this.updateWinRateStats();
 
       console.log(`✅ 模拟交易 ${simulationId} 已关闭: ${exitReason}, 出场价: ${actualExitPrice}, 盈亏: ${profitLoss.toFixed(2)}U`);
+      
+      // 发送Telegram通知
+      const simulationData = {
+        id: simulationId,
+        symbol: sim.symbol,
+        entryPrice: sim.entry_price,
+        exitPrice: actualExitPrice,
+        stopLossPrice: sim.stop_loss_price,
+        takeProfitPrice: sim.take_profit_price,
+        direction: sim.direction,
+        exitReason,
+        profitLoss,
+        isWin,
+        duration: this.calculateDuration(sim.created_at, new Date())
+      };
+      
+      // 异步发送通知，不阻塞主流程
+      this.telegramNotifier.notifySimulationEnd(simulationData).catch(error => {
+        console.error(`❌ 模拟交易结束通知发送失败: ${sim.symbol}`, error);
+      });
     } catch (error) {
       console.error('关闭模拟交易时出错:', error);
     }
@@ -145,6 +167,27 @@ class SimulationManager {
 
     const leveragedReturn = priceChange * max_leverage;
     return parseFloat((min_margin * leveragedReturn).toFixed(4));
+  }
+
+  /**
+   * 计算持仓时长
+   */
+  calculateDuration(startTime, endTime) {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const diffMs = end - start;
+    
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+    
+    if (hours > 0) {
+      return `${hours}小时${minutes}分钟`;
+    } else if (minutes > 0) {
+      return `${minutes}分钟${seconds}秒`;
+    } else {
+      return `${seconds}秒`;
+    }
   }
 
   updateSimulationInDB(simulationId, exitPrice, exitReason, isWin, profitLoss) {
@@ -212,6 +255,27 @@ class SimulationManager {
       `, [symbol, formattedEntryPrice, formattedStopLossPrice, formattedTakeProfitPrice, maxLeverage, minMargin, triggerReason, 'ACTIVE', stopLossDistance, atrValue, direction]);
 
       console.log(`✅ 创建模拟交易: ${symbol}, 入场价: ${formattedEntryPrice}, 止损: ${formattedStopLossPrice}, 止盈: ${formattedTakeProfitPrice}, 杠杆: ${maxLeverage}x, 保证金: ${minMargin}, 止损距离: ${stopLossDistance}%, ATR: ${atrValue}`);
+      
+      // 发送Telegram通知
+      const simulationData = {
+        id: result.id,
+        symbol,
+        entryPrice: formattedEntryPrice,
+        stopLossPrice: formattedStopLossPrice,
+        takeProfitPrice: formattedTakeProfitPrice,
+        maxLeverage,
+        minMargin,
+        direction,
+        triggerReason,
+        stopLossDistance,
+        atrValue
+      };
+      
+      // 异步发送通知，不阻塞主流程
+      this.telegramNotifier.notifySimulationStart(simulationData).catch(error => {
+        console.error(`❌ 模拟交易开始通知发送失败: ${symbol}`, error);
+      });
+      
       return result.id;
     } catch (error) {
       console.error('创建模拟交易时出错:', error);
