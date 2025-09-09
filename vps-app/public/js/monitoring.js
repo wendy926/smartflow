@@ -179,6 +179,7 @@ function updateSystemOverview(data) {
 
   // 指标维度数据
   const completionRates = data.summary.completionRates || {};
+  console.log('🔍 更新数据收集率:', completionRates.dataCollection);
   document.getElementById('dataCollectionRate').textContent = `${completionRates.dataCollection || 0}%`;
 
   // 数据验证状态
