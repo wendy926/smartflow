@@ -707,6 +707,136 @@ console.log(result);
 */
 ```
 
+# 止损出场逻辑
+```jsx
+/**
+ * 出场判断（包含时间止损）
+ * @param {Object} params
+ * @param {string} params.position - "long" 或 "short"
+ * @param {number} params.entryPrice - 入场价格
+ * @param {Object} params.setupCandle - 入场K线 { high, low, close }
+ * @param {number} params.atr14 - ATR(14) 最新值
+ * @param {number} params.currentPrice - 当前价格
+ * @param {number} params.score1h - 1H 多因子打分
+ * @param {string} params.trend4h - 当前4H趋势 ("多头" | "空头" | "震荡")
+ * @param {number} params.deltaBuy - 当前主动买盘量
+ * @param {number} params.deltaSell - 当前主动卖盘量
+ * @param {number} params.ema20 - EMA20 当前值
+ * @param {number} params.ema50 - EMA50 当前值
+ * @param {number} params.prevHigh - 近期前高
+ * @param {number} params.prevLow - 近期前低
+ * @param {number} params.timeInPosition - 已持仓时间，单位：15m K线数
+ * @param {number} params.maxTimeInPosition - 最大允许持仓时间，单位：15m K线数
+ * @returns {Object} { exit: boolean, reason: string, exitPrice: number }
+ */
+function checkExit(params) {
+  const {
+    position,
+    entryPrice,
+    setupCandle,
+    atr14,
+    currentPrice,
+    score1h,
+    trend4h,
+    deltaBuy,
+    deltaSell,
+    ema20,
+    ema50,
+    prevHigh,
+    prevLow,
+    timeInPosition,
+    maxTimeInPosition
+  } = params;
+
+  let stopLoss, takeProfit;
+
+  // 止损计算
+  if (position === "long") {
+    stopLoss = Math.min(setupCandle.low, entryPrice - 1.2 * atr14);
+    takeProfit = entryPrice + 2 * (entryPrice - stopLoss);
+  } else {
+    stopLoss = Math.max(setupCandle.high, entryPrice + 1.2 * atr14);
+    takeProfit = entryPrice - 2 * (stopLoss - entryPrice);
+  }
+
+  // 1️⃣ 止损触发
+  if ((position === "long" && currentPrice <= stopLoss) ||
+      (position === "short" && currentPrice >= stopLoss)) {
+    return { exit: true, reason: "止损触发", exitPrice: stopLoss };
+  }
+
+  // 2️⃣ 止盈触发
+  if ((position === "long" && currentPrice >= takeProfit) ||
+      (position === "short" && currentPrice <= takeProfit)) {
+    return { exit: true, reason: "止盈触发", exitPrice: takeProfit };
+  }
+
+  // 3️⃣ 趋势反转
+  if ((position === "long" && (trend4h !== "多头" || score1h < 3)) ||
+      (position === "short" && (trend4h !== "空头" || score1h < 3))) {
+    return { exit: true, reason: "趋势或多因子反转", exitPrice: currentPrice };
+  }
+
+  // 4️⃣ Delta / 买卖盘减弱
+  if ((position === "long" && deltaBuy / (deltaSell || 1) < 1.1) ||
+      (position === "short" && deltaSell / (deltaBuy || 1) < 1.1)) {
+    return { exit: true, reason: "Delta / 主动买卖盘减弱", exitPrice: currentPrice };
+  }
+
+  // 5️⃣ 价格跌破关键支撑 / 突破关键阻力
+  if ((position === "long" && (currentPrice < ema20 || currentPrice < ema50 || currentPrice < prevLow)) ||
+      (position === "short" && (currentPrice > ema20 || currentPrice > ema50 || currentPrice > prevHigh))) {
+    return { exit: true, reason: "跌破支撑或突破阻力", exitPrice: currentPrice };
+  }
+
+  // 6️⃣ 时间止损
+  if (timeInPosition >= maxTimeInPosition) {
+    return { exit: true, reason: "超时止损", exitPrice: currentPrice };
+  }
+
+  // 否则继续持仓
+  return { exit: false, reason: "", exitPrice: null };
+}
+
+// ==== 使用示例 ====
+const exitSignal = checkExit({
+  position: "long",
+  entryPrice: 100,
+  setupCandle: { high: 102, low: 99, close: 101 },
+  atr14: 1.5,
+  currentPrice: 101.2,
+  score1h: 4,
+  trend4h: "多头",
+  deltaBuy: 1200,
+  deltaSell: 900,
+  ema20: 101.5,
+  ema50: 100.8,
+  prevHigh: 103,
+  prevLow: 99.5,
+  timeInPosition: 13,   // 已持仓13根15m K线
+  maxTimeInPosition: 12 // 最大允许12根15m K线
+});
+
+console.log(exitSignal);
+/**
+ 输出示例:
+ {
+   exit: true,
+   reason: "超时止损",
+   exitPrice: 101.2
+ }
+*/
+```
+
+# 数据刷新频率：
+| **时间框架** | **刷新频率** | **理由** |
+| --- | --- | --- |
+| 4H 趋势 | 每 1 小时 | 足够稳定，减少API压力 |
+| 1H 打分 | 每 5 分钟 | 提前捕捉突破和VWAP偏移 |
+| 15m 入场 | 每 1~3 分钟 | 精确捕捉setup突破 |
+| Delta/盘口 | 实时（WebSocket） | 否则失去意义 |
+
+
 采用逐仓模式，止损距离，最大杠杆数和最小保证金数计算方式：
 - 止损距离X%：
   - 多头：(entrySignal - stopLoss) / entrySignal
