@@ -32,6 +32,7 @@ class SmartFlowApp {
     }
 
     this.startMonitoringRefresh(); // 启动监控数据自动刷新
+    this.startSimulationAutoCheck(); // 启动模拟交易自动检查
   }
 
   // 加载用户设置
@@ -352,8 +353,8 @@ class SmartFlowApp {
       return;
     }
 
-    // 检查是否有新的入场执行信号，自动触发模拟交易
-    this.checkAndAutoTriggerSimulation(signals);
+    // 注意：自动触发模拟交易逻辑已移至独立的检查机制
+    // 不再在每次表格更新时触发，避免页面刷新时误触发
 
     signals.forEach(signal => {
       // 计算数据采集成功率
@@ -530,6 +531,45 @@ class SmartFlowApp {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
+    }
+  }
+
+  /**
+   * 启动模拟交易自动检查（每2分钟检查一次，对应15分钟入场时机）
+   */
+  startSimulationAutoCheck() {
+    // 立即执行一次检查
+    this.checkSimulationTriggers();
+    
+    // 每2分钟检查一次（对应15分钟入场时机的刷新频率）
+    this.simulationCheckInterval = setInterval(async () => {
+      await this.checkSimulationTriggers();
+    }, 120000); // 2分钟 = 120000毫秒
+  }
+
+  stopSimulationAutoCheck() {
+    if (this.simulationCheckInterval) {
+      clearInterval(this.simulationCheckInterval);
+      this.simulationCheckInterval = null;
+    }
+  }
+
+  /**
+   * 检查模拟交易触发条件
+   * 只在15分钟入场时机出现时触发
+   */
+  async checkSimulationTriggers() {
+    try {
+      console.log('🔍 检查模拟交易触发条件...');
+      
+      // 获取最新信号数据
+      const signals = await dataManager.getAllSignals();
+      
+      // 检查是否有新的入场执行信号
+      await this.checkAndAutoTriggerSimulation(signals);
+      
+    } catch (error) {
+      console.error('模拟交易触发检查失败:', error);
     }
   }
 
