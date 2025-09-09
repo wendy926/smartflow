@@ -421,8 +421,8 @@ class SmartFlowApp {
                 <td class="${dataManager.getTrendClass(trend4h)}" title="4H趋势: ${trend4h} | 市场类型: ${marketType}">
                     ${trendDisplay}
                 </td>
-                <td class="${hourlyScore >= 3 ? 'score-strong' : hourlyScore >= 2 ? 'score-moderate' : 'score-weak'}" title="1H多因子得分: ${hourlyScore}/6">
-                    ${hourlyScore}
+                <td class="${marketType === '震荡市' ? 'score-none' : (hourlyScore >= 3 ? 'score-strong' : hourlyScore >= 2 ? 'score-moderate' : 'score-weak')}" title="${marketType === '震荡市' ? '震荡市不需要1H多因子打分' : `1H多因子得分: ${hourlyScore}/6`}">
+                    ${marketType === '震荡市' ? '--' : hourlyScore}
                 </td>
                 <td class="${dataManager.getSignalClass(signal.signal)}" title="1H加强趋势">
                     ${signalDisplay}
