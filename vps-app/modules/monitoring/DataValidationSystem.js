@@ -73,8 +73,7 @@ class DataValidationSystem {
     if (isV3Strategy) {
       // V3策略：验证关键数据字段是否存在
       const requiredFields = [
-        'trend4h', 'marketType', 'score1h', 'vwapDirectionConsistent', 
-        'vwap', 'fundingRate', 'factors'
+        'trend4h', 'marketType', 'score1h', 'vwapDirectionConsistent'
       ];
 
       for (const field of requiredFields) {
@@ -89,6 +88,24 @@ class DataValidationSystem {
           fieldResult.error = '字段不存在';
           result.errors.push(`${field}: ${fieldResult.error}`);
           result.valid = false;
+        }
+
+        result.dataTypes[field] = fieldResult;
+      }
+
+      // 可选字段验证（不强制要求）
+      const optionalFields = ['vwap', 'fundingRate', 'factors'];
+      for (const field of optionalFields) {
+        const fieldResult = {
+          available: analysisLog[field] !== undefined,
+          success: true, // 可选字段不强制成功
+          dataLength: 0,
+          error: null
+        };
+
+        if (!fieldResult.available) {
+          fieldResult.error = '字段不存在';
+          // 可选字段不添加到错误列表
         }
 
         result.dataTypes[field] = fieldResult;
@@ -149,7 +166,7 @@ class DataValidationSystem {
     if (isV3Strategy) {
       // V3策略：验证关键指标字段
       const requiredIndicators = [
-        'ma20', 'ma50', 'ma200', 'vwap', 'adx14', 'bbw'
+        'ma20', 'ma50', 'ma200', 'adx14', 'bbw'
       ];
 
       for (const indicator of requiredIndicators) {
@@ -177,6 +194,35 @@ class DataValidationSystem {
           indicatorResult.error = '指标不存在';
           result.errors.push(`${indicator}: 指标不存在`);
           result.valid = false;
+        }
+
+        result.indicators[indicator] = indicatorResult;
+      }
+
+      // 可选指标验证（不强制要求）
+      const optionalIndicators = ['vwap'];
+      for (const indicator of optionalIndicators) {
+        const indicatorResult = {
+          available: false,
+          valid: true, // 可选指标不强制成功
+          value: null,
+          error: null
+        };
+
+        const indicatorValue = analysisLog[indicator];
+        indicatorResult.available = indicatorValue !== undefined;
+        indicatorResult.value = indicatorValue;
+
+        if (indicatorValue !== undefined) {
+          if (typeof indicatorValue === 'number' && !isNaN(indicatorValue)) {
+            indicatorResult.valid = true;
+          } else {
+            indicatorResult.error = '指标值无效';
+            // 可选指标不添加到错误列表
+          }
+        } else {
+          indicatorResult.error = '指标不存在';
+          // 可选指标不添加到错误列表
         }
 
         result.indicators[indicator] = indicatorResult;
