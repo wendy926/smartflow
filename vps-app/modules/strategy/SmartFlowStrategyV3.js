@@ -126,7 +126,10 @@ class SmartFlowStrategyV3 {
       );
 
       // 4. 计算杠杆和保证金数据
-      const leverageData = await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14);
+      const direction = executionResult.signal === 'BUY' ? 'LONG' : 'SHORT';
+      const leverageData = executionResult.signal !== 'NONE' ? 
+        await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
+        { maxLeverage: 0, minMargin: 0, stopLossDistance: 0, atrValue: executionResult.atr14 };
 
       // 5. 合并结果
       return {
@@ -208,7 +211,10 @@ class SmartFlowStrategyV3 {
       );
 
       // 4. 计算杠杆和保证金数据
-      const leverageData = await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14);
+      const direction = executionResult.signal === 'BUY' ? 'LONG' : 'SHORT';
+      const leverageData = executionResult.signal !== 'NONE' ? 
+        await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
+        { maxLeverage: 0, minMargin: 0, stopLossDistance: 0, atrValue: executionResult.atr14 };
 
       // 5. 合并结果
       return {
@@ -258,8 +264,12 @@ class SmartFlowStrategyV3 {
 
   /**
    * 计算杠杆和保证金数据
+   * 参考strategy-v2.md文档：
+   * - 止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
+   * - 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
+   * - 保证金Z：M/(Y*X%) 数值向上取整（M为最大损失金额）
    */
-  static async calculateLeverageData(entryPrice, stopLossPrice, atr14) {
+  static async calculateLeverageData(entryPrice, stopLossPrice, atr14, direction = 'SHORT') {
     try {
       // 获取全局最大损失设置
       const DatabaseManager = require('../database/DatabaseManager');
@@ -274,8 +284,17 @@ class SmartFlowStrategyV3 {
       let stopLossDistance = 0;
 
       if (entryPrice && stopLossPrice && entryPrice > 0) {
-        // 计算止损距离百分比
-        stopLossDistance = Math.abs(entryPrice - stopLossPrice) / entryPrice;
+        // 根据方向计算止损距离百分比
+        if (direction === 'LONG') {
+          // 多头：止损价低于入场价
+          stopLossDistance = (entryPrice - stopLossPrice) / entryPrice;
+        } else {
+          // 空头：止损价高于入场价
+          stopLossDistance = (stopLossPrice - entryPrice) / entryPrice;
+        }
+        
+        // 确保止损距离为正数
+        stopLossDistance = Math.abs(stopLossDistance);
         
         // 最大杠杆数：1/(止损距离% + 0.5%) 数值向下取整
         if (stopLossDistance > 0) {
