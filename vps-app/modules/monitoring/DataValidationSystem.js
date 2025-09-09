@@ -129,7 +129,7 @@ class DataValidationSystem {
       const indicatorData = analysisLog?.indicators?.[indicator];
       if (indicatorData) {
         indicatorResult.available = true;
-        
+
         // 根据不同的指标类型获取值
         let indicatorValue = null;
         if (indicator === '4H MA指标' && indicatorData.data) {
@@ -143,7 +143,7 @@ class DataValidationSystem {
           // 其他指标使用value字段
           indicatorValue = indicatorData.value;
         }
-        
+
         indicatorResult.value = indicatorValue;
 
         // 验证指标值的合理性
