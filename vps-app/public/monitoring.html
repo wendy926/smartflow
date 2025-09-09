@@ -428,6 +428,17 @@
       border-color: #007bff;
     }
 
+    .filter-btn.danger {
+      background: #dc3545;
+      color: white;
+      border-color: #dc3545;
+    }
+
+    .filter-btn.danger:hover {
+      background: #c82333;
+      border-color: #c82333;
+    }
+
     .alert-list {
       max-height: 500px;
       overflow-y: auto;
@@ -845,6 +856,7 @@
             <button class="filter-btn" onclick="filterAlerts('data-quality')">数据质量</button>
             <button class="filter-btn" onclick="filterAlerts('data-validation')">数据验证</button>
             <button class="filter-btn" onclick="filterAlerts('data-collection')">数据收集</button>
+            <button class="filter-btn danger" onclick="clearAllErrors()">🗑️ 清空所有错误</button>
           </div>
 
           <div class="alert-list" id="alertList">

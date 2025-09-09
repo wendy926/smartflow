@@ -83,6 +83,7 @@ class SmartFlowServer {
               this.dataMonitor.recordAnalysisLog(symbol, {
                 success: true,
                 symbol,
+                strategyVersion: 'V3', // 明确设置策略版本
                 phases: {
                   dataCollection: { success: true },
                   signalAnalysis: { success: true },
@@ -404,6 +405,27 @@ class SmartFlowServer {
       } catch (error) {
         console.error('健康检查失败:', error);
         res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 清空数据验证错误
+    this.app.post('/api/clear-validation-errors', async (req, res) => {
+      try {
+        if (this.dataMonitor && this.dataMonitor.validationSystem) {
+          // 清空验证结果
+          this.dataMonitor.validationSystem.validationResults.clear();
+          
+          // 清空数据质量问题
+          this.dataMonitor.dataQualityIssues.clear();
+          
+          console.log('✅ 数据验证错误已清空');
+          res.json({ success: true, message: '数据验证错误已清空' });
+        } else {
+          res.status(500).json({ success: false, message: '监控系统未初始化' });
+        }
+      } catch (error) {
+        console.error('清空数据验证错误失败:', error);
+        res.status(500).json({ success: false, message: '清空失败: ' + error.message });
       }
     });
 

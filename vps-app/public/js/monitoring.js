@@ -588,3 +588,36 @@ function forceRefreshTable() {
     });
   }
 }
+
+// 清空所有错误日志
+async function clearAllErrors() {
+  if (!confirm('确定要清空所有错误日志吗？此操作不可撤销！')) {
+    return;
+  }
+
+  try {
+    console.log('🗑️ 开始清空所有错误日志...');
+    
+    // 调用后端API清空错误日志
+    const response = await fetch('/api/clear-validation-errors', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      console.log('✅ 错误日志清空成功');
+      // 重新加载监控数据
+      await loadMonitoringData();
+      alert('错误日志已清空！');
+    } else {
+      const errorData = await response.json();
+      console.error('❌ 清空错误日志失败:', errorData);
+      alert('清空错误日志失败: ' + (errorData.message || '未知错误'));
+    }
+  } catch (error) {
+    console.error('❌ 清空错误日志时发生错误:', error);
+    alert('清空错误日志失败: ' + error.message);
+  }
+}

@@ -314,9 +314,9 @@ class DataMonitor {
     }
 
     this.completionRates = {
-      dataCollection: totalDataAttempts > 0 ? (totalDataSuccesses / totalDataAttempts) * 100 : 0,
-      signalAnalysis: totalSignalAttempts > 0 ? (totalSignalSuccesses / totalSignalAttempts) * 100 : 0,
-      simulationTrading: totalSimulationTriggers > 0 ? (totalSimulationCompletions / totalSimulationTriggers) * 100 : 0
+      dataCollection: totalDataAttempts > 0 ? Math.min((totalDataSuccesses / totalDataAttempts) * 100, 100) : 0,
+      signalAnalysis: totalSignalAttempts > 0 ? Math.min((totalSignalSuccesses / totalSignalAttempts) * 100, 100) : 0,
+      simulationTrading: totalSimulationTriggers > 0 ? Math.min((totalSimulationCompletions / totalSimulationTriggers) * 100, 100) : 0
     };
   }
 
