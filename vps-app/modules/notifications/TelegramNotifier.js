@@ -216,12 +216,12 @@ class TelegramNotifier {
    */
   getExitReasonText(exitReason) {
     const reasonMap = {
-      'STOP_LOSS': '止损出场',
-      'TAKE_PROFIT': '止盈出场',
-      'TREND_REVERSAL': '趋势反转',
-      'DELTA_WEAKENING': 'Delta减弱',
-      'SUPPORT_RESISTANCE_BREAK': '支撑阻力突破',
-      'TIME_STOP': '时间止损',
+      'STOP_LOSS': '止损触发',
+      'TAKE_PROFIT': '止盈触发',
+      'TREND_REVERSAL': '趋势或多因子反转',
+      'DELTA_WEAKENING': 'Delta/主动买卖盘减弱',
+      'SUPPORT_RESISTANCE_BREAK': '跌破支撑或突破阻力',
+      'TIME_STOP': '超时止损',
       'MANUAL_CLOSE': '手动关闭'
     };
     return reasonMap[exitReason] || exitReason;

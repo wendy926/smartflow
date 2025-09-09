@@ -33,10 +33,10 @@ class SimulationManager {
         const currentPrice = await this.getCurrentPrice(simulation.symbol);
         if (currentPrice) {
           const exitConditions = this.checkExitConditions(simulation, currentPrice);
-          if (exitConditions.shouldExit) {
+          if (exitConditions.exit) {
             await this.closeSimulation(
               simulation.id,
-              currentPrice,
+              exitConditions.exitPrice,
               exitConditions.reason
             );
           }
@@ -57,31 +57,6 @@ class SimulationManager {
     }
   }
 
-  checkExitConditions(simulation, currentPrice) {
-    const { entry_price, stop_loss_price, take_profit_price, trigger_reason } = simulation;
-
-    // 根据交易方向判断止损和止盈条件
-    if (trigger_reason.includes('LONG')) {
-      // 多头交易：价格跌破止损价则止损，价格突破止盈价则止盈
-      if (currentPrice <= stop_loss_price) {
-        return { shouldExit: true, reason: 'STOP_LOSS', exitPrice: stop_loss_price };
-      }
-      if (currentPrice >= take_profit_price) {
-        return { shouldExit: true, reason: 'TAKE_PROFIT', exitPrice: take_profit_price };
-      }
-    } else if (trigger_reason.includes('SHORT')) {
-      // 空头交易：价格突破止损价则止损，价格跌破止盈价则止盈
-      if (currentPrice >= stop_loss_price) {
-        return { shouldExit: true, reason: 'STOP_LOSS', exitPrice: stop_loss_price };
-      }
-      if (currentPrice <= take_profit_price) {
-        return { shouldExit: true, reason: 'TAKE_PROFIT', exitPrice: take_profit_price };
-      }
-    }
-
-    // 只有止盈或止损才能结束交易，没有时间限制
-    return { shouldExit: false };
-  }
 
   async closeSimulation(simulationId, exitPrice, exitReason) {
     try {
