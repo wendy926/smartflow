@@ -538,10 +538,11 @@ class SmartFlowApp {
 
   /**
    * 启动模拟交易自动检查（每2分钟检查一次，对应15分钟入场时机）
+   * 注意：不立即执行检查，避免页面切换时误触发
    */
   startSimulationAutoCheck() {
-    // 立即执行一次检查
-    this.checkSimulationTriggers();
+    // 不立即执行检查，避免从其他页面返回时误触发
+    // 只在定时器触发时才检查，确保是真正的15分钟信号时机
     
     // 每2分钟检查一次（对应15分钟入场时机的刷新频率）
     this.simulationCheckInterval = setInterval(async () => {

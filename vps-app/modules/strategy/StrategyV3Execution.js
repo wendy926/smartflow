@@ -137,11 +137,13 @@ class StrategyV3Execution {
 
         if (nearLower && (smallVolNotBreak || setupBreak)) {
           const entry = Math.max(last15m.close, prev15m.high);
-          // 震荡市止损：使用setup candle低点或布林带下轨
+          // 震荡市多头止损：使用setup candle低点或布林带下轨
           const stopLoss = Math.min(prev15m.low, bbLower * 0.995);
-          const takeProfit = bbMiddle; // 中轨止盈
+          // 震荡市多头止盈：使用2R风险回报比或中轨（取更保守的）
+          const riskRewardTakeProfit = entry + 2 * (entry - stopLoss);
+          const takeProfit = Math.min(riskRewardTakeProfit, bbMiddle);
 
-          console.log(`震荡市下轨多头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}`);
+          console.log(`震荡市下轨多头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, riskRewardTP=${riskRewardTakeProfit}, bbMiddle=${bbMiddle}`);
 
           return {
             signal: 'BUY',
@@ -165,11 +167,13 @@ class StrategyV3Execution {
 
         if (nearUpper && (smallVolNotBreak || setupBreak)) {
           const entry = Math.min(last15m.close, prev15m.low);
-          // 震荡市止损：使用setup candle高点或布林带上轨
+          // 震荡市空头止损：使用setup candle高点或布林带上轨
           const stopLoss = Math.max(prev15m.high, bbUpper * 1.005);
-          const takeProfit = bbMiddle; // 中轨止盈
+          // 震荡市空头止盈：使用2R风险回报比或中轨（取更保守的）
+          const riskRewardTakeProfit = entry - 2 * (stopLoss - entry);
+          const takeProfit = Math.max(riskRewardTakeProfit, bbMiddle);
 
-          console.log(`震荡市上轨空头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}`);
+          console.log(`震荡市上轨空头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, riskRewardTP=${riskRewardTakeProfit}, bbMiddle=${bbMiddle}`);
 
           return {
             signal: 'SELL',
