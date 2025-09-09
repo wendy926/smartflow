@@ -1269,6 +1269,10 @@ class SmartFlowServer {
    */
   async checkAndAutoTriggerSimulation() {
     try {
+      console.log('🔍 自动触发模拟交易已禁用...');
+      // 临时禁用自动模拟交易功能
+      return;
+      
       console.log('🔍 开始检查自动触发模拟交易...');
 
       // 获取当前所有信号
