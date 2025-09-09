@@ -184,6 +184,16 @@ class SmartFlowStrategyV3 {
       // 4. 合并结果
       return {
         marketType: '震荡市',
+        // 震荡市不需要1H多因子打分，但为了前端兼容性添加默认值
+        score1h: 0,
+        vwapDirectionConsistent: false,
+        factors: {},
+        vwap: rangeResult.vwap,
+        vol15mRatio: 0,
+        vol1hRatio: 0,
+        oiChange6h: 0,
+        fundingRate: 0,
+        deltaImbalance: 0,
         rangeLowerBoundaryValid: rangeResult.lowerBoundaryValid,
         rangeUpperBoundaryValid: rangeResult.upperBoundaryValid,
         bbUpper: rangeResult.bbUpper,
