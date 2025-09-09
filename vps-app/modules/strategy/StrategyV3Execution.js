@@ -46,8 +46,11 @@ class StrategyV3Execution {
 
         if (priceAtSupport && setupBreakout && volConfirm) {
           const entry = Math.max(last15m.close, prev15m.high);
-          const stopLoss = Math.min(prev15m.low, entry - 1.2 * lastATR);
+          // 严格按照strategy-v3.md: 止损 = min(setup candle 低点, 收盘价 - 1.2 × ATR(14))
+          const stopLoss = Math.min(prev15m.low, last15m.close - 1.2 * lastATR);
           const takeProfit = entry + 2 * (entry - stopLoss);
+
+          console.log(`多头回踩突破: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, atr14=${lastATR}`);
 
           return {
             signal: 'BUY',
@@ -77,8 +80,11 @@ class StrategyV3Execution {
 
         if (priceAtResistance && setupBreakdown && volConfirm) {
           const entry = Math.min(last15m.close, prev15m.low);
-          const stopLoss = Math.max(prev15m.high, entry + 1.2 * lastATR);
+          // 严格按照strategy-v3.md: 止损 = max(setup candle 高点, 收盘价 + 1.2 × ATR(14))
+          const stopLoss = Math.max(prev15m.high, last15m.close + 1.2 * lastATR);
           const takeProfit = entry - 2 * (stopLoss - entry);
+
+          console.log(`空头反抽破位: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, atr14=${lastATR}`);
 
           return {
             signal: 'SELL',
@@ -127,8 +133,11 @@ class StrategyV3Execution {
 
         if (nearLower && (smallVolNotBreak || setupBreak)) {
           const entry = Math.max(last15m.close, prev15m.high);
-          const stopLoss = Math.min(bbLower * 0.995, last15m.low - last15m.low * 0.005);
+          // 震荡市止损：使用setup candle低点或布林带下轨
+          const stopLoss = Math.min(prev15m.low, bbLower * 0.995);
           const takeProfit = bbMiddle; // 中轨止盈
+
+          console.log(`震荡市下轨多头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}`);
 
           return {
             signal: 'BUY',
@@ -151,8 +160,11 @@ class StrategyV3Execution {
 
         if (nearUpper && (smallVolNotBreak || setupBreak)) {
           const entry = Math.min(last15m.close, prev15m.low);
-          const stopLoss = Math.max(bbUpper * 1.005, last15m.high + last15m.high * 0.005);
+          // 震荡市止损：使用setup candle高点或布林带上轨
+          const stopLoss = Math.max(prev15m.high, bbUpper * 1.005);
           const takeProfit = bbMiddle; // 中轨止盈
+
+          console.log(`震荡市上轨空头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}`);
 
           return {
             signal: 'SELL',
@@ -173,12 +185,18 @@ class StrategyV3Execution {
       const prevVolRelative = prev15m.volume / avgVol15m;
 
       if (prevAboveUpper && lastBackInside && prevVolRelative < 1.2) {
+        const entry = last15m.close;
+        const stopLoss = Math.max(prev15m.high * 1.01, bbUpper * 1.02);
+        const takeProfit = bbLower;
+
+        console.log(`向上假突破反手: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}`);
+
         return {
           signal: 'SELL',
           mode: '假突破空头',
-          entry: last15m.close,
-          stopLoss: Math.max(prev15m.high * 1.01, bbUpper * 1.02),
-          takeProfit: bbLower,
+          entry,
+          stopLoss,
+          takeProfit,
           setupCandleHigh: prev15m.high,
           setupCandleLow: prev15m.low,
           reason: '震荡市向上假突破失败反手'
@@ -190,12 +208,18 @@ class StrategyV3Execution {
       const lastBackInside2 = last15m.close <= bbUpper && last15m.close >= bbLower;
 
       if (prevBelowLower && lastBackInside2 && prevVolRelative < 1.2) {
+        const entry = last15m.close;
+        const stopLoss = Math.min(prev15m.low * 0.99, bbLower * 0.98);
+        const takeProfit = bbUpper;
+
+        console.log(`向下假突破反手: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}`);
+
         return {
           signal: 'BUY',
           mode: '假突破多头',
-          entry: last15m.close,
-          stopLoss: Math.min(prev15m.low * 0.99, bbLower * 0.98),
-          takeProfit: bbUpper,
+          entry,
+          stopLoss,
+          takeProfit,
           setupCandleHigh: prev15m.high,
           setupCandleLow: prev15m.low,
           reason: '震荡市向下假突破失败反手'
@@ -233,23 +257,25 @@ class StrategyV3Execution {
       marketType
     } = params;
 
-    // 计算止损和止盈
+    // 计算止损和止盈 - 严格按照strategy-v3.md规范
     let stopLoss, takeProfit;
     
     // 确保ATR值有效，如果为空则使用默认值
     const effectiveATR = atr14 && atr14 > 0 ? atr14 : entryPrice * 0.01; // 默认1%的ATR
     
     if (position === 'LONG') {
-      // 做多：止损价低于入场价
+      // 多头：止损 = min(setup candle 低点, 入场价 - 1.2 × ATR(14))
       const stopLossByATR = entryPrice - 1.2 * effectiveATR;
       stopLoss = setupCandleLow ? Math.min(setupCandleLow, stopLossByATR) : stopLossByATR;
       takeProfit = entryPrice + 2 * (entryPrice - stopLoss);
     } else {
-      // 做空：止损价高于入场价
+      // 空头：止损 = max(setup candle 高点, 入场价 + 1.2 × ATR(14))
       const stopLossByATR = entryPrice + 1.2 * effectiveATR;
       stopLoss = setupCandleHigh ? Math.max(setupCandleHigh, stopLossByATR) : stopLossByATR;
       takeProfit = entryPrice - 2 * (stopLoss - entryPrice);
     }
+
+    console.log(`出场条件检查: position=${position}, entryPrice=${entryPrice}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, atr14=${atr14}, effectiveATR=${effectiveATR}`);
 
     // 1️⃣ 止损触发
     if ((position === 'LONG' && currentPrice <= stopLoss) ||
@@ -312,23 +338,35 @@ class StrategyV3Execution {
   }
 
   /**
-   * 计算ATR
+   * 计算ATR - 严格按照strategy-v3.md规范
+   * TR = max(High-Low, |High-Close_prev|, |Low-Close_prev|)
+   * ATR = EMA_14(TR)
    */
   calculateATR(candles, period = 14) {
+    if (!candles || candles.length < period + 1) {
+      console.warn(`ATR计算失败: K线数据不足，需要至少${period + 1}根K线，实际${candles?.length || 0}根`);
+      return [];
+    }
+
     const tr = [];
     for (let i = 1; i < candles.length; i++) {
       const high = candles[i].high;
       const low = candles[i].low;
       const closePrev = candles[i - 1].close;
 
-      tr.push(Math.max(
+      const trueRange = Math.max(
         high - low,
         Math.abs(high - closePrev),
         Math.abs(low - closePrev)
-      ));
+      );
+      tr.push(trueRange);
     }
 
-    return this.calculateEMA(tr.map(t => ({ close: t })), period);
+    // 使用EMA计算ATR
+    const atr = this.calculateEMA(tr.map(t => ({ close: t })), period);
+    
+    console.log(`ATR计算完成: TR数组长度=${tr.length}, ATR数组长度=${atr.length}, 最新ATR=${atr[atr.length - 1]}`);
+    return atr;
   }
 }
 
