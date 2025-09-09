@@ -32,6 +32,13 @@ class DataManager {
   // 清除缓存
   clearCache() {
     this.cache.clear();
+    // 同时清除localStorage缓存
+    try {
+      localStorage.removeItem('smartflow_cached_data');
+      console.log('🗑️ 已清除localStorage缓存');
+    } catch (error) {
+      console.error('清除localStorage缓存失败:', error);
+    }
   }
 
   // 获取所有信号数据
