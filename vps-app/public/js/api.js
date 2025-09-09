@@ -26,6 +26,11 @@ class APIClient {
     }
   }
 
+  // 获取交易对列表（轻量级）
+  async getSymbols() {
+    return await this.request('/api/symbols');
+  }
+
   // 获取所有信号
   async getAllSignals() {
     return await this.request('/api/signals');

@@ -18,7 +18,7 @@ class SmartFlowApp {
   async init() {
     this.setupEventListeners();
     await this.loadUserSettings();
-    
+
     // 检查是否是首次加载还是从其他页面返回
     const isFirstLoad = !sessionStorage.getItem('smartflow_initialized');
     if (isFirstLoad) {
@@ -30,7 +30,7 @@ class SmartFlowApp {
       console.log('🔄 从其他页面返回，尝试从缓存加载数据');
       await this.loadDataFromCache();
     }
-    
+
     this.startMonitoringRefresh(); // 启动监控数据自动刷新
   }
 
@@ -72,7 +72,7 @@ class SmartFlowApp {
       const value = e.target.value;
       await this.saveUserSetting('maxLossAmount', value);
       console.log('💰 最大损失金额已更新为:', value, 'USDT');
-      
+
       // 广播全局设置变化事件
       window.dispatchEvent(new CustomEvent('globalSettingsChanged', {
         detail: { maxLossAmount: value }
@@ -199,17 +199,17 @@ class SmartFlowApp {
         const { signals, stats, updateTimes, timestamp } = JSON.parse(cachedData);
         const now = Date.now();
         const cacheAge = now - timestamp;
-        
+
         // 如果缓存数据不超过10分钟，使用缓存数据
         if (cacheAge < 10 * 60 * 1000) {
           console.log('📦 使用缓存数据，缓存时间:', new Date(timestamp).toLocaleTimeString());
-          
+
           // 恢复更新时间信息
           if (updateTimes) {
             this.updateTimes = updateTimes;
             console.log('📦 恢复更新时间:', updateTimes);
           }
-          
+
           this.updateStatsDisplay(signals, stats);
           this.updateSignalsTable(signals);
           this.updateStatusDisplay();
@@ -218,7 +218,7 @@ class SmartFlowApp {
           console.log('📦 缓存数据过期，重新加载');
         }
       }
-      
+
       // 如果没有缓存或缓存过期，重新加载数据
       await this.loadAllData();
     } catch (error) {
@@ -1739,26 +1739,40 @@ async function testDataQualityAlert() {
 
 async function showSymbolsList() {
   try {
-    const symbols = await window.apiClient.getAllSignals();
+    // 使用轻量级的交易对列表API，避免执行完整的策略分析
+    const symbols = await window.apiClient.getSymbols();
     const symbolList = symbols.map(s => s.symbol);
 
     const content = `
             <div style="padding: 20px;">
-                <h4>当前监控的交易对</h4>
-                <div style="margin-bottom: 20px;">
-                    ${symbolList.length > 0 ?
-        symbolList.map(symbol => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #ddd; margin: 5px 0; border-radius: 4px;">
-                          <span>${symbol}</span>
-                          <button class="btn small warning" onclick="removeCustomSymbol('${symbol}')" title="删除交易对">🗑️</button>
-                        </div>
-                      `).join('') :
-        '<p style="color: #6c757d;">暂无交易对</p>'
-      }
+                <h4>📋 交易对管理</h4>
+                
+                <!-- 添加交易对区域 - 移到最上面 -->
+                <div style="margin-bottom: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <h5 style="margin: 0 0 10px 0; color: #495057;">➕ 添加新交易对</h5>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="newSymbol" placeholder="输入新的交易对 (如: BTCUSDT)" 
+                               class="symbol-input" style="flex: 1; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                        <button class="btn primary" onclick="addSymbol()" style="padding: 8px 16px;">添加</button>
+                    </div>
+                    <small style="color: #6c757d; margin-top: 5px; display: block;">支持所有Binance期货交易对</small>
                 </div>
-                <div style="margin-top: 20px;">
-                    <input type="text" id="newSymbol" placeholder="输入新的交易对 (如: BTCUSDT)" class="symbol-input" style="width: 200px; padding: 8px; margin-right: 10px;">
-                    <button class="btn primary" onclick="addSymbol()">添加</button>
+
+                <!-- 当前监控的交易对列表 -->
+                <div>
+                    <h5 style="margin: 0 0 15px 0; color: #495057;">📊 当前监控的交易对 (${symbolList.length}个)</h5>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${symbolList.length > 0 ?
+        symbolList.map(symbol => `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #ddd; margin: 8px 0; border-radius: 6px; background: white; transition: all 0.2s;">
+                              <span style="font-weight: 500; color: #495057;">${symbol}</span>
+                              <button class="btn small warning" onclick="removeCustomSymbol('${symbol}')" 
+                                      title="删除交易对" style="padding: 6px 12px; font-size: 12px;">🗑️ 删除</button>
+                            </div>
+                          `).join('') :
+        '<div style="text-align: center; padding: 20px; color: #6c757d; background: #f8f9fa; border-radius: 6px;"><p>暂无交易对</p><small>请在上方添加交易对</small></div>'
+      }
+                    </div>
                 </div>
             </div>
         `;

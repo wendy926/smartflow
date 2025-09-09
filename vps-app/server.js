@@ -46,6 +46,17 @@ class SmartFlowServer {
   }
 
   setupAPIRoutes() {
+    // 获取交易对列表（轻量级，不执行完整分析）
+    this.app.get('/api/symbols', async (req, res) => {
+      try {
+        const symbols = await this.db.getCustomSymbols();
+        res.json(symbols.map(symbol => ({ symbol })));
+      } catch (error) {
+        console.error('获取交易对列表失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 获取所有信号
     this.app.get('/api/signals', async (req, res) => {
       try {

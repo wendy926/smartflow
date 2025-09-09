@@ -213,7 +213,7 @@ class SimulationManager {
       // 获取全局最大损失设置进行验证
       const globalMaxLoss = await this.db.getUserSetting('maxLossAmount', 100);
       const maxLossAmount = parseFloat(globalMaxLoss);
-      
+
       // 计算实际损失金额进行验证
       const actualLoss = Math.abs(entryPrice - stopLossPrice) * minMargin / entryPrice;
       if (actualLoss > maxLossAmount) {

@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // 监听最大损失金额变化，同步到全局设置
   const maxLossElement = document.getElementById('maxLossAmount');
   if (maxLossElement) {
-    maxLossElement.addEventListener('change', async function() {
+    maxLossElement.addEventListener('change', async function () {
       try {
         if (window.apiClient && typeof window.apiClient.setUserSetting === 'function') {
           await window.apiClient.setUserSetting('maxLossAmount', this.value);
@@ -324,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // 监听全局设置变化事件，实时同步
-  window.addEventListener('globalSettingsChanged', function(event) {
+  window.addEventListener('globalSettingsChanged', function (event) {
     if (event.detail && event.detail.maxLossAmount) {
       const maxLossElement = document.getElementById('maxLossAmount');
       if (maxLossElement && maxLossElement.value !== event.detail.maxLossAmount) {
@@ -341,17 +341,17 @@ document.addEventListener('DOMContentLoaded', function () {
       const maxLossElement = document.getElementById('maxLossAmount');
       const currentPriceElement = document.getElementById('currentPrice');
       const stopLossElement = document.getElementById('stopLossPrice');
-      
+
       console.log('🔍 DOM元素检查:', {
         maxLossElement: maxLossElement,
         currentPriceElement: currentPriceElement,
         stopLossElement: stopLossElement
       });
-      
+
       if (!maxLossElement || !currentPriceElement || !stopLossElement) {
         throw new Error('无法找到必要的输入元素，请刷新页面重试');
       }
-      
+
       const maxLossAmount = parseFloat(maxLossElement.value);
       const currentPrice = parseFloat(currentPriceElement.value);
       const stopLossPrice = parseFloat(stopLossElement.value);
@@ -458,18 +458,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const leverageElement = document.getElementById('calculatedLeverage');
     const stopLossElement = document.getElementById('calculatedStopLoss');
     const distanceElement = document.getElementById('calculatedStopLossDistance');
-    
+
     console.log('🔍 显示结果DOM元素检查:', {
       principalElement,
       leverageElement,
       stopLossElement,
       distanceElement
     });
-    
+
     if (!principalElement || !leverageElement || !stopLossElement || !distanceElement) {
       throw new Error('无法找到结果显示元素，请刷新页面重试');
     }
-    
+
     principalElement.textContent = calculator.formatNumber(data.suggestedMargin) + ' U';
     leverageElement.textContent = data.maxLeverage;
     stopLossElement.textContent = calculator.formatNumber(data.stopLossPrice) + ' U';
