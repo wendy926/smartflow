@@ -91,9 +91,9 @@ class SimulationManager {
       // 更新数据库
       await this.db.run(
         `UPDATE simulations SET 
-         status = ?, closed_at = ?, exit_price = ?, exit_reason = ?, is_win = ?, profit_loss = ?
+         status = ?, closed_at = datetime('now', '+8 hours'), exit_price = ?, exit_reason = ?, is_win = ?, profit_loss = ?
          WHERE id = ?`,
-        ['CLOSED', new Date().toISOString(), actualExitPrice, exitReason, isWin, profitLoss, simulationId]
+        ['CLOSED', actualExitPrice, exitReason, isWin, profitLoss, simulationId]
       );
 
       // 更新胜率统计
@@ -168,9 +168,9 @@ class SimulationManager {
   updateSimulationInDB(simulationId, exitPrice, exitReason, isWin, profitLoss) {
     return this.db.run(
       `UPDATE simulations SET 
-       status = ?, closed_at = ?, exit_price = ?, exit_reason = ?, is_win = ?, profit_loss = ?
+       status = ?, closed_at = datetime('now', '+8 hours'), exit_price = ?, exit_reason = ?, is_win = ?, profit_loss = ?
        WHERE id = ?`,
-      ['CLOSED', new Date().toISOString(), exitPrice, exitReason, isWin, profitLoss, simulationId]
+      ['CLOSED', exitPrice, exitReason, isWin, profitLoss, simulationId]
     );
   }
 
@@ -196,11 +196,10 @@ class SimulationManager {
           UPDATE win_rate_stats SET 
             total_trades = ?, winning_trades = ?, losing_trades = ?, 
             win_rate = ?, total_profit = ?, total_loss = ?, net_profit = ?,
-            last_updated = ?
+            last_updated = datetime('now', '+8 hours')
         `, [
           stat.total_trades, stat.winning_trades, stat.losing_trades,
-          winRate, stat.total_profit, stat.total_loss, stat.net_profit,
-          new Date().toISOString()
+          winRate, stat.total_profit, stat.total_loss, stat.net_profit
         ]);
       }
     } catch (error) {
@@ -553,7 +552,7 @@ class SimulationManager {
           await this.db.run(`
             UPDATE simulations 
             SET status = 'CLOSED', 
-                closed_at = datetime('now'), 
+                closed_at = datetime('now', '+8 hours'), 
                 exit_price = ?, 
                 exit_reason = ?, 
                 is_win = ?, 
@@ -715,8 +714,7 @@ class SimulationManager {
   async cleanTable(tableName, cutoffDate) {
     try {
       const result = await this.db.run(
-        `DELETE FROM ${tableName} WHERE created_at < ? OR timestamp < ?`,
-        [cutoffDate.toISOString(), cutoffDate.toISOString()]
+        `DELETE FROM ${tableName} WHERE created_at < datetime('now', '+8 hours', '-30 days') OR timestamp < datetime('now', '+8 hours', '-30 days')`
       );
 
       if (result.changes > 0) {
