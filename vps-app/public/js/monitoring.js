@@ -63,6 +63,8 @@ async function loadMonitoringData() {
       data = await response.json();
     }
 
+    console.log('🔍 获取到的数据收集率:', data.summary?.completionRates?.dataCollection);
+
     console.log('📊 监控数据结构:', data);
     console.log('📊 detailedStats长度:', data.detailedStats ? data.detailedStats.length : 'undefined');
     currentMonitoringData = data;
