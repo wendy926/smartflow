@@ -905,7 +905,7 @@ class DataMonitor {
       const now = Date.now();
       const lastRecordTime = this.lastValidationErrorRecordTime || 0;
       const recordInterval = 5 * 60 * 1000; // 5分钟内不重复记录相同错误
-      
+
       if (now - lastRecordTime > recordInterval) {
         for (const error of dataValidationErrors) {
           const [symbol, errorMessage] = error.split(': ');
@@ -929,7 +929,7 @@ class DataMonitor {
       const now = Date.now();
       const lastRecordTime = this.lastQualityIssueRecordTime || 0;
       const recordInterval = 5 * 60 * 1000; // 5分钟内不重复记录相同问题
-      
+
       if (now - lastRecordTime > recordInterval) {
         for (const issue of dataQualityIssues) {
           const [symbol, issueMessage] = issue.split(': ');

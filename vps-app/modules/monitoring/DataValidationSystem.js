@@ -115,7 +115,7 @@ class DataValidationSystem {
     };
 
     const requiredIndicators = [
-      'MA20', 'MA50', 'MA200', 'EMA20', 'EMA50', 'VWAP', 'ATR14', 'BBW', 'ADX'
+      '4H MA指标', '小时VWAP'
     ];
 
     for (const indicator of requiredIndicators) {
@@ -159,7 +159,7 @@ class DataValidationSystem {
       phases: {}
     };
 
-    const phases = ['trend4h', 'hourlyConfirmation', 'execution15m'];
+    const phases = ['dataCollection', 'signalAnalysis', 'simulationTrading'];
 
     for (const phase of phases) {
       const phaseResult = {
@@ -208,9 +208,9 @@ class DataValidationSystem {
   // 获取每个阶段需要的必要字段
   getRequiredFieldsForPhase(phase) {
     const fieldMap = {
-      'trend4h': ['trend', 'strength', 'adxValue', 'bbwExpanding'],
-      'hourlyConfirmation': ['score', 'signalStrength', 'action'],
-      'execution15m': ['mode', 'entrySignal', 'stopLoss', 'takeProfit']
+      'dataCollection': ['success'],
+      'signalAnalysis': ['success'],
+      'simulationTrading': ['success']
     };
     return fieldMap[phase] || [];
   }
