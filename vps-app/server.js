@@ -1139,50 +1139,44 @@ class SmartFlowServer {
     }
   }
 
-  // 获取下次趋势更新时间（4小时周期）
+  // 获取下次趋势更新时间（每1小时更新）
   getNextTrendUpdateTime() {
-    const now = new Date();
-    const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000)); // 转换为北京时间
-
-    // 趋势更新时间为：00:00、04:00、08:00、12:00、16:00、20:00
-    const updateHours = [0, 4, 8, 12, 16, 20];
-    const currentHour = beijingTime.getHours();
-    const currentMinute = beijingTime.getMinutes();
-
-    // 找到下一个更新时间
-    let nextHour = updateHours.find(hour => hour > currentHour || (hour === currentHour && currentMinute < 30));
-    if (!nextHour) {
-      // 如果今天没有更多更新时间，则明天00:00
-      nextHour = 0;
-      beijingTime.setDate(beijingTime.getDate() + 1);
-    }
-
-    beijingTime.setHours(nextHour, 0, 0, 0);
-    return beijingTime.getTime() - (8 * 60 * 60 * 1000); // 转换回UTC时间
-  }
-
-  // 获取下次信号更新时间（1小时周期）
-  getNextSignalUpdateTime() {
     const now = new Date();
     const nextHour = new Date(now);
     nextHour.setHours(nextHour.getHours() + 1, 0, 0, 0);
     return nextHour.getTime();
   }
 
-  // 获取下次执行更新时间（15分钟周期）
-  getNextExecutionUpdateTime() {
+  // 获取下次信号更新时间（每5分钟更新）
+  getNextSignalUpdateTime() {
     const now = new Date();
-    const next15min = new Date(now);
-    const currentMinute = next15min.getMinutes();
-    const nextMinute = Math.ceil(currentMinute / 15) * 15;
+    const next5min = new Date(now);
+    const currentMinute = next5min.getMinutes();
+    const nextMinute = Math.ceil(currentMinute / 5) * 5;
 
     if (nextMinute >= 60) {
-      next15min.setHours(next15min.getHours() + 1, 0, 0, 0);
+      next5min.setHours(next5min.getHours() + 1, 0, 0, 0);
     } else {
-      next15min.setMinutes(nextMinute, 0, 0);
+      next5min.setMinutes(nextMinute, 0, 0);
     }
 
-    return next15min.getTime();
+    return next5min.getTime();
+  }
+
+  // 获取下次执行更新时间（每2分钟更新）
+  getNextExecutionUpdateTime() {
+    const now = new Date();
+    const next2min = new Date(now);
+    const currentMinute = next2min.getMinutes();
+    const nextMinute = Math.ceil(currentMinute / 2) * 2;
+
+    if (nextMinute >= 60) {
+      next2min.setHours(next2min.getHours() + 1, 0, 0, 0);
+    } else {
+      next2min.setMinutes(nextMinute, 0, 0);
+    }
+
+    return next2min.getTime();
   }
 
   async shutdown() {
