@@ -296,8 +296,11 @@ class StrategyV3Core {
       });
 
       if (!vwapDirectionConsistent) {
+        console.log(`❌ VWAP方向不一致 [${symbol}]: 跳过后续因子计算`);
         return { score: 0, allowEntry: false, vwapDirectionConsistent: false };
       }
+
+      console.log(`✅ VWAP方向一致 [${symbol}]: 开始计算其他因子`);
 
       let score = 0;
       const factors = {};
@@ -310,12 +313,22 @@ class StrategyV3Core {
         const maxHigh = Math.max(...highs4h);
         const minLow = Math.min(...lows4h);
 
+        console.log(`🔍 突破确认检查 [${symbol}]:`, {
+          trend4h,
+          lastClose: last1h.close,
+          maxHigh,
+          minLow,
+          breakout: trend4h === '多头趋势' ? last1h.close > maxHigh : last1h.close < minLow
+        });
+
         if (trend4h === '多头趋势' && last1h.close > maxHigh) {
           score++;
           factors.breakout = true;
+          console.log(`✅ 多头突破确认 [${symbol}]: +1分`);
         } else if (trend4h === '空头趋势' && last1h.close < minLow) {
           score++;
           factors.breakout = true;
+          console.log(`✅ 空头突破确认 [${symbol}]: +1分`);
         }
       }
 
@@ -326,9 +339,18 @@ class StrategyV3Core {
       const vol15mRatio = last15m.volume / avgVol15m;
       const vol1hRatio = last1h.volume / avgVol1h;
 
+      console.log(`🔍 成交量确认检查 [${symbol}]:`, {
+        vol15mRatio,
+        vol1hRatio,
+        vol15mThreshold: vol15mRatio >= 1.5,
+        vol1hThreshold: vol1hRatio >= 1.2,
+        volumeConfirm: vol15mRatio >= 1.5 && vol1hRatio >= 1.2
+      });
+
       if (vol15mRatio >= 1.5 && vol1hRatio >= 1.2) {
         score++;
         factors.volume = true;
+        console.log(`✅ 成交量确认 [${symbol}]: +1分`);
       }
 
       // 4. OI变化
@@ -368,6 +390,13 @@ class StrategyV3Core {
       }
 
       const allowEntry = score >= 3;
+
+      console.log(`📊 多因子得分汇总 [${symbol}]:`, {
+        score,
+        allowEntry,
+        factors,
+        vwapDirectionConsistent
+      });
 
       return {
         score,

@@ -101,6 +101,7 @@ class SmartFlowStrategyV3 {
         symbol,
         trend4hResult.trend4h,
         scoringResult.score,
+        scoringResult.vwapDirectionConsistent,
         candles15m,
         candles1h
       );

@@ -8,7 +8,7 @@ class StrategyV3Execution {
   /**
    * 趋势市15分钟入场执行
    */
-  analyzeTrendExecution(symbol, trend4h, score1h, candles15m, candles1h) {
+  analyzeTrendExecution(symbol, trend4h, score1h, vwapDirectionConsistent, candles15m, candles1h) {
     try {
       if (!candles15m || candles15m.length < 20) {
         return { signal: 'NONE', mode: 'NONE', reason: '15m数据不足' };
@@ -26,6 +26,11 @@ class StrategyV3Execution {
       // 计算ATR14
       const atr14 = this.calculateATR(candles15m, 14);
       const lastATR = atr14[atr14.length - 1];
+
+      // 检查VWAP方向一致性（必须满足）
+      if (!vwapDirectionConsistent) {
+        return { signal: 'NONE', mode: 'NONE', reason: 'VWAP方向不一致' };
+      }
 
       // 多头模式：多头回踩突破
       if (trend4h === '多头趋势' && score1h >= 3) {
