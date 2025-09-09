@@ -593,9 +593,9 @@ class SmartFlowStrategy {
         this.dataMonitor.recordDataQualityIssue(symbol, '小时确认分析', error.message);
         hourlyConfirmation = {
           symbol,
-          trend: dailyTrend.trend,
+          trend: trend4h.trend,
           score: 0,
-          action: "观望/不做",
+          action: "NO_SIGNAL",
           signalStrength: 'NONE',
           dataValid: false
         };
@@ -686,11 +686,10 @@ class SmartFlowStrategy {
       // 记录信号
       this.dataMonitor.recordSignal(symbol, '综合分析', {
         signal,
-        trend: dailyTrend.trend,
+        trend: trend4h.trend,
         confirmed: hourlyConfirmation.signalStrength !== 'NONE',
         score: hourlyConfirmation.score,
-        modeA: execution15m.modeA,
-        modeB: execution15m.modeB
+        mode: execution15m.mode
       }, true);
 
       // 记录模拟交易
