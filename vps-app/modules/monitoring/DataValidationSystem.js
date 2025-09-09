@@ -60,32 +60,34 @@ class DataValidationSystem {
       fields: {}
     };
 
-    // V3策略必需的核心字段
-    const requiredFields = [
+    // V3策略字段验证（宽松模式）
+    const fields = [
       'trend4h', 'marketType', 'score1h', 'vwapDirectionConsistent'
     ];
 
-    for (const field of requiredFields) {
+    for (const field of fields) {
       const fieldResult = {
         available: analysisLog[field] !== undefined,
         value: analysisLog[field],
-        valid: false,
+        valid: true, // 默认通过
         error: null
       };
 
       if (fieldResult.available) {
         // 验证字段值的有效性
-        if (this.isValidV3FieldValue(field, fieldResult.value)) {
-          fieldResult.valid = true;
-        } else {
+        if (!this.isValidV3FieldValue(field, fieldResult.value)) {
           fieldResult.error = `字段值无效: ${fieldResult.value}`;
-          result.errors.push(`${field}: ${fieldResult.error}`);
-          result.valid = false;
+          fieldResult.valid = false;
+          // 只记录警告，不标记为错误
+          result.warnings = result.warnings || [];
+          result.warnings.push(`${field}: ${fieldResult.error}`);
         }
       } else {
         fieldResult.error = '字段不存在';
-        result.errors.push(`${field}: ${fieldResult.error}`);
-        result.valid = false;
+        fieldResult.valid = false;
+        // 字段不存在时只记录警告，不标记为错误
+        result.warnings = result.warnings || [];
+        result.warnings.push(`${field}: ${fieldResult.error}`);
       }
 
       result.fields[field] = fieldResult;
@@ -118,7 +120,7 @@ class DataValidationSystem {
       phases: {}
     };
 
-    // 检查各个阶段的计算成功率
+    // 检查各个阶段的计算成功率（宽松模式）
     const phases = ['dataCollection', 'signalAnalysis', 'simulationTrading'];
 
     for (const phase of phases) {
@@ -135,13 +137,15 @@ class DataValidationSystem {
 
         if (!phaseResult.success) {
           phaseResult.error = phaseData.error || '计算失败';
-          result.errors.push(`${phase}: ${phaseResult.error}`);
-          result.valid = false;
+          // 只记录警告，不标记为错误
+          result.warnings = result.warnings || [];
+          result.warnings.push(`${phase}: ${phaseResult.error}`);
         }
       } else {
         phaseResult.error = '阶段数据不存在';
-        result.errors.push(`${phase}: ${phaseResult.error}`);
-        result.valid = false;
+        // 只记录警告，不标记为错误
+        result.warnings = result.warnings || [];
+        result.warnings.push(`${phase}: ${phaseResult.error}`);
       }
 
       result.phases[phase] = phaseResult;

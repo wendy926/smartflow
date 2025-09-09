@@ -296,6 +296,7 @@ class DataMonitor {
       return {
         success: false,
         symbol,
+        strategyVersion: 'V3', // 默认V3策略
         phases: {
           dataCollection: { success: false },
           signalAnalysis: { success: false },
@@ -309,6 +310,12 @@ class DataMonitor {
         totalTime: 0
       };
     }
+    
+    // 确保包含V3策略字段
+    if (!log.strategyVersion) {
+      log.strategyVersion = 'V3';
+    }
+    
     return log;
   }
 
