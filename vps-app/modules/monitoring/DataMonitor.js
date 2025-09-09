@@ -2,7 +2,8 @@
 // 数据监控模块
 
 class DataMonitor {
-  constructor() {
+  constructor(database = null) {
+    this.database = database; // 数据库引用
     // 限制内存使用 - 只保留最近的数据
     this.maxLogsPerSymbol = 5; // 每个交易对最多保留5条日志
     this.maxSymbols = 50; // 最多监控50个交易对
@@ -444,7 +445,7 @@ class DataMonitor {
         if (log) {
           // 检查原始数据质量
           let hasValidData = true;
-          const requiredDataTypes = ['日线K线', '小时K线', '24小时行情', '资金费率', '持仓量历史'];
+          const requiredDataTypes = ['4H K线', '小时K线', '24小时行情', '资金费率', '持仓量历史'];
 
           for (const dataType of requiredDataTypes) {
             const dataInfo = log.rawData[dataType];
@@ -686,6 +687,10 @@ class DataMonitor {
       thresholds: this.alertThresholds,
       lastUpdated: new Date().toISOString()
     };
+
+    // 记录告警到数据库
+    await this.checkAndRecordDataValidationErrors(dataValidationErrors);
+    await this.checkAndRecordDataQualityIssues(dataQualityIssues);
   }
 
   // 启动定期内存清理
@@ -874,6 +879,53 @@ class DataMonitor {
           `🌐 <b>网页链接：</b>https://smart.aimaventop.com`;
 
         await telegramNotifier.sendMessage(symbolAlertMessage);
+      }
+    }
+  }
+
+  // 记录告警到数据库
+  async recordAlert(symbol, alertType, severity, message, details = null) {
+    if (!this.database) {
+      console.warn('数据库未初始化，无法记录告警');
+      return;
+    }
+
+    try {
+      await this.database.recordAlert(symbol, alertType, severity, message, details);
+      console.log(`📝 告警已记录: ${symbol} - ${alertType} - ${severity}`);
+    } catch (error) {
+      console.error('记录告警失败:', error);
+    }
+  }
+
+  // 检查并记录数据验证错误
+  async checkAndRecordDataValidationErrors(dataValidationErrors) {
+    if (dataValidationErrors && dataValidationErrors.length > 0) {
+      for (const error of dataValidationErrors) {
+        const [symbol, errorMessage] = error.split(': ');
+        await this.recordAlert(
+          symbol,
+          'data-validation',
+          'high',
+          errorMessage,
+          '数据验证失败'
+        );
+      }
+    }
+  }
+
+  // 检查并记录数据质量问题
+  async checkAndRecordDataQualityIssues(dataQualityIssues) {
+    if (dataQualityIssues && dataQualityIssues.length > 0) {
+      for (const issue of dataQualityIssues) {
+        const [symbol, issueMessage] = issue.split(': ');
+        await this.recordAlert(
+          symbol,
+          'data-quality',
+          'medium',
+          issueMessage,
+          '数据质量问题'
+        );
       }
     }
   }

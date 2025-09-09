@@ -496,7 +496,7 @@ class SmartFlowServer {
       console.log('✅ Telegram通知器初始化完成');
 
       // 初始化数据监控
-      this.dataMonitor = new DataMonitor();
+      this.dataMonitor = new DataMonitor(this.db);
       // 将DataMonitor实例传递给SmartFlowStrategy
       SmartFlowStrategy.dataMonitor = this.dataMonitor;
       // 将数据库实例传递给DataMonitor
