@@ -348,6 +348,9 @@ class SimulationManager {
             WHERE id = ?
           `, [exitResult.exitPrice, exitResult.reason, isWin, profitLoss, sim.id]);
 
+          // 更新胜率统计
+          await this.updateWinRateStats();
+
           // 记录模拟交易完成
           if (dataMonitor) {
             dataMonitor.recordSimulation(symbol, 'COMPLETED', {
