@@ -8,16 +8,17 @@ const { DataMonitor } = require('../monitoring/DataMonitor');
 class SmartFlowStrategy {
   static dataMonitor = new DataMonitor();
   static dataManager = null; // 将在初始化时设置
+  static deltaManager = null; // 将在初始化时设置
 
   /**
-   * 天级趋势判断 - 基于布林带带宽(BBW)扩张
+   * 4H级别趋势判断 - 基于价格相对MA20位置
    * @param {string} symbol - 交易对
    * @param {Object} symbolData - 可选的数据对象
-   * @returns {Object} 天级趋势分析结果
+   * @returns {Object} 4H级别趋势分析结果
    */
-  static async analyzeDailyTrend(symbol, symbolData = null) {
+  static async analyze4HTrend(symbol, symbolData = null) {
     try {
-      const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '1d', 250);
+      const klines = symbolData?.klines || await BinanceAPI.getKlines(symbol, '4h', 250);
 
       // 将数组格式的K线数据转换为对象格式
       const klinesObjects = klines.map(k => ({
@@ -59,17 +60,27 @@ class SmartFlowStrategy {
       let trend = '震荡/无趋势';
       let trendStrength = 'WEAK';
 
-      // 按照strategy-v2.md的天级趋势判断逻辑
-      // 1. 趋势基础条件（必须满足）
-      // 2. 趋势强度条件（BBW扩张）
+      // 按照strategy-v2.md的4H级别趋势判断逻辑
+      // 1. 趋势基础条件（必须满足）：价格相对MA20的位置
+      // 2. 趋势强度条件（择一即可）：ADX(14) > 20 或 布林带开口扩张
 
-      // 多头趋势基础条件：价格在MA200上方 + MA20 > MA50
-      const uptrendBasic = latestClose > latestMA200 && latestMA20 > latestMA50;
-      // 空头趋势基础条件：价格在MA200下方 + MA20 < MA50  
-      const downtrendBasic = latestClose < latestMA200 && latestMA20 < latestMA50;
+      // 多头趋势基础条件：价格在MA20上方 + MA20 > MA50 > MA200
+      const uptrendBasic = latestClose > latestMA20 && latestMA20 > latestMA50 && latestMA50 > latestMA200;
+      // 空头趋势基础条件：价格在MA20下方 + MA20 < MA50 < MA200
+      const downtrendBasic = latestClose < latestMA20 && latestMA20 < latestMA50 && latestMA50 < latestMA200;
 
-      // 趋势强度条件：BBW扩张
-      const strengthCondition = !bbwError && bbwExpanding;
+      // 计算ADX(14) - 按照strategy-v2.md的ADX计算逻辑
+      let adxValue = null;
+      try {
+        adxValue = this.calculateADX(klinesObjects);
+      } catch (error) {
+        console.warn(`ADX计算失败 ${symbol}:`, error.message);
+      }
+
+      // 趋势强度条件（择一即可）：ADX(14) > 20 或 布林带开口扩张
+      const adxCondition = adxValue && adxValue > 20;
+      const bbwCondition = !bbwError && bbwExpanding;
+      const strengthCondition = adxCondition || bbwCondition;
 
       if (uptrendBasic && strengthCondition) {
         trend = '多头趋势';
@@ -115,6 +126,62 @@ class SmartFlowStrategy {
   }
 
   /**
+   * 计算ADX(14) - 按照strategy-v2.md的ADX计算逻辑
+   * @param {Array} klinesObjects - K线数据对象数组
+   * @returns {number} ADX值
+   */
+  static calculateADX(klinesObjects, period = 14) {
+    if (klinesObjects.length < period + 1) {
+      throw new Error('数据长度不足，无法计算ADX');
+    }
+
+    let trs = [];
+    let dmPlus = [];
+    let dmMinus = [];
+
+    // 计算TR和DM
+    for (let i = 1; i < klinesObjects.length; i++) {
+      const current = klinesObjects[i];
+      const previous = klinesObjects[i - 1];
+
+      // True Range
+      const tr = Math.max(
+        current.high - current.low,
+        Math.abs(current.high - previous.close),
+        Math.abs(current.low - previous.close)
+      );
+      trs.push(tr);
+
+      // Directional Movement
+      const upMove = current.high - previous.high;
+      const downMove = previous.low - current.low;
+
+      dmPlus.push(upMove > downMove && upMove > 0 ? upMove : 0);
+      dmMinus.push(downMove > upMove && downMove > 0 ? downMove : 0);
+    }
+
+    // 使用Wilder's smoothing计算平滑值
+    let tr14 = trs.slice(0, period).reduce((a, b) => a + b, 0) / period;
+    let dmPlus14 = dmPlus.slice(0, period).reduce((a, b) => a + b, 0) / period;
+    let dmMinus14 = dmMinus.slice(0, period).reduce((a, b) => a + b, 0) / period;
+
+    for (let i = period; i < trs.length; i++) {
+      tr14 = tr14 - (tr14 / period) + trs[i];
+      dmPlus14 = dmPlus14 - (dmPlus14 / period) + dmPlus[i];
+      dmMinus14 = dmMinus14 - (dmMinus14 / period) + dmMinus[i];
+    }
+
+    // 计算DI+和DI-
+    const diPlus = 100 * (dmPlus14 / tr14);
+    const diMinus = 100 * (dmMinus14 / tr14);
+
+    // 计算DX
+    const dx = 100 * Math.abs(diPlus - diMinus) / (diPlus + diMinus);
+
+    return dx;
+  }
+
+  /**
    * 小时级趋势加强判断 - 多因子打分系统
    * 严格按照strategy-v2.md中的calculateTrendScore函数实现
    * @param {string} symbol - 交易对
@@ -142,16 +209,27 @@ class SmartFlowStrategy {
       let score = 0;
       const scoreDetails = {};
 
-      // 1. VWAP方向 - 严格按照文档逻辑
+      // 1. VWAP方向 - 必须满足，否则直接返回0分
       const vwap = TechnicalIndicators.calculateVWAP(klinesObjects);
       const lastClose = klinesObjects[klinesObjects.length - 1].close;
-      if ((trend === "多头趋势" && lastClose > vwap) ||
-        (trend === "空头趋势" && lastClose < vwap)) {
-        score += 1;
-        scoreDetails.vwapDirection = trend === "多头趋势" ? 'BULLISH' : 'BEARISH';
-      } else {
-        scoreDetails.vwapDirection = 'NEUTRAL';
+      
+      // VWAP必须方向一致，否则直接返回0分
+      if ((trend === "多头趋势" && lastClose <= vwap) ||
+          (trend === "空头趋势" && lastClose >= vwap)) {
+        return {
+          symbol,
+          trend,
+          score: 0,
+          action: 'NO_SIGNAL',
+          signalStrength: 'NONE',
+          scoreDetails: { vwapDirection: 'NEUTRAL' },
+          dataValid: true
+        };
       }
+      
+      // VWAP方向一致，+1分
+      score += 1;
+      scoreDetails.vwapDirection = trend === "多头趋势" ? 'BULLISH' : 'BEARISH';
 
       // 2. 突破结构 - 严格按照文档逻辑
       const breakout = TechnicalIndicators.calculateBreakout(klinesObjects, 20);
@@ -195,26 +273,42 @@ class SmartFlowStrategy {
         scoreDetails.funding = 'HIGH';
       }
 
-      // 6. Delta确认 - 严格按照文档逻辑
-      if ((trend === "多头趋势" && TechnicalIndicators.isDeltaPositive(klinesObjects)) ||
-        (trend === "空头趋势" && !TechnicalIndicators.isDeltaPositive(klinesObjects))) {
+      // 6. Delta确认 - 使用实时Delta数据
+      let deltaConfirmed = false;
+      if (this.deltaManager) {
+        const deltaData = this.deltaManager.getDeltaData(symbol);
+        if (deltaData.deltaBuy > 0 && deltaData.deltaSell > 0) {
+          // 按照strategy-v2.md：多头主动买盘≥卖盘×1.2，空头主动卖盘≥买盘×1.2
+          if (trend === "多头趋势" && deltaData.deltaBuy >= 1.2 * deltaData.deltaSell) {
+            deltaConfirmed = true;
+          } else if (trend === "空头趋势" && deltaData.deltaSell >= 1.2 * deltaData.deltaBuy) {
+            deltaConfirmed = true;
+          }
+        }
+      } else {
+        // 回退到基于K线的简化计算
+        deltaConfirmed = (trend === "多头趋势" && TechnicalIndicators.isDeltaPositive(klinesObjects)) ||
+          (trend === "空头趋势" && !TechnicalIndicators.isDeltaPositive(klinesObjects));
+      }
+
+      if (deltaConfirmed) {
         score += 1;
         scoreDetails.delta = 'CONFIRMED';
       } else {
         scoreDetails.delta = 'WEAK';
       }
 
-      // 最终判断 - 严格按照文档逻辑
-      let action = "观望/不做";
-      if (score >= 4) {
+      // 最终判断 - 按照strategy-v2.md：总分≥3分才允许开仓
+      let action = "NO_SIGNAL";
+      if (score >= 3) {
         action = trend === "多头趋势" ? "做多" : "做空";
       }
 
       // 判断信号强度
       let signalStrength = 'NONE';
-      if (score >= 4) {
+      if (score >= 5) {
         signalStrength = 'STRONG';
-      } else if (score >= 2) {
+      } else if (score >= 3) {
         signalStrength = 'MODERATE';
       }
 
@@ -245,10 +339,10 @@ class SmartFlowStrategy {
   }
 
   /**
-   * 15分钟级别入场判断 - 模式A和模式B
-   * 严格按照strategy-v2.md中的calculateEntryAndRisk函数实现
+   * 15分钟级别入场判断 - 多头回踩突破和空头反抽破位
+   * 严格按照strategy-v2.md中的calculateEntry15m函数实现
    * @param {string} symbol - 交易对
-   * @param {string} trend - 天级趋势结果
+   * @param {string} trend - 4H级别趋势结果
    * @param {number} score - 小时级得分
    * @param {Object} symbolData - 可选的数据对象
    * @returns {Object} 15分钟入场分析结果
@@ -295,10 +389,10 @@ class SmartFlowStrategy {
       let takeProfit = null;
       let mode = null;
 
-      // 只在明确趋势且打分足够时考虑入场
-      if (trend === "震荡/无趋势" || score < 2) {
+      // 只在明确趋势且打分足够时考虑入场（按照strategy-v2.md：总分≥3分）
+      if (trend === "震荡/无趋势" || score < 3) {
         console.log(`⚠️ 不满足入场条件 [${symbol}]:`, { trend, score });
-        return { entrySignal, stopLoss, takeProfit, mode, modeA: false, modeB: false, dataValid: true };
+        return { entrySignal, stopLoss, takeProfit, mode, dataValid: true };
       }
 
       console.log(`🔍 开始计算入场信号 [${symbol}]:`, {
@@ -336,8 +430,8 @@ class SmartFlowStrategy {
         if (lastClose <= resistanceLevel && lastLow < setupLow) {
           entrySignal = lastLow;
           stopLoss = Math.max(setupHigh, lastClose + 1.2 * lastATR);
-          // 空头模式：止盈1.2R-1.5R，这里取1.3R作为平衡
-          takeProfit = entrySignal - 1.3 * (stopLoss - entrySignal);
+          // 空头模式：止盈1.2R-1.5R，这里取1.2R作为保守策略
+          takeProfit = entrySignal - 1.2 * (stopLoss - entrySignal);
           mode = "空头反抽破位";
           console.log(`✅ 空头模式触发 [${symbol}]:`, { entrySignal, stopLoss, takeProfit });
         }
@@ -452,9 +546,9 @@ class SmartFlowStrategy {
       const symbolData = { klines, ticker, funding, openInterestHist, klines15m };
 
       // 记录原始数据
-      const dailyKlines = await BinanceAPI.getKlines(symbol, '1d', 250);
-      const dailyKlinesValid = dailyKlines && dailyKlines.length > 0;
-      this.dataMonitor.recordRawData(symbol, '日线K线', dailyKlines, dailyKlinesValid);
+      const trend4hKlines = await BinanceAPI.getKlines(symbol, '4h', 250);
+      const trend4hKlinesValid = trend4hKlines && trend4hKlines.length > 0;
+      this.dataMonitor.recordRawData(symbol, '4H K线', trend4hKlines, trend4hKlinesValid);
 
       const klinesValid = klines && klines.length > 0;
       this.dataMonitor.recordRawData(symbol, '小时K线', klines, klinesValid);
@@ -469,25 +563,25 @@ class SmartFlowStrategy {
       this.dataMonitor.recordRawData(symbol, '持仓量历史', openInterestHist, oiValid);
 
       // 分析各个阶段 - 严格按照依赖关系
-      let dailyTrend, hourlyConfirmation, execution15m;
+      let trend4h, hourlyConfirmation, execution15m;
 
-      // 1. 先进行天级趋势判断
+      // 1. 先进行4H级别趋势判断
       try {
-        dailyTrend = await this.analyzeDailyTrend(symbol, { klines: dailyKlines });
-        console.log(`✅ 天级趋势分析完成 [${symbol}]:`, {
-          trend: dailyTrend.trend,
-          trendStrength: dailyTrend.trendStrength,
-          dataValid: dailyTrend.dataValid
+        trend4h = await this.analyze4HTrend(symbol, { klines: trend4hKlines });
+        console.log(`✅ 4H级别趋势分析完成 [${symbol}]:`, {
+          trend: trend4h.trend,
+          trendStrength: trend4h.trendStrength,
+          dataValid: trend4h.dataValid
         });
       } catch (error) {
-        console.error(`❌ 日线趋势分析失败 [${symbol}]:`, error.message);
-        dailyTrend = { trend: 'UNKNOWN', trendStrength: 'WEAK', ma20: 0, ma50: 0, ma200: 0, dataValid: false };
+        console.error(`❌ 4H级别趋势分析失败 [${symbol}]:`, error.message);
+        trend4h = { trend: 'UNKNOWN', trendStrength: 'WEAK', ma20: 0, ma50: 0, ma200: 0, dataValid: false };
       }
 
-      // 2. 基于天级趋势结果进行小时级趋势加强判断
+      // 2. 基于4H级别趋势结果进行小时级趋势加强判断
       try {
         console.log(`🔍 开始分析小时确认 [${symbol}]...`);
-        hourlyConfirmation = await this.analyzeHourlyConfirmation(symbol, dailyTrend.trend, symbolData);
+        hourlyConfirmation = await this.analyzeHourlyConfirmation(symbol, trend4h.trend, symbolData);
         console.log(`✅ 小时确认分析成功 [${symbol}]:`, {
           score: hourlyConfirmation.score,
           action: hourlyConfirmation.action,
@@ -507,10 +601,10 @@ class SmartFlowStrategy {
         };
       }
 
-      // 3. 基于天级趋势和小时级得分进行15分钟入场判断
+      // 3. 基于4H级别趋势和小时级得分进行15分钟入场判断
       try {
         console.log(`🔍 开始分析15分钟执行 [${symbol}]...`);
-        execution15m = await this.analyze15mExecution(symbol, dailyTrend.trend, hourlyConfirmation.score, symbolData, maxLossAmount);
+        execution15m = await this.analyze15mExecution(symbol, trend4h.trend, hourlyConfirmation.score, symbolData, maxLossAmount);
         console.log(`✅ 15分钟执行分析成功 [${symbol}]:`, {
           entrySignal: execution15m.entrySignal,
           mode: execution15m.mode,
@@ -532,10 +626,10 @@ class SmartFlowStrategy {
       }
 
       // 记录指标计算
-      this.dataMonitor.recordIndicator(symbol, '日线MA指标', {
-        ma20: dailyTrend.ma20,
-        ma50: dailyTrend.ma50,
-        ma200: dailyTrend.ma200
+      this.dataMonitor.recordIndicator(symbol, '4H MA指标', {
+        ma20: trend4h.ma20,
+        ma50: trend4h.ma50,
+        ma200: trend4h.ma200
       }, Date.now() - startTime);
 
       this.dataMonitor.recordIndicator(symbol, '小时VWAP', {
@@ -549,22 +643,15 @@ class SmartFlowStrategy {
       let signalStrength = 'NONE';
 
       // 根据strategy-v2.md的逻辑：
-      // - 得分 ≥ 2分 → 可以进入小周期观察入场机会，信号显示"观望/不做"
-      // - 得分 ≥ 4分 → 优先级最高（强信号），信号显示"做多"/"做空"
-      if (hourlyConfirmation.score >= 2) {
-        if (hourlyConfirmation.score >= 4) {
-          // 强信号：显示具体的做多/做空
-          if (dailyTrend.trend === '多头趋势') {
-            signal = '做多';
-          } else if (dailyTrend.trend === '空头趋势') {
-            signal = '做空';
-          }
-          signalStrength = 'STRONG';
-        } else {
-          // 中等信号：显示观望/不做
-          signal = '观望/不做';
-          signalStrength = 'MODERATE';
+      // - 得分 ≥ 3分 → 允许开仓，信号显示"做多"/"做空"
+      if (hourlyConfirmation.score >= 3) {
+        // 允许开仓：显示具体的做多/做空
+        if (trend4h.trend === '多头趋势') {
+          signal = '做多';
+        } else if (trend4h.trend === '空头趋势') {
+          signal = '做空';
         }
+        signalStrength = hourlyConfirmation.score >= 5 ? 'STRONG' : 'MODERATE';
       }
 
       // 按照strategy-v2.md的入场执行逻辑
@@ -625,14 +712,13 @@ class SmartFlowStrategy {
 
       // 记录完整的分析日志
       this.dataMonitor.recordAnalysisLog(symbol, {
-        trend: dailyTrend.trend,
+        trend: trend4h.trend,
         signal,
         execution: execution15m.entrySignal ? execution : 'NO_EXECUTION',
         executionMode: executionMode,
         hourlyScore: hourlyConfirmation.score,
-        modeA: execution15m.modeA,
-        modeB: execution15m.modeB,
-        dailyTrend,
+        mode: execution15m.mode,
+        trend4h,
         hourlyConfirmation,
         execution15m
       });
@@ -648,9 +734,9 @@ class SmartFlowStrategy {
       return {
         time: new Date().toISOString(),
         symbol,
-        // 趋势列 - 天级趋势判断结果
-        trend: dailyTrend.trend,
-        trendStrength: dailyTrend.trendStrength,
+        // 趋势列 - 4H级别趋势判断结果
+        trend: trend4h.trend,
+        trendStrength: trend4h.trendStrength,
         // 信号列 - 小时级趋势加强判断结果（多因子得分）
         signal,
         signalStrength,
@@ -658,8 +744,7 @@ class SmartFlowStrategy {
         // 入场执行列 - 15分钟级别入场判断结果
         execution,
         executionMode,
-        modeA: execution15m?.modeA || false,
-        modeB: execution15m?.modeB || false,
+        mode: execution15m?.mode || null,
         entrySignal: execution15m?.entrySignal || null,
         stopLoss: execution15m?.stopLoss || null,
         takeProfit: execution15m?.takeProfit || null,
@@ -671,7 +756,7 @@ class SmartFlowStrategy {
         currentPrice: parseFloat(ticker.lastPrice),
         dataCollectionRate: 100,
         // 详细分析数据
-        dailyTrend,
+        trend4h,
         hourlyConfirmation,
         execution15m
       };

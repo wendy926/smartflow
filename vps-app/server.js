@@ -12,6 +12,7 @@ const TelegramNotifier = require('./modules/notifications/TelegramNotifier');
 const { SmartFlowStrategy } = require('./modules/strategy/SmartFlowStrategy');
 const { DataMonitor } = require('./modules/monitoring/DataMonitor');
 const { dataLayerIntegration } = require('./modules/data/DataLayerIntegration');
+const DeltaManager = require('./modules/data/DeltaManager');
 
 class SmartFlowServer {
   constructor() {
@@ -21,6 +22,7 @@ class SmartFlowServer {
     this.simulationManager = null;
     this.telegramNotifier = null;
     this.dataMonitor = null;
+    this.deltaManager = null;
     this.analysisInterval = null;
 
     this.setupMiddleware();
@@ -247,6 +249,23 @@ class SmartFlowServer {
         res.json(stats);
       } catch (error) {
         console.error('获取胜率统计失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取Delta数据
+    this.app.get('/api/delta-data', async (req, res) => {
+      try {
+        const { symbol } = req.query;
+        if (symbol) {
+          const deltaData = this.deltaManager.getDeltaData(symbol);
+          res.json({ [symbol]: deltaData });
+        } else {
+          const allDeltaData = Object.fromEntries(this.deltaManager.getAllDeltaData());
+          res.json(allDeltaData);
+        }
+      } catch (error) {
+        console.error('获取Delta数据失败:', error);
         res.status(500).json({ error: error.message });
       }
     });
@@ -484,8 +503,19 @@ class SmartFlowServer {
       this.dataMonitor.db = this.db;
       console.log('✅ 数据监控器初始化完成');
 
+      // 初始化Delta数据管理器
+      this.deltaManager = new DeltaManager();
+      // 将DeltaManager实例传递给SmartFlowStrategy
+      SmartFlowStrategy.deltaManager = this.deltaManager;
+      console.log('✅ Delta数据管理器初始化完成');
+
       // 启动定期分析
       this.startPeriodicAnalysis();
+
+      // 启动Delta数据实时收集
+      const symbols = await this.db.getCustomSymbols();
+      await this.deltaManager.start(symbols);
+      console.log('✅ Delta数据实时收集已启动');
 
       // 启动定期告警检查
       this.startPeriodicAlerts();
@@ -506,65 +536,65 @@ class SmartFlowServer {
   }
 
   startPeriodicAnalysis() {
-    // 趋势数据：每4小时更新一次（北京时间 00:00、04:00、08:00、12:00、16:00、20:00）
+    // 4H级别趋势：每1小时更新一次（按照strategy-v2.md要求）
     this.trendInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
-        console.log(`📈 开始更新趋势数据 ${symbols.length} 个交易对...`);
+        console.log(`📈 开始更新4H级别趋势数据 ${symbols.length} 个交易对...`);
 
         for (const symbol of symbols) {
           try {
             await this.updateTrendData(symbol);
           } catch (error) {
-            console.error(`趋势更新 ${symbol} 失败:`, error);
+            console.error(`4H趋势更新 ${symbol} 失败:`, error);
           }
         }
 
-        console.log('✅ 趋势数据更新完成');
+        console.log('✅ 4H级别趋势数据更新完成');
       } catch (error) {
-        console.error('趋势数据更新失败:', error);
+        console.error('4H级别趋势数据更新失败:', error);
       }
-    }, 4 * 60 * 60 * 1000); // 4小时
+    }, 60 * 60 * 1000); // 1小时
 
-    // 信号数据：每1小时更新一次
+    // 1H打分：每5分钟更新一次（按照strategy-v2.md要求）
     this.signalInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
-        console.log(`📊 开始更新信号数据 ${symbols.length} 个交易对...`);
+        console.log(`📊 开始更新1H打分数据 ${symbols.length} 个交易对...`);
 
         for (const symbol of symbols) {
           try {
             await this.updateSignalData(symbol);
           } catch (error) {
-            console.error(`信号更新 ${symbol} 失败:`, error);
+            console.error(`1H打分更新 ${symbol} 失败:`, error);
           }
         }
 
-        console.log('✅ 信号数据更新完成');
+        console.log('✅ 1H打分数据更新完成');
       } catch (error) {
-        console.error('信号数据更新失败:', error);
+        console.error('1H打分数据更新失败:', error);
       }
-    }, 60 * 60 * 1000); // 1小时
+    }, 5 * 60 * 1000); // 5分钟
 
-    // 入场执行：每15分钟更新一次
+    // 15分钟入场判断：每2分钟更新一次（按照strategy-v2.md要求）
     this.executionInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
-        console.log(`⚡ 开始更新入场执行数据 ${symbols.length} 个交易对...`);
+        console.log(`⚡ 开始更新15分钟入场判断数据 ${symbols.length} 个交易对...`);
 
         for (const symbol of symbols) {
           try {
             await this.updateExecutionData(symbol);
           } catch (error) {
-            console.error(`执行更新 ${symbol} 失败:`, error);
+            console.error(`15分钟入场判断更新 ${symbol} 失败:`, error);
           }
         }
 
-        console.log('✅ 入场执行数据更新完成');
+        console.log('✅ 15分钟入场判断数据更新完成');
       } catch (error) {
-        console.error('入场执行数据更新失败:', error);
+        console.error('15分钟入场判断数据更新失败:', error);
       }
-    }, 15 * 60 * 1000); // 15分钟
+    }, 2 * 60 * 1000); // 2分钟
 
     // 模拟交易状态监控：每5分钟检查一次
     this.simulationInterval = setInterval(async () => {
@@ -596,6 +626,18 @@ class SmartFlowServer {
         console.error('模拟交易状态监控失败:', error);
       }
     }, 5 * 60 * 1000); // 5分钟
+
+    // Delta数据重置：每10分钟重置一次，避免无限累积
+    this.deltaResetInterval = setInterval(async () => {
+      try {
+        if (this.deltaManager) {
+          this.deltaManager.resetAllDeltaData();
+          console.log('🔄 Delta数据已重置');
+        }
+      } catch (error) {
+        console.error('Delta数据重置失败:', error);
+      }
+    }, 10 * 60 * 1000); // 10分钟
 
     // 立即执行一次完整分析
     this.performInitialAnalysis();

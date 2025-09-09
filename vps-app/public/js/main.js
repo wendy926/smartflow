@@ -735,33 +735,6 @@ async function viewTradeHistory(symbol) {
 }
 
 // 全局函数
-async function refreshAllSignals() {
-  try {
-    app.showLoading(true);
-    await window.apiClient.refreshAllSignals();
-    await app.loadAllData();
-    modal.showMessage('所有信号已刷新', 'success');
-  } catch (error) {
-    console.error('刷新信号失败:', error);
-    modal.showMessage('刷新失败: ' + error.message, 'error');
-  } finally {
-    app.showLoading(false);
-  }
-}
-
-async function refreshSymbol(symbol) {
-  try {
-    app.showLoading(true);
-    // 这里可以添加单个交易对的刷新逻辑
-    await app.loadAllData();
-    modal.showMessage(`${symbol} 已刷新`, 'success');
-  } catch (error) {
-    console.error(`刷新 ${symbol} 失败:`, error);
-    modal.showMessage(`刷新 ${symbol} 失败: ` + error.message, 'error');
-  } finally {
-    app.showLoading(false);
-  }
-}
 
 // 切换历史记录显示
 function toggleHistory(symbol) {
