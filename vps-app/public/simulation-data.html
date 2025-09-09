@@ -221,6 +221,77 @@
             text-decoration: none;
         }
 
+        /* 分页控件样式 */
+        .pagination-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .pagination-info {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pagination-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            color: #495057;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-numbers {
+            display: flex;
+            gap: 5px;
+        }
+
+        .page-number {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            color: #495057;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .page-number:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .page-number.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
         /* 手机端适配 */
         @media (max-width: 768px) {
             .simulation-data-content {
@@ -278,14 +349,19 @@
                     <div class="stat-label">累计盈亏金额 (USDT)</div>
                 </div>
                 <div class="stat-card">
-                    <h3>📊 总交易数</h3>
+                    <h3>📊 已完成交易数</h3>
                     <div id="totalTrades" class="stat-value neutral">--</div>
                     <div class="stat-label">已完成交易数量</div>
                 </div>
                 <div class="stat-card">
                     <h3>🎯 盈利交易</h3>
-                    <div id="winningTrades" class="stat-value neutral">--</div>
+                    <div id="winningTrades" class="stat-value positive">--</div>
                     <div class="stat-label">盈利交易数量</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📉 亏损交易</h3>
+                    <div id="losingTrades" class="stat-value negative">--</div>
+                    <div class="stat-label">亏损交易数量</div>
                 </div>
             </div>
 
@@ -372,15 +448,27 @@
                         </tbody>
                     </table>
                 </div>
+                
+                <!-- 分页控件 -->
+                <div id="paginationContainer" class="pagination-container" style="display: none;">
+                    <div class="pagination-info">
+                        <span id="paginationInfo">显示第 1-20 条，共 0 条记录</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <button id="prevPageBtn" class="pagination-btn" disabled>上一页</button>
+                        <div id="pageNumbers" class="page-numbers"></div>
+                        <button id="nextPageBtn" class="pagination-btn" disabled>下一页</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- 加载JavaScript模块 -->
-    <script src="js/api.js?v=20250108-4"></script>
-    <script src="js/components/Modal.js?v=20250108-4"></script>
-    <script src="js/data/DataManager.js?v=20250108-4"></script>
-    <script src="js/simulation-data.js?v=20250108-1"></script>
+    <script src="js/api.js?v=20250109-7"></script>
+    <script src="js/components/Modal.js?v=20250109-7"></script>
+    <script src="js/data/DataManager.js?v=20250109-7"></script>
+    <script src="js/simulation-data.js?v=20250109-7"></script>
 </body>
 
 </html>

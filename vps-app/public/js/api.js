@@ -62,6 +62,11 @@ class APIClient {
     return await this.request('/api/simulation-history');
   }
 
+  // 获取分页模拟交易历史
+  async getSimulationHistoryPaginated(page = 1, pageSize = 20) {
+    return await this.request(`/api/simulation-history-paginated?page=${page}&pageSize=${pageSize}`);
+  }
+
   // 获取胜率统计
   async getWinRateStats() {
     return await this.request('/api/win-rate-stats');

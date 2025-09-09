@@ -326,6 +326,52 @@ class SimulationManager {
     }
   }
 
+  // 获取分页模拟交易历史
+  async getSimulationHistoryPaginated(page = 1, pageSize = 20) {
+    try {
+      const offset = (page - 1) * pageSize;
+      
+      // 获取总数
+      const countResult = await this.db.runQuery(`
+        SELECT COUNT(*) as total FROM simulations WHERE status = 'CLOSED'
+      `);
+      const total = countResult[0].total;
+      
+      // 获取分页数据
+      const simulations = await this.db.runQuery(`
+        SELECT * FROM simulations 
+        WHERE status = 'CLOSED'
+        ORDER BY created_at DESC 
+        LIMIT ? OFFSET ?
+      `, [pageSize, offset]);
+      
+      return {
+        simulations,
+        pagination: {
+          currentPage: page,
+          pageSize,
+          total,
+          totalPages: Math.ceil(total / pageSize),
+          hasNext: page < Math.ceil(total / pageSize),
+          hasPrev: page > 1
+        }
+      };
+    } catch (error) {
+      console.error('获取分页模拟交易历史时出错:', error);
+      return {
+        simulations: [],
+        pagination: {
+          currentPage: 1,
+          pageSize: 20,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false
+        }
+      };
+    }
+  }
+
   async getRecentSimulations(minutes = 5) {
     try {
       const history = await this.db.runQuery(`

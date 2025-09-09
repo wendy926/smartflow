@@ -278,6 +278,19 @@ class SmartFlowServer {
       }
     });
 
+    // 获取分页模拟交易历史
+    this.app.get('/api/simulation-history-paginated', async (req, res) => {
+      try {
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.pageSize) || 20;
+        const result = await this.simulationManager.getSimulationHistoryPaginated(page, pageSize);
+        res.json(result);
+      } catch (error) {
+        console.error('获取分页模拟交易历史失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 启动模拟交易
     this.app.post('/api/simulation/start', async (req, res) => {
       try {
