@@ -62,6 +62,13 @@ vps-app/
     "entrySignal": 112350.5,
     "stopLoss": 110000.0,
     "takeProfit": 115000.0,
+    "setupCandleHigh": 112500.0,
+    "setupCandleLow": 112000.0,
+    "atr14": 1500.0,
+    "maxLeverage": 20,
+    "minMargin": 100.0,
+    "stopLossDistance": 2.5,
+    "atrValue": 1500.0,
     "currentPrice": 112350.5,
     "dataCollectionRate": 95.5,
     "strategyVersion": "V3",
@@ -81,6 +88,13 @@ vps-app/
 - `entrySignal`: 入场价格
 - `stopLoss`: 止损价格
 - `takeProfit`: 止盈价格
+- `setupCandleHigh`: Setup蜡烛高点
+- `setupCandleLow`: Setup蜡烛低点
+- `atr14`: ATR(14)指标值
+- `maxLeverage`: 最大杠杆倍数
+- `minMargin`: 最小保证金（USDT）
+- `stopLossDistance`: 止损距离百分比
+- `atrValue`: ATR值（与atr14相同）
 
 ### 1.2 交易对管理API
 
@@ -215,7 +229,7 @@ vps-app/
 ### 1.5 模拟交易API
 
 #### GET /api/simulation-history
-- **功能**: 获取模拟交易历史
+- **功能**: 获取模拟交易历史（限制50条）
 - **实现文件**: `server.js` (第269-279行)
 - **入参**: 无
 - **出参**:
@@ -224,21 +238,127 @@ vps-app/
   {
     "id": 1,
     "symbol": "BTCUSDT",
-    "entryPrice": 112350.5,
-    "exitPrice": 115000.0,
+    "entry_price": 112350.5,
+    "stop_loss_price": 110000.0,
+    "take_profit_price": 115000.0,
+    "max_leverage": 20,
+    "min_margin": 100.0,
+    "stop_loss_distance": 2.5,
+    "atr_value": 1500.0,
+    "atr14": 1500.0,
     "direction": "LONG|SHORT",
-    "status": "CLOSED|OPEN",
-    "profitLoss": 2649.5,
-    "profitLossPercent": 2.35,
-    "createdAt": "2025-01-09T12:20:16.218Z",
-    "closedAt": "2025-01-09T14:30:16.218Z"
+    "status": "CLOSED|ACTIVE",
+    "trigger_reason": "SIGNAL_多头回踩突破",
+    "execution_mode_v3": "多头回踩突破",
+    "market_type": "趋势市",
+    "setup_candle_high": 112500.0,
+    "setup_candle_low": 112000.0,
+    "time_in_position": 12,
+    "max_time_in_position": 48,
+    "exit_price": 115000.0,
+    "exit_reason": "止盈触发",
+    "is_win": true,
+    "profit_loss": 2649.5,
+    "created_at": "2025-01-09T12:20:16.218Z",
+    "closed_at": "2025-01-09T14:30:16.218Z"
+  }
+]
+```
+
+#### GET /api/simulation-history-all
+- **功能**: 获取所有模拟交易历史（无限制）
+- **实现文件**: `server.js` (第280-290行)
+- **入参**: 无
+- **出参**: 与`/api/simulation-history`相同，但返回所有记录
+
+#### GET /api/simulation-history-paginated
+- **功能**: 获取分页模拟交易历史
+- **实现文件**: `server.js` (第291-303行)
+- **入参**: 
+  - `page`: 页码（默认1）
+  - `pageSize`: 每页大小（默认20）
+- **出参**:
+```json
+{
+  "simulations": [...],
+  "pagination": {
+    "currentPage": 1,
+    "pageSize": 20,
+    "total": 240,
+    "totalPages": 12,
+    "hasNext": true,
+    "hasPrev": false
+  }
+}
+```
+
+#### GET /api/win-rate-stats
+- **功能**: 获取胜率统计
+- **实现文件**: `server.js` (第304-314行)
+- **入参**: 无
+- **出参**:
+```json
+{
+  "total_trades": 240,
+  "winning_trades": 25,
+  "losing_trades": 215,
+  "win_rate": 10.42,
+  "net_profit": -836.8152,
+  "total_profit": 125.5,
+  "total_loss": 962.3152
+}
+```
+
+#### GET /api/direction-stats
+- **功能**: 获取方向统计（做多/做空分别统计）
+- **实现文件**: `server.js` (第315-325行)
+- **入参**: 无
+- **出参**:
+```json
+{
+  "long": {
+    "total_trades": 37,
+    "winning_trades": 2,
+    "losing_trades": 35,
+    "win_rate": 5.41,
+    "net_profit": -424.74,
+    "total_profit": 1.96,
+    "total_loss": 426.70
+  },
+  "short": {
+    "total_trades": 203,
+    "winning_trades": 20,
+    "losing_trades": 183,
+    "win_rate": 9.85,
+    "net_profit": -412.08,
+    "total_profit": 4.45,
+    "total_loss": 416.53
+  }
+}
+```
+
+#### GET /api/symbol-stats
+- **功能**: 获取交易对统计
+- **实现文件**: `server.js` (第326-336行)
+- **入参**: 无
+- **出参**:
+```json
+[
+  {
+    "symbol": "BTCUSDT",
+    "total_trades": 48,
+    "winning_trades": 7,
+    "losing_trades": 41,
+    "win_rate": 14.58,
+    "net_profit": -22.79,
+    "avg_profit": -0.50
   }
 ]
 ```
 
 #### POST /api/simulation/start
 - **功能**: 启动模拟交易
-- **实现文件**: `server.js` (第280-312行)
+- **实现文件**: `server.js` (第337-365行)
 - **入参**: 
 ```json
 {
@@ -246,13 +366,18 @@ vps-app/
   "entryPrice": 112350.5,
   "stopLoss": 110000.0,
   "takeProfit": 115000.0,
-  "direction": "LONG",
-  "executionMode": "多头回踩突破"
+  "maxLeverage": 20,
+  "minMargin": 100.0,
+  "stopLossDistance": 2.5,
+  "atrValue": 1500.0,
+  "atr14": 1500.0,
+  "executionMode": "多头回踩突破",
+  "direction": "LONG"
 }
 ```
 - **出参**: 
 ```json
-{"success": true, "simulationId": 123}
+{"success": true, "simulation": 123}
 ```
 
 ### 1.6 健康检查API
@@ -322,9 +447,29 @@ class APIClient {
     return await this.request('/api/simulation-history');
   }
 
+  // 获取所有模拟交易历史
+  async getSimulationHistoryAll() {
+    return await this.request('/api/simulation-history-all');
+  }
+
+  // 获取分页模拟交易历史
+  async getSimulationHistoryPaginated(page = 1, pageSize = 20) {
+    return await this.request(`/api/simulation-history-paginated?page=${page}&pageSize=${pageSize}`);
+  }
+
   // 获取胜率统计
   async getWinRateStats() {
     return await this.request('/api/win-rate-stats');
+  }
+
+  // 获取方向统计
+  async getDirectionStats() {
+    return await this.request('/api/direction-stats');
+  }
+
+  // 获取交易对统计
+  async getSymbolStats() {
+    return await this.request('/api/symbol-stats');
   }
 
   // 获取监控数据
@@ -385,6 +530,8 @@ class APIClient {
 
 ## 4. 前端表格字段映射
 
+### 4.1 主页面交易对表格
+
 | 表格列 | 数据字段 | 显示逻辑 | 说明 |
 |--------|----------|----------|------|
 | 详情 | - | 操作按钮 | 查看详情弹窗 |
@@ -395,6 +542,27 @@ class APIClient {
 | 15min信号 | `execution` + `executionMode` | 执行+模式 | 如：做多_多头回踩突破<br>多头回踩突破 |
 | 当前价格 | `currentPrice` | 格式化显示 | 如：$112,350.50 |
 | 数据采集率 | `dataCollectionRate` | 百分比显示 | 如：95.5% |
+
+### 4.2 模拟交易数据页面表格
+
+| 表格列 | 数据字段 | 显示逻辑 | 说明 |
+|--------|----------|----------|------|
+| 交易对 | `symbol` | 直接显示 | 如：BTCUSDT |
+| 方向 | `direction` | 直接显示 | LONG/SHORT |
+| 入场价格 | `entry_price` | 4位小数 | 如：112350.5000 |
+| 止损价格 | `stop_loss_price` | 4位小数 | 如：110000.0000 |
+| 止盈价格 | `take_profit_price` | 4位小数 | 如：115000.0000 |
+| 杠杆倍数 | `max_leverage` | 直接显示 | 如：20 |
+| 最小保证金 | `min_margin` | 2位小数 | 如：100.00 USDT |
+| 止损距离 | `stop_loss_distance` | 2位小数+% | 如：2.50% |
+| ATR值 | `atr_value` | 4位小数 | 如：1500.0000 |
+| 入场时间 | `created_at` | 格式化时间 | 如：2025-01-09 12:20:16 |
+| 出场时间 | `closed_at` | 格式化时间 | 如：2025-01-09 14:30:16 |
+| 出场价格 | `exit_price` | 4位小数 | 如：115000.0000 |
+| 出场原因 | `exit_reason` | 直接显示 | 如：止盈触发 |
+| 触发原因 | `trigger_reason` | 直接显示 | 如：SIGNAL_多头回踩突破 |
+| 盈亏 | `profit_loss` | 4位小数+颜色 | 如：+2649.5000 USDT |
+| 结果 | `is_win` | 图标+文字 | 如：✅ 盈利 / ❌ 亏损 |
 
 ## 5. 枚举值定义
 
@@ -559,6 +727,47 @@ CREATE INDEX idx_strategy_analysis_symbol_timestamp ON strategy_analysis(symbol,
 | `execution` | `execution` | TEXT | 15分钟执行信号 |
 | `executionMode` | `execution_mode_v3` | TEXT | V3执行模式 |
 | `strategyVersion` | `strategy_version` | TEXT | 策略版本 |
+| `setupCandleHigh` | `setup_candle_high` | REAL | Setup蜡烛高点 |
+| `setupCandleLow` | `setup_candle_low` | REAL | Setup蜡烛低点 |
+| `atr14` | `atr14` | REAL | ATR(14)指标值 |
+| `maxLeverage` | `max_leverage` | INTEGER | 最大杠杆倍数 |
+| `minMargin` | `min_margin` | REAL | 最小保证金 |
+| `stopLossDistance` | `stop_loss_distance` | REAL | 止损距离百分比 |
+| `atrValue` | `atr_value` | REAL | ATR值 |
+
+### 9.3 模拟交易表结构
+
+```sql
+CREATE TABLE simulations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT NOT NULL,
+    entry_price REAL NOT NULL,
+    stop_loss_price REAL NOT NULL,
+    take_profit_price REAL NOT NULL,
+    max_leverage INTEGER NOT NULL,
+    min_margin REAL NOT NULL,
+    trigger_reason TEXT NOT NULL,
+    status TEXT DEFAULT 'ACTIVE',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    closed_at DATETIME,
+    exit_price REAL,
+    exit_reason TEXT,
+    is_win BOOLEAN,
+    profit_loss REAL,
+    stop_loss_distance REAL,
+    atr_value REAL,
+    cache_version INTEGER DEFAULT 1,
+    last_updated DATETIME,
+    direction TEXT,
+    execution_mode_v3 TEXT,
+    market_type TEXT,
+    setup_candle_high REAL,
+    setup_candle_low REAL,
+    atr14 REAL,
+    time_in_position INTEGER DEFAULT 0,
+    max_time_in_position INTEGER DEFAULT 48
+);
+```
 
 ## 10. 注意事项
 
@@ -567,8 +776,29 @@ CREATE INDEX idx_strategy_analysis_symbol_timestamp ON strategy_analysis(symbol,
 3. **数据采集率** - 监控系统需要正确识别V3策略数据结构
 4. **Delta数据** - 当前使用模拟数据，需要实现WebSocket实时获取
 5. **数据库字段** - 数据库表结构已包含V3策略的所有字段
+6. **杠杆计算** - 严格按照strategy-v2.md文档实现，区分多头空头止损距离计算
+7. **模拟交易字段** - 所有模拟交易记录包含完整的杠杆、保证金、止损距离、ATR值等字段
+8. **分页功能** - 模拟交易历史支持分页查询，提高大数据量下的性能
+9. **方向统计** - 支持按交易方向（做多/做空）分别统计胜率和盈亏
+
+## 11. 新增功能说明
+
+### 11.1 模拟交易数据页面
+- **分页展示**: 支持分页浏览模拟交易历史记录
+- **统计功能**: 提供整体胜率、方向统计、交易对统计等
+- **字段完整**: 显示杠杆倍数、最小保证金、止损距离、ATR值等完整信息
+
+### 11.2 杠杆计算逻辑
+- **止损距离**: 多头`(entrySignal - stopLoss) / entrySignal`，空头`(stopLoss - entrySignal) / entrySignal`
+- **最大杠杆**: `1/(止损距离% + 0.5%)` 数值向下取整
+- **最小保证金**: `最大损失金额/(杠杆数 × 止损距离%)` 数值向上取整
+
+### 11.3 API扩展
+- **分页API**: `/api/simulation-history-paginated` 支持分页查询
+- **统计API**: `/api/direction-stats` 和 `/api/symbol-stats` 提供详细统计
+- **完整字段**: 所有API返回完整的模拟交易字段信息
 
 ---
 
 *最后更新: 2025-01-09*
-*版本: V3.0*
+*版本: V3.1*
