@@ -412,14 +412,14 @@ class SmartFlowServer {
     this.app.post('/api/clear-validation-errors', async (req, res) => {
       try {
         if (this.dataMonitor && this.dataMonitor.validationSystem) {
-          // 清空验证结果
-          this.dataMonitor.validationSystem.validationResults.clear();
+          // 清空V3策略验证结果
+          this.dataMonitor.validationSystem.clearValidationResults();
           
           // 清空数据质量问题
           this.dataMonitor.dataQualityIssues.clear();
           
-          console.log('✅ 数据验证错误已清空');
-          res.json({ success: true, message: '数据验证错误已清空' });
+          console.log('✅ V3策略数据验证错误已清空');
+          res.json({ success: true, message: 'V3策略数据验证错误已清空' });
         } else {
           res.status(500).json({ success: false, message: '监控系统未初始化' });
         }

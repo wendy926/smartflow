@@ -483,18 +483,18 @@ class DataMonitor {
       let successfulDataCollections = 0;
       let successfulSignalAnalyses = 0;
 
-      // 使用新的验证系统
+      // 使用V3策略验证系统
       for (const symbol of allSymbols) {
         const log = this.getAnalysisLog(symbol);
         const stats = this.symbolStats.get(symbol);
 
-        // 使用统一验证系统
+        // 使用V3策略验证系统
         const validationResult = await this.validationSystem.validateSymbol(symbol, log);
 
         // 记录验证结果到数据库
         await this.validationSystem.recordValidationResult(symbol, validationResult);
 
-        // 收集验证错误
+        // 收集验证错误（只收集真正的错误，不包括警告）
         if (validationResult.errors.length > 0) {
           dataValidationErrors.push(...validationResult.errors.map(error => `${symbol}: ${error}`));
         }
