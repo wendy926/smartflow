@@ -150,12 +150,13 @@
         </div>
 
         <div class="strategy-phase">
-          <h3>⏰ 2. 1H级多因子打分（1H）</h3>
+          <h3>⏰ 2. 1H级多因子打分（1H）- 趋势市专用</h3>
           <div class="phase-content">
             <h4>数据来源：</h4>
             <ul>
               <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50`</li>
-              <li><strong>24小时行情：</strong> `/fapi/v1/ticker/24hr?symbol={symbol}`</li>
+              <li><strong>15分钟K线：</strong> `/fapi/v1/klines?symbol={symbol}&interval=15m&limit=50`</li>
+              <li><strong>4小时K线：</strong> `/fapi/v1/klines?symbol={symbol}&interval=4h&limit=20`</li>
               <li><strong>资金费率：</strong> `/fapi/v1/fundingRate?symbol={symbol}&limit=1`</li>
               <li><strong>持仓量历史：</strong> `/futures/data/openInterestHist?symbol={symbol}&period=1h&limit=6`</li>
               <li><strong>Delta数据：</strong> WebSocket实时数据，计算买卖盘不平衡</li>
@@ -164,20 +165,48 @@
             <h4>多因子打分系统（0-6分）：</h4>
             <ul>
               <li><strong>VWAP方向（必须满足）：</strong> 收盘价 > VWAP（多头趋势）或 收盘价 < VWAP（空头趋势）</li>
-              <li><strong>突破结构（1分）：</strong> 收盘价突破最近20根K线高点（多头）或低点（空头）</li>
-              <li><strong>成交量确认（1分）：</strong> 当前成交量 ≥ 1.5 × 20期平均成交量</li>
-              <li><strong>OI确认（1分）：</strong> OI 6小时变动 ≥ +2%（多头）或 ≤ -2%（空头）</li>
-              <li><strong>资金费率（1分）：</strong> |资金费率| ≤ 0.15%/8h</li>
-              <li><strong>Delta确认（1分）：</strong> 15m Delta > 过去20根平均Delta的2倍</li>
+              <li><strong>突破确认（1分）：</strong> 收盘价突破最近20根4H K线高点（多头）或低点（空头）</li>
+              <li><strong>成交量双确认（1分）：</strong> 15m成交量 ≥ 1.5×20期均量 且 1h成交量 ≥ 1.2×20期均量</li>
+              <li><strong>OI变化（1分）：</strong> 多头：6h OI ≥ +2%，空头：6h OI ≤ -3%</li>
+              <li><strong>资金费率（1分）：</strong> -0.05% ≤ 资金费率 ≤ +0.05%</li>
+              <li><strong>Delta不平衡（1分）：</strong> 多头：主动买盘 ≥ 卖盘×1.2，空头：主动卖盘 ≥ 买盘×1.2</li>
             </ul>
 
             <h4>判断逻辑：</h4>
             <ul>
               <li><strong>VWAP方向必须满足，否则得分=0</strong></li>
-              <li><strong>得分 ≥ 5分：</strong> 强信号（STRONG）</li>
-              <li><strong>得分 3-4分：</strong> 中等信号（MODERATE）</li>
+              <li><strong>得分 ≥ 3分：</strong> 允许入场（仅趋势市）</li>
               <li><strong>得分 < 3分：</strong> 无信号（NONE）</li>
               <li><strong>最终action：</strong> 得分 ≥ 3分时，多头趋势→做多，空头趋势→做空</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="strategy-phase">
+          <h3>🔄 2.5. 震荡市1H边界判断</h3>
+          <div class="phase-content">
+            <h4>数据来源：</h4>
+            <ul>
+              <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50`</li>
+              <li><strong>Delta数据：</strong> WebSocket实时数据</li>
+              <li><strong>持仓量历史：</strong> `/futures/data/openInterestHist?symbol={symbol}&period=1h&limit=6`</li>
+            </ul>
+
+            <h4>边界有效性判断：</h4>
+            <ul>
+              <li><strong>布林带计算：</strong> 20期布林带，K=2</li>
+              <li><strong>连续触碰：</strong> 最近6根1H K线中，下轨触碰≥2次，上轨触碰≥2次</li>
+              <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.2×20期均量</li>
+              <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡）</li>
+              <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%</li>
+              <li><strong>无突破：</strong> 最近20根K线内无新高/新低突破</li>
+            </ul>
+
+            <h4>判断逻辑：</h4>
+            <ul>
+              <li><strong>下轨有效：</strong> 连续触碰 + 成交量 + Delta + OI + 无突破</li>
+              <li><strong>上轨有效：</strong> 连续触碰 + 成交量 + Delta + OI + 无突破</li>
+              <li><strong>最终action：</strong> 边界有效时允许15m区间交易</li>
             </ul>
           </div>
         </div>
@@ -188,28 +217,35 @@
             <h4>数据来源：</h4>
             <ul>
               <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=15m&limit=50`</li>
+              <li><strong>1小时K线：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50`</li>
             </ul>
 
             <h4>指标计算：</h4>
             <ul>
               <li><strong>EMA20：</strong> EMA(收盘价, 20) = 收盘价 × (2/21) + 前EMA × (19/21)</li>
               <li><strong>EMA50：</strong> EMA(收盘价, 50) = 收盘价 × (2/51) + 前EMA × (49/51)</li>
-              <li><strong>ATR14：</strong> ATR(14) = SMA(真实波幅, 14)，真实波幅 = max(最高价-最低价, |最高价-前收盘价|, |最低价-前收盘价|)</li>
+              <li><strong>ATR14：</strong> ATR(14) = EMA(真实波幅, 14)，真实波幅 = max(最高价-最低价, |最高价-前收盘价|, |最低价-前收盘价|)</li>
             </ul>
 
-            <h4>入场模式（分离多头和空头）：</h4>
+            <h4>趋势市入场模式：</h4>
             <ul>
-              <li><strong>多头模式（多头回踩突破）：</strong> 价格回踩到EMA20/50支撑位，突破setup candle高点</li>
-              <li><strong>空头模式（空头反抽破位）：</strong> 价格反抽到EMA20/50阻力位，跌破setup candle低点</li>
+              <li><strong>多头回踩突破：</strong> 价格回踩EMA20/50支撑 + 突破setup candle高点 + 成交量确认</li>
+              <li><strong>空头反抽破位：</strong> 价格反抽EMA20/50阻力 + 跌破setup candle低点 + 成交量确认</li>
+            </ul>
+
+            <h4>震荡市入场模式：</h4>
+            <ul>
+              <li><strong>区间多头：</strong> 价格接近下轨 + 缩量不破或setup突破 + 下轨边界有效</li>
+              <li><strong>区间空头：</strong> 价格接近上轨 + 缩量不破或setup突破 + 上轨边界有效</li>
+              <li><strong>假突破反手：</strong> 突破后快速收回 + 量能不足 + 反手入场</li>
             </ul>
 
             <h4>判断逻辑：</h4>
             <ul>
-              <li><strong>前提条件：</strong> 4H趋势明确 + 1H VWAP方向一致且1H得分 ≥ 3分</li>
-              <li><strong>多头模式触发：</strong> 多头趋势 + OI变动≥+2% + 收盘价≥EMA支撑 + 突破setup高点</li>
-              <li><strong>空头模式触发：</strong> 空头趋势 + OI变动≤-2% + 收盘价≤EMA阻力 + 跌破setup低点</li>
+              <li><strong>趋势市前提：</strong> 4H趋势明确 + 1H VWAP方向一致且1H得分 ≥ 3分</li>
+              <li><strong>震荡市前提：</strong> 4H震荡市 + 1H边界有效（下轨或上轨）</li>
               <li><strong>止损设置：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
-              <li><strong>止盈目标：</strong> 多头2R，空头1.2R-1.5R</li>
+              <li><strong>止盈目标：</strong> 趋势市：多头2R，空头2R；震荡市：到中轨或对侧轨</li>
             </ul>
           </div>
         </div>
@@ -249,19 +285,27 @@
           <div class="phase-content">
             <h4>入场条件：</h4>
             <ul>
-              <li><strong>4H趋势：</strong> 必须明确（多头趋势或空头趋势）</li>
-              <li><strong>1H VWAP方向：</strong> 必须与趋势方向一致</li>
-              <li><strong>1H得分：</strong> 必须 ≥ 3分才能考虑入场</li>
-              <li><strong>15分钟模式：</strong> 必须触发多头回踩突破或空头反抽破位</li>
+              <li><strong>趋势市：</strong> 4H趋势明确 + 1H VWAP方向一致 + 1H得分≥3分 + 15m入场模式</li>
+              <li><strong>震荡市：</strong> 4H震荡市 + 1H边界有效 + 15m区间交易或假突破反手</li>
+            </ul>
+
+            <h4>出场条件（6种）：</h4>
+            <ul>
+              <li><strong>1. 止损触发：</strong> 价格触及止损位（setup candle另一端或1.2×ATR14）</li>
+              <li><strong>2. 止盈触发：</strong> 价格触及止盈位（趋势市2R，震荡市到中轨/对侧轨）</li>
+              <li><strong>3. 趋势反转：</strong> 4H趋势改变或1H得分<3分</li>
+              <li><strong>4. Delta减弱：</strong> 主动买卖盘不平衡度<1.1</li>
+              <li><strong>5. 支撑阻力突破：</strong> 价格跌破EMA20/50或关键支撑/阻力位</li>
+              <li><strong>6. 时间止损：</strong> 持仓时间超过12小时（48个15分钟）</li>
             </ul>
 
             <h4>风控规则：</h4>
             <ul>
               <li><strong>止损设置：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
-              <li><strong>止盈目标：</strong> 2R（风险回报比1:2）</li>
-              <li><strong>单笔风险：</strong> 1% 账户权益</li>
-              <li><strong>最大持仓：</strong> 最多3笔同时持仓</li>
-              <li><strong>日损限制：</strong> 当日净亏损 ≤ -3R 时停止交易</li>
+              <li><strong>止盈目标：</strong> 趋势市：2R；震荡市：到中轨或对侧轨</li>
+              <li><strong>单笔风险：</strong> 根据全局最大损失设置</li>
+              <li><strong>最大持仓：</strong> 同一交易对最多1笔活跃交易</li>
+              <li><strong>时间限制：</strong> 单笔交易最长12小时</li>
             </ul>
 
             <h4>表格列说明：</h4>

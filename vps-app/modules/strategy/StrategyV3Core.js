@@ -286,6 +286,15 @@ class StrategyV3Core {
         vwapDirectionConsistent = true;
       }
 
+      // 调试信息
+      console.log(`🔍 VWAP方向检查 [${symbol}]:`, {
+        trend4h,
+        lastClose: last1h.close,
+        vwap,
+        vwapDirectionConsistent,
+        condition: trend4h === '多头趋势' ? `close(${last1h.close}) > vwap(${vwap})` : `close(${last1h.close}) < vwap(${vwap})`
+      });
+
       if (!vwapDirectionConsistent) {
         return { score: 0, allowEntry: false, vwapDirectionConsistent: false };
       }
