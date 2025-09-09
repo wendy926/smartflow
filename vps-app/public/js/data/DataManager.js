@@ -210,7 +210,16 @@ class DataManager {
   formatTime(timestamp) {
     if (!timestamp) return '--';
     const date = new Date(timestamp);
-    return date.toLocaleString('zh-CN');
+    // 确保显示UTC+8时间（中国标准时间）
+    return date.toLocaleString('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
   }
 
   // 获取趋势状态样式

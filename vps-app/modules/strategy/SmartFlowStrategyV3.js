@@ -127,7 +127,7 @@ class SmartFlowStrategyV3 {
 
       // 4. 计算杠杆和保证金数据
       const direction = executionResult.signal === 'BUY' ? 'LONG' : 'SHORT';
-      const leverageData = executionResult.signal !== 'NONE' ? 
+      const leverageData = executionResult.signal !== 'NONE' ?
         await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
         { maxLeverage: 0, minMargin: 0, stopLossDistance: 0, atrValue: executionResult.atr14 };
 
@@ -212,7 +212,7 @@ class SmartFlowStrategyV3 {
 
       // 4. 计算杠杆和保证金数据
       const direction = executionResult.signal === 'BUY' ? 'LONG' : 'SHORT';
-      const leverageData = executionResult.signal !== 'NONE' ? 
+      const leverageData = executionResult.signal !== 'NONE' ?
         await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
         { maxLeverage: 0, minMargin: 0, stopLossDistance: 0, atrValue: executionResult.atr14 };
 
@@ -275,10 +275,10 @@ class SmartFlowStrategyV3 {
       const DatabaseManager = require('../database/DatabaseManager');
       const dbManager = new DatabaseManager();
       await dbManager.init();
-      
+
       const globalMaxLoss = await dbManager.getUserSetting('maxLossAmount', 100);
       const maxLossAmount = parseFloat(globalMaxLoss);
-      
+
       let maxLeverage = 0;
       let minMargin = 0;
       let stopLossDistance = 0;
@@ -292,15 +292,15 @@ class SmartFlowStrategyV3 {
           // 空头：止损价高于入场价
           stopLossDistance = (stopLossPrice - entryPrice) / entryPrice;
         }
-        
+
         // 确保止损距离为正数
         stopLossDistance = Math.abs(stopLossDistance);
-        
+
         // 最大杠杆数：1/(止损距离% + 0.5%) 数值向下取整
         if (stopLossDistance > 0) {
           maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
         }
-        
+
         // 最小保证金：最大损失金额/(杠杆数 × 止损距离%) 数值向上取整
         if (maxLeverage > 0 && stopLossDistance > 0) {
           minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
@@ -308,7 +308,7 @@ class SmartFlowStrategyV3 {
       }
 
       await dbManager.close();
-      
+
       return {
         maxLeverage: Math.max(1, maxLeverage),
         minMargin: minMargin, // 按照文档计算的最小保证金，数值向上取整
@@ -317,6 +317,7 @@ class SmartFlowStrategyV3 {
       };
     } catch (error) {
       console.error('计算杠杆数据失败:', error);
+      console.error('参数详情:', { entryPrice, stopLossPrice, atr14, direction });
       return {
         maxLeverage: 10,
         minMargin: 100,

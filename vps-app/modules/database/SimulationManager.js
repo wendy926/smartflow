@@ -221,7 +221,7 @@ class SimulationManager {
       // 检查是否在最近10分钟内已经为同一交易对创建了相同方向的模拟交易
       const recentSimulations = await this.db.runQuery(`
         SELECT * FROM simulations 
-        WHERE symbol = ? AND direction = ? AND created_at > datetime('now', '-10 minutes')
+        WHERE symbol = ? AND direction = ? AND created_at > datetime('now', '+8 hours', '-10 minutes')
         ORDER BY created_at DESC
         LIMIT 1
       `, [symbol, direction]);
@@ -253,8 +253,8 @@ class SimulationManager {
 
       const result = await this.db.run(`
         INSERT INTO simulations 
-        (symbol, entry_price, stop_loss_price, take_profit_price, max_leverage, min_margin, trigger_reason, status, stop_loss_distance, atr_value, direction, atr14)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (symbol, entry_price, stop_loss_price, take_profit_price, max_leverage, min_margin, trigger_reason, status, stop_loss_distance, atr_value, direction, atr14, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+8 hours'))
       `, [symbol, formattedEntryPrice, formattedStopLossPrice, formattedTakeProfitPrice, maxLeverage, minMargin, triggerReason, 'ACTIVE', stopLossDistance, atrValue, direction, atr14]);
 
       console.log(`✅ 创建模拟交易: ${symbol}, 入场价: ${formattedEntryPrice}, 止损: ${formattedStopLossPrice}, 止盈: ${formattedTakeProfitPrice}, 杠杆: ${maxLeverage}x, 保证金: ${minMargin}, 止损距离: ${stopLossDistance}%, ATR: ${atrValue}, 全局最大损失: ${maxLossAmount} USDT`);
@@ -330,13 +330,13 @@ class SimulationManager {
   async getSimulationHistoryPaginated(page = 1, pageSize = 20) {
     try {
       const offset = (page - 1) * pageSize;
-      
+
       // 获取总数
       const countResult = await this.db.runQuery(`
         SELECT COUNT(*) as total FROM simulations WHERE status = 'CLOSED'
       `);
       const total = countResult[0].total;
-      
+
       // 获取分页数据
       const simulations = await this.db.runQuery(`
         SELECT * FROM simulations 
@@ -344,7 +344,7 @@ class SimulationManager {
         ORDER BY created_at DESC 
         LIMIT ? OFFSET ?
       `, [pageSize, offset]);
-      
+
       return {
         simulations,
         pagination: {
@@ -402,15 +402,15 @@ class SimulationManager {
         WHERE status = 'CLOSED'
         GROUP BY direction
       `);
-      
+
       const result = {
         long: { total_trades: 0, winning_trades: 0, losing_trades: 0, win_rate: 0, net_profit: 0, total_profit: 0, total_loss: 0 },
         short: { total_trades: 0, winning_trades: 0, losing_trades: 0, win_rate: 0, net_profit: 0, total_profit: 0, total_loss: 0 }
       };
-      
+
       stats.forEach(stat => {
         const winRate = stat.total_trades > 0 ? (stat.winning_trades / stat.total_trades) * 100 : 0;
-        
+
         if (stat.direction === 'LONG') {
           result.long = {
             total_trades: stat.total_trades,
@@ -433,7 +433,7 @@ class SimulationManager {
           };
         }
       });
-      
+
       return result;
     } catch (error) {
       console.error('获取方向统计时出错:', error);
@@ -460,7 +460,7 @@ class SimulationManager {
         GROUP BY symbol
         ORDER BY total_trades DESC
       `);
-      
+
       return stats.map(stat => ({
         symbol: stat.symbol,
         total_trades: stat.total_trades,
@@ -500,7 +500,7 @@ class SimulationManager {
 
       // 合并数据
       const countsMap = new Map();
-      
+
       // 添加每日数据
       dailyCounts.forEach(item => {
         countsMap.set(item.symbol, {

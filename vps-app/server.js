@@ -104,7 +104,7 @@ class SmartFlowServer {
             if (this.dataMonitor) {
               // 确保统计数据是最新的
               this.dataMonitor.calculateCompletionRates();
-              
+
               // 使用与监控中心相同的计算方式：单个交易对的成功率
               if (this.dataMonitor.symbolStats) {
                 const stats = this.dataMonitor.symbolStats.get(symbol);
@@ -112,7 +112,7 @@ class SmartFlowServer {
                   dataCollectionRate = (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100;
                 }
               }
-              
+
               // 如果单个交易对没有统计数据，使用整体平均数据采集率
               if (dataCollectionRate === 0 && this.dataMonitor.completionRates) {
                 dataCollectionRate = this.dataMonitor.completionRates.dataCollection;
@@ -230,18 +230,18 @@ class SmartFlowServer {
     this.app.post('/api/add-symbol', async (req, res) => {
       try {
         const { symbol } = req.body;
-        
+
         // 检查Binance合约可用性
         console.log(`🔍 检查交易对 ${symbol} 的Binance合约可用性...`);
         const isAvailable = await SymbolCategoryManager.contractChecker.isContractAvailable(symbol);
-        
+
         if (!isAvailable) {
           return res.json({
             success: false,
             message: `交易对 ${symbol} 在Binance期货中不可用，请选择其他交易对`
           });
         }
-        
+
         const result = await this.db.addCustomSymbol(symbol);
         res.json(result);
       } catch (error) {
@@ -319,27 +319,27 @@ class SmartFlowServer {
       }
     });
 
-            // 获取交易对统计
-            this.app.get('/api/symbol-stats', async (req, res) => {
-              try {
-                const stats = await this.simulationManager.getSymbolStats();
-                res.json(stats);
-              } catch (error) {
-                console.error('获取交易对统计失败:', error);
-                res.status(500).json({ error: error.message });
-              }
-            });
+    // 获取交易对统计
+    this.app.get('/api/symbol-stats', async (req, res) => {
+      try {
+        const stats = await this.simulationManager.getSymbolStats();
+        res.json(stats);
+      } catch (error) {
+        console.error('获取交易对统计失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
 
-            // 获取交易对模拟交易次数统计（每日和每周）
-            this.app.get('/api/symbol-trade-counts', async (req, res) => {
-              try {
-                const counts = await this.simulationManager.getSymbolTradeCounts();
-                res.json(counts);
-              } catch (error) {
-                console.error('获取交易对交易次数失败:', error);
-                res.status(500).json({ error: error.message });
-              }
-            });
+    // 获取交易对模拟交易次数统计（每日和每周）
+    this.app.get('/api/symbol-trade-counts', async (req, res) => {
+      try {
+        const counts = await this.simulationManager.getSymbolTradeCounts();
+        res.json(counts);
+      } catch (error) {
+        console.error('获取交易对交易次数失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
 
     // 启动模拟交易
     this.app.post('/api/simulation/start', async (req, res) => {
@@ -489,10 +489,10 @@ class SmartFlowServer {
         if (this.dataMonitor && this.dataMonitor.validationSystem) {
           // 清空V3策略验证结果
           this.dataMonitor.validationSystem.clearValidationResults();
-          
+
           // 清空数据质量问题
           this.dataMonitor.dataQualityIssues.clear();
-          
+
           console.log('✅ V3策略数据验证错误已清空');
           res.json({ success: true, message: 'V3策略数据验证错误已清空' });
         } else {
@@ -1074,7 +1074,7 @@ class SmartFlowServer {
       // 检查是否有入场执行信号，如果有则检查条件后触发模拟交易
       if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
         console.log(`🚀 检测到入场执行信号: ${symbol} - ${analysis.execution}`);
-        
+
         // 检查是否满足触发条件：该交易对没有进行中的模拟交易
         const canTrigger = await this.checkSimulationTriggerConditions(symbol, analysis);
         if (canTrigger) {
@@ -1108,7 +1108,7 @@ class SmartFlowServer {
       // 2. 检查最近10分钟内是否有任何模拟交易
       const recentSimulations = await this.db.runQuery(`
         SELECT * FROM simulations 
-        WHERE symbol = ? AND created_at > datetime('now', '-10 minutes')
+        WHERE symbol = ? AND created_at > datetime('now', '+8 hours', '-10 minutes')
         ORDER BY created_at DESC
         LIMIT 1
       `, [symbol]);
@@ -1122,7 +1122,7 @@ class SmartFlowServer {
       const direction = analysis.execution.includes('做多_') ? 'LONG' : 'SHORT';
       const sameDirectionSimulations = await this.db.runQuery(`
         SELECT * FROM simulations 
-        WHERE symbol = ? AND direction = ? AND created_at > datetime('now', '-10 minutes')
+        WHERE symbol = ? AND direction = ? AND created_at > datetime('now', '+8 hours', '-10 minutes')
         ORDER BY created_at DESC
         LIMIT 1
       `, [symbol, direction]);
@@ -1604,7 +1604,7 @@ class SymbolCategoryManager {
     try {
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1');
       const data = await response.json();
-      
+
       const mainstreamSymbols = data
         .filter(coin => ['bitcoin', 'ethereum'].includes(coin.id))
         .map(coin => ({
@@ -1616,7 +1616,7 @@ class SymbolCategoryManager {
           suggestedFrequency: '趋势市：每周 1–3 笔；震荡市：每天 0–2 笔',
           suggestedHoldingPeriod: '趋势市：可持仓 1–7 天（跟随趋势）；震荡市：1–12 小时（避免费率吃掉利润）'
         }));
-      
+
       return mainstreamSymbols;
     } catch (error) {
       console.error('获取主流币失败:', error);
@@ -1629,7 +1629,7 @@ class SymbolCategoryManager {
     try {
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=30&page=1');
       const data = await response.json();
-      
+
       const highCapSymbols = data
         .filter(coin => !['bitcoin', 'ethereum', 'tether', 'usd-coin', 'binancecoin'].includes(coin.id))
         .slice(0, 15) // 显示top15，排除BTC和ETH
@@ -1642,18 +1642,18 @@ class SymbolCategoryManager {
           suggestedFrequency: '趋势市：每周 1–2 笔；震荡市：每天 1–3 笔',
           suggestedHoldingPeriod: '趋势市：0.5–3 天；震荡市：数小时内（避免高费率磨损）'
         }));
-      
+
       // 检查Binance合约可用性
       console.log('🔍 检查高市值币的Binance合约可用性...');
       const symbolsToCheck = highCapSymbols.map(item => item.symbol);
       const availableContracts = await this.contractChecker.filterAvailableContracts(symbolsToCheck);
-      
-      const filteredSymbols = highCapSymbols.filter(item => 
+
+      const filteredSymbols = highCapSymbols.filter(item =>
         availableContracts.includes(item.symbol)
       );
-      
+
       console.log(`✅ 高市值币: ${filteredSymbols.length}/${highCapSymbols.length} 个在Binance期货中可用`);
-      
+
       return filteredSymbols;
     } catch (error) {
       console.error('获取高市值币失败:', error);
@@ -1666,7 +1666,7 @@ class SymbolCategoryManager {
     try {
       const response = await fetch('https://api.coingecko.com/api/v3/search/trending');
       const data = await response.json();
-      
+
       const trendingSymbols = data.coins
         .slice(0, 5) // 只显示top5
         .map(coin => coin.item)
@@ -1679,18 +1679,18 @@ class SymbolCategoryManager {
           suggestedFrequency: '趋势市：每周 1–2 笔；震荡市：每天 2–4 笔（需严格风控）',
           suggestedHoldingPeriod: '趋势市：6–24 小时（高波动快速止盈止损）；震荡市：1–3 小时以内'
         }));
-      
+
       // 检查Binance合约可用性
       console.log('🔍 检查热点币的Binance合约可用性...');
       const symbolsToCheck = trendingSymbols.map(item => item.symbol);
       const availableContracts = await this.contractChecker.filterAvailableContracts(symbolsToCheck);
-      
-      const filteredSymbols = trendingSymbols.filter(item => 
+
+      const filteredSymbols = trendingSymbols.filter(item =>
         availableContracts.includes(item.symbol)
       );
-      
+
       console.log(`✅ 热点币: ${filteredSymbols.length}/${trendingSymbols.length} 个在Binance期货中可用`);
-      
+
       return filteredSymbols;
     } catch (error) {
       console.error('获取热点币失败:', error);
@@ -1703,7 +1703,7 @@ class SymbolCategoryManager {
     try {
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1');
       const data = await response.json();
-      
+
       const smallCapSymbols = data
         .filter(coin => coin.market_cap && coin.market_cap < 50000000) // < $50M
         .slice(0, 20) // 限制数量
@@ -1716,18 +1716,18 @@ class SymbolCategoryManager {
           suggestedFrequency: '不做趋势；震荡市：每天 1–2 笔（小仓位 ≤1% 风险）',
           suggestedHoldingPeriod: '仅震荡市：0.5–2 小时（避免爆仓风险）；不建议长时间持有'
         }));
-      
+
       // 检查Binance合约可用性
       console.log('🔍 检查小币的Binance合约可用性...');
       const symbolsToCheck = smallCapSymbols.map(item => item.symbol);
       const availableContracts = await this.contractChecker.filterAvailableContracts(symbolsToCheck);
-      
-      const filteredSymbols = smallCapSymbols.filter(item => 
+
+      const filteredSymbols = smallCapSymbols.filter(item =>
         availableContracts.includes(item.symbol)
       );
-      
+
       console.log(`✅ 小币: ${filteredSymbols.length}/${smallCapSymbols.length} 个在Binance期货中可用`);
-      
+
       return filteredSymbols;
     } catch (error) {
       console.error('获取小币失败:', error);
@@ -1740,7 +1740,7 @@ class SymbolCategoryManager {
     try {
       const response = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
       const data = await response.json();
-      
+
       const contracts = data.symbols
         .filter(symbol => symbol.status === 'TRADING' && symbol.symbol.endsWith('USDT'))
         .map(symbol => ({
@@ -1749,7 +1749,7 @@ class SymbolCategoryManager {
           quoteAsset: symbol.quoteAsset,
           status: symbol.status
         }));
-      
+
       return contracts;
     } catch (error) {
       console.error('获取Binance合约失败:', error);

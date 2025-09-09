@@ -831,7 +831,15 @@ async function viewTradeHistory(symbol) {
             <tbody>
               ${history.map(trade => `
                 <tr>
-                  <td>${new Date(trade.timestamp).toLocaleString()}</td>
+                  <td>${new Date(trade.timestamp).toLocaleString('zh-CN', {
+                    timeZone: 'Asia/Shanghai',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                  })}</td>
                   <td>${trade.direction === 'LONG' ? '做多' : trade.direction === 'SHORT' ? '做空' : '--'}</td>
                   <td>${dataManager.formatNumber(trade.entryPrice)}</td>
                   <td>${dataManager.formatNumber(trade.stopLoss)}</td>
@@ -1054,7 +1062,15 @@ async function loadExecutionDetails(contentDiv, symbol, signalData) {
             <tbody>
               ${history.map(trade => `
                 <tr>
-                  <td>${new Date(trade.created_at).toLocaleString()}</td>
+                  <td>${new Date(trade.created_at).toLocaleString('zh-CN', {
+                    timeZone: 'Asia/Shanghai',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                  })}</td>
                   <td>${trade.direction === 'LONG' ? '做多' : trade.direction === 'SHORT' ? '做空' : '--'}</td>
                   <td>${dataManager.formatPrice(trade.entry_price)}</td>
                   <td>${dataManager.formatPrice(trade.stop_loss_price)}</td>

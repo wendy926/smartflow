@@ -161,8 +161,24 @@ class SimulationDataManager {
     }
 
     tbody.innerHTML = simulations.map(sim => {
-      const entryTime = new Date(sim.created_at).toLocaleString('zh-CN');
-      const exitTime = sim.closed_at ? new Date(sim.closed_at).toLocaleString('zh-CN') : '--';
+      const entryTime = new Date(sim.created_at).toLocaleString('zh-CN', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      const exitTime = sim.closed_at ? new Date(sim.closed_at).toLocaleString('zh-CN', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }) : '--';
       const profitLoss = sim.profit_loss || 0;
       const profitLossClass = profitLoss > 0 ? 'positive' : profitLoss < 0 ? 'negative' : 'neutral';
       const resultClass = sim.is_win ? 'positive' : 'negative';
