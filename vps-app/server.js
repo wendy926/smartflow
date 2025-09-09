@@ -291,6 +291,17 @@ class SmartFlowServer {
       }
     });
 
+    // 获取方向统计
+    this.app.get('/api/direction-stats', async (req, res) => {
+      try {
+        const stats = await this.simulationManager.getDirectionStats();
+        res.json(stats);
+      } catch (error) {
+        console.error('获取方向统计失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 启动模拟交易
     this.app.post('/api/simulation/start', async (req, res) => {
       try {

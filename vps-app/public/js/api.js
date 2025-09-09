@@ -67,6 +67,11 @@ class APIClient {
     return await this.request(`/api/simulation-history-paginated?page=${page}&pageSize=${pageSize}`);
   }
 
+  // 获取方向统计
+  async getDirectionStats() {
+    return await this.request('/api/direction-stats');
+  }
+
   // 获取胜率统计
   async getWinRateStats() {
     return await this.request('/api/win-rate-stats');

@@ -29,8 +29,12 @@ class SimulationDataManager {
 
   async loadStats() {
     try {
-      const stats = await this.apiClient.getWinRateStats();
+      const [stats, directionStats] = await Promise.all([
+        this.apiClient.getWinRateStats(),
+        this.apiClient.getDirectionStats()
+      ]);
       this.updateStatsDisplay(stats);
+      this.updateDirectionStats(directionStats);
     } catch (error) {
       console.error('加载统计数据失败:', error);
     }
@@ -57,7 +61,12 @@ class SimulationDataManager {
     document.getElementById('overallProfitLoss').textContent = 
       stats.net_profit ? `${stats.net_profit.toFixed(4)} USDT` : '--';
     
+    // 总交易数（所有交易）
     document.getElementById('totalTrades').textContent = 
+      stats.total_trades || '0';
+    
+    // 已完成交易数（已平仓的交易）
+    document.getElementById('completedTrades').textContent = 
       stats.total_trades || '0';
     
     document.getElementById('winningTrades').textContent = 
@@ -75,30 +84,43 @@ class SimulationDataManager {
     } else {
       profitLossElement.className = 'stat-value neutral';
     }
-
-    // 计算方向统计（这里简化处理，实际应该从后端获取）
-    this.updateDirectionStats(stats);
   }
 
-  updateDirectionStats(stats) {
-    // 这里简化处理，实际应该从后端获取详细的方向统计
-    // 暂时使用整体数据的一半作为示例
-    const longTrades = Math.floor(stats.total_trades / 2);
-    const shortTrades = stats.total_trades - longTrades;
-    const longWins = Math.floor(stats.winning_trades / 2);
-    const shortWins = stats.winning_trades - longWins;
+  updateDirectionStats(directionStats) {
+    // 使用真实的方向统计数据
+    const longStats = directionStats.long;
+    const shortStats = directionStats.short;
 
     document.getElementById('longWinRate').textContent = 
-      longTrades > 0 ? `${((longWins / longTrades) * 100).toFixed(2)}%` : '--';
+      longStats.total_trades > 0 ? `${longStats.win_rate.toFixed(2)}%` : '--';
     
     document.getElementById('shortWinRate').textContent = 
-      shortTrades > 0 ? `${((shortWins / shortTrades) * 100).toFixed(2)}%` : '--';
+      shortStats.total_trades > 0 ? `${shortStats.win_rate.toFixed(2)}%` : '--';
     
     document.getElementById('longProfitLoss').textContent = 
-      `${(stats.net_profit / 2).toFixed(4)} USDT`;
+      `${longStats.net_profit.toFixed(4)} USDT`;
     
     document.getElementById('shortProfitLoss').textContent = 
-      `${(stats.net_profit / 2).toFixed(4)} USDT`;
+      `${shortStats.net_profit.toFixed(4)} USDT`;
+
+    // 设置盈亏颜色
+    const longProfitElement = document.getElementById('longProfitLoss');
+    if (longStats.net_profit > 0) {
+      longProfitElement.className = 'stat-value positive';
+    } else if (longStats.net_profit < 0) {
+      longProfitElement.className = 'stat-value negative';
+    } else {
+      longProfitElement.className = 'stat-value neutral';
+    }
+
+    const shortProfitElement = document.getElementById('shortProfitLoss');
+    if (shortStats.net_profit > 0) {
+      shortProfitElement.className = 'stat-value positive';
+    } else if (shortStats.net_profit < 0) {
+      shortProfitElement.className = 'stat-value negative';
+    } else {
+      shortProfitElement.className = 'stat-value neutral';
+    }
   }
 
   updateSimulationHistoryTable(simulations) {
