@@ -951,3 +951,12 @@ flowchart TD
 | 热点币（Trending / 热搜） | 实时变化（如 Worldcoin, Avantis 等） | [CoinGecko Trending](https://www.coingecko.com/en/trending) | CoinGecko /search/trending | fetchTrending() | 每小时 1 次 | 趋势市：每周 1–2 笔；震荡市：每天 2–4 笔（需严格风控） |
 | 小币（低流动性） | 市值 < $50M 的长尾币 | CoinGecko 市值排序 | CoinGecko /coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1 + 本地过滤 | fetchSmallCaps(1e6, 5e7) | 每天 1 次 | 不做趋势；震荡市：每天 1–2 笔（小仓位 ≤1% 风险） |
 | Binance 合约可用性检查 | Binance Futures 所有合约对 | [Binance Futures Products](https://www.binance.com/en/futures) | Binance /fapi/v1/exchangeInfo | checkBinanceContracts() | 每天 1 次 | —（仅检查是否可交易，不直接决定频率） |
+
+# 最大杠杆和最小保证金计算方式
+采用逐仓模式，止损距离，最大杠杆数和最小保证金数计算方式：
+- 止损距离X%：
+  - 多头：(entrySignal - stopLoss) / entrySignal
+  - 空头：(stopLoss - entrySignal) / entrySignal
+- 最大损失金额(U)：用户选择的单次交易最大损失金额
+    - 最大杠杆数Y：1/(X%+0.5%) 数值向下取整。
+    - 保证金Z：M/(Y*X%) 数值向上取整。

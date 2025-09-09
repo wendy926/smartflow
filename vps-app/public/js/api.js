@@ -31,6 +31,31 @@ class APIClient {
     return await this.request('/api/symbols');
   }
 
+  // 获取主流币交易对
+  async getMainstreamSymbols() {
+    return await this.request('/api/symbols/mainstream');
+  }
+
+  // 获取高市值强趋势币
+  async getHighCapSymbols() {
+    return await this.request('/api/symbols/highcap');
+  }
+
+  // 获取热点币
+  async getTrendingSymbols() {
+    return await this.request('/api/symbols/trending');
+  }
+
+  // 获取小币
+  async getSmallCapSymbols() {
+    return await this.request('/api/symbols/smallcap');
+  }
+
+  // 检查Binance合约可用性
+  async getBinanceContracts() {
+    return await this.request('/api/symbols/binance-contracts');
+  }
+
   // 获取所有信号
   async getAllSignals() {
     return await this.request('/api/signals');

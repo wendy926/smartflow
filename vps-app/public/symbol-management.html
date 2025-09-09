@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易对管理 - SmartFlow V3</title>
+    <link rel="stylesheet" href="css/style.css?v=20250109-11">
+    <style>
+        .category-section {
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .category-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .category-header.mainstream {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .category-header.highcap {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .category-header.trending {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .category-header.smallcap {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+        
+        .category-content {
+            padding: 20px;
+            background: white;
+        }
+        
+        .symbols-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .symbol-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .symbol-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .symbol-card.added {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .symbol-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .symbol-name {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .symbol-price {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .symbol-market-cap {
+            color: #6c757d;
+            font-size: 0.8em;
+            margin-bottom: 8px;
+        }
+        
+        .symbol-frequency {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            color: #495057;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        
+        .symbol-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8em;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-add {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-add:hover {
+            background: #218838;
+        }
+        
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-remove:hover {
+            background: #c82333;
+        }
+        
+        .btn-added {
+            background: #6c757d;
+            color: white;
+            cursor: not-allowed;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .current-symbols {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .current-symbols h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .current-symbols-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .current-symbol-tag {
+            background: #007bff;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .current-symbol-tag .remove-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s ease;
+        }
+        
+        .current-symbol-tag .remove-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .refresh-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.2s ease;
+        }
+        
+        .refresh-btn:hover {
+            background: #138496;
+        }
+        
+        .refresh-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📋 交易对管理</h1>
+            <div class="header-actions">
+                <button class="refresh-btn" onclick="refreshAllData()" id="refreshBtn">
+                    🔄 刷新数据
+                </button>
+                <a href="index.html" class="btn secondary">← 返回主页</a>
+            </div>
+        </header>
+
+        <!-- 当前已添加的交易对 -->
+        <div class="current-symbols">
+            <h3>📊 当前监控的交易对 (<span id="currentCount">0</span>个)</h3>
+            <div class="current-symbols-list" id="currentSymbolsList">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+
+        <!-- 主流币 -->
+        <div class="category-section">
+            <div class="category-header mainstream">
+                <div>
+                    <h3>🏆 主流币（高流动性）</h3>
+                    <small>BTC, ETH - 每月更新</small>
+                </div>
+                <button class="refresh-btn" onclick="refreshCategory('mainstream')" id="refreshMainstream">
+                    🔄 刷新
+                </button>
+            </div>
+            <div class="category-content">
+                <div class="symbols-grid" id="mainstreamSymbols">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 高市值强趋势币 -->
+        <div class="category-section">
+            <div class="category-header highcap">
+                <div>
+                    <h3>💎 高市值强趋势币</h3>
+                    <small>BNB, SOL, XRP, ADA, DOGE等 - 每周更新</small>
+                </div>
+                <button class="refresh-btn" onclick="refreshCategory('highcap')" id="refreshHighcap">
+                    🔄 刷新
+                </button>
+            </div>
+            <div class="category-content">
+                <div class="symbols-grid" id="highcapSymbols">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 热点币 -->
+        <div class="category-section">
+            <div class="category-header trending">
+                <div>
+                    <h3>🔥 热点币（Trending）</h3>
+                    <small>实时变化的热门币种 - 每小时更新</small>
+                </div>
+                <button class="refresh-btn" onclick="refreshCategory('trending')" id="refreshTrending">
+                    🔄 刷新
+                </button>
+            </div>
+            <div class="category-content">
+                <div class="symbols-grid" id="trendingSymbols">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 小币 -->
+        <div class="category-section">
+            <div class="category-header smallcap">
+                <div>
+                    <h3>💫 小币（低流动性）</h3>
+                    <small>市值 < $50M 的长尾币 - 每天更新</small>
+                </div>
+                <button class="refresh-btn" onclick="refreshCategory('smallcap')" id="refreshSmallcap">
+                    🔄 刷新
+                </button>
+            </div>
+            <div class="category-content">
+                <div class="symbols-grid" id="smallcapSymbols">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载JavaScript模块 -->
+    <script src="js/api.js?v=20250109-11"></script>
+    <script src="js/components/Modal.js?v=20250109-11"></script>
+    <script src="js/symbol-management.js?v=20250109-11"></script>
+</body>
+</html>

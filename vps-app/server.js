@@ -573,6 +573,61 @@ class SmartFlowServer {
       }
     });
 
+    // 获取主流币交易对
+    this.app.get('/api/symbols/mainstream', async (req, res) => {
+      try {
+        const symbols = await SymbolCategoryManager.getMainstreamSymbols();
+        res.json(symbols);
+      } catch (error) {
+        console.error('获取主流币失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取高市值强趋势币
+    this.app.get('/api/symbols/highcap', async (req, res) => {
+      try {
+        const symbols = await SymbolCategoryManager.getHighCapSymbols();
+        res.json(symbols);
+      } catch (error) {
+        console.error('获取高市值币失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取热点币
+    this.app.get('/api/symbols/trending', async (req, res) => {
+      try {
+        const symbols = await SymbolCategoryManager.getTrendingSymbols();
+        res.json(symbols);
+      } catch (error) {
+        console.error('获取热点币失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取小币
+    this.app.get('/api/symbols/smallcap', async (req, res) => {
+      try {
+        const symbols = await SymbolCategoryManager.getSmallCapSymbols();
+        res.json(symbols);
+      } catch (error) {
+        console.error('获取小币失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 检查Binance合约可用性
+    this.app.get('/api/symbols/binance-contracts', async (req, res) => {
+      try {
+        const contracts = await SymbolCategoryManager.checkBinanceContracts();
+        res.json(contracts);
+      } catch (error) {
+        console.error('获取Binance合约失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 设置监控阈值
     this.app.post('/api/monitoring-thresholds', async (req, res) => {
       try {
@@ -1495,6 +1550,129 @@ process.on('unhandledRejection', async (reason, promise) => {
   console.error('❌ 未处理的 Promise 拒绝:', reason);
   await server.shutdown();
 });
+
+// 添加交易对分类获取方法
+class SymbolCategoryManager {
+  // 获取主流币交易对（BTC, ETH）
+  static async getMainstreamSymbols() {
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1');
+      const data = await response.json();
+      
+      const mainstreamSymbols = data
+        .filter(coin => ['bitcoin', 'ethereum'].includes(coin.id))
+        .map(coin => ({
+          symbol: coin.symbol.toUpperCase() + 'USDT',
+          name: coin.name,
+          marketCap: coin.market_cap,
+          price: coin.current_price,
+          category: 'mainstream',
+          suggestedFrequency: '趋势市：每周 1–3 笔；震荡市：每天 0–2 笔'
+        }));
+      
+      return mainstreamSymbols;
+    } catch (error) {
+      console.error('获取主流币失败:', error);
+      return [];
+    }
+  }
+
+  // 获取高市值强趋势币（排名3-20）
+  static async getHighCapSymbols() {
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=30&page=1');
+      const data = await response.json();
+      
+      const highCapSymbols = data
+        .filter(coin => !['bitcoin', 'ethereum', 'tether', 'usd-coin', 'binancecoin'].includes(coin.id))
+        .slice(0, 17) // 取排名3-20
+        .map(coin => ({
+          symbol: coin.symbol.toUpperCase() + 'USDT',
+          name: coin.name,
+          marketCap: coin.market_cap,
+          price: coin.current_price,
+          category: 'highcap',
+          suggestedFrequency: '趋势市：每周 1–2 笔；震荡市：每天 1–3 笔'
+        }));
+      
+      return highCapSymbols;
+    } catch (error) {
+      console.error('获取高市值币失败:', error);
+      return [];
+    }
+  }
+
+  // 获取热点币（Trending）
+  static async getTrendingSymbols() {
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/search/trending');
+      const data = await response.json();
+      
+      const trendingSymbols = data.coins
+        .map(coin => coin.item)
+        .map(coin => ({
+          symbol: coin.symbol.toUpperCase() + 'USDT',
+          name: coin.name,
+          marketCap: coin.market_cap_rank ? `#${coin.market_cap_rank}` : 'N/A',
+          price: coin.price_btc ? `₿${coin.price_btc}` : 'N/A',
+          category: 'trending',
+          suggestedFrequency: '趋势市：每周 1–2 笔；震荡市：每天 2–4 笔（需严格风控）'
+        }));
+      
+      return trendingSymbols;
+    } catch (error) {
+      console.error('获取热点币失败:', error);
+      return [];
+    }
+  }
+
+  // 获取小币（市值 < $50M）
+  static async getSmallCapSymbols() {
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1');
+      const data = await response.json();
+      
+      const smallCapSymbols = data
+        .filter(coin => coin.market_cap && coin.market_cap < 50000000) // < $50M
+        .slice(0, 20) // 限制数量
+        .map(coin => ({
+          symbol: coin.symbol.toUpperCase() + 'USDT',
+          name: coin.name,
+          marketCap: coin.market_cap,
+          price: coin.current_price,
+          category: 'smallcap',
+          suggestedFrequency: '不做趋势；震荡市：每天 1–2 笔（小仓位 ≤1% 风险）'
+        }));
+      
+      return smallCapSymbols;
+    } catch (error) {
+      console.error('获取小币失败:', error);
+      return [];
+    }
+  }
+
+  // 检查Binance合约可用性
+  static async checkBinanceContracts() {
+    try {
+      const response = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
+      const data = await response.json();
+      
+      const contracts = data.symbols
+        .filter(symbol => symbol.status === 'TRADING' && symbol.symbol.endsWith('USDT'))
+        .map(symbol => ({
+          symbol: symbol.symbol,
+          baseAsset: symbol.baseAsset,
+          quoteAsset: symbol.quoteAsset,
+          status: symbol.status
+        }));
+      
+      return contracts;
+    } catch (error) {
+      console.error('获取Binance合约失败:', error);
+      return [];
+    }
+  }
+}
 
 // 启动服务器
 server.initialize();
