@@ -70,6 +70,11 @@ class SmartFlowServer {
 
         for (const symbol of symbols) {
           try {
+            // 开始分析监控
+            if (this.dataMonitor) {
+              this.dataMonitor.startAnalysis(symbol);
+            }
+
             // 使用V3策略进行分析
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 

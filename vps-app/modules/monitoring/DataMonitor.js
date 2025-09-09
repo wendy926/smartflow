@@ -62,6 +62,11 @@ class DataMonitor {
       });
     }
 
+    // 增加尝试次数
+    const stats = this.symbolStats.get(symbol);
+    stats.dataCollectionAttempts++;
+    stats.signalAnalysisAttempts++;
+
     this.analysisLogs.set(symbol, {
       startTime: now,
       endTime: null,
@@ -244,6 +249,24 @@ class DataMonitor {
       log.endTime = Date.now();
       log.success = true;
       log.totalTime = log.endTime - log.startTime;
+    }
+
+    // 更新统计数据
+    const stats = this.symbolStats.get(symbol);
+    if (stats) {
+      // 根据分析结果更新成功次数
+      if (analysisResult.phases?.dataCollection?.success) {
+        stats.dataCollectionSuccesses++;
+        stats.lastDataCollectionTime = Date.now();
+      }
+      if (analysisResult.phases?.signalAnalysis?.success) {
+        stats.signalAnalysisSuccesses++;
+        stats.lastSignalAnalysisTime = Date.now();
+      }
+      if (analysisResult.phases?.simulationTrading?.success) {
+        stats.simulationCompletions++;
+        stats.lastSimulationTime = Date.now();
+      }
     }
   }
 
