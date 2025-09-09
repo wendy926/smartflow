@@ -153,13 +153,13 @@ class TelegramNotifier {
    */
   formatSimulationStartMessage(simulationData) {
     const { symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin, direction, triggerReason, stopLossDistance, atrValue } = simulationData;
-    
+
     const directionText = direction === 'LONG' ? '🟢 做多' : '🔴 做空';
-    const mode = triggerReason.includes('多头回踩突破') ? '多头回踩突破' : 
-                 triggerReason.includes('空头反抽破位') ? '空头反抽破位' : '未知模式';
-    
+    const mode = triggerReason.includes('多头回踩突破') ? '多头回踩突破' :
+      triggerReason.includes('空头反抽破位') ? '空头反抽破位' : '未知模式';
+
     const riskReward = stopLossDistance ? (100 / stopLossDistance).toFixed(1) : 'N/A';
-    
+
     let message = `🚀 <b>模拟交易开始</b>\n\n`;
     message += `📊 <b>交易对：</b>${symbol}\n`;
     message += `📈 <b>方向：</b>${directionText}\n`;
@@ -174,7 +174,7 @@ class TelegramNotifier {
     message += `📈 <b>风险回报比：</b>1:${riskReward}\n\n`;
     message += `⏰ <b>开始时间：</b>${new Date().toLocaleString('zh-CN')}\n`;
     message += `🆔 <b>交易ID：</b>${simulationData.id || 'N/A'}`;
-    
+
     return message;
   }
 
@@ -183,17 +183,17 @@ class TelegramNotifier {
    */
   formatSimulationEndMessage(simulationData) {
     const { symbol, entryPrice, exitPrice, stopLossPrice, takeProfitPrice, direction, exitReason, profitLoss, isWin, duration } = simulationData;
-    
+
     const directionText = direction === 'LONG' ? '🟢 做多' : '🔴 做空';
     const resultText = isWin ? '✅ 盈利' : '❌ 亏损';
     const resultEmoji = isWin ? '🎉' : '😞';
-    
+
     // 计算收益率
-    const returnRate = stopLossPrice ? 
-      (direction === 'LONG' ? 
-        ((exitPrice - entryPrice) / entryPrice) * 100 : 
+    const returnRate = stopLossPrice ?
+      (direction === 'LONG' ?
+        ((exitPrice - entryPrice) / entryPrice) * 100 :
         ((entryPrice - exitPrice) / entryPrice) * 100) : 0;
-    
+
     let message = `${resultEmoji} <b>模拟交易结束</b>\n\n`;
     message += `📊 <b>交易对：</b>${symbol}\n`;
     message += `📈 <b>方向：</b>${directionText}\n`;
@@ -207,7 +207,7 @@ class TelegramNotifier {
     message += `📝 <b>出场原因：</b>${this.getExitReasonText(exitReason)}\n`;
     message += `⏱️ <b>持仓时长：</b>${duration || 'N/A'}\n\n`;
     message += `⏰ <b>结束时间：</b>${new Date().toLocaleString('zh-CN')}`;
-    
+
     return message;
   }
 
@@ -232,7 +232,7 @@ class TelegramNotifier {
    */
   async notifySimulationStart(simulationData) {
     if (!this.enabled) return;
-    
+
     try {
       const message = this.formatSimulationStartMessage(simulationData);
       await this.sendMessage(message);
@@ -247,7 +247,7 @@ class TelegramNotifier {
    */
   async notifySimulationEnd(simulationData) {
     if (!this.enabled) return;
-    
+
     try {
       const message = this.formatSimulationEndMessage(simulationData);
       await this.sendMessage(message);

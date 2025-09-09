@@ -100,7 +100,7 @@ class SimulationManager {
       await this.updateWinRateStats();
 
       console.log(`✅ 模拟交易 ${simulationId} 已关闭: ${exitReason}, 出场价: ${actualExitPrice}, 盈亏: ${profitLoss.toFixed(2)}U`);
-      
+
       // 发送Telegram通知
       const simulationData = {
         id: simulationId,
@@ -115,7 +115,7 @@ class SimulationManager {
         isWin,
         duration: this.calculateDuration(sim.created_at, new Date())
       };
-      
+
       // 异步发送通知，不阻塞主流程
       this.telegramNotifier.notifySimulationEnd(simulationData).catch(error => {
         console.error(`❌ 模拟交易结束通知发送失败: ${sim.symbol}`, error);
@@ -151,11 +151,11 @@ class SimulationManager {
     const start = new Date(startTime);
     const end = new Date(endTime);
     const diffMs = end - start;
-    
+
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-    
+
     if (hours > 0) {
       return `${hours}小时${minutes}分钟`;
     } else if (minutes > 0) {
@@ -230,7 +230,7 @@ class SimulationManager {
       `, [symbol, formattedEntryPrice, formattedStopLossPrice, formattedTakeProfitPrice, maxLeverage, minMargin, triggerReason, 'ACTIVE', stopLossDistance, atrValue, direction]);
 
       console.log(`✅ 创建模拟交易: ${symbol}, 入场价: ${formattedEntryPrice}, 止损: ${formattedStopLossPrice}, 止盈: ${formattedTakeProfitPrice}, 杠杆: ${maxLeverage}x, 保证金: ${minMargin}, 止损距离: ${stopLossDistance}%, ATR: ${atrValue}`);
-      
+
       // 发送Telegram通知
       const simulationData = {
         id: result.id,
@@ -245,12 +245,12 @@ class SimulationManager {
         stopLossDistance,
         atrValue
       };
-      
+
       // 异步发送通知，不阻塞主流程
       this.telegramNotifier.notifySimulationStart(simulationData).catch(error => {
         console.error(`❌ 模拟交易开始通知发送失败: ${symbol}`, error);
       });
-      
+
       return result.id;
     } catch (error) {
       console.error('创建模拟交易时出错:', error);
