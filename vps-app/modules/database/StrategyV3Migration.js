@@ -37,7 +37,7 @@ class StrategyV3Migration {
       `ALTER TABLE strategy_analysis ADD COLUMN adx14 REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN bbw REAL`, // 布林带带宽
       `ALTER TABLE strategy_analysis ADD COLUMN trend_confirmed BOOLEAN DEFAULT FALSE`, // 连续确认机制
-      
+
       // 1H多因子打分字段
       `ALTER TABLE strategy_analysis ADD COLUMN vwap_direction_consistent BOOLEAN DEFAULT FALSE`,
       `ALTER TABLE strategy_analysis ADD COLUMN breakout_confirmed BOOLEAN DEFAULT FALSE`,
@@ -47,7 +47,7 @@ class StrategyV3Migration {
       `ALTER TABLE strategy_analysis ADD COLUMN delta_buy REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN delta_sell REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN delta_imbalance REAL`,
-      
+
       // 震荡市相关字段
       `ALTER TABLE strategy_analysis ADD COLUMN range_lower_boundary_valid BOOLEAN DEFAULT FALSE`,
       `ALTER TABLE strategy_analysis ADD COLUMN range_upper_boundary_valid BOOLEAN DEFAULT FALSE`,
@@ -57,7 +57,7 @@ class StrategyV3Migration {
       `ALTER TABLE strategy_analysis ADD COLUMN range_touches_lower INTEGER DEFAULT 0`,
       `ALTER TABLE strategy_analysis ADD COLUMN range_touches_upper INTEGER DEFAULT 0`,
       `ALTER TABLE strategy_analysis ADD COLUMN last_breakout BOOLEAN DEFAULT FALSE`,
-      
+
       // 15m执行字段
       `ALTER TABLE strategy_analysis ADD COLUMN execution_mode_v3 TEXT`, // 趋势市/震荡市/假突破
       `ALTER TABLE strategy_analysis ADD COLUMN setup_candle_high REAL`,
@@ -163,11 +163,11 @@ class StrategyV3Migration {
   async rollback() {
     try {
       console.log('🔄 开始回滚策略V3数据库迁移...');
-      
+
       // 删除新增的表
       await this.db.run('DROP TABLE IF EXISTS trend_market_analysis');
       await this.db.run('DROP TABLE IF EXISTS range_boundary_analysis');
-      
+
       console.log('✅ 策略V3数据库迁移回滚完成');
     } catch (error) {
       console.error('❌ 策略V3数据库迁移回滚失败:', error);

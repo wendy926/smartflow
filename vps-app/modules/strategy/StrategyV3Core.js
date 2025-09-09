@@ -24,7 +24,7 @@ class StrategyV3Core {
   calculateEMA(candles, period = 20) {
     const multiplier = 2 / (period + 1);
     const ema = [];
-    
+
     for (let i = 0; i < candles.length; i++) {
       if (i === 0) {
         ema[i] = candles[i].close;
@@ -32,7 +32,7 @@ class StrategyV3Core {
         ema[i] = (candles[i].close * multiplier) + (ema[i - 1] * (1 - multiplier));
       }
     }
-    
+
     return ema;
   }
 
@@ -44,8 +44,8 @@ class StrategyV3Core {
 
     const TR = [], DMplus = [], DMminus = [];
     for (let i = 1; i < candles.length; i++) {
-      const high = candles[i].high, low = candles[i].low, closePrev = candles[i-1].close;
-      const highPrev = candles[i-1].high, lowPrev = candles[i-1].low;
+      const high = candles[i].high, low = candles[i].low, closePrev = candles[i - 1].close;
+      const highPrev = candles[i - 1].high, lowPrev = candles[i - 1].low;
 
       const tr = Math.max(high - low, Math.abs(high - closePrev), Math.abs(low - closePrev));
       TR.push(tr);
@@ -59,27 +59,27 @@ class StrategyV3Core {
 
     function smooth(arr) {
       const smoothed = [];
-      let sum = arr.slice(0, period).reduce((a,b)=>a+b,0);
-      smoothed[period-1] = sum;
-      for(let i=period;i<arr.length;i++){
-        sum = smoothed[i-1] - smoothed[i-1]/period + arr[i];
+      let sum = arr.slice(0, period).reduce((a, b) => a + b, 0);
+      smoothed[period - 1] = sum;
+      for (let i = period; i < arr.length; i++) {
+        sum = smoothed[i - 1] - smoothed[i - 1] / period + arr[i];
         smoothed[i] = sum;
       }
       return smoothed;
     }
 
     const smTR = smooth(TR), smDMplus = smooth(DMplus), smDMminus = smooth(DMminus);
-    const DIplus = smDMplus.map((v,i)=> i>=period-1 ? 100*v/smTR[i]: null);
-    const DIminus = smDMminus.map((v,i)=> i>=period-1 ? 100*v/smTR[i]: null);
-    const DX = DIplus.map((v,i)=> i<period-1? null : 100*Math.abs(DIplus[i]-DIminus[i])/(DIplus[i]+DIminus[i]));
+    const DIplus = smDMplus.map((v, i) => i >= period - 1 ? 100 * v / smTR[i] : null);
+    const DIminus = smDMminus.map((v, i) => i >= period - 1 ? 100 * v / smTR[i] : null);
+    const DX = DIplus.map((v, i) => i < period - 1 ? null : 100 * Math.abs(DIplus[i] - DIminus[i]) / (DIplus[i] + DIminus[i]));
     const ADX = [];
-    let sumDX = DX.slice(period-1, period-1+period).reduce((a,b)=>a+b,0);
-    ADX[period*2-2] = sumDX/period;
-    for(let i=period*2-1;i<DX.length;i++){
-      ADX[i] = (ADX[i-1]*(period-1)+DX[i])/period;
+    let sumDX = DX.slice(period - 1, period - 1 + period).reduce((a, b) => a + b, 0);
+    ADX[period * 2 - 2] = sumDX / period;
+    for (let i = period * 2 - 1; i < DX.length; i++) {
+      ADX[i] = (ADX[i - 1] * (period - 1) + DX[i]) / period;
     }
-    const last = ADX.length-1;
-    return { ADX: ADX[last]||null, DIplus: DIplus[last]||null, DIminus: DIminus[last]||null };
+    const last = ADX.length - 1;
+    return { ADX: ADX[last] || null, DIplus: DIplus[last] || null, DIminus: DIminus[last] || null };
   }
 
   /**
@@ -89,14 +89,14 @@ class StrategyV3Core {
     const closes = candles.map(c => c.close);
     const ma = this.calculateMA(candles, period);
     const stdDev = [];
-    
+
     for (let i = period - 1; i < candles.length; i++) {
       const slice = closes.slice(i - period + 1, i + 1);
       const mean = ma[i];
       const variance = slice.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / period;
       stdDev[i] = Math.sqrt(variance);
     }
-    
+
     return ma.map((m, i) => ({
       middle: m,
       upper: m + k * (stdDev[i] || 0),
@@ -129,15 +129,15 @@ class StrategyV3Core {
     for (let i = 1; i < candles.length; i++) {
       const high = candles[i].high;
       const low = candles[i].low;
-      const closePrev = candles[i-1].close;
-      
+      const closePrev = candles[i - 1].close;
+
       tr.push(Math.max(
         high - low,
         Math.abs(high - closePrev),
         Math.abs(low - closePrev)
       ));
     }
-    
+
     return this.calculateEMA(tr.map(t => ({ close: t })), period);
   }
 
@@ -162,21 +162,21 @@ class StrategyV3Core {
       const ma20 = this.calculateMA(candles, 20);
       const ma50 = this.calculateMA(candles, 50);
       const ma200 = this.calculateMA(candles, 200);
-      const close4h = candles[candles.length-1].close;
+      const close4h = candles[candles.length - 1].close;
 
       // 检查MA排列
-      const isLongMA = ma20[ma20.length-1] > ma50[ma50.length-1] && 
-                      ma50[ma50.length-1] > ma200[ma200.length-1] && 
-                      close4h > ma20[ma20.length-1];
-      
-      const isShortMA = ma20[ma20.length-1] < ma50[ma50.length-1] && 
-                       ma50[ma50.length-1] < ma200[ma200.length-1] && 
-                       close4h < ma20[ma20.length-1];
+      const isLongMA = ma20[ma20.length - 1] > ma50[ma50.length - 1] &&
+        ma50[ma50.length - 1] > ma200[ma200.length - 1] &&
+        close4h > ma20[ma20.length - 1];
+
+      const isShortMA = ma20[ma20.length - 1] < ma50[ma50.length - 1] &&
+        ma50[ma50.length - 1] < ma200[ma200.length - 1] &&
+        close4h < ma20[ma20.length - 1];
 
       // 计算ADX和布林带带宽
       const { ADX, DIplus, DIminus } = this.calculateADX(candles, 14);
       const bb = this.calculateBollingerBands(candles, 20, 2);
-      const bbw = bb[bb.length-1]?.bandwidth || 0;
+      const bbw = bb[bb.length - 1]?.bandwidth || 0;
 
       // 检查连续确认机制（至少2根4H K线满足条件）
       let trendConfirmed = false;
@@ -185,17 +185,17 @@ class StrategyV3Core {
         const last2MA20 = ma20.slice(-2);
         const last2MA50 = ma50.slice(-2);
         const last2MA200 = ma200.slice(-2);
-        
+
         if (isLongMA) {
-          trendConfirmed = last2Candles.every((c, i) => 
-            c.close > last2MA20[i] && 
-            last2MA20[i] > last2MA50[i] && 
+          trendConfirmed = last2Candles.every((c, i) =>
+            c.close > last2MA20[i] &&
+            last2MA20[i] > last2MA50[i] &&
             last2MA50[i] > last2MA200[i]
           );
         } else if (isShortMA) {
-          trendConfirmed = last2Candles.every((c, i) => 
-            c.close < last2MA20[i] && 
-            last2MA20[i] < last2MA50[i] && 
+          trendConfirmed = last2Candles.every((c, i) =>
+            c.close < last2MA20[i] &&
+            last2MA20[i] < last2MA50[i] &&
             last2MA50[i] < last2MA200[i]
           );
         }
@@ -222,9 +222,9 @@ class StrategyV3Core {
       return {
         trend4h,
         marketType,
-        ma20: ma20[ma20.length-1],
-        ma50: ma50[ma50.length-1],
-        ma200: ma200[ma200.length-1],
+        ma20: ma20[ma20.length - 1],
+        ma50: ma50[ma50.length - 1],
+        ma200: ma200[ma200.length - 1],
         closePrice: close4h,
         adx14: ADX,
         bbw,
@@ -272,8 +272,8 @@ class StrategyV3Core {
         volume: parseFloat(k[5])
       }));
 
-      const last1h = candles1h[candles1h.length-1];
-      const last15m = candles15m[candles15m.length-1];
+      const last1h = candles1h[candles1h.length - 1];
+      const last15m = candles15m[candles15m.length - 1];
 
       // 计算VWAP
       const vwap = this.calculateVWAP(candles1h.slice(-20));
@@ -313,7 +313,7 @@ class StrategyV3Core {
       // 3. 成交量双确认
       const avgVol15m = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
       const avgVol1h = candles1h.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
-      
+
       const vol15mRatio = last15m.volume / avgVol15m;
       const vol1hRatio = last1h.volume / avgVol1h;
 
@@ -326,7 +326,7 @@ class StrategyV3Core {
       let oiChange6h = 0;
       if (openInterestHist && openInterestHist.length >= 2) {
         const oiStart = openInterestHist[0].sumOpenInterest;
-        const oiEnd = openInterestHist[openInterestHist.length-1].sumOpenInterest;
+        const oiEnd = openInterestHist[openInterestHist.length - 1].sumOpenInterest;
         oiChange6h = (oiEnd - oiStart) / oiStart;
       }
 
@@ -401,7 +401,7 @@ class StrategyV3Core {
 
       // 计算布林带
       const bb = this.calculateBollingerBands(candles1h, 20, 2);
-      const lastBB = bb[bb.length-1];
+      const lastBB = bb[bb.length - 1];
 
       // 计算VWAP
       const vwap = this.calculateVWAP(candles1h.slice(-20));
@@ -409,7 +409,7 @@ class StrategyV3Core {
       // 检查边界连续触碰
       const last6Candles = candles1h.slice(-6);
       let lowerTouches = 0, upperTouches = 0;
-      
+
       for (const c of last6Candles) {
         if (c.close <= lastBB.lower * 1.01) lowerTouches++;
         if (c.close >= lastBB.upper * 0.99) upperTouches++;
@@ -427,19 +427,19 @@ class StrategyV3Core {
       // 检查最近突破
       const recentHigh = Math.max(...candles1h.slice(-20).map(c => c.high));
       const recentLow = Math.min(...candles1h.slice(-20).map(c => c.low));
-      const lastClose = candles1h[candles1h.length-1].close;
+      const lastClose = candles1h[candles1h.length - 1].close;
       const lastBreakout = lastClose > recentHigh || lastClose < recentLow;
 
       // 综合边界有效性判断
-      const lowerBoundaryValid = lowerTouches >= 2 && 
-                                volFactor <= 1.2 && 
-                                delta <= 0.02 && 
-                                !lastBreakout;
+      const lowerBoundaryValid = lowerTouches >= 2 &&
+        volFactor <= 1.2 &&
+        delta <= 0.02 &&
+        !lastBreakout;
 
-      const upperBoundaryValid = upperTouches >= 2 && 
-                                volFactor <= 1.2 && 
-                                delta <= 0.02 && 
-                                !lastBreakout;
+      const upperBoundaryValid = upperTouches >= 2 &&
+        volFactor <= 1.2 &&
+        delta <= 0.02 &&
+        !lastBreakout;
 
       return {
         lowerBoundaryValid,

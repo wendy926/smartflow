@@ -98,10 +98,10 @@ class SmartFlowStrategyV3 {
       }));
 
       const executionResult = this.execution.analyzeTrendExecution(
-        symbol, 
-        trend4hResult.trend4h, 
-        scoringResult.score, 
-        candles15m, 
+        symbol,
+        trend4hResult.trend4h,
+        scoringResult.score,
+        candles15m,
         candles1h
       );
 
@@ -174,9 +174,9 @@ class SmartFlowStrategyV3 {
       }));
 
       const executionResult = this.execution.analyzeRangeExecution(
-        symbol, 
-        rangeResult, 
-        candles15m, 
+        symbol,
+        rangeResult,
+        candles15m,
         candles1h
       );
 
@@ -274,14 +274,14 @@ class SmartFlowStrategyV3 {
     for (let i = 0; i < symbols.length; i += batchSize) {
       const batch = symbols.slice(i, i + batchSize);
       const batchPromises = batch.map(symbol => this.analyzeSymbol(symbol, options));
-      
+
       try {
         const batchResults = await Promise.all(batchPromises);
         results.push(...batchResults);
       } catch (error) {
         console.error(`批量分析失败 [${batch.join(',')}]:`, error);
         // 为失败的批次创建错误结果
-        const errorResults = batch.map(symbol => 
+        const errorResults = batch.map(symbol =>
           this.createErrorResult(symbol, '批量分析失败', error.message)
         );
         results.push(...errorResults);

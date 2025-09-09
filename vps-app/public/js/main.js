@@ -368,25 +368,6 @@ class SmartFlowApp {
       const executionMode = signal.executionMode || 'NONE';
       const signalStrength = signal.signalStrength || 'NONE';
 
-      // 获取多头和空头模式的判断结果
-      const mode = signal.mode || 'NONE';
-
-      // 构建入场执行列内容
-      let executionDisplay = signal.execution || '--';
-      if (signal.execution && signal.execution.includes('EXECUTE')) {
-        if (mode === '多头回踩突破') {
-          executionDisplay = `${signal.execution} (多头回踩突破)`;
-        } else if (mode === '空头反抽破位') {
-          executionDisplay = `${signal.execution} (空头反抽破位)`;
-        }
-      }
-
-      // 构建当前价格列内容（包含入场价格）
-      let priceDisplay = dataManager.formatNumber(signal.currentPrice || 0);
-      if (signal.entrySignal) {
-        priceDisplay += `<br><small style="color: #666;">入场: ${dataManager.formatNumber(signal.entrySignal)}</small>`;
-      }
-
       // V3策略显示逻辑
       const trend4h = signal.trend4h || signal.trend || '--';
       const marketType = signal.marketType || '--';
@@ -407,9 +388,28 @@ class SmartFlowApp {
 
       // 构建15分钟信号列显示
       let executionDisplay = signal.execution || '--';
-      if (signal.execution && signal.execution.includes('做多_') || signal.execution.includes('做空_')) {
-        const mode = signal.executionMode || 'NONE';
-        executionDisplay = `${signal.execution}<br><small style="color: #666;">${mode}</small>`;
+      if (strategyVersion === 'V3') {
+        // V3策略：显示执行模式
+        if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
+          const mode = signal.executionMode || 'NONE';
+          executionDisplay = `${signal.execution}<br><small style="color: #666;">${mode}</small>`;
+        }
+      } else {
+        // V2策略：保持原有逻辑
+        const mode = signal.mode || 'NONE';
+        if (signal.execution && signal.execution.includes('EXECUTE')) {
+          if (mode === '多头回踩突破') {
+            executionDisplay = `${signal.execution} (多头回踩突破)`;
+          } else if (mode === '空头反抽破位') {
+            executionDisplay = `${signal.execution} (空头反抽破位)`;
+          }
+        }
+      }
+
+      // 构建当前价格列内容（包含入场价格）
+      let priceDisplay = dataManager.formatNumber(signal.currentPrice || 0);
+      if (signal.entrySignal) {
+        priceDisplay += `<br><small style="color: #666;">入场: ${dataManager.formatNumber(signal.entrySignal)}</small>`;
       }
 
       row.innerHTML = `

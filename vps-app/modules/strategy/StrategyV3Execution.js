@@ -14,27 +14,27 @@ class StrategyV3Execution {
         return { signal: 'NONE', mode: 'NONE', reason: '15m数据不足' };
       }
 
-      const last15m = candles15m[candles15m.length-1];
-      const prev15m = candles15m[candles15m.length-2];
+      const last15m = candles15m[candles15m.length - 1];
+      const prev15m = candles15m[candles15m.length - 2];
 
       // 计算EMA20/50
       const ema20 = this.calculateEMA(candles15m, 20);
       const ema50 = this.calculateEMA(candles15m, 50);
-      const lastEMA20 = ema20[ema20.length-1];
-      const lastEMA50 = ema50[ema50.length-1];
+      const lastEMA20 = ema20[ema20.length - 1];
+      const lastEMA50 = ema50[ema50.length - 1];
 
       // 计算ATR14
       const atr14 = this.calculateATR(candles15m, 14);
-      const lastATR = atr14[atr14.length-1];
+      const lastATR = atr14[atr14.length - 1];
 
       // 多头模式：多头回踩突破
       if (trend4h === '多头趋势' && score1h >= 3) {
         // 检查价格回踩EMA支撑
         const priceAtSupport = last15m.close >= lastEMA20 && last15m.close >= lastEMA50;
-        
+
         // 检查突破setup candle高点
         const setupBreakout = last15m.high > prev15m.high && last15m.close > prev15m.high;
-        
+
         // 检查成交量确认
         const avgVol = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
         const volConfirm = last15m.volume >= avgVol * 1.2;
@@ -62,10 +62,10 @@ class StrategyV3Execution {
       if (trend4h === '空头趋势' && score1h >= 3) {
         // 检查价格反抽EMA阻力
         const priceAtResistance = last15m.close <= lastEMA20 && last15m.close <= lastEMA50;
-        
+
         // 检查跌破setup candle低点
         const setupBreakdown = last15m.low < prev15m.low && last15m.close < prev15m.low;
-        
+
         // 检查成交量确认
         const avgVol = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
         const volConfirm = last15m.volume >= avgVol * 1.2;
@@ -107,8 +107,8 @@ class StrategyV3Execution {
       }
 
       const { lowerBoundaryValid, upperBoundaryValid, bbUpper, bbMiddle, bbLower } = rangeResult;
-      const last15m = candles15m[candles15m.length-1];
-      const prev15m = candles15m[candles15m.length-2];
+      const last15m = candles15m[candles15m.length - 1];
+      const prev15m = candles15m[candles15m.length - 2];
 
       // 计算平均成交量
       const avgVol15m = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / Math.min(20, candles15m.length);
@@ -240,20 +240,20 @@ class StrategyV3Execution {
 
     // 1️⃣ 止损触发
     if ((position === 'LONG' && currentPrice <= stopLoss) ||
-        (position === 'SHORT' && currentPrice >= stopLoss)) {
+      (position === 'SHORT' && currentPrice >= stopLoss)) {
       return { exit: true, reason: 'STOP_LOSS', exitPrice: stopLoss };
     }
 
     // 2️⃣ 止盈触发
     if ((position === 'LONG' && currentPrice >= takeProfit) ||
-        (position === 'SHORT' && currentPrice <= takeProfit)) {
+      (position === 'SHORT' && currentPrice <= takeProfit)) {
       return { exit: true, reason: 'TAKE_PROFIT', exitPrice: takeProfit };
     }
 
     // 3️⃣ 趋势或多因子反转
     if (marketType === '趋势市') {
       if ((position === 'LONG' && (trend4h !== '多头趋势' || score1h < 3)) ||
-          (position === 'SHORT' && (trend4h !== '空头趋势' || score1h < 3))) {
+        (position === 'SHORT' && (trend4h !== '空头趋势' || score1h < 3))) {
         return { exit: true, reason: 'TREND_REVERSAL', exitPrice: currentPrice };
       }
     }
@@ -261,13 +261,13 @@ class StrategyV3Execution {
     // 4️⃣ Delta/主动买卖盘减弱
     const deltaImbalance = deltaSell > 0 ? deltaBuy / deltaSell : 0;
     if ((position === 'LONG' && deltaImbalance < 1.1) ||
-        (position === 'SHORT' && deltaImbalance > 0.91)) { // 1/1.1
+      (position === 'SHORT' && deltaImbalance > 0.91)) { // 1/1.1
       return { exit: true, reason: 'DELTA_WEAKENING', exitPrice: currentPrice };
     }
 
     // 5️⃣ 跌破支撑或突破阻力
     if ((position === 'LONG' && (currentPrice < ema20 || currentPrice < ema50 || currentPrice < prevLow)) ||
-        (position === 'SHORT' && (currentPrice > ema20 || currentPrice > ema50 || currentPrice > prevHigh))) {
+      (position === 'SHORT' && (currentPrice > ema20 || currentPrice > ema50 || currentPrice > prevHigh))) {
       return { exit: true, reason: 'SUPPORT_RESISTANCE_BREAK', exitPrice: currentPrice };
     }
 
@@ -286,7 +286,7 @@ class StrategyV3Execution {
   calculateEMA(candles, period = 20) {
     const multiplier = 2 / (period + 1);
     const ema = [];
-    
+
     for (let i = 0; i < candles.length; i++) {
       if (i === 0) {
         ema[i] = candles[i].close;
@@ -294,7 +294,7 @@ class StrategyV3Execution {
         ema[i] = (candles[i].close * multiplier) + (ema[i - 1] * (1 - multiplier));
       }
     }
-    
+
     return ema;
   }
 
@@ -306,15 +306,15 @@ class StrategyV3Execution {
     for (let i = 1; i < candles.length; i++) {
       const high = candles[i].high;
       const low = candles[i].low;
-      const closePrev = candles[i-1].close;
-      
+      const closePrev = candles[i - 1].close;
+
       tr.push(Math.max(
         high - low,
         Math.abs(high - closePrev),
         Math.abs(low - closePrev)
       ));
     }
-    
+
     return this.calculateEMA(tr.map(t => ({ close: t })), period);
   }
 }
