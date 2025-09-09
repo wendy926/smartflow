@@ -384,7 +384,7 @@ class SmartFlowApp {
 
       // 构建信号列显示（1H加强趋势）
       let signalDisplay = signal.signal || '--';
-      if (strategyVersion === 'V3' && signal.vwapDirectionConsistent !== undefined) {
+      if (strategyVersion === 'V3' && signal.vwapDirectionConsistent !== undefined && marketType !== '震荡市') {
         const vwapStatus = signal.vwapDirectionConsistent ? '✅' : '❌';
         signalDisplay = `${signal.signal || '--'}<br><small style="color: #666;">VWAP: ${vwapStatus}</small>`;
       }
