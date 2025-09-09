@@ -157,7 +157,7 @@ class SmartFlowApp {
 
       const [signals, stats] = await Promise.all([
         dataManager.getAllSignals(),
-        dataManager.getWinRateStats()
+        dataManager.refreshWinRateStats() // 强制刷新胜率统计
       ]);
 
       this.updateStatsDisplay(signals, stats);

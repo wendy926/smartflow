@@ -96,7 +96,11 @@ class DataManager {
     if (!data) {
       try {
         data = await window.apiClient.getWinRateStats();
-        this.setCache(cacheKey, data);
+        // 胜率统计使用更短的缓存时间（5秒）
+        this.cache.set(cacheKey, {
+          data: data,
+          timestamp: Date.now()
+        });
       } catch (error) {
         console.error('获取胜率统计失败:', error);
         throw error;
@@ -104,6 +108,20 @@ class DataManager {
     }
 
     return data;
+  }
+
+  // 强制刷新胜率统计（清除缓存）
+  async refreshWinRateStats() {
+    try {
+      // 清除胜率统计缓存
+      this.cache.delete('winRateStats');
+      
+      // 重新获取胜率统计
+      return await this.getWinRateStats();
+    } catch (error) {
+      console.error('刷新胜率统计失败:', error);
+      throw error;
+    }
   }
 
   // 刷新所有数据
