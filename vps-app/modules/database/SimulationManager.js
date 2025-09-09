@@ -476,6 +476,60 @@ class SimulationManager {
     }
   }
 
+  async getSymbolTradeCounts() {
+    try {
+      // 获取每日交易次数（今天）
+      const dailyCounts = await this.db.runQuery(`
+        SELECT 
+          symbol,
+          COUNT(*) as daily_count
+        FROM simulations 
+        WHERE DATE(created_at) = DATE('now')
+        GROUP BY symbol
+      `);
+
+      // 获取每周交易次数（本周）
+      const weeklyCounts = await this.db.runQuery(`
+        SELECT 
+          symbol,
+          COUNT(*) as weekly_count
+        FROM simulations 
+        WHERE DATE(created_at) >= DATE('now', 'weekday 1', '-6 days')
+        GROUP BY symbol
+      `);
+
+      // 合并数据
+      const countsMap = new Map();
+      
+      // 添加每日数据
+      dailyCounts.forEach(item => {
+        countsMap.set(item.symbol, {
+          symbol: item.symbol,
+          daily_count: item.daily_count,
+          weekly_count: 0
+        });
+      });
+
+      // 添加每周数据
+      weeklyCounts.forEach(item => {
+        if (countsMap.has(item.symbol)) {
+          countsMap.get(item.symbol).weekly_count = item.weekly_count;
+        } else {
+          countsMap.set(item.symbol, {
+            symbol: item.symbol,
+            daily_count: 0,
+            weekly_count: item.weekly_count
+          });
+        }
+      });
+
+      return Array.from(countsMap.values());
+    } catch (error) {
+      console.error('获取交易对交易次数时出错:', error);
+      return [];
+    }
+  }
+
   // 更新模拟交易状态（价格监控和结果判断）
   async updateSimulationStatus(symbol, currentPrice, dataMonitor = null, analysisData = null) {
     try {

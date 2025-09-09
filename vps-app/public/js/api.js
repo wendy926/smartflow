@@ -102,6 +102,11 @@ class APIClient {
     return await this.request('/api/symbol-stats');
   }
 
+  // 获取交易对交易次数统计
+  async getSymbolTradeCounts() {
+    return await this.request('/api/symbol-trade-counts');
+  }
+
   // 获取胜率统计
   async getWinRateStats() {
     return await this.request('/api/win-rate-stats');

@@ -10,12 +10,16 @@ class SymbolManagement {
       trending: [],
       smallcap: []
     };
+    this.tradeCounts = new Map(); // 存储交易次数统计
   }
 
   async init() {
     try {
       // 加载当前已添加的交易对
       await this.loadCurrentSymbols();
+      
+      // 加载交易次数统计
+      await this.loadTradeCounts();
       
       // 加载各类交易对数据
       await this.loadAllCategories();
@@ -33,6 +37,22 @@ class SymbolManagement {
     } catch (error) {
       console.error('加载当前交易对失败:', error);
       this.showError('加载当前交易对失败: ' + error.message);
+    }
+  }
+
+  async loadTradeCounts() {
+    try {
+      const counts = await this.apiClient.getSymbolTradeCounts();
+      this.tradeCounts.clear();
+      counts.forEach(count => {
+        this.tradeCounts.set(count.symbol, {
+          daily: count.daily_count || 0,
+          weekly: count.weekly_count || 0
+        });
+      });
+    } catch (error) {
+      console.error('加载交易次数统计失败:', error);
+      // 不显示错误，因为这是可选功能
     }
   }
 
@@ -105,6 +125,7 @@ class SymbolManagement {
       const isAdded = this.currentSymbols.has(symbol.symbol);
       const marketCapText = this.formatMarketCap(symbol.marketCap);
       const priceText = this.formatPrice(symbol.price);
+      const tradeStats = this.tradeCounts.get(symbol.symbol) || { daily: 0, weekly: 0 };
 
       return `
         <div class="symbol-card ${isAdded ? 'added' : ''}">
@@ -117,6 +138,18 @@ class SymbolManagement {
           </div>
           
           <div class="symbol-frequency">${symbol.suggestedFrequency}</div>
+          
+          <div class="symbol-stats">
+            <h4>📊 模拟交易统计</h4>
+            <div class="stats-row">
+              <span class="stats-label">今日交易:</span>
+              <span class="stats-value daily">${tradeStats.daily} 次</span>
+            </div>
+            <div class="stats-row">
+              <span class="stats-label">本周交易:</span>
+              <span class="stats-value weekly">${tradeStats.weekly} 次</span>
+            </div>
+          </div>
           
           <div class="symbol-actions">
             ${isAdded ? 
@@ -200,6 +233,7 @@ class SymbolManagement {
 
     try {
       await this.loadCurrentSymbols();
+      await this.loadTradeCounts();
       await this.loadAllCategories();
       this.showSuccess('所有数据刷新成功');
     } catch (error) {
