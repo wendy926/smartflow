@@ -1,7 +1,7 @@
 // modules/monitoring/DataMonitor.js
 // 数据监控模块
 
-const { DataValidationSystem } = require('./DataValidationSystem');
+const DataValidationSystem = require('./DataValidationSystem');
 
 class DataMonitor {
   constructor(database = null) {
