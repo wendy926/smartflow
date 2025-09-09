@@ -988,13 +988,71 @@ class SmartFlowServer {
 
       console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode}`);
 
-      // 检查是否有入场执行信号，如果有则立即触发模拟交易
+      // 检查是否有入场执行信号，如果有则检查条件后触发模拟交易
       if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
-        console.log(`🚀 检测到入场执行信号，立即触发模拟交易: ${symbol} - ${analysis.execution}`);
-        await this.triggerSimulationWithRetry(symbol, analysis);
+        console.log(`🚀 检测到入场执行信号: ${symbol} - ${analysis.execution}`);
+        
+        // 检查是否满足触发条件：该交易对没有进行中的模拟交易
+        const canTrigger = await this.checkSimulationTriggerConditions(symbol, analysis);
+        if (canTrigger) {
+          console.log(`✅ 满足触发条件，开始模拟交易: ${symbol}`);
+          await this.triggerSimulationWithRetry(symbol, analysis);
+        } else {
+          console.log(`⏭️ 跳过模拟交易触发: ${symbol} - 不满足触发条件`);
+        }
       }
     } catch (error) {
       console.error(`执行更新失败 [${symbol}]:`, error);
+    }
+  }
+
+  // 检查模拟交易触发条件
+  async checkSimulationTriggerConditions(symbol, analysis) {
+    try {
+      // 1. 检查是否有活跃的模拟交易
+      const activeSimulations = await this.db.runQuery(`
+        SELECT * FROM simulations 
+        WHERE symbol = ? AND status = 'ACTIVE'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `, [symbol]);
+
+      if (activeSimulations.length > 0) {
+        console.log(`⏭️ 跳过 ${symbol}：存在活跃的模拟交易 (ID: ${activeSimulations[0].id})`);
+        return false;
+      }
+
+      // 2. 检查最近10分钟内是否有相同方向的模拟交易
+      const direction = analysis.execution.includes('做多_') ? 'LONG' : 'SHORT';
+      const recentSimulations = await this.db.runQuery(`
+        SELECT * FROM simulations 
+        WHERE symbol = ? AND direction = ? AND created_at > datetime('now', '-10 minutes')
+        ORDER BY created_at DESC
+        LIMIT 1
+      `, [symbol, direction]);
+
+      if (recentSimulations.length > 0) {
+        console.log(`⏭️ 跳过 ${symbol}：最近10分钟内已有相同方向的模拟交易 (ID: ${recentSimulations[0].id})`);
+        return false;
+      }
+
+      // 3. 检查信号质量（可选：确保信号不是NONE或无效信号）
+      if (!analysis.execution || analysis.execution === 'NONE') {
+        console.log(`⏭️ 跳过 ${symbol}：信号无效或为NONE`);
+        return false;
+      }
+
+      // 4. 检查必要参数是否完整
+      if (!analysis.entrySignal || !analysis.stopLoss || !analysis.takeProfit) {
+        console.log(`⏭️ 跳过 ${symbol}：缺少必要的交易参数`);
+        return false;
+      }
+
+      console.log(`✅ ${symbol} 满足所有触发条件`);
+      return true;
+    } catch (error) {
+      console.error(`检查模拟交易触发条件失败 [${symbol}]:`, error);
+      return false;
     }
   }
 
@@ -1007,12 +1065,7 @@ class SmartFlowServer {
       try {
         console.log(`🔄 尝试触发模拟交易 [${symbol}] (第${retryCount + 1}次尝试)...`);
 
-        // 检查是否已经存在相同的活跃模拟交易
-        const existingSimulation = await this.checkExistingSimulation(symbol, analysis);
-        if (existingSimulation) {
-          console.log(`⏭️ 跳过 ${symbol}：已存在相同的活跃模拟交易`);
-          return;
-        }
+        // 条件检查已在 checkSimulationTriggerConditions 中完成
 
         // 触发模拟交易
         await this.autoStartSimulation({
@@ -1269,27 +1322,10 @@ class SmartFlowServer {
    */
   async checkAndAutoTriggerSimulation() {
     try {
-      console.log('🔍 自动触发模拟交易已禁用...');
-      // 临时禁用自动模拟交易功能
+      console.log('🔍 自动触发模拟交易已禁用（由15分钟定时任务处理）...');
+      // 此方法已被15分钟定时任务中的 updateExecutionData 替代
+      // 15分钟定时任务会检查条件并触发模拟交易
       return;
-      
-      console.log('🔍 开始检查自动触发模拟交易...');
-
-      // 获取当前所有信号
-      const signals = await this.getAllSignals();
-
-      // 检查每个信号
-      for (const signal of signals) {
-        // 检查是否有入场执行信号
-        if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
-          console.log(`🚀 检测到入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution}`);
-
-          // 自动启动模拟交易
-          await this.autoStartSimulation(signal);
-        }
-      }
-
-      console.log('✅ 自动触发模拟交易检查完成');
     } catch (error) {
       console.error('自动触发模拟交易检查失败:', error);
     }
