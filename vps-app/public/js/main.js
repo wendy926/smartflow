@@ -160,6 +160,7 @@ class SmartFlowApp {
         dataManager.refreshWinRateStats() // 强制刷新胜率统计
       ]);
 
+      console.log('📊 加载的数据:', { signals: signals.length, stats });
       this.updateStatsDisplay(signals, stats);
       this.updateSignalsTable(signals);
 
@@ -258,11 +259,15 @@ class SmartFlowApp {
 
     // 更新胜率统计
     if (stats) {
+      console.log('📈 更新胜率统计:', stats);
       const winRate = dataManager.formatPercentage(stats.win_rate || 0);
       const winDetails = `${stats.winning_trades || 0}/${stats.total_trades || 0}`;
 
       document.getElementById('winRate').textContent = winRate;
       document.getElementById('winRateDetails').textContent = winDetails;
+      console.log('✅ 胜率统计已更新:', { winRate, winDetails });
+    } else {
+      console.warn('⚠️ 胜率统计数据为空');
     }
   }
 
