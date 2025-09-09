@@ -72,7 +72,26 @@ class SmartFlowStrategyV3 {
 
       // 2. 检查是否允许入场
       if (!scoringResult.allowEntry) {
-        return this.createNoSignalResult(symbol, `1H打分不足: ${scoringResult.score}/3`);
+        // 即使不允许入场，也要返回实际的得分，而不是0
+        return {
+          marketType: '趋势市',
+          score1h: scoringResult.score,
+          vwapDirectionConsistent: scoringResult.vwapDirectionConsistent,
+          factors: scoringResult.factors,
+          vwap: scoringResult.vwap,
+          vol15mRatio: scoringResult.vol15mRatio,
+          vol1hRatio: scoringResult.vol1hRatio,
+          oiChange6h: scoringResult.oiChange6h,
+          fundingRate: scoringResult.fundingRate,
+          deltaImbalance: scoringResult.deltaImbalance,
+          signal: 'NONE',
+          execution: null,
+          executionMode: 'NONE',
+          entrySignal: null,
+          stopLoss: null,
+          takeProfit: null,
+          reason: `1H打分不足: ${scoringResult.score}/3`
+        };
       }
 
       // 3. 15分钟入场执行
