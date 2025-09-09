@@ -444,6 +444,38 @@ class SimulationManager {
     }
   }
 
+  // 获取交易对统计
+  async getSymbolStats() {
+    try {
+      const stats = await this.db.runQuery(`
+        SELECT 
+          symbol,
+          COUNT(*) as total_trades,
+          SUM(CASE WHEN is_win = 1 THEN 1 ELSE 0 END) as winning_trades,
+          SUM(CASE WHEN is_win = 0 THEN 1 ELSE 0 END) as losing_trades,
+          SUM(profit_loss) as net_profit,
+          AVG(profit_loss) as avg_profit
+        FROM simulations 
+        WHERE status = 'CLOSED'
+        GROUP BY symbol
+        ORDER BY total_trades DESC
+      `);
+      
+      return stats.map(stat => ({
+        symbol: stat.symbol,
+        total_trades: stat.total_trades,
+        winning_trades: stat.winning_trades,
+        losing_trades: stat.losing_trades,
+        win_rate: stat.total_trades > 0 ? (stat.winning_trades / stat.total_trades) * 100 : 0,
+        net_profit: stat.net_profit,
+        avg_profit: stat.avg_profit
+      }));
+    } catch (error) {
+      console.error('获取交易对统计时出错:', error);
+      return [];
+    }
+  }
+
   // 更新模拟交易状态（价格监控和结果判断）
   async updateSimulationStatus(symbol, currentPrice, dataMonitor = null, analysisData = null) {
     try {

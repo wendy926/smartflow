@@ -29,12 +29,14 @@ class SimulationDataManager {
 
   async loadStats() {
     try {
-      const [stats, directionStats] = await Promise.all([
+      const [stats, directionStats, symbolStats] = await Promise.all([
         this.apiClient.getWinRateStats(),
-        this.apiClient.getDirectionStats()
+        this.apiClient.getDirectionStats(),
+        this.apiClient.getSymbolStats()
       ]);
       this.updateStatsDisplay(stats);
       this.updateDirectionStats(directionStats);
+      this.updateSymbolStats(symbolStats);
     } catch (error) {
       console.error('加载统计数据失败:', error);
     }
@@ -121,6 +123,33 @@ class SimulationDataManager {
     } else {
       shortProfitElement.className = 'stat-value neutral';
     }
+  }
+
+  updateSymbolStats(symbolStats) {
+    const tbody = document.getElementById('symbolStatsBody');
+    
+    if (!symbolStats || symbolStats.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">暂无数据</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = symbolStats.map(stat => {
+      const winRateClass = stat.win_rate >= 50 ? 'win-rate high' : 
+                          stat.win_rate >= 30 ? 'win-rate medium' : 'win-rate low';
+      const profitClass = stat.net_profit > 0 ? 'profit-loss positive' : 
+                         stat.net_profit < 0 ? 'profit-loss negative' : 'profit-loss neutral';
+
+      return `
+        <tr>
+          <td>${stat.symbol}</td>
+          <td>${stat.total_trades}</td>
+          <td>${stat.winning_trades}</td>
+          <td class="${winRateClass}">${stat.win_rate.toFixed(2)}%</td>
+          <td class="${profitClass}">${this.formatNumber(stat.net_profit)}</td>
+          <td class="${profitClass}">${this.formatNumber(stat.avg_profit)}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
   updateSimulationHistoryTable(simulations) {

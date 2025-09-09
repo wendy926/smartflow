@@ -72,6 +72,11 @@ class APIClient {
     return await this.request('/api/direction-stats');
   }
 
+  // 获取交易对统计
+  async getSymbolStats() {
+    return await this.request('/api/symbol-stats');
+  }
+
   // 获取胜率统计
   async getWinRateStats() {
     return await this.request('/api/win-rate-stats');
