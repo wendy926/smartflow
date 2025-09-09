@@ -115,7 +115,7 @@ class DataManager {
     try {
       // 清除胜率统计缓存
       this.cache.delete('winRateStats');
-      
+
       // 重新获取胜率统计
       return await this.getWinRateStats();
     } catch (error) {
