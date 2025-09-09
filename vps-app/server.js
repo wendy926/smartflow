@@ -347,10 +347,18 @@ class SmartFlowServer {
       }
     });
 
-    // 获取告警历史
+    // 获取告警历史（只保留最近3天数据）
     this.app.get('/api/alert-history', async (req, res) => {
       try {
         const { limit = 100, type } = req.query;
+        
+        // 清理3天前的告警数据
+        const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+        await this.db.run(`
+          DELETE FROM alert_history 
+          WHERE timestamp < ?
+        `, [threeDaysAgo]);
+        
         const alerts = await this.db.getAlertHistory(parseInt(limit), type);
         res.json(alerts);
       } catch (error) {

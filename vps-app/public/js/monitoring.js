@@ -69,8 +69,6 @@ async function loadMonitoringData() {
 
     // 更新各个视图
     updateSystemOverview(data);
-    updateDataQualityStatus(data);
-    updateDataValidationStatus(data);
     updateSummaryTable(data);
     loadAlertHistory();
 
@@ -91,13 +89,13 @@ async function refreshMonitoringData() {
 
   try {
     await loadMonitoringData();
-    
+
     // 强制刷新表格数据
     if (currentMonitoringData && currentMonitoringData.detailedStats) {
       console.log('📊 强制刷新表格数据...');
       updateSummaryTable(currentMonitoringData);
     }
-    
+
     showSuccessMessage('数据刷新成功');
   } catch (error) {
     showErrorMessage('数据刷新失败: ' + error.message);
@@ -169,10 +167,44 @@ function switchMonitoringTab(tabName, event) {
 function updateSystemOverview(data) {
   if (!data.summary) return;
 
+  // 交易对维度数据
   document.getElementById('totalSymbols').textContent = data.summary.totalSymbols || '--';
   document.getElementById('healthySymbols').textContent = data.summary.healthySymbols || '--';
   document.getElementById('warningSymbols').textContent = data.summary.warningSymbols || '--';
   document.getElementById('errorSymbols').textContent = data.summary.errorSymbols || '0';
+  
+  // 告警总数（从数据验证和数据质量错误计算）
+  const totalAlerts = (data.summary.dataValidation?.errorCount || 0) + (data.summary.dataQuality?.issueCount || 0);
+  document.getElementById('totalAlerts').textContent = totalAlerts;
+
+  // 指标维度数据
+  const completionRates = data.summary.completionRates || {};
+  document.getElementById('dataCollectionRate').textContent = `${completionRates.dataCollection || 0}%`;
+  
+  // 数据验证状态
+  const dataValidation = data.summary.dataValidation || {};
+  const validationStatus = dataValidation.hasErrors ? '❌ 异常' : '✅ 正常';
+  const validationDetails = dataValidation.hasErrors ? `(${dataValidation.errorCount}个错误)` : '';
+  document.getElementById('dataValidationStatus').textContent = validationStatus;
+  document.getElementById('dataValidationIndicator').textContent = validationDetails;
+  
+  // 模拟交易完成率
+  const simulationRate = completionRates.simulationTrading || 0;
+  document.getElementById('simulationCompletionRate').textContent = `${simulationRate}%`;
+  
+  // 计算模拟交易完成次数/总次数
+  let totalTriggers = 0;
+  let totalCompletions = 0;
+  if (data.detailedStats) {
+    data.detailedStats.forEach(symbol => {
+      totalTriggers += symbol.simulationCompletion?.triggers || 0;
+      totalCompletions += symbol.simulationCompletion?.completions || 0;
+    });
+  }
+  document.getElementById('simulationCompletionDetails').textContent = `${totalCompletions}/${totalTriggers}`;
+  
+  // 更新数据收集率状态指示器
+  updateStatusIndicator('dataCollectionStatus', completionRates.dataCollection || 0);
 }
 
 // 更新状态指示器

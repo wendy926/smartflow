@@ -101,6 +101,129 @@
       display: block;
     }
 
+    /* 交易对维度数据样式 */
+    .trading-pairs-overview {
+      margin-bottom: 30px;
+    }
+
+    .trading-pairs-overview h4 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .overview-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .overview-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      transition: all 0.3s ease;
+      border-left: 4px solid #e0e0e0;
+    }
+
+    .overview-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .overview-card.healthy {
+      border-left-color: #28a745;
+    }
+
+    .overview-card.warning {
+      border-left-color: #ffc107;
+    }
+
+    .overview-card.error {
+      border-left-color: #dc3545;
+    }
+
+    .overview-card.alert {
+      border-left-color: #17a2b8;
+    }
+
+    .card-title {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    .card-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #333;
+    }
+
+    /* 指标维度数据样式 */
+    .metrics-overview {
+      margin-bottom: 30px;
+    }
+
+    .metrics-overview h4 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .metric-card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .metric-title {
+      font-size: 1rem;
+      color: #666;
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .metric-indicator {
+      font-size: 0.9rem;
+      margin-top: 8px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .metric-details {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 8px;
+    }
+
     /* 状态卡片样式 */
     .status-cards {
       display: grid;
@@ -637,64 +760,51 @@
 
       <!-- 系统概览 -->
       <div id="overviewView" class="monitoring-view active">
-        <div class="system-overview">
-          <h4>📈 系统概览</h4>
+        <!-- 交易对维度数据 -->
+        <div class="trading-pairs-overview">
+          <h4>📈 交易对维度数据</h4>
           <div class="overview-cards">
             <div class="overview-card">
               <div class="card-title">总交易对</div>
               <div class="card-value" id="totalSymbols">--</div>
             </div>
-            <div class="overview-card">
+            <div class="overview-card healthy">
               <div class="card-title">健康状态</div>
               <div class="card-value" id="healthySymbols">--</div>
             </div>
-            <div class="overview-card">
+            <div class="overview-card warning">
               <div class="card-title">警告状态</div>
               <div class="card-value" id="warningSymbols">--</div>
             </div>
-            <div class="overview-card">
+            <div class="overview-card error">
               <div class="card-title">错误状态</div>
               <div class="card-value" id="errorSymbols">--</div>
             </div>
-          </div>
-        </div>
-
-        <div class="data-quality-status">
-          <h4>📊 数据质量状态</h4>
-          <div class="status-cards">
-            <div class="status-card">
-              <div class="status-title">数据收集率</div>
-              <div class="status-value" id="dataCollectionRate">--</div>
-              <div class="status-details" id="dataCollectionDetails">--</div>
-              <div class="status-indicator" id="dataCollectionStatus">--</div>
-            </div>
-            <div class="status-card">
-              <div class="status-title">信号分析率</div>
-              <div class="status-value" id="signalAnalysisRate">--</div>
-              <div class="status-details" id="signalAnalysisDetails">--</div>
-              <div class="status-indicator" id="signalAnalysisStatus">--</div>
-            </div>
-            <div class="status-card">
-              <div class="status-title">模拟交易完成率</div>
-              <div class="status-value" id="simulationCompletionRate">--</div>
-              <div class="status-details" id="simulationCompletionDetails">--</div>
-              <div class="status-indicator" id="simulationCompletionStatus">--</div>
+            <div class="overview-card alert">
+              <div class="card-title">告警总数</div>
+              <div class="card-value" id="totalAlerts">--</div>
             </div>
           </div>
         </div>
 
-        <div class="data-validation-status">
-          <h4>🔍 数据验证状态</h4>
-          <div class="validation-info">
-            <div class="validation-item">
-              <span class="validation-label">数据验证:</span>
-              <span class="validation-status" id="dataValidationStatus">--</span>
-              <span class="validation-details" id="dataValidationDetails">--</span>
+        <!-- 指标维度数据 -->
+        <div class="metrics-overview">
+          <h4>📊 指标维度数据</h4>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-title">数据收集率</div>
+              <div class="metric-value" id="dataCollectionRate">--</div>
+              <div class="metric-indicator" id="dataCollectionStatus">--</div>
             </div>
-            <div class="validation-item">
-              <span class="validation-label">数据质量:</span>
-              <span class="validation-status" id="dataQualityStatus">--</span>
-              <span class="validation-details" id="dataQualityDetails">--</span>
+            <div class="metric-card">
+              <div class="metric-title">数据验证状态</div>
+              <div class="metric-value" id="dataValidationStatus">--</div>
+              <div class="metric-indicator" id="dataValidationIndicator">--</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">模拟交易完成率</div>
+              <div class="metric-value" id="simulationCompletionRate">--</div>
+              <div class="metric-details" id="simulationCompletionDetails">--</div>
             </div>
           </div>
         </div>
@@ -749,7 +859,7 @@
   <script src="js/api.js?v=20250108-4"></script>
   <script src="js/components/Modal.js?v=20250108-4"></script>
   <script src="js/data/DataManager.js?v=20250108-4"></script>
-  <script src="js/monitoring.js?v=20250108-11"></script>
+  <script src="js/monitoring.js?v=20250108-12"></script>
 </body>
 
 </html>
