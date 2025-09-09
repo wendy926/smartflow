@@ -1077,27 +1077,40 @@ class SmartFlowServer {
         return false;
       }
 
-      // 2. 检查最近10分钟内是否有相同方向的模拟交易
-      const direction = analysis.execution.includes('做多_') ? 'LONG' : 'SHORT';
+      // 2. 检查最近10分钟内是否有任何模拟交易
       const recentSimulations = await this.db.runQuery(`
+        SELECT * FROM simulations 
+        WHERE symbol = ? AND created_at > datetime('now', '-10 minutes')
+        ORDER BY created_at DESC
+        LIMIT 1
+      `, [symbol]);
+
+      if (recentSimulations.length > 0) {
+        console.log(`⏭️ 跳过 ${symbol}：最近10分钟内已有模拟交易 (ID: ${recentSimulations[0].id})`);
+        return false;
+      }
+
+      // 3. 检查最近10分钟内是否有相同方向的模拟交易
+      const direction = analysis.execution.includes('做多_') ? 'LONG' : 'SHORT';
+      const sameDirectionSimulations = await this.db.runQuery(`
         SELECT * FROM simulations 
         WHERE symbol = ? AND direction = ? AND created_at > datetime('now', '-10 minutes')
         ORDER BY created_at DESC
         LIMIT 1
       `, [symbol, direction]);
 
-      if (recentSimulations.length > 0) {
-        console.log(`⏭️ 跳过 ${symbol}：最近10分钟内已有相同方向的模拟交易 (ID: ${recentSimulations[0].id})`);
+      if (sameDirectionSimulations.length > 0) {
+        console.log(`⏭️ 跳过 ${symbol}：最近10分钟内已有相同方向的模拟交易 (ID: ${sameDirectionSimulations[0].id})`);
         return false;
       }
 
-      // 3. 检查信号质量（可选：确保信号不是NONE或无效信号）
+      // 4. 检查信号质量（可选：确保信号不是NONE或无效信号）
       if (!analysis.execution || analysis.execution === 'NONE') {
         console.log(`⏭️ 跳过 ${symbol}：信号无效或为NONE`);
         return false;
       }
 
-      // 4. 检查必要参数是否完整
+      // 5. 检查必要参数是否完整
       if (!analysis.entrySignal || !analysis.stopLoss || !analysis.takeProfit) {
         console.log(`⏭️ 跳过 ${symbol}：缺少必要的交易参数`);
         return false;

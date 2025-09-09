@@ -584,8 +584,9 @@ class SmartFlowApp {
       // 获取当前已触发的模拟交易记录
       const currentHistory = await dataManager.getSimulationHistory();
 
-      // 创建已触发信号的映射，基于交易对+执行信号类型+时间窗口（最近10分钟）
+      // 创建已触发信号的映射，基于交易对+时间窗口（最近10分钟）
       const triggeredSignals = new Map();
+      const triggeredSameDirectionSignals = new Map();
       const now = Date.now();
       const timeWindow = 10 * 60 * 1000; // 10分钟时间窗口
 
@@ -593,8 +594,10 @@ class SmartFlowApp {
         const tradeTime = new Date(trade.created_at).getTime();
         // 只考虑最近10分钟内的交易
         if (now - tradeTime < timeWindow) {
-          const key = `${trade.symbol}_${trade.trigger_reason}_${trade.direction}`;
-          triggeredSignals.set(key, trade);
+          const symbolKey = trade.symbol; // 基于交易对
+          const directionKey = `${trade.symbol}_${trade.direction}`; // 基于交易对+方向
+          triggeredSignals.set(symbolKey, trade);
+          triggeredSameDirectionSignals.set(directionKey, trade);
         }
       });
 
@@ -618,25 +621,36 @@ class SmartFlowApp {
           }
           const direction = isLong ? 'LONG' : 'SHORT';
 
-          // 创建更精确的去重键，包含交易对+模式+方向
-          const signalKey = `${signal.symbol}_SIGNAL_${mode}_${direction}`;
-
-          // 检查是否已经为这个特定的信号创建过模拟交易
-          if (!triggeredSignals.has(signalKey)) {
-            console.log(`🚀 检测到新的入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution} (${signalKey})`);
-
-            // 自动启动模拟交易
-            await this.autoStartSimulation(signal);
-
-            // 添加到已触发列表，避免重复触发相同的信号
-            triggeredSignals.set(signalKey, { 
-              symbol: signal.symbol, 
-              execution: signal.execution,
-              timestamp: now 
-            });
-          } else {
-            console.log(`⏭️ 跳过已触发的信号: ${signal.symbol} - ${signal.execution} (${signalKey})`);
+          // 检查是否已经为这个交易对创建过模拟交易（10分钟内）
+          if (triggeredSignals.has(signal.symbol)) {
+            console.log(`⏭️ 跳过 ${signal.symbol}：最近10分钟内已有模拟交易`);
+            continue;
           }
+
+          // 检查是否已经为这个交易对+方向创建过模拟交易（10分钟内）
+          const directionKey = `${signal.symbol}_${direction}`;
+          if (triggeredSameDirectionSignals.has(directionKey)) {
+            console.log(`⏭️ 跳过 ${signal.symbol}：最近10分钟内已有相同方向的模拟交易`);
+            continue;
+          }
+
+          console.log(`🚀 检测到新的入场执行信号，自动启动模拟交易: ${signal.symbol} - ${signal.execution}`);
+
+          // 自动启动模拟交易
+          await this.autoStartSimulation(signal);
+
+          // 添加到已触发列表，避免重复触发
+          triggeredSignals.set(signal.symbol, {
+            symbol: signal.symbol,
+            execution: signal.execution,
+            timestamp: now
+          });
+          triggeredSameDirectionSignals.set(directionKey, {
+            symbol: signal.symbol,
+            direction: direction,
+            execution: signal.execution,
+            timestamp: now
+          });
         }
       }
     } catch (error) {
