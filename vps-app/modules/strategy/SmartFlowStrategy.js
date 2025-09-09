@@ -211,10 +211,10 @@ class SmartFlowStrategy {
       // 1. VWAP方向 - 必须满足，否则直接返回0分
       const vwap = TechnicalIndicators.calculateVWAP(klinesObjects);
       const lastClose = klinesObjects[klinesObjects.length - 1].close;
-      
+
       // VWAP必须方向一致，否则直接返回0分
       if ((trend === "多头趋势" && lastClose <= vwap) ||
-          (trend === "空头趋势" && lastClose >= vwap)) {
+        (trend === "空头趋势" && lastClose >= vwap)) {
         return {
           symbol,
           trend,
@@ -225,7 +225,7 @@ class SmartFlowStrategy {
           dataValid: true
         };
       }
-      
+
       // VWAP方向一致，+1分
       score += 1;
       scoreDetails.vwapDirection = trend === "多头趋势" ? 'BULLISH' : 'BEARISH';

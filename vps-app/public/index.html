@@ -91,7 +91,6 @@
               <th>详情</th>
               <th>交易对</th>
               <th>4H趋势</th>
-              <th>多因子得分</th>
               <th>1H加强趋势</th>
               <th>15min信号</th>
               <th>当前价格</th>
@@ -100,7 +99,7 @@
           </thead>
           <tbody id="signalsTableBody">
             <tr>
-              <td colspan="8" style="text-align: center; color: #6c757d;">
+              <td colspan="7" style="text-align: center; color: #6c757d;">
                 系统将自动刷新分析数据
               </td>
             </tr>
@@ -205,9 +204,9 @@
 
             <h4>判断逻辑：</h4>
             <ul>
-              <li><strong>前提条件：</strong> 4H趋势明确 + 1H得分 ≥ 3分</li>
-              <li><strong>多头模式触发：</strong> 多头趋势 + 收盘价 ≤ EMA支撑 + 突破setup高点</li>
-              <li><strong>空头模式触发：</strong> 空头趋势 + 收盘价 ≥ EMA阻力 + 跌破setup低点</li>
+              <li><strong>前提条件：</strong> 4H趋势明确 + 1H VWAP方向一致且1H得分 ≥ 3分</li>
+              <li><strong>多头模式触发：</strong> 多头趋势 + OI变动≥+2% + 收盘价≥EMA支撑 + 突破setup高点</li>
+              <li><strong>空头模式触发：</strong> 空头趋势 + OI变动≤-2% + 收盘价≤EMA阻力 + 跌破setup低点</li>
               <li><strong>止损设置：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
               <li><strong>止盈目标：</strong> 多头2R，空头1.2R-1.5R</li>
             </ul>
@@ -249,8 +248,9 @@
           <div class="phase-content">
             <h4>入场条件：</h4>
             <ul>
-              <li><strong>天级趋势：</strong> 必须明确（多头趋势或空头趋势）</li>
-              <li><strong>小时级得分：</strong> 必须 ≥ 2分才能考虑入场</li>
+              <li><strong>4H趋势：</strong> 必须明确（多头趋势或空头趋势）</li>
+              <li><strong>1H VWAP方向：</strong> 必须与趋势方向一致</li>
+              <li><strong>1H得分：</strong> 必须 ≥ 3分才能考虑入场</li>
               <li><strong>15分钟模式：</strong> 必须触发多头回踩突破或空头反抽破位</li>
             </ul>
 
@@ -265,11 +265,11 @@
 
             <h4>表格列说明：</h4>
             <ul>
-              <li><strong>趋势列：</strong> 天级趋势判断结果（多头趋势/空头趋势/震荡/无趋势）</li>
-              <li><strong>多因子得分列：</strong> 小时级趋势加强判断得分（0-6分）</li>
-              <li><strong>信号列：</strong> 小时级趋势加强判断action结果（做多/做空/观望/不做）</li>
-              <li><strong>入场执行列：</strong> 15分钟级别入场判断结果（显示触发的多头回踩突破或空头反抽破位）</li>
+              <li><strong>4H趋势列：</strong> 4H级别趋势判断结果（多头趋势/空头趋势/震荡/无趋势）</li>
+              <li><strong>1H加强趋势列：</strong> 1H级别多因子打分结果（0-6分）和信号强度（做多/做空/观望/不做）</li>
+              <li><strong>15min信号列：</strong> 15分钟级别入场判断结果（显示触发的多头回踩突破或空头反抽破位）</li>
               <li><strong>当前价格列：</strong> 当前价格和入场价格（如有）</li>
+              <li><strong>数据采集率列：</strong> 数据收集成功率（100%表示正常）</li>
             </ul>
           </div>
         </div>
