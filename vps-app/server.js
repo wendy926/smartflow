@@ -961,8 +961,8 @@ class SmartFlowServer {
 
           // 检查是否有入场执行信号，如果有则立即触发模拟交易
           if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
-            console.log(`🚀 初始分析检测到入场执行信号，立即触发模拟交易: ${symbol} - ${analysis.execution}`);
-            await this.triggerSimulationWithRetry(symbol, analysis);
+            console.log(`🚀 初始分析检测到入场执行信号: ${symbol} - ${analysis.execution} (已禁用自动触发)`);
+            // await this.triggerSimulationWithRetry(symbol, analysis); // 已禁用自动触发
           }
         } catch (error) {
           console.error(`初始分析 ${symbol} 失败:`, error);
@@ -993,8 +993,8 @@ class SmartFlowServer {
 
       // 检查是否有入场执行信号，如果有则立即触发模拟交易
       if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
-        console.log(`🚀 趋势更新检测到入场执行信号，立即触发模拟交易: ${symbol} - ${analysis.execution}`);
-        await this.triggerSimulationWithRetry(symbol, analysis);
+        console.log(`🚀 趋势更新检测到入场执行信号: ${symbol} - ${analysis.execution} (已禁用自动触发)`);
+        // await this.triggerSimulationWithRetry(symbol, analysis); // 已禁用自动触发
       }
     } catch (error) {
       console.error(`趋势更新失败 [${symbol}]:`, error);
@@ -1019,8 +1019,8 @@ class SmartFlowServer {
 
       // 检查是否有入场执行信号，如果有则立即触发模拟交易
       if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
-        console.log(`🚀 信号更新检测到入场执行信号，立即触发模拟交易: ${symbol} - ${analysis.execution}`);
-        await this.triggerSimulationWithRetry(symbol, analysis);
+        console.log(`🚀 信号更新检测到入场执行信号: ${symbol} - ${analysis.execution} (已禁用自动触发)`);
+        // await this.triggerSimulationWithRetry(symbol, analysis); // 已禁用自动触发
       }
     } catch (error) {
       console.error(`信号更新失败 [${symbol}]:`, error);

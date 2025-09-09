@@ -311,7 +311,7 @@ class SmartFlowStrategyV3 {
       
       return {
         maxLeverage: Math.max(1, maxLeverage),
-        minMargin: Math.max(10, minMargin), // 最小保证金10 USDT
+        minMargin: minMargin, // 按照文档计算的最小保证金，数值向上取整
         stopLossDistance: stopLossDistance * 100, // 转换为百分比
         atrValue: atr14
       };
