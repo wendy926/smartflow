@@ -90,6 +90,47 @@ class SmartFlowServer {
               console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
             }
 
+            // 存储到监控系统用于数据验证
+            if (this.dataMonitor) {
+              this.dataMonitor.recordAnalysisLog(symbol, {
+                success: true,
+                symbol,
+                phases: {
+                  dataCollection: { success: true },
+                  signalAnalysis: { success: true },
+                  simulationTrading: { success: true }
+                },
+                rawData: {}, // V3策略不提供rawData
+                indicators: {
+                  'ma20': { value: analysis.ma20 },
+                  'ma50': { value: analysis.ma50 },
+                  'ma200': { value: analysis.ma200 },
+                  'vwap': { value: analysis.vwap },
+                  'adx14': { value: analysis.adx14 },
+                  'bbw': { value: analysis.bbw }
+                },
+                signals: {
+                  trend: analysis.trend4h,
+                  signal: analysis.signal,
+                  execution: analysis.execution
+                },
+                simulation: {},
+                errors: [],
+                totalTime: 0,
+                // V3策略特有字段
+                strategyVersion: 'V3',
+                marketType: analysis.marketType,
+                score1h: analysis.score1h,
+                vwapDirectionConsistent: analysis.vwapDirectionConsistent,
+                factors: analysis.factors,
+                vol15mRatio: analysis.vol15mRatio,
+                vol1hRatio: analysis.vol1hRatio,
+                oiChange6h: analysis.oiChange6h,
+                fundingRate: analysis.fundingRate,
+                deltaImbalance: analysis.deltaImbalance
+              });
+            }
+
             signals.push({
               symbol,
               // V3策略分析结果结构
