@@ -175,9 +175,9 @@ class SimulationDataManager {
           <td>${this.formatNumber(sim.entry_price)}</td>
           <td>${this.formatNumber(sim.stop_loss_price)}</td>
           <td>${this.formatNumber(sim.take_profit_price)}</td>
-          <td>${sim.leverage || '--'}</td>
-          <td>${this.formatNumber(sim.min_margin)}</td>
-          <td>${this.formatNumber(sim.stop_loss_distance)}</td>
+          <td>${sim.max_leverage || '--'}</td>
+          <td>${this.formatNumber(sim.min_margin)} USDT</td>
+          <td>${sim.stop_loss_distance ? sim.stop_loss_distance.toFixed(2) + '%' : '--'}</td>
           <td>${this.formatNumber(sim.atr_value)}</td>
           <td>${entryTime}</td>
           <td>${exitTime}</td>
