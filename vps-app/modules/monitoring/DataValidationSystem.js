@@ -69,6 +69,7 @@ class DataValidationSystem {
 
     // 检查是否是V3策略
     const isV3Strategy = analysisLog?.strategyVersion === 'V3';
+    console.log(`🔍 数据验证 [${symbol}]: strategyVersion=${analysisLog?.strategyVersion}, isV3Strategy=${isV3Strategy}`);
     
     if (isV3Strategy) {
       // V3策略：验证关键数据字段是否存在
