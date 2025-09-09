@@ -113,13 +113,17 @@ class StrategyV3Execution {
    */
   analyzeRangeExecution(symbol, rangeResult, candles15m, candles1h) {
     try {
-      if (!candles15m || candles15m.length < 2) {
+      if (!candles15m || candles15m.length < 20) {
         return { signal: 'NONE', mode: 'NONE', reason: '15m数据不足' };
       }
 
       const { lowerBoundaryValid, upperBoundaryValid, bbUpper, bbMiddle, bbLower } = rangeResult;
       const last15m = candles15m[candles15m.length - 1];
       const prev15m = candles15m[candles15m.length - 2];
+
+      // 计算ATR14 - 震荡市也需要ATR用于止损计算
+      const atr14 = this.calculateATR(candles15m, 14);
+      const lastATR = atr14[atr14.length - 1];
 
       // 计算平均成交量
       const avgVol15m = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / Math.min(20, candles15m.length);
@@ -147,6 +151,7 @@ class StrategyV3Execution {
             takeProfit,
             setupCandleHigh: prev15m.high,
             setupCandleLow: prev15m.low,
+            atr14: lastATR,
             reason: '震荡市下轨区间交易触发'
           };
         }
@@ -174,6 +179,7 @@ class StrategyV3Execution {
             takeProfit,
             setupCandleHigh: prev15m.high,
             setupCandleLow: prev15m.low,
+            atr14: lastATR,
             reason: '震荡市上轨区间交易触发'
           };
         }
@@ -199,6 +205,7 @@ class StrategyV3Execution {
           takeProfit,
           setupCandleHigh: prev15m.high,
           setupCandleLow: prev15m.low,
+          atr14: lastATR,
           reason: '震荡市向上假突破失败反手'
         };
       }
@@ -222,6 +229,7 @@ class StrategyV3Execution {
           takeProfit,
           setupCandleHigh: prev15m.high,
           setupCandleLow: prev15m.low,
+          atr14: lastATR,
           reason: '震荡市向下假突破失败反手'
         };
       }
