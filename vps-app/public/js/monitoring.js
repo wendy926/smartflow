@@ -135,7 +135,7 @@ function updateSystemOverview(data) {
   document.getElementById('totalSymbols').textContent = data.summary.totalSymbols || '--';
   document.getElementById('healthySymbols').textContent = data.summary.healthySymbols || '--';
   document.getElementById('warningSymbols').textContent = data.summary.warningSymbols || '--';
-  document.getElementById('errorSymbols').textContent = '0';
+  document.getElementById('errorSymbols').textContent = data.summary.errorSymbols || '0';
 }
 
 // 更新状态指示器

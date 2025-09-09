@@ -648,12 +648,20 @@ class DataMonitor {
       return b.overall.rate - a.overall.rate;
     });
 
+    // 计算错误状态统计（包含数据验证错误和数据质量问题）
+    const totalErrors = dataValidationErrors.length + dataQualityIssues.length;
+    const errorSymbols = detailedStats.filter(s => s.overall.status === 'ERROR').length;
+    const warningSymbols = detailedStats.filter(s => s.overall.status === 'WARNING').length;
+    const healthySymbols = detailedStats.filter(s => s.overall.status === 'HEALTHY').length;
+
     return {
       summary: {
         totalSymbols: allSymbols.length,
-        healthySymbols: detailedStats.filter(s => s.overall.status === 'HEALTHY').length,
-        warningSymbols: detailedStats.filter(s => s.overall.status === 'WARNING').length,
-        overallHealth: this.healthStatus.overall,
+        healthySymbols: healthySymbols,
+        warningSymbols: warningSymbols,
+        errorSymbols: errorSymbols + (totalErrors > 0 ? 1 : 0), // 如果有验证错误，至少有一个错误状态
+        totalErrors: totalErrors, // 添加总错误数
+        overallHealth: totalErrors > 0 ? 'ERROR' : (errorSymbols > 0 ? 'WARNING' : 'HEALTHY'),
         completionRates: {
           dataCollection: actualDataCollectionRate,
           signalAnalysis: actualSignalAnalysisRate,
@@ -893,15 +901,23 @@ class DataMonitor {
   // 检查并记录数据验证错误
   async checkAndRecordDataValidationErrors(dataValidationErrors) {
     if (dataValidationErrors && dataValidationErrors.length > 0) {
-      for (const error of dataValidationErrors) {
-        const [symbol, errorMessage] = error.split(': ');
-        await this.recordAlert(
-          symbol,
-          'data-validation',
-          'high',
-          errorMessage,
-          '数据验证失败'
-        );
+      // 去重：只记录新的错误
+      const now = Date.now();
+      const lastRecordTime = this.lastValidationErrorRecordTime || 0;
+      const recordInterval = 5 * 60 * 1000; // 5分钟内不重复记录相同错误
+      
+      if (now - lastRecordTime > recordInterval) {
+        for (const error of dataValidationErrors) {
+          const [symbol, errorMessage] = error.split(': ');
+          await this.recordAlert(
+            symbol,
+            'data-validation',
+            'high',
+            errorMessage,
+            '数据验证失败'
+          );
+        }
+        this.lastValidationErrorRecordTime = now;
       }
     }
   }
@@ -909,15 +925,23 @@ class DataMonitor {
   // 检查并记录数据质量问题
   async checkAndRecordDataQualityIssues(dataQualityIssues) {
     if (dataQualityIssues && dataQualityIssues.length > 0) {
-      for (const issue of dataQualityIssues) {
-        const [symbol, issueMessage] = issue.split(': ');
-        await this.recordAlert(
-          symbol,
-          'data-quality',
-          'medium',
-          issueMessage,
-          '数据质量问题'
-        );
+      // 去重：只记录新的问题
+      const now = Date.now();
+      const lastRecordTime = this.lastQualityIssueRecordTime || 0;
+      const recordInterval = 5 * 60 * 1000; // 5分钟内不重复记录相同问题
+      
+      if (now - lastRecordTime > recordInterval) {
+        for (const issue of dataQualityIssues) {
+          const [symbol, issueMessage] = issue.split(': ');
+          await this.recordAlert(
+            symbol,
+            'data-quality',
+            'medium',
+            issueMessage,
+            '数据质量问题'
+          );
+        }
+        this.lastQualityIssueRecordTime = now;
       }
     }
   }
