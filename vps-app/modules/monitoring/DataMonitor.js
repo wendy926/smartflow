@@ -234,6 +234,26 @@ class DataMonitor {
       log.modeA = analysisResult.modeA;
       log.modeB = analysisResult.modeB;
 
+      // 更新V3策略字段
+      if (analysisResult.trend4h) {
+        log.trend4h = analysisResult.trend4h;
+      }
+      if (analysisResult.marketType) {
+        log.marketType = analysisResult.marketType;
+      }
+      if (analysisResult.score1h !== undefined) {
+        log.score1h = analysisResult.score1h;
+      }
+      if (analysisResult.vwapDirectionConsistent !== undefined) {
+        log.vwapDirectionConsistent = analysisResult.vwapDirectionConsistent;
+      }
+      if (analysisResult.factors) {
+        log.factors = analysisResult.factors;
+      }
+      if (analysisResult.strategyVersion) {
+        log.strategyVersion = analysisResult.strategyVersion;
+      }
+
       // 更新详细分析数据
       if (analysisResult.dailyTrend) {
         log.dailyTrend = analysisResult.dailyTrend;
