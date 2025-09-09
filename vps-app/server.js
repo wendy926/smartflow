@@ -110,8 +110,19 @@ class SmartFlowServer {
                 const stats = this.dataMonitor.symbolStats.get(symbol);
                 if (stats && stats.dataCollectionAttempts > 0) {
                   dataCollectionRate = (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100;
+                  console.log(`📊 ${symbol} 单个交易对数据采集率: ${dataCollectionRate.toFixed(1)}% (${stats.dataCollectionSuccesses}/${stats.dataCollectionAttempts})`);
+                } else {
+                  console.log(`⚠️ ${symbol} 没有数据采集统计: attempts=${stats?.dataCollectionAttempts || 0}, successes=${stats?.dataCollectionSuccesses || 0}`);
                 }
               }
+              
+              // 如果单个交易对没有统计数据，使用整体平均数据采集率
+              if (dataCollectionRate === 0 && this.dataMonitor.completionRates) {
+                dataCollectionRate = this.dataMonitor.completionRates.dataCollection;
+                console.log(`📊 ${symbol} 使用整体平均数据采集率: ${dataCollectionRate.toFixed(1)}%`);
+              }
+              
+              console.log(`📊 ${symbol} 最终数据采集率: ${dataCollectionRate.toFixed(1)}%`);
             }
 
             // 存储策略分析结果到数据库

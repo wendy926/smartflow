@@ -323,6 +323,7 @@ class DataMonitor {
     const symbols = Array.from(this.symbolStats.keys());
     if (symbols.length === 0) {
       this.completionRates = { dataCollection: 0, signalAnalysis: 0, simulationTrading: 0 };
+      console.log('⚠️ 没有交易对统计数据');
       return;
     }
 
@@ -330,6 +331,8 @@ class DataMonitor {
     let totalSignalAttempts = 0, totalSignalSuccesses = 0;
     let totalSimulationTriggers = 0, totalSimulationCompletions = 0;
 
+    console.log(`📊 计算整体数据采集率，交易对数量: ${symbols.length}`);
+    
     for (const symbol of symbols) {
       const stats = this.symbolStats.get(symbol);
       totalDataAttempts += stats.dataCollectionAttempts;
@@ -338,6 +341,8 @@ class DataMonitor {
       totalSignalSuccesses += stats.signalAnalysisSuccesses;
       totalSimulationTriggers += stats.simulationTriggers;
       totalSimulationCompletions += stats.simulationCompletions;
+      
+      console.log(`📊 ${symbol}: 数据采集 ${stats.dataCollectionSuccesses}/${stats.dataCollectionAttempts}`);
     }
 
     this.completionRates = {
@@ -345,6 +350,8 @@ class DataMonitor {
       signalAnalysis: totalSignalAttempts > 0 ? Math.min((totalSignalSuccesses / totalSignalAttempts) * 100, 100) : 0,
       simulationTrading: totalSimulationTriggers > 0 ? Math.min((totalSimulationCompletions / totalSimulationTriggers) * 100, 100) : 0
     };
+    
+    console.log(`📊 整体数据采集率: ${this.completionRates.dataCollection.toFixed(1)}% (${totalDataSuccesses}/${totalDataAttempts})`);
   }
 
   // 从数据库重新同步模拟交易统计
