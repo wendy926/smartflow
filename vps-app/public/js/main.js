@@ -750,6 +750,7 @@ async function startSimulation(symbol) {
       minMargin: signalData.minMargin,
       stopLossDistance: signalData.stopLossDistance,
       atrValue: signalData.atrValue,
+      atr14: signalData.atr14,
       executionMode: signalData.executionMode,
       direction: signalData.execution.includes('做多_') ? 'LONG' : 'SHORT',
       timestamp: new Date().toISOString()
