@@ -4,14 +4,11 @@ async function debugATRFlow() {
   try {
     console.log('🔍 开始调试ATR数据流...');
     
-    // 创建策略实例
-    const strategy = new SmartFlowStrategyV3();
-    
     // 分析TRXUSDT
     const symbol = 'TRXUSDT';
     console.log(`\n📊 分析交易对: ${symbol}`);
     
-    const analysis = await strategy.analyzeSymbol(symbol);
+    const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol);
     console.log('分析结果:');
     console.log(`  市场类型: ${analysis.marketType}`);
     console.log(`  信号: ${analysis.signal}`);
