@@ -155,7 +155,12 @@ class SimulationDataManager {
       return;
     }
 
-    tbody.innerHTML = symbolStats.map(stat => {
+    // 按胜率从高到低排序
+    const sortedStats = [...symbolStats].sort((a, b) => {
+      return b.win_rate - a.win_rate;
+    });
+
+    tbody.innerHTML = sortedStats.map(stat => {
       const winRateClass = stat.win_rate >= 50 ? 'win-rate high' : 
                           stat.win_rate >= 30 ? 'win-rate medium' : 'win-rate low';
       const profitClass = stat.net_profit > 0 ? 'profit-loss positive' : 

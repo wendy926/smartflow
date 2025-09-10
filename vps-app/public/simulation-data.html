@@ -421,6 +421,13 @@
             color: #1976d2;
         }
 
+        .sort-indicator {
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-weight: normal;
+            font-style: italic;
+        }
+
         /* 手机端适配 */
         @media (max-width: 768px) {
             .simulation-data-content {
@@ -527,7 +534,7 @@
             <!-- 交易对统计 -->
             <h2 class="section-title">📊 交易对统计</h2>
             <div class="table-container">
-                <h3>各交易对胜率与盈亏统计</h3>
+                <h3>各交易对胜率与盈亏统计 <span class="sort-indicator">（按胜率从高到低排序）</span></h3>
                 <div class="table-wrapper">
                     <table id="symbolStatsTable">
                         <thead>
