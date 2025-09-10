@@ -251,6 +251,9 @@
               <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose > rangeLow 且 lowerBoundaryValid</li>
               <li><strong>空头假突破：</strong> prevClose > rangeHigh 且 lastClose < rangeHigh 且 upperBoundaryValid</li>
               <li><strong>多因子打分：</strong> VWAP、Delta、OI、Volume四个因子量化打分</li>
+              <li><strong>入场价格：</strong> 假突破回撤后的收盘价</li>
+              <li><strong>止损价格：</strong> 突破的边界价格（下轨/上轨）</li>
+              <li><strong>止盈价格：</strong> 固定1:2风险回报比</li>
             </ul>
 
             <h4>判断逻辑：</h4>
@@ -261,6 +264,15 @@
               <li><strong>震荡市止损：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
               <li><strong>趋势市止盈：</strong> 多头2R，空头2R</li>
               <li><strong>震荡市止盈：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
+            </ul>
+
+            <h4>震荡市止盈止损详细逻辑：</h4>
+            <ul>
+              <li><strong>结构性止损：</strong> 多头跌破下轨-ATR，空头突破上轨+ATR</li>
+              <li><strong>多因子止损：</strong> VWAP、Delta、OI、Volume因子得分≤-2时触发</li>
+              <li><strong>时间止盈：</strong> 持仓超过3小时自动止盈</li>
+              <li><strong>固定RR目标：</strong> 风险回报比1:2，多头止盈=入场+2×(入场-止损)</li>
+              <li><strong>空头止盈：</strong> 空头止盈=入场-2×(止损-入场)</li>
             </ul>
           </div>
         </div>
@@ -287,6 +299,17 @@
               <li>OI确认：持仓量6小时变化是否达到±2%</li>
               <li>资金费率：是否在合理范围内（≤0.15%）</li>
               <li>Delta确认：收盘价与开盘价的关系</li>
+            </ul>
+
+            <h4>震荡市多因子打分系统：</h4>
+            <p>基于4个因子进行量化打分，用于震荡市入场确认和止损判断：</p>
+            <ul>
+              <li><strong>VWAP因子：</strong> 当前价 > VWAP → +1，否则 -1</li>
+              <li><strong>Delta因子：</strong> Delta正值 → +1，负值 → -1</li>
+              <li><strong>OI因子：</strong> OI上涨 → +1，下降 → -1</li>
+              <li><strong>Volume因子：</strong> 成交量增量 → +1，减量 → -1</li>
+              <li><strong>得分范围：</strong> -4 到 +4</li>
+              <li><strong>止损条件：</strong> 得分 ≤ -2 时触发多因子止损</li>
             </ul>
 
             <h4>入场模式：</h4>
