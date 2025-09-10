@@ -325,6 +325,29 @@ class SimulationManager {
     }
   }
 
+  /**
+   * 计算震荡市多因子得分 - 按照strategy-v3.md实现
+   */
+  calculateRangeFactorScore(factors, signalType) {
+    let score = 0;
+    
+    if (signalType === "long") {
+      // 多头信号：VWAP、Delta、OI、Volume都应该是正值
+      score += factors.vwap ? +1 : -1;
+      score += factors.delta ? +1 : -1;
+      score += factors.oi ? +1 : -1;
+      score += factors.volume ? +1 : -1;
+    } else if (signalType === "short") {
+      // 空头信号：VWAP、Delta、OI、Volume都应该是负值
+      score += factors.vwap ? -1 : +1;
+      score += factors.delta ? -1 : +1;
+      score += factors.oi ? -1 : +1;
+      score += factors.volume ? -1 : +1;
+    }
+    
+    return score;
+  }
+
   // 获取分页模拟交易历史
   async getSimulationHistoryPaginated(page = 1, pageSize = 20) {
     try {
@@ -722,7 +745,9 @@ class SimulationManager {
     });
     
     if (marketType === '震荡市' || isRangeSignal) {
-      // 震荡市出场条件
+      // 震荡市出场条件 - 严格按照strategy-v3.md重新实现
+      
+      // 1. 结构性止损：区间边界失效
       if (rangeResult && rangeResult.bb1h) {
         const { upper: rangeHigh, lower: rangeLow } = rangeResult.bb1h;
         const effectiveATR = atr14 && atr14 > 0 ? atr14 : entryPrice * 0.01;
@@ -736,8 +761,9 @@ class SimulationManager {
         }
       }
 
-      // 震荡市多因子止损 - 严格按照strategy-v3.md文档
+      // 2. 多因子打分止损 - 严格按照strategy-v3.md文档
       if (rangeResult) {
+        // 获取多因子数据
         const factors = {
           vwap: rangeResult.vwapDirectionConsistent || false,
           delta: Math.abs(rangeResult.delta || 0) <= 0.02,
@@ -745,12 +771,38 @@ class SimulationManager {
           volume: (rangeResult.volFactor || 0) <= 1.7
         };
 
-        const badFactors = Object.entries(factors)
-          .filter(([key, val]) => val === false)
-          .map(([key]) => key);
+        // 计算因子得分
+        const signalType = position === 'long' ? 'long' : 'short';
+        const factorScore = this.calculateRangeFactorScore(factors, signalType);
 
-        if (badFactors.length >= 2) {
-          return { exit: true, reason: 'FACTOR_STOP', exitPrice: currentPrice };
+        // 多因子打分止损：得分 <= -2
+        if (factorScore <= -2) {
+          return { exit: true, reason: 'FACTOR_STOP', exitPrice: currentPrice, factorScore };
+        }
+      }
+
+      // 3. 时间止盈/止损 - 严格按照strategy-v3.md文档
+      if (sim.entry_time) {
+        const entryTime = new Date(sim.entry_time);
+        const now = new Date();
+        const holdingMinutes = (now - entryTime) / 60000;
+        
+        // 时间止盈：持仓超过3小时
+        if (holdingMinutes > 180) {
+          return { exit: true, reason: 'TIME_STOP', exitPrice: currentPrice, holdingMinutes };
+        }
+      }
+
+      // 4. 固定RR目标止盈 - 按照strategy-v3.md文档
+      if (sim.stop_loss && sim.take_profit) {
+        const stopLoss = parseFloat(sim.stop_loss);
+        const takeProfit = parseFloat(sim.take_profit);
+        
+        if (position === 'long' && currentPrice >= takeProfit) {
+          return { exit: true, reason: 'TAKE_PROFIT', exitPrice: currentPrice };
+        }
+        if (position === 'short' && currentPrice <= takeProfit) {
+          return { exit: true, reason: 'TAKE_PROFIT', exitPrice: currentPrice };
         }
       }
     } else if (marketType === '趋势市') {

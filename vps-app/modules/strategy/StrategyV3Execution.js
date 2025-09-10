@@ -109,7 +109,7 @@ class StrategyV3Execution {
   }
 
   /**
-   * 震荡市15分钟入场执行 - 严格按照strategy-v3.md实现
+   * 震荡市15分钟假突破入场执行 - 严格按照strategy-v3.md重新实现
    */
   analyzeRangeExecution(symbol, rangeResult, candles15m, candles1h) {
     try {
@@ -125,7 +125,16 @@ class StrategyV3Execution {
       const last15m = candles15m[candles15m.length - 1];
       const prev15m = candles15m[candles15m.length - 2];
 
-      // 计算ATR14 - 震荡市也需要ATR用于止损计算
+      // 1. 计算15m布林带宽收窄 - 严格按照文档
+      const closes15m = candles15m.slice(-20).map(c => c.close);
+      const bbWidth = this.calculateBBWidth(closes15m, 20, 2);
+      const narrowBB = bbWidth < 0.05; // 布林带宽收窄阈值
+
+      if (!narrowBB) {
+        return { signal: 'NONE', mode: 'NONE', reason: '15m布林带未收窄', atr14: null };
+      }
+
+      // 2. 计算ATR14 - 震荡市也需要ATR用于止损计算
       let atr14 = this.calculateATR(candles15m, 14);
       let lastATR = atr14[atr14.length - 1];
       
@@ -141,7 +150,7 @@ class StrategyV3Execution {
         }
       }
 
-      // 配置参数 - 严格按照文档
+      // 3. 配置参数 - 严格按照文档
       const opts = {
         lowerTouchPct: 0.015,
         upperTouchPct: 0.015,
@@ -150,150 +159,218 @@ class StrategyV3Execution {
         takeProfitMode: "mid_or_opposite"
       };
 
-      // 计算平均成交量
+      // 4. 计算平均成交量
       const avgVol15m = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / Math.min(20, candles15m.length);
       const avgVol1h = candles1h ? candles1h.slice(-20).reduce((a, c) => a + c.volume, 0) / Math.min(20, candles1h.length) : avgVol15m;
 
-      // 检查是否接近边界 - 严格按照文档
-      const nearLower = last15m.close <= bb1h.lower * (1 + opts.lowerTouchPct);
-      const nearUpper = last15m.close >= bb1h.upper * (1 - opts.upperTouchPct);
-
-      // === 区间交易 - 下轨做多 ===
-      if (lowerBoundaryValid && nearLower) {
-        const smallVolNotBreak = last15m.volume < avgVol15m * 0.8 && last15m.low >= bb1h.lower * 0.995;
-        const setupBreak = last15m.high > prev15m.high && last15m.close > prev15m.high && last15m.volume >= avgVol15m * 0.8;
-        
-        if (smallVolNotBreak || setupBreak) {
-          const entry = Math.max(last15m.close, prev15m.high);
-          // 严格按照文档：Math.min(bb1h.lower * 0.995, last15.low - last15.low * 0.005)
-          const stopLoss = Math.min(bb1h.lower * 0.995, last15m.low - last15m.low * 0.005);
-          // 严格按照文档：p.takeProfitMode === "mid_or_opposite" ? bb1h.middle : bb1h.upper
-          const takeProfit = opts.takeProfitMode === "mid_or_opposite" ? bb1h.middle : bb1h.upper;
-
-          console.log(`震荡市下轨多头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, mode=${opts.takeProfitMode}`);
-
-          return {
-            signal: 'BUY',
-            mode: 'RANGE_LONG',
-            entry,
-            stopLoss,
-            takeProfit,
-            setupCandleHigh: prev15m.high,
-            setupCandleLow: prev15m.low,
-            atr14: lastATR,
-            reason: '下轨区间交易触发'
-          };
-        }
+      // 5. 检查是否在1H区间内 - 严格按照文档
+      const rangeHigh = bb1h.upper;
+      const rangeLow = bb1h.lower;
+      const inRange = last15m.close < rangeHigh && last15m.close > rangeLow;
+      
+      if (!inRange) {
+        return { signal: 'NONE', mode: 'NONE', reason: '不在1H区间内', atr14: lastATR };
       }
 
-      // === 区间交易 - 上轨做空 ===
-      if (upperBoundaryValid && nearUpper) {
-        const smallVolNotBreak = last15m.volume < avgVol15m * 0.8 && last15m.high <= bb1h.upper * 1.005;
-        const setupBreak = last15m.low < prev15m.low && last15m.close < prev15m.low && last15m.volume >= avgVol15m * 0.8;
-        
-        if (smallVolNotBreak || setupBreak) {
-          const entry = Math.min(last15m.close, prev15m.low);
-          // 严格按照文档：Math.max(bb1h.upper * 1.005, last15.high + last15.high * 0.005)
-          const stopLoss = Math.max(bb1h.upper * 1.005, last15m.high + last15m.high * 0.005);
-          // 严格按照文档：p.takeProfitMode === "mid_or_opposite" ? bb1h.middle : bb1h.lower
-          const takeProfit = opts.takeProfitMode === "mid_or_opposite" ? bb1h.middle : bb1h.lower;
+      // 6. 假突破入场条件判断 - 严格按照文档
+      const prevClose = prev15m.close;
+      const lastClose = last15m.close;
+      let signal = 'NONE', entry = null, stopLoss = null, takeProfit = null, reason = '';
 
-          console.log(`震荡市上轨空头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, mode=${opts.takeProfitMode}`);
-
-          return {
-            signal: 'SELL',
-            mode: 'RANGE_SHORT',
-            entry,
-            stopLoss,
-            takeProfit,
-            setupCandleHigh: prev15m.high,
-            setupCandleLow: prev15m.low,
-            atr14: lastATR,
-            reason: '上轨区间交易触发'
-          };
-        }
+      // 6a. 空头假突破：突破上沿后快速回撤
+      if (prevClose > rangeHigh && lastClose < rangeHigh && upperBoundaryValid) {
+        signal = 'SHORT';
+        entry = lastClose;
+        stopLoss = rangeHigh;
+        takeProfit = entry - 2 * (stopLoss - entry); // 1:2 RR
+        reason = '假突破上沿→空头入场';
+      }
+      
+      // 6b. 多头假突破：突破下沿后快速回撤
+      if (prevClose < rangeLow && lastClose > rangeLow && lowerBoundaryValid) {
+        signal = 'BUY';
+        entry = lastClose;
+        stopLoss = rangeLow;
+        takeProfit = entry + 2 * (entry - stopLoss); // 1:2 RR
+        reason = '假突破下沿→多头入场';
       }
 
-      // === 假突破反手 - 向上假突破失败 ===
-      const prevAboveUpper = prev15m.close > bb1h.upper;
-      const lastBackInside = last15m.close <= bb1h.upper && last15m.close >= bb1h.lower;
-      const prevVolRelative = prev15m.volume / avgVol15m;
-
-      if (prevAboveUpper && lastBackInside && prevVolRelative < opts.falseBreakVolThreshold) {
-        const entry = last15m.close;
-        // 严格按照文档：Math.max(prev15.high * 1.01, bb1h.upper * 1.02)
-        const stopLoss = Math.max(prev15m.high * 1.01, bb1h.upper * 1.02);
-        const takeProfit = bb1h.lower;
-
-        console.log(`向上假突破反手: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}`);
-
-        return {
-          signal: 'SELL',
-          mode: 'FALSE_BREAK_SHORT',
-          entry,
-          stopLoss,
-          takeProfit,
-          setupCandleHigh: prev15m.high,
-          setupCandleLow: prev15m.low,
+      // 7. 如果没有假突破信号，返回无信号
+      if (signal === 'NONE') {
+        return { 
+          signal: 'NONE', 
+          mode: 'NONE', 
+          reason: '未满足假突破条件', 
           atr14: lastATR,
-          reason: '向上假突破失败反手'
+          bbWidth: bbWidth
         };
       }
 
-      // === 假突破反手 - 向下假突破失败 ===
-      const prevBelowLower = prev15m.close < bb1h.lower;
-      const lastBackInside2 = last15m.close <= bb1h.upper && last15m.close >= bb1h.lower;
+      // 8. 计算杠杆和保证金数据
+      const direction = signal === 'BUY' ? 'LONG' : 'SHORT';
+      const leverageData = this.calculateLeverageData(entry, stopLoss, takeProfit, direction);
 
-      if (prevBelowLower && lastBackInside2 && prevVolRelative < opts.falseBreakVolThreshold) {
-        const entry = last15m.close;
-        // 严格按照文档：Math.min(prev15.low * 0.99, bb1h.lower * 0.98)
-        const stopLoss = Math.min(prev15m.low * 0.99, bb1h.lower * 0.98);
-        const takeProfit = bb1h.upper;
-
-        console.log(`向下假突破反手: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}`);
-
-        return {
-          signal: 'BUY',
-          mode: 'FALSE_BREAK_LONG',
-          entry,
-          stopLoss,
-          takeProfit,
-          setupCandleHigh: prev15m.high,
-          setupCandleLow: prev15m.low,
-          atr14: lastATR,
-          reason: '向下假突破失败反手'
-        };
-      }
-
-      // 记录震荡市15分钟执行指标到监控系统
-      if (this.dataMonitor) {
-        this.dataMonitor.recordIndicator(symbol, '震荡市15分钟执行', {
-          nearLower,
-          nearUpper,
-          lowerBoundaryValid,
-          upperBoundaryValid,
-          avgVol15m,
-          avgVol1h,
-          lastATR,
-          bb1h: rangeResult.bb1h
-        });
-      }
-
-      return { signal: 'NONE', mode: 'NONE', reason: '未满足震荡市入场条件', atr14: lastATR };
-
+      return {
+        signal,
+        mode: 'RANGE_FAKE_BREAK',
+        reason,
+        entry,
+        stopLoss,
+        takeProfit,
+        atr14: lastATR,
+        bbWidth: bbWidth,
+        leverage: leverageData.leverage,
+        margin: leverageData.margin,
+        riskAmount: leverageData.riskAmount,
+        rewardAmount: leverageData.rewardAmount,
+        riskRewardRatio: leverageData.riskRewardRatio
+      };
     } catch (error) {
       console.error(`震荡市15m执行分析失败 [${symbol}]:`, error);
+      return { signal: 'NONE', mode: 'NONE', reason: '分析错误: ' + error.message, atr14: null };
+    }
+  }
+
+  /**
+   * 计算布林带宽 - 按照strategy-v3.md实现
+   */
+  calculateBBWidth(closes, period = 20, k = 2) {
+    if (closes.length < period) return 1; // 数据不足时返回默认值
+
+    const slice = closes.slice(-period);
+    const mean = slice.reduce((a, b) => a + b, 0) / period;
+    const variance = slice.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / period;
+    const deviation = Math.sqrt(variance);
+    
+    const upper = mean + k * deviation;
+    const lower = mean - k * deviation;
+    
+    return (upper - lower) / mean;
+  }
+
+  /**
+   * 多因子打分系统 - 按照strategy-v3.md实现
+   */
+  calculateFactorScore({ vwap, delta, oi, volume, signalType }) {
+    let score = 0;
+    
+    if (signalType === "long") {
+      // 多头信号：VWAP、Delta、OI、Volume都应该是正值
+      score += vwap > 0 ? +1 : -1;
+      score += delta > 0 ? +1 : -1;
+      score += oi > 0 ? +1 : -1;
+      score += volume > 0 ? +1 : -1;
+    } else if (signalType === "short") {
+      // 空头信号：VWAP、Delta、OI、Volume都应该是负值
+      score += vwap > 0 ? -1 : +1;
+      score += delta > 0 ? -1 : +1;
+      score += oi > 0 ? -1 : +1;
+      score += volume > 0 ? -1 : +1;
+    }
+    
+    return score;
+  }
+
+  /**
+   * 获取多因子数据 - 按照strategy-v3.md实现
+   */
+  async getMultiFactorData(symbol) {
+    try {
+      const [vwapPrice, delta, oi, volDelta] = await Promise.all([
+        this.getVWAP(symbol, "15m"),
+        this.getDelta(symbol, "15m"),
+        this.getOI(symbol),
+        this.getVolume(symbol, "15m")
+      ]);
+
+      return {
+        vwap: vwapPrice,
+        delta: delta,
+        oi: oi,
+        volume: volDelta
+      };
+    } catch (error) {
+      console.error(`获取多因子数据失败 [${symbol}]:`, error);
+      return {
+        vwap: 0,
+        delta: 0,
+        oi: 0,
+        volume: 0
+      };
+    }
+  }
+
+  /**
+   * 获取VWAP - 按照strategy-v3.md实现
+   */
+  async getVWAP(symbol, interval) {
+    try {
+      const klines = await BinanceAPI.getKlines(symbol, interval, 20);
+      if (!klines || klines.length < 20) return 0;
+
+      let sumPV = 0;
+      let sumVolume = 0;
       
-      // 记录错误到监控系统
-      if (this.dataMonitor) {
-        this.dataMonitor.recordDataValidationError(
-          'RANGE_15M_EXECUTION_FAILED',
-          `震荡市15分钟执行失败: ${error.message}`,
-          { symbol, error: error.message }
-        );
+      for (const k of klines) {
+        const typicalPrice = (parseFloat(k[2]) + parseFloat(k[3]) + parseFloat(k[4])) / 3;
+        const volume = parseFloat(k[5]);
+        sumPV += typicalPrice * volume;
+        sumVolume += volume;
       }
       
-      return { signal: 'NONE', mode: 'NONE', reason: '分析错误: ' + error.message, atr14: null };
+      return sumVolume > 0 ? sumPV / sumVolume : 0;
+    } catch (error) {
+      console.error(`获取VWAP失败 [${symbol}]:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * 获取Delta - 按照strategy-v3.md实现
+   */
+  async getDelta(symbol, interval) {
+    try {
+      const klines = await BinanceAPI.getKlines(symbol, interval, 2);
+      if (!klines || klines.length < 2) return 0;
+
+      const last = parseFloat(klines[klines.length - 1][4]);
+      const prev = parseFloat(klines[klines.length - 2][4]);
+      
+      return last - prev; // 正值多头，负值空头
+    } catch (error) {
+      console.error(`获取Delta失败 [${symbol}]:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * 获取OI - 按照strategy-v3.md实现
+   */
+  async getOI(symbol) {
+    try {
+      const oiData = await BinanceAPI.getOpenInterest(symbol);
+      return oiData ? parseFloat(oiData.openInterest) : 0;
+    } catch (error) {
+      console.error(`获取OI失败 [${symbol}]:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * 获取Volume - 按照strategy-v3.md实现
+   */
+  async getVolume(symbol, interval) {
+    try {
+      const klines = await BinanceAPI.getKlines(symbol, interval, 2);
+      if (!klines || klines.length < 2) return 0;
+
+      const last = parseFloat(klines[klines.length - 1][5]);
+      const prev = parseFloat(klines[klines.length - 2][5]);
+      
+      return last - prev; // 增量
+    } catch (error) {
+      console.error(`获取Volume失败 [${symbol}]:`, error);
+      return 0;
     }
   }
 

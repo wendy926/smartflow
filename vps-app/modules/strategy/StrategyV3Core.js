@@ -462,17 +462,19 @@ class StrategyV3Core {
   }
 
   /**
-   * 震荡市1H边界判断
+   * 震荡市1H区间边界有效性检查 - 按照strategy-v3.md重新实现
    */
   async analyzeRangeBoundary(symbol) {
     try {
-      const [klines1h, openInterestHist] = await Promise.all([
-        BinanceAPI.getKlines(symbol, '1h', 50),
-        BinanceAPI.getOpenInterestHist(symbol, '1h', 6)
-      ]);
-
+      const klines1h = await BinanceAPI.getKlines(symbol, '1h', 50);
+      
       if (!klines1h || klines1h.length < 25) {
-        return { lowerBoundaryValid: false, upperBoundaryValid: false, error: '1H数据不足' };
+        return { 
+          lowerBoundaryValid: false, 
+          upperBoundaryValid: false, 
+          error: '1H数据不足',
+          bb1h: null
+        };
       }
 
       const candles1h = klines1h.map(k => ({
@@ -483,7 +485,7 @@ class StrategyV3Core {
         volume: parseFloat(k[5])
       }));
 
-      // 计算布林带
+      // 计算1H布林带
       const bb = this.calculateBollingerBands(candles1h, 20, 2);
       const lastBB = bb[bb.length - 1];
 
@@ -494,15 +496,15 @@ class StrategyV3Core {
       const opts = {
         bbPeriod: 20,
         bbK: 2,
-        lowerTouchPct: 0.015,
-        upperTouchPct: 0.015,
-        volMultiplier: 1.7,  // 修复：文档要求1.7
-        oiThreshold: 0.02,
-        deltaThreshold: 0.02,
-        breakoutPeriod: 20
+        lowerTouchPct: 0.015,  // 1.5%容差
+        upperTouchPct: 0.015,  // 1.5%容差
+        volMultiplier: 1.7,    // 成交量倍数阈值
+        oiThreshold: 0.02,     // OI变化阈值
+        deltaThreshold: 0.02,  // Delta阈值
+        breakoutPeriod: 20     // 突破检测周期
       };
 
-      // 检查边界连续触碰 - 严格按照文档
+      // 1. 检查边界连续触碰 - 严格按照文档
       const last6Candles = candles1h.slice(-6);
       let lowerTouches = 0, upperTouches = 0;
 
@@ -511,30 +513,35 @@ class StrategyV3Core {
         if (c.close >= lastBB.upper * (1 - opts.upperTouchPct)) upperTouches++;
       }
 
-      // 成交量因子 - 严格按照文档
+      // 2. 成交量因子验证 - 严格按照文档
       const avgVol = candles1h.slice(-opts.bbPeriod).reduce((a, c) => a + c.volume, 0) / opts.bbPeriod;
       const volFactor = last6Candles[last6Candles.length - 1].volume / avgVol;
 
-      // Delta因子
+      // 3. Delta因子计算
       const deltaBuy = this.deltaData.get(`${symbol}_buy`) || 0;
       const deltaSell = this.deltaData.get(`${symbol}_sell`) || 0;
       const delta = Math.abs(deltaBuy - deltaSell) / Math.max(deltaBuy + deltaSell, 1);
 
-      // OI变化因子 - 严格按照文档
+      // 4. OI变化因子 - 严格按照文档
       let oiChange = 0;
-      if (openInterestHist && openInterestHist.length >= 2) {
-        const oiStart = openInterestHist[0].sumOpenInterest;
-        const oiEnd = openInterestHist[openInterestHist.length - 1].sumOpenInterest;
-        oiChange = (oiEnd - oiStart) / oiStart;
+      try {
+        const openInterestHist = await BinanceAPI.getOpenInterestHist(symbol, '1h', 6);
+        if (openInterestHist && openInterestHist.length >= 2) {
+          const oiStart = openInterestHist[0].sumOpenInterest;
+          const oiEnd = openInterestHist[openInterestHist.length - 1].sumOpenInterest;
+          oiChange = (oiEnd - oiStart) / oiStart;
+        }
+      } catch (error) {
+        console.warn(`获取OI数据失败 [${symbol}]:`, error.message);
       }
 
-      // 检查最近突破
+      // 5. 检查最近突破 - 严格按照文档
       const recentHigh = Math.max(...candles1h.slice(-opts.breakoutPeriod).map(c => c.high));
       const recentLow = Math.min(...candles1h.slice(-opts.breakoutPeriod).map(c => c.low));
       const lastClose = candles1h[candles1h.length - 1].close;
       const lastBreakout = lastClose > recentHigh || lastClose < recentLow;
 
-      // 综合边界有效性判断 - 严格按照文档
+      // 6. 综合边界有效性判断 - 严格按照文档
       const lowerBoundaryValid = lowerTouches >= 2 &&
         volFactor <= opts.volMultiplier &&
         Math.abs(delta) <= opts.deltaThreshold &&
@@ -552,8 +559,8 @@ class StrategyV3Core {
         this.dataMonitor.recordIndicator(symbol, '震荡市1H边界判断', {
           lowerBoundaryValid,
           upperBoundaryValid,
-          touchesLower,
-          touchesUpper,
+          touchesLower: lowerTouches,
+          touchesUpper: upperTouches,
           volFactor,
           delta,
           oiChange,
@@ -571,22 +578,22 @@ class StrategyV3Core {
           lower: lastBB.lower,
           bandwidth: lastBB.bandwidth
         },
-        bbUpper: lastBB.upper,
-        bbMiddle: lastBB.middle,
-        bbLower: lastBB.lower,
-        bbBandwidth: lastBB.bandwidth,
         vwap,
+        volFactor,
         delta,
         oiChange,
+        lastBreakout,
         touchesLower: lowerTouches,
-        touchesUpper: upperTouches,
-        volFactor,
-        lastBreakout
+        touchesUpper: upperTouches
       };
-
     } catch (error) {
-      console.error(`震荡市边界分析失败 [${symbol}]:`, error);
-      return { lowerBoundaryValid: false, upperBoundaryValid: false, error: error.message };
+      console.error(`1H边界判断失败 [${symbol}]:`, error);
+      return { 
+        lowerBoundaryValid: false, 
+        upperBoundaryValid: false, 
+        error: error.message,
+        bb1h: null
+      };
     }
   }
 
