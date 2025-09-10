@@ -1,6 +1,6 @@
 // 修复做空交易的止损止盈价格问题
 
-const { DatabaseManager } = require('./modules/database/DatabaseManager');
+const DatabaseManager = require('./modules/database/DatabaseManager');
 
 async function fixShortTrades() {
   console.log('🔧 开始修复做空交易的止损止盈价格问题...');
