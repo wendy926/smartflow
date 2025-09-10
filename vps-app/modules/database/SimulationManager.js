@@ -443,6 +443,40 @@ class SimulationManager {
     }
   }
 
+  // 获取出场原因统计
+  async getExitReasonStats() {
+    try {
+      const stats = await this.db.runQuery(`
+        SELECT 
+          exit_reason,
+          COUNT(*) as count,
+          SUM(CASE WHEN is_win = 1 THEN 1 ELSE 0 END) as wins,
+          SUM(CASE WHEN is_win = 0 THEN 1 ELSE 0 END) as losses,
+          AVG(CASE WHEN is_win = 1 THEN profit_loss ELSE 0 END) as avg_profit,
+          AVG(CASE WHEN is_win = 0 THEN profit_loss ELSE 0 END) as avg_loss,
+          SUM(profit_loss) as total_profit_loss
+        FROM simulations 
+        WHERE status = 'CLOSED' AND exit_reason IS NOT NULL
+        GROUP BY exit_reason
+        ORDER BY count DESC
+      `);
+
+      return stats.map(stat => ({
+        exit_reason: stat.exit_reason,
+        count: stat.count,
+        wins: stat.wins,
+        losses: stat.losses,
+        win_rate: stat.count > 0 ? (stat.wins / stat.count) * 100 : 0,
+        avg_profit: stat.avg_profit || 0,
+        avg_loss: stat.avg_loss || 0,
+        total_profit_loss: stat.total_profit_loss || 0
+      }));
+    } catch (error) {
+      console.error('获取出场原因统计时出错:', error);
+      return [];
+    }
+  }
+
   // 获取交易对统计
   async getSymbolStats() {
     try {

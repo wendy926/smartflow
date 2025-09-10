@@ -330,6 +330,17 @@ class SmartFlowServer {
       }
     });
 
+    // 获取出场原因统计
+    this.app.get('/api/exit-reason-stats', async (req, res) => {
+      try {
+        const stats = await this.simulationManager.getExitReasonStats();
+        res.json(stats);
+      } catch (error) {
+        console.error('获取出场原因统计失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 获取交易对模拟交易次数统计（每日和每周）
     this.app.get('/api/symbol-trade-counts', async (req, res) => {
       try {
