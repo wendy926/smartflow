@@ -122,8 +122,20 @@ class StrategyV3Execution {
       const prev15m = candles15m[candles15m.length - 2];
 
       // 计算ATR14 - 震荡市也需要ATR用于止损计算
-      const atr14 = this.calculateATR(candles15m, 14);
-      const lastATR = atr14[atr14.length - 1];
+      let atr14 = this.calculateATR(candles15m, 14);
+      let lastATR = atr14[atr14.length - 1];
+      
+      // ATR计算失败时重试一次
+      if (!atr14 || atr14.length === 0 || !lastATR || lastATR <= 0) {
+        console.warn(`ATR计算失败，尝试重试 [${symbol}]`);
+        atr14 = this.calculateATR(candles15m, 14);
+        lastATR = atr14[atr14.length - 1];
+        
+        if (!atr14 || atr14.length === 0 || !lastATR || lastATR <= 0) {
+          console.error(`ATR计算重试失败 [${symbol}]`);
+          return { signal: 'NONE', mode: 'NONE', reason: 'ATR计算失败', atr14: null };
+        }
+      }
 
       // 计算平均成交量
       const avgVol15m = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / Math.min(20, candles15m.length);

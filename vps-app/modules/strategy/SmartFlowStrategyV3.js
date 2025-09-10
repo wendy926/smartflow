@@ -127,9 +127,21 @@ class SmartFlowStrategyV3 {
 
       // 4. 计算杠杆和保证金数据
       const direction = executionResult.signal === 'BUY' ? 'LONG' : 'SHORT';
-      const leverageData = executionResult.signal !== 'NONE' ?
-        await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
-        { maxLeverage: 0, minMargin: 0, stopLossDistance: 0, atrValue: executionResult.atr14 };
+      let leverageData;
+      try {
+        leverageData = executionResult.signal !== 'NONE' ?
+          await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
+          { maxLeverage: 0, minMargin: 0, stopLossDistance: 0, atrValue: executionResult.atr14 };
+      } catch (error) {
+        console.error(`杠杆数据计算失败 [${symbol}]:`, error);
+        // 使用默认值作为备选
+        leverageData = {
+          maxLeverage: 10,
+          minMargin: 100,
+          stopLossDistance: 0,
+          atrValue: executionResult.atr14 || 0
+        };
+      }
 
       // 5. 合并结果
       return {
@@ -212,9 +224,21 @@ class SmartFlowStrategyV3 {
 
       // 4. 计算杠杆和保证金数据
       const direction = executionResult.signal === 'BUY' ? 'LONG' : 'SHORT';
-      const leverageData = executionResult.signal !== 'NONE' ?
-        await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
-        { maxLeverage: 0, minMargin: 0, stopLossDistance: 0, atrValue: executionResult.atr14 };
+      let leverageData;
+      try {
+        leverageData = executionResult.signal !== 'NONE' ?
+          await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
+          { maxLeverage: 0, minMargin: 0, stopLossDistance: 0, atrValue: executionResult.atr14 };
+      } catch (error) {
+        console.error(`杠杆数据计算失败 [${symbol}]:`, error);
+        // 使用默认值作为备选
+        leverageData = {
+          maxLeverage: 10,
+          minMargin: 100,
+          stopLossDistance: 0,
+          atrValue: executionResult.atr14 || 0
+        };
+      }
 
       // 5. 合并结果
       return {
@@ -322,6 +346,16 @@ class SmartFlowStrategyV3 {
     } catch (error) {
       console.error('计算杠杆数据失败:', error);
       console.error('参数详情:', { entryPrice, stopLossPrice, atr14, direction });
+      
+      // 记录ATR计算失败的数据验证告警
+      if (this.dataMonitor) {
+        this.dataMonitor.recordDataValidationError(
+          'ATR_CALCULATION_FAILED',
+          `ATR计算失败: ${error.message}`,
+          { entryPrice, stopLossPrice, atr14, direction, error: error.message }
+        );
+      }
+      
       return {
         maxLeverage: 10,
         minMargin: 100,
