@@ -344,6 +344,83 @@
             color: white;
         }
 
+        /* 筛选控件样式 */
+        .filter-controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .filter-group {
+            display: inline-block;
+            margin-right: 20px;
+            margin-bottom: 10px;
+            vertical-align: top;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9rem;
+            min-width: 120px;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 10px;
+        }
+
+        .filter-btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .filter-btn.clear {
+            background: #6c757d;
+        }
+
+        .filter-btn.clear:hover {
+            background: #5a6268;
+        }
+
+        .filter-status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #1976d2;
+        }
+
         /* 手机端适配 */
         @media (max-width: 768px) {
             .simulation-data-content {
@@ -483,6 +560,40 @@
             <h2 class="section-title">📈 模拟交易历史</h2>
             <div class="table-container">
                 <h3>所有模拟交易记录</h3>
+                
+                <!-- 筛选控件 -->
+                <div class="filter-controls">
+                    <div class="filter-group">
+                        <label for="directionFilter">方向筛选:</label>
+                        <select id="directionFilter">
+                            <option value="">全部</option>
+                            <option value="LONG">做多</option>
+                            <option value="SHORT">做空</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="exitReasonFilter">出场原因筛选:</label>
+                        <select id="exitReasonFilter">
+                            <option value="">全部</option>
+                            <option value="STOP_LOSS">止损</option>
+                            <option value="TAKE_PROFIT">止盈</option>
+                            <option value="MANUAL">手动</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="resultFilter">结果筛选:</label>
+                        <select id="resultFilter">
+                            <option value="">全部</option>
+                            <option value="win">盈利</option>
+                            <option value="loss">亏损</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <button id="applyFilters" class="filter-btn">应用筛选</button>
+                        <button id="clearFilters" class="filter-btn clear">清除筛选</button>
+                    </div>
+                </div>
+                
                 <div class="table-wrapper">
                     <table id="simulationHistoryTable">
                         <thead>

@@ -5,6 +5,13 @@ class SimulationDataManager {
     this.currentPage = 1;
     this.pageSize = 20;
     this.pagination = null;
+    this.allSimulations = []; // 存储所有模拟交易数据
+    this.filteredSimulations = []; // 存储筛选后的数据
+    this.currentFilters = {
+      direction: '',
+      exitReason: '',
+      result: ''
+    };
     this.init();
   }
 
@@ -18,8 +25,11 @@ class SimulationDataManager {
       // 加载统计数据
       await this.loadStats();
       
-      // 加载分页数据
-      await this.loadSimulationHistory();
+      // 加载所有模拟交易数据
+      await this.loadAllSimulations();
+      
+      // 应用当前筛选并显示第一页
+      this.applyFilters();
       
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -39,6 +49,18 @@ class SimulationDataManager {
       this.updateSymbolStats(symbolStats);
     } catch (error) {
       console.error('加载统计数据失败:', error);
+    }
+  }
+
+  async loadAllSimulations() {
+    try {
+      // 加载所有模拟交易数据（不分页）
+      const result = await this.apiClient.getSimulationHistory();
+      this.allSimulations = result.simulations || [];
+      this.filteredSimulations = [...this.allSimulations];
+    } catch (error) {
+      console.error('加载模拟交易历史失败:', error);
+      this.showError('加载模拟交易历史失败: ' + error.message);
     }
   }
 
@@ -152,6 +174,96 @@ class SimulationDataManager {
     }).join('');
   }
 
+  // 应用筛选条件
+  applyFilters() {
+    // 获取筛选条件
+    this.currentFilters.direction = document.getElementById('directionFilter').value;
+    this.currentFilters.exitReason = document.getElementById('exitReasonFilter').value;
+    this.currentFilters.result = document.getElementById('resultFilter').value;
+
+    // 筛选数据
+    this.filteredSimulations = this.allSimulations.filter(sim => {
+      // 方向筛选
+      if (this.currentFilters.direction && sim.direction !== this.currentFilters.direction) {
+        return false;
+      }
+
+      // 出场原因筛选
+      if (this.currentFilters.exitReason && sim.exit_reason !== this.currentFilters.exitReason) {
+        return false;
+      }
+
+      // 结果筛选
+      if (this.currentFilters.result) {
+        const isWin = sim.is_win;
+        if (this.currentFilters.result === 'win' && !isWin) {
+          return false;
+        }
+        if (this.currentFilters.result === 'loss' && isWin) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // 更新分页信息
+    this.updatePaginationForFilteredData();
+    
+    // 显示第一页
+    this.currentPage = 1;
+    this.displayCurrentPage();
+    
+    // 更新筛选状态显示
+    this.updateFilterStatus();
+  }
+
+  // 更新筛选后的分页信息
+  updatePaginationForFilteredData() {
+    const total = this.filteredSimulations.length;
+    const totalPages = Math.ceil(total / this.pageSize);
+    
+    this.pagination = {
+      currentPage: this.currentPage,
+      pageSize: this.pageSize,
+      total: total,
+      totalPages: totalPages,
+      hasPrev: this.currentPage > 1,
+      hasNext: this.currentPage < totalPages
+    };
+  }
+
+  // 显示当前页的数据
+  displayCurrentPage() {
+    const start = (this.currentPage - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    const pageData = this.filteredSimulations.slice(start, end);
+    
+    this.updateSimulationHistoryTable(pageData);
+    this.updatePaginationControls();
+  }
+
+  // 更新筛选状态显示
+  updateFilterStatus() {
+    const total = this.allSimulations.length;
+    const filtered = this.filteredSimulations.length;
+    
+    let statusText = `显示 ${filtered} 条记录`;
+    if (filtered < total) {
+      statusText += `（从 ${total} 条中筛选）`;
+    }
+    
+    // 创建或更新状态显示
+    let statusDiv = document.getElementById('filterStatus');
+    if (!statusDiv) {
+      statusDiv = document.createElement('div');
+      statusDiv.id = 'filterStatus';
+      statusDiv.className = 'filter-status';
+      document.querySelector('.filter-controls').appendChild(statusDiv);
+    }
+    statusDiv.textContent = statusText;
+  }
+
   updateSimulationHistoryTable(simulations) {
     const tbody = document.getElementById('simulationHistoryBody');
     
@@ -246,9 +358,15 @@ class SimulationDataManager {
       const pageBtn = document.createElement('button');
       pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
       pageBtn.textContent = i;
-      pageBtn.addEventListener('click', () => this.loadSimulationHistory(i));
+      pageBtn.addEventListener('click', () => this.goToPage(i));
       container.appendChild(pageBtn);
     }
+  }
+
+  // 跳转到指定页面
+  goToPage(page) {
+    this.currentPage = page;
+    this.displayCurrentPage();
   }
 
   setupEventListeners() {
@@ -257,18 +375,43 @@ class SimulationDataManager {
       this.loadData();
     });
 
+    // 筛选按钮
+    document.getElementById('applyFilters').addEventListener('click', () => {
+      this.applyFilters();
+    });
+
+    // 清除筛选按钮
+    document.getElementById('clearFilters').addEventListener('click', () => {
+      this.clearFilters();
+    });
+
     // 分页按钮
     document.getElementById('prevPageBtn').addEventListener('click', () => {
       if (this.pagination && this.pagination.hasPrev) {
-        this.loadSimulationHistory(this.currentPage - 1);
+        this.goToPage(this.currentPage - 1);
       }
     });
 
     document.getElementById('nextPageBtn').addEventListener('click', () => {
       if (this.pagination && this.pagination.hasNext) {
-        this.loadSimulationHistory(this.currentPage + 1);
+        this.goToPage(this.currentPage + 1);
       }
     });
+  }
+
+  // 清除筛选条件
+  clearFilters() {
+    document.getElementById('directionFilter').value = '';
+    document.getElementById('exitReasonFilter').value = '';
+    document.getElementById('resultFilter').value = '';
+    
+    this.currentFilters = {
+      direction: '',
+      exitReason: '',
+      result: ''
+    };
+    
+    this.applyFilters();
   }
 
   formatNumber(value) {
