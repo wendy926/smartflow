@@ -313,8 +313,21 @@ class SimulationDataManager {
       }) : '--';
       const profitLoss = sim.profit_loss || 0;
       const profitLossClass = profitLoss > 0 ? 'positive' : profitLoss < 0 ? 'negative' : 'neutral';
-      const resultClass = sim.is_win ? 'positive' : 'negative';
-      const resultText = sim.is_win ? '盈利' : '亏损';
+      // 根据状态和is_win字段判断结果
+      let resultClass, resultText;
+      if (sim.status === 'ACTIVE' || sim.is_win === null) {
+        resultClass = 'neutral';
+        resultText = '进行中';
+      } else if (sim.is_win === true) {
+        resultClass = 'positive';
+        resultText = '盈利';
+      } else if (sim.is_win === false) {
+        resultClass = 'negative';
+        resultText = '亏损';
+      } else {
+        resultClass = 'neutral';
+        resultText = '进行中';
+      }
 
       return `
         <tr>

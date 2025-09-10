@@ -1121,7 +1121,7 @@ class SmartFlowServer {
       console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode}`);
 
       // 检查是否有入场执行信号，如果有则检查条件后触发模拟交易
-      if (analysis.execution && analysis.execution.trim() !== '' && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
+      if (analysis.execution && analysis.execution.trim() !== '' && analysis.execution !== 'NONE' && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
         console.log(`🚀 检测到入场执行信号: ${symbol} - ${analysis.execution}`);
 
         // 检查是否满足触发条件：该交易对没有进行中的模拟交易
@@ -1512,7 +1512,7 @@ class SmartFlowServer {
       }
 
       // 检查是否有有效的执行信号
-      if (!execution || execution.trim() === '' || (!execution.includes('做多_') && !execution.includes('做空_'))) {
+      if (!execution || execution.trim() === '' || execution === 'NONE' || (!execution.includes('做多_') && !execution.includes('做空_'))) {
         console.log(`❌ 跳过 ${symbol}：没有有效的执行信号 (execution: ${execution})`);
         return;
       }

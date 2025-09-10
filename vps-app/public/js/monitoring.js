@@ -193,7 +193,7 @@ function updateSystemOverview(data) {
 
   // 模拟交易完成率
   const simulationRate = completionRates.simulationTrading || 0;
-  document.getElementById('simulationCompletionRate').textContent = `${simulationRate}%`;
+  document.getElementById('simulationCompletionRate').textContent = `${simulationRate.toFixed(1)}%`;
 
   // 计算模拟交易完成次数/总次数
   let totalTriggers = 0;
