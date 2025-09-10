@@ -39,7 +39,7 @@ class BinanceContractChecker {
         .filter(symbol => 
           symbol.status === 'TRADING' && 
           symbol.symbol.endsWith('USDT') &&
-          symbol.permissions.includes('SPOT') === false // 排除现货合约
+          (!symbol.permissions || !symbol.permissions.includes('SPOT')) // 排除现货合约，处理permissions为undefined的情况
         )
         .map(symbol => symbol.symbol);
 
