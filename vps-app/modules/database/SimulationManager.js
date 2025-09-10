@@ -642,17 +642,25 @@ class SimulationManager {
     // 从分析数据中获取必要信息
     let score1h = 0;
     let trend4h = '震荡';
+    let marketType = '震荡市'; // 默认震荡市
     let deltaBuy = 0;
     let deltaSell = 0;
     let ema20 = 0;
     let ema50 = 0;
     let prevHigh = 0;
     let prevLow = 0;
+    let rangeResult = null; // 震荡市边界数据
 
     if (analysisData) {
       score1h = analysisData.hourlyConfirmation?.score || 0;
       trend4h = analysisData.trend4h?.trend === 'UPTREND' ? '多头' :
         analysisData.trend4h?.trend === 'DOWNTREND' ? '空头' : '震荡';
+      
+      // 获取市场类型
+      marketType = analysisData.marketType || '震荡市';
+      
+      // 获取震荡市边界数据
+      rangeResult = analysisData.rangeResult || null;
 
       // 从Delta数据获取买卖盘信息
       if (analysisData.deltaData) {
@@ -689,25 +697,61 @@ class SimulationManager {
       return { exit: true, reason: 'TAKE_PROFIT', exitPrice: takeProfit };
     }
 
-    // 3️⃣ 趋势反转
-    if ((position === 'long' && (trend4h !== '多头' || score1h < 3)) ||
-      (position === 'short' && (trend4h !== '空头' || score1h < 3))) {
-      return { exit: true, reason: 'TREND_REVERSAL', exitPrice: currentPrice };
+    // 3️⃣ 根据市场类型使用不同的出场条件
+    if (marketType === '震荡市') {
+      // 震荡市出场条件
+      if (rangeResult && rangeResult.bb1h) {
+        const { upper: rangeHigh, lower: rangeLow } = rangeResult.bb1h;
+        const effectiveATR = atr14 && atr14 > 0 ? atr14 : entryPrice * 0.01;
+        
+        // 区间边界失效止损
+        if (position === 'long' && currentPrice < (rangeLow - effectiveATR)) {
+          return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
+        }
+        if (position === 'short' && currentPrice > (rangeHigh + effectiveATR)) {
+          return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
+        }
+      }
+      
+      // 震荡市多因子止损
+      if (rangeResult) {
+        const factors = {
+          vwap: rangeResult.vwapDirectionConsistent || false,
+          delta: Math.abs(rangeResult.delta || 0) <= 0.02,
+          oi: Math.abs(rangeResult.oiChange || 0) <= 0.02,
+          volume: (rangeResult.volFactor || 0) <= 1.7
+        };
+        
+        const badFactors = Object.entries(factors)
+          .filter(([key, val]) => val === false)
+          .map(([key]) => key);
+        
+        if (badFactors.length >= 2) {
+          return { exit: true, reason: 'FACTOR_STOP', exitPrice: currentPrice };
+        }
+      }
+    } else if (marketType === '趋势市') {
+      // 趋势市出场条件
+      // 3️⃣ 趋势反转
+      if ((position === 'long' && (trend4h !== '多头' || score1h < 3)) ||
+        (position === 'short' && (trend4h !== '空头' || score1h < 3))) {
+        return { exit: true, reason: 'TREND_REVERSAL', exitPrice: currentPrice };
+      }
+
+      // 4️⃣ Delta / 买卖盘减弱
+      if ((position === 'long' && deltaBuy / (deltaSell || 1) < 1.1) ||
+        (position === 'short' && deltaSell / (deltaBuy || 1) < 1.1)) {
+        return { exit: true, reason: 'DELTA_WEAKENING', exitPrice: currentPrice };
+      }
+
+      // 5️⃣ 价格跌破关键支撑 / 突破关键阻力
+      if ((position === 'long' && (currentPrice < ema20 || currentPrice < ema50 || currentPrice < prevLow)) ||
+        (position === 'short' && (currentPrice > ema20 || currentPrice > ema50 || currentPrice > prevHigh))) {
+        return { exit: true, reason: 'SUPPORT_RESISTANCE_BREAK', exitPrice: currentPrice };
+      }
     }
 
-    // 4️⃣ Delta / 买卖盘减弱
-    if ((position === 'long' && deltaBuy / (deltaSell || 1) < 1.1) ||
-      (position === 'short' && deltaSell / (deltaBuy || 1) < 1.1)) {
-      return { exit: true, reason: 'DELTA_WEAKENING', exitPrice: currentPrice };
-    }
-
-    // 5️⃣ 价格跌破关键支撑 / 突破关键阻力
-    if ((position === 'long' && (currentPrice < ema20 || currentPrice < ema50 || currentPrice < prevLow)) ||
-      (position === 'short' && (currentPrice > ema20 || currentPrice > ema50 || currentPrice > prevHigh))) {
-      return { exit: true, reason: 'SUPPORT_RESISTANCE_BREAK', exitPrice: currentPrice };
-    }
-
-    // 6️⃣ 时间止损
+    // 6️⃣ 时间止损（所有市场类型通用）
     if (timeInPosition >= maxTimeInPosition) {
       return { exit: true, reason: 'TIME_STOP', exitPrice: currentPrice };
     }
