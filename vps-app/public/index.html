@@ -257,7 +257,8 @@
               <li><strong>趋势市前提：</strong> 4H趋势明确 + 1H VWAP方向一致且1H得分 ≥ 3分</li>
               <li><strong>震荡市前提：</strong> 4H震荡市 + 1H边界有效（下轨或上轨）</li>
               <li><strong>趋势市止损：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
-              <li><strong>震荡市止损：</strong> 严格按照文档：下轨多头 min(lower×0.995, low-low×0.005)，上轨空头 max(upper×1.005, high+high×0.005)</li>
+              <li><strong>震荡市止损：</strong> 严格按照文档：下轨多头 min(lower×0.995, low-low×0.005)，上轨空头 max(upper×1.005,
+                high+high×0.005)</li>
               <li><strong>趋势市止盈：</strong> 多头2R，空头2R</li>
               <li><strong>震荡市止盈：</strong> 支持mid_or_opposite模式：中轨或对侧轨</li>
             </ul>
@@ -307,8 +308,8 @@
             <ul>
               <li><strong>1. 止损触发：</strong> 价格触及止损位（趋势市：setup candle另一端或1.2×ATR14；震荡市：布林带边界）</li>
               <li><strong>2. 止盈触发：</strong> 价格触及止盈位（趋势市2R，震荡市到中轨/对侧轨）</li>
-              <li><strong>3. 趋势反转：</strong> 4H趋势改变或1H得分<3分</li>
-              <li><strong>4. Delta减弱：</strong> 主动买卖盘不平衡度<1.1</li>
+              <li><strong>3. 趋势反转：</strong> 4H趋势改变或1H得分<3分< /li>
+              <li><strong>4. Delta减弱：</strong> 主动买卖盘不平衡度<1.1< /li>
               <li><strong>5. 支撑阻力突破：</strong> 价格跌破EMA20/50或关键支撑/阻力位</li>
               <li><strong>6. 时间止损：</strong> 持仓时间超过12小时（48个15分钟）</li>
             </ul>
@@ -316,7 +317,8 @@
             <h4>风控规则：</h4>
             <ul>
               <li><strong>趋势市止损：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
-              <li><strong>震荡市止损：</strong> 严格按照文档：下轨多头 min(lower×0.995, low-low×0.005)，上轨空头 max(upper×1.005, high+high×0.005)</li>
+              <li><strong>震荡市止损：</strong> 严格按照文档：下轨多头 min(lower×0.995, low-low×0.005)，上轨空头 max(upper×1.005,
+                high+high×0.005)</li>
               <li><strong>趋势市止盈：</strong> 2R风险回报比</li>
               <li><strong>震荡市止盈：</strong> 支持mid_or_opposite模式：中轨或对侧轨</li>
               <li><strong>单笔风险：</strong> 根据全局最大损失设置</li>
@@ -351,7 +353,7 @@
   <script src="js/api.js?v=20250109-14"></script>
   <script src="js/components/Modal.js?v=20250109-14"></script>
   <script src="js/data/DataManager.js?v=20250109-14"></script>
-        <script src="js/main.js?v=20250109-15"></script>
+  <script src="js/main.js?v=20250109-15"></script>
 </body>
 
 </html>

@@ -1450,7 +1450,7 @@ class SmartFlowServer {
    */
   async autoStartSimulation(signalData) {
     try {
-      const { symbol, execution, entrySignal, stopLoss, takeProfit, maxLeverage, minMargin, stopLossDistance, atrValue, atr14 } = signalData;
+      const { symbol, execution, entrySignal, stopLoss, takeProfit, maxLeverage, minMargin, stopLossDistance, atrValue, atr14, marketType, executionMode, setupCandleHigh, setupCandleLow } = signalData;
 
       if (!symbol || !entrySignal || !stopLoss || !takeProfit) {
         console.log(`❌ 跳过 ${symbol}：缺少必要参数`);
@@ -1490,7 +1490,11 @@ class SmartFlowServer {
         triggerReason,
         stopLossDistance || null,
         atrValue || null,
-        atr14 || null
+        atr14 || null,
+        executionMode || mode,
+        marketType || '震荡市',
+        setupCandleHigh || null,
+        setupCandleLow || null
       );
 
       // 记录到数据监控

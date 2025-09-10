@@ -207,7 +207,7 @@ class SimulationManager {
     }
   }
 
-  async createSimulation(symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin, triggerReason = 'SIGNAL', stopLossDistance = null, atrValue = null, atr14 = null) {
+  async createSimulation(symbol, entryPrice, stopLossPrice, takeProfitPrice, maxLeverage, minMargin, triggerReason = 'SIGNAL', stopLossDistance = null, atrValue = null, atr14 = null, executionModeV3 = null, marketType = null, setupCandleHigh = null, setupCandleLow = null) {
     try {
       // 根据triggerReason判断交易方向
       let direction = 'SHORT'; // 默认空头
@@ -252,9 +252,9 @@ class SimulationManager {
 
       const result = await this.db.run(`
         INSERT INTO simulations 
-        (symbol, entry_price, stop_loss_price, take_profit_price, max_leverage, min_margin, trigger_reason, status, stop_loss_distance, atr_value, direction, atr14, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+8 hours'))
-      `, [symbol, formattedEntryPrice, formattedStopLossPrice, formattedTakeProfitPrice, maxLeverage, minMargin, triggerReason, 'ACTIVE', stopLossDistance, atrValue, direction, atr14]);
+        (symbol, entry_price, stop_loss_price, take_profit_price, max_leverage, min_margin, trigger_reason, status, stop_loss_distance, atr_value, direction, atr14, execution_mode_v3, market_type, setup_candle_high, setup_candle_low, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+8 hours'))
+      `, [symbol, formattedEntryPrice, formattedStopLossPrice, formattedTakeProfitPrice, maxLeverage, minMargin, triggerReason, 'ACTIVE', stopLossDistance, atrValue, direction, atr14, executionModeV3, marketType, setupCandleHigh, setupCandleLow]);
 
       console.log(`✅ 创建模拟交易: ${symbol}, 入场价: ${formattedEntryPrice}, 止损: ${formattedStopLossPrice}, 止盈: ${formattedTakeProfitPrice}, 杠杆: ${maxLeverage}x, 保证金: ${minMargin}, 止损距离: ${stopLossDistance}%, ATR: ${atrValue}, 全局最大损失: ${maxLossAmount} USDT`);
 
@@ -637,7 +637,7 @@ class SimulationManager {
     const createdTime = new Date(sim.created_at);
     const now = new Date();
     const timeInPosition = Math.floor((now - createdTime) / (15 * 60 * 1000)); // 15分钟K线数
-    const maxTimeInPosition = 12; // 最大允许12根15m K线（3小时）
+    const maxTimeInPosition = 24; // 最大允许24根15m K线（6小时）- 严格按照strategy-v3.md文档
 
     // 从分析数据中获取必要信息
     let score1h = 0;
@@ -713,7 +713,7 @@ class SimulationManager {
         }
       }
       
-      // 震荡市多因子止损
+      // 震荡市多因子止损 - 严格按照strategy-v3.md文档
       if (rangeResult) {
         const factors = {
           vwap: rangeResult.vwapDirectionConsistent || false,
