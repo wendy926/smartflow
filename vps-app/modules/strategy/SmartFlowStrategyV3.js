@@ -311,6 +311,8 @@ class SmartFlowStrategyV3 {
       // 如果ATR值为null，使用默认值（入场价的1%）
       const effectiveATR = atr14 && atr14 > 0 ? atr14 : entryPrice * 0.01;
 
+      console.log(`🔍 杠杆数据计算参数: entryPrice=${entryPrice}, stopLossPrice=${stopLossPrice}, atr14=${atr14}, direction=${direction}`);
+
       if (entryPrice && stopLossPrice && entryPrice > 0) {
         // 根据方向计算止损距离百分比
         if (direction === 'LONG') {
