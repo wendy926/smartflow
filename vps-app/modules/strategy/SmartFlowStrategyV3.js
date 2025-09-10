@@ -14,16 +14,25 @@ class SmartFlowStrategyV3 {
   static execution = new StrategyV3Execution();
 
   /**
-   * 完整的V3策略分析 - 主入口
+   * 完整的V3策略分析 - 主入口（支持数据刷新频率管理）
    * @param {string} symbol - 交易对
    * @param {Object} options - 可选参数
    * @returns {Object} 完整的策略分析结果
    */
-  static async analyzeSymbol(symbol, options = {}) {
+static async analyzeSymbol(symbol, options = {}) {
     try {
       console.log(`🔍 开始V3策略分析 [${symbol}]`);
 
-      // 1. 4H趋势过滤
+      // 1. 检查数据刷新频率（如果传入了dataRefreshManager）
+      if (options.dataRefreshManager) {
+        const shouldRefresh4H = await options.dataRefreshManager.shouldRefresh(symbol, '4h_trend');
+        const shouldRefresh1H = await options.dataRefreshManager.shouldRefresh(symbol, '1h_scoring');
+        const shouldRefresh15M = await options.dataRefreshManager.shouldRefresh(symbol, '15m_entry');
+        
+        console.log(`📊 数据刷新状态 [${symbol}]: 4H=${shouldRefresh4H}, 1H=${shouldRefresh1H}, 15M=${shouldRefresh15M}`);
+      }
+
+      // 2. 4H趋势过滤
       const trend4hResult = await this.core.analyze4HTrend(symbol);
       if (trend4hResult.error) {
         return this.createErrorResult(symbol, '4H趋势分析失败', trend4hResult.error);
@@ -31,7 +40,7 @@ class SmartFlowStrategyV3 {
 
       const { trend4h, marketType } = trend4hResult;
 
-      // 2. 根据市场类型进行不同分析
+      // 3. 根据市场类型进行不同分析
       let analysisResult;
       if (marketType === '趋势市') {
         analysisResult = await this.analyzeTrendMarket(symbol, trend4hResult);
@@ -41,14 +50,28 @@ class SmartFlowStrategyV3 {
         analysisResult = this.createNoSignalResult(symbol, '市场类型未确定');
       }
 
-      // 3. 合并结果
+      // 4. 合并结果
       const finalResult = {
         ...trend4hResult,
         ...analysisResult,
         symbol,
         timestamp: new Date().toISOString(),
-        strategyVersion: 'V3'
+        strategyVersion: 'V3',
+        dataRefreshInfo: {
+          last4hUpdate: new Date().toISOString(),
+          last1hUpdate: new Date().toISOString(),
+          last15mUpdate: new Date().toISOString(),
+          lastDeltaUpdate: new Date().toISOString()
+        }
       };
+
+      // 5. 更新数据刷新时间（如果传入了dataRefreshManager）
+      if (options.dataRefreshManager) {
+        await options.dataRefreshManager.updateRefreshTime(symbol, '4h_trend');
+        await options.dataRefreshManager.updateRefreshTime(symbol, '1h_scoring');
+        await options.dataRefreshManager.updateRefreshTime(symbol, '15m_entry');
+        await options.dataRefreshManager.updateRefreshTime(symbol, 'delta');
+      }
 
       console.log(`✅ V3策略分析完成 [${symbol}]: ${marketType} - ${analysisResult.signal || 'NONE'}`);
       return finalResult;

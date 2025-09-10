@@ -111,7 +111,7 @@ class StrategyV3Execution {
   /**
    * 震荡市15分钟假突破入场执行 - 严格按照strategy-v3.md重新实现
    */
-  analyzeRangeExecution(symbol, rangeResult, candles15m, candles1h) {
+  async analyzeRangeExecution(symbol, rangeResult, candles15m, candles1h) {
     try {
       if (!candles15m || candles15m.length < 20) {
         return { signal: 'NONE', mode: 'NONE', reason: '15m数据不足', atr14: null };

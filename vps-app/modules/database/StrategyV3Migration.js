@@ -18,6 +18,12 @@ class StrategyV3Migration {
       // 3. 创建震荡市边界判断表
       await this.createRangeBoundaryTable();
 
+      // 4. 创建数据刷新日志表
+      await this.createDataRefreshTable();
+
+      // 5. 创建多时间框架数据表
+      await this.createMultiTimeframeDataTable();
+
       // 4. 更新模拟交易表以支持新的出场原因
       await this.updateSimulationTable();
 
@@ -82,6 +88,13 @@ class StrategyV3Migration {
       `ALTER TABLE strategy_analysis ADD COLUMN volume_factor_15m REAL DEFAULT 0`, // 15分钟Volume因子
       `ALTER TABLE strategy_analysis ADD COLUMN boundary_score_1h REAL DEFAULT 0`, // 1H边界得分
       `ALTER TABLE strategy_analysis ADD COLUMN boundary_threshold REAL DEFAULT 3.0`, // 边界判断阈值
+      
+      // 新增：数据刷新频率相关字段
+      `ALTER TABLE strategy_analysis ADD COLUMN last_4h_update DATETIME`, // 4H趋势最后更新时间
+      `ALTER TABLE strategy_analysis ADD COLUMN last_1h_update DATETIME`, // 1H打分最后更新时间
+      `ALTER TABLE strategy_analysis ADD COLUMN last_15m_update DATETIME`, // 15m入场最后更新时间
+      `ALTER TABLE strategy_analysis ADD COLUMN last_delta_update DATETIME`, // Delta数据最后更新时间
+      `ALTER TABLE strategy_analysis ADD COLUMN data_freshness_score REAL DEFAULT 0`, // 数据新鲜度得分
 
       // 15m执行字段
       `ALTER TABLE strategy_analysis ADD COLUMN execution_mode_v3 TEXT`, // 趋势市/震荡市/假突破
@@ -157,6 +170,40 @@ class StrategyV3Migration {
         last_breakout BOOLEAN DEFAULT FALSE,
         analysis_data TEXT, -- JSON格式的完整分析数据
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    await this.db.run(query);
+  }
+
+  async createDataRefreshTable() {
+    const query = `
+      CREATE TABLE IF NOT EXISTS data_refresh_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        data_type TEXT NOT NULL, -- '4h_trend', '1h_scoring', '15m_entry', 'delta'
+        last_update DATETIME NOT NULL,
+        next_update DATETIME NOT NULL,
+        refresh_interval INTEGER NOT NULL, -- 刷新间隔（分钟）
+        data_freshness_score REAL DEFAULT 0, -- 数据新鲜度得分
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(symbol, data_type)
+      )
+    `;
+    await this.db.run(query);
+  }
+
+  async createMultiTimeframeDataTable() {
+    const query = `
+      CREATE TABLE IF NOT EXISTS multi_timeframe_data (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        timeframe TEXT NOT NULL, -- '4h', '1h', '15m', 'realtime'
+        data_type TEXT NOT NULL, -- 'trend', 'scoring', 'execution', 'delta'
+        data_value TEXT NOT NULL, -- JSON格式存储数据
+        timestamp DATETIME NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(symbol, timeframe, data_type, timestamp)
       )
     `;
     await this.db.run(query);

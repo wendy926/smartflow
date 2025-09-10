@@ -17,6 +17,7 @@ const { dataLayerIntegration } = require('./modules/data/DataLayerIntegration');
 const DeltaManager = require('./modules/data/DeltaManager');
 const { MemoryMiddleware } = require('./modules/middleware/MemoryMiddleware');
 const { DatabaseSchemaUpdater } = require('./modules/database/DatabaseSchemaUpdater');
+const DataRefreshManager = require('./modules/data/DataRefreshManager');
 
 class SmartFlowServer {
   constructor() {
@@ -552,6 +553,43 @@ class SmartFlowServer {
       }
     });
 
+    // 获取数据刷新状态
+    this.app.get('/api/data-refresh-status', async (req, res) => {
+      try {
+        const stats = await this.dataRefreshManager.getRefreshStats();
+        const staleData = await this.dataRefreshManager.getStaleData();
+        
+        res.json({
+          success: true,
+          refreshStats: stats,
+          staleDataCount: staleData.length,
+          staleData: staleData.slice(0, 10) // 只返回前10个
+        });
+      } catch (error) {
+        console.error('获取数据刷新状态失败:', error);
+        res.status(500).json({ error: '获取数据刷新状态失败' });
+      }
+    });
+
+    // 强制刷新指定数据类型
+    this.app.post('/api/force-refresh', async (req, res) => {
+      try {
+        const { symbol, dataType } = req.body;
+        
+        if (!symbol || !dataType) {
+          return res.status(400).json({ error: '缺少必要参数' });
+        }
+
+        // 更新刷新时间
+        await this.dataRefreshManager.updateRefreshTime(symbol, dataType, 100);
+        
+        res.json({ success: true, message: `已强制刷新 ${symbol} 的 ${dataType} 数据` });
+      } catch (error) {
+        console.error('强制刷新失败:', error);
+        res.status(500).json({ error: '强制刷新失败' });
+      }
+    });
+
     // 获取告警历史（只保留最近3天数据）
     this.app.get('/api/alert-history', async (req, res) => {
       try {
@@ -866,6 +904,10 @@ class SmartFlowServer {
       // 将DeltaManager实例传递给SmartFlowStrategy
       SmartFlowStrategy.deltaManager = this.deltaManager;
       console.log('✅ Delta数据管理器初始化完成');
+
+      // 初始化数据刷新管理器
+      this.dataRefreshManager = new DataRefreshManager(this.db);
+      console.log('✅ 数据刷新管理器初始化完成');
 
       // 初始化V3策略
       await this.initializeV3Strategy();
