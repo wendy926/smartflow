@@ -872,3 +872,10 @@ CREATE TABLE simulations (
 - **完善趋势强度确认** - ADX条件 AND 布林带带宽扩张双重确认
 - **优化趋势市判定** - 确保所有条件（MA排列+连续确认+趋势强度确认）都满足才判定为趋势市
 - **更新API文档** - 反映最新的4H趋势过滤逻辑和震荡市止损止盈计算
+
+### V3.4 (2025-01-09)
+- **修复XLMUSDT TREND_REVERSAL问题** - 解决震荡市交易被错误应用趋势市TREND_REVERSAL逻辑的问题
+- **修复marketType获取逻辑** - checkExitConditions方法优先从模拟交易记录获取market_type字段
+- **完善signalData字段** - getAllSignals方法添加V3策略关键字段（marketType、trend4h、score1h等）
+- **增强调试功能** - 添加调试日志帮助诊断市场类型判断问题
+- **数据清理** - 清理历史SIGNAL_区间空头 TREND_REVERSAL止损的错误记录

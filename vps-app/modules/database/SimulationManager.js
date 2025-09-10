@@ -655,7 +655,7 @@ class SimulationManager {
       score1h = analysisData.hourlyConfirmation?.score || 0;
       trend4h = analysisData.trend4h?.trend === 'UPTREND' ? '多头' :
         analysisData.trend4h?.trend === 'DOWNTREND' ? '空头' : '震荡';
-      
+
       // 获取市场类型 - 优先使用模拟交易记录中的market_type，其次使用analysisData
       marketType = sim.market_type || analysisData.marketType || '震荡市';
 
