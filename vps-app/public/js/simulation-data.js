@@ -186,9 +186,13 @@ class SimulationDataManager {
   // 应用筛选条件
   applyFilters() {
     // 获取筛选条件
-    this.currentFilters.direction = document.getElementById('directionFilter').value;
-    this.currentFilters.exitReason = document.getElementById('exitReasonFilter').value;
-    this.currentFilters.result = document.getElementById('resultFilter').value;
+    const directionFilter = document.getElementById('directionFilter');
+    const exitReasonFilter = document.getElementById('exitReasonFilter');
+    const resultFilter = document.getElementById('resultFilter');
+    
+    this.currentFilters.direction = directionFilter ? directionFilter.value : '';
+    this.currentFilters.exitReason = exitReasonFilter ? exitReasonFilter.value : '';
+    this.currentFilters.result = resultFilter ? resultFilter.value : '';
 
     console.log('应用筛选条件:', this.currentFilters);
 
