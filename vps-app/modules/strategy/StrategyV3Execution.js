@@ -169,9 +169,9 @@ class StrategyV3Execution {
           const entry = Math.min(last15m.close, prev15m.low);
           // 震荡市空头止损：使用setup candle高点或布林带上轨
           const stopLoss = Math.max(prev15m.high, bbUpper * 1.005);
-          // 震荡市空头止盈：使用2R风险回报比或中轨（取更保守的）
+          // 震荡市空头止盈：使用2R风险回报比或中轨（取更保守的，但不能高于入场价）
           const riskRewardTakeProfit = entry - 2 * (stopLoss - entry);
-          const takeProfit = Math.max(riskRewardTakeProfit, bbMiddle);
+          const takeProfit = Math.max(riskRewardTakeProfit, Math.min(bbMiddle, entry));
 
           console.log(`震荡市上轨空头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, riskRewardTP=${riskRewardTakeProfit}, bbMiddle=${bbMiddle}`);
 
