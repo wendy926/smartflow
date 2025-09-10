@@ -642,7 +642,7 @@ class SimulationManager {
     // 从分析数据中获取必要信息
     let score1h = 0;
     let trend4h = '震荡';
-    let marketType = '震荡市'; // 默认震荡市
+    let marketType = sim.market_type || '震荡市'; // 优先从模拟交易记录获取市场类型
     let deltaBuy = 0;
     let deltaSell = 0;
     let ema20 = 0;
@@ -656,9 +656,9 @@ class SimulationManager {
       trend4h = analysisData.trend4h?.trend === 'UPTREND' ? '多头' :
         analysisData.trend4h?.trend === 'DOWNTREND' ? '空头' : '震荡';
       
-      // 获取市场类型
-      marketType = analysisData.marketType || '震荡市';
-      
+      // 获取市场类型 - 优先使用模拟交易记录中的market_type，其次使用analysisData
+      marketType = sim.market_type || analysisData.marketType || '震荡市';
+
       // 获取震荡市边界数据
       rangeResult = analysisData.rangeResult || null;
 
@@ -697,13 +697,23 @@ class SimulationManager {
       return { exit: true, reason: 'TAKE_PROFIT', exitPrice: takeProfit };
     }
 
+    // 调试信息
+    console.log(`🔍 检查出场条件 [${sim.symbol}]:`, {
+      marketType,
+      triggerReason: sim.trigger_reason,
+      executionModeV3: sim.execution_mode_v3,
+      position,
+      trend4h,
+      score1h
+    });
+
     // 3️⃣ 根据市场类型使用不同的出场条件
     if (marketType === '震荡市') {
       // 震荡市出场条件
       if (rangeResult && rangeResult.bb1h) {
         const { upper: rangeHigh, lower: rangeLow } = rangeResult.bb1h;
         const effectiveATR = atr14 && atr14 > 0 ? atr14 : entryPrice * 0.01;
-        
+
         // 区间边界失效止损
         if (position === 'long' && currentPrice < (rangeLow - effectiveATR)) {
           return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
@@ -712,7 +722,7 @@ class SimulationManager {
           return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
         }
       }
-      
+
       // 震荡市多因子止损 - 严格按照strategy-v3.md文档
       if (rangeResult) {
         const factors = {
@@ -721,11 +731,11 @@ class SimulationManager {
           oi: Math.abs(rangeResult.oiChange || 0) <= 0.02,
           volume: (rangeResult.volFactor || 0) <= 1.7
         };
-        
+
         const badFactors = Object.entries(factors)
           .filter(([key, val]) => val === false)
           .map(([key]) => key);
-        
+
         if (badFactors.length >= 2) {
           return { exit: true, reason: 'FACTOR_STOP', exitPrice: currentPrice };
         }

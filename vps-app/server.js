@@ -1392,6 +1392,22 @@ class SmartFlowServer {
 
           signals.push({
             symbol,
+            // V3策略字段
+            trend4h: analysis.trend4h,
+            marketType: analysis.marketType,
+            score1h: analysis.score1h,
+            vwapDirectionConsistent: analysis.vwapDirectionConsistent,
+            factors: analysis.factors,
+            vwap: analysis.vwap,
+            vol15mRatio: analysis.vol15mRatio,
+            vol1hRatio: analysis.vol1hRatio,
+            oiChange6h: analysis.oiChange6h,
+            fundingRate: analysis.fundingRate,
+            deltaImbalance: analysis.deltaImbalance,
+            setupCandleHigh: analysis.setupCandleHigh,
+            setupCandleLow: analysis.setupCandleLow,
+            atr14: analysis.atr14,
+            strategyVersion: analysis.strategyVersion,
             // 使用新的策略分析结果结构
             trend: analysis.trend,
             trendStrength: analysis.trendStrength,

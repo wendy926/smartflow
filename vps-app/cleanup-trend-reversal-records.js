@@ -44,7 +44,7 @@ async function cleanupTrendReversalRecords() {
         DELETE FROM simulations 
         WHERE exit_reason = 'TREND_REVERSAL' 
         AND trigger_reason LIKE '%区间%'
-      `, function(err) {
+      `, function (err) {
         if (err) reject(err);
         else resolve(this.changes);
       });
