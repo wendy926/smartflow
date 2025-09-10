@@ -1,7 +1,6 @@
 // 调试做空交易止损止盈价格问题的脚本
 
-const { SmartFlowStrategyV3 } = require('./modules/strategy/SmartFlowStrategyV3');
-const { StrategyV3Execution } = require('./modules/strategy/StrategyV3Execution');
+const StrategyV3Execution = require('./modules/strategy/StrategyV3Execution');
 
 async function debugShortTrades() {
   console.log('🔍 开始调试做空交易止损止盈价格问题...');
