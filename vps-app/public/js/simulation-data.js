@@ -210,10 +210,10 @@ class SimulationDataManager {
       // 结果筛选
       if (this.currentFilters.result) {
         const isWin = sim.is_win;
-        if (this.currentFilters.result === 'win' && !isWin) {
+        if (this.currentFilters.result === 'win' && isWin !== true) {
           return false;
         }
-        if (this.currentFilters.result === 'loss' && isWin) {
+        if (this.currentFilters.result === 'loss' && isWin !== false) {
           return false;
         }
       }
@@ -428,11 +428,12 @@ class SimulationDataManager {
       exitReasonCounts[exitReason] = (exitReasonCounts[exitReason] || 0) + 1;
       
       // 结果统计
-      if (sim.is_win) {
+      if (sim.is_win === true) {
         resultCounts.win++;
-      } else {
+      } else if (sim.is_win === false) {
         resultCounts.loss++;
       }
+      // 忽略 is_win 为 null 的记录
     });
 
     // 更新方向筛选选项
