@@ -27,7 +27,9 @@ html {
 /* 允许文本选择的元素 */
 input,
 textarea,
-[contenteditable] {
+[contenteditable],
+.rules-section,
+.rules-section * {
   -webkit-user-select: text;
   -moz-user-select: text;
   -ms-user-select: text;
