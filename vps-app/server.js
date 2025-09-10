@@ -15,6 +15,7 @@ const StrategyV3Migration = require('./modules/database/StrategyV3Migration');
 const { DataMonitor } = require('./modules/monitoring/DataMonitor');
 const { dataLayerIntegration } = require('./modules/data/DataLayerIntegration');
 const DeltaManager = require('./modules/data/DeltaManager');
+const { MemoryMiddleware } = require('./modules/middleware/MemoryMiddleware');
 
 class SmartFlowServer {
   constructor() {
@@ -26,6 +27,10 @@ class SmartFlowServer {
     this.dataMonitor = null;
     this.deltaManager = null;
     this.analysisInterval = null;
+    this.memoryMiddleware = new MemoryMiddleware({
+      maxMemoryUsage: 0.85, // 85%最大使用率
+      warningThreshold: 0.75 // 75%警告阈值
+    });
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -35,6 +40,9 @@ class SmartFlowServer {
     this.app.use(cors());
     this.app.use(express.json());
     this.app.use(express.static(path.join(__dirname, 'public')));
+    
+    // 添加内存监控中间件
+    this.app.use(this.memoryMiddleware.middleware());
   }
 
   setupRoutes() {
@@ -765,6 +773,30 @@ class SmartFlowServer {
         }
       } catch (error) {
         console.error('保存用户设置失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 内存监控API
+    this.app.get('/api/memory', (req, res) => {
+      try {
+        const memoryStatus = this.memoryMiddleware.getMemoryStatus();
+        res.json(memoryStatus);
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 强制垃圾回收API
+    this.app.post('/api/memory/gc', (req, res) => {
+      try {
+        if (global.gc) {
+          global.gc();
+          res.json({ success: true, message: '垃圾回收完成' });
+        } else {
+          res.json({ success: false, message: '垃圾回收不可用，请使用 --expose-gc 参数启动' });
+        }
+      } catch (error) {
         res.status(500).json({ error: error.message });
       }
     });
