@@ -131,7 +131,7 @@ class SmartFlowStrategyV3 {
       try {
         leverageData = executionResult.signal !== 'NONE' ?
           await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
-          { maxLeverage: 0, minMargin: 0, stopLossDistance: 0, atrValue: executionResult.atr14 };
+          { maxLeverage: null, minMargin: null, stopLossDistance: null, atrValue: executionResult.atr14 };
       } catch (error) {
         console.error(`杠杆数据计算失败 [${symbol}]:`, error);
         // 使用默认值作为备选
@@ -228,7 +228,7 @@ class SmartFlowStrategyV3 {
       try {
         leverageData = executionResult.signal !== 'NONE' ?
           await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
-          { maxLeverage: 0, minMargin: 0, stopLossDistance: 0, atrValue: executionResult.atr14 };
+          { maxLeverage: null, minMargin: null, stopLossDistance: null, atrValue: executionResult.atr14 };
       } catch (error) {
         console.error(`杠杆数据计算失败 [${symbol}]:`, error);
         // 使用默认值作为备选
