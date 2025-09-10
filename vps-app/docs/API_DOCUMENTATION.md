@@ -822,6 +822,51 @@ CREATE TABLE simulations (
 );
 ```
 
+### 9.4 监控数据表结构
+
+#### analysis_logs表
+```sql
+CREATE TABLE analysis_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT NOT NULL,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME,
+    success BOOLEAN DEFAULT FALSE,
+    phases TEXT, -- JSON格式存储各阶段结果
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### data_quality_issues表
+```sql
+CREATE TABLE data_quality_issues (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT NOT NULL,
+    issue_type TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    message TEXT NOT NULL,
+    details TEXT, -- JSON格式存储详细信息
+    resolved BOOLEAN DEFAULT FALSE,
+    resolved_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### validation_results表
+```sql
+CREATE TABLE validation_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    overall_status TEXT NOT NULL,
+    errors TEXT, -- JSON格式存储错误列表
+    warnings TEXT, -- JSON格式存储警告列表
+    details TEXT, -- JSON格式存储详细信息
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 ## 10. 注意事项
 
 1. **VWAP方向一致性** - 趋势市必须满足VWAP方向一致性才能入场
@@ -897,3 +942,11 @@ CREATE TABLE simulations (
 - **止盈止损策略优化** - 结构性止损 + 多因子打分止损 + 时间止盈 + 固定RR目标
 - **数据库表结构更新** - 添加震荡市假突破和多因子打分相关字段
 - **数据验证监控增强** - 新增震荡市策略验证方法和多因子打分验证
+
+### V3.6 (2025-01-09)
+- **修复监控页面显示问题** - 修复模拟交易完成率显示格式，保留小数点后一位
+- **修复模拟交易状态显示** - 进行中记录正确显示为"进行中"而不是"亏损"
+- **修复SIGNAL_NONE触发问题** - 添加NONE检查，防止SIGNAL_NONE触发模拟交易
+- **重构监控数据存储** - 将日志数据从内存迁移到数据库，减少内存占用
+- **新增数据库表** - 添加analysis_logs、data_quality_issues、validation_results表
+- **数据库表结构自动更新** - 服务器启动时自动更新数据库表结构
