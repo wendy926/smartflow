@@ -248,7 +248,7 @@
             <ul>
               <li><strong>布林带宽收窄：</strong> 15分钟BB宽度 < 0.05（5%）</li>
               <li><strong>假突破验证：</strong> 前一根突破边界 + 当前收回区间内</li>
-              <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose > rangeLow 且 lowerBoundaryValid</li>
+              <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose> rangeLow 且 lowerBoundaryValid</li>
               <li><strong>空头假突破：</strong> prevClose > rangeHigh 且 lastClose < rangeHigh 且 upperBoundaryValid</li>
               <li><strong>多因子打分：</strong> VWAP、Delta、OI、Volume四个因子量化打分</li>
               <li><strong>入场价格：</strong> 假突破回撤后的收盘价</li>
@@ -331,7 +331,7 @@
             <ul>
               <li><strong>1. 止损触发：</strong> 价格触及止损位（趋势市：setup candle另一端或1.2×ATR14；震荡市：区间边界失效）</li>
               <li><strong>2. 止盈触发：</strong> 价格触及止盈位（趋势市2R，震荡市1:2 RR目标）</li>
-              <li><strong>3. 趋势反转：</strong> 4H趋势改变或1H得分<3分（趋势市专用）</li>
+              <li><strong>3. 趋势反转：</strong> 4H趋势改变或1H得分<3分（趋势市专用）< /li>
               <li><strong>4. 多因子止损：</strong> 多因子得分≤-2（震荡市专用）</li>
               <li><strong>5. 支撑阻力突破：</strong> 价格跌破EMA20/50或关键支撑/阻力位（趋势市专用）</li>
               <li><strong>6. 时间止损：</strong> 持仓时间超过3小时（震荡市）或12小时（趋势市）</li>
