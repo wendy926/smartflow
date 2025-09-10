@@ -4,13 +4,13 @@
 
 const express = require('express');
 const path = require('path');
-const { DatabaseManager } = require('./modules/database/DatabaseManager');
+const DatabaseManager = require('./modules/database/DatabaseManager');
 const { MemoryOptimizedManager } = require('./modules/data/MemoryOptimizedManager');
 const { MemoryMonitor } = require('./modules/monitoring/MemoryMonitor');
 const { OptimizedDataMonitor } = require('./modules/monitoring/OptimizedDataMonitor');
-const { SmartFlowStrategyV3 } = require('./modules/strategy/SmartFlowStrategyV3');
-const { SimulationManager } = require('./modules/database/SimulationManager');
-const { TelegramNotifier } = require('./modules/notifications/TelegramNotifier');
+const SmartFlowStrategyV3 = require('./modules/strategy/SmartFlowStrategyV3');
+const SimulationManager = require('./modules/database/SimulationManager');
+const TelegramNotifier = require('./modules/notifications/TelegramNotifier');
 
 class MemoryOptimizedServer {
   constructor() {
