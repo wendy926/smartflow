@@ -356,6 +356,36 @@ vps-app/
 ]
 ```
 
+#### GET /api/exit-reason-stats
+- **功能**: 获取出场原因统计
+- **实现文件**: `server.js` (第333-343行)
+- **入参**: 无
+- **出参**:
+```json
+[
+  {
+    "exit_reason": "STOP_LOSS",
+    "count": 214,
+    "wins": 214,
+    "losses": 0,
+    "win_rate": 100,
+    "avg_profit": 50.34,
+    "avg_loss": 0,
+    "total_profit_loss": 10771.90
+  },
+  {
+    "exit_reason": "RANGE_BOUNDARY_BREAK",
+    "count": 15,
+    "wins": 2,
+    "losses": 13,
+    "win_rate": 13.33,
+    "avg_profit": 25.50,
+    "avg_loss": -15.75,
+    "total_profit_loss": -150.25
+  }
+]
+```
+
 #### POST /api/simulation/start
 - **功能**: 启动模拟交易
 - **实现文件**: `server.js` (第337-365行)
@@ -470,6 +500,11 @@ class APIClient {
   // 获取交易对统计
   async getSymbolStats() {
     return await this.request('/api/symbol-stats');
+  }
+
+  // 获取出场原因统计
+  async getExitReasonStats() {
+    return await this.request('/api/exit-reason-stats');
   }
 
   // 获取监控数据
@@ -595,6 +630,15 @@ class APIClient {
 ### 5.6 交易方向
 - `"LONG"` - 多头
 - `"SHORT"` - 空头
+
+### 5.7 出场原因
+- `"STOP_LOSS"` - 止损触发
+- `"TAKE_PROFIT"` - 止盈触发
+- `"TREND_REVERSAL"` - 趋势反转
+- `"DELTA_WEAKENING"` - Delta/主动买卖盘减弱
+- `"SUPPORT_RESISTANCE_BREAK"` - 跌破支撑或突破阻力
+- `"TIME_STOP"` - 时间止损
+- `"RANGE_BOUNDARY_BREAK"` - 震荡市区间边界失效（新增）
 
 ## 6. 数据刷新频率
 
@@ -780,6 +824,12 @@ CREATE TABLE simulations (
 7. **模拟交易字段** - 所有模拟交易记录包含完整的杠杆、保证金、止损距离、ATR值等字段
 8. **分页功能** - 模拟交易历史支持分页查询，提高大数据量下的性能
 9. **方向统计** - 支持按交易方向（做多/做空）分别统计胜率和盈亏
+10. **震荡市止损止盈** - 严格按照strategy-v3.md文档实现：
+    - 多头止损：`min(setupLow, entryPrice - 1.2 * ATR)`
+    - 空头止损：`max(setupHigh, entryPrice + 1.2 * ATR)`
+    - 多头止盈：`min(riskRewardTP, rangeHigh - ATR * 0.5)`
+    - 空头止盈：`max(riskRewardTP, rangeLow + ATR * 0.5)`
+    - 区间边界失效止损：多头跌破`rangeLow - ATR`，空头突破`rangeHigh + ATR`
 
 ## 11. 新增功能说明
 
@@ -801,4 +851,12 @@ CREATE TABLE simulations (
 ---
 
 *最后更新: 2025-01-09*
-*版本: V3.1*
+*版本: V3.2*
+
+## 12. 更新日志
+
+### V3.2 (2025-01-09)
+- **修复震荡市止损止盈逻辑** - 严格按照strategy-v3.md文档实现止损止盈计算
+- **添加区间边界失效止损** - 支持震荡市区间边界失效止损逻辑
+- **新增出场原因统计API** - 提供`/api/exit-reason-stats`端点统计各种出场原因
+- **完善API文档** - 更新文档以反映最新的震荡市止损止盈逻辑和新增API
