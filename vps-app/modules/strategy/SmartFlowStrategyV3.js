@@ -143,6 +143,8 @@ class SmartFlowStrategyV3 {
         };
       }
 
+      console.log(`📊 杠杆数据结果 [${symbol}]:`, leverageData);
+
       // 5. 合并结果
       return {
         marketType: '趋势市',
@@ -239,6 +241,8 @@ class SmartFlowStrategyV3 {
           atrValue: executionResult.atr14 || 0
         };
       }
+
+      console.log(`📊 杠杆数据结果 [${symbol}]:`, leverageData);
 
       // 5. 合并结果
       return {
