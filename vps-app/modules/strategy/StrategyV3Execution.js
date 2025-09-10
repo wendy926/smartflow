@@ -137,13 +137,15 @@ class StrategyV3Execution {
 
         if (nearLower && (smallVolNotBreak || setupBreak)) {
           const entry = Math.max(last15m.close, prev15m.high);
-          // 震荡市多头止损：使用setup candle低点或布林带下轨
-          const stopLoss = Math.min(prev15m.low, bbLower * 0.995);
-          // 震荡市多头止盈：使用2R风险回报比或中轨（取更保守的）
+          // 震荡市多头止损：严格按照strategy-v3.md - min(setup candle 低点, 入场价 - 1.2 × ATR(14))
+          const stopLossByATR = entry - 1.2 * lastATR;
+          const stopLoss = Math.min(prev15m.low, stopLossByATR);
+          // 震荡市多头止盈：使用2R风险回报比，然后与区间上边界比较
           const riskRewardTakeProfit = entry + 2 * (entry - stopLoss);
-          const takeProfit = Math.min(riskRewardTakeProfit, bbMiddle);
+          const rangeHighTakeProfit = bbUpper - lastATR * 0.5; // 区间上边界 - ATR * 0.5
+          const takeProfit = Math.min(riskRewardTakeProfit, rangeHighTakeProfit);
 
-          console.log(`震荡市下轨多头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, riskRewardTP=${riskRewardTakeProfit}, bbMiddle=${bbMiddle}`);
+          console.log(`震荡市下轨多头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, riskRewardTP=${riskRewardTakeProfit}, rangeHighTP=${rangeHighTakeProfit}, atr=${lastATR}`);
 
           return {
             signal: 'BUY',
@@ -167,13 +169,15 @@ class StrategyV3Execution {
 
         if (nearUpper && (smallVolNotBreak || setupBreak)) {
           const entry = Math.min(last15m.close, prev15m.low);
-          // 震荡市空头止损：使用setup candle高点或布林带上轨
-          const stopLoss = Math.max(prev15m.high, bbUpper * 1.005);
-          // 震荡市空头止盈：使用2R风险回报比或中轨（取更保守的，但不能高于入场价）
+          // 震荡市空头止损：严格按照strategy-v3.md - max(setup candle 高点, 入场价 + 1.2 × ATR(14))
+          const stopLossByATR = entry + 1.2 * lastATR;
+          const stopLoss = Math.max(prev15m.high, stopLossByATR);
+          // 震荡市空头止盈：使用2R风险回报比，然后与区间下边界比较
           const riskRewardTakeProfit = entry - 2 * (stopLoss - entry);
-          const takeProfit = Math.max(riskRewardTakeProfit, Math.min(bbMiddle, entry));
+          const rangeLowTakeProfit = bbLower + lastATR * 0.5; // 区间下边界 + ATR * 0.5
+          const takeProfit = Math.max(riskRewardTakeProfit, rangeLowTakeProfit);
 
-          console.log(`震荡市上轨空头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, riskRewardTP=${riskRewardTakeProfit}, bbMiddle=${bbMiddle}`);
+          console.log(`震荡市上轨空头: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, riskRewardTP=${riskRewardTakeProfit}, rangeLowTP=${rangeLowTakeProfit}, atr=${lastATR}`);
 
           return {
             signal: 'SELL',
@@ -301,7 +305,21 @@ class StrategyV3Execution {
       return { exit: true, reason: 'TAKE_PROFIT', exitPrice: takeProfit };
     }
 
-    // 3️⃣ 趋势或多因子反转
+    // 3️⃣ 震荡市区间边界失效止损
+    if (marketType === '震荡市') {
+      // 需要传入区间边界参数，这里先用EMA作为近似
+      const rangeHigh = ema20 + effectiveATR * 2; // 近似区间高点
+      const rangeLow = ema20 - effectiveATR * 2;  // 近似区间低点
+      
+      if (position === 'LONG' && currentPrice < (rangeLow - effectiveATR)) {
+        return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
+      }
+      if (position === 'SHORT' && currentPrice > (rangeHigh + effectiveATR)) {
+        return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
+      }
+    }
+
+    // 4️⃣ 趋势或多因子反转
     if (marketType === '趋势市') {
       if ((position === 'LONG' && (trend4h !== '多头趋势' || score1h < 3)) ||
         (position === 'SHORT' && (trend4h !== '空头趋势' || score1h < 3))) {
@@ -309,20 +327,20 @@ class StrategyV3Execution {
       }
     }
 
-    // 4️⃣ Delta/主动买卖盘减弱
+    // 5️⃣ Delta/主动买卖盘减弱
     const deltaImbalance = deltaSell > 0 ? deltaBuy / deltaSell : 0;
     if ((position === 'LONG' && deltaImbalance < 1.1) ||
       (position === 'SHORT' && deltaImbalance > 0.91)) { // 1/1.1
       return { exit: true, reason: 'DELTA_WEAKENING', exitPrice: currentPrice };
     }
 
-    // 5️⃣ 跌破支撑或突破阻力
+    // 6️⃣ 跌破支撑或突破阻力
     if ((position === 'LONG' && (currentPrice < ema20 || currentPrice < ema50 || currentPrice < prevLow)) ||
       (position === 'SHORT' && (currentPrice > ema20 || currentPrice > ema50 || currentPrice > prevHigh))) {
       return { exit: true, reason: 'SUPPORT_RESISTANCE_BREAK', exitPrice: currentPrice };
     }
 
-    // 6️⃣ 时间止损
+    // 7️⃣ 时间止损
     if (timeInPosition >= this.maxTimeInPosition) {
       return { exit: true, reason: 'TIME_STOP', exitPrice: currentPrice };
     }
