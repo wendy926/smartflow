@@ -142,6 +142,30 @@ class StrategyV3Core {
   }
 
   /**
+   * 检查布林带带宽是否扩张 - 严格按照strategy-v3.md文档
+   */
+  isBBWExpanding(candles, period = 20, k = 2) {
+    if (candles.length < period + 10) return false;
+
+    const bb = this.calculateBollingerBands(candles, period, k);
+    
+    // 检查最近10根K线的带宽变化趋势
+    const recentBB = bb.slice(-10);
+    if (recentBB.length < 10) return false;
+
+    // 计算带宽变化率
+    const bandwidths = recentBB.map(b => b.bandwidth);
+    const firstHalf = bandwidths.slice(0, 5);
+    const secondHalf = bandwidths.slice(5);
+    
+    const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+    
+    // 如果后半段平均带宽比前半段大5%以上，认为带宽扩张
+    return avgSecond > avgFirst * 1.05;
+  }
+
+  /**
    * 4H趋势过滤 - 核心判断逻辑
    */
   async analyze4HTrend(symbol) {
@@ -201,17 +225,24 @@ class StrategyV3Core {
         }
       }
 
-      // 判断趋势强度
+      // 判断趋势强度 - 严格按照文档：ADX(14) > 20 且布林带带宽扩张
       const adxLong = ADX > 20 && DIplus > DIminus;
       const adxShort = ADX > 20 && DIminus > DIplus;
+      
+      // 布林带带宽扩张检查 - 严格按照文档要求
+      const bbwExpanding = this.isBBWExpanding(candles, 20, 2);
+      
+      // 趋势强度确认：ADX条件 AND 布林带带宽扩张
+      const strengthLong = adxLong && bbwExpanding;
+      const strengthShort = adxShort && bbwExpanding;
 
       let trend4h = 'NONE';
       let marketType = 'NONE';
 
-      if (isLongMA && adxLong && trendConfirmed) {
+      if (isLongMA && strengthLong && trendConfirmed) {
         trend4h = '多头趋势';
         marketType = '趋势市';
-      } else if (isShortMA && adxShort && trendConfirmed) {
+      } else if (isShortMA && strengthShort && trendConfirmed) {
         trend4h = '空头趋势';
         marketType = '趋势市';
       } else {
