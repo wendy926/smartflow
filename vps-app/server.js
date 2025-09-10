@@ -512,6 +512,10 @@ class SmartFlowServer {
           // 清空数据质量问题
           this.dataMonitor.dataQualityIssues.clear();
 
+          // 清空数据库中的告警历史
+          await this.db.run('DELETE FROM alert_history');
+          console.log('✅ 数据库告警历史已清空');
+
           console.log('✅ V3策略数据验证错误已清空');
           res.json({ success: true, message: 'V3策略数据验证错误已清空' });
         } else {
