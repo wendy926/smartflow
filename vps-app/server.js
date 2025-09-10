@@ -16,6 +16,7 @@ const { DataMonitor } = require('./modules/monitoring/DataMonitor');
 const { dataLayerIntegration } = require('./modules/data/DataLayerIntegration');
 const DeltaManager = require('./modules/data/DeltaManager');
 const { MemoryMiddleware } = require('./modules/middleware/MemoryMiddleware');
+const { DatabaseSchemaUpdater } = require('./modules/database/DatabaseSchemaUpdater');
 
 class SmartFlowServer {
   constructor() {
@@ -837,6 +838,11 @@ class SmartFlowServer {
       this.db = dataLayerIntegration.getDatabase();
       this.dataLayer = dataLayerIntegration.getDataLayer();
       console.log('✅ 数据层架构初始化完成');
+
+      // 更新数据库表结构
+      const schemaUpdater = new DatabaseSchemaUpdater(this.db);
+      await schemaUpdater.updateSchema();
+      console.log('✅ 数据库表结构更新完成');
 
       // 初始化模拟交易管理器
       this.simulationManager = new SimulationManager(this.db);
