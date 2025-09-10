@@ -737,6 +737,15 @@ CREATE TABLE strategy_analysis (
     range_touches_upper INTEGER DEFAULT 0, -- 上轨触碰次数
     last_breakout BOOLEAN DEFAULT FALSE, -- 最近突破
     
+    -- 新增：震荡市假突破和多因子打分字段
+    bb_width_15m REAL,             -- 15分钟布林带宽
+    fake_breakout_detected BOOLEAN DEFAULT FALSE, -- 假突破检测
+    factor_score INTEGER DEFAULT 0, -- 多因子得分
+    vwap_factor REAL,              -- VWAP因子
+    delta_factor REAL,             -- Delta因子
+    oi_factor REAL,                -- OI因子
+    volume_factor REAL,            -- Volume因子
+    
     -- 15分钟执行相关字段
     execution_mode_v3 TEXT,        -- V3执行模式
     setup_candle_high REAL,        -- Setup蜡烛高点
@@ -879,3 +888,12 @@ CREATE TABLE simulations (
 - **完善signalData字段** - getAllSignals方法添加V3策略关键字段（marketType、trend4h、score1h等）
 - **增强调试功能** - 添加调试日志帮助诊断市场类型判断问题
 - **数据清理** - 清理历史SIGNAL_区间空头 TREND_REVERSAL止损的错误记录
+
+### V3.5 (2025-01-09)
+- **重新实现震荡市策略逻辑** - 严格按照strategy-v3.md文档重新实现震荡市策略
+- **1H区间边界有效性检查** - 增加连续触碰、成交量、Delta、OI因子验证
+- **15分钟假突破入场判断** - 增加布林带宽收窄检查，实现真正的假突破逻辑
+- **多因子打分系统** - 实现VWAP、Delta、OI、Volume四个因子的量化打分
+- **止盈止损策略优化** - 结构性止损 + 多因子打分止损 + 时间止盈 + 固定RR目标
+- **数据库表结构更新** - 添加震荡市假突破和多因子打分相关字段
+- **数据验证监控增强** - 新增震荡市策略验证方法和多因子打分验证

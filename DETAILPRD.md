@@ -30,12 +30,19 @@ SmartFlow 是一个基于多周期共振的高胜率高盈亏比加密货币交�
 │  ├── API接口 (BinanceAPI.js)                               │
 │  ├── 限流器 (RateLimiter.js)                               │
 │  ├── 通知系统 (TelegramNotifier.js)                        │
+│  ├── 内存优化 (MemoryOptimizedManager.js)                  │
+│  ├── 内存监控 (MemoryMonitor.js)                           │
 │  └── 工具模块 (TechnicalIndicators.js, DataCache.js)       │
 ├─────────────────────────────────────────────────────────────┤
 │  数据层 (Data Layer)                                        │
 │  ├── SQLite 数据库 (smartflow.db)                          │
+│  │   ├── 策略分析表 (strategy_analysis)                     │
+│  │   ├── 模拟交易表 (simulations)                           │
+│  │   ├── K线数据表 (kline_data)                             │
+│  │   ├── 技术指标表 (technical_indicators)                  │
+│  │   └── 聚合指标表 (aggregated_metrics)                    │
 │  ├── Binance Futures API                                   │
-│  └── 数据缓存系统                                           │
+│  └── 内存缓存系统 (15分钟数据保留)                          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -50,7 +57,11 @@ server.js
 ├── DatabaseManager.js
 ├── SimulationManager.js
 ├── TelegramNotifier.js
-└── DataCache.js
+├── MemoryOptimizedManager.js
+│   ├── DatabaseManager.js
+│   └── DataCache.js
+├── MemoryMonitor.js
+└── MemoryMiddleware.js
 ```
 
 ## 核心功能详细设计
@@ -62,8 +73,9 @@ server.js
 **4H级趋势过滤 (4H)**
 - **价格位置**：价格在 MA20 上方 (多头) / 价格在 MA20 下方 (空头)
 - **MA排列判断**：MA20 > MA50 > MA200 (多头) / MA20 < MA50 < MA200 (空头)
-- **趋势强度**：ADX(14) > 20 或 BBW扩张 (说明趋势强度足够)
-- **波动率扩张**：布林带开口扩张 - 布林带上轨和下轨间距最近 20 根 K 线逐渐扩大，代表波动率增加，趋势在走强
+- **连续确认机制**：至少2根4H K线满足上述条件，确保趋势稳定性
+- **趋势强度确认**：ADX(14) > 20 且 DI方向正确 AND 布林带带宽扩张
+- **波动率扩张**：布林带开口扩张 - 最近10根K线中，后半段平均带宽比前半段大5%以上，代表波动率增加，趋势在走强
 
 **1H级多因子打分 (1H)**
 - **VWAP方向一致（必须满足）**：收盘价在VWAP上方（做多）/下方（做空），否则得分=0
@@ -79,21 +91,43 @@ server.js
 - **得分 < 3分** → 无信号（NONE）
 
 **15分钟执行 (15m) → 入场与风控**
-- **要求**：分离多头和空头模式，分别执行
 
-**多头模式：多头回踩突破（胜率高）**
-- 等价格回踩到EMA20/50支撑位
-- 回踩时成交量缩小，价格不有效跌破支撑
-- 下一根K线突破setup candle的高点→ 入场
+**趋势市执行模式：**
+- **多头模式：多头回踩突破（胜率高）**
+  - 等价格回踩到EMA20/50支撑位
+  - 回踩时成交量缩小，价格不有效跌破支撑
+  - 下一根K线突破setup candle的高点→ 入场
+- **空头模式：空头反抽破位（机会多）**
+  - 等价格反抽到EMA20/50阻力位
+  - 反抽时成交量缩小，价格不有效突破阻力
+  - 下一根K线跌破setup candle的低点→ 入场
 
-**空头模式：空头反抽破位（机会多）**
-- 等价格反抽到EMA20/50阻力位
-- 反抽时成交量缩小，价格不有效突破阻力
-- 下一根K线跌破setup candle的低点→ 入场
+**震荡市执行模式：**
+- **1H区间确认**：检查1H布林带边界有效性
+  - 连续触碰次数 ≥ 2次
+  - 成交量因子 ≤ 1.7倍
+  - Delta因子 ≤ 0.02
+  - OI变化因子 ≤ 0.02
+  - 无最近突破
+- **15分钟假突破入场**：
+  - 布林带宽收窄：bbWidth < 0.05
+  - 假突破验证：突破后快速回撤
+  - 多头假突破：突破下沿后快速回撤
+  - 空头假突破：突破上沿后快速回撤
+- **多因子打分系统**：
+  - VWAP因子：当前价 > VWAP → +1，否则 -1
+  - Delta因子：正值 → +1，负值 → -1
+  - OI因子：上涨 → +1，下降 → -1
+  - Volume因子：增量 → +1，减量 → -1
+  - 得分 ≤ -2 触发多因子止损
 
 **止损止盈计算逻辑：**
-- **止损**：设置在setup candle的另一端 或 1.2 × ATR(14)，取更远的位置
-- **止盈**：多头2R，空头1.2R-1.5R
+- **趋势市**：setup candle另一端 或 1.2 × ATR(14)，取更远位置
+- **震荡市**：
+  - 结构性止损：区间边界失效（跌破下轨-ATR 或 突破上轨+ATR）
+  - 多因子止损：得分 ≤ -2
+  - 时间止盈：持仓超过3小时
+  - 固定RR目标：1:2 风险回报比
 
 #### 1.2 技术指标计算
 
@@ -151,20 +185,26 @@ function calculateADX(klines, period = 14) {
 
 **布林带开口扩张检测**
 ```javascript
-// 计算布林带开口扩张
-function calculateBollingerBandExpansion(data, period = 20) {
-  const bands = calculateBollingerBands(data, period);
-  const recentBands = bands.slice(-20);
-  const widths = recentBands.map(band => band.upper - band.lower);
+// 计算布林带开口扩张 - 严格按照strategy-v3.md文档
+function isBBWExpanding(candles, period = 20, k = 2) {
+  if (candles.length < period + 10) return false;
+
+  const bb = calculateBollingerBands(candles, period, k);
   
-  const firstHalf = widths.slice(0, 10);
-  const secondHalf = widths.slice(10, 20);
+  // 检查最近10根K线的带宽变化趋势
+  const recentBB = bb.slice(-10);
+  if (recentBB.length < 10) return false;
+
+  // 计算带宽变化率
+  const bandwidths = recentBB.map(b => b.bandwidth);
+  const firstHalf = bandwidths.slice(0, 5);
+  const secondHalf = bandwidths.slice(5);
   
-  const avgFirstHalf = firstHalf.reduce((sum, w) => sum + w, 0) / firstHalf.length;
-  const avgSecondHalf = secondHalf.reduce((sum, w) => sum + w, 0) / secondHalf.length;
+  const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+  const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
   
-  // 如果后半段平均宽度比前半段大15%以上，认为开口扩张
-  return avgSecondHalf > avgFirstHalf * 1.15;
+  // 如果后半段平均带宽比前半段大5%以上，认为带宽扩张
+  return avgSecond > avgFirst * 1.05;
 }
 ```
 
@@ -208,19 +248,25 @@ function calculateCVD(klines) {
 
 **4H趋势过滤**
 ```javascript
-// 多头趋势：价格在MA200上方 + MA20 > MA50 + ADX > 20 + 布林带开口扩张
-if (latestClose > latestMA200 && 
+// 多头趋势：价格在MA20上方 + MA20 > MA50 > MA200 + 连续确认 + ADX > 20 + 布林带开口扩张
+if (latestClose > latestMA20 && 
     latestMA20 > latestMA50 && 
+    latestMA50 > latestMA200 &&
+    trendConfirmed &&
     latestADX > 20 && 
-    bollingerExpansion) {
+    DIplus > DIminus &&
+    bbwExpanding) {
   trend = 'UPTREND';
 }
 
-// 空头趋势：价格在MA200下方 + MA20 < MA50 + ADX > 20 + 布林带开口扩张
-else if (latestClose < latestMA200 && 
+// 空头趋势：价格在MA20下方 + MA20 < MA50 < MA200 + 连续确认 + ADX > 20 + 布林带开口扩张
+else if (latestClose < latestMA20 && 
          latestMA20 < latestMA50 && 
+         latestMA50 < latestMA200 &&
+         trendConfirmed &&
          latestADX > 20 && 
-         bollingerExpansion) {
+         DIminus > DIplus &&
+         bbwExpanding) {
   trend = 'DOWNTREND';
 }
 ```
@@ -423,6 +469,11 @@ user_settings (1) ──→ (N) user_preferences
 - `POST /api/trigger-alert-check` - 手动触发告警检查
 - `POST /api/test-data-quality-alert` - 测试数据质量告警
 
+**内存监控接口**
+- `GET /api/memory` - 获取内存使用状态
+- `POST /api/memory/gc` - 强制垃圾回收
+- `POST /api/memory/clear` - 清理内存缓存
+
 #### 5.2 数据格式
 
 **信号数据格式**
@@ -440,6 +491,25 @@ user_settings (1) ──→ (N) user_preferences
   "cvdValue": -1361.73,
   "priceVsVwap": 221.00,
   "dataCollectionRate": 100
+}
+```
+
+**内存监控数据格式**
+```json
+{
+  "status": "NORMAL|WARNING|CRITICAL",
+  "systemUsage": 85.2,
+  "processUsage": {
+    "rss": 125.4,
+    "heapUsed": 89.2,
+    "heapTotal": 120.5,
+    "external": 15.3
+  },
+  "thresholds": {
+    "warning": 90,
+    "max": 95
+  },
+  "lastCleanup": "2025-01-10T10:30:00.000Z"
 }
 ```
 
@@ -557,7 +627,7 @@ this.executionInterval = setInterval(async () => {
 
 **硬件要求**
 - CPU: 2核心以上
-- 内存: 2GB+ 推荐
+- 内存: 1GB+ 最小，2GB+ 推荐（内存优化版本支持1GB环境）
 - 存储: 30GB+ 可用空间
 - 网络: 10Mbps以上带宽
 
@@ -673,21 +743,172 @@ module.exports = {
 
 ### 10. 性能优化
 
-#### 10.1 缓存策略
+#### 10.1 内存优化策略
+
+**内存使用限制**
+- 最大内存使用率：95%（1GB服务器环境）
+- 警告阈值：90%
+- 内存保留时间：15分钟内的聚合数据
+- 自动清理机制：每5分钟清理过期数据
+
+**数据存储分层**
+- **数据库存储**：原始K线数据、技术指标、历史记录
+- **内存存储**：15分钟内的聚合指标、全局统计、活跃交易
+- **缓存策略**：API响应缓存、计算结果缓存、静态资源缓存
+
+**内存监控系统**
+```javascript
+// 内存监控中间件
+class MemoryMiddleware {
+  constructor(options = {}) {
+    this.maxMemoryUsage = options.maxMemoryUsage || 0.95;
+    this.warningThreshold = options.warningThreshold || 0.90;
+    this.lastCleanup = 0;
+    this.cleanupInterval = 5 * 60 * 1000; // 5分钟清理一次
+  }
+}
+```
+
+**数据库表结构优化**
+```sql
+-- 原始K线数据表
+CREATE TABLE kline_data (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  symbol TEXT NOT NULL,
+  interval TEXT NOT NULL,
+  open_time INTEGER NOT NULL,
+  open_price REAL NOT NULL,
+  high_price REAL NOT NULL,
+  low_price REAL NOT NULL,
+  close_price REAL NOT NULL,
+  volume REAL NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(symbol, interval, open_time)
+);
+
+-- 技术指标数据表
+CREATE TABLE technical_indicators (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  symbol TEXT NOT NULL,
+  interval TEXT NOT NULL,
+  timestamp INTEGER NOT NULL,
+  atr REAL, atr14 REAL, vwap REAL,
+  delta REAL, oi REAL, trend_4h TEXT,
+  market_type TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(symbol, interval, timestamp)
+);
+
+-- 聚合指标表（15分钟数据）
+CREATE TABLE aggregated_metrics (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  symbol TEXT NOT NULL,
+  time_window TEXT NOT NULL,
+  timestamp INTEGER NOT NULL,
+  avg_atr REAL, avg_vwap REAL, avg_delta REAL,
+  trend_consistency REAL, signal_strength REAL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(symbol, time_window, timestamp)
+);
+
+-- 策略分析表（V3策略完整字段）
+CREATE TABLE strategy_analysis (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  symbol TEXT NOT NULL,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  
+  -- 4H趋势过滤字段
+  trend4h TEXT,                  -- 多头趋势/空头趋势/震荡市
+  market_type TEXT,              -- 趋势市/震荡市
+  adx14 REAL,                    -- ADX(14)指标
+  bbw REAL,                      -- 布林带带宽
+  trend_confirmed BOOLEAN DEFAULT FALSE, -- 趋势确认
+  
+  -- 1H多因子打分字段
+  vwap_direction_consistent BOOLEAN DEFAULT FALSE, -- VWAP方向一致性
+  breakout_confirmed BOOLEAN DEFAULT FALSE, -- 突破确认
+  volume_15m_ratio REAL,         -- 15分钟成交量比率
+  volume_1h_ratio REAL,          -- 1小时成交量比率
+  oi_change_6h REAL,             -- 6小时持仓量变化
+  delta_buy REAL,                -- 主动买盘
+  delta_sell REAL,               -- 主动卖盘
+  delta_imbalance REAL,          -- Delta不平衡
+  factors TEXT,                  -- 多因子打分详情（JSON）
+  strategy_version TEXT DEFAULT 'V3', -- 策略版本
+  
+  -- 震荡市相关字段
+  range_lower_boundary_valid BOOLEAN DEFAULT FALSE, -- 下轨边界有效性
+  range_upper_boundary_valid BOOLEAN DEFAULT FALSE, -- 上轨边界有效性
+  bb_upper REAL,                 -- 布林带上轨
+  bb_middle REAL,                -- 布林带中轨
+  bb_lower REAL,                 -- 布林带下轨
+  range_touches_lower INTEGER DEFAULT 0, -- 下轨触碰次数
+  range_touches_upper INTEGER DEFAULT 0, -- 上轨触碰次数
+  last_breakout BOOLEAN DEFAULT FALSE, -- 最近突破
+  
+  -- 新增：震荡市假突破和多因子打分字段
+  bb_width_15m REAL,             -- 15分钟布林带宽
+  fake_breakout_detected BOOLEAN DEFAULT FALSE, -- 假突破检测
+  factor_score INTEGER DEFAULT 0, -- 多因子得分
+  vwap_factor REAL,              -- VWAP因子
+  delta_factor REAL,             -- Delta因子
+  oi_factor REAL,                -- OI因子
+  volume_factor REAL,            -- Volume因子
+  
+  -- 15分钟执行相关字段
+  execution_mode_v3 TEXT,        -- V3执行模式
+  setup_candle_high REAL,        -- Setup蜡烛高点
+  setup_candle_low REAL,         -- Setup蜡烛低点
+  atr14 REAL,                    -- ATR(14)指标
+  time_in_position INTEGER DEFAULT 0, -- 持仓时间
+  max_time_in_position INTEGER DEFAULT 48, -- 最大持仓时间
+  
+  -- 数据质量字段
+  data_quality_score REAL DEFAULT 0, -- 数据质量得分
+  cache_version INTEGER DEFAULT 1    -- 缓存版本
+);
+```
+
+**内存清理机制**
+- 定期清理过期数据（每5分钟）
+- 强制垃圾回收（内存使用率>90%时）
+- 数据库VACUUM优化（定期执行）
+- 历史数据归档（保留最近7-30天）
+
+#### 10.2 缓存策略
 
 **数据缓存**
-- API响应缓存
-- 计算结果缓存
-- 静态资源缓存
-- 缓存清理机制
+- API响应缓存：30秒-10分钟（根据数据类型）
+- 计算结果缓存：5分钟
+- 静态资源缓存：1年
+- 缓存清理机制：自动清理过期缓存
 
-#### 10.2 数据库优化
+**内存缓存管理**
+```javascript
+// 内存优化数据管理器
+class MemoryOptimizedManager {
+  constructor(database) {
+    this.memoryRetentionMs = 15 * 60 * 1000; // 15分钟
+    this.aggregatedMetrics = new Map(); // 聚合指标缓存
+    this.globalStats = new Map(); // 全局统计
+    this.activeSimulations = new Map(); // 活跃模拟交易
+  }
+}
+```
+
+#### 10.3 数据库优化
 
 **查询优化**
-- 索引设计
-- 查询优化
-- 连接池管理
-- 数据分页
+- 索引设计：按symbol和时间戳建立复合索引
+- 查询优化：使用LIMIT限制返回数据量
+- 连接池管理：复用数据库连接
+- 数据分页：大数据集分页查询
+
+**数据清理策略**
+- 策略分析数据：保留最近7天
+- 模拟交易数据：保留最近30天
+- 告警历史：保留最近14天
+- 验证结果：保留最近3天
 
 ### 11. 扩展性设计
 
@@ -765,6 +986,12 @@ module.exports = {
 - **v1.3.0** (2025-01-07): 修复杠杆策略差异问题，增加计算逻辑说明
 - **v1.4.0** (2025-01-07): 实现分层更新机制，优化数据更新策略
 - **v1.5.0** (2025-01-07): 配置域名和SSL证书，支持HTTPS访问
+- **v3.0.0** (2025-01-09): V3策略版本，实现多周期共振机制
+- **v3.1.0** (2025-01-09): 完善震荡市和趋势市判断逻辑
+- **v3.2.0** (2025-01-09): 修复震荡市止损止盈逻辑，严格按照strategy-v3.md文档实现
+- **v3.3.0** (2025-01-09): 修复4H趋势过滤逻辑，添加布林带带宽扩张检查，完善趋势强度确认
+- **v3.4.0** (2025-01-09): 修复XLMUSDT TREND_REVERSAL问题，完善marketType获取逻辑，增强调试功能
+- **v3.5.0** (2025-01-09): 重新实现震荡市策略逻辑，严格按照strategy-v3.md文档实现1H区间确认、15分钟假突破入场判断、多因子打分系统和止盈止损策略
 
 ## 域名配置
 
