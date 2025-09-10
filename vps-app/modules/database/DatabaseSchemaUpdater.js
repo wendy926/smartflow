@@ -19,6 +19,15 @@ class DatabaseSchemaUpdater {
       // 添加数据版本控制表
       await this.createDataVersionTable();
       
+      // 添加分析日志表
+      await this.createAnalysisLogsTable();
+      
+      // 添加数据质量问题表
+      await this.createDataQualityIssuesTable();
+      
+      // 添加验证结果表
+      await this.createValidationResultsTable();
+      
       // 添加缓存元数据表
       await this.createCacheMetadataTable();
       
@@ -470,6 +479,70 @@ class DatabaseSchemaUpdater {
       overallHealthStatus: dataCollectionRate >= 95 ? 'HEALTHY' : 'WARNING',
       lastAnalysisTime: new Date().toISOString()
     };
+  }
+
+  /**
+   * 创建分析日志表
+   */
+  async createAnalysisLogsTable() {
+    const sql = `
+      CREATE TABLE IF NOT EXISTS analysis_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        start_time DATETIME NOT NULL,
+        end_time DATETIME,
+        success BOOLEAN DEFAULT FALSE,
+        phases TEXT, -- JSON格式存储各阶段结果
+        error_message TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    
+    await this.db.runQuery(sql);
+    console.log('📊 分析日志表创建完成');
+  }
+
+  /**
+   * 创建数据质量问题表
+   */
+  async createDataQualityIssuesTable() {
+    const sql = `
+      CREATE TABLE IF NOT EXISTS data_quality_issues (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        issue_type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        message TEXT NOT NULL,
+        details TEXT, -- JSON格式存储详细信息
+        resolved BOOLEAN DEFAULT FALSE,
+        resolved_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    
+    await this.db.runQuery(sql);
+    console.log('📊 数据质量问题表创建完成');
+  }
+
+  /**
+   * 创建验证结果表
+   */
+  async createValidationResultsTable() {
+    const sql = `
+      CREATE TABLE IF NOT EXISTS validation_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL,
+        timestamp DATETIME NOT NULL,
+        overall_status TEXT NOT NULL,
+        errors TEXT, -- JSON格式存储错误列表
+        warnings TEXT, -- JSON格式存储警告列表
+        details TEXT, -- JSON格式存储详细信息
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    
+    await this.db.runQuery(sql);
+    console.log('📊 验证结果表创建完成');
   }
 }
 

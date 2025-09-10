@@ -7,12 +7,8 @@ class DataMonitor {
   constructor(database = null) {
     this.database = database; // 数据库引用
     this.validationSystem = new DataValidationSystem(database); // 数据验证系统
-    // 限制内存使用 - 只保留最近的数据
-    this.maxLogsPerSymbol = 5; // 每个交易对最多保留5条日志
-    this.maxSymbols = 50; // 最多监控50个交易对
-    this.maxDataQualityIssues = 3; // 每个交易对最多保留3个数据质量问题
-
-    this.analysisLogs = new Map();
+    
+    // 只保留必要的实时数据在内存中，其他数据存储到数据库
     this.completionRates = {
       dataCollection: 0,
       signalAnalysis: 0,
@@ -29,12 +25,14 @@ class DataMonitor {
       signalAnalysis: 95, // 降低阈值，95%以上认为正常
       simulationTrading: 90 // 降低阈值，90%以上认为正常
     };
-    this.symbolStats = new Map();
-    this.dataQualityIssues = new Map(); // 数据质量问题记录
-    this.refreshInterval = 30000; // 30秒
-    this.lastRefreshTime = new Map();
+    
+    // 只保留最近15分钟的数据在内存中
+    this.memoryRetentionMs = 15 * 60 * 1000; // 15分钟
+    this.symbolStats = new Map(); // 只保留实时统计
+    this.lastRefreshTime = new Map(); // 只保留刷新时间
     this.lastAlertTime = new Map(); // 记录上次告警时间，避免重复告警
     this.alertCooldown = 30 * 60 * 1000; // 30分钟冷却时间
+    this.refreshInterval = 30000; // 30秒
 
     // 启动定期清理
     this.startMemoryCleanup();
@@ -67,7 +65,8 @@ class DataMonitor {
     stats.dataCollectionAttempts++;
     stats.signalAnalysisAttempts++;
 
-    this.analysisLogs.set(symbol, {
+    // 创建分析日志对象（不再存储在内存中）
+    const analysisLog = {
       startTime: now,
       endTime: null,
       success: false,
@@ -83,7 +82,37 @@ class DataMonitor {
       simulation: {},
       errors: [],
       totalTime: 0
-    });
+    };
+
+    // 存储到数据库
+    if (this.database) {
+      this.storeAnalysisLog(analysisLog).catch(error => {
+        console.error('存储分析日志失败:', error);
+      });
+    }
+
+    return analysisLog;
+  }
+
+  // 存储分析日志到数据库
+  async storeAnalysisLog(analysisLog) {
+    if (!this.database) return;
+
+    try {
+      await this.database.run(`
+        INSERT INTO analysis_logs (symbol, start_time, end_time, success, phases, error_message)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [
+        analysisLog.symbol,
+        new Date(analysisLog.startTime).toISOString(),
+        analysisLog.endTime ? new Date(analysisLog.endTime).toISOString() : null,
+        analysisLog.success,
+        JSON.stringify(analysisLog.phases),
+        analysisLog.errors.length > 0 ? analysisLog.errors.join('; ') : null
+      ]);
+    } catch (error) {
+      console.error('存储分析日志失败:', error);
+    }
   }
 
   recordRawData(symbol, dataType, data, success = true, error = null) {
@@ -123,46 +152,35 @@ class DataMonitor {
       }
     }
 
-    const log = this.analysisLogs.get(symbol);
-    if (log) {
-      log.rawData[dataType] = { data, success, error, timestamp: Date.now() };
-      log.phases.dataCollection.success = success;
-      if (error) {
-        log.errors.push(`数据收集错误 (${dataType}): ${error.message || error}`);
-      }
+    // 记录数据质量问题到数据库
+    if (!success) {
+      this.recordDataQualityIssue(symbol, dataType, error?.message || error);
     }
   }
 
   // 记录数据质量问题
-  recordDataQualityIssue(symbol, analysisType, errorMessage) {
-    if (!this.dataQualityIssues.has(symbol)) {
-      this.dataQualityIssues.set(symbol, []);
+  async recordDataQualityIssue(symbol, analysisType, errorMessage) {
+    // 直接存储到数据库
+    if (this.database) {
+      try {
+        await this.database.run(`
+          INSERT INTO data_quality_issues (symbol, issue_type, severity, message, details)
+          VALUES (?, ?, ?, ?, ?)
+        `, [
+          symbol,
+          analysisType,
+          'HIGH', // 数据质量问题都是高严重性
+          errorMessage,
+          JSON.stringify({ timestamp: new Date().toISOString() })
+        ]);
+      } catch (error) {
+        console.error('存储数据质量问题失败:', error);
+      }
     }
-
-    const issues = this.dataQualityIssues.get(symbol);
-    issues.push({
-      timestamp: Date.now(),
-      analysisType,
-      errorMessage,
-      severity: 'HIGH' // 数据质量问题都是高严重性
-    });
-
-    // 只保留最近3个问题，减少内存使用
-    if (issues.length > this.maxDataQualityIssues) {
-      issues.splice(0, issues.length - this.maxDataQualityIssues);
-    }
-
-    // 自动清理超过1小时的问题
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    const validIssues = issues.filter(issue => issue.timestamp > oneHourAgo);
-    this.dataQualityIssues.set(symbol, validIssues);
   }
 
   recordIndicator(symbol, indicatorType, data, calculationTime) {
-    const log = this.analysisLogs.get(symbol);
-    if (log) {
-      log.indicators[indicatorType] = { data, calculationTime };
-    }
+    // 指标数据不再存储在内存中，直接使用
   }
 
   recordSignal(symbol, signalType, signalData, success = true, error = null) {
@@ -175,13 +193,9 @@ class DataMonitor {
       }
     }
 
-    const log = this.analysisLogs.get(symbol);
-    if (log) {
-      log.signals[signalType] = { data: signalData, success, error };
-      log.phases.signalAnalysis.success = success;
-      if (error) {
-        log.errors.push(`信号分析错误 (${signalType}): ${error.message || error}`);
-      }
+    // 记录数据质量问题到数据库
+    if (!success) {
+      this.recordDataQualityIssue(symbol, signalType, error?.message || error);
     }
   }
 
@@ -195,24 +209,14 @@ class DataMonitor {
       }
     }
 
-    const log = this.analysisLogs.get(symbol);
-    if (log) {
-      log.simulation[simulationType] = { data: simulationData, success, error };
-      log.phases.simulationTrading.success = success;
-      if (error) {
-        log.errors.push(`模拟交易错误 (${simulationType}): ${error.message || error}`);
-      }
+    // 记录数据质量问题到数据库
+    if (!success) {
+      this.recordDataQualityIssue(symbol, simulationType, error?.message || error);
     }
   }
 
   completeDataCollection(symbol, success = true) {
-    const log = this.analysisLogs.get(symbol);
-    if (log) {
-      log.endTime = Date.now();
-      log.success = success;
-      log.totalTime = log.endTime - log.startTime;
-    }
-
+    // 数据收集完成，不再需要存储到内存
     this.calculateCompletionRates();
     this.checkHealthStatus();
   }
@@ -223,54 +227,8 @@ class DataMonitor {
    * @param {Object} analysisResult - 分析结果
    */
   recordAnalysisLog(symbol, analysisResult) {
-    const log = this.analysisLogs.get(symbol);
-    if (log) {
-      // 更新分析日志中的信号数据
-      log.trend = analysisResult.trend;
-      log.signal = analysisResult.signal;
-      log.execution = analysisResult.execution;
-      log.executionMode = analysisResult.executionMode;
-      log.hourlyScore = analysisResult.hourlyScore;
-      log.modeA = analysisResult.modeA;
-      log.modeB = analysisResult.modeB;
-
-      // 更新V3策略字段
-      if (analysisResult.trend4h) {
-        log.trend4h = analysisResult.trend4h;
-      }
-      if (analysisResult.marketType) {
-        log.marketType = analysisResult.marketType;
-      }
-      if (analysisResult.score1h !== undefined) {
-        log.score1h = analysisResult.score1h;
-      }
-      if (analysisResult.vwapDirectionConsistent !== undefined) {
-        log.vwapDirectionConsistent = analysisResult.vwapDirectionConsistent;
-      }
-      if (analysisResult.factors) {
-        log.factors = analysisResult.factors;
-      }
-      if (analysisResult.strategyVersion) {
-        log.strategyVersion = analysisResult.strategyVersion;
-      }
-
-      // 更新详细分析数据
-      if (analysisResult.dailyTrend) {
-        log.dailyTrend = analysisResult.dailyTrend;
-      }
-      if (analysisResult.hourlyConfirmation) {
-        log.hourlyConfirmation = analysisResult.hourlyConfirmation;
-      }
-      if (analysisResult.execution15m) {
-        log.execution15m = analysisResult.execution15m;
-      }
-
-      // 更新完成时间
-      log.endTime = Date.now();
-      log.success = true;
-      log.totalTime = log.endTime - log.startTime;
-    }
-
+    // 分析日志不再存储在内存中，直接使用结果
+    
     // 更新统计数据
     const stats = this.symbolStats.get(symbol);
     if (stats) {
@@ -291,32 +249,23 @@ class DataMonitor {
   }
 
   getAnalysisLog(symbol) {
-    const log = this.analysisLogs.get(symbol);
-    if (!log) {
-      return {
-        success: false,
-        symbol,
-        strategyVersion: 'V3', // 默认V3策略
-        phases: {
-          dataCollection: { success: false },
-          signalAnalysis: { success: false },
-          simulationTrading: { success: false }
-        },
-        rawData: {},
-        indicators: {},
-        signals: {},
-        simulation: {},
-        errors: [],
-        totalTime: 0
-      };
-    }
-    
-    // 确保包含V3策略字段
-    if (!log.strategyVersion) {
-      log.strategyVersion = 'V3';
-    }
-    
-    return log;
+    // 不再从内存中获取分析日志，返回默认结构
+    return {
+      success: false,
+      symbol,
+      strategyVersion: 'V3', // 默认V3策略
+      phases: {
+        dataCollection: { success: false },
+        signalAnalysis: { success: false },
+        simulationTrading: { success: false }
+      },
+      rawData: {},
+      indicators: {},
+      signals: {},
+      simulation: {},
+      errors: [],
+      totalTime: 0
+    };
   }
 
   calculateCompletionRates() {
@@ -474,8 +423,7 @@ class DataMonitor {
     // 如果数据库没有交易对，则从统计中获取
     if (allSymbols.length === 0) {
       const statsSymbols = Array.from(this.symbolStats.keys()).filter(symbol => symbol && symbol.trim() !== '');
-      const logSymbols = Array.from(this.analysisLogs.keys()).filter(symbol => symbol && symbol.trim() !== '');
-      allSymbols = [...new Set([...statsSymbols, ...logSymbols])];
+      allSymbols = statsSymbols;
       console.log(`📊 从统计中获取到 ${allSymbols.length} 个交易对:`, allSymbols);
     }
 
@@ -506,12 +454,20 @@ class DataMonitor {
           dataValidationErrors.push(...validationResult.errors.map(error => `${symbol}: ${error}`));
         }
 
-        // 收集数据质量问题
-        if (this.dataQualityIssues.has(symbol)) {
-          const issues = this.dataQualityIssues.get(symbol);
-          issues.forEach(issue => {
-            dataQualityIssues.push(`${symbol}: ${issue.analysisType} - ${issue.errorMessage}`);
-          });
+        // 收集数据质量问题（从数据库读取）
+        if (this.database) {
+          try {
+            const issues = await this.database.all(`
+              SELECT issue_type, message FROM data_quality_issues 
+              WHERE symbol = ? AND created_at > datetime('now', '-1 hour')
+              ORDER BY created_at DESC LIMIT 5
+            `, [symbol]);
+            issues.forEach(issue => {
+              dataQualityIssues.push(`${symbol}: ${issue.issue_type} - ${issue.message}`);
+            });
+          } catch (error) {
+            console.error('读取数据质量问题失败:', error);
+          }
         }
 
         // 统计成功率
@@ -753,16 +709,14 @@ class DataMonitor {
 
   // 限制交易对数量
   limitSymbolCount() {
-    if (this.analysisLogs.size > this.maxSymbols) {
+    if (this.symbolStats.size > this.maxSymbols) {
       // 按时间排序，删除最旧的交易对
-      const sortedLogs = Array.from(this.analysisLogs.entries())
-        .sort((a, b) => a[1].startTime - b[1].startTime);
+      const sortedStats = Array.from(this.symbolStats.entries())
+        .sort((a, b) => (a[1].lastDataCollectionTime || 0) - (b[1].lastDataCollectionTime || 0));
 
-      const toDelete = sortedLogs.slice(0, this.analysisLogs.size - this.maxSymbols);
+      const toDelete = sortedStats.slice(0, this.symbolStats.size - this.maxSymbols);
       toDelete.forEach(([symbol]) => {
-        this.analysisLogs.delete(symbol);
         this.symbolStats.delete(symbol);
-        this.dataQualityIssues.delete(symbol);
         this.lastRefreshTime.delete(symbol);
         this.lastAlertTime.delete(symbol);
       });
@@ -774,22 +728,27 @@ class DataMonitor {
   clearOldLogs() {
     const cutoffTime = Date.now() - (2 * 60 * 60 * 1000); // 2小时前，更频繁清理
 
-    // 清理分析日志
-    if (this.analysisLogs && this.analysisLogs.entries) {
-      for (const [symbol, log] of this.analysisLogs.entries()) {
-        if (log && log.startTime && log.startTime < cutoffTime) {
-          this.analysisLogs.delete(symbol);
-        }
+    // 清理数据库中的过期分析日志
+    if (this.database) {
+      try {
+        await this.database.run(`
+          DELETE FROM analysis_logs 
+          WHERE start_time < datetime('now', '-2 hours')
+        `);
+      } catch (error) {
+        console.error('清理过期分析日志失败:', error);
       }
     }
 
-    // 清理数据质量问题
-    for (const [symbol, issues] of this.dataQualityIssues.entries()) {
-      const validIssues = issues.filter(issue => issue.timestamp > cutoffTime);
-      if (validIssues.length === 0) {
-        this.dataQualityIssues.delete(symbol);
-      } else {
-        this.dataQualityIssues.set(symbol, validIssues);
+    // 清理数据库中的过期数据质量问题
+    if (this.database) {
+      try {
+        await this.database.run(`
+          DELETE FROM data_quality_issues 
+          WHERE created_at < datetime('now', '-1 hour')
+        `);
+      } catch (error) {
+        console.error('清理过期数据质量问题失败:', error);
       }
     }
 
@@ -810,7 +769,7 @@ class DataMonitor {
     // 限制交易对数量
     this.limitSymbolCount();
 
-    console.log(`🧹 内存清理完成 - 分析日志: ${this.analysisLogs.size}, 数据质量: ${this.dataQualityIssues.size}, 刷新时间: ${this.lastRefreshTime.size}, 告警时间: ${this.lastAlertTime.size}`);
+    console.log(`🧹 内存清理完成 - 刷新时间: ${this.lastRefreshTime.size}, 告警时间: ${this.lastAlertTime.size}`);
   }
 
   setAlertThresholds(thresholds) {

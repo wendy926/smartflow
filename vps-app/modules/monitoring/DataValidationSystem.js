@@ -4,7 +4,7 @@
 class DataValidationSystem {
   constructor(database = null) {
     this.database = database;
-    this.validationResults = new Map(); // 存储每个交易对的验证结果
+    // 不再在内存中存储验证结果，直接存储到数据库
   }
 
   // 验证单个交易对的V3策略数据
@@ -48,8 +48,33 @@ class DataValidationSystem {
       validationResult.overallStatus = 'ERROR';
     }
 
-    this.validationResults.set(symbol, validationResult);
+    // 存储验证结果到数据库
+    if (this.database) {
+      await this.storeValidationResult(validationResult);
+    }
+
     return validationResult;
+  }
+
+  // 存储验证结果到数据库
+  async storeValidationResult(validationResult) {
+    if (!this.database) return;
+
+    try {
+      await this.database.run(`
+        INSERT INTO validation_results (symbol, timestamp, overall_status, errors, warnings, details)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [
+        validationResult.symbol,
+        validationResult.timestamp,
+        validationResult.overallStatus,
+        JSON.stringify(validationResult.errors),
+        JSON.stringify(validationResult.warnings),
+        JSON.stringify(validationResult.details)
+      ]);
+    } catch (error) {
+      console.error('存储验证结果失败:', error);
+    }
   }
 
   // 验证V3策略核心字段
@@ -424,9 +449,15 @@ class DataValidationSystem {
   }
 
   // 清空验证结果
-  clearValidationResults() {
-    this.validationResults.clear();
-    console.log('✅ 验证结果已清空');
+  async clearValidationResults() {
+    if (this.database) {
+      try {
+        await this.database.run('DELETE FROM validation_results');
+        console.log('✅ 数据库验证结果已清空');
+      } catch (error) {
+        console.error('清空验证结果失败:', error);
+      }
+    }
   }
 }
 

@@ -510,7 +510,9 @@ class SmartFlowServer {
           this.dataMonitor.validationSystem.clearValidationResults();
 
           // 清空数据质量问题
-          this.dataMonitor.dataQualityIssues.clear();
+          if (this.dataMonitor.database) {
+            await this.dataMonitor.database.run('DELETE FROM data_quality_issues');
+          }
 
           // 清空数据库中的告警历史
           await this.db.run('DELETE FROM alert_history');
