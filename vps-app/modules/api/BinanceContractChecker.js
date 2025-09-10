@@ -23,21 +23,21 @@ class BinanceContractChecker {
       }
 
       console.log('🔄 从Binance API获取最新合约列表...');
-      
+
       // 调用Binance exchangeInfo API
       const { default: fetch } = await import('node-fetch');
       const response = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
-      
+
       if (!response.ok) {
         throw new Error(`Binance exchangeInfo API错误: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      
+
       // 过滤出可用的USDT合约
       const availableContracts = data.symbols
-        .filter(symbol => 
-          symbol.status === 'TRADING' && 
+        .filter(symbol =>
+          symbol.status === 'TRADING' &&
           symbol.symbol.endsWith('USDT') &&
           (!symbol.permissions || !symbol.permissions.includes('SPOT')) // 排除现货合约，处理permissions为undefined的情况
         )
@@ -55,7 +55,7 @@ class BinanceContractChecker {
 
     } catch (error) {
       console.error('❌ 获取Binance合约列表失败:', error);
-      
+
       // 如果API调用失败，返回空数组
       return [];
     }
@@ -80,11 +80,11 @@ class BinanceContractChecker {
   async checkMultipleContracts(symbols) {
     const results = {};
     const availableContracts = await this.getAllAvailableContracts();
-    
+
     for (const symbol of symbols) {
       results[symbol] = availableContracts.includes(symbol.toUpperCase());
     }
-    
+
     return results;
   }
 
@@ -103,14 +103,14 @@ class BinanceContractChecker {
     try {
       const { default: fetch } = await import('node-fetch');
       const response = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
-      
+
       if (!response.ok) {
         throw new Error(`Binance exchangeInfo API错误: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       const contract = data.symbols.find(s => s.symbol === symbol.toUpperCase());
-      
+
       if (!contract) {
         return null;
       }

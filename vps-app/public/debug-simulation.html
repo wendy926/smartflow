@@ -1,88 +1,109 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>调试模拟交易数据</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
-        .error { color: red; }
-        .success { color: green; }
-        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>调试模拟交易数据</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .debug-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ccc;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .success {
+      color: green;
+    }
+
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      overflow-x: auto;
+    }
+  </style>
 </head>
+
 <body>
-    <h1>调试模拟交易数据</h1>
-    
-    <div class="debug-section">
-        <h2>1. API调用测试</h2>
-        <div id="apiTest">测试中...</div>
-    </div>
-    
-    <div class="debug-section">
-        <h2>2. 数据筛选测试</h2>
-        <div id="filterTest">测试中...</div>
-    </div>
-    
-    <div class="debug-section">
-        <h2>3. 表格渲染测试</h2>
-        <div id="tableTest">测试中...</div>
-    </div>
+  <h1>调试模拟交易数据</h1>
 
-    <script src="js/api.js"></script>
-    <script>
-        class DebugSimulationData {
-            constructor() {
-                this.apiClient = new APIClient();
-                this.allSimulations = [];
-                this.filteredSimulations = [];
-                this.init();
-            }
+  <div class="debug-section">
+    <h2>1. API调用测试</h2>
+    <div id="apiTest">测试中...</div>
+  </div>
 
-            async init() {
-                await this.testAPI();
-                await this.testFiltering();
-                await this.testTableRendering();
-            }
+  <div class="debug-section">
+    <h2>2. 数据筛选测试</h2>
+    <div id="filterTest">测试中...</div>
+  </div>
 
-            async testAPI() {
-                const apiTestDiv = document.getElementById('apiTest');
-                try {
-                    console.log('🔍 开始API测试...');
-                    
-                    // 测试模拟交易历史API
-                    const result = await this.apiClient.getSimulationHistory();
-                    console.log('API返回结果:', result);
-                    
-                    this.allSimulations = Array.isArray(result) ? result : (result.simulations || []);
-                    
-                    apiTestDiv.innerHTML = `
+  <div class="debug-section">
+    <h2>3. 表格渲染测试</h2>
+    <div id="tableTest">测试中...</div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    class DebugSimulationData {
+      constructor() {
+        this.apiClient = new APIClient();
+        this.allSimulations = [];
+        this.filteredSimulations = [];
+        this.init();
+      }
+
+      async init() {
+        await this.testAPI();
+        await this.testFiltering();
+        await this.testTableRendering();
+      }
+
+      async testAPI() {
+        const apiTestDiv = document.getElementById('apiTest');
+        try {
+          console.log('🔍 开始API测试...');
+
+          // 测试模拟交易历史API
+          const result = await this.apiClient.getSimulationHistory();
+          console.log('API返回结果:', result);
+
+          this.allSimulations = Array.isArray(result) ? result : (result.simulations || []);
+
+          apiTestDiv.innerHTML = `
                         <div class="success">✅ API调用成功</div>
                         <div>返回记录数: ${this.allSimulations.length}</div>
                         <div>数据类型: ${Array.isArray(result) ? 'Array' : typeof result}</div>
                         <pre>${JSON.stringify(result.slice(0, 2), null, 2)}</pre>
                     `;
-                } catch (error) {
-                    console.error('API测试失败:', error);
-                    apiTestDiv.innerHTML = `<div class="error">❌ API调用失败: ${error.message}</div>`;
-                }
-            }
+        } catch (error) {
+          console.error('API测试失败:', error);
+          apiTestDiv.innerHTML = `<div class="error">❌ API调用失败: ${error.message}</div>`;
+        }
+      }
 
-            async testFiltering() {
-                const filterTestDiv = document.getElementById('filterTest');
-                try {
-                    console.log('🔍 开始筛选测试...');
-                    
-                    // 模拟筛选逻辑
-                    this.filteredSimulations = [...this.allSimulations];
-                    
-                    // 检查是否有隐藏的过滤条件
-                    const activeTrades = this.allSimulations.filter(sim => sim.status === 'ACTIVE');
-                    const closedTrades = this.allSimulations.filter(sim => sim.status === 'CLOSED');
-                    const signalNoneTrades = this.allSimulations.filter(sim => sim.trigger_reason === 'SIGNAL_NONE');
-                    
-                    filterTestDiv.innerHTML = `
+      async testFiltering() {
+        const filterTestDiv = document.getElementById('filterTest');
+        try {
+          console.log('🔍 开始筛选测试...');
+
+          // 模拟筛选逻辑
+          this.filteredSimulations = [...this.allSimulations];
+
+          // 检查是否有隐藏的过滤条件
+          const activeTrades = this.allSimulations.filter(sim => sim.status === 'ACTIVE');
+          const closedTrades = this.allSimulations.filter(sim => sim.status === 'CLOSED');
+          const signalNoneTrades = this.allSimulations.filter(sim => sim.trigger_reason === 'SIGNAL_NONE');
+
+          filterTestDiv.innerHTML = `
                         <div class="success">✅ 筛选测试完成</div>
                         <div>总记录数: ${this.allSimulations.length}</div>
                         <div>筛选后记录数: ${this.filteredSimulations.length}</div>
@@ -91,30 +112,30 @@
                         <div>SIGNAL_NONE交易: ${signalNoneTrades.length}</div>
                         <div>筛选前后记录数是否一致: ${this.allSimulations.length === this.filteredSimulations.length ? '是' : '否'}</div>
                     `;
-                } catch (error) {
-                    console.error('筛选测试失败:', error);
-                    filterTestDiv.innerHTML = `<div class="error">❌ 筛选测试失败: ${error.message}</div>`;
-                }
-            }
+        } catch (error) {
+          console.error('筛选测试失败:', error);
+          filterTestDiv.innerHTML = `<div class="error">❌ 筛选测试失败: ${error.message}</div>`;
+        }
+      }
 
-            async testTableRendering() {
-                const tableTestDiv = document.getElementById('tableTest');
-                try {
-                    console.log('🔍 开始表格渲染测试...');
-                    
-                    // 模拟表格渲染逻辑
-                    const simulations = this.filteredSimulations.slice(0, 5); // 只显示前5条
-                    
-                    if (!simulations || simulations.length === 0) {
-                        tableTestDiv.innerHTML = `
+      async testTableRendering() {
+        const tableTestDiv = document.getElementById('tableTest');
+        try {
+          console.log('🔍 开始表格渲染测试...');
+
+          // 模拟表格渲染逻辑
+          const simulations = this.filteredSimulations.slice(0, 5); // 只显示前5条
+
+          if (!simulations || simulations.length === 0) {
+            tableTestDiv.innerHTML = `
                             <div class="error">❌ 没有数据可显示</div>
                             <div>allSimulations.length: ${this.allSimulations.length}</div>
                             <div>filteredSimulations.length: ${this.filteredSimulations.length}</div>
                         `;
-                        return;
-                    }
+            return;
+          }
 
-                    const tableHTML = simulations.map(sim => `
+          const tableHTML = simulations.map(sim => `
                         <tr>
                             <td>${sim.symbol}</td>
                             <td>${sim.direction}</td>
@@ -124,7 +145,7 @@
                         </tr>
                     `).join('');
 
-                    tableTestDiv.innerHTML = `
+          tableTestDiv.innerHTML = `
                         <div class="success">✅ 表格渲染测试完成</div>
                         <div>渲染记录数: ${simulations.length}</div>
                         <table border="1" style="width: 100%; margin-top: 10px;">
@@ -142,17 +163,18 @@
                             </tbody>
                         </table>
                     `;
-                } catch (error) {
-                    console.error('表格渲染测试失败:', error);
-                    tableTestDiv.innerHTML = `<div class="error">❌ 表格渲染测试失败: ${error.message}</div>`;
-                }
-            }
+        } catch (error) {
+          console.error('表格渲染测试失败:', error);
+          tableTestDiv.innerHTML = `<div class="error">❌ 表格渲染测试失败: ${error.message}</div>`;
         }
+      }
+    }
 
-        // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            new DebugSimulationData();
-        });
-    </script>
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      new DebugSimulationData();
+    });
+  </script>
 </body>
+
 </html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,9 +12,9 @@
             border: 1px solid #e9ecef;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        
+
         .category-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -23,35 +24,35 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .category-header.mainstream {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }
-        
+
         .category-header.highcap {
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
-        
+
         .category-header.trending {
             background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
         }
-        
+
         .category-header.smallcap {
             background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
         }
-        
+
         .category-content {
             padding: 25px;
             background: white;
         }
-        
+
         .symbols-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
-        
+
         .symbol-card {
             border: 1px solid #e9ecef;
             border-radius: 12px;
@@ -59,44 +60,44 @@
             background: white;
             transition: all 0.3s ease;
             position: relative;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
-        
+
         .symbol-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
-        
+
         .symbol-card.added {
             background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
             border-color: #28a745;
         }
-        
+
         .symbol-info {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 15px;
         }
-        
+
         .symbol-name {
             font-weight: 700;
             color: #2c3e50;
             font-size: 1.1em;
         }
-        
+
         .symbol-price {
             color: #6c757d;
             font-size: 0.9em;
             margin-top: 4px;
         }
-        
+
         .symbol-market-cap {
             color: #6c757d;
             font-size: 0.8em;
             margin-bottom: 12px;
         }
-        
+
         .symbol-frequency {
             background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
             padding: 6px 12px;
@@ -107,7 +108,7 @@
             display: inline-block;
             font-weight: 500;
         }
-        
+
         .symbol-holding-period {
             background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
             padding: 6px 12px;
@@ -119,7 +120,7 @@
             font-weight: 500;
             border-left: 3px solid #ffc107;
         }
-        
+
         .symbol-stats {
             background: #f8f9fa;
             border-radius: 8px;
@@ -127,48 +128,48 @@
             margin-bottom: 15px;
             border-left: 4px solid #007bff;
         }
-        
+
         .symbol-stats h4 {
             margin: 0 0 8px 0;
             color: #495057;
             font-size: 0.9em;
             font-weight: 600;
         }
-        
+
         .stats-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 4px;
         }
-        
+
         .stats-row:last-child {
             margin-bottom: 0;
         }
-        
+
         .stats-label {
             color: #6c757d;
             font-size: 0.8em;
         }
-        
+
         .stats-value {
             color: #2c3e50;
             font-weight: 600;
             font-size: 0.8em;
         }
-        
+
         .stats-value.daily {
             color: #28a745;
         }
-        
+
         .stats-value.weekly {
             color: #007bff;
         }
-        
+
         .symbol-actions {
             display: flex;
             gap: 10px;
         }
-        
+
         .btn-small {
             padding: 8px 16px;
             font-size: 0.85em;
@@ -178,33 +179,33 @@
             transition: all 0.2s ease;
             font-weight: 500;
         }
-        
+
         .btn-add {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: white;
         }
-        
+
         .btn-add:hover {
             background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
             transform: translateY(-1px);
         }
-        
+
         .btn-remove {
             background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
             color: white;
         }
-        
+
         .btn-remove:hover {
             background: linear-gradient(135deg, #c82333 0%, #d63384 100%);
             transform: translateY(-1px);
         }
-        
+
         .btn-added {
             background: #6c757d;
             color: white;
             cursor: not-allowed;
         }
-        
+
         .loading-spinner {
             display: inline-block;
             width: 24px;
@@ -214,34 +215,39 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        
+
         .current-symbols {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border-radius: 12px;
             padding: 25px;
             margin-bottom: 30px;
             border: 1px solid #e9ecef;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
-        
+
         .current-symbols h3 {
             margin-top: 0;
             color: #2c3e50;
             font-weight: 700;
         }
-        
+
         .current-symbols-list {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
             margin-top: 15px;
         }
-        
+
         .current-symbol-tag {
             background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
             color: white;
@@ -252,9 +258,9 @@
             align-items: center;
             gap: 10px;
             font-weight: 500;
-            box-shadow: 0 2px 6px rgba(0,123,255,0.3);
+            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
         }
-        
+
         .current-symbol-tag .remove-btn {
             background: none;
             border: none;
@@ -270,11 +276,11 @@
             border-radius: 50%;
             transition: background 0.2s ease;
         }
-        
+
         .current-symbol-tag .remove-btn:hover {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
         }
-        
+
         .refresh-btn {
             background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
             color: white;
@@ -286,12 +292,12 @@
             transition: all 0.2s ease;
             font-weight: 500;
         }
-        
+
         .refresh-btn:hover {
             background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
             transform: translateY(-1px);
         }
-        
+
         .refresh-btn:disabled {
             background: #6c757d;
             cursor: not-allowed;
@@ -299,6 +305,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header class="header">
@@ -397,4 +404,5 @@
     <script src="js/components/Modal.js?v=20250109-12"></script>
     <script src="js/symbol-management.js?v=20250109-12"></script>
 </body>
+
 </html>

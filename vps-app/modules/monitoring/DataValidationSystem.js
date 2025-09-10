@@ -177,7 +177,7 @@ class DataValidationSystem {
     if (trend4h && marketType) {
       const isTrendMarket = ['多头趋势', '空头趋势'].includes(trend4h);
       const expectedMarketType = isTrendMarket ? '趋势市' : '震荡市';
-      
+
       if (marketType !== expectedMarketType) {
         result.errors.push(`市场类型不一致: trend4h=${trend4h}, marketType=${marketType}, 期望=${expectedMarketType}`);
         result.valid = false;

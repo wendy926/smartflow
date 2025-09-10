@@ -565,420 +565,270 @@ const sampleKlines = [
 console.log("VWAP:", calculateVWAP(sampleKlines));
 ```
 
-**🔹 2.3 4H 震荡市也需要1H和15分钟信号确认入场执行策略**
+**🔹 2.3 4H 震荡市也需要1H和15分钟信号确认入场以及止盈止损执行策略**
 
 - 前提：trend4h === "震荡市"（上层传入）
-- 1H 边界有效性：要求 1H 布林带带宽较小（表示区间），并检测最近几根 1H 是否在上/下轨附近反复（说明边界有效）。
-- 区间交易（高胜率）：
-    - 价格接近下轨且 1H 边界有效 → 在 15m 出现缩量不破或 15m setup 突破（确认）时做多。
-    - 价格接近上轨 → 对称做空。
-- 假突破反手（高赔率）：
-    - 出现突破上/下轨的 15m（或1H）K 线，但随后收回回到区间内（下一根 15m 或 1H 收回）且突破量能不足 → 反手入场。
-- 止损：在轨外一定比例（或前一反向极值），止盈：到区间中轨或对侧轨（可配置）。
+- 入场 → 1H 区间确认 + 15m 假突破验证
+- 止损 → 结构性止损 + 多因子止损
+- 止盈 → 固定RR目标 / 区间边界 / 时间止盈
 
-**震荡市1h判断代码逻辑**
-
+## 代码实现：
 ```jsx
-/**
- * range1h.js
- * 功能：震荡市 1H 区间边界有效性 + VWAP/Delta/成交量/OI/突破确认
- * 输入：
- *   - candles1h: Array<{open, high, low, close, volume, time}>
- *   - oiData: Array<{time, oi}> 最近6小时OI数据
- *   - deltaData: Array<{time, delta}> 最近6小时买卖盘不平衡数据
- *   - opts: 可选参数 { bbPeriod, bbK, lowerTouchPct, upperTouchPct, volMultiplier, oiThreshold, deltaThreshold, breakoutPeriod }
- * 输出：
- *   {
- *     lowerBoundaryValid,
- *     upperBoundaryValid,
- *     bb1h: {upper, middle, lower, bandwidth},
- *     vwap,
- *     delta,
- *     oiChange,
- *     lastBreakout
- *   }
- */
+const fetch = require("node-fetch");
 
-function sma(arr, len) {
-  const slice = arr.slice(-len);
-  return slice.reduce((a, b) => a + b, 0) / len;
+// ------------------- 获取K线数据 -------------------
+async function getKlines(symbol, interval, limit = 100) {
+  const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return data.map(k => ({
+    open: parseFloat(k[1]),
+    high: parseFloat(k[2]),
+    low: parseFloat(k[3]),
+    close: parseFloat(k[4]),
+    volume: parseFloat(k[5]),
+    quoteVolume: parseFloat(k[7])
+  }));
 }
 
-function stddev(arr, len) {
-  const m = sma(arr, len);
-  return Math.sqrt(arr.slice(-len).reduce((acc, v) => acc + Math.pow(v - m, 2), 0) / len);
+// ------------------- VWAP -------------------
+async function getVWAP(symbol, interval) {
+  const klines = await getKlines(symbol, interval, 20);
+  let sumPV = 0;
+  let sumVolume = 0;
+  for (const k of klines) {
+    const typicalPrice = (k.high + k.low + k.close) / 3;
+    sumPV += typicalPrice * k.volume;
+    sumVolume += k.volume;
+  }
+  return sumPV / sumVolume; // VWAP价格
 }
 
-function bollingerBars(closes, period = 20, k = 2) {
-  const m = sma(closes, period);
-  const s = stddev(closes, period);
+// ------------------- Delta -------------------
+async function getDelta(symbol, interval) {
+  const klines = await getKlines(symbol, interval, 2);
+  const last = klines[klines.length - 1];
+  const prev = klines[klines.length - 2];
+  return last.close - prev.close; // 正值多头，负值空头
+}
+
+// ------------------- OI -------------------
+async function getOI(symbol) {
+  const url = `https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return parseFloat(data.openInterest);
+}
+
+// ------------------- 成交量 -------------------
+async function getVolume(symbol, interval) {
+  const klines = await getKlines(symbol, interval, 2);
+  const last = klines[klines.length - 1];
+  const prev = klines[klines.length - 2];
+  return last.volume - prev.volume; // 增量
+}
+
+// ------------------- SMA 与标准差 -------------------
+function SMA(values, period) {
+  const slice = values.slice(-period);
+  return slice.reduce((a, b) => a + b, 0) / period;
+}
+
+function stdDev(values, period) {
+  const slice = values.slice(-period);
+  const mean = SMA(slice, period);
+  const variance = slice.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / period;
+  return Math.sqrt(variance);
+}
+
+// ------------------- 布林带宽 -------------------
+function calcBBWidth(closes, period = 20, k = 2) {
+  const middle = SMA(closes, period);
+  const deviation = stdDev(closes, period);
+  const upper = middle + k * deviation;
+  const lower = middle - k * deviation;
+  return (upper - lower) / middle;
+}
+
+// ------------------- 1H区间边界 -------------------
+function check1HRangeValidity(high1h, low1h, delta = 10) {
+  const recentHigh = Math.max(...high1h.slice(-5));
+  const recentLow = Math.min(...low1h.slice(-5));
+  const upperValid = recentHigh <= high1h[high1h.length - 1] + delta;
+  const lowerValid = recentLow >= low1h[low1h.length - 1] - delta;
+  return { upperValid, lowerValid };
+}
+
+// ------------------- 多因子打分 -------------------
+function calculateFactorScore({ vwap, delta, oi, volume, signalType }) {
+  let score = 0;
+  if (signalType === "long") {
+    score += vwap > 0 ? +1 : -1;
+    score += delta > 0 ? +1 : -1;
+    score += oi > 0 ? +1 : -1;
+    score += volume > 0 ? +1 : -1;
+  } else if (signalType === "short") {
+    score += vwap > 0 ? -1 : +1;
+    score += delta > 0 ? -1 : +1;
+    score += oi > 0 ? -1 : +1;
+    score += volume > 0 ? -1 : +1;
+  }
+  return score;
+}
+
+// ------------------- 完整震荡市策略 -------------------
+async function rangeStrategyWithAutoFactors({
+  high1h,
+  low1h,
+  close15m,
+  currentPrice,
+  atr15m,
+  entryTime,
+  now,
+  symbol
+}) {
+  // 1. 计算15m布林带宽收窄
+  const closes15m = close15m.length >= 20 ? close15m.slice(-20) : await getKlines(symbol, "15m", 20).then(d => d.map(k => k.close));
+  const bbWidth = calcBBWidth(closes15m);
+  const narrowBB = bbWidth < 0.05;
+
+  // 2. 1H区间边界有效性
+  const { upperValid, lowerValid } = check1HRangeValidity(high1h, low1h, atr15m);
+  const rangeHigh = Math.max(...high1h.slice(-20));
+  const rangeLow = Math.min(...low1h.slice(-20));
+  const inRange = currentPrice < rangeHigh && currentPrice > rangeLow;
+  if (!inRange) return { signal: "none", reason: "不在1H区间" };
+  if (!narrowBB) return { signal: "none", reason: "15m布林带未收窄" };
+  if (!upperValid && !lowerValid) return { signal: "none", reason: "1H区间边界无效" };
+
+  // 3. 入场逻辑（假突破）
+  const lastClose = close15m[close15m.length - 1];
+  const prevClose = close15m[close15m.length - 2];
+  let signal = "none", entry = null, stopLoss = null, takeProfit = null, reason = "";
+
+  if (prevClose > rangeHigh && lastClose < rangeHigh && upperValid) {
+    signal = "short";
+    entry = lastClose;
+    stopLoss = rangeHigh;
+    takeProfit = entry - 2 * (stopLoss - entry);
+    reason = "假突破上沿→空头入场";
+  }
+  if (prevClose < rangeLow && lastClose > rangeLow && lowerValid) {
+    signal = "long";
+    entry = lastClose;
+    stopLoss = rangeLow;
+    takeProfit = entry + 2 * (entry - stopLoss);
+    reason = "假突破下沿→多头入场";
+  }
+
+  // 4. 自动获取多因子数据
+  const [vwapPrice, delta, oi, volDelta] = await Promise.all([
+    getVWAP(symbol, "15m"),
+    getDelta(symbol, "15m"),
+    getOI(symbol),
+    getVolume(symbol, "15m")
+  ]);
+
+  // 4a. VWAP方向: 当前价 > VWAP → +1，否则 -1
+  const vwapFactor = currentPrice > vwapPrice ? 1 : -1;
+
+  // 5. 计算factorScore
+  const factorScore = calculateFactorScore({
+    vwap: vwapFactor,
+    delta,
+    oi,
+    volume: volDelta,
+    signalType: signal
+  });
+
+  // 6. 出场逻辑
+  let exitSignal = "hold";
+
+  // 6a. 结构性止损/止盈
+  if (signal === "long" && currentPrice < stopLoss) exitSignal = "stopLoss", reason = "结构性止损触发";
+  if (signal === "short" && currentPrice > stopLoss) exitSignal = "stopLoss", reason = "结构性止损触发";
+  if (signal === "long" && currentPrice >= takeProfit) exitSignal = "takeProfit", reason = "RR止盈触发";
+  if (signal === "short" && currentPrice <= takeProfit) exitSignal = "takeProfit", reason = "RR止盈触发";
+
+  // 6b. 多因子打分止损
+  if (signal !== "none" && factorScore <= -2) exitSignal = "stopLoss", reason = `因子打分止损触发 (score=${factorScore})`;
+
+  // 6c. 时间止盈/止损
+  if (signal !== "none" && entryTime && now) {
+    const holdingMinutes = (now - entryTime) / 60000;
+    if (holdingMinutes > 180) exitSignal = "timeExit", reason = "时间止盈触发：持仓超过3小时";
+  }
+
   return {
-    middle: m,
-    upper: m + k * s,
-    lower: m - k * s,
-    bandwidth: (m + k * s - (m - k * s)) / m
+    signal,
+    entry,
+    stopLoss,
+    takeProfit,
+    exitSignal,
+    reason,
+    factorScore,
+    bbWidth,
+    upperValid,
+    lowerValid
   };
 }
 
-function calcVWAP(candles) {
-  let pv = 0, volSum = 0;
-  for (const c of candles) {
-    const tp = (c.high + c.low + c.close) / 3;
-    pv += tp * c.volume;
-    volSum += c.volume;
-  }
-  return volSum > 0 ? pv / volSum : null;
-}
+// ------------------- 示例调用 -------------------
+(async () => {
+  const result = await rangeStrategyWithAutoFactors({
+    high1h: [31000, 31200, 31150, 30980, 31050],
+    low1h: [30000, 29950, 30100, 30200, 30050],
+    close15m: [30900, 31080, 31120, 30950, 31000],
+    currentPrice: 30900,
+    atr15m: 50,
+    entryTime: new Date(Date.now() - 60 * 60 * 1000),
+    now: new Date(),
+    symbol: "BTCUSDT"
+  });
 
-function avgVolume(candles, n) {
-  if (!candles || candles.length < n) return null;
-  return sma(candles.slice(-n).map(c => c.volume), n);
-}
-
-function range1h(candles1h, oiData = [], deltaData = [], opts = {}) {
-  const p = {
-    bbPeriod: opts.bbPeriod || 20,
-    bbK: opts.bbK || 2,
-    lowerTouchPct: opts.lowerTouchPct || 0.015,
-    upperTouchPct: opts.upperTouchPct || 0.015,
-    volMultiplier: opts.volMultiplier || 1.7,
-    oiThreshold: opts.oiThreshold || 0.02,
-    deltaThreshold: opts.deltaThreshold || 0.02,
-    breakoutPeriod: opts.breakoutPeriod || 20
-  };
-
-  if (!candles1h || candles1h.length < p.bbPeriod + 5) {
-    return { lowerBoundaryValid: false, upperBoundaryValid: false, bb1h: null };
-  }
-
-  const closes1h = candles1h.map(c => c.close);
-  const bb1h = bollingerBars(closes1h, p.bbPeriod, p.bbK);
-
-  // VWAP
-  const vwap = calcVWAP(candles1h.slice(-p.bbPeriod));
-
-  // 边界连续触碰判断
-  const last1h = candles1h.slice(-6);
-  let lowerTouches = 0, upperTouches = 0;
-  for (const c of last1h) {
-    if (c.close <= bb1h.lower * (1 + p.lowerTouchPct)) lowerTouches++;
-    if (c.close >= bb1h.upper * (1 - p.upperTouchPct)) upperTouches++;
-  }
-
-  // 成交量因子
-  const avgVol = avgVolume(candles1h, p.bbPeriod);
-  const volFactor = last1h[last1h.length - 1].volume / avgVol; // 最新1H成交量比
-
-  // Delta 因子
-  const delta = deltaData.length > 0 ? deltaData[deltaData.length - 1].delta : 0;
-
-  // OI 因子
-  let oiChange = 0;
-  if (oiData.length >= 2) {
-    const oiStart = oiData[0].oi;
-    const oiEnd = oiData[oiData.length - 1].oi;
-    oiChange = (oiEnd - oiStart) / oiStart; // 最近6H变化率
-  }
-
-  // 最近突破确认
-  const recentHigh = Math.max(...closes1h.slice(-p.breakoutPeriod));
-  const recentLow = Math.min(...closes1h.slice(-p.breakoutPeriod));
-  const lastClose = closes1h[closes1h.length - 1];
-  const lastBreakout = lastClose > recentHigh || lastClose < recentLow;
-
-  // 综合边界有效性
-  const lowerBoundaryValid = lowerTouches >= 2 && volFactor <= p.volMultiplier && Math.abs(delta) <= p.deltaThreshold && Math.abs(oiChange) <= p.oiThreshold && !lastBreakout;
-  const upperBoundaryValid = upperTouches >= 2 && volFactor <= p.volMultiplier && Math.abs(delta) <= p.deltaThreshold && Math.abs(oiChange) <= p.oiThreshold && !lastBreakout;
-
-  return { lowerBoundaryValid, upperBoundaryValid, bb1h, vwap, delta, oiChange, lastBreakout };
-}
-
-// Node.js 导出
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = { range1h, bollingerBars, sma, stddev, calcVWAP, avgVolume };
-}
+  console.log(result);
+})();
 ```
 
-**15分钟执行判断**
+## 震荡市入场和止盈止损策略流程图
 
-```jsx
-/**
- * range15m.js
- * 功能：根据 1H 边界判断 + 15m K线做入场执行 & 假突破反手
- * 输入：
- *   - range1hResult: { lowerBoundaryValid, upperBoundaryValid, bb1h }
- *   - candles15m: Array<{open, high, low, close, volume, time}>
- *   - candles1h: Array<{open, high, low, close, volume, time}> （用于 avgVolume）
- *   - opts: 可选参数
- * 输出：
- *   { signal, mode, entry, stopLoss, takeProfit, reason }
- */
+```mermaid
+flowchart TD
+    A[开始] --> B[获取1H高低点和ATR]
+    B --> C[确认1H区间边界有效性]
+    C -->|边界有效| D[获取15m收盘价]
+    C -->|边界无效| Z[不入场]
+    
+    D --> E[计算15m布林带宽 BBWidth]
+    E -->|收窄| F[假突破入场条件判断]
+    E -->|未收窄| Z
 
-function sma(arr, len) {
-  const slice = arr.slice(-len);
-  return slice.reduce((a, b) => a + b, 0) / len;
-}
+    F -->|多头假突破| G[多头入场]
+    F -->|空头假突破| H[空头入场]
 
-function avgVolume(candles, n) {
-  if (!candles || candles.length < n) return null;
-  return sma(candles.slice(-n).map(c => c.volume), n);
-}
+    G --> I[止损判断]
+    H --> I
 
-function range15m(range1hResult, candles15m, candles1h, opts = {}) {
-  const p = {
-    lowerTouchPct: opts.lowerTouchPct || 0.015,
-    upperTouchPct: opts.upperTouchPct || 0.015,
-    vol15mMultiplier: opts.vol15mMultiplier || 1.7,
-    falseBreakVolThreshold: opts.falseBreakVolThreshold || 1.2,
-    takeProfitMode: opts.takeProfitMode || "mid_or_opposite"
-  };
+    subgraph I [止损逻辑]
+        I1[结构性止损: 触碰1H边界?] --> I2
+        I2[多因子打分止损: score≤-2?] --> I3
+        I3[时间止损: 持仓>3小时?] --> I4[触发止损, 平仓]
+        I4 --> J[结束]
+    end
 
-  const { lowerBoundaryValid, upperBoundaryValid, bb1h } = range1hResult;
-  if (!bb1h || !candles15m || candles15m.length < 2) {
-    return { signal: "NONE", mode: "NONE", reason: "数据不足或1H边界无效" };
-  }
+    G --> K[止盈判断]
+    H --> K
 
-  const last15 = candles15m[candles15m.length - 1];
-  const prev15 = candles15m[candles15m.length - 2];
+    subgraph K [止盈逻辑]
+        K1[固定RR止盈达到目标?] --> K2
+        K2[时间止盈: 持仓>3小时?] --> K3[触发止盈, 平仓]
+        K3 --> J
+    end
 
-  const avgVol15m = avgVolume(candles15m, Math.min(20, candles15m.length)) || 0;
-  const avgVol1h = avgVolume(candles1h, Math.min(20, candles1h.length)) || avgVol15m;
-
-  const nearLower = last15.close <= bb1h.lower * (1 + p.lowerTouchPct);
-  const nearUpper = last15.close >= bb1h.upper * (1 - p.upperTouchPct);
-
-  // === 区间交易 ===
-  if (lowerBoundaryValid && nearLower) {
-    const smallVolNotBreak = last15.volume < avgVol15m * 0.8 && last15.low >= bb1h.lower * 0.995;
-    const setupBreak = last15.high > prev15.high && last15.close > prev15.high && last15.volume >= avgVol15m * 0.8;
-    if (smallVolNotBreak || setupBreak) {
-      const entry = Math.max(last15.close, prev15.high);
-      const stopLoss = Math.min(bb1h.lower * 0.995, last15.low - last15.low * 0.005);
-      const takeProfit = p.takeProfitMode === "mid_or_opposite" ? bb1h.middle : bb1h.upper;
-      return { signal: "BUY", mode: "RANGE_LONG", entry, stopLoss, takeProfit, reason: "下轨区间交易触发" };
-    }
-  }
-
-  if (upperBoundaryValid && nearUpper) {
-    const smallVolNotBreak = last15.volume < avgVol15m * 0.8 && last15.high <= bb1h.upper * 1.005;
-    const setupBreak = last15.low < prev15.low && last15.close < prev15.low && last15.volume >= avgVol15m * 0.8;
-    if (smallVolNotBreak || setupBreak) {
-      const entry = Math.min(last15.close, prev15.low);
-      const stopLoss = Math.max(bb1h.upper * 1.005, last15.high + last15.high * 0.005);
-      const takeProfit = p.takeProfitMode === "mid_or_opposite" ? bb1h.middle : bb1h.lower;
-      return { signal: "SELL", mode: "RANGE_SHORT", entry, stopLoss, takeProfit, reason: "上轨区间交易触发" };
-    }
-  }
-
-  // === 假突破反手 ===
-  const prevAboveUpper = prev15.close > bb1h.upper;
-  const prevBelowLower = prev15.close < bb1h.lower;
-  const lastBackInside = last15.close <= bb1h.upper && last15.close >= bb1h.lower;
-  const prevVolRelative = prev15.volume / avgVol15m;
-
-  if (prevAboveUpper && lastBackInside && prevVolRelative < p.falseBreakVolThreshold) {
-    return {
-      signal: "SELL",
-      mode: "FALSE_BREAK_SHORT",
-      entry: last15.close,
-      stopLoss: Math.max(prev15.high * 1.01, bb1h.upper * 1.02),
-      takeProfit: bb1h.lower,
-      reason: "向上假突破失败反手"
-    };
-  }
-
-  if (prevBelowLower && lastBackInside && prevVolRelative < p.falseBreakVolThreshold) {
-    return {
-      signal: "BUY",
-      mode: "FALSE_BREAK_LONG",
-      entry: last15.close,
-      stopLoss: Math.min(prev15.low * 0.99, bb1h.lower * 0.98),
-      takeProfit: bb1h.upper,
-      reason: "向下假突破失败反手"
-    };
-  }
-
-  return { signal: "NONE", mode: "NONE", reason: "未命中区间或假突破条件" };
-}
-
-// Node.js 导出
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = { range15m, avgVolume };
-}
+    G --> J
+    H --> J
 ```
 
-使用示例：
-
-```jsx
-const { range1h } = require('./range1h');
-const { range15m } = require('./range15m');
-
-// 1. 计算1H区间边界
-const range1hResult = range1h(candles1h);
-
-// 2. 15分钟入场执行
-const res = range15m(range1hResult, candles15m, candles1h);
-
-console.log(res);
-```
-
-### **📌 JS 实现：震荡市止损逻辑**
-
-```jsx
-/**
- * 震荡市止损逻辑
- * @param {Object} params
- * @param {string} params.side - "long" 或 "short"
- * @param {number} params.entryPrice - 入场价格
- * @param {number} params.atr - ATR(14) 值
- * @param {number} params.setupHigh - setup candle 高点
- * @param {number} params.setupLow - setup candle 低点
- * @param {number} params.rangeHigh - 1H 区间高点
- * @param {number} params.rangeLow - 1H 区间低点
- * @param {number} params.currentPrice - 最新价格
- * @param {number} params.hoursHeld - 持仓小时数
- * @param {Object} params.factors - 因子状态 { vwap: boolean, delta: boolean, oi: boolean, volume: boolean }
- * @returns {Object} { stopLossHit: boolean, reason: string }
- */
-function calculateStopLoss({
-  side,
-  entryPrice,
-  atr,
-  setupHigh,
-  setupLow,
-  rangeHigh,
-  rangeLow,
-  currentPrice,
-  hoursHeld,
-  factors
-}) {
-  let stopLossPrice;
-  let reason = "";
-
-  // 1. 初始止损 (ATR + setup candle)
-  if (side === "long") {
-    stopLossPrice = Math.min(setupLow, entryPrice - 1.2 * atr);
-  } else {
-    stopLossPrice = Math.max(setupHigh, entryPrice + 1.2 * atr);
-  }
-
-  if ((side === "long" && currentPrice < stopLossPrice) ||
-      (side === "short" && currentPrice > stopLossPrice)) {
-    return { stopLossHit: true, reason: "ATR/Setup 止损触发" };
-  }
-
-  // 2. 区间边界失效止损
-  if (side === "long" && currentPrice < (rangeLow - atr)) {
-    return { stopLossHit: true, reason: "区间下边界失效" };
-  }
-  if (side === "short" && currentPrice > (rangeHigh + atr)) {
-    return { stopLossHit: true, reason: "区间上边界失效" };
-  }
-
-  // 3. 时间止损 (超过 6 小时无进展)
-  if (hoursHeld >= 6) {
-    return { stopLossHit: true, reason: "时间止损（6小时未达目标）" };
-  }
-
-  // 4. 多因子止损 (VWAP/Delta/OI/Volume 方向错误)
-  if (factors) {
-    const badFactors = Object.entries(factors)
-      .filter(([key, val]) => val === false)
-      .map(([key]) => key);
-
-    if (badFactors.length >= 2) {
-      return { stopLossHit: true, reason: `因子止损: ${badFactors.join(", ")}` };
-    }
-  }
-
-  return { stopLossHit: false, reason: "持仓中" };
-}
-```
-
-### **📌 用法示例**
-
-```jsx
-const result = calculateStopLoss({
-  side: "long",
-  entryPrice: 30000,
-  atr: 150,
-  setupHigh: 30200,
-  setupLow: 29800,
-  rangeHigh: 30500,
-  rangeLow: 29500,
-  currentPrice: 29400,
-  hoursHeld: 2,
-  factors: { vwap: true, delta: false, oi: false, volume: true }
-});
-
-console.log(result);
-// { stopLossHit: true, reason: "区间下边界失效" }
-```
-
-### 震荡市止盈逻辑
-
-```jsx
-/**
- * 震荡市止盈逻辑
- * @param {Object} params
- * @param {string} params.side - "long" 或 "short"
- * @param {number} params.entryPrice - 入场价格
- * @param {number} params.targetRR - 风险回报比目标 (例如 2 表示 1:2)
- * @param {number} params.atr - ATR(14) 值
- * @param {number} params.rangeHigh - 1H 区间高点
- * @param {number} params.rangeLow - 1H 区间低点
- * @param {number} params.currentPrice - 最新价格
- * @param {number} params.stopLossPrice - 已设定止损价
- * @param {number} params.hoursHeld - 持仓时间
- * @returns {Object} { takeProfitHit: boolean, reason: string, takeProfitPrice: number }
- */
-function calculateTakeProfit({
-  side,
-  entryPrice,
-  targetRR,
-  atr,
-  rangeHigh,
-  rangeLow,
-  currentPrice,
-  stopLossPrice,
-  hoursHeld
-}) {
-  let takeProfitPrice;
-  let reason = "";
-
-  // 1. 计算基础止盈价格 (风险回报比)
-  const riskDistance = Math.abs(entryPrice - stopLossPrice);
-  if (side === "long") {
-    takeProfitPrice = entryPrice + targetRR * riskDistance;
-  } else {
-    takeProfitPrice = entryPrice - targetRR * riskDistance;
-  }
-
-  // 2. 区间边界止盈 (优先性高于RR)
-  if (side === "long") {
-    takeProfitPrice = Math.min(takeProfitPrice, rangeHigh - atr * 0.5);
-  } else {
-    takeProfitPrice = Math.max(takeProfitPrice, rangeLow + atr * 0.5);
-  }
-
-  // 3. 时间止盈 (超过12小时未触发止盈，强平一半)
-  if (hoursHeld >= 12) {
-    return {
-      takeProfitHit: true,
-      reason: "时间止盈（12小时出场）",
-      takeProfitPrice: currentPrice
-    };
-  }
-
-  // 4. 检查是否达到止盈价格
-  if ((side === "long" && currentPrice >= takeProfitPrice) ||
-      (side === "short" && currentPrice <= takeProfitPrice)) {
-    return { takeProfitHit: true, reason: "目标止盈达成", takeProfitPrice };
-  }
-
-  return { takeProfitHit: false, reason: "持仓中", takeProfitPrice };
-}
-```
 
 
 # **3. 关键指标计算逻辑**

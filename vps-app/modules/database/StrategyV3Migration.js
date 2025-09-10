@@ -47,7 +47,7 @@ class StrategyV3Migration {
       `ALTER TABLE strategy_analysis ADD COLUMN delta_buy REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN delta_sell REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN delta_imbalance REAL`,
-      
+
       // V3策略新增字段
       `ALTER TABLE strategy_analysis ADD COLUMN market_type TEXT`,
       `ALTER TABLE strategy_analysis ADD COLUMN factors TEXT`, // JSON格式存储因子信息
@@ -61,7 +61,7 @@ class StrategyV3Migration {
       `ALTER TABLE strategy_analysis ADD COLUMN bb_upper REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN bb_middle REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN bb_lower REAL`,
-      
+
       // 新增：震荡市假突破和多因子打分字段
       `ALTER TABLE strategy_analysis ADD COLUMN bb_width_15m REAL`, // 15分钟布林带宽
       `ALTER TABLE strategy_analysis ADD COLUMN fake_breakout_detected BOOLEAN DEFAULT FALSE`, // 假突破检测

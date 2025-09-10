@@ -24,15 +24,15 @@ class SimulationDataManager {
     try {
       // 加载统计数据
       await this.loadStats();
-      
+
       // 加载所有模拟交易数据
       await this.loadAllSimulations();
-      
+
       // 等待DOM元素完全加载后再应用筛选
       setTimeout(() => {
         this.applyFilters();
       }, 100);
-      
+
     } catch (error) {
       console.error('加载数据失败:', error);
       this.showError('加载数据失败: ' + error.message);
@@ -61,7 +61,7 @@ class SimulationDataManager {
       // API直接返回数组，不是对象
       this.allSimulations = Array.isArray(result) ? result : (result.simulations || []);
       this.filteredSimulations = [...this.allSimulations];
-      
+
       // 初始化筛选选项
       this.initializeFilterOptions();
     } catch (error) {
@@ -85,24 +85,24 @@ class SimulationDataManager {
 
   updateStatsDisplay(stats) {
     // 整体统计
-    document.getElementById('overallWinRate').textContent = 
+    document.getElementById('overallWinRate').textContent =
       stats.win_rate ? `${stats.win_rate.toFixed(2)}%` : '--';
-    
-    document.getElementById('overallProfitLoss').textContent = 
+
+    document.getElementById('overallProfitLoss').textContent =
       stats.net_profit ? `${stats.net_profit.toFixed(4)} USDT` : '--';
-    
+
     // 总交易数（所有交易）
-    document.getElementById('totalTrades').textContent = 
+    document.getElementById('totalTrades').textContent =
       stats.total_trades || '0';
-    
+
     // 已完成交易数（已平仓的交易）
-    document.getElementById('completedTrades').textContent = 
+    document.getElementById('completedTrades').textContent =
       stats.total_trades || '0';
-    
-    document.getElementById('winningTrades').textContent = 
+
+    document.getElementById('winningTrades').textContent =
       stats.winning_trades || '0';
-    
-    document.getElementById('losingTrades').textContent = 
+
+    document.getElementById('losingTrades').textContent =
       stats.losing_trades || '0';
 
     // 设置盈亏颜色
@@ -121,16 +121,16 @@ class SimulationDataManager {
     const longStats = directionStats.long;
     const shortStats = directionStats.short;
 
-    document.getElementById('longWinRate').textContent = 
+    document.getElementById('longWinRate').textContent =
       longStats.total_trades > 0 ? `${longStats.win_rate.toFixed(2)}%` : '--';
-    
-    document.getElementById('shortWinRate').textContent = 
+
+    document.getElementById('shortWinRate').textContent =
       shortStats.total_trades > 0 ? `${shortStats.win_rate.toFixed(2)}%` : '--';
-    
-    document.getElementById('longProfitLoss').textContent = 
+
+    document.getElementById('longProfitLoss').textContent =
       `${longStats.net_profit.toFixed(4)} USDT`;
-    
-    document.getElementById('shortProfitLoss').textContent = 
+
+    document.getElementById('shortProfitLoss').textContent =
       `${shortStats.net_profit.toFixed(4)} USDT`;
 
     // 设置盈亏颜色
@@ -155,7 +155,7 @@ class SimulationDataManager {
 
   updateSymbolStats(symbolStats) {
     const tbody = document.getElementById('symbolStatsBody');
-    
+
     if (!symbolStats || symbolStats.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="loading">暂无数据</td></tr>';
       return;
@@ -167,10 +167,10 @@ class SimulationDataManager {
     });
 
     tbody.innerHTML = sortedStats.map(stat => {
-      const winRateClass = stat.win_rate >= 50 ? 'win-rate high' : 
-                          stat.win_rate >= 30 ? 'win-rate medium' : 'win-rate low';
-      const profitClass = stat.net_profit > 0 ? 'profit-loss positive' : 
-                         stat.net_profit < 0 ? 'profit-loss negative' : 'profit-loss neutral';
+      const winRateClass = stat.win_rate >= 50 ? 'win-rate high' :
+        stat.win_rate >= 30 ? 'win-rate medium' : 'win-rate low';
+      const profitClass = stat.net_profit > 0 ? 'profit-loss positive' :
+        stat.net_profit < 0 ? 'profit-loss negative' : 'profit-loss neutral';
 
       return `
         <tr>
@@ -191,7 +191,7 @@ class SimulationDataManager {
     const directionFilter = document.getElementById('directionFilter');
     const exitReasonFilter = document.getElementById('exitReasonFilter');
     const resultFilter = document.getElementById('resultFilter');
-    
+
     this.currentFilters.direction = directionFilter ? directionFilter.value : '';
     this.currentFilters.exitReason = exitReasonFilter ? exitReasonFilter.value : '';
     this.currentFilters.result = resultFilter ? resultFilter.value : '';
@@ -232,11 +232,11 @@ class SimulationDataManager {
 
     // 更新分页信息
     this.updatePaginationForFilteredData();
-    
+
     // 显示第一页
     this.currentPage = 1;
     this.displayCurrentPage();
-    
+
     // 更新筛选状态显示
     this.updateFilterStatus();
   }
@@ -245,7 +245,7 @@ class SimulationDataManager {
   updatePaginationForFilteredData() {
     const total = this.filteredSimulations.length;
     const totalPages = Math.ceil(total / this.pageSize);
-    
+
     this.pagination = {
       currentPage: this.currentPage,
       pageSize: this.pageSize,
@@ -261,7 +261,7 @@ class SimulationDataManager {
     const start = (this.currentPage - 1) * this.pageSize;
     const end = start + this.pageSize;
     const pageData = this.filteredSimulations.slice(start, end);
-    
+
     this.updateSimulationHistoryTable(pageData);
     this.updatePaginationControls();
   }
@@ -270,12 +270,12 @@ class SimulationDataManager {
   updateFilterStatus() {
     const total = this.allSimulations.length;
     const filtered = this.filteredSimulations.length;
-    
+
     let statusText = `显示 ${filtered} 条记录`;
     if (filtered < total) {
       statusText += `（从 ${total} 条中筛选）`;
     }
-    
+
     // 更新状态显示
     const statusDiv = document.getElementById('filterStatus');
     if (statusDiv) {
@@ -286,7 +286,7 @@ class SimulationDataManager {
 
   updateSimulationHistoryTable(simulations) {
     const tbody = document.getElementById('simulationHistoryBody');
-    
+
     if (!simulations || simulations.length === 0) {
       tbody.innerHTML = '<tr><td colspan="16" class="loading">暂无数据</td></tr>';
       return;
@@ -366,14 +366,14 @@ class SimulationDataManager {
 
   generatePageNumbers(container) {
     container.innerHTML = '';
-    
+
     const currentPage = this.pagination.currentPage;
     const totalPages = this.pagination.totalPages;
-    
+
     // 显示页码逻辑：当前页前后各2页
     const startPage = Math.max(1, currentPage - 2);
     const endPage = Math.min(totalPages, currentPage + 2);
-    
+
     for (let i = startPage; i <= endPage; i++) {
       const pageBtn = document.createElement('button');
       pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
@@ -429,11 +429,11 @@ class SimulationDataManager {
     this.allSimulations.forEach(sim => {
       // 方向统计
       directionCounts[sim.direction] = (directionCounts[sim.direction] || 0) + 1;
-      
+
       // 出场原因统计
       const exitReason = sim.exit_reason || 'UNKNOWN';
       exitReasonCounts[exitReason] = (exitReasonCounts[exitReason] || 0) + 1;
-      
+
       // 结果统计
       if (sim.is_win === true) {
         resultCounts.win++;
@@ -479,7 +479,7 @@ class SimulationDataManager {
 
     // 按数量排序并添加选项
     const sortedEntries = Object.entries(counts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .forEach(([value, count]) => {
         const option = document.createElement('option');
         option.value = value;
@@ -493,13 +493,13 @@ class SimulationDataManager {
     document.getElementById('directionFilter').value = '';
     document.getElementById('exitReasonFilter').value = '';
     document.getElementById('resultFilter').value = '';
-    
+
     this.currentFilters = {
       direction: '',
       exitReason: '',
       result: ''
     };
-    
+
     this.applyFilters();
   }
 
