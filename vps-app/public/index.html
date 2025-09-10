@@ -200,7 +200,7 @@
               <li><strong>布林带计算：</strong> 20期布林带，K=2，带宽 = (上轨-下轨)/中轨</li>
               <li><strong>连续触碰：</strong> 最近6根1H K线中，下轨触碰≥2次，上轨触碰≥2次</li>
               <li><strong>触碰判断：</strong> 下轨：close ≤ lower×(1+0.015)，上轨：close ≥ upper×(1-0.015)</li>
-              <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.2×20期均量</li>
+              <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.7×20期均量</li>
               <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡）</li>
               <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%</li>
               <li><strong>无突破：</strong> 最近20根K线内无新高/新低突破</li>
@@ -208,9 +208,9 @@
 
             <h4>判断逻辑：</h4>
             <ul>
-              <li><strong>下轨有效：</strong> 连续触碰≥2次 + 成交量≤1.2倍 + |Delta|≤0.02 + |OI变化|≤2% + 无突破</li>
-              <li><strong>上轨有效：</strong> 连续触碰≥2次 + 成交量≤1.2倍 + |Delta|≤0.02 + |OI变化|≤2% + 无突破</li>
-              <li><strong>最终action：</strong> 边界有效时允许15m区间交易或假突破反手</li>
+              <li><strong>下轨有效：</strong> 连续触碰≥2次 + 成交量≤1.7倍 + |Delta|≤0.02 + |OI变化|≤2% + 无突破</li>
+              <li><strong>上轨有效：</strong> 连续触碰≥2次 + 成交量≤1.7倍 + |Delta|≤0.02 + |OI变化|≤2% + 无突破</li>
+              <li><strong>最终action：</strong> 边界有效时允许15m假突破入场</li>
             </ul>
           </div>
         </div>
@@ -239,28 +239,28 @@
 
             <h4>震荡市入场模式（严格按照strategy-v3.md）：</h4>
             <ul>
-              <li><strong>区间多头：</strong> 价格接近下轨 + 缩量不破或setup突破 + 下轨边界有效</li>
-              <li><strong>区间空头：</strong> 价格接近上轨 + 缩量不破或setup突破 + 上轨边界有效</li>
-              <li><strong>假突破反手：</strong> 突破后快速收回 + 量能不足 + 反手入场</li>
+              <li><strong>假突破入场：</strong> 15分钟布林带宽收窄 + 假突破验证 + 多因子确认</li>
+              <li><strong>多头假突破：</strong> 突破下沿后快速回撤 + 下轨边界有效</li>
+              <li><strong>空头假突破：</strong> 突破上沿后快速回撤 + 上轨边界有效</li>
             </ul>
 
             <h4>震荡市具体执行逻辑：</h4>
             <ul>
-              <li><strong>接近边界判断：</strong> 下轨：close ≤ lower×(1+0.015)，上轨：close ≥ upper×(1-0.015)</li>
-              <li><strong>缩量不破：</strong> volume < 0.8×均量 且 low ≥ lower×0.995（下轨）/ high ≤ upper×1.005（上轨）</li>
-              <li><strong>Setup突破：</strong> high > prevHigh 且 close > prevHigh 且 volume ≥ 0.8×均量（下轨）</li>
-              <li><strong>假突破判断：</strong> 前一根突破边界 + 当前收回区间内 + 前一根量能 < 1.2×均量</li>
+              <li><strong>布林带宽收窄：</strong> 15分钟BB宽度 < 0.05（5%）</li>
+              <li><strong>假突破验证：</strong> 前一根突破边界 + 当前收回区间内</li>
+              <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose > rangeLow 且 lowerBoundaryValid</li>
+              <li><strong>空头假突破：</strong> prevClose > rangeHigh 且 lastClose < rangeHigh 且 upperBoundaryValid</li>
+              <li><strong>多因子打分：</strong> VWAP、Delta、OI、Volume四个因子量化打分</li>
             </ul>
 
             <h4>判断逻辑：</h4>
             <ul>
               <li><strong>趋势市前提：</strong> 4H趋势明确 + 1H VWAP方向一致且1H得分 ≥ 3分</li>
-              <li><strong>震荡市前提：</strong> 4H震荡市 + 1H边界有效（下轨或上轨）</li>
+              <li><strong>震荡市前提：</strong> 4H震荡市 + 1H边界有效（下轨或上轨）+ 15分钟布林带宽收窄</li>
               <li><strong>趋势市止损：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
-              <li><strong>震荡市止损：</strong> 严格按照文档：下轨多头 min(lower×0.995, low-low×0.005)，上轨空头 max(upper×1.005,
-                high+high×0.005)</li>
+              <li><strong>震荡市止损：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
               <li><strong>趋势市止盈：</strong> 多头2R，空头2R</li>
-              <li><strong>震荡市止盈：</strong> 支持mid_or_opposite模式：中轨或对侧轨</li>
+              <li><strong>震荡市止盈：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
             </ul>
           </div>
         </div>
@@ -306,24 +306,23 @@
 
             <h4>出场条件（6种）：</h4>
             <ul>
-              <li><strong>1. 止损触发：</strong> 价格触及止损位（趋势市：setup candle另一端或1.2×ATR14；震荡市：布林带边界）</li>
-              <li><strong>2. 止盈触发：</strong> 价格触及止盈位（趋势市2R，震荡市到中轨/对侧轨）</li>
-              <li><strong>3. 趋势反转：</strong> 4H趋势改变或1H得分<3分< /li>
-              <li><strong>4. Delta减弱：</strong> 主动买卖盘不平衡度<1.1< /li>
-              <li><strong>5. 支撑阻力突破：</strong> 价格跌破EMA20/50或关键支撑/阻力位</li>
-              <li><strong>6. 时间止损：</strong> 持仓时间超过12小时（48个15分钟）</li>
+              <li><strong>1. 止损触发：</strong> 价格触及止损位（趋势市：setup candle另一端或1.2×ATR14；震荡市：区间边界失效）</li>
+              <li><strong>2. 止盈触发：</strong> 价格触及止盈位（趋势市2R，震荡市1:2 RR目标）</li>
+              <li><strong>3. 趋势反转：</strong> 4H趋势改变或1H得分<3分（趋势市专用）</li>
+              <li><strong>4. 多因子止损：</strong> 多因子得分≤-2（震荡市专用）</li>
+              <li><strong>5. 支撑阻力突破：</strong> 价格跌破EMA20/50或关键支撑/阻力位（趋势市专用）</li>
+              <li><strong>6. 时间止损：</strong> 持仓时间超过3小时（震荡市）或12小时（趋势市）</li>
             </ul>
 
             <h4>风控规则：</h4>
             <ul>
               <li><strong>趋势市止损：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
-              <li><strong>震荡市止损：</strong> 严格按照文档：下轨多头 min(lower×0.995, low-low×0.005)，上轨空头 max(upper×1.005,
-                high+high×0.005)</li>
+              <li><strong>震荡市止损：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
               <li><strong>趋势市止盈：</strong> 2R风险回报比</li>
-              <li><strong>震荡市止盈：</strong> 支持mid_or_opposite模式：中轨或对侧轨</li>
+              <li><strong>震荡市止盈：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
               <li><strong>单笔风险：</strong> 根据全局最大损失设置</li>
               <li><strong>最大持仓：</strong> 同一交易对最多1笔活跃交易</li>
-              <li><strong>时间限制：</strong> 单笔交易最长12小时</li>
+              <li><strong>时间限制：</strong> 趋势市最长12小时，震荡市最长3小时</li>
             </ul>
 
             <h4>表格列说明：</h4>
@@ -337,11 +336,11 @@
 
             <h4>震荡市模式说明：</h4>
             <ul>
-              <li><strong>区间多头：</strong> 价格接近下轨 + 下轨边界有效 + 缩量不破或setup突破</li>
-              <li><strong>区间空头：</strong> 价格接近上轨 + 上轨边界有效 + 缩量不破或setup突破</li>
-              <li><strong>假突破反手：</strong> 突破后快速收回 + 量能不足 + 反手入场</li>
-              <li><strong>止损设置：</strong> 严格按照布林带边界计算，不使用ATR</li>
-              <li><strong>止盈目标：</strong> 支持中轨或对侧轨模式</li>
+              <li><strong>假突破入场：</strong> 15分钟布林带宽收窄 + 假突破验证 + 多因子确认</li>
+              <li><strong>多头假突破：</strong> 突破下沿后快速回撤 + 下轨边界有效</li>
+              <li><strong>空头假突破：</strong> 突破上沿后快速回撤 + 上轨边界有效</li>
+              <li><strong>止损设置：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
+              <li><strong>止盈目标：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
             </ul>
           </div>
         </div>
