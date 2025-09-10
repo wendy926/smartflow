@@ -28,8 +28,8 @@ class SmartFlowServer {
     this.deltaManager = null;
     this.analysisInterval = null;
     this.memoryMiddleware = new MemoryMiddleware({
-      maxMemoryUsage: 0.85, // 85%最大使用率
-      warningThreshold: 0.75 // 75%警告阈值
+      maxMemoryUsage: 0.95, // 95%最大使用率
+      warningThreshold: 0.90 // 90%警告阈值
     });
 
     this.setupMiddleware();
