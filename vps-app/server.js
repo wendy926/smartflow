@@ -1680,7 +1680,7 @@ const BinanceContractChecker = require('./modules/api/BinanceContractChecker');
 
 class SymbolCategoryManager {
   static contractChecker = new BinanceContractChecker();
-  
+
   // 获取fetch函数
   static async getFetch() {
     try {
@@ -1691,7 +1691,7 @@ class SymbolCategoryManager {
       return globalThis.fetch || fetch;
     }
   }
-  
+
   // 获取主流币交易对（BTC, ETH）
   static async getMainstreamSymbols() {
     try {
@@ -1740,8 +1740,11 @@ class SymbolCategoryManager {
 
       // 检查Binance合约可用性
       console.log('🔍 检查高市值币的Binance合约可用性...');
+      console.log('📊 高市值币列表:', highCapSymbols.map(s => s.symbol));
       const symbolsToCheck = highCapSymbols.map(item => item.symbol);
+      console.log('🔍 要检查的符号:', symbolsToCheck);
       const availableContracts = await this.contractChecker.filterAvailableContracts(symbolsToCheck);
+      console.log('✅ 可用合约:', availableContracts);
 
       const filteredSymbols = highCapSymbols.filter(item =>
         availableContracts.includes(item.symbol)
