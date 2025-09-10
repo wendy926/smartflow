@@ -283,6 +283,9 @@ class SmartFlowStrategyV3 {
       let minMargin = 0;
       let stopLossDistance = 0;
 
+      // 如果ATR值为null，使用默认值（入场价的1%）
+      const effectiveATR = atr14 && atr14 > 0 ? atr14 : entryPrice * 0.01;
+
       if (entryPrice && stopLossPrice && entryPrice > 0) {
         // 根据方向计算止损距离百分比
         if (direction === 'LONG') {
@@ -313,7 +316,7 @@ class SmartFlowStrategyV3 {
         maxLeverage: Math.max(1, maxLeverage),
         minMargin: minMargin, // 按照文档计算的最小保证金，数值向上取整
         stopLossDistance: stopLossDistance * 100, // 转换为百分比
-        atrValue: atr14
+        atrValue: effectiveATR
       };
     } catch (error) {
       console.error('计算杠杆数据失败:', error);
@@ -322,7 +325,7 @@ class SmartFlowStrategyV3 {
         maxLeverage: 10,
         minMargin: 100,
         stopLossDistance: 0,
-        atrValue: atr14
+        atrValue: effectiveATR
       };
     }
   }
