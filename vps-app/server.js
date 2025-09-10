@@ -40,7 +40,7 @@ class SmartFlowServer {
     this.app.use(cors());
     this.app.use(express.json());
     this.app.use(express.static(path.join(__dirname, 'public')));
-    
+
     // 添加内存监控中间件
     this.app.use(this.memoryMiddleware.middleware());
   }
@@ -1680,9 +1680,22 @@ const BinanceContractChecker = require('./modules/api/BinanceContractChecker');
 
 class SymbolCategoryManager {
   static contractChecker = new BinanceContractChecker();
+  
+  // 获取fetch函数
+  static async getFetch() {
+    try {
+      const { default: fetch } = await import('node-fetch');
+      return fetch;
+    } catch (error) {
+      // 如果node-fetch不可用，使用全局fetch（Node.js 18+）
+      return globalThis.fetch || fetch;
+    }
+  }
+  
   // 获取主流币交易对（BTC, ETH）
   static async getMainstreamSymbols() {
     try {
+      const fetch = await this.getFetch();
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1');
       const data = await response.json();
 
@@ -1708,6 +1721,7 @@ class SymbolCategoryManager {
   // 获取高市值强趋势币（排名3-20）
   static async getHighCapSymbols() {
     try {
+      const fetch = await this.getFetch();
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=30&page=1');
       const data = await response.json();
 
@@ -1745,6 +1759,7 @@ class SymbolCategoryManager {
   // 获取热点币（Trending）
   static async getTrendingSymbols() {
     try {
+      const fetch = await this.getFetch();
       const response = await fetch('https://api.coingecko.com/api/v3/search/trending');
       const data = await response.json();
 
@@ -1782,6 +1797,7 @@ class SymbolCategoryManager {
   // 获取小币（市值 < $50M）
   static async getSmallCapSymbols() {
     try {
+      const fetch = await this.getFetch();
       const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1');
       const data = await response.json();
 
@@ -1819,6 +1835,7 @@ class SymbolCategoryManager {
   // 检查Binance合约可用性
   static async checkBinanceContracts() {
     try {
+      const fetch = await this.getFetch();
       const response = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
       const data = await response.json();
 
