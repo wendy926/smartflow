@@ -226,6 +226,7 @@ class SimulationDataManager {
     });
 
     console.log(`筛选结果: ${this.filteredSimulations.length} / ${this.allSimulations.length}`);
+    console.log('筛选后的数据:', this.filteredSimulations.slice(0, 3));
 
     // 更新分页信息
     this.updatePaginationForFilteredData();
