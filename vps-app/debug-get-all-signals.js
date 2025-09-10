@@ -1,19 +1,16 @@
 // debug-get-all-signals.js
 // 调试getAllSignals方法
 
-const SmartFlowServer = require('./server');
+const fetch = require('node-fetch');
 
 async function debugGetAllSignals() {
   try {
     console.log('🔍 开始调试getAllSignals方法...');
     
-    // 创建服务器实例
-    const server = new SmartFlowServer();
-    await server.init();
-    
-    // 测试getAllSignals方法
-    console.log('📊 测试getAllSignals方法...');
-    const signals = await server.getAllSignals();
+    // 直接调用API
+    console.log('📊 测试getAllSignals API...');
+    const response = await fetch('http://localhost:8080/api/signals');
+    const signals = await response.json();
     
     console.log(`获取到 ${signals.length} 个信号`);
     
