@@ -1,4 +1,4 @@
-const { SmartFlowStrategyV3 } = require('./modules/strategy/SmartFlowStrategyV3');
+const SmartFlowStrategyV3 = require('./modules/strategy/SmartFlowStrategyV3');
 
 async function debugATRFlow() {
   try {
