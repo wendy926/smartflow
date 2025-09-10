@@ -43,7 +43,7 @@ async function cleanupSignalNoneRecords() {
     
     // 执行删除操作
     console.log('\n🗑️ 开始删除SIGNAL_NONE记录...');
-    const deleteResult = await db.runCommand(`
+    const deleteResult = await db.run(`
       DELETE FROM simulations 
       WHERE trigger_reason = 'SIGNAL_NONE'
     `);
