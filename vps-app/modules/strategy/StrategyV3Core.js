@@ -465,7 +465,7 @@ class StrategyV3Core {
         bbK: 2,
         lowerTouchPct: 0.015,
         upperTouchPct: 0.015,
-        volMultiplier: 1.2,
+        volMultiplier: 1.7,  // 修复：文档要求1.7
         oiThreshold: 0.02,
         deltaThreshold: 0.02,
         breakoutPeriod: 20
@@ -480,8 +480,8 @@ class StrategyV3Core {
         if (c.close >= lastBB.upper * (1 - opts.upperTouchPct)) upperTouches++;
       }
 
-      // 成交量因子
-      const avgVol = candles1h.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
+      // 成交量因子 - 严格按照文档
+      const avgVol = candles1h.slice(-opts.bbPeriod).reduce((a, c) => a + c.volume, 0) / opts.bbPeriod;
       const volFactor = last6Candles[last6Candles.length - 1].volume / avgVol;
 
       // Delta因子

@@ -641,7 +641,7 @@ function range1h(candles1h, oiData = [], deltaData = [], opts = {}) {
     bbK: opts.bbK || 2,
     lowerTouchPct: opts.lowerTouchPct || 0.015,
     upperTouchPct: opts.upperTouchPct || 0.015,
-    volMultiplier: opts.volMultiplier || 1.2,
+    volMultiplier: opts.volMultiplier || 1.7,
     oiThreshold: opts.oiThreshold || 0.02,
     deltaThreshold: opts.deltaThreshold || 0.02,
     breakoutPeriod: opts.breakoutPeriod || 20
