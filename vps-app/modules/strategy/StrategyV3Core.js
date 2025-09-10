@@ -435,7 +435,11 @@ class StrategyV3Core {
    */
   async analyzeRangeBoundary(symbol) {
     try {
-      const klines1h = await BinanceAPI.getKlines(symbol, '1h', 50);
+      const [klines1h, openInterestHist] = await Promise.all([
+        BinanceAPI.getKlines(symbol, '1h', 50),
+        BinanceAPI.getOpenInterestHist(symbol, '1h', 6)
+      ]);
+
       if (!klines1h || klines1h.length < 25) {
         return { lowerBoundaryValid: false, upperBoundaryValid: false, error: '1H数据不足' };
       }
@@ -455,50 +459,79 @@ class StrategyV3Core {
       // 计算VWAP
       const vwap = this.calculateVWAP(candles1h.slice(-20));
 
-      // 检查边界连续触碰
+      // 配置参数 - 严格按照strategy-v3.md
+      const opts = {
+        bbPeriod: 20,
+        bbK: 2,
+        lowerTouchPct: 0.015,
+        upperTouchPct: 0.015,
+        volMultiplier: 1.2,
+        oiThreshold: 0.02,
+        deltaThreshold: 0.02,
+        breakoutPeriod: 20
+      };
+
+      // 检查边界连续触碰 - 严格按照文档
       const last6Candles = candles1h.slice(-6);
       let lowerTouches = 0, upperTouches = 0;
 
       for (const c of last6Candles) {
-        if (c.close <= lastBB.lower * 1.01) lowerTouches++;
-        if (c.close >= lastBB.upper * 0.99) upperTouches++;
+        if (c.close <= lastBB.lower * (1 + opts.lowerTouchPct)) lowerTouches++;
+        if (c.close >= lastBB.upper * (1 - opts.upperTouchPct)) upperTouches++;
       }
 
       // 成交量因子
       const avgVol = candles1h.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
       const volFactor = last6Candles[last6Candles.length - 1].volume / avgVol;
 
-      // Delta因子（简化）
+      // Delta因子
       const deltaBuy = this.deltaData.get(`${symbol}_buy`) || 0;
       const deltaSell = this.deltaData.get(`${symbol}_sell`) || 0;
       const delta = Math.abs(deltaBuy - deltaSell) / Math.max(deltaBuy + deltaSell, 1);
 
+      // OI变化因子 - 严格按照文档
+      let oiChange = 0;
+      if (openInterestHist && openInterestHist.length >= 2) {
+        const oiStart = openInterestHist[0].sumOpenInterest;
+        const oiEnd = openInterestHist[openInterestHist.length - 1].sumOpenInterest;
+        oiChange = (oiEnd - oiStart) / oiStart;
+      }
+
       // 检查最近突破
-      const recentHigh = Math.max(...candles1h.slice(-20).map(c => c.high));
-      const recentLow = Math.min(...candles1h.slice(-20).map(c => c.low));
+      const recentHigh = Math.max(...candles1h.slice(-opts.breakoutPeriod).map(c => c.high));
+      const recentLow = Math.min(...candles1h.slice(-opts.breakoutPeriod).map(c => c.low));
       const lastClose = candles1h[candles1h.length - 1].close;
       const lastBreakout = lastClose > recentHigh || lastClose < recentLow;
 
-      // 综合边界有效性判断
+      // 综合边界有效性判断 - 严格按照文档
       const lowerBoundaryValid = lowerTouches >= 2 &&
-        volFactor <= 1.2 &&
-        delta <= 0.02 &&
+        volFactor <= opts.volMultiplier &&
+        Math.abs(delta) <= opts.deltaThreshold &&
+        Math.abs(oiChange) <= opts.oiThreshold &&
         !lastBreakout;
 
       const upperBoundaryValid = upperTouches >= 2 &&
-        volFactor <= 1.2 &&
-        delta <= 0.02 &&
+        volFactor <= opts.volMultiplier &&
+        Math.abs(delta) <= opts.deltaThreshold &&
+        Math.abs(oiChange) <= opts.oiThreshold &&
         !lastBreakout;
 
       return {
         lowerBoundaryValid,
         upperBoundaryValid,
+        bb1h: {
+          upper: lastBB.upper,
+          middle: lastBB.middle,
+          lower: lastBB.lower,
+          bandwidth: lastBB.bandwidth
+        },
         bbUpper: lastBB.upper,
         bbMiddle: lastBB.middle,
         bbLower: lastBB.lower,
         bbBandwidth: lastBB.bandwidth,
         vwap,
         delta,
+        oiChange,
         touchesLower: lowerTouches,
         touchesUpper: upperTouches,
         volFactor,

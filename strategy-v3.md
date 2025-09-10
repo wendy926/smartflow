@@ -639,8 +639,8 @@ function range1h(candles1h, oiData = [], deltaData = [], opts = {}) {
   const p = {
     bbPeriod: opts.bbPeriod || 20,
     bbK: opts.bbK || 2,
-    lowerTouchPct: opts.lowerTouchPct || 0.01,
-    upperTouchPct: opts.upperTouchPct || 0.01,
+    lowerTouchPct: opts.lowerTouchPct || 0.015,
+    upperTouchPct: opts.upperTouchPct || 0.015,
     volMultiplier: opts.volMultiplier || 1.2,
     oiThreshold: opts.oiThreshold || 0.02,
     deltaThreshold: opts.deltaThreshold || 0.02,
@@ -726,9 +726,9 @@ function avgVolume(candles, n) {
 
 function range15m(range1hResult, candles15m, candles1h, opts = {}) {
   const p = {
-    lowerTouchPct: opts.lowerTouchPct || 0.01,
-    upperTouchPct: opts.upperTouchPct || 0.01,
-    vol15mMultiplier: opts.vol15mMultiplier || 1.5,
+    lowerTouchPct: opts.lowerTouchPct || 0.015,
+    upperTouchPct: opts.upperTouchPct || 0.015,
+    vol15mMultiplier: opts.vol15mMultiplier || 1.7,
     falseBreakVolThreshold: opts.falseBreakVolThreshold || 1.2,
     takeProfitMode: opts.takeProfitMode || "mid_or_opposite"
   };
@@ -821,14 +821,6 @@ const res = range15m(range1hResult, candles15m, candles1h);
 
 console.log(res);
 ```
-
-**说明与调参建议**
-
-- lowerTouchPct / upperTouchPct：定义“接近轨道”的容忍度（默认 1%）；若市场波动较大可调为 1.5%。
-- vol15mMultiplier、vol1hMultiplier：控制“放量”的判定灵敏度。若频繁误报，把阈值调高些（如 1.7）。
-- falseBreakVolThreshold：判定突破无力的阈值（默认为 1.2）。若你想更保守，把阈值降到 1.1。
-- 止损/止盈：示例使用轨道外小幅缓冲（0.5%~2%），实际按你交易品种波动调整。小币种建议更宽一点。
-- 执行：建议先在 paper trading / 回测跑一段历史（至少 3 个月）观察胜率与回撤，再调参。
 
 ### **📌 JS 实现：震荡市止损逻辑**
 
