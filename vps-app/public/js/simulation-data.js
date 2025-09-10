@@ -28,8 +28,10 @@ class SimulationDataManager {
       // 加载所有模拟交易数据
       await this.loadAllSimulations();
       
-      // 应用当前筛选并显示第一页
-      this.applyFilters();
+      // 等待DOM元素完全加载后再应用筛选
+      setTimeout(() => {
+        this.applyFilters();
+      }, 100);
       
     } catch (error) {
       console.error('加载数据失败:', error);
