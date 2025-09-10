@@ -516,6 +516,21 @@ class StrategyV3Core {
         Math.abs(oiChange) <= opts.oiThreshold &&
         !lastBreakout;
 
+      // 记录震荡市边界判断指标到监控系统
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '震荡市1H边界判断', {
+          lowerBoundaryValid,
+          upperBoundaryValid,
+          touchesLower,
+          touchesUpper,
+          volFactor,
+          delta,
+          oiChange,
+          lastBreakout,
+          bbBandwidth: lastBB.bandwidth
+        });
+      }
+
       return {
         lowerBoundaryValid,
         upperBoundaryValid,

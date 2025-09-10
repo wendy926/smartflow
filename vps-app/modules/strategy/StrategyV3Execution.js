@@ -265,10 +265,34 @@ class StrategyV3Execution {
         };
       }
 
+      // 记录震荡市15分钟执行指标到监控系统
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '震荡市15分钟执行', {
+          nearLower,
+          nearUpper,
+          lowerBoundaryValid,
+          upperBoundaryValid,
+          avgVol15m,
+          avgVol1h,
+          lastATR,
+          bb1h: rangeResult.bb1h
+        });
+      }
+
       return { signal: 'NONE', mode: 'NONE', reason: '未满足震荡市入场条件', atr14: lastATR };
 
     } catch (error) {
       console.error(`震荡市15m执行分析失败 [${symbol}]:`, error);
+      
+      // 记录错误到监控系统
+      if (this.dataMonitor) {
+        this.dataMonitor.recordDataValidationError(
+          'RANGE_15M_EXECUTION_FAILED',
+          `震荡市15分钟执行失败: ${error.message}`,
+          { symbol, error: error.message }
+        );
+      }
+      
       return { signal: 'NONE', mode: 'NONE', reason: '分析错误: ' + error.message, atr14: null };
     }
   }

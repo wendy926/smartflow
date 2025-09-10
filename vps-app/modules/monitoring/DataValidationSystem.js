@@ -65,6 +65,11 @@ class DataValidationSystem {
       'trend4h', 'marketType', 'score1h', 'vwapDirectionConsistent'
     ];
 
+    // 如果是震荡市，添加震荡市特定字段验证
+    if (analysisLog.marketType === '震荡市') {
+      fields.push('rangeResult');
+    }
+
     for (const field of fields) {
       const fieldResult = {
         available: analysisLog[field] !== undefined,
@@ -189,6 +194,19 @@ class DataValidationSystem {
       result.warnings.push(`趋势市VWAP方向不一致: vwapDirectionConsistent=${vwapDirectionConsistent}`);
     }
 
+    // 验证震荡市边界判断结果
+    if (marketType === '震荡市' && analysisLog.rangeResult) {
+      const rangeValidation = this.validateRangeMarketAnalysis(symbol, analysisLog.rangeResult);
+      if (!rangeValidation.valid) {
+        result.errors.push(...rangeValidation.errors);
+        result.valid = false;
+      }
+      if (rangeValidation.warnings) {
+        result.warnings = result.warnings || [];
+        result.warnings.push(...rangeValidation.warnings);
+      }
+    }
+
     result.analysis = {
       trend4h,
       marketType,
@@ -196,6 +214,61 @@ class DataValidationSystem {
       vwapDirectionConsistent,
       consistency: result.valid
     };
+
+    return result;
+  }
+
+  // 验证震荡市边界判断结果
+  validateRangeMarketAnalysis(symbol, rangeResult) {
+    const result = {
+      valid: true,
+      errors: [],
+      warnings: []
+    };
+
+    // 检查必要的字段
+    const requiredFields = ['lowerBoundaryValid', 'upperBoundaryValid', 'bb1h'];
+    for (const field of requiredFields) {
+      if (rangeResult[field] === undefined) {
+        result.errors.push(`震荡市边界判断缺少必要字段: ${field}`);
+        result.valid = false;
+      }
+    }
+
+    // 检查布林带数据
+    if (rangeResult.bb1h) {
+      const { upper, middle, lower, bandwidth } = rangeResult.bb1h;
+      if (upper <= middle || middle <= lower) {
+        result.errors.push(`布林带数据异常: upper=${upper}, middle=${middle}, lower=${lower}`);
+        result.valid = false;
+      }
+      if (bandwidth <= 0) {
+        result.warnings.push(`布林带带宽异常: bandwidth=${bandwidth}`);
+      }
+    }
+
+    // 检查边界有效性逻辑
+    if (rangeResult.lowerBoundaryValid && rangeResult.touchesLower < 2) {
+      result.warnings.push(`下轨边界有效但触碰次数不足: touchesLower=${rangeResult.touchesLower}`);
+    }
+    if (rangeResult.upperBoundaryValid && rangeResult.touchesUpper < 2) {
+      result.warnings.push(`上轨边界有效但触碰次数不足: touchesUpper=${rangeResult.touchesUpper}`);
+    }
+
+    // 检查成交量因子
+    if (rangeResult.volFactor > 1.7) {
+      result.warnings.push(`成交量因子超出阈值: volFactor=${rangeResult.volFactor}, 阈值=1.7`);
+    }
+
+    // 检查Delta因子
+    if (Math.abs(rangeResult.delta) > 0.02) {
+      result.warnings.push(`Delta因子超出阈值: delta=${rangeResult.delta}, 阈值=0.02`);
+    }
+
+    // 检查OI变化因子
+    if (Math.abs(rangeResult.oiChange) > 0.02) {
+      result.warnings.push(`OI变化因子超出阈值: oiChange=${rangeResult.oiChange}, 阈值=0.02`);
+    }
 
     return result;
   }
