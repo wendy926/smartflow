@@ -145,6 +145,7 @@ class DataMonitor {
         dataTypeStats.lastError = error;
       }
 
+      // 更新总体数据收集统计
       stats.dataCollectionAttempts++;
       if (success) {
         stats.dataCollectionSuccesses++;
