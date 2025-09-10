@@ -56,8 +56,12 @@ class SimulationDataManager {
     try {
       // 加载所有模拟交易数据（不分页）
       const result = await this.apiClient.getSimulationHistory();
-      this.allSimulations = result.simulations || [];
+      // API直接返回数组，不是对象
+      this.allSimulations = Array.isArray(result) ? result : (result.simulations || []);
       this.filteredSimulations = [...this.allSimulations];
+      
+      // 初始化筛选选项
+      this.initializeFilterOptions();
     } catch (error) {
       console.error('加载模拟交易历史失败:', error);
       this.showError('加载模拟交易历史失败: ' + error.message);
@@ -186,6 +190,8 @@ class SimulationDataManager {
     this.currentFilters.exitReason = document.getElementById('exitReasonFilter').value;
     this.currentFilters.result = document.getElementById('resultFilter').value;
 
+    console.log('应用筛选条件:', this.currentFilters);
+
     // 筛选数据
     this.filteredSimulations = this.allSimulations.filter(sim => {
       // 方向筛选
@@ -194,8 +200,11 @@ class SimulationDataManager {
       }
 
       // 出场原因筛选
-      if (this.currentFilters.exitReason && sim.exit_reason !== this.currentFilters.exitReason) {
-        return false;
+      if (this.currentFilters.exitReason) {
+        const exitReason = sim.exit_reason || 'UNKNOWN';
+        if (exitReason !== this.currentFilters.exitReason) {
+          return false;
+        }
       }
 
       // 结果筛选
@@ -211,6 +220,8 @@ class SimulationDataManager {
 
       return true;
     });
+
+    console.log(`筛选结果: ${this.filteredSimulations.length} / ${this.allSimulations.length}`);
 
     // 更新分页信息
     this.updatePaginationForFilteredData();
@@ -258,15 +269,12 @@ class SimulationDataManager {
       statusText += `（从 ${total} 条中筛选）`;
     }
     
-    // 创建或更新状态显示
-    let statusDiv = document.getElementById('filterStatus');
-    if (!statusDiv) {
-      statusDiv = document.createElement('div');
-      statusDiv.id = 'filterStatus';
-      statusDiv.className = 'filter-status';
-      document.querySelector('.filter-controls').appendChild(statusDiv);
+    // 更新状态显示
+    const statusDiv = document.getElementById('filterStatus');
+    if (statusDiv) {
+      statusDiv.textContent = statusText;
+      statusDiv.style.display = filtered < total ? 'block' : 'none';
     }
-    statusDiv.textContent = statusText;
   }
 
   updateSimulationHistoryTable(simulations) {
@@ -402,6 +410,74 @@ class SimulationDataManager {
         this.goToPage(this.currentPage + 1);
       }
     });
+  }
+
+  // 初始化筛选选项
+  initializeFilterOptions() {
+    // 统计各类型的数量
+    const directionCounts = {};
+    const exitReasonCounts = {};
+    const resultCounts = { win: 0, loss: 0 };
+
+    this.allSimulations.forEach(sim => {
+      // 方向统计
+      directionCounts[sim.direction] = (directionCounts[sim.direction] || 0) + 1;
+      
+      // 出场原因统计
+      const exitReason = sim.exit_reason || 'UNKNOWN';
+      exitReasonCounts[exitReason] = (exitReasonCounts[exitReason] || 0) + 1;
+      
+      // 结果统计
+      if (sim.is_win) {
+        resultCounts.win++;
+      } else {
+        resultCounts.loss++;
+      }
+    });
+
+    // 更新方向筛选选项
+    this.updateSelectOptions('directionFilter', directionCounts, {
+      'LONG': '做多',
+      'SHORT': '做空'
+    });
+
+    // 更新出场原因筛选选项
+    this.updateSelectOptions('exitReasonFilter', exitReasonCounts, {
+      'STOP_LOSS': '止损',
+      'TAKE_PROFIT': '止盈',
+      'TREND_REVERSAL': '趋势反转',
+      'MANUAL': '手动',
+      'UNKNOWN': '未知'
+    });
+
+    // 更新结果筛选选项
+    this.updateSelectOptions('resultFilter', resultCounts, {
+      'win': '盈利',
+      'loss': '亏损'
+    });
+  }
+
+  // 更新下拉选项
+  updateSelectOptions(selectId, counts, labels) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    // 清空现有选项（保留"全部"选项）
+    const allOption = select.querySelector('option[value=""]');
+    select.innerHTML = '';
+    if (allOption) {
+      select.appendChild(allOption);
+    }
+
+    // 按数量排序并添加选项
+    const sortedEntries = Object.entries(counts)
+      .sort(([,a], [,b]) => b - a)
+      .forEach(([value, count]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = `${labels[value] || value} (${count})`;
+        select.appendChild(option);
+      });
   }
 
   // 清除筛选条件

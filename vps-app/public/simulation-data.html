@@ -344,45 +344,52 @@
             color: white;
         }
 
-        /* 筛选控件样式 */
-        .filter-controls {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #e9ecef;
+        /* 表头筛选样式 */
+        .filter-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
         }
 
-        .filter-group {
-            display: inline-block;
-            margin-right: 20px;
-            margin-bottom: 10px;
-            vertical-align: top;
-        }
-
-        .filter-group label {
-            display: block;
-            margin-bottom: 5px;
+        .filter-header span {
             font-weight: 600;
             color: #333;
             font-size: 0.9rem;
         }
 
-        .filter-group select {
-            padding: 8px 12px;
+        .header-filter {
+            padding: 4px 8px;
             border: 1px solid #dee2e6;
-            border-radius: 6px;
+            border-radius: 4px;
             background: white;
-            font-size: 0.9rem;
-            min-width: 120px;
+            font-size: 0.8rem;
             cursor: pointer;
             transition: border-color 0.2s ease;
+            min-width: 80px;
         }
 
-        .filter-group select:focus {
+        .header-filter:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-controls-row {
+            background: #f8f9fa;
+        }
+
+        .filter-controls-row td {
+            padding: 10px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        /* 筛选控件样式 */
+        .filter-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
         }
 
         .filter-btn {
@@ -568,45 +575,19 @@
             <div class="table-container">
                 <h3>所有模拟交易记录</h3>
                 
-                <!-- 筛选控件 -->
-                <div class="filter-controls">
-                    <div class="filter-group">
-                        <label for="directionFilter">方向筛选:</label>
-                        <select id="directionFilter">
-                            <option value="">全部</option>
-                            <option value="LONG">做多</option>
-                            <option value="SHORT">做空</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="exitReasonFilter">出场原因筛选:</label>
-                        <select id="exitReasonFilter">
-                            <option value="">全部</option>
-                            <option value="STOP_LOSS">止损</option>
-                            <option value="TAKE_PROFIT">止盈</option>
-                            <option value="MANUAL">手动</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="resultFilter">结果筛选:</label>
-                        <select id="resultFilter">
-                            <option value="">全部</option>
-                            <option value="win">盈利</option>
-                            <option value="loss">亏损</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <button id="applyFilters" class="filter-btn">应用筛选</button>
-                        <button id="clearFilters" class="filter-btn clear">清除筛选</button>
-                    </div>
-                </div>
-                
                 <div class="table-wrapper">
                     <table id="simulationHistoryTable">
                         <thead>
                             <tr>
                                 <th>交易对</th>
-                                <th>方向</th>
+                                <th>
+                                    <div class="filter-header">
+                                        <span>方向</span>
+                                        <select id="directionFilter" class="header-filter">
+                                            <option value="">全部</option>
+                                        </select>
+                                    </div>
+                                </th>
                                 <th>入场价格</th>
                                 <th>止损价格</th>
                                 <th>止盈价格</th>
@@ -617,10 +598,33 @@
                                 <th>入场时间</th>
                                 <th>出场时间</th>
                                 <th>出场价格</th>
-                                <th>出场原因</th>
+                                <th>
+                                    <div class="filter-header">
+                                        <span>出场原因</span>
+                                        <select id="exitReasonFilter" class="header-filter">
+                                            <option value="">全部</option>
+                                        </select>
+                                    </div>
+                                </th>
                                 <th>触发原因</th>
                                 <th>盈亏</th>
-                                <th>结果</th>
+                                <th>
+                                    <div class="filter-header">
+                                        <span>结果</span>
+                                        <select id="resultFilter" class="header-filter">
+                                            <option value="">全部</option>
+                                        </select>
+                                    </div>
+                                </th>
+                            </tr>
+                            <tr class="filter-controls-row">
+                                <td colspan="16">
+                                    <div class="filter-controls">
+                                        <button id="applyFilters" class="filter-btn">应用筛选</button>
+                                        <button id="clearFilters" class="filter-btn clear">清除筛选</button>
+                                        <div id="filterStatus" class="filter-status" style="display: none;"></div>
+                                    </div>
+                                </td>
                             </tr>
                         </thead>
                         <tbody id="simulationHistoryBody">
