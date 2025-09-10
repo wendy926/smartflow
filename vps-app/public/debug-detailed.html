@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>详细调试模拟交易数据</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; max-height: 300px; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>详细调试模拟交易数据</h1>
+    
+    <div class="debug-section">
+        <h2>1. 原始API数据</h2>
+        <div id="rawData">测试中...</div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>2. 数据统计</h2>
+        <div id="dataStats">测试中...</div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>3. 筛选过程</h2>
+        <div id="filterProcess">测试中...</div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>4. 最终结果</h2>
+        <div id="finalResult">测试中...</div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        class DetailedDebugSimulationData {
+            constructor() {
+                this.apiClient = new APIClient();
+                this.allSimulations = [];
+                this.filteredSimulations = [];
+                this.currentFilters = {
+                    direction: '',
+                    exitReason: '',
+                    result: ''
+                };
+                this.init();
+            }
+
+            async init() {
+                await this.testRawData();
+                await this.testDataStats();
+                await this.testFilterProcess();
+                await this.testFinalResult();
+            }
+
+            async testRawData() {
+                const rawDataDiv = document.getElementById('rawData');
+                try {
+                    console.log('🔍 开始原始数据测试...');
+                    
+                    const result = await this.apiClient.getSimulationHistory();
+                    console.log('原始API结果:', result);
+                    
+                    this.allSimulations = Array.isArray(result) ? result : (result.simulations || []);
+                    
+                    rawDataDiv.innerHTML = `
+                        <div class="success">✅ 原始API调用成功</div>
+                        <div>返回数据类型: ${Array.isArray(result) ? 'Array' : typeof result}</div>
+                        <div>allSimulations长度: ${this.allSimulations.length}</div>
+                        <div>前3条记录:</div>
+                        <pre>${JSON.stringify(this.allSimulations.slice(0, 3), null, 2)}</pre>
+                    `;
+                } catch (error) {
+                    console.error('原始数据测试失败:', error);
+                    rawDataDiv.innerHTML = `<div class="error">❌ 原始数据测试失败: ${error.message}</div>`;
+                }
+            }
+
+            async testDataStats() {
+                const dataStatsDiv = document.getElementById('dataStats');
+                try {
+                    console.log('🔍 开始数据统计测试...');
+                    
+                    const stats = {
+                        total: this.allSimulations.length,
+                        active: this.allSimulations.filter(sim => sim.status === 'ACTIVE').length,
+                        closed: this.allSimulations.filter(sim => sim.status === 'CLOSED').length,
+                        signalNone: this.allSimulations.filter(sim => sim.trigger_reason === 'SIGNAL_NONE').length,
+                        isWinTrue: this.allSimulations.filter(sim => sim.is_win === true).length,
+                        isWinFalse: this.allSimulations.filter(sim => sim.is_win === false).length,
+                        isWinNull: this.allSimulations.filter(sim => sim.is_win === null).length,
+                        isWinUndefined: this.allSimulations.filter(sim => sim.is_win === undefined).length
+                    };
+                    
+                    dataStatsDiv.innerHTML = `
+                        <div class="success">✅ 数据统计完成</div>
+                        <table>
+                            <tr><th>统计项</th><th>数量</th></tr>
+                            <tr><td>总记录数</td><td>${stats.total}</td></tr>
+                            <tr><td>活跃交易</td><td>${stats.active}</td></tr>
+                            <tr><td>已完成交易</td><td>${stats.closed}</td></tr>
+                            <tr><td>SIGNAL_NONE交易</td><td>${stats.signalNone}</td></tr>
+                            <tr><td>is_win = true</td><td>${stats.isWinTrue}</td></tr>
+                            <tr><td>is_win = false</td><td>${stats.isWinFalse}</td></tr>
+                            <tr><td>is_win = null</td><td>${stats.isWinNull}</td></tr>
+                            <tr><td>is_win = undefined</td><td>${stats.isWinUndefined}</td></tr>
+                        </table>
+                    `;
+                } catch (error) {
+                    console.error('数据统计测试失败:', error);
+                    dataStatsDiv.innerHTML = `<div class="error">❌ 数据统计测试失败: ${error.message}</div>`;
+                }
+            }
+
+            async testFilterProcess() {
+                const filterProcessDiv = document.getElementById('filterProcess');
+                try {
+                    console.log('🔍 开始筛选过程测试...');
+                    
+                    // 模拟原始筛选逻辑
+                    this.filteredSimulations = this.allSimulations.filter(sim => {
+                        // 方向筛选
+                        if (this.currentFilters.direction && sim.direction !== this.currentFilters.direction) {
+                            return false;
+                        }
+
+                        // 出场原因筛选
+                        if (this.currentFilters.exitReason) {
+                            const exitReason = sim.exit_reason || 'UNKNOWN';
+                            if (exitReason !== this.currentFilters.exitReason) {
+                                return false;
+                            }
+                        }
+
+                        // 结果筛选
+                        if (this.currentFilters.result) {
+                            const isWin = sim.is_win;
+                            if (this.currentFilters.result === 'win' && isWin !== true) {
+                                return false;
+                            }
+                            if (this.currentFilters.result === 'loss' && isWin !== false) {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    });
+                    
+                    filterProcessDiv.innerHTML = `
+                        <div class="success">✅ 筛选过程完成</div>
+                        <div>当前筛选条件: ${JSON.stringify(this.currentFilters)}</div>
+                        <div>筛选前记录数: ${this.allSimulations.length}</div>
+                        <div>筛选后记录数: ${this.filteredSimulations.length}</div>
+                        <div>筛选比例: ${this.allSimulations.length > 0 ? (this.filteredSimulations.length / this.allSimulations.length * 100).toFixed(2) : 0}%</div>
+                    `;
+                } catch (error) {
+                    console.error('筛选过程测试失败:', error);
+                    filterProcessDiv.innerHTML = `<div class="error">❌ 筛选过程测试失败: ${error.message}</div>`;
+                }
+            }
+
+            async testFinalResult() {
+                const finalResultDiv = document.getElementById('finalResult');
+                try {
+                    console.log('🔍 开始最终结果测试...');
+                    
+                    const simulations = this.filteredSimulations.slice(0, 10); // 只显示前10条
+                    
+                    if (!simulations || simulations.length === 0) {
+                        finalResultDiv.innerHTML = `
+                            <div class="error">❌ 没有数据可显示</div>
+                            <div>allSimulations.length: ${this.allSimulations.length}</div>
+                            <div>filteredSimulations.length: ${this.filteredSimulations.length}</div>
+                            <div>可能的原因:</div>
+                            <ul>
+                                <li>API返回空数据</li>
+                                <li>筛选条件过于严格</li>
+                                <li>数据格式问题</li>
+                            </ul>
+                        `;
+                        return;
+                    }
+
+                    const tableHTML = simulations.map(sim => `
+                        <tr>
+                            <td>${sim.symbol}</td>
+                            <td>${sim.direction}</td>
+                            <td>${sim.trigger_reason}</td>
+                            <td>${sim.exit_reason || 'N/A'}</td>
+                            <td>${sim.status}</td>
+                            <td>${sim.is_win === null ? 'null' : sim.is_win === undefined ? 'undefined' : sim.is_win}</td>
+                        </tr>
+                    `).join('');
+
+                    finalResultDiv.innerHTML = `
+                        <div class="success">✅ 最终结果测试完成</div>
+                        <div>可显示记录数: ${simulations.length}</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>交易对</th>
+                                    <th>方向</th>
+                                    <th>触发原因</th>
+                                    <th>出场原因</th>
+                                    <th>状态</th>
+                                    <th>is_win</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableHTML}
+                            </tbody>
+                        </table>
+                    `;
+                } catch (error) {
+                    console.error('最终结果测试失败:', error);
+                    finalResultDiv.innerHTML = `<div class="error">❌ 最终结果测试失败: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            new DetailedDebugSimulationData();
+        });
+    </script>
+</body>
+</html>
