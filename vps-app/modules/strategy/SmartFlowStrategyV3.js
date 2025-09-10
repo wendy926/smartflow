@@ -253,6 +253,7 @@ class SmartFlowStrategyV3 {
         minMargin: leverageData.minMargin,
         stopLossDistance: leverageData.stopLossDistance,
         atrValue: leverageData.atrValue,
+        atr14: executionResult.atr14,
         reason: executionResult.reason
       };
 
@@ -355,6 +356,7 @@ class SmartFlowStrategyV3 {
       minMargin: 0,
       stopLossDistance: 0,
       atrValue: null,
+      atr14: null,
       reason,
       score1h: 0,
       vwapDirectionConsistent: false,
