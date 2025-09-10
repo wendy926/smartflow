@@ -830,6 +830,165 @@ console.log(res);
 - 止损/止盈：示例使用轨道外小幅缓冲（0.5%~2%），实际按你交易品种波动调整。小币种建议更宽一点。
 - 执行：建议先在 paper trading / 回测跑一段历史（至少 3 个月）观察胜率与回撤，再调参。
 
+### **📌 JS 实现：震荡市止损逻辑**
+
+```jsx
+/**
+ * 震荡市止损逻辑
+ * @param {Object} params
+ * @param {string} params.side - "long" 或 "short"
+ * @param {number} params.entryPrice - 入场价格
+ * @param {number} params.atr - ATR(14) 值
+ * @param {number} params.setupHigh - setup candle 高点
+ * @param {number} params.setupLow - setup candle 低点
+ * @param {number} params.rangeHigh - 1H 区间高点
+ * @param {number} params.rangeLow - 1H 区间低点
+ * @param {number} params.currentPrice - 最新价格
+ * @param {number} params.hoursHeld - 持仓小时数
+ * @param {Object} params.factors - 因子状态 { vwap: boolean, delta: boolean, oi: boolean, volume: boolean }
+ * @returns {Object} { stopLossHit: boolean, reason: string }
+ */
+function calculateStopLoss({
+  side,
+  entryPrice,
+  atr,
+  setupHigh,
+  setupLow,
+  rangeHigh,
+  rangeLow,
+  currentPrice,
+  hoursHeld,
+  factors
+}) {
+  let stopLossPrice;
+  let reason = "";
+
+  // 1. 初始止损 (ATR + setup candle)
+  if (side === "long") {
+    stopLossPrice = Math.min(setupLow, entryPrice - 1.2 * atr);
+  } else {
+    stopLossPrice = Math.max(setupHigh, entryPrice + 1.2 * atr);
+  }
+
+  if ((side === "long" && currentPrice < stopLossPrice) ||
+      (side === "short" && currentPrice > stopLossPrice)) {
+    return { stopLossHit: true, reason: "ATR/Setup 止损触发" };
+  }
+
+  // 2. 区间边界失效止损
+  if (side === "long" && currentPrice < (rangeLow - atr)) {
+    return { stopLossHit: true, reason: "区间下边界失效" };
+  }
+  if (side === "short" && currentPrice > (rangeHigh + atr)) {
+    return { stopLossHit: true, reason: "区间上边界失效" };
+  }
+
+  // 3. 时间止损 (超过 6 小时无进展)
+  if (hoursHeld >= 6) {
+    return { stopLossHit: true, reason: "时间止损（6小时未达目标）" };
+  }
+
+  // 4. 多因子止损 (VWAP/Delta/OI/Volume 方向错误)
+  if (factors) {
+    const badFactors = Object.entries(factors)
+      .filter(([key, val]) => val === false)
+      .map(([key]) => key);
+
+    if (badFactors.length >= 2) {
+      return { stopLossHit: true, reason: `因子止损: ${badFactors.join(", ")}` };
+    }
+  }
+
+  return { stopLossHit: false, reason: "持仓中" };
+}
+```
+
+### **📌 用法示例**
+
+```jsx
+const result = calculateStopLoss({
+  side: "long",
+  entryPrice: 30000,
+  atr: 150,
+  setupHigh: 30200,
+  setupLow: 29800,
+  rangeHigh: 30500,
+  rangeLow: 29500,
+  currentPrice: 29400,
+  hoursHeld: 2,
+  factors: { vwap: true, delta: false, oi: false, volume: true }
+});
+
+console.log(result);
+// { stopLossHit: true, reason: "区间下边界失效" }
+```
+
+### 震荡市止盈逻辑
+
+```jsx
+/**
+ * 震荡市止盈逻辑
+ * @param {Object} params
+ * @param {string} params.side - "long" 或 "short"
+ * @param {number} params.entryPrice - 入场价格
+ * @param {number} params.targetRR - 风险回报比目标 (例如 2 表示 1:2)
+ * @param {number} params.atr - ATR(14) 值
+ * @param {number} params.rangeHigh - 1H 区间高点
+ * @param {number} params.rangeLow - 1H 区间低点
+ * @param {number} params.currentPrice - 最新价格
+ * @param {number} params.stopLossPrice - 已设定止损价
+ * @param {number} params.hoursHeld - 持仓时间
+ * @returns {Object} { takeProfitHit: boolean, reason: string, takeProfitPrice: number }
+ */
+function calculateTakeProfit({
+  side,
+  entryPrice,
+  targetRR,
+  atr,
+  rangeHigh,
+  rangeLow,
+  currentPrice,
+  stopLossPrice,
+  hoursHeld
+}) {
+  let takeProfitPrice;
+  let reason = "";
+
+  // 1. 计算基础止盈价格 (风险回报比)
+  const riskDistance = Math.abs(entryPrice - stopLossPrice);
+  if (side === "long") {
+    takeProfitPrice = entryPrice + targetRR * riskDistance;
+  } else {
+    takeProfitPrice = entryPrice - targetRR * riskDistance;
+  }
+
+  // 2. 区间边界止盈 (优先性高于RR)
+  if (side === "long") {
+    takeProfitPrice = Math.min(takeProfitPrice, rangeHigh - atr * 0.5);
+  } else {
+    takeProfitPrice = Math.max(takeProfitPrice, rangeLow + atr * 0.5);
+  }
+
+  // 3. 时间止盈 (超过12小时未触发止盈，强平一半)
+  if (hoursHeld >= 12) {
+    return {
+      takeProfitHit: true,
+      reason: "时间止盈（12小时出场）",
+      takeProfitPrice: currentPrice
+    };
+  }
+
+  // 4. 检查是否达到止盈价格
+  if ((side === "long" && currentPrice >= takeProfitPrice) ||
+      (side === "short" && currentPrice <= takeProfitPrice)) {
+    return { takeProfitHit: true, reason: "目标止盈达成", takeProfitPrice };
+  }
+
+  return { takeProfitHit: false, reason: "持仓中", takeProfitPrice };
+}
+```
+
+
 # **3. 关键指标计算逻辑**
 
 **MA (移动均线)**
