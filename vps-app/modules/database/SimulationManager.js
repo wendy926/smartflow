@@ -704,11 +704,24 @@ class SimulationManager {
       executionModeV3: sim.execution_mode_v3,
       position,
       trend4h,
-      score1h
+      score1h,
+      simMarketType: sim.market_type,
+      analysisMarketType: analysisData?.marketType,
+      isRangeSignal: sim.trigger_reason?.includes('区间')
     });
 
     // 3️⃣ 根据市场类型使用不同的出场条件
-    if (marketType === '震荡市') {
+    // 特殊处理：如果触发原因是区间交易，强制使用震荡市出场条件
+    const isRangeSignal = sim.trigger_reason?.includes('区间');
+    
+    console.log(`🎯 市场类型判断 [${sim.symbol}]:`, {
+      marketType,
+      isRangeSignal,
+      triggerReason: sim.trigger_reason,
+      willUseRangeExit: marketType === '震荡市' || isRangeSignal
+    });
+    
+    if (marketType === '震荡市' || isRangeSignal) {
       // 震荡市出场条件
       if (rangeResult && rangeResult.bb1h) {
         const { upper: rangeHigh, lower: rangeLow } = rangeResult.bb1h;
