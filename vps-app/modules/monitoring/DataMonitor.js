@@ -473,17 +473,19 @@ class DataMonitor {
         // 统计成功率 - 使用统计数据而不是分析日志
         if (stats) {
           // 数据收集成功率基于统计数据
-          const dataCollectionRate = stats.dataCollectionAttempts > 0 ? 
-            (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100 : 0;
-          if (dataCollectionRate > 0) {
-            successfulDataCollections++;
+          if (stats.dataCollectionAttempts > 0) {
+            const dataCollectionRate = (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100;
+            if (dataCollectionRate > 0) {
+              successfulDataCollections++;
+            }
           }
 
           // 信号分析成功率基于统计数据
-          const signalAnalysisRate = stats.signalAnalysisAttempts > 0 ? 
-            (stats.signalAnalysisSuccesses / stats.signalAnalysisAttempts) * 100 : 0;
-          if (signalAnalysisRate > 0) {
-            successfulSignalAnalyses++;
+          if (stats.signalAnalysisAttempts > 0) {
+            const signalAnalysisRate = (stats.signalAnalysisSuccesses / stats.signalAnalysisAttempts) * 100;
+            if (signalAnalysisRate > 0) {
+              successfulSignalAnalyses++;
+            }
           }
         }
       }
