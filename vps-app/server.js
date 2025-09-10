@@ -1251,6 +1251,12 @@ class SmartFlowServer {
         mode = '多头回踩突破';
       } else if (analysis.execution.includes('空头反抽破位')) {
         mode = '空头反抽破位';
+      } else if (analysis.execution.includes('区间多头')) {
+        mode = '区间多头';
+      } else if (analysis.execution.includes('区间空头')) {
+        mode = '区间空头';
+      } else if (analysis.execution.includes('假突破反手')) {
+        mode = '假突破反手';
       }
       const expectedTriggerReason = `SIGNAL_${mode}`;
 
@@ -1458,6 +1464,12 @@ class SmartFlowServer {
         mode = '多头回踩突破';
       } else if (execution.includes('空头反抽破位')) {
         mode = '空头反抽破位';
+      } else if (execution.includes('区间多头')) {
+        mode = '区间多头';
+      } else if (execution.includes('区间空头')) {
+        mode = '区间空头';
+      } else if (execution.includes('假突破反手')) {
+        mode = '假突破反手';
       }
       const triggerReason = `SIGNAL_${mode}`;
 
