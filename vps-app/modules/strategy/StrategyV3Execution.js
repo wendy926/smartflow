@@ -2,7 +2,7 @@
 
 class StrategyV3Execution {
   constructor() {
-    this.maxTimeInPosition = 48; // 12小时 = 48个15分钟
+    this.maxTimeInPosition = 24; // 6小时 = 24个15分钟（严格按照strategy-v3.md文档）
   }
 
   /**
@@ -352,17 +352,20 @@ class StrategyV3Execution {
       return { exit: true, reason: 'TAKE_PROFIT', exitPrice: takeProfit };
     }
 
-    // 3️⃣ 震荡市区间边界失效止损
+    // 3️⃣ 震荡市止损逻辑 - 严格按照strategy-v3.md文档
     if (marketType === '震荡市') {
-      // 需要传入区间边界参数，这里先用EMA作为近似
-      const rangeHigh = ema20 + effectiveATR * 2; // 近似区间高点
-      const rangeLow = ema20 - effectiveATR * 2;  // 近似区间低点
-      
-      if (position === 'LONG' && currentPrice < (rangeLow - effectiveATR)) {
-        return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
-      }
-      if (position === 'SHORT' && currentPrice > (rangeHigh + effectiveATR)) {
-        return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
+      // 获取震荡市边界数据
+      const rangeResult = analysisData?.rangeResult;
+      if (rangeResult && rangeResult.bb1h) {
+        const { upper: rangeHigh, lower: rangeLow } = rangeResult.bb1h;
+        
+        // 区间边界失效止损
+        if (position === 'LONG' && currentPrice < (rangeLow - effectiveATR)) {
+          return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
+        }
+        if (position === 'SHORT' && currentPrice > (rangeHigh + effectiveATR)) {
+          return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
+        }
       }
     }
 
@@ -387,7 +390,31 @@ class StrategyV3Execution {
       return { exit: true, reason: 'SUPPORT_RESISTANCE_BREAK', exitPrice: currentPrice };
     }
 
-    // 7️⃣ 时间止损
+    // 7️⃣ 震荡市多因子止损 - 严格按照strategy-v3.md文档
+    if (marketType === '震荡市') {
+      const rangeResult = analysisData?.rangeResult;
+      if (rangeResult) {
+        // 检查多因子状态
+        const factors = {
+          vwap: rangeResult.vwapDirectionConsistent || false,
+          delta: Math.abs(rangeResult.delta || 0) <= 0.02,
+          oi: Math.abs(rangeResult.oiChange || 0) <= 0.02,
+          volume: (rangeResult.volFactor || 0) <= 1.7
+        };
+        
+        // 统计方向错误的因子
+        const badFactors = Object.entries(factors)
+          .filter(([key, val]) => val === false)
+          .map(([key]) => key);
+        
+        // 如果≥2个因子方向错误，触发止损
+        if (badFactors.length >= 2) {
+          return { exit: true, reason: 'FACTOR_STOP', exitPrice: currentPrice };
+        }
+      }
+    }
+
+    // 8️⃣ 时间止损
     if (timeInPosition >= this.maxTimeInPosition) {
       return { exit: true, reason: 'TIME_STOP', exitPrice: currentPrice };
     }
