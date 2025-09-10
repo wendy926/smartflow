@@ -824,11 +824,17 @@ CREATE TABLE simulations (
 7. **模拟交易字段** - 所有模拟交易记录包含完整的杠杆、保证金、止损距离、ATR值等字段
 8. **分页功能** - 模拟交易历史支持分页查询，提高大数据量下的性能
 9. **方向统计** - 支持按交易方向（做多/做空）分别统计胜率和盈亏
-10. **震荡市止损止盈** - 严格按照strategy-v3.md文档实现：
-    - 多头止损：`min(setupLow, entryPrice - 1.2 * ATR)`
-    - 空头止损：`max(setupHigh, entryPrice + 1.2 * ATR)`
-    - 多头止盈：`min(riskRewardTP, rangeHigh - ATR * 0.5)`
-    - 空头止盈：`max(riskRewardTP, rangeLow + ATR * 0.5)`
+10. **4H趋势过滤** - 严格按照strategy-v3.md文档实现：
+    - **MA排列**：MA20 > MA50 > MA200（多头）或 MA20 < MA50 < MA200（空头）
+    - **价格位置**：收盘价 > MA20（多头）或 收盘价 < MA20（空头）
+    - **连续确认**：至少2根4H K线满足上述条件
+    - **ADX条件**：ADX(14) > 20 且 DI方向正确
+    - **布林带扩张**：带宽呈扩张趋势（后半段比前半段大5%以上）
+11. **震荡市止损止盈** - 严格按照strategy-v3.md文档实现：
+    - 多头止损：`min(bb1h.lower * 0.995, last15m.low - last15m.low * 0.005)`
+    - 空头止损：`max(bb1h.upper * 1.005, last15m.high + last15m.high * 0.005)`
+    - 多头止盈：`bb1h.middle`（mid_or_opposite模式）或 `bb1h.upper`
+    - 空头止盈：`bb1h.middle`（mid_or_opposite模式）或 `bb1h.lower`
     - 区间边界失效止损：多头跌破`rangeLow - ATR`，空头突破`rangeHigh + ATR`
 
 ## 11. 新增功能说明
@@ -860,3 +866,9 @@ CREATE TABLE simulations (
 - **添加区间边界失效止损** - 支持震荡市区间边界失效止损逻辑
 - **新增出场原因统计API** - 提供`/api/exit-reason-stats`端点统计各种出场原因
 - **完善API文档** - 更新文档以反映最新的震荡市止损止盈逻辑和新增API
+
+### V3.3 (2025-01-09)
+- **修复4H趋势过滤逻辑** - 严格按照strategy-v3.md文档实现布林带带宽扩张检查
+- **完善趋势强度确认** - ADX条件 AND 布林带带宽扩张双重确认
+- **优化趋势市判定** - 确保所有条件（MA排列+连续确认+趋势强度确认）都满足才判定为趋势市
+- **更新API文档** - 反映最新的4H趋势过滤逻辑和震荡市止损止盈计算
