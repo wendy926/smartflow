@@ -1457,6 +1457,12 @@ class SmartFlowServer {
         return;
       }
 
+      // 检查是否有有效的执行信号
+      if (!execution || (!execution.includes('做多_') && !execution.includes('做空_'))) {
+        console.log(`❌ 跳过 ${symbol}：没有有效的执行信号 (execution: ${execution})`);
+        return;
+      }
+
       // 确定执行模式和方向
       const isLong = execution.includes('做多_');
       let mode = 'NONE';
