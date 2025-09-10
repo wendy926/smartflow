@@ -61,6 +61,15 @@ class StrategyV3Migration {
       `ALTER TABLE strategy_analysis ADD COLUMN bb_upper REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN bb_middle REAL`,
       `ALTER TABLE strategy_analysis ADD COLUMN bb_lower REAL`,
+      
+      // 新增：震荡市假突破和多因子打分字段
+      `ALTER TABLE strategy_analysis ADD COLUMN bb_width_15m REAL`, // 15分钟布林带宽
+      `ALTER TABLE strategy_analysis ADD COLUMN fake_breakout_detected BOOLEAN DEFAULT FALSE`, // 假突破检测
+      `ALTER TABLE strategy_analysis ADD COLUMN factor_score INTEGER DEFAULT 0`, // 多因子得分
+      `ALTER TABLE strategy_analysis ADD COLUMN vwap_factor REAL`, // VWAP因子
+      `ALTER TABLE strategy_analysis ADD COLUMN delta_factor REAL`, // Delta因子
+      `ALTER TABLE strategy_analysis ADD COLUMN oi_factor REAL`, // OI因子
+      `ALTER TABLE strategy_analysis ADD COLUMN volume_factor REAL`, // Volume因子
       `ALTER TABLE strategy_analysis ADD COLUMN range_touches_lower INTEGER DEFAULT 0`,
       `ALTER TABLE strategy_analysis ADD COLUMN range_touches_upper INTEGER DEFAULT 0`,
       `ALTER TABLE strategy_analysis ADD COLUMN last_breakout BOOLEAN DEFAULT FALSE`,

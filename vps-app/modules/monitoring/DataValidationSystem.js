@@ -273,6 +273,110 @@ class DataValidationSystem {
     return result;
   }
 
+  // 验证震荡市15分钟假突破执行结果
+  validateRangeExecutionAnalysis(symbol, executionResult) {
+    const result = {
+      valid: true,
+      errors: [],
+      warnings: []
+    };
+
+    // 检查必要的字段
+    const requiredFields = ['signal', 'mode', 'reason', 'atr14'];
+    for (const field of requiredFields) {
+      if (executionResult[field] === undefined) {
+        result.errors.push(`震荡市15分钟执行缺少必要字段: ${field}`);
+        result.valid = false;
+      }
+    }
+
+    // 检查假突破相关字段
+    if (executionResult.signal !== 'NONE') {
+      const requiredExecutionFields = ['entry', 'stopLoss', 'takeProfit', 'bbWidth'];
+      for (const field of requiredExecutionFields) {
+        if (executionResult[field] === undefined) {
+          result.errors.push(`震荡市执行信号缺少必要字段: ${field}`);
+          result.valid = false;
+        }
+      }
+
+      // 检查布林带宽收窄
+      if (executionResult.bbWidth && executionResult.bbWidth >= 0.05) {
+        result.warnings.push(`15分钟布林带宽未收窄: bbWidth=${executionResult.bbWidth}, 阈值=0.05`);
+      }
+
+      // 检查止损止盈逻辑
+      if (executionResult.entry && executionResult.stopLoss && executionResult.takeProfit) {
+        const entry = executionResult.entry;
+        const stopLoss = executionResult.stopLoss;
+        const takeProfit = executionResult.takeProfit;
+
+        if (executionResult.signal === 'BUY') {
+          if (stopLoss >= entry) {
+            result.errors.push(`多头止损价格异常: stopLoss=${stopLoss} >= entry=${entry}`);
+            result.valid = false;
+          }
+          if (takeProfit <= entry) {
+            result.errors.push(`多头止盈价格异常: takeProfit=${takeProfit} <= entry=${entry}`);
+            result.valid = false;
+          }
+        } else if (executionResult.signal === 'SHORT') {
+          if (stopLoss <= entry) {
+            result.errors.push(`空头止损价格异常: stopLoss=${stopLoss} <= entry=${entry}`);
+            result.valid = false;
+          }
+          if (takeProfit >= entry) {
+            result.errors.push(`空头止盈价格异常: takeProfit=${takeProfit} >= entry=${entry}`);
+            result.valid = false;
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  // 验证多因子打分结果
+  validateFactorScoring(symbol, factorData) {
+    const result = {
+      valid: true,
+      errors: [],
+      warnings: []
+    };
+
+    // 检查必要的因子字段
+    const requiredFactors = ['vwap', 'delta', 'oi', 'volume'];
+    for (const factor of requiredFactors) {
+      if (factorData[factor] === undefined) {
+        result.errors.push(`多因子打分缺少必要字段: ${factor}`);
+        result.valid = false;
+      }
+    }
+
+    // 检查因子得分范围
+    if (factorData.factorScore !== undefined) {
+      if (factorData.factorScore < -4 || factorData.factorScore > 4) {
+        result.warnings.push(`多因子得分超出正常范围: factorScore=${factorData.factorScore}, 正常范围=[-4,4]`);
+      }
+    }
+
+    // 检查各因子数值合理性
+    if (Math.abs(factorData.vwap) > 1000000) {
+      result.warnings.push(`VWAP因子数值异常: vwap=${factorData.vwap}`);
+    }
+    if (Math.abs(factorData.delta) > 1000000) {
+      result.warnings.push(`Delta因子数值异常: delta=${factorData.delta}`);
+    }
+    if (Math.abs(factorData.oi) > 1000000000) {
+      result.warnings.push(`OI因子数值异常: oi=${factorData.oi}`);
+    }
+    if (Math.abs(factorData.volume) > 1000000000) {
+      result.warnings.push(`Volume因子数值异常: volume=${factorData.volume}`);
+    }
+
+    return result;
+  }
+
   // 记录验证结果到数据库
   async recordValidationResult(symbol, validationResult) {
     if (!this.database) return;
