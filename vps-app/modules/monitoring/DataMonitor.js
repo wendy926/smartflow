@@ -725,7 +725,7 @@ class DataMonitor {
     }
   }
 
-  clearOldLogs() {
+  async clearOldLogs() {
     const cutoffTime = Date.now() - (2 * 60 * 60 * 1000); // 2小时前，更频繁清理
 
     // 清理数据库中的过期分析日志
