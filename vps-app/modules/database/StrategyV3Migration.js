@@ -74,6 +74,15 @@ class StrategyV3Migration {
       `ALTER TABLE strategy_analysis ADD COLUMN range_touches_upper INTEGER DEFAULT 0`,
       `ALTER TABLE strategy_analysis ADD COLUMN last_breakout BOOLEAN DEFAULT FALSE`,
 
+      // 新增：优化后的多因子打分字段
+      `ALTER TABLE strategy_analysis ADD COLUMN factor_score_15m INTEGER DEFAULT 0`, // 15分钟多因子得分
+      `ALTER TABLE strategy_analysis ADD COLUMN vwap_factor_15m REAL DEFAULT 0`, // 15分钟VWAP因子
+      `ALTER TABLE strategy_analysis ADD COLUMN delta_factor_15m REAL DEFAULT 0`, // 15分钟Delta因子
+      `ALTER TABLE strategy_analysis ADD COLUMN oi_factor_15m REAL DEFAULT 0`, // 15分钟OI因子
+      `ALTER TABLE strategy_analysis ADD COLUMN volume_factor_15m REAL DEFAULT 0`, // 15分钟Volume因子
+      `ALTER TABLE strategy_analysis ADD COLUMN boundary_score_1h REAL DEFAULT 0`, // 1H边界得分
+      `ALTER TABLE strategy_analysis ADD COLUMN boundary_threshold REAL DEFAULT 3.0`, // 边界判断阈值
+
       // 15m执行字段
       `ALTER TABLE strategy_analysis ADD COLUMN execution_mode_v3 TEXT`, // 趋势市/震荡市/假突破
       `ALTER TABLE strategy_analysis ADD COLUMN setup_candle_high REAL`,

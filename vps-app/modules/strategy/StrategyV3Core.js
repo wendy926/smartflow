@@ -541,18 +541,21 @@ class StrategyV3Core {
       const lastClose = candles1h[candles1h.length - 1].close;
       const lastBreakout = lastClose > recentHigh || lastClose < recentLow;
 
-      // 6. 综合边界有效性判断 - 严格按照文档
-      const lowerBoundaryValid = lowerTouches >= 2 &&
-        volFactor <= opts.volMultiplier &&
-        Math.abs(delta) <= opts.deltaThreshold &&
-        Math.abs(oiChange) <= opts.oiThreshold &&
-        !lastBreakout;
+      // 6. 多因子打分系统 - 按照strategy-v3.md优化实现
+      const factorScore = this.calculateBoundaryFactorScore({
+        touchesLower: lowerTouches,
+        touchesUpper: upperTouches,
+        volFactor,
+        delta,
+        oiChange,
+        lastBreakout,
+        vwap: lastBB.middle, // 使用布林带中轨作为VWAP参考
+        currentPrice: lastClose
+      });
 
-      const upperBoundaryValid = upperTouches >= 2 &&
-        volFactor <= opts.volMultiplier &&
-        Math.abs(delta) <= opts.deltaThreshold &&
-        Math.abs(oiChange) <= opts.oiThreshold &&
-        !lastBreakout;
+      const boundaryThreshold = 3.0; // 边界判断阈值
+      const lowerBoundaryValid = factorScore >= boundaryThreshold;
+      const upperBoundaryValid = factorScore >= boundaryThreshold;
 
       // 记录震荡市边界判断指标到监控系统
       if (this.dataMonitor) {
@@ -584,7 +587,9 @@ class StrategyV3Core {
         oiChange,
         lastBreakout,
         touchesLower: lowerTouches,
-        touchesUpper: upperTouches
+        touchesUpper: upperTouches,
+        factorScore,
+        boundaryThreshold
       };
     } catch (error) {
       console.error(`1H边界判断失败 [${symbol}]:`, error);
@@ -595,6 +600,45 @@ class StrategyV3Core {
         bb1h: null
       };
     }
+  }
+
+  /**
+   * 计算1H边界多因子得分 - 按照strategy-v3.md优化实现
+   */
+  calculateBoundaryFactorScore({ touchesLower, touchesUpper, volFactor, delta, oiChange, lastBreakout, vwap, currentPrice }) {
+    let score = 0;
+    
+    // 1. 连续触碰因子 (0-2分)
+    const touchScore = Math.min(touchesLower + touchesUpper, 2);
+    score += touchScore;
+    
+    // 2. 成交量因子 (0-1分)
+    if (volFactor <= 1.7) {
+      score += 1;
+    }
+    
+    // 3. Delta因子 (0-1分)
+    if (Math.abs(delta) <= 0.02) {
+      score += 1;
+    }
+    
+    // 4. OI因子 (0-1分)
+    if (Math.abs(oiChange) <= 0.02) {
+      score += 1;
+    }
+    
+    // 5. 无突破因子 (0-1分)
+    if (!lastBreakout) {
+      score += 1;
+    }
+    
+    // 6. VWAP因子 (0-1分) - 价格接近布林带中轨
+    const vwapDistance = Math.abs(currentPrice - vwap) / vwap;
+    if (vwapDistance <= 0.01) { // 1%以内
+      score += 1;
+    }
+    
+    return score;
   }
 
   /**

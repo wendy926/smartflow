@@ -195,21 +195,23 @@
               <li><strong>持仓量历史：</strong> `/futures/data/openInterestHist?symbol={symbol}&period=1h&limit=6`</li>
             </ul>
 
-            <h4>边界有效性判断（严格按照strategy-v3.md）：</h4>
+            <h4>边界有效性判断（优化版 - 多因子打分系统）：</h4>
             <ul>
               <li><strong>布林带计算：</strong> 20期布林带，K=2，带宽 = (上轨-下轨)/中轨</li>
-              <li><strong>连续触碰：</strong> 最近6根1H K线中，下轨触碰≥2次，上轨触碰≥2次</li>
+              <li><strong>多因子打分系统：</strong> 基于6个因子进行量化打分，总分0-6分</li>
+              <li><strong>连续触碰因子：</strong> 最近6根1H K线触碰次数，最高2分</li>
               <li><strong>触碰判断：</strong> 下轨：close ≤ lower×(1+0.015)，上轨：close ≥ upper×(1-0.015)</li>
-              <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.7×20期均量</li>
-              <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡）</li>
-              <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%</li>
-              <li><strong>无突破：</strong> 最近20根K线内无新高/新低突破</li>
+              <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.7×20期均量，1分</li>
+              <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡），1分</li>
+              <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%，1分</li>
+              <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分</li>
+              <li><strong>VWAP因子：</strong> 价格接近布林带中轨（1%以内），1分</li>
             </ul>
 
-            <h4>判断逻辑：</h4>
+            <h4>判断逻辑（优化版）：</h4>
             <ul>
-              <li><strong>下轨有效：</strong> 连续触碰≥2次 + 成交量≤1.7倍 + |Delta|≤0.02 + |OI变化|≤2% + 无突破</li>
-              <li><strong>上轨有效：</strong> 连续触碰≥2次 + 成交量≤1.7倍 + |Delta|≤0.02 + |OI变化|≤2% + 无突破</li>
+              <li><strong>边界有效性：</strong> 多因子得分 ≥ 3分时判断边界有效</li>
+              <li><strong>灵活判断：</strong> 允许部分条件轻微不符合仍可判定有效</li>
               <li><strong>最终action：</strong> 边界有效时允许15m假突破入场</li>
             </ul>
           </div>
@@ -237,20 +239,21 @@
               <li><strong>空头反抽破位：</strong> 价格反抽EMA20/50阻力 + 跌破setup candle低点 + 成交量确认</li>
             </ul>
 
-            <h4>震荡市入场模式（严格按照strategy-v3.md）：</h4>
+            <h4>震荡市入场模式（优化版 - 多因子确认）：</h4>
             <ul>
-              <li><strong>假突破入场：</strong> 15分钟布林带宽收窄 + 假突破验证 + 多因子确认</li>
-              <li><strong>多头假突破：</strong> 突破下沿后快速回撤 + 下轨边界有效</li>
-              <li><strong>空头假突破：</strong> 突破上沿后快速回撤 + 上轨边界有效</li>
+              <li><strong>假突破入场：</strong> 15分钟布林带宽收窄 + 假突破验证 + 15分钟多因子确认</li>
+              <li><strong>多头假突破：</strong> 突破下沿后快速回撤 + 下轨边界有效 + 多因子得分≥2</li>
+              <li><strong>空头假突破：</strong> 突破上沿后快速回撤 + 上轨边界有效 + 多因子得分≥2</li>
             </ul>
 
-            <h4>震荡市具体执行逻辑：</h4>
+            <h4>震荡市具体执行逻辑（优化版）：</h4>
             <ul>
               <li><strong>布林带宽收窄：</strong> 15分钟BB宽度 < 0.05（5%）</li>
               <li><strong>假突破验证：</strong> 前一根突破边界 + 当前收回区间内</li>
-              <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose> rangeLow 且 lowerBoundaryValid</li>
+              <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose > rangeLow 且 lowerBoundaryValid</li>
               <li><strong>空头假突破：</strong> prevClose > rangeHigh 且 lastClose < rangeHigh 且 upperBoundaryValid</li>
-              <li><strong>多因子打分：</strong> VWAP、Delta、OI、Volume四个因子量化打分</li>
+              <li><strong>15分钟多因子打分：</strong> VWAP、Delta、OI、Volume四个因子量化打分，得分范围-4到+4</li>
+              <li><strong>入场条件：</strong> 多因子得分 ≥ 2分才允许入场</li>
               <li><strong>入场价格：</strong> 假突破回撤后的收盘价</li>
               <li><strong>止损价格：</strong> 突破的边界价格（下轨/上轨）</li>
               <li><strong>止盈价格：</strong> 固定1:2风险回报比</li>
@@ -301,7 +304,7 @@
               <li>Delta确认：收盘价与开盘价的关系</li>
             </ul>
 
-            <h4>震荡市多因子打分系统：</h4>
+            <h4>震荡市多因子打分系统（优化版）：</h4>
             <p>基于4个因子进行量化打分，用于震荡市入场确认和止损判断：</p>
             <ul>
               <li><strong>VWAP因子：</strong> 当前价 > VWAP → +1，否则 -1</li>
@@ -309,7 +312,21 @@
               <li><strong>OI因子：</strong> OI上涨 → +1，下降 → -1</li>
               <li><strong>Volume因子：</strong> 成交量增量 → +1，减量 → -1</li>
               <li><strong>得分范围：</strong> -4 到 +4</li>
+              <li><strong>入场条件：</strong> 得分 ≥ 2 时允许入场</li>
               <li><strong>止损条件：</strong> 得分 ≤ -2 时触发多因子止损</li>
+            </ul>
+
+            <h4>1H边界多因子打分系统（新增）：</h4>
+            <p>基于6个因子进行量化打分，用于1H边界有效性判断：</p>
+            <ul>
+              <li><strong>连续触碰因子：</strong> 最近6根1H K线触碰次数，最高2分</li>
+              <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.7×20期均量，1分</li>
+              <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡），1分</li>
+              <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%，1分</li>
+              <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分</li>
+              <li><strong>VWAP因子：</strong> 价格接近布林带中轨（1%以内），1分</li>
+              <li><strong>得分范围：</strong> 0 到 6</li>
+              <li><strong>边界有效：</strong> 得分 ≥ 3 时判断边界有效</li>
             </ul>
 
             <h4>入场模式：</h4>

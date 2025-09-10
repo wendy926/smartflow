@@ -567,228 +567,93 @@ console.log("VWAP:", calculateVWAP(sampleKlines));
 
 **🔹 2.3 4H 震荡市也需要1H和15分钟信号确认入场以及止盈止损执行策略**
 
-- 前提：trend4h === "震荡市"（上层传入）
-- 入场 → 1H 区间确认 + 15m 假突破验证
-- 止损 → 结构性止损 + 多因子止损
-- 止盈 → 固定RR目标 / 区间边界 / 时间止盈
+# **1️⃣ 震荡市 1小时区间判断（1H）**
 
-## 代码实现：
-```jsx
-const fetch = require("node-fetch");
+数据来源：
 
-// ------------------- 获取K线数据 -------------------
-async function getKlines(symbol, interval, limit = 100) {
-  const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.map(k => ({
-    open: parseFloat(k[1]),
-    high: parseFloat(k[2]),
-    low: parseFloat(k[3]),
-    close: parseFloat(k[4]),
-    volume: parseFloat(k[5]),
-    quoteVolume: parseFloat(k[7])
-  }));
-}
+- K线数据：/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50
+- Delta数据：WebSocket实时数据
+- 持仓量历史：/futures/data/openInterestHist?symbol={symbol}&period=1h&limit=6
 
-// ------------------- VWAP -------------------
-async function getVWAP(symbol, interval) {
-  const klines = await getKlines(symbol, interval, 20);
-  let sumPV = 0;
-  let sumVolume = 0;
-  for (const k of klines) {
-    const typicalPrice = (k.high + k.low + k.close) / 3;
-    sumPV += typicalPrice * k.volume;
-    sumVolume += k.volume;
-  }
-  return sumPV / sumVolume; // VWAP价格
-}
+指标计算：
 
-// ------------------- Delta -------------------
-async function getDelta(symbol, interval) {
-  const klines = await getKlines(symbol, interval, 2);
-  const last = klines[klines.length - 1];
-  const prev = klines[klines.length - 2];
-  return last.close - prev.close; // 正值多头，负值空头
-}
+1. 布林带
+    - 20期 K线，K=2
+    - 带宽 = (上轨 - 下轨) / 中轨
+2. 连续触碰边界
+    - 最近6根1H K线触碰次数
+    - 下轨触碰 ≥2次，上轨触碰 ≥2次
+    - 判断公式：
+        - 下轨：close ≤ lower × (1 + 0.015)
+        - 上轨：close ≥ upper × (1 - 0.015)
+3. 成交量因子：最新1H成交量 ≤ 1.7 × 20期均量
+4. Delta因子：|Delta| ≤ 0.02
+5. OI因子：|6h OI变化| ≤ 2%
+6. 无突破：最近20根K线无新高/新低
 
-// ------------------- OI -------------------
-async function getOI(symbol) {
-  const url = `https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  return parseFloat(data.openInterest);
-}
+多因子打分机制（优化）：
 
-// ------------------- 成交量 -------------------
-async function getVolume(symbol, interval) {
-  const klines = await getKlines(symbol, interval, 2);
-  const last = klines[klines.length - 1];
-  const prev = klines[klines.length - 2];
-  return last.volume - prev.volume; // 增量
-}
+- 每个因子赋权 0~1 分
+- 总分 ≥ 阈值（例如 3/4）判断边界有效
+- 优势：降低因子全满足的过严问题，允许部分条件轻微不符合仍可判定有效
 
-// ------------------- SMA 与标准差 -------------------
-function SMA(values, period) {
-  const slice = values.slice(-period);
-  return slice.reduce((a, b) => a + b, 0) / period;
-}
+判断逻辑：
 
-function stdDev(values, period) {
-  const slice = values.slice(-period);
-  const mean = SMA(slice, period);
-  const variance = slice.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / period;
-  return Math.sqrt(variance);
-}
+- 下轨有效 = 连续触碰 + 成交量 + Delta + OI + 无突破，量化成总分 ≥ 阈值
+- 上轨有效 = 同上
+- 最终Action：边界有效时允许15分钟级别假突破入场
 
-// ------------------- 布林带宽 -------------------
-function calcBBWidth(closes, period = 20, k = 2) {
-  const middle = SMA(closes, period);
-  const deviation = stdDev(closes, period);
-  const upper = middle + k * deviation;
-  const lower = middle - k * deviation;
-  return (upper - lower) / middle;
-}
+# **2️⃣ 15分钟级别入场执行（15m）**
 
-// ------------------- 1H区间边界 -------------------
-function check1HRangeValidity(high1h, low1h, delta = 10) {
-  const recentHigh = Math.max(...high1h.slice(-5));
-  const recentLow = Math.min(...low1h.slice(-5));
-  const upperValid = recentHigh <= high1h[high1h.length - 1] + delta;
-  const lowerValid = recentLow >= low1h[low1h.length - 1] - delta;
-  return { upperValid, lowerValid };
-}
+数据来源：
 
-// ------------------- 多因子打分 -------------------
-function calculateFactorScore({ vwap, delta, oi, volume, signalType }) {
-  let score = 0;
-  if (signalType === "long") {
-    score += vwap > 0 ? +1 : -1;
-    score += delta > 0 ? +1 : -1;
-    score += oi > 0 ? +1 : -1;
-    score += volume > 0 ? +1 : -1;
-  } else if (signalType === "short") {
-    score += vwap > 0 ? -1 : +1;
-    score += delta > 0 ? -1 : +1;
-    score += oi > 0 ? -1 : +1;
-    score += volume > 0 ? -1 : +1;
-  }
-  return score;
-}
+- K线数据：/fapi/v1/klines?symbol={symbol}&interval=15m&limit=50
+- 1小时K线：/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50
 
-// ------------------- 完整震荡市策略 -------------------
-async function rangeStrategyWithAutoFactors({
-  high1h,
-  low1h,
-  close15m,
-  currentPrice,
-  atr15m,
-  entryTime,
-  now,
-  symbol
-}) {
-  // 1. 计算15m布林带宽收窄
-  const closes15m = close15m.length >= 20 ? close15m.slice(-20) : await getKlines(symbol, "15m", 20).then(d => d.map(k => k.close));
-  const bbWidth = calcBBWidth(closes15m);
-  const narrowBB = bbWidth < 0.05;
+指标计算：
 
-  // 2. 1H区间边界有效性
-  const { upperValid, lowerValid } = check1HRangeValidity(high1h, low1h, atr15m);
-  const rangeHigh = Math.max(...high1h.slice(-20));
-  const rangeLow = Math.min(...low1h.slice(-20));
-  const inRange = currentPrice < rangeHigh && currentPrice > rangeLow;
-  if (!inRange) return { signal: "none", reason: "不在1H区间" };
-  if (!narrowBB) return { signal: "none", reason: "15m布林带未收窄" };
-  if (!upperValid && !lowerValid) return { signal: "none", reason: "1H区间边界无效" };
+1. EMA
+    - EMA20 = 收盘价 × (2/21) + 前EMA × (19/21)
+    - EMA50 = 收盘价 × (2/51) + 前EMA × (49/51)
+2. ATR14
+    - ATR(14) = EMA(真实波幅, 14)
+    - 真实波幅 = max(高-低, |高-前收盘|, |低-前收盘|)
+3. 布林带宽收窄
+    - 15分钟布林带宽 < 5%
 
-  // 3. 入场逻辑（假突破）
-  const lastClose = close15m[close15m.length - 1];
-  const prevClose = close15m[close15m.length - 2];
-  let signal = "none", entry = null, stopLoss = null, takeProfit = null, reason = "";
+入场模式：
 
-  if (prevClose > rangeHigh && lastClose < rangeHigh && upperValid) {
-    signal = "short";
-    entry = lastClose;
-    stopLoss = rangeHigh;
-    takeProfit = entry - 2 * (stopLoss - entry);
-    reason = "假突破上沿→空头入场";
-  }
-  if (prevClose < rangeLow && lastClose > rangeLow && lowerValid) {
-    signal = "long";
-    entry = lastClose;
-    stopLoss = rangeLow;
-    takeProfit = entry + 2 * (entry - stopLoss);
-    reason = "假突破下沿→多头入场";
-  }
+**趋势市入场**
 
-  // 4. 自动获取多因子数据
-  const [vwapPrice, delta, oi, volDelta] = await Promise.all([
-    getVWAP(symbol, "15m"),
-    getDelta(symbol, "15m"),
-    getOI(symbol),
-    getVolume(symbol, "15m")
-  ]);
+- 多头：回踩EMA20/50支撑 + 突破setup candle高点 + 成交量确认
+- 空头：反抽EMA20/50阻力 + 跌破setup candle低点 + 成交量确认
+- 止损：setup candle另一端或1.2×ATR，取更远者
+- 止盈：2R
 
-  // 4a. VWAP方向: 当前价 > VWAP → +1，否则 -1
-  const vwapFactor = currentPrice > vwapPrice ? 1 : -1;
+**震荡市入场（假突破）**
 
-  // 5. 计算factorScore
-  const factorScore = calculateFactorScore({
-    vwap: vwapFactor,
-    delta,
-    oi,
-    volume: volDelta,
-    signalType: signal
-  });
+- 条件：
+    1. 15分钟布林带宽收窄
+    2. 1H边界有效（factorScore≥阈值）
+    3. 前一根突破边界 + 当前回撤区间
+- 多头假突破：prevClose < rangeLow 且 lastClose > rangeLow 且下轨有效
+- 空头假突破：prevClose > rangeHigh 且 lastClose < rangeHigh 且上轨有效
+- 入场价格：假突破回撤后的收盘价
 
-  // 6. 出场逻辑
-  let exitSignal = "hold";
+# **3️⃣ 震荡市止盈止损（优化）**
 
-  // 6a. 结构性止损/止盈
-  if (signal === "long" && currentPrice < stopLoss) exitSignal = "stopLoss", reason = "结构性止损触发";
-  if (signal === "short" && currentPrice > stopLoss) exitSignal = "stopLoss", reason = "结构性止损触发";
-  if (signal === "long" && currentPrice >= takeProfit) exitSignal = "takeProfit", reason = "RR止盈触发";
-  if (signal === "short" && currentPrice <= takeProfit) exitSignal = "takeProfit", reason = "RR止盈触发";
-
-  // 6b. 多因子打分止损
-  if (signal !== "none" && factorScore <= -2) exitSignal = "stopLoss", reason = `因子打分止损触发 (score=${factorScore})`;
-
-  // 6c. 时间止盈/止损
-  if (signal !== "none" && entryTime && now) {
-    const holdingMinutes = (now - entryTime) / 60000;
-    if (holdingMinutes > 180) exitSignal = "timeExit", reason = "时间止盈触发：持仓超过3小时";
-  }
-
-  return {
-    signal,
-    entry,
-    stopLoss,
-    takeProfit,
-    exitSignal,
-    reason,
-    factorScore,
-    bbWidth,
-    upperValid,
-    lowerValid
-  };
-}
-
-// ------------------- 示例调用 -------------------
-(async () => {
-  const result = await rangeStrategyWithAutoFactors({
-    high1h: [31000, 31200, 31150, 30980, 31050],
-    low1h: [30000, 29950, 30100, 30200, 30050],
-    close15m: [30900, 31080, 31120, 30950, 31000],
-    currentPrice: 30900,
-    atr15m: 50,
-    entryTime: new Date(Date.now() - 60 * 60 * 1000),
-    now: new Date(),
-    symbol: "BTCUSDT"
-  });
-
-  console.log(result);
-})();
-```
+1. 结构性止损
+    - 多头：跌破下轨 - ATR
+    - 空头：突破上轨 + ATR
+2. 多因子止损
+    - VWAP、Delta、OI、Volume因子得分 ≤ -2 时触发
+    - 优势：因子实时量化控制风险，自动触发止损
+3. 时间止损/止盈
+    - 持仓超过3小时自动止盈或止损
+4. 固定RR止盈
+    - 风险回报比1:2
+    - 多头：入场 + 2 × (入场 - 止损)
+    - 空头：入场 - 2 × (止损 - 入场)
 
 ## 震荡市入场和止盈止损策略流程图
 
@@ -828,7 +693,227 @@ flowchart TD
     G --> J
     H --> J
 ```
+js代码实现示例：
+```jsx
+// ============================
+// Utility Functions
+// ============================
 
+// EMA计算
+function calculateEMA(prices, period) {
+    let ema = [];
+    const k = 2 / (period + 1);
+    ema[0] = prices[0]; // 初始值用首个收盘价
+    for (let i = 1; i < prices.length; i++) {
+        ema[i] = prices[i] * k + ema[i - 1] * (1 - k);
+    }
+    return ema;
+}
+
+// ATR计算
+function calculateATR(highs, lows, closes, period) {
+    let trs = [];
+    for (let i = 1; i < highs.length; i++) {
+        const tr = Math.max(
+            highs[i] - lows[i],
+            Math.abs(highs[i] - closes[i - 1]),
+            Math.abs(lows[i] - closes[i - 1])
+        );
+        trs.push(tr);
+    }
+    // ATR = EMA of TR
+    const atr = calculateEMA(trs, period);
+    return atr;
+}
+
+// 布林带
+function calculateBollinger(prices, period = 20, k = 2) {
+    const sma = prices.slice(-period).reduce((a, b) => a + b, 0) / period;
+    const variance =
+        prices.slice(-period).reduce((sum, p) => sum + Math.pow(p - sma, 2), 0) /
+        period;
+    const std = Math.sqrt(variance);
+    const upper = sma + k * std;
+    const lower = sma - k * std;
+    const bandwidth = (upper - lower) / sma;
+    return { upper, lower, bandwidth };
+}
+
+// ============================
+// 多因子打分函数
+// ============================
+function calculateFactorScore({ vwap, delta, oiChange, volume }, thresholds) {
+    let score = 0;
+    if (vwap === 'favorable') score += 1;
+    if (Math.abs(delta) <= thresholds.delta) score += 1;
+    if (Math.abs(oiChange) <= thresholds.oi) score += 1;
+    if (volume <= thresholds.volume) score += 1;
+    return score;
+}
+
+// ============================
+// 1H边界判断
+// ============================
+function check1HRangeBoundary(kLines, delta, oiHistory, thresholds) {
+    const closes = kLines.map(k => k.close);
+    const highs = kLines.map(k => k.high);
+    const lows = kLines.map(k => k.low);
+    const volumes = kLines.map(k => k.volume);
+
+    const { upper, lower } = calculateBollinger(closes, 20, 2);
+
+    // 连续触碰
+    const last6 = closes.slice(-6);
+    const lowerTouches = last6.filter(c => c <= lower * 1.015).length;
+    const upperTouches = last6.filter(c => c >= upper * 0.985).length;
+
+    // OI 6h变化
+    const oiChange = (oiHistory[oiHistory.length - 1] - oiHistory[0]) / oiHistory[0];
+
+    // 多因子判定
+    const factorScore = calculateFactorScore(
+        { vwap: 'favorable', delta, oiChange, volume: volumes[volumes.length - 1] },
+        thresholds
+    );
+
+    const lowerValid = lowerTouches >= 2 && factorScore >= thresholds.scoreThreshold;
+    const upperValid = upperTouches >= 2 && factorScore >= thresholds.scoreThreshold;
+
+    return { lowerValid, upperValid, upper, lower };
+}
+
+// ============================
+// 15分钟入场判断
+// ============================
+function check15mEntry(
+    kLines15m,
+    ema20,
+    ema50,
+    rangeBoundary,
+    lastClose15m,
+    prevClose15m,
+    mode,
+    thresholds
+) {
+    let entrySignal = null;
+    let stopLoss = null;
+    let takeProfit = null;
+
+    const bb = calculateBollinger(kLines15m.map(k => k.close), 20, 2);
+    const bbNarrow = bb.bandwidth < thresholds.bbWidth;
+
+    // 趋势市
+    if (mode === 'trend') {
+        const setupCandle = kLines15m[kLines15m.length - 2];
+        const lastCandle = kLines15m[kLines15m.length - 1];
+
+        // 多头回踩突破
+        if (lastCandle.close > setupCandle.high && lastCandle.close > ema20 && lastCandle.close > ema50) {
+            entrySignal = 'long';
+            stopLoss = Math.min(setupCandle.low, lastCandle.close - 1.2 * thresholds.atr);
+            takeProfit = lastCandle.close + 2 * (lastCandle.close - stopLoss);
+        }
+        // 空头反抽破位
+        else if (lastCandle.close < setupCandle.low && lastCandle.close < ema20 && lastCandle.close < ema50) {
+            entrySignal = 'short';
+            stopLoss = Math.max(setupCandle.high, lastCandle.close + 1.2 * thresholds.atr);
+            takeProfit = lastCandle.close - 2 * (stopLoss - lastCandle.close);
+        }
+    }
+
+    // 震荡市假突破
+    else if (mode === 'range') {
+        const prevClose = prevClose15m;
+        const lastClose = lastClose15m;
+        if (!bbNarrow) return { entrySignal, stopLoss, takeProfit };
+
+        if (prevClose < rangeBoundary.lower && lastClose > rangeBoundary.lower && rangeBoundary.lowerValid) {
+            entrySignal = 'long';
+            stopLoss = rangeBoundary.lower - thresholds.atr;
+            takeProfit = lastClose + 2 * (lastClose - stopLoss);
+        } else if (prevClose > rangeBoundary.upper && lastClose < rangeBoundary.upper && rangeBoundary.upperValid) {
+            entrySignal = 'short';
+            stopLoss = rangeBoundary.upper + thresholds.atr;
+            takeProfit = lastClose - 2 * (stopLoss - lastClose);
+        }
+    }
+
+    return { entrySignal, stopLoss, takeProfit };
+}
+
+// ============================
+// 主入口函数
+// ============================
+async function entryDecision({
+    kLines4h,
+    kLines1h,
+    kLines15m,
+    delta1h,
+    oiHistory1h,
+    thresholds
+}) {
+    // 判断4H趋势或震荡
+    const trend4h = detectTrend4H(kLines4h); // 用户自定义：返回 'trend' 或 'range'
+
+    let mode = trend4h === 'trend' ? 'trend' : 'range';
+
+    // 1H边界/因子判定
+    const rangeBoundary = check1HRangeBoundary(kLines1h, delta1h, oiHistory1h, thresholds);
+
+    const lastClose15m = kLines15m[kLines15m.length - 1].close;
+    const prevClose15m = kLines15m[kLines15m.length - 2].close;
+
+    const ema20 = calculateEMA(kLines15m.map(k => k.close), 20).slice(-1)[0];
+    const ema50 = calculateEMA(kLines15m.map(k => k.close), 50).slice(-1)[0];
+    const atr = calculateATR(
+        kLines15m.map(k => k.high),
+        kLines15m.map(k => k.low),
+        kLines15m.map(k => k.close),
+        14
+    ).slice(-1)[0];
+
+    thresholds.atr = atr;
+
+    const decision = check15mEntry(
+        kLines15m,
+        ema20,
+        ema50,
+        rangeBoundary,
+        lastClose15m,
+        prevClose15m,
+        mode,
+        thresholds
+    );
+
+    return { mode, rangeBoundary, decision };
+}
+
+// ============================
+// 使用示例
+// ============================
+(async () => {
+    // 假数据示例
+    const thresholds = {
+        delta: 0.02,
+        oi: 0.02,
+        volume: 1.7,   // 1H最新成交量与20期均量倍数
+        scoreThreshold: 3,
+        bbWidth: 0.05,
+        atr: 0
+    };
+
+    const kLines4h = await fetchKLines('BTCUSDT', '4h', 50);
+    const kLines1h = await fetchKLines('BTCUSDT', '1h', 50);
+    const kLines15m = await fetchKLines('BTCUSDT', '15m', 50);
+
+    const delta1h = await fetchDelta('BTCUSDT', '1h');
+    const oiHistory1h = await fetchOIHistory('BTCUSDT', '1h', 6);
+
+    const result = await entryDecision({ kLines4h, kLines1h, kLines15m, delta1h, oiHistory1h, thresholds });
+
+    console.log(result);
+})();
+```
 
 
 # **3. 关键指标计算逻辑**

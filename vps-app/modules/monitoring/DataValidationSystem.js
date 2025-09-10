@@ -43,6 +43,14 @@ class DataValidationSystem {
         validationResult.overallStatus = 'FAIL';
       }
 
+      // 4. 验证震荡市多因子打分系统
+      const factorScoringValidation = this.validateFactorScoring(symbol, analysisLog);
+      validationResult.details.factorScoring = factorScoringValidation;
+      if (!factorScoringValidation.valid) {
+        validationResult.errors.push(...factorScoringValidation.errors);
+        validationResult.overallStatus = 'FAIL';
+      }
+
     } catch (error) {
       validationResult.errors.push(`验证过程异常: ${error.message}`);
       validationResult.overallStatus = 'ERROR';
@@ -397,6 +405,76 @@ class DataValidationSystem {
     }
     if (Math.abs(factorData.volume) > 1000000000) {
       result.warnings.push(`Volume因子数值异常: volume=${factorData.volume}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * 验证多因子打分系统 - 按照strategy-v3.md优化实现
+   */
+  validateFactorScoring(symbol, analysisLog) {
+    const result = {
+      valid: true,
+      errors: [],
+      warnings: [],
+      details: {}
+    };
+
+    try {
+      // 检查多因子打分相关字段
+      const factorScore15m = analysisLog.factor_score_15m || 0;
+      const vwapFactor15m = analysisLog.vwap_factor_15m || 0;
+      const deltaFactor15m = analysisLog.delta_factor_15m || 0;
+      const oiFactor15m = analysisLog.oi_factor_15m || 0;
+      const volumeFactor15m = analysisLog.volume_factor_15m || 0;
+      const boundaryScore1h = analysisLog.boundary_score_1h || 0;
+      const boundaryThreshold = analysisLog.boundary_threshold || 3.0;
+
+      result.details = {
+        factorScore15m,
+        vwapFactor15m,
+        deltaFactor15m,
+        oiFactor15m,
+        volumeFactor15m,
+        boundaryScore1h,
+        boundaryThreshold
+      };
+
+      // 验证得分范围
+      if (factorScore15m < -4 || factorScore15m > 4) {
+        result.errors.push(`15分钟多因子得分超出范围: ${factorScore15m} (应在-4到4之间)`);
+        result.valid = false;
+      }
+
+      // 验证边界得分
+      if (boundaryScore1h < 0 || boundaryScore1h > 6) {
+        result.errors.push(`1H边界得分超出范围: ${boundaryScore1h} (应在0到6之间)`);
+        result.valid = false;
+      }
+
+      // 验证阈值设置
+      if (boundaryThreshold < 1 || boundaryThreshold > 6) {
+        result.warnings.push(`边界判断阈值设置异常: ${boundaryThreshold} (建议在1-6之间)`);
+      }
+
+      // 验证因子数值合理性
+      if (Math.abs(vwapFactor15m) > 1) {
+        result.warnings.push(`VWAP因子数值异常: ${vwapFactor15m} (应在-1到1之间)`);
+      }
+      if (Math.abs(deltaFactor15m) > 1) {
+        result.warnings.push(`Delta因子数值异常: ${deltaFactor15m} (应在-1到1之间)`);
+      }
+      if (Math.abs(oiFactor15m) > 1) {
+        result.warnings.push(`OI因子数值异常: ${oiFactor15m} (应在-1到1之间)`);
+      }
+      if (Math.abs(volumeFactor15m) > 1) {
+        result.warnings.push(`Volume因子数值异常: ${volumeFactor15m} (应在-1到1之间)`);
+      }
+
+    } catch (error) {
+      result.errors.push(`多因子打分验证异常: ${error.message}`);
+      result.valid = false;
     }
 
     return result;

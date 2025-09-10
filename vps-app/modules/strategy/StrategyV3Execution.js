@@ -172,27 +172,49 @@ class StrategyV3Execution {
         return { signal: 'NONE', mode: 'NONE', reason: '不在1H区间内', atr14: lastATR };
       }
 
-      // 6. 假突破入场条件判断 - 严格按照文档
+      // 6. 假突破入场条件判断 - 按照strategy-v3.md优化实现
       const prevClose = prev15m.close;
       const lastClose = last15m.close;
       let signal = 'NONE', entry = null, stopLoss = null, takeProfit = null, reason = '';
 
-      // 6a. 空头假突破：突破上沿后快速回撤
+      // 6a. 获取15分钟多因子数据
+      const multiFactorData = await this.getMultiFactorData(symbol);
+      const factorScore15m = this.calculateFactorScore({
+        vwap: multiFactorData.vwap,
+        delta: multiFactorData.delta,
+        oi: multiFactorData.oi,
+        volume: multiFactorData.volume,
+        signalType: 'long' // 先假设多头，后续根据实际信号调整
+      });
+
+      // 6b. 空头假突破：突破上沿后快速回撤 + 多因子确认
       if (prevClose > rangeHigh && lastClose < rangeHigh && upperBoundaryValid) {
-        signal = 'SHORT';
-        entry = lastClose;
-        stopLoss = rangeHigh;
-        takeProfit = entry - 2 * (stopLoss - entry); // 1:2 RR
-        reason = '假突破上沿→空头入场';
+        const shortFactorScore = this.calculateFactorScore({
+          vwap: multiFactorData.vwap,
+          delta: multiFactorData.delta,
+          oi: multiFactorData.oi,
+          volume: multiFactorData.volume,
+          signalType: 'short'
+        });
+        
+        if (shortFactorScore >= 2) { // 多因子得分≥2才入场
+          signal = 'SHORT';
+          entry = lastClose;
+          stopLoss = rangeHigh;
+          takeProfit = entry - 2 * (stopLoss - entry); // 1:2 RR
+          reason = `假突破上沿→空头入场 (多因子得分:${shortFactorScore})`;
+        }
       }
       
-      // 6b. 多头假突破：突破下沿后快速回撤
+      // 6c. 多头假突破：突破下沿后快速回撤 + 多因子确认
       if (prevClose < rangeLow && lastClose > rangeLow && lowerBoundaryValid) {
-        signal = 'BUY';
-        entry = lastClose;
-        stopLoss = rangeLow;
-        takeProfit = entry + 2 * (entry - stopLoss); // 1:2 RR
-        reason = '假突破下沿→多头入场';
+        if (factorScore15m >= 2) { // 多因子得分≥2才入场
+          signal = 'BUY';
+          entry = lastClose;
+          stopLoss = rangeLow;
+          takeProfit = entry + 2 * (entry - stopLoss); // 1:2 RR
+          reason = `假突破下沿→多头入场 (多因子得分:${factorScore15m})`;
+        }
       }
 
       // 7. 如果没有假突破信号，返回无信号
@@ -249,23 +271,34 @@ class StrategyV3Execution {
   }
 
   /**
-   * 多因子打分系统 - 按照strategy-v3.md实现
+   * 多因子打分系统 - 按照strategy-v3.md优化实现
    */
   calculateFactorScore({ vwap, delta, oi, volume, signalType }) {
     let score = 0;
     
+    // 1. VWAP因子：当前价 > VWAP → +1，否则 -1
+    const vwapFactor = vwap > 0 ? +1 : -1;
+    score += vwapFactor;
+    
+    // 2. Delta因子：Delta正值 → +1，负值 → -1
+    const deltaFactor = delta > 0 ? +1 : -1;
+    score += deltaFactor;
+    
+    // 3. OI因子：OI上涨 → +1，下降 → -1
+    const oiFactor = oi > 0 ? +1 : -1;
+    score += oiFactor;
+    
+    // 4. Volume因子：成交量增量 → +1，减量 → -1
+    const volumeFactor = volume > 0 ? +1 : -1;
+    score += volumeFactor;
+    
+    // 根据信号类型调整得分
     if (signalType === "long") {
-      // 多头信号：VWAP、Delta、OI、Volume都应该是正值
-      score += vwap > 0 ? +1 : -1;
-      score += delta > 0 ? +1 : -1;
-      score += oi > 0 ? +1 : -1;
-      score += volume > 0 ? +1 : -1;
+      // 多头信号：所有因子都应该是正值
+      return score;
     } else if (signalType === "short") {
-      // 空头信号：VWAP、Delta、OI、Volume都应该是负值
-      score += vwap > 0 ? -1 : +1;
-      score += delta > 0 ? -1 : +1;
-      score += oi > 0 ? -1 : +1;
-      score += volume > 0 ? -1 : +1;
+      // 空头信号：所有因子都应该是负值，所以得分取反
+      return -score;
     }
     
     return score;
