@@ -605,7 +605,9 @@ class SmartFlowApp {
       // 检查每个信号
       for (const signal of signals) {
         // 检查是否有入场执行信号
-        if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
+        if (signal.execution && signal.execution !== 'NONE' && signal.execution !== 'null' && 
+            !signal.execution.includes('SIGNAL_NONE') &&
+            (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
           // 从execution中提取模式信息
           const isLong = signal.execution.includes('做多_');
           let mode = 'NONE';

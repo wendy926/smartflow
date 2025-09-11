@@ -586,6 +586,43 @@ class SimulationManager {
     }
   }
 
+  // 清理有盈亏金额但状态为进行中的错误记录
+  async cleanupInconsistentSimulations() {
+    try {
+      // 查找有盈亏金额但状态为ACTIVE的记录
+      const inconsistentSims = await this.db.runQuery(`
+        SELECT * FROM simulations 
+        WHERE status = 'ACTIVE' AND profit_loss IS NOT NULL AND profit_loss != 0
+        ORDER BY created_at DESC
+      `);
+
+      for (const sim of inconsistentSims) {
+        // 将这些记录标记为已关闭
+        await this.db.run(`
+          UPDATE simulations 
+          SET status = 'CLOSED', 
+              closed_at = datetime('now', '+8 hours'), 
+              exit_reason = '数据清理修复',
+              is_win = ?
+          WHERE id = ?
+        `, [sim.profit_loss > 0, sim.id]);
+
+        console.log(`🔧 修复不一致记录: ${sim.symbol} - ID: ${sim.id} - 盈亏: ${sim.profit_loss}`);
+      }
+
+      if (inconsistentSims.length > 0) {
+        console.log(`✅ 修复了 ${inconsistentSims.length} 条不一致的模拟交易记录`);
+        // 更新胜率统计
+        await this.updateWinRateStats();
+      }
+
+      return inconsistentSims.length;
+    } catch (error) {
+      console.error('清理不一致模拟交易记录失败:', error);
+      return 0;
+    }
+  }
+
   // 更新模拟交易状态（价格监控和结果判断）
   async updateSimulationStatus(symbol, currentPrice, dataMonitor = null, analysisData = null) {
     try {
@@ -606,16 +643,31 @@ class SimulationManager {
           const profitLoss = this.calculateProfitLoss(sim, exitResult.exitPrice);
           const isWin = profitLoss > 0;
 
-          await this.db.run(`
-            UPDATE simulations 
-            SET status = 'CLOSED', 
-                closed_at = datetime('now', '+8 hours'), 
-                exit_price = ?, 
-                exit_reason = ?, 
-                is_win = ?, 
-                profit_loss = ?
-            WHERE id = ?
-          `, [exitResult.exitPrice, exitResult.reason, isWin, profitLoss, sim.id]);
+          // 确保有盈亏金额时交易状态为已关闭
+          if (profitLoss !== 0) {
+            await this.db.run(`
+              UPDATE simulations 
+              SET status = 'CLOSED', 
+                  closed_at = datetime('now', '+8 hours'), 
+                  exit_price = ?, 
+                  exit_reason = ?, 
+                  is_win = ?, 
+                  profit_loss = ?
+              WHERE id = ?
+            `, [exitResult.exitPrice, exitResult.reason, isWin, profitLoss, sim.id]);
+          } else {
+            // 如果没有盈亏金额，也关闭交易但标记为平仓
+            await this.db.run(`
+              UPDATE simulations 
+              SET status = 'CLOSED', 
+                  closed_at = datetime('now', '+8 hours'), 
+                  exit_price = ?, 
+                  exit_reason = ?, 
+                  is_win = ?, 
+                  profit_loss = ?
+              WHERE id = ?
+            `, [exitResult.exitPrice, exitResult.reason, false, 0, sim.id]);
+          }
 
           // 更新胜率统计
           await this.updateWinRateStats();

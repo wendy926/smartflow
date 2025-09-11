@@ -909,6 +909,16 @@ class SmartFlowServer {
       this.dataRefreshManager = new DataRefreshManager(this.db);
       console.log('✅ 数据刷新管理器初始化完成');
 
+      // 清理不一致的模拟交易记录
+      try {
+        const cleanedCount = await this.simulationManager.cleanupInconsistentSimulations();
+        if (cleanedCount > 0) {
+          console.log(`✅ 数据清理完成，修复了 ${cleanedCount} 条记录`);
+        }
+      } catch (error) {
+        console.error('数据清理失败:', error);
+      }
+
       // 初始化V3策略
       await this.initializeV3Strategy();
       console.log('✅ V3策略初始化完成');
@@ -1560,7 +1570,9 @@ class SmartFlowServer {
       }
 
       // 检查是否有有效的执行信号
-      if (!execution || execution.trim() === '' || execution === 'NONE' || (!execution.includes('做多_') && !execution.includes('做空_'))) {
+      if (!execution || execution.trim() === '' || execution === 'NONE' || execution === 'null' || 
+          (!execution.includes('做多_') && !execution.includes('做空_')) ||
+          execution.includes('SIGNAL_NONE')) {
         console.log(`❌ 跳过 ${symbol}：没有有效的执行信号 (execution: ${execution})`);
         return;
       }

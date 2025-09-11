@@ -447,7 +447,27 @@ class StrategyV3Execution {
       // 空头：止损 = max(setup candle 高点, 入场价 + 1.2 × ATR(14))
       const stopLossByATR = entryPrice + 1.2 * effectiveATR;
       stopLoss = setupCandleHigh ? Math.max(setupCandleHigh, stopLossByATR) : stopLossByATR;
+      // 空头止盈：入场价 - 2 × (止损 - 入场价)，确保止盈 < 入场价 < 止损
       takeProfit = entryPrice - 2 * (stopLoss - entryPrice);
+    }
+
+    // 验证止损止盈价格合理性
+    if (position === 'LONG') {
+      // 多头：入场价 > 止损价，入场价 < 止盈价
+      if (entryPrice <= stopLoss || entryPrice >= takeProfit) {
+        console.warn(`多头止损止盈价格异常: entry=${entryPrice}, stop=${stopLoss}, profit=${takeProfit}`);
+        // 重新计算确保合理性
+        stopLoss = Math.min(entryPrice * 0.98, stopLoss); // 止损不超过入场价的98%
+        takeProfit = entryPrice + 2 * (entryPrice - stopLoss);
+      }
+    } else {
+      // 空头：入场价 < 止损价，入场价 > 止盈价
+      if (entryPrice >= stopLoss || entryPrice <= takeProfit) {
+        console.warn(`空头止损止盈价格异常: entry=${entryPrice}, stop=${stopLoss}, profit=${takeProfit}`);
+        // 重新计算确保合理性
+        stopLoss = Math.max(entryPrice * 1.02, stopLoss); // 止损不低于入场价的102%
+        takeProfit = entryPrice - 2 * (stopLoss - entryPrice);
+      }
     }
 
     console.log(`出场条件检查: position=${position}, entryPrice=${entryPrice}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, atr14=${atr14}, effectiveATR=${effectiveATR}`);

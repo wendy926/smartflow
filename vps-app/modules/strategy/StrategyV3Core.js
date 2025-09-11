@@ -172,7 +172,7 @@ class StrategyV3Core {
     try {
       const klines4h = await BinanceAPI.getKlines(symbol, '4h', 250);
       if (!klines4h || klines4h.length < 200) {
-        return { trend4h: 'NONE', marketType: 'NONE', error: '数据不足' };
+        return { trend4h: '震荡市', marketType: '震荡市', error: '数据不足' };
       }
 
       const candles = klines4h.map(k => ({
@@ -236,8 +236,9 @@ class StrategyV3Core {
       const strengthLong = adxLong && bbwExpanding;
       const strengthShort = adxShort && bbwExpanding;
 
-      let trend4h = 'NONE';
-      let marketType = 'NONE';
+      // 确保总是返回有效的趋势类型，不返回空值
+      let trend4h = '震荡市';
+      let marketType = '震荡市';
 
       if (isLongMA && strengthLong && trendConfirmed) {
         trend4h = '多头趋势';
@@ -277,7 +278,7 @@ class StrategyV3Core {
         errorMessage = `网络连接失败，无法获取 ${symbol} 数据`;
       }
       
-      return { trend4h: 'NONE', marketType: 'NONE', error: errorMessage };
+      return { trend4h: '震荡市', marketType: '震荡市', error: errorMessage };
     }
   }
 
