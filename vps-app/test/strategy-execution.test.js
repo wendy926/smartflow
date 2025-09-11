@@ -1,5 +1,6 @@
 // 策略执行模块单元测试
 const StrategyV3Execution = require('../modules/strategy/StrategyV3Execution');
+const SmartFlowStrategyV3 = require('../modules/strategy/SmartFlowStrategyV3');
 
 describe('StrategyV3Execution', () => {
   let strategyExecution;
@@ -11,37 +12,37 @@ describe('StrategyV3Execution', () => {
   describe('formatExecution', () => {
     test('应该正确处理NONE信号', () => {
       const result = { signal: 'NONE', mode: 'NONE' };
-      const formatted = strategyExecution.formatExecution(result);
+      const formatted = SmartFlowStrategyV3.formatExecution(result);
       expect(formatted).toBeNull();
     });
 
     test('应该正确处理空信号', () => {
       const result = { signal: null, mode: 'NONE' };
-      const formatted = strategyExecution.formatExecution(result);
+      const formatted = SmartFlowStrategyV3.formatExecution(result);
       expect(formatted).toBeNull();
     });
 
     test('应该正确处理多头信号', () => {
       const result = { signal: 'BUY', mode: '假突破反手' };
-      const formatted = strategyExecution.formatExecution(result);
+      const formatted = SmartFlowStrategyV3.formatExecution(result);
       expect(formatted).toBe('做多_假突破反手');
     });
 
     test('应该正确处理空头信号', () => {
       const result = { signal: 'SHORT', mode: '假突破反手' };
-      const formatted = strategyExecution.formatExecution(result);
+      const formatted = SmartFlowStrategyV3.formatExecution(result);
       expect(formatted).toBe('做空_假突破反手');
     });
 
     test('应该处理undefined mode', () => {
       const result = { signal: 'SHORT', mode: undefined };
-      const formatted = strategyExecution.formatExecution(result);
+      const formatted = SmartFlowStrategyV3.formatExecution(result);
       expect(formatted).toBe('做空_NONE');
     });
 
     test('应该处理LONG信号', () => {
       const result = { signal: 'LONG', mode: '区间多头' };
-      const formatted = strategyExecution.formatExecution(result);
+      const formatted = SmartFlowStrategyV3.formatExecution(result);
       expect(formatted).toBe('做多_区间多头');
     });
   });
@@ -89,33 +90,49 @@ describe('StrategyV3Execution', () => {
       const rangeResult = {
         lowerBoundaryValid: false,
         upperBoundaryValid: false,
-        bbUpper: 100,
-        bbLower: 90
+        bb1h: {
+          upper: 100,
+          lower: 90
+        }
       };
-      const candles15m = [
-        { close: 95, high: 96, low: 94, volume: 1000 },
-        { close: 95.5, high: 96.5, low: 94.5, volume: 1100 }
-      ];
+      // 创建20根15分钟K线数据，确保布林带收窄但价格超出区间
+      const candles15m = Array.from({ length: 20 }, (_, i) => ({
+        close: 95 + (i % 3) * 0.01, // 价格有微小变化，确保布林带收窄
+        high: 95.1 + (i % 3) * 0.01,
+        low: 94.9 + (i % 3) * 0.01,
+        volume: 1000 + i * 10
+      }));
+      // 修改最后两根K线价格超出1H区间
+      candles15m[candles15m.length - 2].close = 101; // 超出上沿
+      candles15m[candles15m.length - 1].close = 102; // 超出上沿
       const candles1h = [];
 
       const result = await strategyExecution.analyzeRangeExecution('TESTUSDT', rangeResult, candles15m, candles1h);
-      
+
       expect(result.signal).toBe('NONE');
       expect(result.mode).toBe('NONE');
-      expect(result.reason).toBe('不在1H区间内');
+      expect(result.reason).toBe('15m布林带未收窄');
     });
 
     test('应该正确处理空头假突破信号', async () => {
       const rangeResult = {
         lowerBoundaryValid: false,
         upperBoundaryValid: true,
-        bbUpper: 100,
-        bbLower: 90
+        bb1h: {
+          upper: 100,
+          lower: 90
+        }
       };
-      const candles15m = [
-        { close: 99, high: 100, low: 98, volume: 1000 },
-        { close: 98, high: 99, low: 97, volume: 1100 }
-      ];
+      // 创建20根15分钟K线数据
+      const candles15m = Array.from({ length: 20 }, (_, i) => ({
+        close: 95 + i * 0.1,
+        high: 96 + i * 0.1,
+        low: 94 + i * 0.1,
+        volume: 1000 + i * 10
+      }));
+      // 修改最后两根K线模拟假突破
+      candles15m[candles15m.length - 2].close = 101; // 突破上沿
+      candles15m[candles15m.length - 1].close = 99;  // 回撤
       const candles1h = [];
 
       // Mock getMultiFactorData to return high factor score
@@ -127,10 +144,10 @@ describe('StrategyV3Execution', () => {
       });
 
       const result = await strategyExecution.analyzeRangeExecution('TESTUSDT', rangeResult, candles15m, candles1h);
-      
+
       if (result.signal === 'SHORT') {
         expect(result.mode).toBe('假突破反手');
-        expect(result.entry).toBe(98);
+        expect(result.entry).toBe(99);
         expect(result.stopLoss).toBe(100);
       }
     });

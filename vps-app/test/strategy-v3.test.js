@@ -1,6 +1,43 @@
 // SmartFlowStrategyV3 单元测试
 const SmartFlowStrategyV3 = require('../modules/strategy/SmartFlowStrategyV3');
 
+// Mock dependencies
+jest.mock('../modules/strategy/StrategyV3Core', () => {
+  return jest.fn().mockImplementation(() => ({
+    analyze4HTrend: jest.fn().mockResolvedValue({
+      trend4h: '震荡市',
+      marketType: '震荡市',
+      error: null
+    }),
+    analyzeRangeBoundary: jest.fn().mockResolvedValue({
+      lowerBoundaryValid: true,
+      upperBoundaryValid: true,
+      bbUpper: 100,
+      bbMiddle: 95,
+      bbLower: 90,
+      touchesLower: 2,
+      touchesUpper: 1,
+      volFactor: 1.5,
+      delta: 0.01,
+      oiChange: 0.02,
+      lastBreakout: false,
+      factorScore: 4,
+      boundaryThreshold: 3.0
+    })
+  }));
+});
+
+jest.mock('../modules/strategy/StrategyV3Execution', () => {
+  return jest.fn().mockImplementation(() => ({
+    analyzeRangeExecution: jest.fn().mockResolvedValue({
+      signal: 'NONE',
+      mode: 'NONE',
+      reason: '不满足假突破条件',
+      atr14: 1.5
+    })
+  }));
+});
+
 describe('SmartFlowStrategyV3', () => {
   describe('formatExecution', () => {
     test('应该正确处理NONE信号', () => {
@@ -55,7 +92,7 @@ describe('SmartFlowStrategyV3', () => {
   describe('createNoSignalResult', () => {
     test('应该创建正确的无信号结果', () => {
       const result = SmartFlowStrategyV3.createNoSignalResult('TESTUSDT', '数据不足');
-      
+
       expect(result.symbol).toBe('TESTUSDT');
       expect(result.marketType).toBe('震荡市');
       expect(result.score1h).toBe(0);
@@ -68,36 +105,3 @@ describe('SmartFlowStrategyV3', () => {
     });
   });
 });
-
-// Mock dependencies
-jest.mock('../modules/strategy/StrategyV3Core', () => ({
-  analyze4HTrend: jest.fn().mockResolvedValue({
-    trend4h: '震荡市',
-    marketType: '震荡市',
-    error: null
-  }),
-  analyzeRangeBoundary: jest.fn().mockResolvedValue({
-    lowerBoundaryValid: true,
-    upperBoundaryValid: true,
-    bbUpper: 100,
-    bbMiddle: 95,
-    bbLower: 90,
-    touchesLower: 2,
-    touchesUpper: 1,
-    volFactor: 1.5,
-    delta: 0.01,
-    oiChange: 0.02,
-    lastBreakout: false,
-    factorScore: 4,
-    boundaryThreshold: 3.0
-  })
-}));
-
-jest.mock('../modules/strategy/StrategyV3Execution', () => ({
-  analyzeRangeExecution: jest.fn().mockResolvedValue({
-    signal: 'NONE',
-    mode: 'NONE',
-    reason: '不满足假突破条件',
-    atr14: 1.5
-  })
-}));

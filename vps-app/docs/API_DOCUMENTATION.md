@@ -96,7 +96,68 @@ vps-app/
 - `stopLossDistance`: 止损距离百分比
 - `atrValue`: ATR值（与atr14相同）
 
-### 1.2 交易对管理API
+### 1.2 数据刷新频率管理API
+
+#### GET /api/data/refresh-status/:symbol
+- **功能**: 获取指定交易对的数据刷新状态
+- **实现文件**: `server.js` (第201-250行)
+- **入参**: 
+  - `symbol` (路径参数): 交易对符号
+- **出参**:
+```json
+{
+  "success": true,
+  "data": {
+    "symbol": "BTCUSDT",
+    "refreshStatus": {
+      "4h_trend": {
+        "shouldRefresh": false,
+        "lastRefresh": "2024-01-01T08:00:00Z",
+        "nextRefresh": "2024-01-01T12:00:00Z"
+      },
+      "1h_scoring": {
+        "shouldRefresh": true,
+        "lastRefresh": "2024-01-01T10:00:00Z",
+        "nextRefresh": "2024-01-01T11:00:00Z"
+      },
+      "15m_entry": {
+        "shouldRefresh": true,
+        "lastRefresh": "2024-01-01T10:45:00Z",
+        "nextRefresh": "2024-01-01T11:00:00Z"
+      }
+    }
+  }
+}
+```
+
+**字段说明**:
+- `4h_trend`: 4H趋势数据刷新状态（每4小时更新一次）
+- `1h_scoring`: 1H多因子打分数据刷新状态（每1小时更新一次）
+- `15m_entry`: 15分钟入场执行数据刷新状态（每15分钟更新一次）
+- `shouldRefresh`: 是否应该刷新数据
+- `lastRefresh`: 上次刷新时间
+- `nextRefresh`: 下次刷新时间
+
+#### POST /api/data/force-refresh/:symbol
+- **功能**: 强制刷新指定交易对的所有数据
+- **实现文件**: `server.js` (第251-300行)
+- **入参**: 
+  - `symbol` (路径参数): 交易对符号
+  - `dataType` (可选): 指定刷新的数据类型（4h_trend|1h_scoring|15m_entry）
+- **出参**:
+```json
+{
+  "success": true,
+  "message": "数据刷新成功",
+  "data": {
+    "symbol": "BTCUSDT",
+    "refreshedAt": "2024-01-01T12:00:00Z",
+    "refreshedTypes": ["4h_trend", "1h_scoring", "15m_entry"]
+  }
+}
+```
+
+### 1.3 交易对管理API
 
 #### GET /api/symbols
 - **功能**: 获取交易对列表
@@ -410,7 +471,116 @@ vps-app/
 {"success": true, "simulation": 123}
 ```
 
-### 1.6 健康检查API
+### 1.6 性能监控API
+
+#### GET /api/performance
+- **功能**: 获取系统性能指标
+- **实现文件**: `server.js` (第647-656行)
+- **入参**: 无
+- **出参**:
+```json
+{
+  "system": {
+    "cpu": { "usage": 45.2, "cores": 4 },
+    "memory": { "total": 8589934592, "free": 4294967296, "used": 4294967296, "usage": "50.00" },
+    "uptime": 3600,
+    "loadAverage": [0.5, 0.8, 1.2]
+  },
+  "process": {
+    "pid": 12345,
+    "uptime": 3600,
+    "memory": { "rss": 125829120, "heapUsed": 67108864, "heapTotal": 83886080, "external": 10485760 },
+    "cpu": { "user": 1000000, "system": 500000 }
+  },
+  "application": {
+    "requests": { "total": 1000, "success": 950, "error": 50 },
+    "responseTime": { "avg": 150.5, "min": 50, "max": 2000 },
+    "cache": { "hits": 800, "misses": 200, "hitRate": "80.00" },
+    "database": { "queries": 500, "avgTime": 25.5, "slowQueries": 5 }
+  },
+  "alerts": [
+    {
+      "type": "MEMORY_HIGH",
+      "level": "WARNING",
+      "message": "内存使用率过高: 85%",
+      "value": 85,
+      "threshold": 90,
+      "timestamp": "2025-01-09T12:20:16.218Z"
+    }
+  ],
+  "timestamp": "2025-01-09T12:20:16.218Z",
+  "uptime": 3600000
+}
+```
+
+#### GET /api/cache/stats
+- **功能**: 获取缓存统计信息
+- **实现文件**: `server.js` (第658-667行)
+- **入参**: 无
+- **出参**:
+```json
+{
+  "hits": 800,
+  "misses": 200,
+  "errors": 0,
+  "hitRate": "80.00%",
+  "memoryCacheSize": 150,
+  "redisConnected": true,
+  "config": {
+    "ttl": {
+      "signals": 60,
+      "trend4h": 14400,
+      "scoring1h": 3600,
+      "execution15m": 900,
+      "monitoring": 30,
+      "simulations": 300,
+      "user_settings": 600
+    },
+    "maxMemoryCacheSize": 1000,
+    "enableRedis": true,
+    "enableMemory": true
+  }
+}
+```
+
+#### POST /api/cache/clear
+- **功能**: 清除缓存
+- **实现文件**: `server.js` (第669-684行)
+- **入参**: 
+```json
+{
+  "type": "signals",      // 可选，指定缓存类型
+  "identifier": "BTCUSDT" // 可选，指定缓存标识符
+}
+```
+- **出参**:
+```json
+{
+  "success": true,
+  "message": "缓存清除成功"
+}
+```
+
+#### GET /api/database/stats
+- **功能**: 获取数据库性能统计
+- **实现文件**: `server.js` (第686-695行)
+- **入参**: 无
+- **出参**:
+```json
+{
+  "tables": [
+    { "name": "strategy_analysis", "row_count": 1000 },
+    { "name": "simulations", "row_count": 500 },
+    { "name": "data_refresh_status", "row_count": 50 }
+  ],
+  "indexes": [
+    { "name": "idx_strategy_analysis_symbol_time", "sql": "CREATE INDEX..." },
+    { "name": "idx_strategy_v3_analysis_symbol_time", "sql": "CREATE INDEX..." }
+  ]
+}
+```
+
+### 1.7 健康检查API
 
 #### GET /api/health-check
 - **功能**: 系统健康检查

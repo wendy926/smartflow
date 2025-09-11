@@ -19,7 +19,7 @@ class SmartFlowStrategyV3 {
    * @param {Object} options - 可选参数
    * @returns {Object} 完整的策略分析结果
    */
-static async analyzeSymbol(symbol, options = {}) {
+  static async analyzeSymbol(symbol, options = {}) {
     try {
       console.log(`🔍 开始V3策略分析 [${symbol}]`);
 
@@ -28,7 +28,7 @@ static async analyzeSymbol(symbol, options = {}) {
         const shouldRefresh4H = await options.dataRefreshManager.shouldRefresh(symbol, '4h_trend');
         const shouldRefresh1H = await options.dataRefreshManager.shouldRefresh(symbol, '1h_scoring');
         const shouldRefresh15M = await options.dataRefreshManager.shouldRefresh(symbol, '15m_entry');
-        
+
         console.log(`📊 数据刷新状态 [${symbol}]: 4H=${shouldRefresh4H}, 1H=${shouldRefresh1H}, 15M=${shouldRefresh15M}`);
       }
 
@@ -382,7 +382,7 @@ static async analyzeSymbol(symbol, options = {}) {
     } catch (error) {
       console.error('计算杠杆数据失败:', error);
       console.error('参数详情:', { entryPrice, stopLossPrice, atr14, direction });
-      
+
       // 记录ATR计算失败的数据验证告警
       if (this.dataMonitor) {
         this.dataMonitor.recordDataValidationError(
@@ -391,7 +391,7 @@ static async analyzeSymbol(symbol, options = {}) {
           { entryPrice, stopLossPrice, atr14, direction, error: error.message }
         );
       }
-      
+
       return {
         maxLeverage: 10,
         minMargin: 100,
@@ -417,6 +417,7 @@ static async analyzeSymbol(symbol, options = {}) {
    */
   static createNoSignalResult(symbol, reason) {
     return {
+      symbol,  // 添加symbol字段
       trend4h: '震荡市',  // 添加默认4H趋势
       marketType: '震荡市',  // 添加默认市场类型
       signal: 'NONE',
@@ -435,7 +436,8 @@ static async analyzeSymbol(symbol, options = {}) {
       score1h: 0,
       vwapDirectionConsistent: false,
       rangeLowerBoundaryValid: false,
-      rangeUpperBoundaryValid: false
+      rangeUpperBoundaryValid: false,
+      factors: {}  // 添加factors字段
     };
   }
 

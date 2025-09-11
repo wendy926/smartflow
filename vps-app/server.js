@@ -18,6 +18,10 @@ const DeltaManager = require('./modules/data/DeltaManager');
 const { MemoryMiddleware } = require('./modules/middleware/MemoryMiddleware');
 const { DatabaseSchemaUpdater } = require('./modules/database/DatabaseSchemaUpdater');
 const DataRefreshManager = require('./modules/data/DataRefreshManager');
+const DatabaseOptimization = require('./modules/database/DatabaseOptimization');
+const CacheManager = require('./modules/cache/CacheManager');
+const CacheMiddleware = require('./modules/middleware/CacheMiddleware');
+const PerformanceMonitor = require('./modules/monitoring/PerformanceMonitor');
 
 class SmartFlowServer {
   constructor() {
@@ -34,6 +38,12 @@ class SmartFlowServer {
       warningThreshold: 0.90 // 90%警告阈值
     });
 
+    // 新增组件
+    this.databaseOptimization = null;
+    this.cacheManager = null;
+    this.cacheMiddleware = null;
+    this.performanceMonitor = new PerformanceMonitor();
+
     this.setupMiddleware();
     this.setupRoutes();
   }
@@ -45,6 +55,19 @@ class SmartFlowServer {
 
     // 添加内存监控中间件
     this.app.use(this.memoryMiddleware.middleware());
+
+    // 添加性能监控中间件
+    this.app.use((req, res, next) => {
+      const startTime = Date.now();
+
+      res.on('finish', () => {
+        const responseTime = Date.now() - startTime;
+        const success = res.statusCode >= 200 && res.statusCode < 400;
+        this.performanceMonitor.recordRequest(success, responseTime);
+      });
+
+      next();
+    });
   }
 
   setupRoutes() {
@@ -69,8 +92,8 @@ class SmartFlowServer {
       }
     });
 
-    // 获取所有信号 - V3策略
-    this.app.get('/api/signals', async (req, res) => {
+    // 获取所有信号 - V3策略（添加缓存）
+    this.app.get('/api/signals', this.cacheMiddleware.cacheGet('signals', 60), async (req, res) => {
       try {
         const symbols = await this.db.getCustomSymbols();
         const signals = [];
@@ -558,7 +581,7 @@ class SmartFlowServer {
       try {
         const stats = await this.dataRefreshManager.getRefreshStats();
         const staleData = await this.dataRefreshManager.getStaleData();
-        
+
         res.json({
           success: true,
           refreshStats: stats,
@@ -575,14 +598,14 @@ class SmartFlowServer {
     this.app.post('/api/force-refresh', async (req, res) => {
       try {
         const { symbol, dataType } = req.body;
-        
+
         if (!symbol || !dataType) {
           return res.status(400).json({ error: '缺少必要参数' });
         }
 
         // 更新刷新时间
         await this.dataRefreshManager.updateRefreshTime(symbol, dataType, 100);
-        
+
         res.json({ success: true, message: `已强制刷新 ${symbol} 的 ${dataType} 数据` });
       } catch (error) {
         console.error('强制刷新失败:', error);
@@ -630,6 +653,56 @@ class SmartFlowServer {
         res.json(validationResult);
       } catch (error) {
         console.error('获取交易对验证详情失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 性能监控API
+    this.app.get('/api/performance', async (req, res) => {
+      try {
+        const metrics = this.performanceMonitor.getMetrics();
+        res.json(metrics);
+      } catch (error) {
+        console.error('获取性能指标失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 缓存统计API
+    this.app.get('/api/cache/stats', async (req, res) => {
+      try {
+        const stats = this.cacheManager.getStats();
+        res.json(stats);
+      } catch (error) {
+        console.error('获取缓存统计失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 清除缓存API
+    this.app.post('/api/cache/clear', async (req, res) => {
+      try {
+        const { type, identifier } = req.body;
+        if (type && identifier) {
+          await this.cacheManager.del(type, identifier);
+          res.json({ success: true, message: '缓存清除成功' });
+        } else {
+          await this.cacheManager.redis.flushAll();
+          res.json({ success: true, message: '所有缓存清除成功' });
+        }
+      } catch (error) {
+        console.error('清除缓存失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 数据库性能统计API
+    this.app.get('/api/database/stats', async (req, res) => {
+      try {
+        const stats = await this.databaseOptimization.getPerformanceStats();
+        res.json(stats);
+      } catch (error) {
+        console.error('获取数据库统计失败:', error);
         res.status(500).json({ error: error.message });
       }
     });
@@ -908,6 +981,26 @@ class SmartFlowServer {
       // 初始化数据刷新管理器
       this.dataRefreshManager = new DataRefreshManager(this.db);
       console.log('✅ 数据刷新管理器初始化完成');
+
+      // 初始化数据库优化
+      this.databaseOptimization = new DatabaseOptimization();
+      await this.databaseOptimization.optimizeDatabase();
+      console.log('✅ 数据库优化完成');
+
+      // 初始化缓存管理器
+      this.cacheManager = new CacheManager({
+        redis: {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: process.env.REDIS_PORT || 6379,
+          password: process.env.REDIS_PASSWORD || null,
+          db: process.env.REDIS_DB || 0
+        },
+        enableRedis: process.env.ENABLE_REDIS !== 'false',
+        enableMemory: true
+      });
+      await this.cacheManager.initialize();
+      this.cacheMiddleware = CacheMiddleware.create(this.cacheManager);
+      console.log('✅ 缓存系统初始化完成');
 
       // 清理不一致的模拟交易记录
       try {
@@ -1570,9 +1663,9 @@ class SmartFlowServer {
       }
 
       // 检查是否有有效的执行信号
-      if (!execution || execution.trim() === '' || execution === 'NONE' || execution === 'null' || 
-          (!execution.includes('做多_') && !execution.includes('做空_')) ||
-          execution.includes('SIGNAL_NONE')) {
+      if (!execution || execution.trim() === '' || execution === 'NONE' || execution === 'null' ||
+        (!execution.includes('做多_') && !execution.includes('做空_')) ||
+        execution.includes('SIGNAL_NONE')) {
         console.log(`❌ 跳过 ${symbol}：没有有效的执行信号 (execution: ${execution})`);
         return;
       }
