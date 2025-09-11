@@ -295,14 +295,8 @@ class DataMonitor {
         console.log(`❌ ${symbol} 信号分析失败: analysisSuccessful=${analysisSuccessful}`);
       }
 
-      // 模拟交易统计 - 只有在有模拟交易触发时才记录
-      if (analysisResult.phases?.simulationTrading) {
-        stats.simulationTriggers++;
-        if (analysisResult.phases.simulationTrading.success) {
-          stats.simulationCompletions++;
-          stats.lastSimulationTime = Date.now();
-        }
-      }
+      // 注意：模拟交易统计应该通过recordSimulation方法记录，而不是在这里
+      // 这里只记录分析相关的统计，不记录模拟交易统计
 
       // 调试日志 - 放在增加成功次数之后
       console.log(`📊 ${symbol} 分析结果:`, {
