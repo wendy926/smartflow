@@ -9,9 +9,11 @@ class BinanceAPI {
   static rateLimiter = new SmartAPIRateLimiter();
   static realTimeMonitor = new RealTimeDataMonitor();
   
-  // 启动RateLimiter的清理机制
+  // 启动RateLimiter的清理机制（仅在非测试环境）
   static {
-    this.rateLimiter.startCleanup();
+    if (process.env.NODE_ENV !== 'test') {
+      this.rateLimiter.startCleanup();
+    }
   }
 
   // 停止RateLimiter的清理机制

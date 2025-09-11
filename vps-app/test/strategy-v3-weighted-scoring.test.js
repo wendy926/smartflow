@@ -25,6 +25,12 @@ describe('策略V3分类权重打分测试', () => {
   let mockDatabase;
   let mockDataMonitor;
 
+  beforeAll(() => {
+    // 在测试环境中启动定时器
+    const BinanceAPI = require('../modules/api/BinanceAPI');
+    BinanceAPI.rateLimiter.startCleanup();
+  });
+
   afterAll(() => {
     // 清理所有定时器
     try {
