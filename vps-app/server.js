@@ -51,7 +51,15 @@ class SmartFlowServer {
   setupMiddleware() {
     this.app.use(cors());
     this.app.use(express.json());
-    this.app.use(express.static(path.join(__dirname, 'public')));
+    
+    // 静态文件服务，禁用缓存
+    this.app.use(express.static(path.join(__dirname, 'public'), {
+      setHeaders: (res, path) => {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }));
 
     // 添加内存监控中间件
     this.app.use(this.memoryMiddleware.middleware());
