@@ -749,7 +749,109 @@ vps-app/
 }
 ```
 
-### 1.11 数据库优化API
+### 1.11 交易对分类和权重管理API
+
+#### GET /api/symbol-categories
+- **功能**: 获取所有交易对分类
+- **实现文件**: `server.js` (第700-710行)
+- **入参**: 无
+- **出参**:
+```json
+[
+  {
+    "symbol": "BTCUSDT",
+    "category": "mainstream",
+    "description": "主流币",
+    "created_at": "2025-01-09T12:00:00.000Z"
+  },
+  {
+    "symbol": "ETHUSDT", 
+    "category": "mainstream",
+    "description": "主流币",
+    "created_at": "2025-01-09T12:00:00.000Z"
+  }
+]
+```
+
+#### POST /api/symbol-categories
+- **功能**: 设置交易对分类
+- **实现文件**: `server.js` (第711-730行)
+- **入参**:
+```json
+{
+  "symbol": "BTCUSDT",
+  "category": "mainstream",
+  "description": "主流币"
+}
+```
+- **出参**:
+```json
+{
+  "success": true,
+  "message": "交易对分类设置成功"
+}
+```
+
+#### GET /api/factor-weights
+- **功能**: 获取所有多因子权重配置
+- **实现文件**: `server.js` (第731-740行)
+- **入参**: 无
+- **出参**:
+```json
+[
+  {
+    "category": "mainstream",
+    "analysis_type": "15m_execution",
+    "vwap_weight": 0.3,
+    "delta_weight": 0.3,
+    "oi_weight": 0.2,
+    "volume_weight": 0.2,
+    "created_at": "2025-01-09T12:00:00.000Z"
+  }
+]
+```
+
+#### POST /api/factor-weights
+- **功能**: 设置多因子权重配置
+- **实现文件**: `server.js` (第741-760行)
+- **入参**:
+```json
+{
+  "category": "mainstream",
+  "analysis_type": "15m_execution",
+  "vwap_weight": 0.3,
+  "delta_weight": 0.3,
+  "oi_weight": 0.2,
+  "volume_weight": 0.2
+}
+```
+- **出参**:
+```json
+{
+  "success": true,
+  "message": "多因子权重配置设置成功"
+}
+```
+
+#### GET /api/factor-weights/:category/:analysisType
+- **功能**: 获取指定分类和类型的权重配置
+- **实现文件**: `server.js` (第761-780行)
+- **入参**: 
+  - `category` (路径参数): 交易对分类
+  - `analysisType` (路径参数): 分析类型
+- **出参**:
+```json
+{
+  "category": "mainstream",
+  "analysis_type": "15m_execution",
+  "vwap_weight": 0.3,
+  "delta_weight": 0.3,
+  "oi_weight": 0.2,
+  "volume_weight": 0.2
+}
+```
+
+### 1.12 数据库优化API
 
 #### POST /api/database/optimize
 - **功能**: 执行数据库表结构优化
@@ -1190,7 +1292,45 @@ CREATE TABLE simulations (
 );
 ```
 
-### 9.4 监控数据表结构
+### 9.4 交易对分类和权重表结构
+
+#### symbol_categories表
+```sql
+CREATE TABLE symbol_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT UNIQUE NOT NULL,
+    category TEXT NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 索引
+CREATE INDEX idx_symbol_categories_symbol ON symbol_categories(symbol);
+CREATE INDEX idx_symbol_categories_category ON symbol_categories(category);
+```
+
+#### factor_weights表
+```sql
+CREATE TABLE factor_weights (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT NOT NULL,
+    analysis_type TEXT NOT NULL,
+    vwap_weight REAL DEFAULT 0.25,
+    delta_weight REAL DEFAULT 0.25,
+    oi_weight REAL DEFAULT 0.25,
+    volume_weight REAL DEFAULT 0.25,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(category, analysis_type)
+);
+
+-- 索引
+CREATE INDEX idx_factor_weights_category ON factor_weights(category);
+CREATE INDEX idx_factor_weights_analysis_type ON factor_weights(analysis_type);
+```
+
+### 9.5 监控数据表结构
 
 #### analysis_logs表
 ```sql

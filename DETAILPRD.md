@@ -60,6 +60,7 @@ SmartFlow V3策略采用三层共振机制，严格按照strategy-v3.md文档实
 │  ├── 策略模块 (SmartFlowStrategyV3.js)                      │
 │  ├── 数据监控 (DataMonitor.js)                              │
 │  ├── 数据库管理 (DatabaseManager.js)                        │
+│  ├── 多因子权重管理 (FactorWeightManager.js)                │
 │  ├── API接口 (BinanceAPI.js)                               │
 │  ├── 限流器 (RateLimiter.js)                               │
 │  ├── 通知系统 (TelegramNotifier.js)                        │
@@ -77,7 +78,9 @@ SmartFlow V3策略采用三层共振机制，严格按照strategy-v3.md文档实
 │  │   ├── 聚合指标表 (aggregated_metrics)                    │
 │  │   ├── V3策略分析表 (strategy_v3_analysis)                │
 │  │   ├── 数据刷新状态表 (data_refresh_status)               │
-│  │   └── 趋势反转记录表 (trend_reversal_records)             │
+│  │   ├── 趋势反转记录表 (trend_reversal_records)             │
+│  │   ├── 交易对分类表 (symbol_categories)                   │
+│  │   └── 多因子权重表 (factor_weights)                      │
 │  ├── Binance Futures API                                   │
 │  ├── Binance WebSocket (aggTrade)                          │
 │  └── 内存缓存系统 (15分钟数据保留)                          │
@@ -489,7 +492,79 @@ function calculateCVD(klines) {
 }
 ```
 
-#### 1.3 信号判断逻辑
+#### 1.3 交易对分类和权重管理
+
+#### 1.3.1 交易对分类体系
+
+**分类标准**
+- **主流币 (mainstream)**: BTCUSDT, ETHUSDT, BNBUSDT, ADAUSDT, XRPUSDT, SOLUSDT, DOGEUSDT, TRXUSDT
+- **高市值趋势币 (highcap)**: LINKUSDT, AVAXUSDT, SUIUSDT, TAOUSDT, ONDOUSDT, AAVEUSDT, ENAUSDT
+- **热点币 (trending)**: PEPEUSDT, WLDUSDT, MYXUSDT, IPUSDT, HYPEUSDT, FETUSDT, MUSDT
+- **小币 (smallcap)**: 其他未明确分类的交易对
+
+**分类逻辑**
+```javascript
+// 交易对分类判断逻辑
+function categorizeSymbol(symbol) {
+  const mainstream = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT', 'SOLUSDT', 'DOGEUSDT', 'TRXUSDT'];
+  const highcap = ['LINKUSDT', 'AVAXUSDT', 'SUIUSDT', 'TAOUSDT', 'ONDOUSDT', 'AAVEUSDT', 'ENAUSDT'];
+  const trending = ['PEPEUSDT', 'WLDUSDT', 'MYXUSDT', 'IPUSDT', 'HYPEUSDT', 'FETUSDT', 'MUSDT'];
+  
+  if (mainstream.includes(symbol)) return 'mainstream';
+  if (highcap.includes(symbol)) return 'highcap';
+  if (trending.includes(symbol)) return 'trending';
+  return 'smallcap';
+}
+```
+
+#### 1.3.2 多因子权重配置
+
+**权重配置表**
+| 分类 | VWAP权重 | Delta权重 | OI权重 | Volume权重 | 说明 |
+|------|----------|-----------|--------|------------|------|
+| 主流币 | 30% | 30% | 20% | 20% | 均衡配置，各因子重要性相当 |
+| 高市值趋势币 | 25% | 35% | 25% | 15% | Delta和OI更重要，适合趋势判断 |
+| 热点币 | 20% | 20% | 20% | 40% | Volume最重要，热点币靠成交量驱动 |
+| 小币 | 10% | 20% | 20% | 50% | Volume和OI核心，VWAP参考作用低 |
+
+**权重计算逻辑**
+```javascript
+// 多因子权重计算
+function calculateWeightedScore(symbol, analysisType, factorValues) {
+  const category = getSymbolCategory(symbol);
+  const weights = getFactorWeights(category, analysisType);
+  
+  let weightedScore = 0;
+  weightedScore += factorValues.vwap ? weights.vwap_weight : 0;
+  weightedScore += factorValues.delta ? weights.delta_weight : 0;
+  weightedScore += factorValues.oi ? weights.oi_weight : 0;
+  weightedScore += factorValues.volume ? weights.volume_weight : 0;
+  
+  return {
+    category,
+    score: weightedScore,
+    factorScores: {
+      vwap: factorValues.vwap ? weights.vwap_weight : 0,
+      delta: factorValues.delta ? weights.delta_weight : 0,
+      oi: factorValues.oi ? weights.oi_weight : 0,
+      volume: factorValues.volume ? weights.volume_weight : 0
+    },
+    weights
+  };
+}
+```
+
+#### 1.3.3 分类权重应用场景
+
+**1H多因子打分应用**
+- 趋势市：使用分类权重进行1H多因子打分
+- 震荡市：使用分类权重进行1H边界确认
+
+**15分钟执行应用**
+- 震荡市假突破：使用分类权重进行多因子确认
+- 趋势市回踩：使用分类权重进行入场确认
+
+### 1.4 信号判断逻辑
 
 **4H趋势过滤**
 ```javascript

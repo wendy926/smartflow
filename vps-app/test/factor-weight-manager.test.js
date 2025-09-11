@@ -39,6 +39,16 @@ describe('FactorWeightManager', () => {
       expect(category).toBe('mainstream');
     });
 
+    test('应该处理数据库方法调用错误', async () => {
+      // 模拟DatabaseManager方法调用错误（this.get不存在）
+      mockDatabase.getSymbolCategory.mockRejectedValue(new Error('this.get is not a function'));
+
+      const category = await factorWeightManager.getSymbolCategory('BTCUSDT');
+
+      // 应该降级到默认分类逻辑
+      expect(category).toBe('mainstream');
+    });
+
     test('数据库中没有分类时应该使用默认分类逻辑', async () => {
       mockDatabase.getSymbolCategory.mockResolvedValue(null);
 

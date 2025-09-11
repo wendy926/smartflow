@@ -170,7 +170,7 @@
               <li><strong>Delta数据：</strong> WebSocket实时数据，计算买卖盘不平衡</li>
             </ul>
 
-            <h4>多因子打分系统（0-6分）：</h4>
+            <h4>多因子打分系统（0-6分）- 分类权重优化版：</h4>
             <ul>
               <li><strong>VWAP方向（必须满足）：</strong> 收盘价 > VWAP（多头趋势）或 收盘价 < VWAP（空头趋势）</li>
               <li><strong>突破确认（1分）：</strong> 收盘价突破最近20根4H K线高点（多头）或低点（空头）</li>
@@ -180,9 +180,18 @@
               <li><strong>Delta不平衡（1分）：</strong> 多头：主动买盘 ≥ 卖盘×1.2，空头：主动卖盘 ≥ 买盘×1.2</li>
             </ul>
 
+            <h4>交易对分类权重系统：</h4>
+            <ul>
+              <li><strong>主流币（BTC/ETH等）：</strong> VWAP 30% + Delta 30% + OI 20% + Volume 20%</li>
+              <li><strong>高市值趋势币（LINK/AVAX等）：</strong> VWAP 25% + Delta 35% + OI 25% + Volume 15%</li>
+              <li><strong>热点币（PEPE/WLD等）：</strong> VWAP 20% + Delta 20% + OI 20% + Volume 40%</li>
+              <li><strong>小币（其他）：</strong> VWAP 10% + Delta 20% + OI 20% + Volume 50%</li>
+            </ul>
+
             <h4>判断逻辑：</h4>
             <ul>
               <li><strong>VWAP方向必须满足，否则得分=0</strong></li>
+              <li><strong>权重计算：</strong> 根据交易对分类应用不同权重，优化打分准确性</li>
               <li><strong>得分 ≥ 3分：</strong> 允许入场（仅趋势市）</li>
               <li><strong>得分 < 3分：</strong> 无信号（NONE）</li>
               <li><strong>最终action：</strong> 得分 ≥ 3分时，多头趋势→做多，空头趋势→做空</li>
@@ -271,7 +280,7 @@
               <li><strong>实时监控：</strong> 每2分钟检查一次假突破机会，确保不错过信号</li>
               <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose> rangeLow 且 lowerBoundaryValid</li>
               <li><strong>空头假突破：</strong> prevClose > rangeHigh 且 lastClose < rangeHigh 且 upperBoundaryValid</li>
-              <li><strong>15分钟多因子打分：</strong> 15m VWAP、Delta、OI、Volume四个因子量化打分，得分范围-4到+4</li>
+              <li><strong>15分钟多因子打分：</strong> 15m VWAP、Delta、OI、Volume四个因子量化打分，得分范围-4到+4，根据交易对分类应用不同权重</li>
               <li><strong>入场条件：</strong> 多因子得分 ≥ 2分才允许入场</li>
               <li><strong>入场价格：</strong> 假突破回撤后的收盘价</li>
               <li><strong>止损价格：</strong> 突破的边界价格（下轨/上轨）</li>
