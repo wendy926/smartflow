@@ -196,7 +196,7 @@ class DatabaseOptimization {
 
     try {
       // 获取表大小统计
-      const tableStats = await this.db.all(`
+      const tableStats = await this.db.runQuery(`
         SELECT 
           name,
           (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=m.name) as row_count
@@ -207,7 +207,7 @@ class DatabaseOptimization {
       stats.tables = tableStats;
 
       // 获取索引统计
-      const indexStats = await this.db.all(`
+      const indexStats = await this.db.runQuery(`
         SELECT name, sql FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'
       `);
 
