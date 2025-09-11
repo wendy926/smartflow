@@ -244,12 +244,12 @@ describe('V3策略指标监控测试', () => {
       for (let i = 0; i < 50; i++) {
         const timestamp = 1640995200000 + i * 15 * 60 * 1000; // 15分钟间隔
         // 使用非常小的价格波动来确保布林带收窄（宽度 < 0.05）
-        const price = basePrice + (Math.random() - 0.5) * 0.001; // 极小的波动
+        const price = basePrice + (Math.random() - 0.5) * 0.0001; // 极小的波动
         candles15m.push({
           open: price,
-          high: price + 0.001, // 极小的波动
-          low: price - 0.001,
-          close: price + (Math.random() - 0.5) * 0.001,
+          high: price + 0.0001, // 极小的波动
+          low: price - 0.0001,
+          close: price + (Math.random() - 0.5) * 0.0001,
           volume: 100000
         });
       }
