@@ -233,6 +233,10 @@ class DataMonitor {
     // 更新统计数据
     const stats = this.symbolStats.get(symbol);
     if (stats) {
+      // 总是增加尝试次数
+      stats.dataCollectionAttempts++;
+      stats.signalAnalysisAttempts++;
+      
       // 根据分析结果更新成功次数
       if (analysisResult.phases?.dataCollection?.success) {
         stats.dataCollectionSuccesses++;
@@ -246,6 +250,9 @@ class DataMonitor {
         stats.simulationCompletions++;
         stats.lastSimulationTime = Date.now();
       }
+      
+      // 重新计算完成率
+      this.calculateCompletionRates();
     }
   }
 
