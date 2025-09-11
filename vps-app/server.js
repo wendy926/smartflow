@@ -1081,7 +1081,7 @@ class SmartFlowServer {
 
       // 设置V3策略的数据管理器
       SmartFlowStrategyV3.setDataManager(this.db);
-n      // 初始化V3策略模块
+      // 初始化V3策略模块
       SmartFlowStrategyV3.init(this.db);
       SmartFlowStrategyV3.setDeltaManager(this.deltaManager);
 
