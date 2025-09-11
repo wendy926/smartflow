@@ -91,26 +91,26 @@ describe('StrategyV3Execution', () => {
       const factors = {
         currentPrice: 100,
         vwap: 95,
-        delta: 0,
-        oi: 0,
-        volume: 0,
+        delta: 1,  // 正值，+1分
+        oi: 1,     // 正值，+1分
+        volume: 1, // 正值，+1分
         signalType: 'long'
       };
       const score = strategyExecution.calculateFactorScore(factors);
-      expect(score).toBe(1); // 只有VWAP因子得+1分
+      expect(score).toBe(4); // VWAP因子+1分，其他因子各+1分，总共4分
     });
 
     test('应该正确处理VWAP因子：当前价格低于VWAP', () => {
       const factors = {
         currentPrice: 95,
         vwap: 100,
-        delta: 0,
-        oi: 0,
-        volume: 0,
+        delta: 1,  // 正值，+1分
+        oi: 1,     // 正值，+1分
+        volume: 1, // 正值，+1分
         signalType: 'long'
       };
       const score = strategyExecution.calculateFactorScore(factors);
-      expect(score).toBe(-1); // VWAP因子得-1分
+      expect(score).toBe(2); // VWAP因子-1分，其他因子各+1分，总共2分
     });
   });
 
