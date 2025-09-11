@@ -67,6 +67,7 @@
         
         <button class="btn" onclick="forceRefresh()">🔄 强制刷新主页面</button>
         <button class="btn btn-danger" onclick="clearAllCache()">🗑️ 清除所有缓存</button>
+        <button class="btn btn-danger" onclick="resetServerData()">🔄 重置服务器数据</button>
         <button class="btn" onclick="checkAPI()">📊 检查API状态</button>
         
         <div id="result" style="margin-top: 20px;"></div>
@@ -143,6 +144,43 @@
                 
             } catch (error) {
                 resultDiv.innerHTML = `<div style="color: orange;">⚠️ 部分缓存清除失败: ${error.message}</div>`;
+            }
+        }
+        
+        // 重置服务器数据
+        async function resetServerData() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '正在重置服务器数据...';
+            
+            try {
+                // 重置监控数据
+                const monitoringResponse = await fetch('/api/monitoring-dashboard/reset', { method: 'POST' });
+                const monitoringResult = await monitoringResponse.json();
+                
+                // 重置实时数据
+                const realtimeResponse = await fetch('/api/realtime-data-stats/reset', { method: 'POST' });
+                const realtimeResult = await realtimeResponse.json();
+                
+                // 清除缓存
+                const cacheResponse = await fetch('/api/cache/clear', { method: 'POST' });
+                const cacheResult = await cacheResponse.json();
+                
+                resultDiv.innerHTML = `
+                    <div style="color: green;">
+                        ✅ 服务器数据重置成功<br>
+                        监控数据: ${monitoringResult.message}<br>
+                        实时数据: ${realtimeResult.message}<br>
+                        缓存清除: ${cacheResult.success ? '成功' : '失败'}
+                    </div>
+                `;
+                
+                // 延迟跳转到主页面
+                setTimeout(() => {
+                    window.location.href = `index.html?t=${Date.now()}&reset=1`;
+                }, 2000);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color: red;">❌ 重置失败: ${error.message}</div>`;
             }
         }
         
