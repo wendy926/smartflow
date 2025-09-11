@@ -2,10 +2,12 @@
 // Binance API 接口模块
 
 const { SmartAPIRateLimiter } = require('./RateLimiter');
+const RealTimeDataMonitor = require('../monitoring/RealTimeDataMonitor');
 
 class BinanceAPI {
   static BASE_URL = 'https://fapi.binance.com';
   static rateLimiter = new SmartAPIRateLimiter();
+  static realTimeMonitor = new RealTimeDataMonitor();
   
   // 启动RateLimiter的清理机制
   static {
@@ -104,6 +106,7 @@ class BinanceAPI {
   static async callBinanceAPI(symbol, endpoint) {
     const { default: fetch } = await import('node-fetch');
     const url = `${this.BASE_URL}${endpoint}`;
+    const dataType = this.getDataTypeFromEndpoint(endpoint);
 
     try {
       const response = await fetch(url);
@@ -118,17 +121,66 @@ class BinanceAPI {
           errorMessage = `交易对 ${symbol} 不存在或已下架`;
         }
         
+        // 记录失败的API调用
+        this.realTimeMonitor.recordAPICall(symbol, dataType, false, errorMessage);
         throw new Error(errorMessage);
       }
 
-      return await response.json();
+      const result = await response.json();
+      // 记录成功的API调用
+      this.realTimeMonitor.recordAPICall(symbol, dataType, true);
+      return result;
     } catch (error) {
       // 如果是网络错误或其他异常
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        throw new Error(`网络连接失败，无法访问Binance API (${symbol})`);
+        const networkError = `网络连接失败，无法访问Binance API (${symbol})`;
+        this.realTimeMonitor.recordAPICall(symbol, dataType, false, networkError);
+        throw new Error(networkError);
       }
+      // 记录失败的API调用
+      this.realTimeMonitor.recordAPICall(symbol, dataType, false, error.message);
       throw error;
     }
+  }
+
+  /**
+   * 从endpoint获取数据类型
+   * @param {string} endpoint - API端点
+   * @returns {string} 数据类型
+   */
+  static getDataTypeFromEndpoint(endpoint) {
+    if (endpoint.includes('/klines')) {
+      return 'K线数据';
+    } else if (endpoint.includes('/ticker')) {
+      return '行情数据';
+    } else if (endpoint.includes('/fundingRate')) {
+      return '资金费率';
+    } else if (endpoint.includes('/openInterestHist')) {
+      return '持仓量历史';
+    } else if (endpoint.includes('/exchangeInfo')) {
+      return '交易对信息';
+    } else {
+      return '其他数据';
+    }
+  }
+
+  /**
+   * 获取实时数据采集率统计
+   * @returns {Object} 实时统计信息
+   */
+  static getRealTimeStats() {
+    return {
+      global: this.realTimeMonitor.getGlobalStats(),
+      symbols: this.realTimeMonitor.getAllSymbolStats(),
+      failureAnalysis: this.realTimeMonitor.getFailureAnalysis()
+    };
+  }
+
+  /**
+   * 重置实时监控数据
+   */
+  static resetRealTimeStats() {
+    this.realTimeMonitor.reset();
   }
 }
 

@@ -1452,6 +1452,13 @@ async function updateMonitoringPanel(data) {
               </div>
             </div>
             <div class="overview-card">
+              <span class="card-icon">🌐</span>
+              <div class="card-content">
+                <div class="card-title">Binance API成功率</div>
+                <div class="card-value" id="binanceApiSuccessRate">加载中...</div>
+              </div>
+            </div>
+            <div class="overview-card">
               <span class="card-icon">🔍</span>
               <div class="card-content">
                 <div class="card-title">数据验证</div>
@@ -1577,29 +1584,41 @@ function updateMonitoringPanelWithError(errorMessage) {
 // 刷新监控数据
 async function refreshMonitoringData() {
   try {
-    const data = await dataManager.getMonitoringData();
+    const [monitoringData, realtimeData] = await Promise.all([
+      dataManager.getMonitoringData(),
+      fetch('/api/realtime-data-stats').then(res => res.json())
+    ]);
 
     // 更新概览数据
     const totalSymbolsEl = document.getElementById('totalSymbols');
     const healthySymbolsEl = document.getElementById('healthySymbols');
     const warningSymbolsEl = document.getElementById('warningSymbols');
     const dataCollectionRateEl = document.getElementById('dataCollectionRate');
+    const binanceApiSuccessRateEl = document.getElementById('binanceApiSuccessRate');
     const dataValidationStatusEl = document.getElementById('dataValidationStatus');
 
-    if (totalSymbolsEl) totalSymbolsEl.textContent = data.summary.totalSymbols;
-    if (healthySymbolsEl) healthySymbolsEl.textContent = data.summary.healthySymbols;
-    if (warningSymbolsEl) warningSymbolsEl.textContent = data.summary.warningSymbols;
-    if (dataCollectionRateEl) dataCollectionRateEl.textContent = data.summary.completionRates.dataCollection.toFixed(2) + '%';
+    if (totalSymbolsEl) totalSymbolsEl.textContent = monitoringData.summary.totalSymbols;
+    if (healthySymbolsEl) healthySymbolsEl.textContent = monitoringData.summary.healthySymbols;
+    if (warningSymbolsEl) warningSymbolsEl.textContent = monitoringData.summary.warningSymbols;
+    if (dataCollectionRateEl) dataCollectionRateEl.textContent = monitoringData.summary.completionRates.dataCollection.toFixed(2) + '%';
+    
+    // 更新Binance API成功率
+    if (binanceApiSuccessRateEl && realtimeData.global) {
+      const successRate = realtimeData.global.successRate || 0;
+      binanceApiSuccessRateEl.textContent = successRate.toFixed(2) + '%';
+      binanceApiSuccessRateEl.style.color = successRate >= 95 ? '#28a745' : successRate >= 80 ? '#ffc107' : '#dc3545';
+    }
+    
     if (dataValidationStatusEl) {
-      const validationStatus = data.summary.dataValidation?.hasErrors ?
-        '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常';
+      const validationStatus = monitoringData.summary.dataValidation?.hasErrors ?
+        '⚠️ ' + monitoringData.summary.dataValidation.errorCount + ' 错误' : '✅ 正常';
       dataValidationStatusEl.textContent = validationStatus;
 
       // 添加点击事件显示详细错误
       const detailsEl = document.getElementById('dataValidationDetails');
-      if (detailsEl && data.summary.dataValidation?.hasErrors) {
+      if (detailsEl && monitoringData.summary.dataValidation?.hasErrors) {
         detailsEl.style.cursor = 'pointer';
-        detailsEl.onclick = () => showDataValidationDetails(data.summary.dataValidation.errors);
+        detailsEl.onclick = () => showDataValidationDetails(monitoringData.summary.dataValidation.errors);
       }
     }
 
@@ -1619,10 +1638,10 @@ async function refreshMonitoringData() {
     }
 
     // 更新汇总视图表格
-    updateSummaryTable(data);
+    updateSummaryTable(monitoringData, realtimeData);
 
     // 更新详细视图表格
-    updateDetailedTable(data);
+    updateDetailedTable(monitoringData, realtimeData);
 
   } catch (error) {
     console.error('刷新监控数据失败:', error);
@@ -1640,14 +1659,18 @@ async function refreshMonitoringData() {
 }
 
 // 更新汇总视图表格
-function updateSummaryTable(data) {
+function updateSummaryTable(monitoringData, realtimeData) {
   const tbody = document.getElementById('monitoringTableBody');
   if (!tbody) return;
 
   tbody.innerHTML = '';
 
-  if (data.detailedStats && data.detailedStats.length > 0) {
-    data.detailedStats.forEach(symbol => {
+  if (monitoringData.detailedStats && monitoringData.detailedStats.length > 0) {
+    monitoringData.detailedStats.forEach(symbol => {
+      // 查找对应的实时数据
+      const realtimeStat = realtimeData?.symbols?.find(s => s.symbol === symbol.symbol);
+      const binanceSuccessRate = realtimeStat ? realtimeStat.successRate : 0;
+      
       const row = document.createElement('tr');
       row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
 
@@ -1662,6 +1685,7 @@ function updateSummaryTable(data) {
         <td>
           <div class="metric-rate">${symbol.dataCollection.rate.toFixed(2)}%</div>
           <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
+          ${realtimeStat ? `<div class="metric-details" style="color: #666; font-size: 0.8em;">API: ${binanceSuccessRate.toFixed(2)}%</div>` : ''}
         </td>
         <td>
           <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(2)}%</div>
@@ -1698,7 +1722,7 @@ function updateSummaryTable(data) {
 }
 
 // 更新详细视图表格
-function updateDetailedTable(data) {
+function updateDetailedTable(monitoringData, realtimeData) {
   const tbody = document.getElementById('detailedTableBody');
   if (!tbody) return;
 

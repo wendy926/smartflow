@@ -714,6 +714,30 @@ class SmartFlowServer {
       }
     });
 
+    // 实时Binance API数据采集率API
+    this.app.get('/api/realtime-data-stats', (req, res) => {
+      try {
+        const BinanceAPI = require('./modules/api/BinanceAPI');
+        const stats = BinanceAPI.getRealTimeStats();
+        res.json(stats);
+      } catch (error) {
+        console.error('获取实时数据统计失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 重置实时数据统计API
+    this.app.post('/api/realtime-data-stats/reset', (req, res) => {
+      try {
+        const BinanceAPI = require('./modules/api/BinanceAPI');
+        BinanceAPI.resetRealTimeStats();
+        res.json({ message: '实时数据统计已重置' });
+      } catch (error) {
+        console.error('重置实时数据统计失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 解决告警
     this.app.post('/api/alert-resolve', async (req, res) => {
       try {
