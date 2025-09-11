@@ -173,6 +173,14 @@ class StrategyV3Core {
     try {
       const klines4h = await BinanceAPI.getKlines(symbol, '4h', 250);
       if (!klines4h || klines4h.length < 200) {
+        // 记录4H MA指标失败
+        if (this.dataMonitor) {
+          this.dataMonitor.recordIndicator(symbol, '4H MA指标', {
+            error: '数据不足',
+            trend4h: '震荡市',
+            marketType: '震荡市'
+          }, Date.now());
+        }
         return { trend4h: '震荡市', marketType: '震荡市', error: '数据不足' };
       }
 
@@ -311,6 +319,14 @@ class StrategyV3Core {
       ]);
 
       if (!klines1h || klines1h.length < 20) {
+        // 记录1H多因子打分指标失败
+        if (this.dataMonitor) {
+          this.dataMonitor.recordIndicator(symbol, '1H多因子打分', {
+            error: '1H数据不足',
+            score: 0,
+            allowEntry: false
+          }, Date.now());
+        }
         return { score: 0, allowEntry: false, error: '1H数据不足' };
       }
 
@@ -512,6 +528,14 @@ class StrategyV3Core {
       const klines1h = await BinanceAPI.getKlines(symbol, '1h', 50);
 
       if (!klines1h || klines1h.length < 25) {
+        // 记录震荡市1H边界判断指标失败
+        if (this.dataMonitor) {
+          this.dataMonitor.recordIndicator(symbol, '震荡市1H边界判断', {
+            error: '1H数据不足',
+            lowerBoundaryValid: false,
+            upperBoundaryValid: false
+          }, Date.now());
+        }
         return {
           lowerBoundaryValid: false,
           upperBoundaryValid: false,

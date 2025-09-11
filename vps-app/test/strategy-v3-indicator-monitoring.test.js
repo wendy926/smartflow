@@ -20,11 +20,11 @@ describe('V3策略指标监控测试', () => {
     dataMonitor = new DataMonitor();
     strategyCore = new StrategyV3Core();
     strategyExecution = new StrategyV3Execution();
-    
+
     // 设置dataMonitor引用
     strategyCore.dataMonitor = dataMonitor;
     strategyExecution.dataMonitor = dataMonitor;
-    
+
     // 重置mock
     jest.clearAllMocks();
   });
@@ -36,7 +36,7 @@ describe('V3策略指标监控测试', () => {
   describe('StrategyV3Core指标监控测试', () => {
     test('analyze4HTrend应该记录4H MA指标', async () => {
       const symbol = 'BTCUSDT';
-      
+
       // Mock API响应 - 提供足够的数据
       const mockKlines = [];
       for (let i = 0; i < 250; i++) {
@@ -54,12 +54,12 @@ describe('V3策略指标监控测试', () => {
       BinanceAPI.getKlines.mockResolvedValue(mockKlines);
 
       const result = await strategyCore.analyze4HTrend(symbol);
-      
+
       // 验证结果
       expect(result).toBeDefined();
       expect(result.trend4h).toBeDefined();
       expect(result.marketType).toBeDefined();
-      
+
       // 验证指标记录
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       expect(analysisLog.indicators['4H MA指标']).toBeDefined();
@@ -70,7 +70,7 @@ describe('V3策略指标监控测试', () => {
 
     test('analyze1HScoring应该记录1H多因子打分指标', async () => {
       const symbol = 'ETHUSDT';
-      
+
       // Mock API响应 - 提供足够的数据
       const mockKlines1h = [];
       for (let i = 0; i < 50; i++) {
@@ -85,7 +85,7 @@ describe('V3策略指标监控测试', () => {
           '500'
         ]);
       }
-      
+
       const mockKlines15m = [];
       for (let i = 0; i < 50; i++) {
         const timestamp = 1640995200000 + i * 15 * 60 * 1000; // 15分钟间隔
@@ -99,7 +99,7 @@ describe('V3策略指标监控测试', () => {
           '250'
         ]);
       }
-      
+
       // 根据时间级别返回不同的数据
       BinanceAPI.getKlines.mockImplementation((symbol, interval, limit) => {
         if (interval === '1h') {
@@ -122,14 +122,16 @@ describe('V3策略指标监控测试', () => {
       ]);
 
       const result = await strategyCore.analyze1HScoring(symbol, '多头趋势');
-      
+
       // 验证结果
       expect(result).toBeDefined();
       expect(result.score).toBeDefined();
       expect(result.allowEntry).toBeDefined();
-      
+
       // 验证指标记录
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
+      console.log('Analysis log:', JSON.stringify(analysisLog, null, 2));
+      console.log('Indicators:', analysisLog.indicators);
       expect(analysisLog.indicators['1H多因子打分']).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.score).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.allowEntry).toBeDefined();
@@ -138,7 +140,7 @@ describe('V3策略指标监控测试', () => {
 
     test('analyzeRangeBoundary应该记录震荡市1H边界判断指标', async () => {
       const symbol = 'ADAUSDT';
-      
+
       // Mock API响应 - 提供足够的数据
       const mockKlines1h = [];
       for (let i = 0; i < 50; i++) {
@@ -153,7 +155,7 @@ describe('V3策略指标监控测试', () => {
           '1000000'
         ]);
       }
-      
+
       // 根据时间级别返回不同的数据
       BinanceAPI.getKlines.mockImplementation((symbol, interval, limit) => {
         if (interval === '1h') {
@@ -174,12 +176,12 @@ describe('V3策略指标监控测试', () => {
       ]);
 
       const result = await strategyCore.analyzeRangeBoundary(symbol);
-      
+
       // 验证结果
       expect(result).toBeDefined();
       expect(result.lowerBoundaryValid).toBeDefined();
       expect(result.upperBoundaryValid).toBeDefined();
-      
+
       // 验证指标记录
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       expect(analysisLog.indicators['震荡市1H边界判断']).toBeDefined();
@@ -190,15 +192,15 @@ describe('V3策略指标监控测试', () => {
 
     test('指标计算失败时应该记录错误信息', async () => {
       const symbol = 'ERRORUSDT';
-      
+
       // Mock API失败
       BinanceAPI.getKlines.mockRejectedValue(new Error('API调用失败'));
 
       const result = await strategyCore.analyze4HTrend(symbol);
-      
+
       // 验证结果包含错误
       expect(result.error).toBeDefined();
-      
+
       // 验证指标记录包含错误信息
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       expect(analysisLog.indicators['4H MA指标']).toBeDefined();
@@ -209,7 +211,7 @@ describe('V3策略指标监控测试', () => {
   describe('StrategyV3Execution指标监控测试', () => {
     test('analyzeRangeExecution应该记录15分钟执行指标', async () => {
       const symbol = 'DOTUSDT';
-      
+
       // 准备15分钟K线数据
       const candles15m = [];
       for (let i = 0; i < 50; i++) {
@@ -223,7 +225,7 @@ describe('V3策略指标监控测试', () => {
           volume: 100000
         });
       }
-      
+
       // 准备1小时K线数据
       const candles1h = [];
       for (let i = 0; i < 50; i++) {
@@ -247,12 +249,12 @@ describe('V3策略指标监控测试', () => {
           lower: 5.8
         }
       }, candles15m, candles1h);
-      
+
       // 验证结果
       expect(result).toBeDefined();
       expect(result.signal).toBeDefined();
       expect(result.mode).toBeDefined();
-      
+
       // 验证指标记录
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       expect(analysisLog.indicators['15分钟执行']).toBeDefined();
@@ -272,7 +274,7 @@ describe('V3策略指标监控测试', () => {
       };
 
       const score = strategyExecution.calculateFactorScore(factorData);
-      
+
       // 验证得分计算
       expect(typeof score).toBe('number');
       expect(score).toBeGreaterThanOrEqual(-4);
@@ -281,7 +283,7 @@ describe('V3策略指标监控测试', () => {
 
     test('getMultiFactorData应该返回完整数据', async () => {
       const symbol = 'LINKUSDT';
-      
+
       // Mock API响应
       BinanceAPI.getKlines.mockResolvedValue([
         [1640995200000, '10.0', '10.5', '9.8', '10.2', '50000'],
@@ -293,7 +295,7 @@ describe('V3策略指标监控测试', () => {
       });
 
       const result = await strategyExecution.getMultiFactorData(symbol, 10.5);
-      
+
       // 验证返回数据
       expect(result).toBeDefined();
       expect(result.vwap).toBeDefined();
@@ -307,7 +309,7 @@ describe('V3策略指标监控测试', () => {
   describe('指标监控集成测试', () => {
     test('完整的V3策略分析应该记录所有指标', async () => {
       const symbol = 'COMPUSDT';
-      
+
       // Mock所有API调用 - 提供足够的数据
       const mockKlines4h = [];
       for (let i = 0; i < 250; i++) {
@@ -322,7 +324,7 @@ describe('V3策略指标监控测试', () => {
           '10000'
         ]);
       }
-      
+
       const mockKlines1h = [];
       for (let i = 0; i < 50; i++) {
         const timestamp = 1640995200000 + i * 60 * 60 * 1000; // 1小时间隔
@@ -336,7 +338,7 @@ describe('V3策略指标监控测试', () => {
           '5000'
         ]);
       }
-      
+
       const mockKlines15m = [];
       for (let i = 0; i < 50; i++) {
         const timestamp = 1640995200000 + i * 15 * 60 * 1000; // 15分钟间隔
@@ -350,7 +352,7 @@ describe('V3策略指标监控测试', () => {
           '2500'
         ]);
       }
-      
+
       // 根据时间级别返回不同的数据
       BinanceAPI.getKlines.mockImplementation((symbol, interval, limit) => {
         if (interval === '4h') {
@@ -376,13 +378,13 @@ describe('V3策略指标监控测试', () => {
 
       // 执行4H趋势分析
       const trendResult = await strategyCore.analyze4HTrend(symbol);
-      
+
       // 执行1H打分分析
       const scoringResult = await strategyCore.analyze1HScoring(symbol, trendResult.trend4h);
-      
+
       // 执行边界判断
       const boundaryResult = await strategyCore.analyzeRangeBoundary(symbol);
-      
+
       // 准备K线数据用于执行分析
       const candles15m = mockKlines15m.map(k => ({
         open: parseFloat(k[1]),
@@ -391,7 +393,7 @@ describe('V3策略指标监控测试', () => {
         close: parseFloat(k[4]),
         volume: parseFloat(k[5])
       }));
-      
+
       const candles1h = mockKlines1h.map(k => ({
         open: parseFloat(k[1]),
         high: parseFloat(k[2]),
@@ -399,7 +401,7 @@ describe('V3策略指标监控测试', () => {
         close: parseFloat(k[4]),
         volume: parseFloat(k[5])
       }));
-      
+
       // 执行15分钟执行分析
       const executionResult = await strategyExecution.analyzeRangeExecution(symbol, boundaryResult, candles15m, candles1h);
 
@@ -413,7 +415,7 @@ describe('V3策略指标监控测试', () => {
 
     test('指标监控应该支持多个交易对', async () => {
       const symbols = ['BTCUSDT', 'ETHUSDT', 'ADAUSDT'];
-      
+
       // Mock API响应 - 提供足够的数据
       const mockKlines4h = [];
       for (let i = 0; i < 250; i++) {
@@ -428,7 +430,7 @@ describe('V3策略指标监控测试', () => {
           '1000'
         ]);
       }
-      
+
       const mockKlines1h = [];
       for (let i = 0; i < 50; i++) {
         const timestamp = 1640995200000 + i * 60 * 60 * 1000; // 1小时间隔
@@ -442,7 +444,7 @@ describe('V3策略指标监控测试', () => {
           '500'
         ]);
       }
-      
+
       // 根据时间级别返回不同的数据
       BinanceAPI.getKlines.mockImplementation((symbol, interval, limit) => {
         if (interval === '4h') {
@@ -484,7 +486,7 @@ describe('V3策略指标监控测试', () => {
   describe('指标监控性能测试', () => {
     test('应该高效处理大量指标计算', async () => {
       const symbol = 'PERFUSDT';
-      
+
       // Mock API响应
       BinanceAPI.getKlines.mockResolvedValue([
         [1640995200000, '100.0', '110.0', '90.0', '105.0', '1000'],
@@ -503,20 +505,20 @@ describe('V3策略指标监控测试', () => {
       ]);
 
       const startTime = Date.now();
-      
+
       // 执行100次分析
       for (let i = 0; i < 100; i++) {
         await strategyCore.analyze4HTrend(symbol);
         await strategyCore.analyze1HScoring(symbol, '多头趋势');
         await strategyCore.analyzeRangeBoundary(symbol);
       }
-      
+
       const endTime = Date.now();
       const executionTime = endTime - startTime;
-      
+
       // 应该在合理时间内完成（小于5秒）
       expect(executionTime).toBeLessThan(5000);
-      
+
       // 验证指标记录
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       expect(Object.keys(analysisLog.indicators)).toHaveLength(300); // 100 * 3个指标

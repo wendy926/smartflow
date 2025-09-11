@@ -117,11 +117,29 @@ class StrategyV3Execution {
   async analyzeRangeExecution(symbol, rangeResult, candles15m, candles1h, deltaManager = null) {
     try {
       if (!candles15m || candles15m.length < 20) {
+        // 记录15分钟执行指标失败
+        if (this.dataMonitor) {
+          this.dataMonitor.recordIndicator(symbol, '15分钟执行', {
+            error: '15m数据不足',
+            signal: 'NONE',
+            mode: 'NONE',
+            atr14: null
+          }, Date.now());
+        }
         return { signal: 'NONE', mode: 'NONE', reason: '15m数据不足', atr14: null };
       }
 
       const { lowerBoundaryValid, upperBoundaryValid, bb1h } = rangeResult;
       if (!bb1h) {
+        // 记录15分钟执行指标失败
+        if (this.dataMonitor) {
+          this.dataMonitor.recordIndicator(symbol, '15分钟执行', {
+            error: '1H边界数据无效',
+            signal: 'NONE',
+            mode: 'NONE',
+            atr14: null
+          }, Date.now());
+        }
         return { signal: 'NONE', mode: 'NONE', reason: '1H边界数据无效', atr14: null };
       }
 
