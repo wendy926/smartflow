@@ -104,8 +104,8 @@ describe('Delta集成测试', () => {
       const result = await strategyCore.analyzeRangeBoundary(symbol, deltaManager);
 
       expect(result).toBeDefined();
-      expect(result.isRange).toBeDefined();
-      expect(result.boundary).toBeDefined();
+      expect(result.lowerBoundaryValid).toBeDefined();
+      expect(result.upperBoundaryValid).toBeDefined();
     });
   });
 
