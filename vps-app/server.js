@@ -1176,7 +1176,7 @@ class SmartFlowServer {
         console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
       }
 
-      console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode}`);
+      console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode || 'NONE'}`);
 
       // 检查是否有入场执行信号，如果有则检查条件后触发模拟交易
       if (analysis.execution && analysis.execution.trim() !== '' && analysis.execution !== 'NONE' && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
