@@ -13,7 +13,7 @@ describe('指标监控系统测试', () => {
   let strategyExecution;
 
   beforeEach(() => {
-    dataMonitor = new DataMonitor();
+    dataMonitor = new DataMonitor(null); // 传入null作为数据库参数
     strategyCore = new StrategyV3Core();
     strategyExecution = new StrategyV3Execution();
     
@@ -222,7 +222,7 @@ describe('指标监控系统测试', () => {
       }, 0);
 
       // 获取监控数据
-      const monitoringData = dataMonitor.getMonitoringDashboard();
+      const monitoringData = await dataMonitor.getMonitoringDashboard();
       
       // 检查是否有数据验证错误
       expect(monitoringData.summary.dataValidation).toBeDefined();
@@ -255,7 +255,7 @@ describe('指标监控系统测试', () => {
         }
       });
 
-      const monitoringData = dataMonitor.getMonitoringDashboard();
+      const monitoringData = await dataMonitor.getMonitoringDashboard();
       
       // 检查数据验证状态
       expect(monitoringData.summary.dataValidation).toBeDefined();

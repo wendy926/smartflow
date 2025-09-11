@@ -17,7 +17,7 @@ describe('V3策略指标监控测试', () => {
   let strategyExecution;
 
   beforeEach(() => {
-    dataMonitor = new DataMonitor();
+    dataMonitor = new DataMonitor(null); // 传入null作为数据库参数
     strategyCore = new StrategyV3Core();
     strategyExecution = new StrategyV3Execution();
 
