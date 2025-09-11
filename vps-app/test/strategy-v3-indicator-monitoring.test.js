@@ -24,6 +24,10 @@ describe('V3策略指标监控测试', () => {
     // 设置dataMonitor引用
     strategyCore.dataMonitor = dataMonitor;
     strategyExecution.dataMonitor = dataMonitor;
+    
+    // 设置deltaData
+    strategyCore.deltaData.set('ETHUSDT_buy', 1000);
+    strategyCore.deltaData.set('ETHUSDT_sell', 800);
 
     // 重置mock
     jest.clearAllMocks();
