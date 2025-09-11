@@ -76,15 +76,16 @@ describe('V3策略指标监控测试', () => {
       const basePrice = 3000;
       for (let i = 0; i < 50; i++) {
         const timestamp = 1640995200000 + i * 60 * 60 * 1000; // 1小时间隔
-        // 使用递增的价格确保收盘价高于VWAP
-        const price = basePrice + i * 10 + Math.random() * 20;
+        // 使用稳定的递增价格确保收盘价始终高于VWAP
+        const price = basePrice + i * 20; // 每小时间隔20，确保递增
+        const closePrice = price + 10; // 收盘价总是比开盘价高10
         mockKlines1h.push([
           timestamp,
           price.toString(),
-          (price + 50).toString(),
-          (price - 50).toString(),
-          (price + 25).toString(),
-          '500'
+          (closePrice + 5).toString(), // 最高价
+          (price - 5).toString(), // 最低价
+          closePrice.toString(), // 收盘价
+          '1000' // 成交量
         ]);
       }
 
@@ -132,6 +133,8 @@ describe('V3策略指标监控测试', () => {
 
       // 验证指标记录
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
+      console.log('Analysis log:', JSON.stringify(analysisLog, null, 2));
+      console.log('Indicators:', analysisLog.indicators);
       expect(analysisLog.indicators['1H多因子打分']).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.score).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.allowEntry).toBeDefined();
@@ -217,13 +220,13 @@ describe('V3策略指标监控测试', () => {
       const basePrice = 6.0;
       for (let i = 0; i < 50; i++) {
         const timestamp = 1640995200000 + i * 15 * 60 * 1000; // 15分钟间隔
-        // 使用较小的价格波动来确保布林带收窄
-        const price = basePrice + (Math.random() - 0.5) * 0.02; // 很小的波动
+        // 使用非常小的价格波动来确保布林带收窄（宽度 < 0.05）
+        const price = basePrice + (Math.random() - 0.5) * 0.001; // 极小的波动
         candles15m.push({
           open: price,
-          high: price + 0.01, // 很小的波动
-          low: price - 0.01,
-          close: price + (Math.random() - 0.5) * 0.01,
+          high: price + 0.001, // 极小的波动
+          low: price - 0.001,
+          close: price + (Math.random() - 0.5) * 0.001,
           volume: 100000
         });
       }
