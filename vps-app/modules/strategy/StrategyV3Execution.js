@@ -1,5 +1,7 @@
 // StrategyV3Execution.js - 策略V3执行逻辑模块
 
+const BinanceAPI = require('../api/BinanceAPI');
+
 class StrategyV3Execution {
   constructor() {
     this.maxTimeInPosition = 24; // 6小时 = 24个15分钟（严格按照strategy-v3.md文档）
@@ -219,7 +221,7 @@ class StrategyV3Execution {
 
       // 7. 如果没有假突破信号，返回无信号
       if (signal === 'NONE') {
-        return { 
+        return {
           signal: 'NONE', 
           mode: 'NONE', 
           reason: '未满足假突破条件', 
@@ -232,14 +234,14 @@ class StrategyV3Execution {
       const direction = signal === 'BUY' ? 'LONG' : 'SHORT';
       const leverageData = this.calculateLeverageData(entry, stopLoss, takeProfit, direction);
 
-      return {
+        return {
         signal,
         mode: 'RANGE_FAKE_BREAK',
         reason,
-        entry,
-        stopLoss,
-        takeProfit,
-        atr14: lastATR,
+          entry,
+          stopLoss,
+          takeProfit,
+          atr14: lastATR,
         bbWidth: bbWidth,
         leverage: leverageData.leverage,
         margin: leverageData.margin,
