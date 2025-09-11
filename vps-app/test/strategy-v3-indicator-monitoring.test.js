@@ -297,6 +297,17 @@ describe('V3策略指标监控测试', () => {
         }
       }, candles15m, candles1h);
 
+      // 先手动计算布林带宽度来验证测试数据
+      const bb1h = strategyExecution.calculateBollingerBands(candles1h.slice(-20), 20, 2);
+      const bbWidth = (bb1h.upper[bb1h.upper.length - 1] - bb1h.lower[bb1h.lower.length - 1]) / bb1h.middle[bb1h.middle.length - 1];
+      debugLog('布林带收窄检查:', {
+        bbWidth,
+        narrowBB: bbWidth < 0.05,
+        upper: bb1h.upper[bb1h.upper.length - 1],
+        lower: bb1h.lower[bb1h.lower.length - 1],
+        middle: bb1h.middle[bb1h.middle.length - 1]
+      });
+
       // 验证结果
       expect(result).toBeDefined();
       expect(result.signal).toBeDefined();
@@ -304,6 +315,8 @@ describe('V3策略指标监控测试', () => {
 
       // 验证指标记录
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
+      debugLog('Analysis log:', JSON.stringify(analysisLog, null, 2));
+      debugLog('Indicators:', JSON.stringify(analysisLog.indicators, null, 2));
       expect(analysisLog.indicators['15分钟执行']).toBeDefined();
       expect(analysisLog.indicators['15分钟执行'].data.signal).toBeDefined();
       expect(analysisLog.indicators['15分钟执行'].data.mode).toBeDefined();
