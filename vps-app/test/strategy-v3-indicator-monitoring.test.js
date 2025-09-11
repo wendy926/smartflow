@@ -27,6 +27,12 @@ describe('V3策略指标监控测试', () => {
 
     // 重置mock
     jest.clearAllMocks();
+
+    // 确保BinanceAPI mock正确设置
+    BinanceAPI.getKlines.mockClear();
+    BinanceAPI.get24hrTicker.mockClear();
+    BinanceAPI.getFundingRate.mockClear();
+    BinanceAPI.getOpenInterestHist.mockClear();
   });
 
   afterEach(() => {
@@ -70,9 +76,9 @@ describe('V3策略指标监控测试', () => {
 
     test('analyze1HScoring应该记录1H多因子打分指标', async () => {
       const symbol = 'ETHUSDT';
-      
+
       // 捕获console.log输出
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => { });
 
       // Mock API响应 - 提供足够的数据，确保VWAP方向一致性
       const mockKlines1h = [];
@@ -159,7 +165,7 @@ describe('V3策略指标监控测试', () => {
       expect(analysisLog.indicators['1H多因子打分'].data.score).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.allowEntry).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.vwapDirectionConsistent).toBeDefined();
-      
+
       // 恢复console.log
       consoleSpy.mockRestore();
     });
