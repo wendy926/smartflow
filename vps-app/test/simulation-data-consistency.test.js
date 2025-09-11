@@ -21,6 +21,9 @@ describe('模拟交易数据一致性测试', () => {
     if (dbManager) {
       await dbManager.close();
     }
+    if (dataMonitor) {
+      dataMonitor.stopMemoryCleanup();
+    }
   });
 
   beforeEach(async () => {

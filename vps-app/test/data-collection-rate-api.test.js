@@ -66,8 +66,13 @@ describe('数据采集率API测试', () => {
     app.get('/api/monitoring-dashboard', async (req, res) => {
       const DataMonitor = require('../modules/monitoring/DataMonitor');
       const dataMonitor = new DataMonitor();
-      const dashboard = await dataMonitor.getMonitoringDashboard();
-      res.json(dashboard);
+      try {
+        const dashboard = await dataMonitor.getMonitoringDashboard();
+        res.json(dashboard);
+      } finally {
+        // 清理DataMonitor的定时器
+        dataMonitor.stopMemoryCleanup();
+      }
     });
 
     server = app.listen(0);

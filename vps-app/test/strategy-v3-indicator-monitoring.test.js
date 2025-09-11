@@ -52,7 +52,12 @@ describe('V3策略指标监控测试', () => {
   });
 
   afterEach(() => {
-    dataMonitor.reset();
+    // 清理DataMonitor的定时器
+    if (dataMonitor) {
+      dataMonitor.stopMemoryCleanup();
+      dataMonitor.reset();
+    }
+    
     // 清理BinanceAPI的定时器
     try {
       const BinanceAPI = require('../modules/api/BinanceAPI');
@@ -62,6 +67,11 @@ describe('V3策略指标监控测试', () => {
     } catch (error) {
       // 忽略清理错误
     }
+    
+    // 清理对象引用
+    dataMonitor = null;
+    strategyCore = null;
+    strategyExecution = null;
   });
 
   describe('StrategyV3Core指标监控测试', () => {
