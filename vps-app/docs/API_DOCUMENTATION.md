@@ -612,6 +612,109 @@ vps-app/
 - 执行数据库VACUUM和REINDEX操作
 - 提供优化前后的数据统计对比
 
+### 1.9 实时数据监控API
+
+#### GET /api/realtime-data-stats
+- **功能**: 获取实时Binance API数据采集统计
+- **实现文件**: `modules/monitoring/RealTimeDataMonitor.js`
+- **入参**: 无
+- **出参**:
+```json
+{
+  "global": {
+    "totalCalls": 1000,
+    "successfulCalls": 950,
+    "failedCalls": 50,
+    "successRate": 95.0,
+    "lastUpdate": "2025-01-09T12:20:16.218Z"
+  },
+  "bySymbol": {
+    "BTCUSDT": {
+      "totalCalls": 100,
+      "successfulCalls": 98,
+      "failedCalls": 2,
+      "successRate": 98.0
+    }
+  },
+  "byDataType": {
+    "klines": {
+      "totalCalls": 500,
+      "successfulCalls": 480,
+      "failedCalls": 20,
+      "successRate": 96.0
+    }
+  }
+}
+```
+
+#### POST /api/realtime-data-stats/reset
+- **功能**: 重置实时数据统计
+- **实现文件**: `modules/monitoring/RealTimeDataMonitor.js`
+- **入参**: 无
+- **出参**:
+```json
+{
+  "message": "实时数据统计已重置"
+}
+```
+
+### 1.10 数据一致性验证API
+
+#### GET /api/validate-simulation-data
+- **功能**: 验证模拟交易数据一致性
+- **实现文件**: `scripts/validate-simulation-data.js`
+- **入参**: 无
+- **出参**:
+```json
+{
+  "databaseRecords": 0,
+  "monitoringCompletions": 0,
+  "dataConsistent": true,
+  "dataQualityIssues": 0,
+  "validationTime": "2025-01-09T12:20:16.218Z"
+}
+```
+
+#### POST /api/monitoring-dashboard/reset
+- **功能**: 重置监控数据
+- **实现文件**: `modules/monitoring/DataMonitor.js`
+- **入参**: 无
+- **出参**:
+```json
+{
+  "message": "监控数据已重置"
+}
+```
+
+### 1.11 数据库优化API
+
+#### POST /api/database/optimize
+- **功能**: 执行数据库表结构优化
+- **实现文件**: `scripts/database-structure-fix.js`
+- **入参**: 无
+- **出参**:
+```json
+{
+  "success": true,
+  "message": "数据库优化完成",
+  "optimizations": {
+    "compositeIndexes": 5,
+    "redundantIndexesRemoved": 3,
+    "enumTablesCreated": 3,
+    "historicalDataCleaned": 1000,
+    "databaseOptimized": true
+  }
+}
+```
+
+**优化内容**:
+- 创建复合索引：`(symbol, timestamp, trend4h)`等
+- 删除冗余索引：单字段索引
+- 统一数据类型：布尔值统一为INTEGER
+- 创建枚举值表：`signal_types`, `market_types`, `execution_modes`
+- 清理历史数据：30天前的策略分析数据
+- 数据库优化：VACUUM, REINDEX, ANALYZE
+
 ### 1.7 健康检查API
 
 #### GET /api/health-check
@@ -1175,3 +1278,11 @@ CREATE TABLE validation_results (
 - **数据库历史数据清理** - 清理50,000+条历史记录，保留最近1000条策略分析记录
 - **内存优化脚本** - 新增scripts/memory-optimization.js脚本，支持自动数据清理和数据库优化
 - **性能监控增强** - 新增/api/performance、/api/cache/stats、/api/database/stats等性能监控API
+
+### V3.10 (2025-01-09)
+- **模拟交易数据一致性修复** - 修复监控页面显示312/312但数据库为0条记录的不一致问题
+- **监控逻辑优化** - 移除recordAnalysisLog中错误的模拟交易统计逻辑，确保统计准确性
+- **数据验证脚本** - 新增validate-simulation-data.js脚本，支持数据一致性检查
+- **数据库表结构优化** - 创建复合索引、删除冗余索引、统一数据类型、创建枚举值表
+- **实时监控增强** - 新增RealTimeDataMonitor类，实现Binance API成功率实时监控
+- **前端规则更新** - 更新交易策略规则说明，反映V3优化版本的实际实现

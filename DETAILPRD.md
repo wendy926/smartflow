@@ -1139,92 +1139,118 @@ class MemoryOptimizedManager {
 
 ---
 
-## 数据库表结构优化建议
+## 数据库表结构优化实施
 
-### 当前表结构分析
+### 已实施的优化措施
 
-基于代码分析，当前数据库表结构基本满足V3策略需求，但有以下优化建议：
+基于database-optimization-analysis.md报告，已成功实施以下数据库优化措施：
 
-#### 1. 新增表结构
+#### 1. 复合索引优化
 
-**数据刷新状态表 (data_refresh_status)**
+**已创建的复合索引**：
 ```sql
-CREATE TABLE data_refresh_status (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    symbol TEXT NOT NULL,
-    data_type TEXT NOT NULL, -- '4h_trend', '1h_scoring', '15m_entry'
-    last_refresh TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    next_refresh TIMESTAMP,
-    should_refresh BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(symbol, data_type)
+-- 主要查询模式索引
+CREATE INDEX idx_strategy_analysis_symbol_time_trend 
+ON strategy_analysis(symbol, timestamp, trend4h);
+
+CREATE INDEX idx_strategy_analysis_symbol_time_market 
+ON strategy_analysis(symbol, timestamp, market_type);
+
+CREATE INDEX idx_strategy_analysis_symbol_time_signal 
+ON strategy_analysis(symbol, timestamp, signal);
+
+CREATE INDEX idx_simulations_symbol_status_time 
+ON simulations(symbol, status, created_at);
+```
+
+#### 2. 冗余索引清理
+
+**已删除的冗余索引**：
+```sql
+-- 删除单字段索引，保留复合索引
+DROP INDEX idx_strategy_analysis_trend;
+DROP INDEX idx_strategy_analysis_signal;
+DROP INDEX idx_strategy_analysis_execution;
+DROP INDEX idx_strategy_analysis_trend4h;
+DROP INDEX idx_strategy_analysis_market_type;
+```
+
+#### 3. 数据类型统一
+
+**布尔值类型统一**：
+- 所有BOOLEAN字段统一为INTEGER类型（0/1）
+- 时间戳格式统一为INTEGER类型
+- 数值类型统一为REAL类型
+
+#### 4. 枚举值表创建
+
+**已创建的枚举值表**：
+```sql
+-- 信号类型枚举表
+CREATE TABLE signal_types (
+    id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT
 );
-```
+INSERT INTO signal_types VALUES 
+(1, 'LONG', '做多信号'),
+(2, 'SHORT', '做空信号'),
+(3, 'NONE', '无信号');
 
-**V3策略分析表 (strategy_v3_analysis)**
-```sql
-CREATE TABLE strategy_v3_analysis (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    symbol TEXT NOT NULL,
-    trend4h TEXT, -- '多头趋势', '空头趋势', '震荡市'
-    market_type TEXT, -- '趋势市', '震荡市'
-    signal TEXT, -- 'BUY', 'SHORT', 'NONE'
-    execution_mode TEXT, -- '趋势跟踪', '假突破反手', 'NONE'
-    entry_signal REAL,
-    stop_loss REAL,
-    take_profit REAL,
-    max_leverage INTEGER,
-    min_margin REAL,
-    stop_loss_distance REAL,
-    atr_value REAL,
-    atr14 REAL,
-    current_price REAL,
-    score1h INTEGER,
-    vwap_direction_consistent BOOLEAN,
-    range_lower_boundary_valid BOOLEAN,
-    range_upper_boundary_valid BOOLEAN,
-    factors TEXT, -- JSON格式存储多因子数据
-    reason TEXT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- 市场类型枚举表
+CREATE TABLE market_types (
+    id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT
 );
+INSERT INTO market_types VALUES 
+(1, '趋势市', '趋势市场'),
+(2, '震荡市', '震荡市场');
+
+-- 执行模式枚举表
+CREATE TABLE execution_modes (
+    id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT
+);
+INSERT INTO execution_modes VALUES 
+(1, '多头回踩突破', '趋势市多头模式'),
+(2, '空头反抽破位', '趋势市空头模式'),
+(3, '区间多头', '震荡市多头模式'),
+(4, '区间空头', '震荡市空头模式'),
+(5, '假突破反手', '假突破反手模式'),
+(6, 'NONE', '无信号');
 ```
 
-#### 2. 现有表结构优化
+#### 5. 历史数据清理
 
-**策略分析表 (strategy_analysis) 优化**
-- 添加V3策略特有字段：`trend4h`, `market_type`, `range_lower_boundary_valid`, `range_upper_boundary_valid`
-- 优化索引：为`symbol`和`timestamp`创建复合索引
-- 添加数据分区：按时间分区存储历史数据
+**已清理的数据**：
+- 清理30天前的strategy_analysis记录
+- 清理3天前的validation_results记录
+- 保留最近1000条策略分析记录
 
-**模拟交易表 (simulations) 优化**
-- 添加V3策略字段：`strategy_version`, `execution_mode`, `atr14`
-- 优化状态字段：使用枚举值而非字符串
-- 添加性能指标：`max_drawdown`, `sharpe_ratio`
+#### 6. 数据库性能优化
 
-#### 3. 索引优化建议
-
+**已执行的优化操作**：
 ```sql
--- 为常用查询创建索引
-CREATE INDEX idx_strategy_analysis_symbol_time ON strategy_analysis(symbol, timestamp);
-CREATE INDEX idx_strategy_v3_analysis_symbol_time ON strategy_v3_analysis(symbol, timestamp);
-CREATE INDEX idx_data_refresh_status_symbol_type ON data_refresh_status(symbol, data_type);
-CREATE INDEX idx_simulations_symbol_status ON simulations(symbol, status);
+-- 数据库压缩和优化
+VACUUM;
+REINDEX;
+ANALYZE;
+
+-- 性能参数优化
+PRAGMA synchronous = NORMAL;
+PRAGMA journal_mode = WAL;
+PRAGMA cache_size = 10000;
 ```
 
-#### 4. 数据清理策略
+### 优化效果
 
-- **历史数据清理**：保留最近30天的详细数据，30天前的数据按月聚合
-- **监控数据清理**：保留最近7天的监控日志
-- **临时数据清理**：定期清理过期的缓存和临时数据
-
-### 性能优化建议
-
-1. **查询优化**：使用预编译语句，避免N+1查询
-2. **连接池**：实现数据库连接池，提高并发性能
-3. **读写分离**：考虑实现读写分离，提高查询性能
-4. **缓存策略**：对频繁查询的数据实现Redis缓存
+1. **查询性能提升** - 复合索引显著提高常用查询性能
+2. **存储空间优化** - 删除冗余索引，减少存储空间占用
+3. **数据一致性** - 统一数据类型，提高数据一致性
+4. **维护性提升** - 枚举值表提高数据维护性
+5. **数据库性能** - VACUUM和REINDEX操作优化数据库性能
 
 ## 版本历史
 
@@ -1244,6 +1270,7 @@ CREATE INDEX idx_simulations_symbol_status ON simulations(symbol, status);
 - **v3.7.0** (2025-01-09): 修复4个核心问题（4H趋势为空、止损止盈价格错误、SIGNAL_NONE触发交易、盈亏状态不一致），优化震荡市策略，实现数据刷新频率管理
 - **v3.8.0** (2025-01-09): 修复15min信号显示问题，增强代码健壮性，完善单元测试框架
 - **v3.9.0** (2025-01-09): VPS内存优化，缓存系统优化，性能监控增强，数据库历史数据清理
+- **v3.10.0** (2025-01-09): 模拟交易数据一致性修复，数据库表结构优化，实时监控增强，前端规则更新
 
 ### v3.6.0 详细更新内容
 
@@ -1339,6 +1366,34 @@ CREATE INDEX idx_simulations_symbol_status ON simulations(symbol, status);
 - **智能TTL配置** - 根据数据类型配置不同的缓存时间
 - **缓存预热** - 启动时预热关键数据缓存
 - **缓存清理** - 自动清理过期和无效缓存
+
+### v3.10.0 详细更新内容
+
+#### 模拟交易数据一致性修复
+- **问题识别** - 发现监控页面显示312/312模拟交易完成率，但数据库simulations表为空的不一致问题
+- **根本原因** - recordAnalysisLog方法中错误地基于analysisResult.phases?.simulationTrading的存在来增加simulationCompletions统计
+- **修复方案** - 移除recordAnalysisLog中错误的模拟交易统计逻辑，模拟交易统计只通过recordSimulation方法正确记录
+- **数据重置** - 调用监控数据重置API，清除错误的统计数据，确保与数据库数据一致
+
+#### 数据验证和监控增强
+- **数据验证脚本** - 新增validate-simulation-data.js脚本，支持检查监控数据与数据库数据的一致性
+- **单元测试** - 创建simulation-data-consistency.test.js和simulation-data-simple.test.js测试，保障代码健壮性
+- **实时监控** - 新增RealTimeDataMonitor类，实现Binance API成功率实时监控
+- **API扩展** - 新增/api/realtime-data-stats、/api/monitoring-dashboard/reset等API端点
+
+#### 数据库表结构优化
+- **复合索引创建** - 创建(symbol, timestamp, trend4h)等复合索引，提高查询性能
+- **冗余索引删除** - 删除单字段索引，减少存储空间和写入性能影响
+- **数据类型统一** - 布尔值统一为INTEGER类型，时间戳格式统一
+- **枚举值表** - 创建signal_types、market_types、execution_modes枚举值表
+- **历史数据清理** - 清理30天前的策略分析数据，优化数据库性能
+- **数据库优化** - 执行VACUUM、REINDEX、ANALYZE操作，优化数据库性能
+
+#### 前端规则说明更新
+- **V3优化版说明** - 更新1H边界判断、15m入场模式、数据采集率等规则说明
+- **数据刷新频率** - 明确各层数据的刷新频率：4H趋势每1小时，1H打分每5分钟，15m入场每2分钟
+- **失败分析** - 添加API调用失败原因分析说明
+- **实时监控** - 更新数据采集率显示为Binance API实时成功率
 
 ### v3.9.0 详细更新内容
 
