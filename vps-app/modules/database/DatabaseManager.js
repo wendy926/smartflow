@@ -262,13 +262,14 @@ class DatabaseManager {
   // 获取交易对分类
   async getSymbolCategory(symbol) {
     const sql = `SELECT * FROM symbol_categories WHERE symbol = ?`;
-    return await this.get(sql, [symbol]);
+    const rows = await this.runQuery(sql, [symbol]);
+    return rows.length > 0 ? rows[0] : null;
   }
 
   // 获取所有交易对分类
   async getAllSymbolCategories() {
     const sql = `SELECT * FROM symbol_categories ORDER BY category, symbol`;
-    return await this.all(sql);
+    return await this.runQuery(sql);
   }
 
   // 记录多因子权重配置
@@ -297,13 +298,14 @@ class DatabaseManager {
   // 获取多因子权重配置
   async getFactorWeights(category, analysisType) {
     const sql = `SELECT * FROM factor_weights WHERE category = ? AND analysis_type = ?`;
-    return await this.get(sql, [category, analysisType]);
+    const rows = await this.runQuery(sql, [category, analysisType]);
+    return rows.length > 0 ? rows[0] : null;
   }
 
   // 获取所有多因子权重配置
   async getAllFactorWeights() {
     const sql = `SELECT * FROM factor_weights ORDER BY category, analysis_type`;
-    return await this.all(sql);
+    return await this.runQuery(sql);
   }
 
   // 记录策略分析结果 - 适配V3策略
