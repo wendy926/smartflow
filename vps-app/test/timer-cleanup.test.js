@@ -1,5 +1,5 @@
 const { DataMonitor } = require('../modules/monitoring/DataMonitor');
-const MemoryOptimizedManager = require('../modules/data/MemoryOptimizedManager');
+const { MemoryOptimizedManager } = require('../modules/data/MemoryOptimizedManager');
 const OptimizedDataMonitor = require('../modules/monitoring/OptimizedDataMonitor');
 
 describe('定时器清理机制测试', () => {
