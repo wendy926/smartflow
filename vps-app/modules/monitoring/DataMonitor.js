@@ -276,24 +276,39 @@ class DataMonitor {
       return;
     }
 
-    let totalDataAttempts = 0, totalDataSuccesses = 0;
-    let totalSignalAttempts = 0, totalSignalSuccesses = 0;
-    let totalSimulationTriggers = 0, totalSimulationCompletions = 0;
+    // 计算每个交易对的成功率，然后求平均值
+    let totalDataCollectionRate = 0, totalSignalAnalysisRate = 0, totalSimulationTradingRate = 0;
+    let validDataCollectionCount = 0, validSignalAnalysisCount = 0, validSimulationTradingCount = 0;
 
     for (const symbol of symbols) {
       const stats = this.symbolStats.get(symbol);
-      totalDataAttempts += stats.dataCollectionAttempts;
-      totalDataSuccesses += stats.dataCollectionSuccesses;
-      totalSignalAttempts += stats.signalAnalysisAttempts;
-      totalSignalSuccesses += stats.signalAnalysisSuccesses;
-      totalSimulationTriggers += stats.simulationTriggers;
-      totalSimulationCompletions += stats.simulationCompletions;
+      
+      // 计算数据收集率
+      if (stats.dataCollectionAttempts > 0) {
+        const dataCollectionRate = (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100;
+        totalDataCollectionRate += dataCollectionRate;
+        validDataCollectionCount++;
+      }
+      
+      // 计算信号分析率
+      if (stats.signalAnalysisAttempts > 0) {
+        const signalAnalysisRate = (stats.signalAnalysisSuccesses / stats.signalAnalysisAttempts) * 100;
+        totalSignalAnalysisRate += signalAnalysisRate;
+        validSignalAnalysisCount++;
+      }
+      
+      // 计算模拟交易完成率
+      if (stats.simulationTriggers > 0) {
+        const simulationTradingRate = (stats.simulationCompletions / stats.simulationTriggers) * 100;
+        totalSimulationTradingRate += simulationTradingRate;
+        validSimulationTradingCount++;
+      }
     }
 
     this.completionRates = {
-      dataCollection: totalDataAttempts > 0 ? Math.min((totalDataSuccesses / totalDataAttempts) * 100, 100) : 0,
-      signalAnalysis: totalSignalAttempts > 0 ? Math.min((totalSignalSuccesses / totalSignalAttempts) * 100, 100) : 0,
-      simulationTrading: totalSimulationTriggers > 0 ? Math.min((totalSimulationCompletions / totalSimulationTriggers) * 100, 100) : 0
+      dataCollection: validDataCollectionCount > 0 ? Math.min(totalDataCollectionRate / validDataCollectionCount, 100) : 0,
+      signalAnalysis: validSignalAnalysisCount > 0 ? Math.min(totalSignalAnalysisRate / validSignalAnalysisCount, 100) : 0,
+      simulationTrading: validSimulationTradingCount > 0 ? Math.min(totalSimulationTradingRate / validSimulationTradingCount, 100) : 0
     };
   }
 
