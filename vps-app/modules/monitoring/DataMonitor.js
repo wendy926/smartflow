@@ -458,7 +458,7 @@ class DataMonitor {
         // 收集数据质量问题（从数据库读取）
         if (this.database) {
           try {
-            const issues = await this.database.all(`
+            const issues = await this.database.runQuery(`
               SELECT issue_type, message FROM data_quality_issues 
               WHERE symbol = ? AND created_at > datetime('now', '-1 hour')
               ORDER BY created_at DESC LIMIT 5

@@ -1,183 +1,224 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>模拟交易显示逻辑测试</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .test-case { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
-        .expected { color: green; font-weight: bold; }
-        .actual { color: red; font-weight: bold; }
-        .result { margin: 10px 0; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        .positive { color: green; }
-        .negative { color: red; }
-        .neutral { color: gray; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>模拟交易显示逻辑测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .test-case {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .expected {
+      color: green;
+      font-weight: bold;
+    }
+
+    .actual {
+      color: red;
+      font-weight: bold;
+    }
+
+    .result {
+      margin: 10px 0;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .positive {
+      color: green;
+    }
+
+    .negative {
+      color: red;
+    }
+
+    .neutral {
+      color: gray;
+    }
+  </style>
 </head>
+
 <body>
-    <h1>模拟交易显示逻辑测试</h1>
-    
-    <div id="test-results"></div>
+  <h1>模拟交易显示逻辑测试</h1>
 
-    <script>
-        // 模拟SimulationDataManager的calculateSimulationResult方法
-        function calculateSimulationResult(sim) {
-            // 如果交易没有结束，不显示盈亏金额
-            const profitLoss = sim.status === 'ACTIVE' ? null : (sim.profit_loss || 0);
-            const profitLossClass = profitLoss === null ? 'neutral' : (profitLoss > 0 ? 'positive' : profitLoss < 0 ? 'negative' : 'neutral');
-            
-            // 根据状态和is_win字段判断结果
-            let resultClass, resultText;
-            if (sim.status === 'ACTIVE') {
-                // 如果交易没有结束，显示进行中，不展示盈亏金额
-                resultClass = 'neutral';
-                resultText = '进行中';
-            } else if (sim.is_win === 1 || sim.is_win === true) {
-                resultClass = 'positive';
-                resultText = '盈利';
-            } else if (sim.is_win === 0 || sim.is_win === false) {
-                resultClass = 'negative';
-                resultText = '亏损';
-            } else {
-                resultClass = 'neutral';
-                resultText = '进行中';
-            }
+  <div id="test-results"></div>
 
-            return { profitLoss, profitLossClass, resultClass, resultText };
+  <script>
+    // 模拟SimulationDataManager的calculateSimulationResult方法
+    function calculateSimulationResult(sim) {
+      // 如果交易没有结束，不显示盈亏金额
+      const profitLoss = sim.status === 'ACTIVE' ? null : (sim.profit_loss || 0);
+      const profitLossClass = profitLoss === null ? 'neutral' : (profitLoss > 0 ? 'positive' : profitLoss < 0 ? 'negative' : 'neutral');
+
+      // 根据状态和is_win字段判断结果
+      let resultClass, resultText;
+      if (sim.status === 'ACTIVE') {
+        // 如果交易没有结束，显示进行中，不展示盈亏金额
+        resultClass = 'neutral';
+        resultText = '进行中';
+      } else if (sim.is_win === 1 || sim.is_win === true) {
+        resultClass = 'positive';
+        resultText = '盈利';
+      } else if (sim.is_win === 0 || sim.is_win === false) {
+        resultClass = 'negative';
+        resultText = '亏损';
+      } else {
+        resultClass = 'neutral';
+        resultText = '进行中';
+      }
+
+      return { profitLoss, profitLossClass, resultClass, resultText };
+    }
+
+    function formatNumber(value) {
+      if (value === null || value === undefined || value === '') return '--';
+      return parseFloat(value).toFixed(4);
+    }
+
+    // 测试用例
+    const testCases = [
+      {
+        name: 'ACTIVE状态 - 应该显示进行中',
+        sim: {
+          symbol: 'BTCUSDT',
+          direction: 'LONG',
+          status: 'ACTIVE',
+          entry_price: 50000,
+          stop_loss_price: 49000,
+          take_profit_price: 51000,
+          max_leverage: 10,
+          min_margin: 100,
+          stop_loss_distance: 2,
+          atr_value: 1000,
+          created_at: '2025-01-09T10:00:00Z',
+          closed_at: null,
+          exit_price: null,
+          exit_reason: null,
+          trigger_reason: 'SIGNAL_多头回踩突破',
+          profit_loss: null,
+          is_win: null
+        },
+        expected: {
+          resultText: '进行中',
+          resultClass: 'neutral',
+          profitLoss: null
         }
-
-        function formatNumber(value) {
-            if (value === null || value === undefined || value === '') return '--';
-            return parseFloat(value).toFixed(4);
+      },
+      {
+        name: 'CLOSED状态且is_win=0 - 应该显示亏损',
+        sim: {
+          symbol: 'BTCUSDT',
+          direction: 'LONG',
+          status: 'CLOSED',
+          entry_price: 50000,
+          stop_loss_price: 49000,
+          take_profit_price: 51000,
+          max_leverage: 10,
+          min_margin: 100,
+          stop_loss_distance: 2,
+          atr_value: 1000,
+          created_at: '2025-01-09T10:00:00Z',
+          closed_at: '2025-01-09T11:00:00Z',
+          exit_price: 49000,
+          exit_reason: 'STOP_LOSS',
+          trigger_reason: 'SIGNAL_多头回踩突破',
+          profit_loss: -1000,
+          is_win: 0
+        },
+        expected: {
+          resultText: '亏损',
+          resultClass: 'negative',
+          profitLoss: -1000
         }
+      },
+      {
+        name: 'CLOSED状态且is_win=1 - 应该显示盈利',
+        sim: {
+          symbol: 'BTCUSDT',
+          direction: 'LONG',
+          status: 'CLOSED',
+          entry_price: 50000,
+          stop_loss_price: 49000,
+          take_profit_price: 51000,
+          max_leverage: 10,
+          min_margin: 100,
+          stop_loss_distance: 2,
+          atr_value: 1000,
+          created_at: '2025-01-09T10:00:00Z',
+          closed_at: '2025-01-09T11:00:00Z',
+          exit_price: 51000,
+          exit_reason: 'TAKE_PROFIT',
+          trigger_reason: 'SIGNAL_多头回踩突破',
+          profit_loss: 1000,
+          is_win: 1
+        },
+        expected: {
+          resultText: '盈利',
+          resultClass: 'positive',
+          profitLoss: 1000
+        }
+      },
+      {
+        name: 'CLOSED状态但is_win为null - 应该显示进行中',
+        sim: {
+          symbol: 'BTCUSDT',
+          direction: 'LONG',
+          status: 'CLOSED',
+          entry_price: 50000,
+          stop_loss_price: 49000,
+          take_profit_price: 51000,
+          max_leverage: 10,
+          min_margin: 100,
+          stop_loss_distance: 2,
+          atr_value: 1000,
+          created_at: '2025-01-09T10:00:00Z',
+          closed_at: '2025-01-09T11:00:00Z',
+          exit_price: 51000,
+          exit_reason: 'TAKE_PROFIT',
+          trigger_reason: 'SIGNAL_多头回踩突破',
+          profit_loss: 1000,
+          is_win: null
+        },
+        expected: {
+          resultText: '进行中',
+          resultClass: 'neutral',
+          profitLoss: 1000
+        }
+      }
+    ];
 
-        // 测试用例
-        const testCases = [
-            {
-                name: 'ACTIVE状态 - 应该显示进行中',
-                sim: {
-                    symbol: 'BTCUSDT',
-                    direction: 'LONG',
-                    status: 'ACTIVE',
-                    entry_price: 50000,
-                    stop_loss_price: 49000,
-                    take_profit_price: 51000,
-                    max_leverage: 10,
-                    min_margin: 100,
-                    stop_loss_distance: 2,
-                    atr_value: 1000,
-                    created_at: '2025-01-09T10:00:00Z',
-                    closed_at: null,
-                    exit_price: null,
-                    exit_reason: null,
-                    trigger_reason: 'SIGNAL_多头回踩突破',
-                    profit_loss: null,
-                    is_win: null
-                },
-                expected: {
-                    resultText: '进行中',
-                    resultClass: 'neutral',
-                    profitLoss: null
-                }
-            },
-            {
-                name: 'CLOSED状态且is_win=0 - 应该显示亏损',
-                sim: {
-                    symbol: 'BTCUSDT',
-                    direction: 'LONG',
-                    status: 'CLOSED',
-                    entry_price: 50000,
-                    stop_loss_price: 49000,
-                    take_profit_price: 51000,
-                    max_leverage: 10,
-                    min_margin: 100,
-                    stop_loss_distance: 2,
-                    atr_value: 1000,
-                    created_at: '2025-01-09T10:00:00Z',
-                    closed_at: '2025-01-09T11:00:00Z',
-                    exit_price: 49000,
-                    exit_reason: 'STOP_LOSS',
-                    trigger_reason: 'SIGNAL_多头回踩突破',
-                    profit_loss: -1000,
-                    is_win: 0
-                },
-                expected: {
-                    resultText: '亏损',
-                    resultClass: 'negative',
-                    profitLoss: -1000
-                }
-            },
-            {
-                name: 'CLOSED状态且is_win=1 - 应该显示盈利',
-                sim: {
-                    symbol: 'BTCUSDT',
-                    direction: 'LONG',
-                    status: 'CLOSED',
-                    entry_price: 50000,
-                    stop_loss_price: 49000,
-                    take_profit_price: 51000,
-                    max_leverage: 10,
-                    min_margin: 100,
-                    stop_loss_distance: 2,
-                    atr_value: 1000,
-                    created_at: '2025-01-09T10:00:00Z',
-                    closed_at: '2025-01-09T11:00:00Z',
-                    exit_price: 51000,
-                    exit_reason: 'TAKE_PROFIT',
-                    trigger_reason: 'SIGNAL_多头回踩突破',
-                    profit_loss: 1000,
-                    is_win: 1
-                },
-                expected: {
-                    resultText: '盈利',
-                    resultClass: 'positive',
-                    profitLoss: 1000
-                }
-            },
-            {
-                name: 'CLOSED状态但is_win为null - 应该显示进行中',
-                sim: {
-                    symbol: 'BTCUSDT',
-                    direction: 'LONG',
-                    status: 'CLOSED',
-                    entry_price: 50000,
-                    stop_loss_price: 49000,
-                    take_profit_price: 51000,
-                    max_leverage: 10,
-                    min_margin: 100,
-                    stop_loss_distance: 2,
-                    atr_value: 1000,
-                    created_at: '2025-01-09T10:00:00Z',
-                    closed_at: '2025-01-09T11:00:00Z',
-                    exit_price: 51000,
-                    exit_reason: 'TAKE_PROFIT',
-                    trigger_reason: 'SIGNAL_多头回踩突破',
-                    profit_loss: 1000,
-                    is_win: null
-                },
-                expected: {
-                    resultText: '进行中',
-                    resultClass: 'neutral',
-                    profitLoss: 1000
-                }
-            }
-        ];
+    // 运行测试
+    function runTests() {
+      const resultsDiv = document.getElementById('test-results');
+      let html = '';
 
-        // 运行测试
-        function runTests() {
-            const resultsDiv = document.getElementById('test-results');
-            let html = '';
+      testCases.forEach((testCase, index) => {
+        const result = calculateSimulationResult(testCase.sim);
+        const passed = result.resultText === testCase.expected.resultText &&
+          result.resultClass === testCase.expected.resultClass &&
+          result.profitLoss === testCase.expected.profitLoss;
 
-            testCases.forEach((testCase, index) => {
-                const result = calculateSimulationResult(testCase.sim);
-                const passed = result.resultText === testCase.expected.resultText && 
-                              result.resultClass === testCase.expected.resultClass &&
-                              result.profitLoss === testCase.expected.profitLoss;
-
-                html += `
+        html += `
                     <div class="test-case">
                         <h3>测试 ${index + 1}: ${testCase.name}</h3>
                         <div class="result">
@@ -197,13 +238,14 @@
                         </div>
                     </div>
                 `;
-            });
+      });
 
-            resultsDiv.innerHTML = html;
-        }
+      resultsDiv.innerHTML = html;
+    }
 
-        // 页面加载完成后运行测试
-        document.addEventListener('DOMContentLoaded', runTests);
-    </script>
+    // 页面加载完成后运行测试
+    document.addEventListener('DOMContentLoaded', runTests);
+  </script>
 </body>
+
 </html>
