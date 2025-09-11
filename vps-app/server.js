@@ -51,7 +51,7 @@ class SmartFlowServer {
   setupMiddleware() {
     this.app.use(cors());
     this.app.use(express.json());
-    
+
     // 静态文件服务，禁用缓存
     this.app.use(express.static(path.join(__dirname, 'public'), {
       setHeaders: (res, path) => {
@@ -120,7 +120,7 @@ class SmartFlowServer {
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
             // 检查分析是否成功（数据是否充足）
-            const isDataSufficient = !analysis.reason || !analysis.reason.includes('数据不足');                                                                                  
+            const isDataSufficient = !analysis.reason || !analysis.reason.includes('数据不足');
             const isAnalysisSuccessful = !!(analysis && (analysis.trend4h || analysis.signal || analysis.execution));
 
             // 存储到监控系统用于数据验证 - 根据实际结果记录分析日志
@@ -157,7 +157,7 @@ class SmartFlowServer {
                 dataCollectionRate = this.dataMonitor.completionRates.dataCollection;
               }
             }
-            
+
             // 数据采集率现在基于实际的数据采集成功状态计算
             // 如果数据不足，dataCollection.success 已经是 false，数据采集率会自动为0
 
@@ -1053,10 +1053,10 @@ class SmartFlowServer {
       });
       await this.cacheManager.initialize();
       this.cacheMiddleware = CacheMiddleware.create(this.cacheManager);
-      
+
       // 启动定期清理任务
       this.cacheManager.startPeriodicCleanup();
-      
+
       console.log('✅ 缓存系统初始化完成');
 
       // 清理不一致的模拟交易记录

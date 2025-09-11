@@ -196,7 +196,142 @@ class DataMonitor {
   }
 
   recordIndicator(symbol, indicatorType, data, calculationTime) {
-    // 指标数据不再存储在内存中，直接使用
+    // 确保交易对统计存在
+    if (!this.symbolStats.has(symbol)) {
+      this.symbolStats.set(symbol, {
+        dataCollectionAttempts: 0,
+        dataCollectionSuccesses: 0,
+        signalAnalysisAttempts: 0,
+        signalAnalysisSuccesses: 0,
+        simulationTriggers: 0,
+        simulationCompletions: 0,
+        lastDataCollectionTime: 0,
+        lastSignalAnalysisTime: 0,
+        lastSimulationTime: 0,
+        indicators: {}
+      });
+    }
+
+    const stats = this.symbolStats.get(symbol);
+    
+    // 记录指标数据
+    if (!stats.indicators) {
+      stats.indicators = {};
+    }
+    
+    stats.indicators[indicatorType] = {
+      data,
+      calculationTime,
+      timestamp: Date.now(),
+      success: !data.error
+    };
+
+    // 检查指标计算是否成功
+    if (data.error) {
+      // 记录指标计算失败
+      this.recordDataQualityIssue(symbol, indicatorType, data.error);
+      
+      // 生成指标计算失败告警
+      this.generateIndicatorFailureAlert(symbol, indicatorType, data.error);
+    } else {
+      // 记录指标计算成功
+      console.log(`✅ 指标计算成功 [${symbol}][${indicatorType}]: ${calculationTime}ms`);
+    }
+
+    // 更新最后数据收集时间
+    stats.lastDataCollectionTime = Date.now();
+  }
+
+  /**
+   * 生成指标计算失败告警
+   */
+  generateIndicatorFailureAlert(symbol, indicatorType, error) {
+    const alert = {
+      level: 'ERROR',
+      type: 'INDICATOR_CALCULATION_FAILED',
+      symbol,
+      indicatorType,
+      message: `指标计算失败: ${indicatorType} - ${error}`,
+      timestamp: new Date().toISOString(),
+      details: {
+        symbol,
+        indicatorType,
+        error,
+        phase: this.getIndicatorPhase(indicatorType)
+      }
+    };
+
+    // 添加到告警列表
+    if (!this.alerts) {
+      this.alerts = [];
+    }
+    this.alerts.push(alert);
+
+    // 限制告警数量
+    if (this.alerts.length > 100) {
+      this.alerts = this.alerts.slice(-100);
+    }
+
+    console.error(`🚨 指标计算失败告警 [${symbol}][${indicatorType}]:`, error);
+  }
+
+  /**
+   * 获取指标所属阶段
+   */
+  getIndicatorPhase(indicatorType) {
+    const phaseMap = {
+      '4H MA指标': 'dataCollection',
+      '1H多因子打分': 'signalAnalysis',
+      '震荡市1H边界判断': 'signalAnalysis',
+      '15分钟执行': 'simulationTrading'
+    };
+    return phaseMap[indicatorType] || 'unknown';
+  }
+
+  /**
+   * 计算指标监控状态
+   */
+  calculateIndicatorStatus(indicators) {
+    const status = {
+      total: 0,
+      successful: 0,
+      failed: 0,
+      successRate: 0,
+      indicators: {},
+      errors: []
+    };
+
+    for (const [indicatorType, indicatorData] of Object.entries(indicators)) {
+      status.total++;
+      
+      if (indicatorData.success) {
+        status.successful++;
+        status.indicators[indicatorType] = {
+          status: 'SUCCESS',
+          calculationTime: indicatorData.calculationTime,
+          timestamp: indicatorData.timestamp
+        };
+      } else {
+        status.failed++;
+        status.indicators[indicatorType] = {
+          status: 'FAILED',
+          error: indicatorData.data.error,
+          calculationTime: indicatorData.calculationTime,
+          timestamp: indicatorData.timestamp
+        };
+        status.errors.push({
+          indicatorType,
+          error: indicatorData.data.error,
+          timestamp: indicatorData.timestamp
+        });
+      }
+    }
+
+    if (status.total > 0) {
+      status.successRate = (status.successful / status.total) * 100;
+    }
+
+    return status;
   }
 
   recordSignal(symbol, signalType, signalData, success = true, error = null) {
@@ -317,18 +452,32 @@ class DataMonitor {
   }
 
   getAnalysisLog(symbol) {
-    // 不再从内存中获取分析日志，返回默认结构
+    const stats = this.symbolStats.get(symbol);
+    
+    // 返回包含指标数据的分析日志
     return {
-      success: false,
+      success: stats ? stats.dataCollectionSuccesses > 0 : false,
       symbol,
       strategyVersion: 'V3', // 默认V3策略
       phases: {
-        dataCollection: { success: false },
-        signalAnalysis: { success: false },
-        simulationTrading: { success: false }
+        dataCollection: { 
+          success: stats ? stats.dataCollectionSuccesses > 0 : false,
+          attempts: stats ? stats.dataCollectionAttempts : 0,
+          successes: stats ? stats.dataCollectionSuccesses : 0
+        },
+        signalAnalysis: { 
+          success: stats ? stats.signalAnalysisSuccesses > 0 : false,
+          attempts: stats ? stats.signalAnalysisAttempts : 0,
+          successes: stats ? stats.signalAnalysisSuccesses : 0
+        },
+        simulationTrading: { 
+          success: stats ? stats.simulationCompletions > 0 : false,
+          triggers: stats ? stats.simulationTriggers : 0,
+          completions: stats ? stats.simulationCompletions : 0
+        }
       },
       rawData: {},
-      indicators: {},
+      indicators: stats ? stats.indicators || {} : {},
       signals: {},
       simulation: {},
       errors: [],
@@ -697,6 +846,9 @@ class DataMonitor {
       // 只关注数据收集率和信号分析率，各占50%
       const overallRate = (dataCollectionRate + signalAnalysisRate) / 2;
 
+      // 计算指标监控状态
+      const indicatorStatus = this.calculateIndicatorStatus(stats.indicators || {});
+
       return {
         symbol,
         dataCollection: {
@@ -722,6 +874,7 @@ class DataMonitor {
           triggers: stats.simulationTriggers,
           inProgress: stats.simulationInProgress
         },
+        indicatorStatus,
         refreshFrequency: this.refreshInterval / 1000,
         overall: {
           rate: overallRate,

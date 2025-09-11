@@ -4,7 +4,7 @@
  */
 
 const DatabaseManager = require('../modules/database/DatabaseManager');
-const DataMonitor = require('../modules/monitoring/DataMonitor');
+const { DataMonitor } = require('../modules/monitoring/DataMonitor');
 
 describe('模拟交易数据一致性测试', () => {
   let dbManager;
@@ -13,7 +13,7 @@ describe('模拟交易数据一致性测试', () => {
   beforeAll(async () => {
     dbManager = new DatabaseManager();
     await dbManager.init();
-    
+
     dataMonitor = new DataMonitor();
   });
 
@@ -33,7 +33,7 @@ describe('模拟交易数据一致性测试', () => {
     // 1. 初始状态检查
     const initialSimulations = await dbManager.runQuery('SELECT COUNT(*) as count FROM simulations');
     const initialMonitoring = dataMonitor.getMonitoringDashboard();
-    
+
     expect(initialSimulations[0].count).toBe(0);
     expect(initialMonitoring.summary.completionRates.simulationTrading).toBe(0);
 
@@ -73,7 +73,7 @@ describe('模拟交易数据一致性测试', () => {
     // 3. 验证数据一致性
     const dbSimulations = await dbManager.runQuery('SELECT COUNT(*) as count FROM simulations');
     const monitoringData = dataMonitor.getMonitoringDashboard();
-    
+
     expect(dbSimulations[0].count).toBe(1);
     expect(monitoringData.summary.completionRates.simulationTrading).toBe(0); // 还没有完成
     expect(monitoringData.detailedStats.find(s => s.symbol === 'BTCUSDT').simulationCompletion.triggers).toBe(1);
@@ -124,7 +124,7 @@ describe('模拟交易数据一致性测试', () => {
     // 4. 验证统计正确性
     const monitoringData = dataMonitor.getMonitoringDashboard();
     const ethStats = monitoringData.detailedStats.find(s => s.symbol === 'ETHUSDT');
-    
+
     expect(ethStats.simulationCompletion.triggers).toBe(1);
     expect(ethStats.simulationCompletion.completions).toBe(1);
     expect(ethStats.simulationCompletion.rate).toBe(100);
@@ -146,7 +146,7 @@ describe('模拟交易数据一致性测试', () => {
     // 2. 验证模拟交易统计没有被错误增加
     const monitoringData = dataMonitor.getMonitoringDashboard();
     const testStats = monitoringData.detailedStats.find(s => s.symbol === 'TESTUSDT');
-    
+
     expect(testStats.simulationCompletion.triggers).toBe(0);
     expect(testStats.simulationCompletion.completions).toBe(0);
     expect(testStats.simulationCompletion.rate).toBe(0);
@@ -154,25 +154,25 @@ describe('模拟交易数据一致性测试', () => {
 
   test('多个交易对的统计应该独立计算', async () => {
     const symbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT'];
-    
+
     // 为每个交易对创建模拟交易
     for (let i = 0; i < symbols.length; i++) {
       const symbol = symbols[i];
-      
+
       // 创建数据库记录
       await dbManager.runQuery(`
         INSERT INTO simulations (symbol, entry_price, stop_loss_price, take_profit_price, 
                                 max_leverage, min_margin, trigger_reason, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [symbol, 1000 + i * 100, 900 + i * 100, 1100 + i * 100, 10, 100, 'TEST', 'ACTIVE', new Date().toISOString()]);
-      
+
       // 记录到监控系统
       dataMonitor.recordSimulation(symbol, 'START', { symbol }, true);
     }
 
     // 验证每个交易对的统计独立
     const monitoringData = dataMonitor.getMonitoringDashboard();
-    
+
     symbols.forEach(symbol => {
       const stats = monitoringData.detailedStats.find(s => s.symbol === symbol);
       expect(stats.simulationCompletion.triggers).toBe(1);
@@ -218,7 +218,7 @@ describe('模拟交易数据一致性测试', () => {
     // 2. 验证同步性
     const dbCount = await dbManager.runQuery('SELECT COUNT(*) as count FROM simulations');
     const monitoringData = dataMonitor.getMonitoringDashboard();
-    
+
     expect(dbCount[0].count).toBe(1);
     expect(monitoringData.detailedStats.find(s => s.symbol === 'ADAUSDT').simulationCompletion.triggers).toBe(1);
 
@@ -233,7 +233,7 @@ describe('模拟交易数据一致性测试', () => {
     // 4. 验证完成统计
     const updatedMonitoring = dataMonitor.getMonitoringDashboard();
     const adaStats = updatedMonitoring.detailedStats.find(s => s.symbol === 'ADAUSDT');
-    
+
     expect(adaStats.simulationCompletion.triggers).toBe(1);
     expect(adaStats.simulationCompletion.completions).toBe(1);
     expect(adaStats.simulationCompletion.rate).toBe(100);

@@ -57,7 +57,7 @@ describe('VWAP逻辑测试', () => {
 
       // 验证调用了1H数据
       expect(BinanceAPI.getKlines).toHaveBeenCalledWith('BTCUSDT', '1h', 50);
-      
+
       // 验证VWAP计算使用了1H数据
       expect(result.vwap).toBeDefined();
       expect(result.vwap).toBeGreaterThan(0);
@@ -80,7 +80,7 @@ describe('VWAP逻辑测试', () => {
 
       // 验证调用了1H数据
       expect(BinanceAPI.getKlines).toHaveBeenCalledWith('BTCUSDT', '1h', 50);
-      
+
       // 验证结果包含VWAP相关数据
       expect(result).toBeDefined();
     });
@@ -116,7 +116,7 @@ describe('VWAP逻辑测试', () => {
 
       // 验证调用了15m数据
       expect(BinanceAPI.getKlines).toHaveBeenCalledWith('BTCUSDT', '15m', 20);
-      
+
       // 验证结果包含多因子数据
       expect(result).toBeDefined();
     });
@@ -153,7 +153,7 @@ describe('VWAP逻辑测试', () => {
 
       // 验证VWAP方向一致性检查
       expect(result.vwapDirectionConsistent).toBeDefined();
-      
+
       // 如果VWAP方向不一致，应该返回0分
       if (!result.vwapDirectionConsistent) {
         expect(result.score).toBe(0);
@@ -173,7 +173,7 @@ describe('VWAP逻辑测试', () => {
       };
 
       const score = strategyExecution.calculateFactorScore(factors);
-      
+
       // 当前价格高于VWAP应该得+1分，其他因子各+1分，总共4分
       expect(score).toBe(4);
     });
@@ -189,7 +189,7 @@ describe('VWAP逻辑测试', () => {
       };
 
       const score = strategyExecution.calculateFactorScore(factors);
-      
+
       // 当前价格低于VWAP应该得-1分，其他因子各+1分，总共2分
       expect(score).toBe(2);
     });
@@ -216,7 +216,7 @@ describe('VWAP逻辑测试', () => {
 
       const score1 = strategyExecution.calculateFactorScore(factors1);
       const score2 = strategyExecution.calculateFactorScore(factors2);
-      
+
       // 两个得分的差值应该正好是2（VWAP因子的影响）
       expect(score1 - score2).toBe(2);
     });
@@ -244,7 +244,7 @@ describe('VWAP逻辑测试', () => {
       }).catch(error => {
         // 如果mock失败，直接测试VWAP计算逻辑
         console.log('Mock失败，直接测试VWAP计算逻辑');
-        
+
         // 手动计算VWAP
         let sumPV = 0;
         let sumVolume = 0;
@@ -255,7 +255,7 @@ describe('VWAP逻辑测试', () => {
           sumVolume += volume;
         }
         const expectedVWAP = sumVolume > 0 ? sumPV / sumVolume : 0;
-        
+
         expect(expectedVWAP).toBeCloseTo(100.67, 2);
       });
     });

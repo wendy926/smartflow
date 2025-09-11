@@ -148,7 +148,7 @@ class StrategyV3Core {
     if (candles.length < period + 10) return false;
 
     const bb = this.calculateBollingerBands(candles, period, k);
-    
+
     // 检查最近10根K线的带宽变化趋势
     const recentBB = bb.slice(-10);
     if (recentBB.length < 10) return false;
@@ -157,10 +157,10 @@ class StrategyV3Core {
     const bandwidths = recentBB.map(b => b.bandwidth);
     const firstHalf = bandwidths.slice(0, 5);
     const secondHalf = bandwidths.slice(5);
-    
+
     const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
     const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-    
+
     // 如果后半段平均带宽比前半段大5%以上，认为带宽扩张
     return avgSecond > avgFirst * 1.05;
   }
@@ -228,10 +228,10 @@ class StrategyV3Core {
       // 判断趋势强度 - 严格按照文档：ADX(14) > 20 且布林带带宽扩张
       const adxLong = ADX > 20 && DIplus > DIminus;
       const adxShort = ADX > 20 && DIminus > DIplus;
-      
+
       // 布林带带宽扩张检查 - 严格按照文档要求
       const bbwExpanding = this.isBBWExpanding(candles, 20, 2);
-      
+
       // 趋势强度确认：ADX条件 AND 布林带带宽扩张
       const strengthLong = adxLong && bbwExpanding;
       const strengthShort = adxShort && bbwExpanding;
@@ -251,6 +251,20 @@ class StrategyV3Core {
         marketType = '震荡市';
       }
 
+      // 记录4H MA指标计算成功
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '4H MA指标', {
+          ma20: ma20[ma20.length - 1],
+          ma50: ma50[ma50.length - 1],
+          ma200: ma200[ma200.length - 1],
+          trend4h,
+          marketType,
+          adx14: ADX,
+          bbw,
+          trendConfirmed
+        }, Date.now());
+      }
+
       return {
         trend4h,
         marketType,
@@ -267,7 +281,7 @@ class StrategyV3Core {
 
     } catch (error) {
       console.error(`4H趋势分析失败 [${symbol}]:`, error);
-      
+
       // 根据错误类型提供更详细的错误信息
       let errorMessage = error.message;
       if (error.message.includes('地理位置限制')) {
@@ -277,7 +291,7 @@ class StrategyV3Core {
       } else if (error.message.includes('网络连接失败')) {
         errorMessage = `网络连接失败，无法获取 ${symbol} 数据`;
       }
-      
+
       return { trend4h: '震荡市', marketType: '震荡市', error: errorMessage };
     }
   }
@@ -441,6 +455,24 @@ class StrategyV3Core {
         vwapDirectionConsistent
       });
 
+      // 记录1H多因子打分指标到监控系统
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '1H多因子打分', {
+          score,
+          allowEntry,
+          vwapDirectionConsistent,
+          factors,
+          vwap,
+          vol15mRatio,
+          vol1hRatio,
+          oiChange6h,
+          fundingRate,
+          deltaImbalance,
+          deltaBuy,
+          deltaSell
+        }, Date.now());
+      }
+
       return {
         score,
         allowEntry,
@@ -468,11 +500,11 @@ class StrategyV3Core {
   async analyzeRangeBoundary(symbol) {
     try {
       const klines1h = await BinanceAPI.getKlines(symbol, '1h', 50);
-      
+
       if (!klines1h || klines1h.length < 25) {
-        return { 
-          lowerBoundaryValid: false, 
-          upperBoundaryValid: false, 
+        return {
+          lowerBoundaryValid: false,
+          upperBoundaryValid: false,
           error: '1H数据不足',
           bb1h: null
         };
@@ -569,8 +601,10 @@ class StrategyV3Core {
           delta,
           oiChange,
           lastBreakout,
-          bbBandwidth: lastBB.bandwidth
-        });
+          bbBandwidth: lastBB.bandwidth,
+          factorScore,
+          boundaryThreshold
+        }, Date.now());
       }
 
       return {
@@ -594,9 +628,9 @@ class StrategyV3Core {
       };
     } catch (error) {
       console.error(`1H边界判断失败 [${symbol}]:`, error);
-      return { 
-        lowerBoundaryValid: false, 
-        upperBoundaryValid: false, 
+      return {
+        lowerBoundaryValid: false,
+        upperBoundaryValid: false,
         error: error.message,
         bb1h: null
       };
@@ -608,31 +642,31 @@ class StrategyV3Core {
    */
   calculateBoundaryFactorScore({ touchesLower, touchesUpper, volFactor, delta, oiChange, lastBreakout, vwap, currentPrice }) {
     let score = 0;
-    
+
     // 1. 连续触碰因子 (0-2分)
     const touchScore = Math.min(touchesLower + touchesUpper, 2);
     score += touchScore;
-    
+
     // 2. 成交量因子 (0-1分)
     if (volFactor <= 1.7) {
       score += 1;
     }
-    
+
     // 3. Delta因子 (0-1分)
     if (Math.abs(delta) <= 0.02) {
       score += 1;
     }
-    
+
     // 4. OI因子 (0-1分)
     if (Math.abs(oiChange) <= 0.02) {
       score += 1;
     }
-    
+
     // 5. 无突破因子 (0-1分)
     if (!lastBreakout) {
       score += 1;
     }
-    
+
     // 6. VWAP因子 (0-1分) - 价格接近1H VWAP
     if (vwap > 0) {
       const vwapDistance = Math.abs(currentPrice - vwap) / vwap;
@@ -640,7 +674,7 @@ class StrategyV3Core {
         score += 1;
       }
     }
-    
+
     return score;
   }
 

@@ -93,7 +93,7 @@ describe('模拟交易数据一致性简化测试', () => {
 
   test('应该支持多个交易对的独立记录', async () => {
     const symbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT'];
-    
+
     // 为每个交易对创建模拟交易记录
     for (let i = 0; i < symbols.length; i++) {
       const symbol = symbols[i];

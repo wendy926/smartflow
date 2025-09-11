@@ -48,13 +48,13 @@ describe('数据采集率API测试', () => {
     // 创建测试应用
     app = express();
     app.use(express.json());
-    
+
     // 模拟API路由
     app.get('/api/signals', (req, res) => {
       const BinanceAPI = require('../modules/api/BinanceAPI');
       const realtimeStats = BinanceAPI.getRealTimeStats();
       const dataCollectionRate = realtimeStats.global.successRate;
-      
+
       res.json([{
         symbol: 'BTCUSDT',
         dataCollectionRate: dataCollectionRate,

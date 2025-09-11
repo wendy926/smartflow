@@ -139,13 +139,13 @@ class StrategyV3Execution {
       // 2. 计算ATR14 - 震荡市也需要ATR用于止损计算
       let atr14 = this.calculateATR(candles15m, 14);
       let lastATR = atr14[atr14.length - 1];
-      
+
       // ATR计算失败时重试一次
       if (!atr14 || atr14.length === 0 || !lastATR || lastATR <= 0) {
         console.warn(`ATR计算失败，尝试重试 [${symbol}]`);
         atr14 = this.calculateATR(candles15m, 14);
         lastATR = atr14[atr14.length - 1];
-        
+
         if (!atr14 || atr14.length === 0 || !lastATR || lastATR <= 0) {
           console.error(`ATR计算重试失败 [${symbol}]`);
           return { signal: 'NONE', mode: 'NONE', reason: 'ATR计算失败', atr14: null };
@@ -169,7 +169,7 @@ class StrategyV3Execution {
       const rangeHigh = bb1h.upper;
       const rangeLow = bb1h.lower;
       const inRange = last15m.close < rangeHigh && last15m.close > rangeLow;
-      
+
       if (!inRange) {
         return { signal: 'NONE', mode: 'NONE', reason: '不在1H区间内', atr14: lastATR };
       }
@@ -200,7 +200,7 @@ class StrategyV3Execution {
           volume: multiFactorData.volume,
           signalType: 'short'
         });
-        
+
         if (shortFactorScore >= 2) { // 多因子得分≥2才入场
           signal = 'SHORT';
           mode = '假突破反手';
@@ -210,7 +210,7 @@ class StrategyV3Execution {
           reason = `假突破上沿→空头入场 (多因子得分:${shortFactorScore})`;
         }
       }
-      
+
       // 6c. 多头假突破：突破下沿后快速回撤 + 多因子确认
       if (prevClose < rangeLow && lastClose > rangeLow && lowerBoundaryValid) {
         if (factorScore15m >= 2) { // 多因子得分≥2才入场
@@ -226,9 +226,9 @@ class StrategyV3Execution {
       // 7. 如果没有假突破信号，返回无信号
       if (signal === 'NONE') {
         return {
-          signal: 'NONE', 
-          mode: 'NONE', 
-          reason: '未满足假突破条件', 
+          signal: 'NONE',
+          mode: 'NONE',
+          reason: '未满足假突破条件',
           atr14: lastATR,
           bbWidth: bbWidth
         };
@@ -238,14 +238,33 @@ class StrategyV3Execution {
       const direction = signal === 'BUY' ? 'LONG' : 'SHORT';
       const leverageData = this.calculateLeverageData(entry, stopLoss, takeProfit, direction);
 
-        return {
-        signal,
-        mode,
-        reason,
+      // 记录15分钟执行指标到监控系统
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '15分钟执行', {
+          signal,
+          mode,
+          reason,
           entry,
           stopLoss,
           takeProfit,
           atr14: lastATR,
+          bbWidth: bbWidth,
+          factorScore15m,
+          vwap15m: multiFactorData.vwap,
+          delta: multiFactorData.delta,
+          oi: multiFactorData.oi,
+          volume: multiFactorData.volume
+        }, Date.now());
+      }
+
+      return {
+        signal,
+        mode,
+        reason,
+        entry,
+        stopLoss,
+        takeProfit,
+        atr14: lastATR,
         bbWidth: bbWidth,
         leverage: leverageData.leverage,
         margin: leverageData.margin,
@@ -269,10 +288,10 @@ class StrategyV3Execution {
     const mean = slice.reduce((a, b) => a + b, 0) / period;
     const variance = slice.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / period;
     const deviation = Math.sqrt(variance);
-    
+
     const upper = mean + k * deviation;
     const lower = mean - k * deviation;
-    
+
     return (upper - lower) / mean;
   }
 
@@ -281,23 +300,23 @@ class StrategyV3Execution {
    */
   calculateFactorScore({ currentPrice, vwap, delta, oi, volume, signalType }) {
     let score = 0;
-    
+
     // 1. VWAP因子：当前价 > VWAP → +1，否则 -1
     const vwapFactor = currentPrice > vwap ? +1 : -1;
     score += vwapFactor;
-    
+
     // 2. Delta因子：Delta正值 → +1，负值 → -1
     const deltaFactor = delta > 0 ? +1 : -1;
     score += deltaFactor;
-    
+
     // 3. OI因子：OI上涨 → +1，下降 → -1
     const oiFactor = oi > 0 ? +1 : -1;
     score += oiFactor;
-    
+
     // 4. Volume因子：成交量增量 → +1，减量 → -1
     const volumeFactor = volume > 0 ? +1 : -1;
     score += volumeFactor;
-    
+
     // 根据信号类型调整得分
     if (signalType === "long") {
       // 多头信号：所有因子都应该是正值
@@ -306,7 +325,7 @@ class StrategyV3Execution {
       // 空头信号：所有因子都应该是负值，所以得分取反
       return -score;
     }
-    
+
     return score;
   }
 
@@ -365,14 +384,14 @@ class StrategyV3Execution {
 
       let sumPV = 0;
       let sumVolume = 0;
-      
+
       for (const k of klines) {
         const typicalPrice = (parseFloat(k[2]) + parseFloat(k[3]) + parseFloat(k[4])) / 3;
         const volume = parseFloat(k[5]);
         sumPV += typicalPrice * volume;
         sumVolume += volume;
       }
-      
+
       return sumVolume > 0 ? sumPV / sumVolume : 0;
     } catch (error) {
       console.error(`获取VWAP失败 [${symbol}]:`, error);
@@ -390,7 +409,7 @@ class StrategyV3Execution {
 
       const last = parseFloat(klines[klines.length - 1][4]);
       const prev = parseFloat(klines[klines.length - 2][4]);
-      
+
       return last - prev; // 正值多头，负值空头
     } catch (error) {
       console.error(`获取Delta失败 [${symbol}]:`, error);
@@ -421,7 +440,7 @@ class StrategyV3Execution {
 
       const last = parseFloat(klines[klines.length - 1][5]);
       const prev = parseFloat(klines[klines.length - 2][5]);
-      
+
       return last - prev; // 增量
     } catch (error) {
       console.error(`获取Volume失败 [${symbol}]:`, error);
@@ -454,10 +473,10 @@ class StrategyV3Execution {
 
     // 计算止损和止盈 - 严格按照strategy-v3.md规范
     let stopLoss, takeProfit;
-    
+
     // 确保ATR值有效，如果为空则使用默认值
     const effectiveATR = atr14 && atr14 > 0 ? atr14 : entryPrice * 0.01; // 默认1%的ATR
-    
+
     if (position === 'LONG') {
       // 多头：止损 = min(setup candle 低点, 入场价 - 1.2 × ATR(14))
       const stopLossByATR = entryPrice - 1.2 * effectiveATR;
@@ -510,7 +529,7 @@ class StrategyV3Execution {
       const rangeResult = analysisData?.rangeResult;
       if (rangeResult && rangeResult.bb1h) {
         const { upper: rangeHigh, lower: rangeLow } = rangeResult.bb1h;
-        
+
         // 区间边界失效止损
         if (position === 'LONG' && currentPrice < (rangeLow - effectiveATR)) {
           return { exit: true, reason: 'RANGE_BOUNDARY_BREAK', exitPrice: currentPrice };
@@ -553,12 +572,12 @@ class StrategyV3Execution {
           oi: Math.abs(rangeResult.oiChange || 0) <= 0.02,
           volume: (rangeResult.volFactor || 0) <= 1.7
         };
-        
+
         // 统计方向错误的因子
         const badFactors = Object.entries(factors)
           .filter(([key, val]) => val === false)
           .map(([key]) => key);
-        
+
         // 如果≥2个因子方向错误，触发止损
         if (badFactors.length >= 2) {
           return { exit: true, reason: 'FACTOR_STOP', exitPrice: currentPrice };
@@ -620,7 +639,7 @@ class StrategyV3Execution {
 
     // 使用EMA计算ATR
     const atr = this.calculateEMA(tr.map(t => ({ close: t })), period);
-    
+
     console.log(`ATR计算完成: TR数组长度=${tr.length}, ATR数组长度=${atr.length}, 最新ATR=${atr[atr.length - 1]}`);
     return atr;
   }

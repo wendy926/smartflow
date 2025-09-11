@@ -28,7 +28,7 @@ describe('数据库表结构修复基础测试', () => {
 
     // 检查是否有复合索引
     expect(indexes.length).toBeGreaterThan(0);
-    
+
     // 检查特定的复合索引
     const indexNames = indexes.map(idx => idx.name);
     expect(indexNames).toContain('idx_strategy_analysis_symbol_time_trend');
@@ -39,7 +39,7 @@ describe('数据库表结构修复基础测试', () => {
     const signalTypes = await dbManager.runQuery(`
       SELECT name FROM signal_types ORDER BY id
     `);
-    
+
     expect(signalTypes.length).toBeGreaterThan(0);
     const signalTypeNames = signalTypes.map(type => type.name);
     expect(signalTypeNames).toContain('LONG');
