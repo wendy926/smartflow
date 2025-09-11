@@ -1048,6 +1048,23 @@ class MemoryOptimizedManager {
 - **表结构更新** - 新增factor_score_15m、boundary_score_1h等震荡市策略字段
 - **数据验证增强** - 新增多因子打分验证和边界得分验证
 
+### v3.8.0 详细更新内容
+
+#### 15min信号显示修复
+- **undefined模式问题** - 修复前端显示"做空_undefined NONE"的问题，完善formatExecution方法处理undefined mode
+- **executionMode字段赋值** - 确保analyzeRangeExecution中mode字段正确设置为"假突破反手"或"NONE"
+- **日志显示优化** - 解决日志中显示"模式=undefined"的问题，所有executionMode字段都有默认值'NONE'
+
+#### 代码健壮性增强
+- **单元测试框架** - 添加Jest测试框架，创建StrategyV3Execution和SmartFlowStrategyV3的单元测试
+- **错误处理完善** - 确保所有信号格式化都有适当的默认值处理，防止undefined值导致的显示问题
+- **代码质量保障** - 通过单元测试验证formatExecution、calculateFactorScore等核心方法的正确性
+
+#### 技术架构改进
+- **测试配置** - 配置Jest测试环境和覆盖率报告
+- **Mock依赖** - 为测试创建BinanceAPI等外部依赖的Mock
+- **测试覆盖** - 覆盖核心策略逻辑的边界情况和异常处理
+
 ## 域名配置
 
 ### 域名信息
