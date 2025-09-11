@@ -12,6 +12,18 @@ describe('指标监控系统测试', () => {
   let strategyCore;
   let strategyExecution;
 
+  afterAll(() => {
+    // 清理所有定时器
+    try {
+      const BinanceAPI = require('../modules/api/BinanceAPI');
+      if (BinanceAPI.stopCleanup) {
+        BinanceAPI.stopCleanup();
+      }
+    } catch (error) {
+      // 忽略清理错误
+    }
+  });
+
   beforeEach(() => {
     dataMonitor = new DataMonitor(null); // 传入null作为数据库参数
     strategyCore = new StrategyV3Core();
@@ -25,8 +37,14 @@ describe('指标监控系统测试', () => {
   afterEach(() => {
     dataMonitor.reset();
     // 清理BinanceAPI的定时器
-    const BinanceAPI = require('../modules/api/BinanceAPI');
-    BinanceAPI.stopCleanup();
+    try {
+      const BinanceAPI = require('../modules/api/BinanceAPI');
+      if (BinanceAPI.stopCleanup) {
+        BinanceAPI.stopCleanup();
+      }
+    } catch (error) {
+      // 忽略清理错误
+    }
   });
 
   describe('recordIndicator方法测试', () => {

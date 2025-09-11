@@ -1,5 +1,10 @@
 // strategy-v3-weighted-scoring.test.js - 策略V3分类权重打分单元测试
 
+// 清理模块缓存以确保获取最新版本
+delete require.cache[require.resolve('../modules/api/BinanceAPI')];
+delete require.cache[require.resolve('../modules/strategy/StrategyV3Core')];
+delete require.cache[require.resolve('../modules/strategy/StrategyV3Execution')];
+
 const StrategyV3Core = require('../modules/strategy/StrategyV3Core');
 const StrategyV3Execution = require('../modules/strategy/StrategyV3Execution');
 const FactorWeightManager = require('../modules/strategy/FactorWeightManager');
@@ -19,6 +24,18 @@ describe('策略V3分类权重打分测试', () => {
   let strategyExecution;
   let mockDatabase;
   let mockDataMonitor;
+
+  afterAll(() => {
+    // 清理所有定时器
+    try {
+      const BinanceAPI = require('../modules/api/BinanceAPI');
+      if (BinanceAPI.stopCleanup) {
+        BinanceAPI.stopCleanup();
+      }
+    } catch (error) {
+      // 忽略清理错误
+    }
+  });
 
   beforeEach(() => {
     // 创建模拟数据库
@@ -57,9 +74,6 @@ describe('策略V3分类权重打分测试', () => {
     if (mockDatabase) {
       mockDatabase = null;
     }
-    // 清理BinanceAPI的定时器
-    const BinanceAPI = require('../modules/api/BinanceAPI');
-    BinanceAPI.stopCleanup();
   });
 
   describe('StrategyV3Core - analyze1HScoring', () => {
