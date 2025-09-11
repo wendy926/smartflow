@@ -311,25 +311,8 @@ class SimulationDataManager {
         minute: '2-digit',
         second: '2-digit'
       }) : '--';
-      // 如果交易没有结束，不显示盈亏金额
-      const profitLoss = sim.status === 'ACTIVE' ? null : (sim.profit_loss || 0);
-      const profitLossClass = profitLoss === null ? 'neutral' : (profitLoss > 0 ? 'positive' : profitLoss < 0 ? 'negative' : 'neutral');
-      // 根据状态和is_win字段判断结果
-      let resultClass, resultText;
-      if (sim.status === 'ACTIVE') {
-        // 如果交易没有结束，显示进行中，不展示盈亏金额
-        resultClass = 'neutral';
-        resultText = '进行中';
-      } else if (sim.is_win === true) {
-        resultClass = 'positive';
-        resultText = '盈利';
-      } else if (sim.is_win === false) {
-        resultClass = 'negative';
-        resultText = '亏损';
-      } else {
-        resultClass = 'neutral';
-        resultText = '进行中';
-      }
+      // 使用提取的方法处理盈亏金额和结果显示
+      const { profitLoss, profitLossClass, resultClass, resultText } = this.calculateSimulationResult(sim);
 
       return `
         <tr>
@@ -521,6 +504,36 @@ class SimulationDataManager {
   formatNumber(value) {
     if (value === null || value === undefined || value === '') return '--';
     return parseFloat(value).toFixed(4);
+  }
+
+  /**
+   * 计算模拟交易结果显示逻辑
+   * @param {Object} sim - 模拟交易记录
+   * @returns {Object} { profitLoss, profitLossClass, resultClass, resultText }
+   */
+  calculateSimulationResult(sim) {
+    // 如果交易没有结束，不显示盈亏金额
+    const profitLoss = sim.status === 'ACTIVE' ? null : (sim.profit_loss || 0);
+    const profitLossClass = profitLoss === null ? 'neutral' : (profitLoss > 0 ? 'positive' : profitLoss < 0 ? 'negative' : 'neutral');
+    
+    // 根据状态和is_win字段判断结果
+    let resultClass, resultText;
+    if (sim.status === 'ACTIVE') {
+      // 如果交易没有结束，显示进行中，不展示盈亏金额
+      resultClass = 'neutral';
+      resultText = '进行中';
+    } else if (sim.is_win === 1 || sim.is_win === true) {
+      resultClass = 'positive';
+      resultText = '盈利';
+    } else if (sim.is_win === 0 || sim.is_win === false) {
+      resultClass = 'negative';
+      resultText = '亏损';
+    } else {
+      resultClass = 'neutral';
+      resultText = '进行中';
+    }
+
+    return { profitLoss, profitLossClass, resultClass, resultText };
   }
 
   showError(message) {
