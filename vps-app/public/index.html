@@ -212,11 +212,12 @@
               <li><strong>VWAP因子：</strong> 价格接近布林带中轨（1%以内），1分</li>
             </ul>
 
-            <h4>判断逻辑（优化版）：</h4>
+            <h4>判断逻辑（V3优化版）：</h4>
             <ul>
               <li><strong>边界有效性：</strong> 多因子得分 ≥ 3分时判断边界有效</li>
               <li><strong>灵活判断：</strong> 允许部分条件轻微不符合仍可判定有效</li>
               <li><strong>最终action：</strong> 边界有效时允许15m假突破入场</li>
+              <li><strong>数据刷新：</strong> 1H边界判断每5分钟更新一次，确保数据实时性</li>
             </ul>
           </div>
         </div>
@@ -243,17 +244,20 @@
               <li><strong>空头反抽破位：</strong> 价格反抽EMA20/50阻力 + 跌破setup candle低点 + 成交量确认</li>
             </ul>
 
-            <h4>震荡市入场模式（优化版 - 多因子确认）：</h4>
+            <h4>震荡市入场模式（V3优化版 - 多因子确认）：</h4>
             <ul>
               <li><strong>假突破入场：</strong> 15分钟布林带宽收窄 + 假突破验证 + 15分钟多因子确认</li>
               <li><strong>多头假突破：</strong> 突破下沿后快速回撤 + 下轨边界有效 + 多因子得分≥2</li>
               <li><strong>空头假突破：</strong> 突破上沿后快速回撤 + 上轨边界有效 + 多因子得分≥2</li>
+              <li><strong>数据刷新：</strong> 15m入场判断每2分钟更新一次，确保信号及时性</li>
             </ul>
 
-            <h4>震荡市具体执行逻辑（优化版）：</h4>
+            <h4>震荡市具体执行逻辑（V3优化版）：</h4>
             <ul>
               <li><strong>布林带宽收窄：</strong> 15分钟BB宽度 < 0.05（5%）</li>
               <li><strong>假突破验证：</strong> 前一根突破边界 + 当前收回区间内</li>
+              <li><strong>多因子确认：</strong> VWAP、Delta、OI、Volume四因子得分≥2分</li>
+              <li><strong>实时监控：</strong> 每2分钟检查一次假突破机会，确保不错过信号</li>
               <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose > rangeLow 且 lowerBoundaryValid</li>
               <li><strong>空头假突破：</strong> prevClose > rangeHigh 且 lastClose < rangeHigh 且 upperBoundaryValid</li>
               <li><strong>15分钟多因子打分：</strong> VWAP、Delta、OI、Volume四个因子量化打分，得分范围-4到+4</li>
@@ -375,7 +379,9 @@
               <li><strong>1H加强趋势列：</strong> 1H级别多因子打分结果（0-6分）和信号强度（做多/做空/观望/不做）</li>
               <li><strong>15min信号列：</strong> 15分钟级别入场判断结果（趋势市：多头回踩突破/空头反抽破位；震荡市：区间多头/区间空头/假突破反手）</li>
               <li><strong>当前价格列：</strong> 当前价格和入场价格（如有）</li>
-              <li><strong>数据采集率列：</strong> 数据收集成功率（100%表示正常）</li>
+              <li><strong>数据采集率列：</strong> Binance API实时成功率（100%表示API调用正常）</li>
+              <li><strong>实时监控：</strong> 每30秒更新一次，显示当前API调用状态</li>
+              <li><strong>失败分析：</strong> 如有API调用失败，会记录具体失败原因</li>
             </ul>
 
             <h4>震荡市模式说明：</h4>
