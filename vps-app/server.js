@@ -112,8 +112,8 @@ class SmartFlowServer {
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
             // 检查分析是否成功（数据是否充足）
-            const isDataSufficient = !analysis.reason || !analysis.reason.includes('数据不足');
-            const isAnalysisSuccessful = analysis && (analysis.trend4h || analysis.signal || analysis.execution);
+            const isDataSufficient = !analysis.reason || !analysis.reason.includes('数据不足');                                                                                  
+            const isAnalysisSuccessful = !!(analysis && (analysis.trend4h || analysis.signal || analysis.execution));
 
             // 存储到监控系统用于数据验证 - 根据实际结果记录分析日志
             if (this.dataMonitor) {
