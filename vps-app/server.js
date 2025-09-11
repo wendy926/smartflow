@@ -1850,6 +1850,11 @@ class SmartFlowServer {
       this.memoryCleanupInterval = null;
     }
 
+    if (this.deltaResetInterval) {
+      clearInterval(this.deltaResetInterval);
+      this.deltaResetInterval = null;
+    }
+
     if (this.simulationManager) {
       // 停止价格监控
       if (this.simulationManager.priceCheckInterval) {

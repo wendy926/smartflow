@@ -22,11 +22,12 @@ class DeltaRealTimeManager {
     // 定时器ID存储
     this.timer15m = null;
     this.timer1h = null;
+    this.cleanupInterval = null; // 内存清理定时器
+    this.reconnectTimeouts = new Map(); // 重连定时器存储
     
     // 内存管理配置
     this.maxTradesPerSymbol = 1000; // 每个交易对最多保留1000条交易记录
     this.maxHistoryPeriods = 20; // 最多保留20个历史周期
-    this.cleanupInterval = null; // 内存清理定时器
   }
 
   /**
@@ -112,11 +113,18 @@ class DeltaRealTimeManager {
         // 只有在管理器仍在运行且不是主动关闭时才重连
         if (this.isRunning && code !== 1000) {
           console.log(`🔄 5秒后重连: ${symbol}`);
-          setTimeout(() => {
+          // 清理现有的重连定时器
+          if (this.reconnectTimeouts.has(symbol)) {
+            clearTimeout(this.reconnectTimeouts.get(symbol));
+          }
+          // 设置新的重连定时器
+          const timeoutId = setTimeout(() => {
             if (this.isRunning && !this.connections.has(symbol)) {
               this.startSymbolDelta(symbol);
             }
+            this.reconnectTimeouts.delete(symbol);
           }, 5000);
+          this.reconnectTimeouts.set(symbol, timeoutId);
         }
       });
 
@@ -325,6 +333,11 @@ class DeltaRealTimeManager {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
+    // 清理所有重连定时器
+    for (const [symbol, timeoutId] of this.reconnectTimeouts) {
+      clearTimeout(timeoutId);
+    }
+    this.reconnectTimeouts.clear();
   }
 
   /**
