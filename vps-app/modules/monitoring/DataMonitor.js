@@ -238,11 +238,26 @@ class DataMonitor {
       stats.signalAnalysisAttempts++;
       
       // 根据分析结果更新成功次数
-      if (analysisResult.phases?.dataCollection?.success) {
+      const isDataSufficient = analysisResult.phases?.dataCollection?.success || 
+                              (analysisResult.success && !analysisResult.reason?.includes('数据不足'));
+      const isAnalysisSuccessful = analysisResult.phases?.signalAnalysis?.success || 
+                                  (analysisResult.success && (analysisResult.trend4h || analysisResult.signal || analysisResult.execution));
+      
+      // 调试日志
+      console.log(`📊 ${symbol} 分析结果:`, {
+        success: analysisResult.success,
+        reason: analysisResult.reason,
+        isDataSufficient,
+        isAnalysisSuccessful,
+        dataCollectionAttempts: stats.dataCollectionAttempts,
+        dataCollectionSuccesses: stats.dataCollectionSuccesses
+      });
+      
+      if (isDataSufficient) {
         stats.dataCollectionSuccesses++;
         stats.lastDataCollectionTime = Date.now();
       }
-      if (analysisResult.phases?.signalAnalysis?.success) {
+      if (isAnalysisSuccessful) {
         stats.signalAnalysisSuccesses++;
         stats.lastSignalAnalysisTime = Date.now();
       }
@@ -684,6 +699,14 @@ class DataMonitor {
       }
       return b.overall.rate - a.overall.rate;
     });
+
+    // 添加数据收集率和信号分析率告警
+    if (actualDataCollectionRate < 95) {
+      dataQualityIssues.push(`系统: 数据收集率过低 (${actualDataCollectionRate.toFixed(2)}%)`);
+    }
+    if (actualSignalAnalysisRate < 95) {
+      dataQualityIssues.push(`系统: 信号分析率过低 (${actualSignalAnalysisRate.toFixed(2)}%)`);
+    }
 
     // 计算错误状态统计（包含数据验证错误和数据质量问题）
     const totalErrors = dataValidationErrors.length + dataQualityIssues.length;
