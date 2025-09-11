@@ -12,7 +12,7 @@ class SmartFlowStrategyV3 {
   static dataManager = null; // 将在初始化时设置
   static deltaManager = null; // 将在初始化时设置
   static core = new StrategyV3Core();
-  static execution = new StrategyV3Execution();
+  static execution = null; // 将在初始化时设置
 
   /**
    * 完整的V3策略分析 - 主入口（支持数据刷新频率管理）
@@ -526,3 +526,14 @@ class SmartFlowStrategyV3 {
 }
 
 module.exports = SmartFlowStrategyV3;
+
+  /**
+   * 初始化策略模块
+   * @param {Object} database - 数据库实例
+   */
+  static init(database) {
+    this.core = new StrategyV3Core(database);
+    this.execution = new StrategyV3Execution(database);
+    this.dataMonitor = new DataMonitor(database);
+  }
+
