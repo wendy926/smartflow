@@ -658,7 +658,70 @@ vps-app/
 }
 ```
 
-### 1.10 数据一致性验证API
+### 1.10 Delta实时计算API
+
+#### GET /api/delta/stats
+- **功能**: 获取Delta实时计算统计信息
+- **实现文件**: `modules/data/DeltaRealTimeManager.js`
+- **入参**: 无
+- **出参**:
+```json
+{
+  "totalSymbols": 16,
+  "activeConnections": 16,
+  "symbols": [
+    {
+      "symbol": "BTCUSDT",
+      "deltaBuy": 1000.5,
+      "deltaSell": 800.2,
+      "imbalance": 0.2,
+      "delta15m": 0.3,
+      "delta1h": 0.5,
+      "lastUpdate": "2025-01-09T12:20:16.218Z"
+    }
+  ]
+}
+```
+
+**字段说明**:
+- `deltaBuy`: 主动买单累计量
+- `deltaSell`: 主动卖单累计量
+- `imbalance`: 买卖盘不平衡度 (-1到+1)
+- `delta15m`: 15分钟EMA(3)平滑Delta值
+- `delta1h`: 1小时EMA(6)平滑Delta值
+- `lastUpdate`: 最后更新时间
+
+#### POST /api/delta/start
+- **功能**: 启动Delta实时计算
+- **实现文件**: `modules/data/DeltaRealTimeManager.js`
+- **入参**: 
+```json
+{
+  "symbols": ["BTCUSDT", "ETHUSDT", "LINKUSDT"]
+}
+```
+- **出参**:
+```json
+{
+  "success": true,
+  "message": "Delta实时计算已启动",
+  "symbols": ["BTCUSDT", "ETHUSDT", "LINKUSDT"]
+}
+```
+
+#### POST /api/delta/stop
+- **功能**: 停止Delta实时计算
+- **实现文件**: `modules/data/DeltaRealTimeManager.js`
+- **入参**: 无
+- **出参**:
+```json
+{
+  "success": true,
+  "message": "Delta实时计算已停止"
+}
+```
+
+### 1.11 数据一致性验证API
 
 #### GET /api/validate-simulation-data
 - **功能**: 验证模拟交易数据一致性

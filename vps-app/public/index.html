@@ -203,7 +203,7 @@
             <h4>数据来源：</h4>
             <ul>
               <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50`</li>
-              <li><strong>Delta数据：</strong> WebSocket实时数据</li>
+              <li><strong>Delta数据：</strong> WebSocket实时数据 (1h EMA6平滑)</li>
               <li><strong>持仓量历史：</strong> `/futures/data/openInterestHist?symbol={symbol}&period=1h&limit=6`</li>
             </ul>
 
@@ -237,6 +237,7 @@
             <ul>
               <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=15m&limit=50`</li>
               <li><strong>1小时K线：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50`</li>
+              <li><strong>Delta数据：</strong> WebSocket实时数据 (15m EMA3平滑)</li>
             </ul>
 
             <h4>指标计算：</h4>
@@ -257,6 +258,7 @@
               <li><strong>假突破入场：</strong> 15分钟布林带宽收窄 + 假突破验证 + 15分钟多因子确认</li>
               <li><strong>多头假突破：</strong> 突破下沿后快速回撤 + 下轨边界有效 + 多因子得分≥2</li>
               <li><strong>空头假突破：</strong> 突破上沿后快速回撤 + 上轨边界有效 + 多因子得分≥2</li>
+              <li><strong>Delta实时计算：</strong> WebSocket实时获取aggTrade数据，15分钟EMA(3)平滑处理</li>
               <li><strong>数据刷新：</strong> 15m入场判断每2分钟更新一次，确保信号及时性</li>
             </ul>
 
