@@ -327,7 +327,8 @@ describe('V3策略指标监控测试', () => {
       expect(analysisLog.indicators['15分钟执行'].data.atr14).toBeDefined();
     });
 
-    test('calculateFactorScore应该被正确调用', () => {
+    test('calculateFactorScore应该被正确调用', async () => {
+      const symbol = 'BTCUSDT';
       const factorData = {
         currentPrice: 100,
         vwap: 99,
@@ -337,12 +338,14 @@ describe('V3策略指标监控测试', () => {
         signalType: 'long'
       };
 
-      const score = strategyExecution.calculateFactorScore(factorData);
+      const result = await strategyExecution.calculateFactorScore(symbol, factorData);
 
       // 验证得分计算
-      expect(typeof score).toBe('number');
-      expect(score).toBeGreaterThanOrEqual(-4);
-      expect(score).toBeLessThanOrEqual(4);
+      expect(result).toBeDefined();
+      expect(typeof result.score).toBe('number');
+      expect(result.score).toBeGreaterThanOrEqual(-4);
+      expect(result.score).toBeLessThanOrEqual(4);
+      expect(result.category).toBeDefined();
     });
 
     test('getMultiFactorData应该返回完整数据', async () => {
