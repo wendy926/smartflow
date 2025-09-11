@@ -293,6 +293,15 @@ class StrategyV3Execution {
       };
     } catch (error) {
       console.error(`震荡市15m执行分析失败 [${symbol}]:`, error);
+      // 记录15分钟执行指标失败
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '15分钟执行', {
+          error: error.message,
+          signal: 'NONE',
+          mode: 'NONE',
+          atr14: null
+        }, Date.now());
+      }
       return { signal: 'NONE', mode: 'NONE', reason: '分析错误: ' + error.message, atr14: null };
     }
   }

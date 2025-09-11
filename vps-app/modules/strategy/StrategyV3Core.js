@@ -301,6 +301,15 @@ class StrategyV3Core {
         errorMessage = `网络连接失败，无法获取 ${symbol} 数据`;
       }
 
+      // 记录4H MA指标失败
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '4H MA指标', {
+          error: errorMessage,
+          trend4h: '震荡市',
+          marketType: '震荡市'
+        }, Date.now());
+      }
+
       return { trend4h: '震荡市', marketType: '震荡市', error: errorMessage };
     }
   }
@@ -516,6 +525,14 @@ class StrategyV3Core {
 
     } catch (error) {
       console.error(`1H打分分析失败 [${symbol}]:`, error);
+      // 记录1H多因子打分指标失败
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '1H多因子打分', {
+          error: error.message,
+          score: 0,
+          allowEntry: false
+        }, Date.now());
+      }
       return { score: 0, allowEntry: false, error: error.message };
     }
   }
@@ -671,6 +688,14 @@ class StrategyV3Core {
       };
     } catch (error) {
       console.error(`1H边界判断失败 [${symbol}]:`, error);
+      // 记录震荡市1H边界判断指标失败
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '震荡市1H边界判断', {
+          error: error.message,
+          lowerBoundaryValid: false,
+          upperBoundaryValid: false
+        }, Date.now());
+      }
       return {
         lowerBoundaryValid: false,
         upperBoundaryValid: false,

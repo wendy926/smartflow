@@ -130,8 +130,6 @@ describe('V3策略指标监控测试', () => {
 
       // 验证指标记录
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
-      console.log('Analysis log:', JSON.stringify(analysisLog, null, 2));
-      console.log('Indicators:', analysisLog.indicators);
       expect(analysisLog.indicators['1H多因子打分']).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.score).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.allowEntry).toBeDefined();
