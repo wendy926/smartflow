@@ -5,6 +5,7 @@ const BinanceAPI = require('../api/BinanceAPI');
 class StrategyV3Core {
   constructor() {
     this.deltaData = new Map(); // 存储Delta数据
+    this.dataMonitor = null; // 将在外部设置
   }
 
   /**

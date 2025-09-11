@@ -48,7 +48,7 @@ describe('指标监控系统测试', () => {
       expect(analysisLog.indicators).toBeDefined();
       expect(analysisLog.indicators['4H MA指标']).toBeDefined();
       expect(analysisLog.indicators['4H MA指标'].data).toEqual(indicatorData);
-      expect(analysisLog.indicators['4H MA指标'].executionTime).toBe(150);
+      expect(analysisLog.indicators['4H MA指标'].calculationTime).toBe(150);
     });
 
     test('应该正确记录1H多因子打分指标', () => {
@@ -142,7 +142,7 @@ describe('指标监控系统测试', () => {
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       expect(analysisLog.indicators['4H MA指标']).toBeDefined();
       expect(analysisLog.indicators['4H MA指标'].data).toEqual(errorData);
-      expect(analysisLog.indicators['4H MA指标'].executionTime).toBe(0);
+      expect(analysisLog.indicators['4H MA指标'].calculationTime).toBe(0);
     });
 
     test('应该支持多个指标记录', () => {
@@ -197,9 +197,9 @@ describe('指标监控系统测试', () => {
 
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       
-      expect(analysisLog.indicators['4H MA指标'].executionTime).toBe(200);
-      expect(analysisLog.indicators['1H多因子打分'].executionTime).toBe(150);
-      expect(analysisLog.indicators['15分钟执行'].executionTime).toBe(100);
+      expect(analysisLog.indicators['4H MA指标'].calculationTime).toBe(200);
+      expect(analysisLog.indicators['1H多因子打分'].calculationTime).toBe(150);
+      expect(analysisLog.indicators['15分钟执行'].calculationTime).toBe(100);
     });
   });
 
@@ -328,7 +328,7 @@ describe('指标监控系统测试', () => {
       expect(indicator.data.ma200).toBeDefined();
       expect(indicator.data.trend4h).toBeDefined();
       expect(indicator.data.marketType).toBeDefined();
-      expect(indicator.executionTime).toBeGreaterThan(0);
+      expect(indicator.calculationTime).toBeGreaterThan(0);
     });
 
     test('应该处理无效的指标数据', () => {

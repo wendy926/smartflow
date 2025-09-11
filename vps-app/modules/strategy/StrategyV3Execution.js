@@ -5,6 +5,7 @@ const BinanceAPI = require('../api/BinanceAPI');
 class StrategyV3Execution {
   constructor() {
     this.maxTimeInPosition = 24; // 6小时 = 24个15分钟（严格按照strategy-v3.md文档）
+    this.dataMonitor = null; // 将在外部设置
   }
 
   /**
