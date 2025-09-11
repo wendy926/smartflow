@@ -375,11 +375,11 @@ class SmartFlowApp {
       const trend4h = signal.trend4h || signal.trend || '--';
       const marketType = signal.marketType || '--';
       const strategyVersion = signal.strategyVersion || 'V2';
-      
+
       // 检查是否有数据不足的情况
       const hasDataIssue = signal.reason && signal.reason.includes('数据不足');
       const hasDataError = signal.reason && signal.reason.includes('数据');
-      
+
       // 构建趋势列显示（4H趋势 + 市场类型）
       let trendDisplay = trend4h;
       if (strategyVersion === 'V3') {
@@ -565,7 +565,7 @@ class SmartFlowApp {
   startSimulationAutoCheck() {
     // 不立即执行检查，避免从其他页面返回时误触发
     // 只在定时器触发时才检查，确保是真正的15分钟信号时机
-    
+
     // 每2分钟检查一次（对应15分钟入场时机的刷新频率）
     this.simulationCheckInterval = setInterval(async () => {
       await this.checkSimulationTriggers();
@@ -586,13 +586,13 @@ class SmartFlowApp {
   async checkSimulationTriggers() {
     try {
       console.log('🔍 检查模拟交易触发条件...');
-      
+
       // 获取最新信号数据
       const signals = await dataManager.getAllSignals();
-      
+
       // 检查是否有新的入场执行信号
       await this.checkAndAutoTriggerSimulation(signals);
-      
+
     } catch (error) {
       console.error('模拟交易触发检查失败:', error);
     }
@@ -627,9 +627,9 @@ class SmartFlowApp {
       // 检查每个信号
       for (const signal of signals) {
         // 检查是否有入场执行信号
-        if (signal.execution && signal.execution !== 'NONE' && signal.execution !== 'null' && 
-            !signal.execution.includes('SIGNAL_NONE') &&
-            (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
+        if (signal.execution && signal.execution !== 'NONE' && signal.execution !== 'null' &&
+          !signal.execution.includes('SIGNAL_NONE') &&
+          (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
           // 从execution中提取模式信息
           const isLong = signal.execution.includes('做多_');
           let mode = 'NONE';
@@ -879,14 +879,14 @@ async function viewTradeHistory(symbol) {
               ${history.map(trade => `
                 <tr>
                   <td>${new Date(trade.timestamp).toLocaleString('zh-CN', {
-                    timeZone: 'Asia/Shanghai',
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                  })}</td>
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })}</td>
                   <td>${trade.direction === 'LONG' ? '做多' : trade.direction === 'SHORT' ? '做空' : '--'}</td>
                   <td>${dataManager.formatNumber(trade.entryPrice)}</td>
                   <td>${dataManager.formatNumber(trade.stopLoss)}</td>
@@ -1110,14 +1110,14 @@ async function loadExecutionDetails(contentDiv, symbol, signalData) {
               ${history.map(trade => `
                 <tr>
                   <td>${new Date(trade.created_at).toLocaleString('zh-CN', {
-                    timeZone: 'Asia/Shanghai',
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                  })}</td>
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      })}</td>
                   <td>${trade.direction === 'LONG' ? '做多' : trade.direction === 'SHORT' ? '做空' : '--'}</td>
                   <td>${dataManager.formatPrice(trade.entry_price)}</td>
                   <td>${dataManager.formatPrice(trade.stop_loss_price)}</td>
@@ -1622,7 +1622,7 @@ async function clearCacheAndRefresh() {
     if (window.dataManager) {
       window.dataManager.clearCache();
     }
-    
+
     // 清除浏览器缓存
     if ('caches' in window) {
       const cacheNames = await caches.keys();
@@ -1630,7 +1630,7 @@ async function clearCacheAndRefresh() {
         cacheNames.map(cacheName => caches.delete(cacheName))
       );
     }
-    
+
     // 清除localStorage
     try {
       localStorage.clear();
@@ -1638,7 +1638,7 @@ async function clearCacheAndRefresh() {
     } catch (error) {
       console.warn('清除localStorage失败:', error);
     }
-    
+
     // 强制刷新页面
     window.location.reload(true);
   } catch (error) {
@@ -1668,17 +1668,17 @@ async function refreshMonitoringData() {
     if (healthySymbolsEl) healthySymbolsEl.textContent = monitoringData.summary.healthySymbols;
     if (warningSymbolsEl) warningSymbolsEl.textContent = monitoringData.summary.warningSymbols;
     if (dataCollectionRateEl) dataCollectionRateEl.textContent = monitoringData.summary.completionRates.dataCollection.toFixed(2) + '%';
-    
-  // 更新Binance API成功率
-  if (binanceApiSuccessRateEl && realtimeData.global) {
-    const successRate = realtimeData.global.successRate || 0;
-    binanceApiSuccessRateEl.textContent = successRate.toFixed(2) + '%';
-    binanceApiSuccessRateEl.style.color = successRate >= 95 ? '#28a745' : successRate >= 80 ? '#ffc107' : '#dc3545';
-  } else if (binanceApiSuccessRateEl) {
-    binanceApiSuccessRateEl.textContent = '0.00%';
-    binanceApiSuccessRateEl.style.color = '#dc3545';
-  }
-    
+
+    // 更新Binance API成功率
+    if (binanceApiSuccessRateEl && realtimeData.global) {
+      const successRate = realtimeData.global.successRate || 0;
+      binanceApiSuccessRateEl.textContent = successRate.toFixed(2) + '%';
+      binanceApiSuccessRateEl.style.color = successRate >= 95 ? '#28a745' : successRate >= 80 ? '#ffc107' : '#dc3545';
+    } else if (binanceApiSuccessRateEl) {
+      binanceApiSuccessRateEl.textContent = '0.00%';
+      binanceApiSuccessRateEl.style.color = '#dc3545';
+    }
+
     if (dataValidationStatusEl) {
       const validationStatus = monitoringData.summary.dataValidation?.hasErrors ?
         '⚠️ ' + monitoringData.summary.dataValidation.errorCount + ' 错误' : '✅ 正常';
@@ -1740,7 +1740,7 @@ function updateSummaryTable(monitoringData, realtimeData) {
       // 查找对应的实时数据
       const realtimeStat = realtimeData?.symbols?.find(s => s.symbol === symbol.symbol);
       const binanceSuccessRate = realtimeStat ? realtimeStat.successRate : 0;
-      
+
       const row = document.createElement('tr');
       row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
 
@@ -2013,7 +2013,7 @@ function renderAlertsList(data) {
 function filterAlerts(type) {
   const alertItems = document.querySelectorAll('.alert-item');
   const filterBtns = document.querySelectorAll('.filter-btn');
-  
+
   // 更新按钮状态
   filterBtns.forEach(btn => btn.classList.remove('active'));
   event.target.classList.add('active');

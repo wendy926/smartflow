@@ -126,7 +126,7 @@ class FactorWeightManager {
           return categoryData.category;
         }
       }
-      
+
       // 如果数据库中没有，使用默认分类逻辑
       return this.getDefaultCategory(symbol);
     } catch (error) {
@@ -141,25 +141,25 @@ class FactorWeightManager {
    */
   getDefaultCategory(symbol) {
     const symbolUpper = symbol.toUpperCase();
-    
+
     // 主流币
     if (['BTCUSDT', 'ETHUSDT'].includes(symbolUpper)) {
       return 'mainstream';
     }
-    
+
     // 高市值强趋势币
-    const highCapSymbols = ['BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 
-                           'DOTUSDT', 'LTCUSDT', 'TRXUSDT', 'BCHUSDT', 'ETCUSDT'];
+    const highCapSymbols = ['BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT',
+      'DOTUSDT', 'LTCUSDT', 'TRXUSDT', 'BCHUSDT', 'ETCUSDT'];
     if (highCapSymbols.includes(symbolUpper)) {
       return 'highcap';
     }
-    
+
     // 热点币（通常包含MEME、PEPE等）
-    if (symbolUpper.includes('MEME') || symbolUpper.includes('PEPE') || 
-        symbolUpper.includes('DOGE') || symbolUpper.includes('SHIB')) {
+    if (symbolUpper.includes('MEME') || symbolUpper.includes('PEPE') ||
+      symbolUpper.includes('DOGE') || symbolUpper.includes('SHIB')) {
       return 'trending';
     }
-    
+
     // 其他默认为小币
     return 'smallcap';
   }
@@ -182,7 +182,7 @@ class FactorWeightManager {
           };
         }
       }
-      
+
       // 使用默认权重
       return this.defaultWeights[analysisType]?.[category] || this.defaultWeights[analysisType]?.['mainstream'];
     } catch (error) {
@@ -198,7 +198,7 @@ class FactorWeightManager {
     try {
       const category = await this.getSymbolCategory(symbol);
       const weights = await this.getFactorWeights(category, analysisType);
-      
+
       if (!weights) {
         console.warn(`未找到权重配置 [${category}, ${analysisType}]`);
         return { score: 0, category, weights: null };
@@ -242,35 +242,35 @@ class FactorWeightManager {
       case 'vwap':
         // VWAP方向一致性（必须满足，不计分）
         return value ? 1 : 0;
-      
+
       case 'breakout':
         // 突破确认
         return value ? 1 : 0;
-      
+
       case 'volume':
         // 成交量确认
         return value >= 1.5 ? 1 : (value >= 1.2 ? 0.5 : 0);
-      
+
       case 'oi':
         // OI变化确认
         return Math.abs(value) >= 0.02 ? 1 : 0;
-      
+
       case 'delta':
         // Delta不平衡
         return Math.abs(value) >= 0.1 ? 1 : (Math.abs(value) >= 0.05 ? 0.5 : 0);
-      
+
       case 'funding':
         // 资金费率
         return Math.abs(value) <= 0.0015 ? 1 : (Math.abs(value) <= 0.003 ? 0.5 : 0);
-      
+
       case 'touch':
         // 触碰因子
         return value >= 3 ? 1 : (value >= 2 ? 0.5 : 0);
-      
+
       case 'no_breakout':
         // 无突破因子
         return value ? 1 : 0;
-      
+
       default:
         return 0;
     }

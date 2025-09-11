@@ -24,7 +24,7 @@ describe('V3策略指标监控测试', () => {
     // 设置dataMonitor引用
     strategyCore.dataMonitor = dataMonitor;
     strategyExecution.dataMonitor = dataMonitor;
-    
+
     // 设置deltaData
     strategyCore.deltaData.set('ETHUSDT_buy', 1000);
     strategyCore.deltaData.set('ETHUSDT_sell', 800);
@@ -154,7 +154,7 @@ describe('V3策略指标监控测试', () => {
         candlesCount: testCandles.length,
         lastCandle: testCandles[testCandles.length - 1]
       }));
-      
+
       // 检查VWAP计算是否正确
       if (lastClose <= testVWAP) {
         debugLog('⚠️ 警告: 测试数据不满足VWAP方向一致性条件');
@@ -256,7 +256,7 @@ describe('V3策略指标监控测试', () => {
   describe('StrategyV3Execution指标监控测试', () => {
     test('analyzeRangeExecution应该记录15分钟执行指标', async () => {
       const symbol = 'DOTUSDT';
-      
+
       // 简化调试，直接输出到stderr避免Jest干扰
       const debugLog = (...args) => process.stderr.write(args.join(' ') + '\n');
 
