@@ -186,6 +186,14 @@
               <li><strong>得分 < 3分：</strong> 无信号（NONE）</li>
               <li><strong>最终action：</strong> 得分 ≥ 3分时，多头趋势→做多，空头趋势→做空</li>
             </ul>
+
+            <h4>VWAP时间级别使用说明：</h4>
+            <ul>
+              <li><strong>趋势市1H多因子打分：</strong> 使用1H VWAP，方向一致性必须满足，否则直接返回0分</li>
+              <li><strong>震荡市1H边界判断：</strong> 使用1H VWAP，作为加分因子（价格接近VWAP时加分）</li>
+              <li><strong>震荡市15分钟执行：</strong> 使用15m VWAP，作为多因子打分的一部分</li>
+              <li><strong>VWAP计算：</strong> 基于典型价格（(H+L+C)/3）和成交量的加权平均，使用最近20根K线</li>
+            </ul>
           </div>
         </div>
 
@@ -209,7 +217,7 @@
               <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡），1分</li>
               <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%，1分</li>
               <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分</li>
-              <li><strong>VWAP因子：</strong> 价格接近布林带中轨（1%以内），1分</li>
+              <li><strong>VWAP因子：</strong> 价格接近1H VWAP（1%以内），1分</li>
             </ul>
 
             <h4>判断逻辑（V3优化版）：</h4>
@@ -256,11 +264,11 @@
             <ul>
               <li><strong>布林带宽收窄：</strong> 15分钟BB宽度 < 0.05（5%）</li>
               <li><strong>假突破验证：</strong> 前一根突破边界 + 当前收回区间内</li>
-              <li><strong>多因子确认：</strong> VWAP、Delta、OI、Volume四因子得分≥2分</li>
+              <li><strong>多因子确认：</strong> 15m VWAP、Delta、OI、Volume四因子得分≥2分</li>
               <li><strong>实时监控：</strong> 每2分钟检查一次假突破机会，确保不错过信号</li>
-              <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose > rangeLow 且 lowerBoundaryValid</li>
+              <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose> rangeLow 且 lowerBoundaryValid</li>
               <li><strong>空头假突破：</strong> prevClose > rangeHigh 且 lastClose < rangeHigh 且 upperBoundaryValid</li>
-              <li><strong>15分钟多因子打分：</strong> VWAP、Delta、OI、Volume四个因子量化打分，得分范围-4到+4</li>
+              <li><strong>15分钟多因子打分：</strong> 15m VWAP、Delta、OI、Volume四个因子量化打分，得分范围-4到+4</li>
               <li><strong>入场条件：</strong> 多因子得分 ≥ 2分才允许入场</li>
               <li><strong>入场价格：</strong> 假突破回撤后的收盘价</li>
               <li><strong>止损价格：</strong> 突破的边界价格（下轨/上轨）</li>
@@ -269,8 +277,9 @@
 
             <h4>判断逻辑：</h4>
             <ul>
-              <li><strong>趋势市前提：</strong> 4H趋势明确 + 1H VWAP方向一致且1H得分 ≥ 3分</li>
+              <li><strong>趋势市前提：</strong> 4H趋势明确 + 1H VWAP方向一致（必须满足）且1H得分 ≥ 3分</li>
               <li><strong>震荡市前提：</strong> 4H震荡市 + 1H边界有效（下轨或上轨）+ 15分钟布林带宽收窄</li>
+              <li><strong>VWAP方向一致性：</strong> 趋势市中价格与1H VWAP方向必须一致，震荡市中VWAP作为加分因子</li>
               <li><strong>趋势市止损：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
               <li><strong>震荡市止损：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
               <li><strong>趋势市止盈：</strong> 多头2R，空头2R</li>
