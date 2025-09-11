@@ -22,6 +22,11 @@ class DeltaRealTimeManager {
     // 定时器ID存储
     this.timer15m = null;
     this.timer1h = null;
+    
+    // 内存管理配置
+    this.maxTradesPerSymbol = 1000; // 每个交易对最多保留1000条交易记录
+    this.maxHistoryPeriods = 20; // 最多保留20个历史周期
+    this.cleanupInterval = null; // 内存清理定时器
   }
 
   /**
@@ -29,11 +34,20 @@ class DeltaRealTimeManager {
    * @param {Array} symbols - 交易对列表
    */
   async start(symbols) {
+    // 如果已经在运行，先停止
+    if (this.isRunning) {
+      console.log('⚠️ Delta管理器已在运行，先停止旧实例');
+      this.stop();
+    }
+    
     this.isRunning = true;
     console.log(`🚀 启动Delta实时计算管理器，监控 ${symbols.length} 个交易对`);
     
     // 启动定时器
     this.startTimers();
+    
+    // 启动内存清理定时器
+    this.startMemoryCleanup();
     
     for (const symbol of symbols) {
       await this.startSymbolDelta(symbol);
@@ -46,6 +60,13 @@ class DeltaRealTimeManager {
    */
   async startSymbolDelta(symbol) {
     try {
+      // 如果连接已存在，先关闭
+      if (this.connections.has(symbol)) {
+        console.log(`⚠️ 关闭现有连接: ${symbol}`);
+        this.connections.get(symbol).close();
+        this.connections.delete(symbol);
+      }
+
       const symbolLower = symbol.toLowerCase();
 
       // 初始化Delta数据
@@ -83,14 +104,20 @@ class DeltaRealTimeManager {
         console.error(`Delta WebSocket错误 ${symbol}:`, error);
       });
 
-      tradeWs.on('close', () => {
-        console.log(`Delta WebSocket已断开: ${symbol}`);
-        // 尝试重连
-        setTimeout(() => {
-          if (this.isRunning) {
-            this.startSymbolDelta(symbol);
-          }
-        }, 5000);
+      tradeWs.on('close', (code, reason) => {
+        console.log(`Delta WebSocket已断开: ${symbol}, code: ${code}, reason: ${reason}`);
+        // 从连接映射中移除
+        this.connections.delete(symbol);
+        
+        // 只有在管理器仍在运行且不是主动关闭时才重连
+        if (this.isRunning && code !== 1000) {
+          console.log(`🔄 5秒后重连: ${symbol}`);
+          setTimeout(() => {
+            if (this.isRunning && !this.connections.has(symbol)) {
+              this.startSymbolDelta(symbol);
+            }
+          }, 5000);
+        }
       });
 
       this.connections.set(symbol, tradeWs);
@@ -115,6 +142,11 @@ class DeltaRealTimeManager {
       p: trade.p,  // 成交价格
       maker: trade.m // true=买方是maker（卖单主动），false=卖方是maker（买单主动）
     });
+
+    // 限制交易记录数量，防止内存泄漏
+    if (trades.length > this.maxTradesPerSymbol) {
+      trades.splice(0, trades.length - this.maxTradesPerSymbol);
+    }
 
     // 保留最近1小时的交易数据
     const cutoff = Date.now() - 60 * 60 * 1000;
@@ -201,7 +233,9 @@ class DeltaRealTimeManager {
     // 添加到15分钟Delta数组
     const delta15mArray = this.delta15m.get(symbol) || [];
     delta15mArray.push(rawDelta);
-    if (delta15mArray.length > 20) delta15mArray.shift(); // 保留最近20个周期
+    if (delta15mArray.length > this.maxHistoryPeriods) {
+      delta15mArray.shift(); // 保留最近20个周期
+    }
     this.delta15m.set(symbol, delta15mArray);
 
     // EMA(3)平滑处理
@@ -232,7 +266,9 @@ class DeltaRealTimeManager {
     // 添加到1小时Delta数组
     const delta1hArray = this.delta1h.get(symbol) || [];
     delta1hArray.push(rawDelta);
-    if (delta1hArray.length > 20) delta1hArray.shift(); // 保留最近20个周期
+    if (delta1hArray.length > this.maxHistoryPeriods) {
+      delta1hArray.shift(); // 保留最近20个周期
+    }
     this.delta1h.set(symbol, delta1hArray);
 
     // EMA(6)平滑处理
@@ -285,6 +321,59 @@ class DeltaRealTimeManager {
       clearInterval(this.timer1h);
       this.timer1h = null;
     }
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+  }
+
+  /**
+   * 启动内存清理定时器
+   */
+  startMemoryCleanup() {
+    // 每5分钟清理一次内存
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupMemory();
+    }, 5 * 60 * 1000);
+  }
+
+  /**
+   * 清理内存
+   */
+  cleanupMemory() {
+    if (!this.isRunning) return;
+
+    const now = Date.now();
+    let cleanedSymbols = 0;
+    let totalTradesRemoved = 0;
+
+    // 清理过期的交易数据
+    for (const [symbol, trades] of this.trades) {
+      const cutoff = now - 2 * 60 * 60 * 1000; // 2小时前
+      const originalLength = trades.length;
+      const filteredTrades = trades.filter(t => t.T >= cutoff);
+      
+      if (filteredTrades.length !== originalLength) {
+        this.trades.set(symbol, filteredTrades);
+        totalTradesRemoved += (originalLength - filteredTrades.length);
+        cleanedSymbols++;
+      }
+    }
+
+    // 清理空的Delta数据
+    for (const [symbol, deltaData] of this.deltaData) {
+      if (now - deltaData.lastUpdate > 10 * 60 * 1000) { // 10分钟无更新
+        this.deltaData.delete(symbol);
+        this.delta15m.delete(symbol);
+        this.delta1h.delete(symbol);
+        this.trades.delete(symbol);
+        cleanedSymbols++;
+      }
+    }
+
+    if (cleanedSymbols > 0 || totalTradesRemoved > 0) {
+      console.log(`🧹 内存清理完成: 清理了 ${cleanedSymbols} 个交易对, 移除了 ${totalTradesRemoved} 条过期交易记录`);
+    }
   }
 
   /**
@@ -330,10 +419,14 @@ class DeltaRealTimeManager {
     
     // 关闭所有WebSocket连接
     for (const [symbol, ws] of this.connections) {
-      ws.close();
-      console.log(`Delta WebSocket已关闭: ${symbol}`);
+      try {
+        ws.close(1000, 'Manager stopping'); // 正常关闭
+      } catch (error) {
+        console.error(`关闭WebSocket失败 ${symbol}:`, error);
+      }
     }
     
+    // 清理所有数据
     this.connections.clear();
     this.deltaData.clear();
     this.delta15m.clear();
@@ -351,10 +444,15 @@ class DeltaRealTimeManager {
     const stats = {
       totalSymbols: this.deltaData.size,
       activeConnections: this.connections.size,
-      symbols: []
+      symbols: [],
+      memoryUsage: this.getMemoryUsage()
     };
 
     for (const [symbol, data] of this.deltaData) {
+      const trades = this.trades.get(symbol) || [];
+      const delta15mArray = this.delta15m.get(symbol) || [];
+      const delta1hArray = this.delta1h.get(symbol) || [];
+      
       stats.symbols.push({
         symbol,
         deltaBuy: data.deltaBuy,
@@ -362,11 +460,43 @@ class DeltaRealTimeManager {
         imbalance: data.imbalance,
         delta15m: data.delta15m,
         delta1h: data.delta1h,
-        lastUpdate: data.lastUpdate
+        lastUpdate: data.lastUpdate,
+        tradesCount: trades.length,
+        delta15mHistoryCount: delta15mArray.length,
+        delta1hHistoryCount: delta1hArray.length
       });
     }
 
     return stats;
+  }
+
+  /**
+   * 获取内存使用情况
+   * @returns {Object} 内存使用统计
+   */
+  getMemoryUsage() {
+    let totalTrades = 0;
+    let totalDelta15m = 0;
+    let totalDelta1h = 0;
+
+    for (const trades of this.trades.values()) {
+      totalTrades += trades.length;
+    }
+    for (const delta15m of this.delta15m.values()) {
+      totalDelta15m += delta15m.length;
+    }
+    for (const delta1h of this.delta1h.values()) {
+      totalDelta1h += delta1h.length;
+    }
+
+    return {
+      totalTrades,
+      totalDelta15m,
+      totalDelta1h,
+      totalSymbols: this.deltaData.size,
+      activeConnections: this.connections.size,
+      isRunning: this.isRunning
+    };
   }
 }
 
