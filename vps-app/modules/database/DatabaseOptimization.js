@@ -4,8 +4,8 @@
 const DatabaseManager = require('./DatabaseManager');
 
 class DatabaseOptimization {
-  constructor() {
-    this.db = new DatabaseManager();
+  constructor(databaseManager = null) {
+    this.db = databaseManager;
   }
 
   /**
@@ -188,27 +188,36 @@ class DatabaseOptimization {
    * 获取数据库性能统计
    */
   async getPerformanceStats() {
+    if (!this.db) {
+      return { error: '数据库连接未初始化' };
+    }
+
     const stats = {};
 
-    // 获取表大小统计
-    const tableStats = await this.db.all(`
-      SELECT 
-        name,
-        (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=m.name) as row_count
-      FROM sqlite_master m 
-      WHERE type='table' AND name NOT LIKE 'sqlite_%'
-    `);
+    try {
+      // 获取表大小统计
+      const tableStats = await this.db.all(`
+        SELECT 
+          name,
+          (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=m.name) as row_count
+        FROM sqlite_master m 
+        WHERE type='table' AND name NOT LIKE 'sqlite_%'
+      `);
 
-    stats.tables = tableStats;
+      stats.tables = tableStats;
 
-    // 获取索引统计
-    const indexStats = await this.db.all(`
-      SELECT name, sql FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'
-    `);
+      // 获取索引统计
+      const indexStats = await this.db.all(`
+        SELECT name, sql FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'
+      `);
 
-    stats.indexes = indexStats;
+      stats.indexes = indexStats;
 
-    return stats;
+      return stats;
+    } catch (error) {
+      console.error('获取数据库统计失败:', error);
+      return { error: error.message };
+    }
   }
 }
 

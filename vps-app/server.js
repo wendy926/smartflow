@@ -983,7 +983,7 @@ class SmartFlowServer {
       console.log('✅ 数据刷新管理器初始化完成');
 
       // 初始化数据库优化（暂时跳过，避免启动失败）
-      this.databaseOptimization = new DatabaseOptimization();
+      this.databaseOptimization = new DatabaseOptimization(this.db);
       try {
         await this.databaseOptimization.optimizeDatabase();
         console.log('✅ 数据库优化完成');
