@@ -71,11 +71,13 @@ describe('V3策略指标监控测试', () => {
     test('analyze1HScoring应该记录1H多因子打分指标', async () => {
       const symbol = 'ETHUSDT';
 
-      // Mock API响应 - 提供足够的数据
+      // Mock API响应 - 提供足够的数据，确保VWAP方向一致性
       const mockKlines1h = [];
+      const basePrice = 3000;
       for (let i = 0; i < 50; i++) {
         const timestamp = 1640995200000 + i * 60 * 60 * 1000; // 1小时间隔
-        const price = 3000 + Math.random() * 200;
+        // 使用递增的价格确保收盘价高于VWAP
+        const price = basePrice + i * 10 + Math.random() * 20;
         mockKlines1h.push([
           timestamp,
           price.toString(),
@@ -121,7 +123,7 @@ describe('V3策略指标监控测试', () => {
         { openInterest: '1050000', timestamp: 1641000000000 }
       ]);
 
-      const result = await strategyCore.analyze1HScoring(symbol, 'UPTREND');
+      const result = await strategyCore.analyze1HScoring(symbol, '多头趋势');
 
       // 验证结果
       expect(result).toBeDefined();

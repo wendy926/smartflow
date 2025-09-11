@@ -380,6 +380,15 @@ class StrategyV3Core {
 
       if (!vwapDirectionConsistent) {
         console.log(`❌ VWAP方向不一致 [${symbol}]: 跳过后续因子计算`);
+        // 记录1H多因子打分指标失败
+        if (this.dataMonitor) {
+          this.dataMonitor.recordIndicator(symbol, '1H多因子打分', {
+            error: 'VWAP方向不一致',
+            score: 0,
+            allowEntry: false,
+            vwapDirectionConsistent: false
+          }, Date.now());
+        }
         return { score: 0, allowEntry: false, vwapDirectionConsistent: false };
       }
 

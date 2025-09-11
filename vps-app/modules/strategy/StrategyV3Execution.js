@@ -152,6 +152,15 @@ class StrategyV3Execution {
       const narrowBB = bbWidth < 0.05; // 布林带宽收窄阈值
 
       if (!narrowBB) {
+        // 记录15分钟执行指标失败
+        if (this.dataMonitor) {
+          this.dataMonitor.recordIndicator(symbol, '15分钟执行', {
+            error: '15m布林带未收窄',
+            signal: 'NONE',
+            mode: 'NONE',
+            atr14: null
+          }, Date.now());
+        }
         return { signal: 'NONE', mode: 'NONE', reason: '15m布林带未收窄', atr14: null };
       }
 
@@ -167,6 +176,15 @@ class StrategyV3Execution {
 
         if (!atr14 || atr14.length === 0 || !lastATR || lastATR <= 0) {
           console.error(`ATR计算重试失败 [${symbol}]`);
+          // 记录15分钟执行指标失败
+          if (this.dataMonitor) {
+            this.dataMonitor.recordIndicator(symbol, '15分钟执行', {
+              error: 'ATR计算失败',
+              signal: 'NONE',
+              mode: 'NONE',
+              atr14: null
+            }, Date.now());
+          }
           return { signal: 'NONE', mode: 'NONE', reason: 'ATR计算失败', atr14: null };
         }
       }
