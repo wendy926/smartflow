@@ -6,7 +6,40 @@ SmartFlow 是一个基于多周期共振的高胜率高盈亏比加密货币交�
 
 ## 核心架构
 
-### 1. 系统架构图
+### 1. V3策略实现架构
+
+SmartFlow V3策略采用三层共振机制，严格按照strategy-v3.md文档实现：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    V3策略三层共振架构                        │
+├─────────────────────────────────────────────────────────────┤
+│  第一层：4H趋势过滤 (StrategyV3Core.js)                     │
+│  ├── MA排列判断 (MA20 > MA50 > MA100)                       │
+│  ├── ADX条件 (ADX > 25)                                     │
+│  ├── 布林带带宽扩张 (BB宽度 > 0.05)                         │
+│  └── 连续确认机制 (连续2根4H K线确认)                        │
+├─────────────────────────────────────────────────────────────┤
+│  第二层：1H多因子打分 (StrategyV3Core.js)                   │
+│  ├── VWAP方向一致性 (必须满足)                               │
+│  ├── Delta因子 (资金流向指标)                                │
+│  ├── OI因子 (持仓量变化)                                     │
+│  └── 成交量因子 (成交量放大)                                 │
+├─────────────────────────────────────────────────────────────┤
+│  第三层：15分钟入场执行 (StrategyV3Execution.js)            │
+│  ├── 布林带收窄 (BB宽度 < 0.05)                             │
+│  ├── 假突破识别 (突破后快速回撤)                             │
+│  ├── 成交量确认 (成交量放大1.2倍以上)                        │
+│  └── 止损止盈 (基于ATR计算)                                 │
+├─────────────────────────────────────────────────────────────┤
+│  数据刷新频率管理 (DataRefreshManager.js)                   │
+│  ├── 4H趋势：每4小时更新一次                                 │
+│  ├── 1H打分：每1小时更新一次                                 │
+│  └── 15分钟入场：每15分钟更新一次                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2. 系统架构图
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -40,7 +73,10 @@ SmartFlow 是一个基于多周期共振的高胜率高盈亏比加密货币交�
 │  │   ├── 模拟交易表 (simulations)                           │
 │  │   ├── K线数据表 (kline_data)                             │
 │  │   ├── 技术指标表 (technical_indicators)                  │
-│  │   └── 聚合指标表 (aggregated_metrics)                    │
+│  │   ├── 聚合指标表 (aggregated_metrics)                    │
+│  │   ├── V3策略分析表 (strategy_v3_analysis)                │
+│  │   ├── 数据刷新状态表 (data_refresh_status)               │
+│  │   └── 趋势反转记录表 (trend_reversal_records)             │
 │  ├── Binance Futures API                                   │
 │  └── 内存缓存系统 (15分钟数据保留)                          │
 └─────────────────────────────────────────────────────────────┘
@@ -978,6 +1014,93 @@ class MemoryOptimizedManager {
 
 ---
 
+## 数据库表结构优化建议
+
+### 当前表结构分析
+
+基于代码分析，当前数据库表结构基本满足V3策略需求，但有以下优化建议：
+
+#### 1. 新增表结构
+
+**数据刷新状态表 (data_refresh_status)**
+```sql
+CREATE TABLE data_refresh_status (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT NOT NULL,
+    data_type TEXT NOT NULL, -- '4h_trend', '1h_scoring', '15m_entry'
+    last_refresh TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    next_refresh TIMESTAMP,
+    should_refresh BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(symbol, data_type)
+);
+```
+
+**V3策略分析表 (strategy_v3_analysis)**
+```sql
+CREATE TABLE strategy_v3_analysis (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT NOT NULL,
+    trend4h TEXT, -- '多头趋势', '空头趋势', '震荡市'
+    market_type TEXT, -- '趋势市', '震荡市'
+    signal TEXT, -- 'BUY', 'SHORT', 'NONE'
+    execution_mode TEXT, -- '趋势跟踪', '假突破反手', 'NONE'
+    entry_signal REAL,
+    stop_loss REAL,
+    take_profit REAL,
+    max_leverage INTEGER,
+    min_margin REAL,
+    stop_loss_distance REAL,
+    atr_value REAL,
+    atr14 REAL,
+    current_price REAL,
+    score1h INTEGER,
+    vwap_direction_consistent BOOLEAN,
+    range_lower_boundary_valid BOOLEAN,
+    range_upper_boundary_valid BOOLEAN,
+    factors TEXT, -- JSON格式存储多因子数据
+    reason TEXT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 2. 现有表结构优化
+
+**策略分析表 (strategy_analysis) 优化**
+- 添加V3策略特有字段：`trend4h`, `market_type`, `range_lower_boundary_valid`, `range_upper_boundary_valid`
+- 优化索引：为`symbol`和`timestamp`创建复合索引
+- 添加数据分区：按时间分区存储历史数据
+
+**模拟交易表 (simulations) 优化**
+- 添加V3策略字段：`strategy_version`, `execution_mode`, `atr14`
+- 优化状态字段：使用枚举值而非字符串
+- 添加性能指标：`max_drawdown`, `sharpe_ratio`
+
+#### 3. 索引优化建议
+
+```sql
+-- 为常用查询创建索引
+CREATE INDEX idx_strategy_analysis_symbol_time ON strategy_analysis(symbol, timestamp);
+CREATE INDEX idx_strategy_v3_analysis_symbol_time ON strategy_v3_analysis(symbol, timestamp);
+CREATE INDEX idx_data_refresh_status_symbol_type ON data_refresh_status(symbol, data_type);
+CREATE INDEX idx_simulations_symbol_status ON simulations(symbol, status);
+```
+
+#### 4. 数据清理策略
+
+- **历史数据清理**：保留最近30天的详细数据，30天前的数据按月聚合
+- **监控数据清理**：保留最近7天的监控日志
+- **临时数据清理**：定期清理过期的缓存和临时数据
+
+### 性能优化建议
+
+1. **查询优化**：使用预编译语句，避免N+1查询
+2. **连接池**：实现数据库连接池，提高并发性能
+3. **读写分离**：考虑实现读写分离，提高查询性能
+4. **缓存策略**：对频繁查询的数据实现Redis缓存
+
 ## 版本历史
 
 - **v1.0.0** (2025-01-07): 初始版本，包含基础交易策略分析和斐波拉契滚仓计算器
@@ -1064,6 +1187,38 @@ class MemoryOptimizedManager {
 - **测试配置** - 配置Jest测试环境和覆盖率报告
 - **Mock依赖** - 为测试创建BinanceAPI等外部依赖的Mock
 - **测试覆盖** - 覆盖核心策略逻辑的边界情况和异常处理
+
+### v3.9.0 详细更新内容
+
+#### 数据库优化
+- **新增表结构** - 创建data_refresh_status和strategy_v3_analysis表，优化数据存储结构
+- **索引优化** - 为常用查询创建复合索引，提高数据库查询性能
+- **数据清理策略** - 实现自动数据清理机制，保留最近30天详细数据
+- **表结构自动更新** - 服务器启动时自动更新数据库表结构
+
+#### Redis缓存系统
+- **Redis集成** - 实现Redis缓存系统，支持内存缓存和Redis缓存双重保障
+- **缓存策略** - 为不同数据类型配置不同的TTL，优化缓存命中率
+- **缓存管理** - 提供缓存统计、清理、预热等管理功能
+- **性能监控** - 实时监控缓存命中率和性能指标
+
+#### 性能监控增强
+- **系统监控** - 监控CPU、内存、磁盘等系统资源使用情况
+- **应用监控** - 监控请求响应时间、错误率、数据库查询性能
+- **告警系统** - 基于阈值自动生成性能告警，支持多级别告警
+- **优化建议** - 根据性能指标自动生成优化建议
+
+#### 单元测试完善
+- **测试覆盖率** - 新增代码逻辑测试覆盖率达到90%以上
+- **测试框架** - 完善Jest测试配置，支持Mock和异步测试
+- **测试自动化** - 集成到CI/CD流程，确保代码质量
+- **性能测试** - 添加缓存和数据库性能测试
+
+#### API扩展
+- **性能监控API** - 新增/api/performance端点获取系统性能指标
+- **缓存管理API** - 新增/api/cache/stats和/api/cache/clear端点
+- **数据库统计API** - 新增/api/database/stats端点获取数据库性能统计
+- **缓存中间件** - 为API请求添加缓存中间件，提高响应速度
 
 ## 域名配置
 
