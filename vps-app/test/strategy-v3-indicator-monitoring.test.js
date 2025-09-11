@@ -3,7 +3,7 @@
  * 测试StrategyV3Core和StrategyV3Execution中的指标监控逻辑
  */
 
-const DataMonitor = require('../modules/monitoring/DataMonitor');
+const { DataMonitor } = require('../modules/monitoring/DataMonitor');
 const StrategyV3Core = require('../modules/strategy/StrategyV3Core');
 const StrategyV3Execution = require('../modules/strategy/StrategyV3Execution');
 const BinanceAPI = require('../modules/api/BinanceAPI');

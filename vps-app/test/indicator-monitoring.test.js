@@ -3,7 +3,7 @@
  * 测试所有时间级别的指标计算监控覆盖
  */
 
-const DataMonitor = require('../modules/monitoring/DataMonitor');
+const { DataMonitor } = require('../modules/monitoring/DataMonitor');
 const StrategyV3Core = require('../modules/strategy/StrategyV3Core');
 const StrategyV3Execution = require('../modules/strategy/StrategyV3Execution');
 
