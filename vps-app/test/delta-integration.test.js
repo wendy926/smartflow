@@ -53,6 +53,7 @@ describe('Delta集成测试', () => {
         deltaBuy: 100,
         deltaSell: 50,
         lastUpdate: Date.now(),
+        delta: 0.5,
         imbalance: 0.5,
         delta15m: 0.3,
         delta1h: 0.5
@@ -83,6 +84,7 @@ describe('Delta集成测试', () => {
         deltaBuy: 100,
         deltaSell: 50,
         lastUpdate: Date.now(),
+        delta: 0.5,
         imbalance: 0.5,
         delta15m: 0.3,
         delta1h: 0.5
@@ -114,6 +116,7 @@ describe('Delta集成测试', () => {
         deltaBuy: 100,
         deltaSell: 50,
         lastUpdate: Date.now(),
+        delta: 0.5,
         imbalance: 0.5,
         delta15m: 0.3,
         delta1h: 0.5
@@ -144,6 +147,7 @@ describe('Delta集成测试', () => {
         deltaBuy: 100,
         deltaSell: 50,
         lastUpdate: Date.now(),
+        delta: 0.5,
         imbalance: 0.5,
         delta15m: 0.3,
         delta1h: 0.5
@@ -227,6 +231,7 @@ describe('Delta集成测试', () => {
         deltaBuy: 100,
         deltaSell: 50,
         lastUpdate: Date.now(),
+        delta: 0.5,
         imbalance: 0.5,
         delta15m: 0.3,
         delta1h: 0.5
