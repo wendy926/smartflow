@@ -351,7 +351,7 @@ class SmartFlowApp {
     tbody.innerHTML = '';
 
     if (signals.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #6c757d;">暂无信号数据</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #6c757d;">暂无信号数据</td></tr>';
       return;
     }
 
@@ -429,11 +429,19 @@ class SmartFlowApp {
         priceDisplay += `<br><small style="color: #666;">入场: ${dataManager.formatNumber(signal.entrySignal)}</small>`;
       }
 
+      // 获取交易对分类
+      const category = signal.category || 'mainstream';
+      const categoryDisplay = app.getCategoryDisplay(category);
+      const categoryClass = app.getCategoryClass(category);
+
       row.innerHTML = `
                 <td>
                     <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
                 </td>
                 <td>${signal.symbol}</td>
+                <td class="${categoryClass}" title="交易对分类: ${categoryDisplay}">
+                    ${categoryDisplay}
+                </td>
                 <td class="${dataManager.getTrendClass(trend4h)}" title="4H趋势: ${trend4h} | 市场类型: ${marketType}">
                     ${trendDisplay}
                 </td>
@@ -757,6 +765,28 @@ class SmartFlowApp {
         notification.parentNode.removeChild(notification);
       }
     }, 3000);
+  }
+
+  // 获取交易对分类显示文本
+  getCategoryDisplay(category) {
+    const categoryMap = {
+      'mainstream': '主流币',
+      'highcap': '高市值',
+      'trending': '热点币',
+      'smallcap': '小币'
+    };
+    return categoryMap[category] || '未知';
+  }
+
+  // 获取交易对分类样式类
+  getCategoryClass(category) {
+    const classMap = {
+      'mainstream': 'category-mainstream',
+      'highcap': 'category-highcap',
+      'trending': 'category-trending',
+      'smallcap': 'category-smallcap'
+    };
+    return classMap[category] || 'category-unknown';
   }
 
 }
