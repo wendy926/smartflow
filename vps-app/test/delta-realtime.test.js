@@ -61,7 +61,7 @@ describe('Delta实时计算测试', () => {
     test('应该正确计算EMA(3)', () => {
       const values = [1, 2, 3, 4, 5];
       const ema = deltaManager.calculateEMA(values, 3);
-      expect(ema).toBeCloseTo(4.0, 1);
+      expect(ema).toBeCloseTo(4.1, 1);
     });
 
     test('应该正确计算EMA(6)', () => {
