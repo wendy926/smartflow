@@ -247,6 +247,19 @@ class DataMonitor {
       const dataSufficient = Boolean(isDataSufficient);
       const analysisSuccessful = Boolean(isAnalysisSuccessful);
       
+      // 详细调试日志
+      console.log(`🔍 ${symbol} 详细分析:`, {
+        'analysisResult.phases': analysisResult.phases,
+        'analysisResult.phases?.dataCollection': analysisResult.phases?.dataCollection,
+        'analysisResult.phases?.dataCollection?.success': analysisResult.phases?.dataCollection?.success,
+        'analysisResult.success': analysisResult.success,
+        'analysisResult.reason': analysisResult.reason,
+        'isDataSufficient': isDataSufficient,
+        'isAnalysisSuccessful': isAnalysisSuccessful,
+        'dataSufficient': dataSufficient,
+        'analysisSuccessful': analysisSuccessful
+      });
+      
       // 记录增加前的值
       const beforeDataSuccesses = stats.dataCollectionSuccesses;
       const beforeSignalSuccesses = stats.signalAnalysisSuccesses;
