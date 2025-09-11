@@ -313,11 +313,34 @@ class SimulationDataManager {
       }) : '--';
       const profitLoss = sim.profit_loss || 0;
       const profitLossClass = profitLoss > 0 ? 'positive' : profitLoss < 0 ? 'negative' : 'neutral';
-      // 根据状态和is_win字段判断结果
+      // 根据状态和is_win字段判断结果 - 修复：如果有盈亏金额，应该显示盈利或亏损
       let resultClass, resultText;
-      if (sim.status === 'ACTIVE' || sim.is_win === null) {
-        resultClass = 'neutral';
-        resultText = '进行中';
+      if (sim.status === 'ACTIVE') {
+        // 如果状态是进行中，但有盈亏金额，说明数据不一致，应该显示盈利或亏损
+        if (sim.profit_loss !== null && sim.profit_loss !== undefined) {
+          if (sim.is_win === true) {
+            resultClass = 'positive';
+            resultText = '盈利';
+          } else if (sim.is_win === false) {
+            resultClass = 'negative';
+            resultText = '亏损';
+          } else {
+            // 如果is_win为null但profit_loss不为null，根据profit_loss正负判断
+            if (sim.profit_loss > 0) {
+              resultClass = 'positive';
+              resultText = '盈利';
+            } else if (sim.profit_loss < 0) {
+              resultClass = 'negative';
+              resultText = '亏损';
+            } else {
+              resultClass = 'neutral';
+              resultText = '进行中';
+            }
+          }
+        } else {
+          resultClass = 'neutral';
+          resultText = '进行中';
+        }
       } else if (sim.is_win === true) {
         resultClass = 'positive';
         resultText = '盈利';

@@ -407,6 +407,8 @@ static async analyzeSymbol(symbol, options = {}) {
    */
   static createNoSignalResult(symbol, reason) {
     return {
+      trend4h: '震荡市',  // 添加默认4H趋势
+      marketType: '震荡市',  // 添加默认市场类型
       signal: 'NONE',
       execution: null,
       executionMode: 'NONE',
@@ -432,6 +434,8 @@ static async analyzeSymbol(symbol, options = {}) {
   static createErrorResult(symbol, type, message) {
     return {
       symbol,
+      trend4h: '震荡市',  // 添加默认4H趋势
+      marketType: '震荡市',  // 添加默认市场类型
       signal: 'NONE',
       execution: null,
       executionMode: 'NONE',
