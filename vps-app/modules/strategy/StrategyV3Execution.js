@@ -177,7 +177,7 @@ class StrategyV3Execution {
       // 6. 假突破入场条件判断 - 按照strategy-v3.md优化实现
       const prevClose = prev15m.close;
       const lastClose = last15m.close;
-      let signal = 'NONE', entry = null, stopLoss = null, takeProfit = null, reason = '';
+      let signal = 'NONE', mode = 'NONE', entry = null, stopLoss = null, takeProfit = null, reason = '';
 
       // 6a. 获取15分钟多因子数据
       const multiFactorData = await this.getMultiFactorData(symbol);
@@ -201,6 +201,7 @@ class StrategyV3Execution {
         
         if (shortFactorScore >= 2) { // 多因子得分≥2才入场
           signal = 'SHORT';
+          mode = '假突破反手';
           entry = lastClose;
           stopLoss = rangeHigh;
           takeProfit = entry - 2 * (stopLoss - entry); // 1:2 RR
@@ -212,6 +213,7 @@ class StrategyV3Execution {
       if (prevClose < rangeLow && lastClose > rangeLow && lowerBoundaryValid) {
         if (factorScore15m >= 2) { // 多因子得分≥2才入场
           signal = 'BUY';
+          mode = '假突破反手';
           entry = lastClose;
           stopLoss = rangeLow;
           takeProfit = entry + 2 * (entry - stopLoss); // 1:2 RR
@@ -236,7 +238,7 @@ class StrategyV3Execution {
 
         return {
         signal,
-        mode: 'RANGE_FAKE_BREAK',
+        mode,
         reason,
           entry,
           stopLoss,

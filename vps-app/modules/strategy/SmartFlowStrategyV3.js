@@ -395,10 +395,11 @@ static async analyzeSymbol(symbol, options = {}) {
    * 格式化执行信号
    */
   static formatExecution(executionResult) {
-    if (executionResult.signal === 'NONE') return null;
+    if (executionResult.signal === 'NONE' || !executionResult.signal) return null;
 
-    const direction = executionResult.signal === 'BUY' ? '做多' : '做空';
-    return `${direction}_${executionResult.mode}`;
+    const direction = executionResult.signal === 'BUY' || executionResult.signal === 'LONG' ? '做多' : '做空';
+    const mode = executionResult.mode || 'NONE';
+    return `${direction}_${mode}`;
   }
 
   /**
