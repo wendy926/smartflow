@@ -299,13 +299,14 @@ describe('V3策略指标监控测试', () => {
 
       // 先手动计算布林带宽度来验证测试数据
       const bb1h = strategyCore.calculateBollingerBands(candles1h.slice(-20), 20, 2);
-      const bbWidth = (bb1h.upper[bb1h.upper.length - 1] - bb1h.lower[bb1h.lower.length - 1]) / bb1h.middle[bb1h.middle.length - 1];
+      const lastBB = bb1h[bb1h.length - 1];
+      const bbWidth = (lastBB.upper - lastBB.lower) / lastBB.middle;
       debugLog('布林带收窄检查:', {
         bbWidth,
         narrowBB: bbWidth < 0.05,
-        upper: bb1h.upper[bb1h.upper.length - 1],
-        lower: bb1h.lower[bb1h.lower.length - 1],
-        middle: bb1h.middle[bb1h.middle.length - 1]
+        upper: lastBB.upper,
+        lower: lastBB.lower,
+        middle: lastBB.middle
       });
 
       // 验证结果
