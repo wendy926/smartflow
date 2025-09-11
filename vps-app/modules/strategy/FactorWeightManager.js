@@ -131,8 +131,8 @@ class FactorWeightManager {
       return this.getDefaultCategory(symbol);
     } catch (error) {
       console.error(`获取交易对分类失败 [${symbol}]:`, error);
-      // 重新抛出错误，让上层处理
-      throw error;
+      // 返回默认分类而不是抛出错误
+      return this.getDefaultCategory(symbol);
     }
   }
 
@@ -187,7 +187,8 @@ class FactorWeightManager {
       return this.defaultWeights[analysisType]?.[category] || this.defaultWeights[analysisType]?.['mainstream'];
     } catch (error) {
       console.error(`获取因子权重失败 [${category}, ${analysisType}]:`, error);
-      return this.defaultWeights[analysisType]?.['mainstream'];
+      // 返回默认权重而不是抛出错误
+      return this.defaultWeights[analysisType]?.[category] || this.defaultWeights[analysisType]?.['mainstream'];
     }
   }
 

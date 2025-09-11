@@ -5,6 +5,7 @@ const FactorWeightManager = require('./FactorWeightManager');
 
 class StrategyV3Core {
   constructor(database = null) {
+    this.database = database;
     this.deltaData = new Map(); // 存储Delta数据
     this.dataMonitor = null; // 将在外部设置
     this.factorWeightManager = new FactorWeightManager(database);

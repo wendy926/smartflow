@@ -523,9 +523,6 @@ class SmartFlowStrategyV3 {
   static setDeltaManager(deltaManager) {
     this.deltaManager = deltaManager;
   }
-}
-
-module.exports = SmartFlowStrategyV3;
 
   /**
    * 初始化策略模块
@@ -536,4 +533,7 @@ module.exports = SmartFlowStrategyV3;
     this.execution = new StrategyV3Execution(database);
     this.dataMonitor = new DataMonitor(database);
   }
+}
+
+module.exports = SmartFlowStrategyV3;
 
