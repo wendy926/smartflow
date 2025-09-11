@@ -57,7 +57,7 @@ SmartFlow V3策略采用三层共振机制，严格按照strategy-v3.md文档实
 ├─────────────────────────────────────────────────────────────┤
 │  后端层 (Backend)                                           │
 │  ├── 服务器 (server.js)                                     │
-│  ├── 策略模块 (SmartFlowStrategy.js)                        │
+│  ├── 策略模块 (SmartFlowStrategyV3.js)                      │
 │  ├── 数据监控 (DataMonitor.js)                              │
 │  ├── 数据库管理 (DatabaseManager.js)                        │
 │  ├── API接口 (BinanceAPI.js)                               │
@@ -65,6 +65,7 @@ SmartFlow V3策略采用三层共振机制，严格按照strategy-v3.md文档实
 │  ├── 通知系统 (TelegramNotifier.js)                        │
 │  ├── 内存优化 (MemoryOptimizedManager.js)                  │
 │  ├── 内存监控 (MemoryMonitor.js)                           │
+│  ├── Delta实时计算 (DeltaRealTimeManager.js)               │
 │  └── 工具模块 (TechnicalIndicators.js, DataCache.js)       │
 ├─────────────────────────────────────────────────────────────┤
 │  数据层 (Data Layer)                                        │
@@ -78,6 +79,7 @@ SmartFlow V3策略采用三层共振机制，严格按照strategy-v3.md文档实
 │  │   ├── 数据刷新状态表 (data_refresh_status)               │
 │  │   └── 趋势反转记录表 (trend_reversal_records)             │
 │  ├── Binance Futures API                                   │
+│  ├── Binance WebSocket (aggTrade)                          │
 │  └── 内存缓存系统 (15分钟数据保留)                          │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -366,24 +368,109 @@ function isBBWExpanding(candles, period = 20, k = 2) {
 }
 ```
 
-**Delta (净主动买卖量)**
+**Delta实时计算系统**
 ```javascript
-// 计算Delta
-function calculateDelta(klines) {
-  return klines.map(k => {
-    const high = parseFloat(k.high);
-    const low = parseFloat(k.low);
-    const close = parseFloat(k.close);
-    const volume = parseFloat(k.volume);
-
-    const priceRange = high - low;
-    const pricePosition = priceRange > 0 ? (close - low) / priceRange : 0.5;
+// Delta实时计算管理器 - 按照strategy-v3.md实现
+class DeltaRealTimeManager {
+  constructor() {
+    this.deltaData = new Map(); // 存储各交易对的Delta数据
+    this.connections = new Map(); // 存储WebSocket连接
+    this.trades = new Map(); // 存储原始交易数据
     
-    // 如果收盘价在K线上半部分，认为是买入主导
-    return pricePosition > 0.5 ? volume : -volume;
-  });
+    // 15分钟Delta平滑配置
+    this.delta15m = new Map(); // 15分钟Delta数据
+    this.ema15mPeriod = 3; // EMA(3)平滑
+    
+    // 1小时Delta平滑配置
+    this.delta1h = new Map(); // 1小时Delta数据
+    this.ema1hPeriod = 6; // EMA(6)平滑
+  }
+
+  // 计算聚合Delta
+  calcDelta(tradeList) {
+    let buy = 0, sell = 0;
+    for (let t of tradeList) {
+      if (t.maker) {
+        // maker = true 表示买方被动成交 → 主动卖单
+        sell += parseFloat(t.q);
+      } else {
+        // maker = false 表示卖方被动成交 → 主动买单
+        buy += parseFloat(t.q);
+      }
+    }
+    let total = buy + sell;
+    if (total === 0) return 0;
+    return (buy - sell) / total; // -1~+1 之间
+  }
+
+  // 计算EMA平滑
+  calculateEMA(values, period) {
+    if (values.length === 0) return null;
+    let k = 2 / (period + 1);
+    return values.reduce((prev, curr, i) => {
+      if (i === 0) return curr;
+      return curr * k + prev * (1 - k);
+    });
+  }
+
+  // 15分钟Delta聚合处理
+  process15mDelta(symbol) {
+    const trades = this.trades.get(symbol) || [];
+    const now = Date.now();
+    const cutoff = now - 15 * 60 * 1000; // 15分钟前
+
+    // 筛选15分钟窗口内的交易
+    const windowTrades = trades.filter(t => t.T >= cutoff);
+    const rawDelta = this.calcDelta(windowTrades);
+
+    // 添加到15分钟Delta数组
+    const delta15mArray = this.delta15m.get(symbol) || [];
+    delta15mArray.push(rawDelta);
+    if (delta15mArray.length > 20) delta15mArray.shift(); // 保留最近20个周期
+    this.delta15m.set(symbol, delta15mArray);
+
+    // EMA(3)平滑处理
+    const smoothedDelta = this.calculateEMA(delta15mArray, this.ema15mPeriod);
+
+    // 更新Delta数据
+    const deltaData = this.deltaData.get(symbol);
+    if (deltaData && smoothedDelta !== null) {
+      deltaData.delta15m = smoothedDelta;
+    }
+  }
+
+  // 1小时Delta聚合处理
+  process1hDelta(symbol) {
+    const trades = this.trades.get(symbol) || [];
+    const now = Date.now();
+    const cutoff = now - 60 * 60 * 1000; // 1小时前
+
+    // 筛选1小时窗口内的交易
+    const windowTrades = trades.filter(t => t.T >= cutoff);
+    const rawDelta = this.calcDelta(windowTrades);
+
+    // 添加到1小时Delta数组
+    const delta1hArray = this.delta1h.get(symbol) || [];
+    delta1hArray.push(rawDelta);
+    if (delta1hArray.length > 20) delta1hArray.shift(); // 保留最近20个周期
+    this.delta1h.set(symbol, delta1hArray);
+
+    // EMA(6)平滑处理
+    const smoothedDelta = this.calculateEMA(delta1hArray, this.ema1hPeriod);
+
+    // 更新Delta数据
+    const deltaData = this.deltaData.get(symbol);
+    if (deltaData && smoothedDelta !== null) {
+      deltaData.delta1h = smoothedDelta;
+    }
+  }
 }
 ```
+
+**Delta时间级别应用**
+- **15分钟Delta (EMA3平滑)**: 用于震荡市15分钟假突破确认
+- **1小时Delta (EMA6平滑)**: 用于趋势市1H多因子打分和震荡市1H边界确认
+- **实时Delta**: 用于实时买卖盘不平衡监控
 
 **CVD (累计成交量差)**
 ```javascript

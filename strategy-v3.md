@@ -430,99 +430,83 @@ console.log(result);
 delta 逻辑实现
 
 ```jsx
-// deltaOrderflow.js
-const WebSocket = require("ws");
+import WebSocket from 'ws';
 
-class DeltaOrderflow {
-  constructor(symbol = "btcusdt") {
-    this.symbol = symbol.toLowerCase();
-    this.deltaBuy = 0;
-    this.deltaSell = 0;
-    this.orderbook = { bids: [], asks: [] };
+// Binance Futures aggTrade WebSocket
+const symbol = 'BTCUSDT';
+const ws = new WebSocket(`wss://fstream.binance.com/ws/${symbol.toLowerCase()}@aggTrade`);
 
-    // 连接 aggTrade WebSocket
-    this.wsTrade = new WebSocket(
-      `wss://fstream.binance.com/ws/${this.symbol}@aggTrade`
-    );
+// 保存 Delta 数据
+let trades = [];
 
-    this.wsTrade.on("message", (msg) => {
-      const data = JSON.parse(msg);
-      this.handleAggTrade(data);
-    });
-
-    // 连接 orderbook WebSocket
-    this.wsDepth = new WebSocket(
-      `wss://fstream.binance.com/ws/${this.symbol}@depth20@100ms`
-    );
-
-    this.wsDepth.on("message", (msg) => {
-      const data = JSON.parse(msg);
-      this.handleDepth(data);
-    });
-  }
-
-  // 处理逐笔成交
-  handleAggTrade(trade) {
-    const qty = parseFloat(trade.q);
-    if (trade.m === false) {
-      // 买方主动（taker 是买）
-      this.deltaBuy += qty;
-    } else {
-      // 卖方主动（taker 是卖）
-      this.deltaSell += qty;
-    }
-  }
-
-  // 处理订单簿快照
-  handleDepth(data) {
-    this.orderbook = {
-      bids: data.b.map(([price, qty]) => ({
-        price: parseFloat(price),
-        qty: parseFloat(qty),
-      })),
-      asks: data.a.map(([price, qty]) => ({
-        price: parseFloat(price),
-        qty: parseFloat(qty),
-      })),
-    };
-  }
-
-  // 获取买卖盘不平衡 (主动成交)
-  getDeltaImbalance() {
-    if (this.deltaSell === 0) return Infinity;
-    return this.deltaBuy / this.deltaSell;
-  }
-
-  // 获取订单簿挂单不平衡
-  getOrderbookImbalance() {
-    const bidSum = this.orderbook.bids.reduce((s, b) => s + b.qty, 0);
-    const askSum = this.orderbook.asks.reduce((s, a) => s + a.qty, 0);
-    if (askSum === 0) return Infinity;
-    return bidSum / askSum;
-  }
-
-  // 定期重置（避免数据无限累积）
-  resetDelta() {
-    this.deltaBuy = 0;
-    this.deltaSell = 0;
-  }
+// 计算 EMA
+function EMA(values, period) {
+  if (values.length === 0) return null;
+  let k = 2 / (period + 1);
+  return values.reduce((prev, curr, i) => {
+    if (i === 0) return curr;
+    return curr * k + prev * (1 - k);
+  });
 }
 
-// ==== 使用示例 ====
-const deltaFlow = new DeltaOrderflow("btcusdt");
+// 计算聚合 Delta
+function calcDelta(tradeList) {
+  let buy = 0, sell = 0;
+  for (let t of tradeList) {
+    if (t.maker) {
+      // maker = true 表示买方被动成交 → 主动卖单
+      sell += parseFloat(t.q);
+    } else {
+      // maker = false 表示卖方被动成交 → 主动买单
+      buy += parseFloat(t.q);
+    }
+  }
+  let total = buy + sell;
+  if (total === 0) return 0;
+  return (buy - sell) / total; // -1~+1 之间
+}
 
-// 每 10 秒输出一次数据
-setInterval(() => {
-  console.log("主动买卖盘统计:");
-  console.log("deltaBuy:", deltaFlow.deltaBuy.toFixed(2));
-  console.log("deltaSell:", deltaFlow.deltaSell.toFixed(2));
-  console.log("成交不平衡 (Buy/Sell):", deltaFlow.getDeltaImbalance().toFixed(2));
-  console.log("挂单不平衡 (Bid/Ask):", deltaFlow.getOrderbookImbalance().toFixed(2));
-  console.log("----");
+// 聚合窗口
+let delta15m = [];
+let delta1h = [];
 
-  // 重置，避免无限累积
-  deltaFlow.resetDelta();
-}, 10000);
+function processInterval(intervalMs, deltaArr, label) {
+  setInterval(() => {
+    const now = Date.now();
+    const cutoff = now - intervalMs;
+
+    // 筛选时间窗口内的交易
+    const windowTrades = trades.filter(t => t.T >= cutoff);
+    const d = calcDelta(windowTrades);
+
+    deltaArr.push(d);
+    if (deltaArr.length > 20) deltaArr.shift(); // 保留最近20个周期
+
+    // 平滑处理
+    const smoothed = EMA(deltaArr, label === '15m' ? 3 : 6);
+
+    console.log(`[${label} Delta] 原始=${d.toFixed(4)} 平滑=${smoothed?.toFixed(4)}`);
+  }, intervalMs);
+}
+
+// 监听 WebSocket 数据
+ws.on('message', (msg) => {
+  const data = JSON.parse(msg.toString());
+  trades.push({
+    T: data.T,  // 成交时间
+    q: data.q,  // 成交数量
+    p: data.p,  // 成交价格
+    maker: data.m, // true=买方是maker（卖单主动），false=卖方是maker（买单主动）
+  });
+
+  // 保留最近1小时的交易
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  trades = trades.filter(t => t.T >= cutoff);
+});
+
+// === 启动 15m 和 1h Delta 聚合 ===
+processInterval(15 * 60 * 1000, delta15m, '15m');  // 15分钟 Delta 平滑
+processInterval(60 * 60 * 1000, delta1h, '1h');    // 1小时 Delta 平滑
 ```
 
 vwap逻辑实现
