@@ -114,7 +114,7 @@ class StrategyV3Execution {
   /**
    * 震荡市15分钟假突破入场执行 - 严格按照strategy-v3.md重新实现
    */
-  async analyzeRangeExecution(symbol, rangeResult, candles15m, candles1h) {
+  async analyzeRangeExecution(symbol, rangeResult, candles15m, candles1h, deltaManager = null) {
     try {
       if (!candles15m || candles15m.length < 20) {
         return { signal: 'NONE', mode: 'NONE', reason: '15m数据不足', atr14: null };
@@ -181,7 +181,7 @@ class StrategyV3Execution {
       let signal = 'NONE', mode = 'NONE', entry = null, stopLoss = null, takeProfit = null, reason = '';
 
       // 6a. 获取15分钟多因子数据
-      const multiFactorData = await this.getMultiFactorData(symbol, last15m.close);
+      const multiFactorData = await this.getMultiFactorData(symbol, last15m.close, deltaManager);
       const factorScore15m = this.calculateFactorScore({
         currentPrice: multiFactorData.currentPrice,
         vwap: multiFactorData.vwap,
@@ -333,11 +333,11 @@ class StrategyV3Execution {
   /**
    * 获取多因子数据 - 按照strategy-v3.md实现
    */
-  async getMultiFactorData(symbol, currentPrice = null) {
+  async getMultiFactorData(symbol, currentPrice = null, deltaManager = null) {
     try {
       const [vwapPrice, delta, oi, volDelta, price] = await Promise.all([
         this.getVWAP(symbol, "15m"),
-        this.getDelta(symbol, "15m"),
+        this.getDelta(symbol, "15m", deltaManager),
         this.getOI(symbol),
         this.getVolume(symbol, "15m"),
         currentPrice || this.getCurrentPrice(symbol)
@@ -402,9 +402,22 @@ class StrategyV3Execution {
 
   /**
    * 获取Delta - 按照strategy-v3.md实现
+   * @param {string} symbol - 交易对
+   * @param {string} interval - 时间级别 ('15m' 或 '1h')
+   * @param {Object} deltaManager - Delta实时管理器
+   * @returns {number} Delta值
    */
-  async getDelta(symbol, interval) {
+  async getDelta(symbol, interval, deltaManager = null) {
     try {
+      // 优先使用实时Delta数据
+      if (deltaManager) {
+        const deltaData = deltaManager.getDeltaData(symbol, interval === '15m' ? '15m' : '1h');
+        if (deltaData && deltaData.delta !== null) {
+          return deltaData.delta;
+        }
+      }
+
+      // 降级到K线数据计算
       const klines = await BinanceAPI.getKlines(symbol, interval, 2);
       if (!klines || klines.length < 2) return 0;
 

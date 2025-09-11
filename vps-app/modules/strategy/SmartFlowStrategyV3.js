@@ -5,6 +5,7 @@ const BinanceAPI = require('../api/BinanceAPI');
 const StrategyV3Core = require('./StrategyV3Core');
 const StrategyV3Execution = require('./StrategyV3Execution');
 const { DataMonitor } = require('../monitoring/DataMonitor');
+const DeltaRealTimeManager = require('../data/DeltaRealTimeManager');
 
 class SmartFlowStrategyV3 {
   static dataMonitor = new DataMonitor();
@@ -98,7 +99,7 @@ class SmartFlowStrategyV3 {
   static async analyzeTrendMarket(symbol, trend4hResult) {
     try {
       // 1. 1H多因子打分
-      const scoringResult = await this.core.analyze1HScoring(symbol, trend4hResult.trend4h);
+      const scoringResult = await this.core.analyze1HScoring(symbol, trend4hResult.trend4h, this.deltaManager);
       if (scoringResult.error) {
         return this.createNoSignalResult(symbol, '1H打分分析失败: ' + scoringResult.error);
       }
@@ -217,7 +218,7 @@ class SmartFlowStrategyV3 {
   static async analyzeRangeMarket(symbol, trend4hResult) {
     try {
       // 1. 1H边界判断
-      const rangeResult = await this.core.analyzeRangeBoundary(symbol);
+      const rangeResult = await this.core.analyzeRangeBoundary(symbol, this.deltaManager);
       if (rangeResult.error) {
         return this.createNoSignalResult(symbol, '1H边界分析失败: ' + rangeResult.error);
       }
@@ -253,7 +254,8 @@ class SmartFlowStrategyV3 {
         symbol,
         rangeResult,
         candles15m,
-        candles1h
+        candles1h,
+        this.deltaManager
       );
 
       // 4. 计算杠杆和保证金数据

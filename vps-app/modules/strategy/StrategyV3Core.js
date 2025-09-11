@@ -300,7 +300,7 @@ class StrategyV3Core {
   /**
    * 1H多因子打分系统 - 趋势市
    */
-  async analyze1HScoring(symbol, trend4h) {
+  async analyze1HScoring(symbol, trend4h, deltaManager = null) {
     try {
       const [klines1h, klines15m, ticker, funding, openInterestHist] = await Promise.all([
         BinanceAPI.getKlines(symbol, '1h', 50),
@@ -434,10 +434,19 @@ class StrategyV3Core {
         factors.funding = true;
       }
 
-      // 6. Delta/买卖盘不平衡（简化实现）
-      const deltaBuy = this.deltaData.get(`${symbol}_buy`) || 0;
-      const deltaSell = this.deltaData.get(`${symbol}_sell`) || 0;
-      const deltaImbalance = deltaSell > 0 ? deltaBuy / deltaSell : 0;
+      // 6. Delta/买卖盘不平衡（使用实时Delta数据）
+      let deltaImbalance = 0;
+      if (deltaManager) {
+        const deltaData = deltaManager.getDeltaData(symbol, '1h');
+        if (deltaData && deltaData.delta !== null) {
+          deltaImbalance = deltaData.delta;
+        }
+      } else {
+        // 降级到传统计算
+        const deltaBuy = this.deltaData.get(`${symbol}_buy`) || 0;
+        const deltaSell = this.deltaData.get(`${symbol}_sell`) || 0;
+        deltaImbalance = deltaSell > 0 ? deltaBuy / deltaSell : 0;
+      }
 
       if (trend4h === '多头趋势' && deltaImbalance >= 1.2) {
         score++;
@@ -498,7 +507,7 @@ class StrategyV3Core {
   /**
    * 震荡市1H区间边界有效性检查 - 按照strategy-v3.md重新实现
    */
-  async analyzeRangeBoundary(symbol) {
+  async analyzeRangeBoundary(symbol, deltaManager = null) {
     try {
       const klines1h = await BinanceAPI.getKlines(symbol, '1h', 50);
 
@@ -551,10 +560,19 @@ class StrategyV3Core {
       const avgVol = candles1h.slice(-opts.bbPeriod).reduce((a, c) => a + c.volume, 0) / opts.bbPeriod;
       const volFactor = last6Candles[last6Candles.length - 1].volume / avgVol;
 
-      // 3. Delta因子计算
-      const deltaBuy = this.deltaData.get(`${symbol}_buy`) || 0;
-      const deltaSell = this.deltaData.get(`${symbol}_sell`) || 0;
-      const delta = Math.abs(deltaBuy - deltaSell) / Math.max(deltaBuy + deltaSell, 1);
+      // 3. Delta因子计算（使用实时Delta数据）
+      let delta = 0;
+      if (deltaManager) {
+        const deltaData = deltaManager.getDeltaData(symbol, '1h');
+        if (deltaData && deltaData.delta !== null) {
+          delta = Math.abs(deltaData.delta);
+        }
+      } else {
+        // 降级到传统计算
+        const deltaBuy = this.deltaData.get(`${symbol}_buy`) || 0;
+        const deltaSell = this.deltaData.get(`${symbol}_sell`) || 0;
+        delta = Math.abs(deltaBuy - deltaSell) / Math.max(deltaBuy + deltaSell, 1);
+      }
 
       // 4. OI变化因子 - 严格按照文档
       let oiChange = 0;
@@ -677,6 +695,37 @@ class StrategyV3Core {
     }
 
     return score;
+  }
+
+  /**
+   * 获取Delta - 按照strategy-v3.md实现
+   * @param {string} symbol - 交易对
+   * @param {string} interval - 时间级别 ('15m' 或 '1h')
+   * @param {Object} deltaManager - Delta实时管理器
+   * @returns {number} Delta值
+   */
+  async getDelta(symbol, interval, deltaManager = null) {
+    try {
+      // 优先使用实时Delta数据
+      if (deltaManager) {
+        const deltaData = deltaManager.getDeltaData(symbol, interval === '15m' ? '15m' : '1h');
+        if (deltaData && deltaData.delta !== null) {
+          return deltaData.delta;
+        }
+      }
+
+      // 降级到K线数据计算
+      const klines = await BinanceAPI.getKlines(symbol, interval, 2);
+      if (!klines || klines.length < 2) return 0;
+
+      const last = parseFloat(klines[klines.length - 1][4]);
+      const prev = parseFloat(klines[klines.length - 2][4]);
+
+      return last - prev; // 正值多头，负值空头
+    } catch (error) {
+      console.error(`获取Delta失败 [${symbol}]:`, error);
+      return 0;
+    }
   }
 
   /**
