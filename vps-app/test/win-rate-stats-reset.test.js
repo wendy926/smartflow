@@ -23,6 +23,16 @@ describe('胜率统计重置测试', () => {
     simulationManager = new SimulationManager(mockDb);
   });
 
+  afterEach(() => {
+    // 清理SimulationManager的定时器
+    if (simulationManager && simulationManager.priceCheckInterval) {
+      clearInterval(simulationManager.priceCheckInterval);
+      simulationManager.priceCheckInterval = null;
+    }
+    simulationManager = null;
+    mockDb = null;
+  });
+
   test('getWinRateStats应该返回默认值当没有数据时', async () => {
     mockDb.runQuery.mockResolvedValue([]);
 
