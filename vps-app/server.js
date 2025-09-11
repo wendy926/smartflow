@@ -746,6 +746,21 @@ class SmartFlowServer {
       }
     });
 
+    // 重置监控数据API
+    this.app.post('/api/monitoring-dashboard/reset', (req, res) => {
+      try {
+        if (this.dataMonitor) {
+          this.dataMonitor.reset();
+          res.json({ message: '监控数据已重置' });
+        } else {
+          res.status(500).json({ error: 'DataMonitor未初始化' });
+        }
+      } catch (error) {
+        console.error('重置监控数据失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 解决告警
     this.app.post('/api/alert-resolve', async (req, res) => {
       try {

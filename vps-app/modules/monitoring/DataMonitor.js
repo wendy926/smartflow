@@ -8,6 +8,25 @@ class DataMonitor {
     this.database = database; // 数据库引用
     this.validationSystem = new DataValidationSystem(database); // 数据验证系统
     
+    // 初始化数据
+    this.reset();
+    
+    // 只保留最近15分钟的数据在内存中
+    this.memoryRetentionMs = 15 * 60 * 1000; // 15分钟
+    this.symbolStats = new Map(); // 只保留实时统计
+    this.lastRefreshTime = new Map(); // 只保留刷新时间
+    this.lastAlertTime = new Map(); // 记录上次告警时间，避免重复告警
+    this.alertCooldown = 30 * 60 * 1000; // 30分钟冷却时间
+    this.refreshInterval = 30000; // 30秒
+
+    // 启动定期清理
+    this.startMemoryCleanup();
+  }
+
+  /**
+   * 重置所有监控数据
+   */
+  reset() {
     // 只保留必要的实时数据在内存中，其他数据存储到数据库
     this.completionRates = {
       dataCollection: 0,
@@ -26,16 +45,12 @@ class DataMonitor {
       simulationTrading: 90 // 降低阈值，90%以上认为正常
     };
     
-    // 只保留最近15分钟的数据在内存中
-    this.memoryRetentionMs = 15 * 60 * 1000; // 15分钟
-    this.symbolStats = new Map(); // 只保留实时统计
-    this.lastRefreshTime = new Map(); // 只保留刷新时间
-    this.lastAlertTime = new Map(); // 记录上次告警时间，避免重复告警
-    this.alertCooldown = 30 * 60 * 1000; // 30分钟冷却时间
-    this.refreshInterval = 30000; // 30秒
-
-    // 启动定期清理
-    this.startMemoryCleanup();
+    // 清空内存数据
+    this.symbolStats = new Map();
+    this.lastRefreshTime = new Map();
+    this.lastAlertTime = new Map();
+    
+    console.log('🔄 DataMonitor 数据已重置');
   }
 
   startAnalysis(symbol) {
