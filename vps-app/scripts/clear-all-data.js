@@ -12,7 +12,7 @@ async function clearAllData() {
   
   try {
     const dbManager = new DatabaseManager();
-    await dbManager.initialize();
+    await dbManager.init();
     
     // 清空所有相关表
     const tablesToClear = [
