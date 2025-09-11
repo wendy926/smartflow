@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartFlow V3.9.0 页面测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #ddd;
+        }
+        .test-item.success {
+            border-left-color: #4CAF50;
+            background-color: #f1f8e9;
+        }
+        .test-item.error {
+            border-left-color: #f44336;
+            background-color: #ffebee;
+        }
+        .test-item.loading {
+            border-left-color: #ff9800;
+            background-color: #fff3e0;
+        }
+        .status {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .loading { color: #ff9800; }
+        .data-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 SmartFlow V3.9.0 页面测试</h1>
+    <p>测试时间: <span id="testTime"></span></p>
+    
+    <div class="test-section">
+        <h2>📊 基础API测试</h2>
+        <div id="basicTests"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🗄️ 缓存系统测试</h2>
+        <div id="cacheTests"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📈 性能监控测试</h2>
+        <div id="performanceTests"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔧 数据库测试</h2>
+        <div id="databaseTests"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📋 测试总结</h2>
+        <div id="testSummary"></div>
+        <button onclick="runAllTests()">🔄 重新运行所有测试</button>
+    </div>
+
+    <script>
+        const baseURL = window.location.origin;
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0
+        };
+
+        function updateTestTime() {
+            document.getElementById('testTime').textContent = new Date().toLocaleString('zh-CN');
+        }
+
+        function addTestResult(containerId, testName, status, data = null) {
+            const container = document.getElementById(containerId);
+            const testItem = document.createElement('div');
+            testItem.className = `test-item ${status}`;
+            
+            const statusText = status === 'success' ? '✅ 通过' : 
+                             status === 'error' ? '❌ 失败' : '⏳ 测试中...';
+            
+            testItem.innerHTML = `
+                <strong>${testName}</strong>
+                <span class="status ${status}">${statusText}</span>
+                ${data ? `<div class="data-display">${JSON.stringify(data, null, 2)}</div>` : ''}
+            `;
+            
+            container.appendChild(testItem);
+            
+            // 更新测试统计
+            testResults.total++;
+            if (status === 'success') testResults.passed++;
+            if (status === 'error') testResults.failed++;
+        }
+
+        async function testAPI(endpoint, testName, containerId) {
+            addTestResult(containerId, testName, 'loading');
+            
+            try {
+                const response = await fetch(`${baseURL}${endpoint}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addTestResult(containerId, testName, 'success', data);
+                    return { success: true, data };
+                } else {
+                    addTestResult(containerId, testName, 'error', { error: data.error || 'Unknown error' });
+                    return { success: false, error: data.error };
+                }
+            } catch (error) {
+                addTestResult(containerId, testName, 'error', { error: error.message });
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function runBasicTests() {
+            console.log('🧪 运行基础API测试...');
+            
+            // 测试主页
+            await testAPI('/', '主页访问', 'basicTests');
+            
+            // 测试信号API
+            await testAPI('/api/signals', '获取信号数据', 'basicTests');
+            
+            // 测试交易对列表
+            await testAPI('/api/symbols', '获取交易对列表', 'basicTests');
+            
+            // 测试监控面板
+            await testAPI('/api/monitoring-dashboard', '监控面板数据', 'basicTests');
+            
+            // 测试健康检查
+            await testAPI('/api/health-check', '健康检查', 'basicTests');
+        }
+
+        async function runCacheTests() {
+            console.log('🧪 运行缓存系统测试...');
+            
+            // 测试缓存统计
+            await testAPI('/api/cache/stats', '缓存统计', 'cacheTests');
+            
+            // 测试缓存清理
+            try {
+                const response = await fetch(`${baseURL}/api/cache/clear`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addTestResult('cacheTests', '缓存清理', 'success', data);
+                } else {
+                    addTestResult('cacheTests', '缓存清理', 'error', { error: data.error });
+                }
+            } catch (error) {
+                addTestResult('cacheTests', '缓存清理', 'error', { error: error.message });
+            }
+        }
+
+        async function runPerformanceTests() {
+            console.log('🧪 运行性能监控测试...');
+            
+            // 测试性能指标
+            await testAPI('/api/performance', '性能指标', 'performanceTests');
+            
+            // 测试更新时间
+            await testAPI('/api/update-times', '更新时间', 'performanceTests');
+        }
+
+        async function runDatabaseTests() {
+            console.log('🧪 运行数据库测试...');
+            
+            // 测试数据库统计
+            await testAPI('/api/database/stats', '数据库统计', 'databaseTests');
+            
+            // 测试模拟交易历史
+            await testAPI('/api/simulation-history', '模拟交易历史', 'databaseTests');
+            
+            // 测试胜率统计
+            await testAPI('/api/win-rate-stats', '胜率统计', 'databaseTests');
+        }
+
+        function updateTestSummary() {
+            const summary = document.getElementById('testSummary');
+            const passRate = testResults.total > 0 ? (testResults.passed / testResults.total * 100).toFixed(1) : 0;
+            
+            summary.innerHTML = `
+                <div class="test-item ${testResults.failed === 0 ? 'success' : 'error'}">
+                    <strong>测试完成</strong>
+                    <span class="status ${testResults.failed === 0 ? 'success' : 'error'}">
+                        ${testResults.passed}/${testResults.total} 通过 (${passRate}%)
+                    </span>
+                </div>
+                <div class="data-display">
+                    总测试数: ${testResults.total}<br>
+                    通过: ${testResults.passed}<br>
+                    失败: ${testResults.failed}<br>
+                    通过率: ${passRate}%
+                </div>
+            `;
+        }
+
+        async function runAllTests() {
+            // 清空之前的结果
+            document.getElementById('basicTests').innerHTML = '';
+            document.getElementById('cacheTests').innerHTML = '';
+            document.getElementById('performanceTests').innerHTML = '';
+            document.getElementById('databaseTests').innerHTML = '';
+            testResults = { total: 0, passed: 0, failed: 0 };
+            
+            updateTestTime();
+            
+            console.log('🚀 开始运行所有测试...');
+            
+            await runBasicTests();
+            await runCacheTests();
+            await runPerformanceTests();
+            await runDatabaseTests();
+            
+            updateTestSummary();
+            
+            console.log('✅ 所有测试完成');
+        }
+
+        // 页面加载时自动运行测试
+        window.onload = function() {
+            updateTestTime();
+            runAllTests();
+        };
+    </script>
+</body>
+</html>
