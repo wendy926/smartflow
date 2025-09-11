@@ -243,21 +243,27 @@ class DataMonitor {
       const isAnalysisSuccessful = analysisResult.phases?.signalAnalysis?.success || 
                                   (analysisResult.success && (analysisResult.trend4h || analysisResult.signal || analysisResult.execution));
       
+      // 确保布尔值判断正确
+      const dataSufficient = Boolean(isDataSufficient);
+      const analysisSuccessful = Boolean(isAnalysisSuccessful);
+      
       // 调试日志
       console.log(`📊 ${symbol} 分析结果:`, {
         success: analysisResult.success,
         reason: analysisResult.reason,
         isDataSufficient,
         isAnalysisSuccessful,
+        dataSufficient,
+        analysisSuccessful,
         dataCollectionAttempts: stats.dataCollectionAttempts,
         dataCollectionSuccesses: stats.dataCollectionSuccesses
       });
       
-      if (isDataSufficient) {
+      if (dataSufficient) {
         stats.dataCollectionSuccesses++;
         stats.lastDataCollectionTime = Date.now();
       }
-      if (isAnalysisSuccessful) {
+      if (analysisSuccessful) {
         stats.signalAnalysisSuccesses++;
         stats.lastSignalAnalysisTime = Date.now();
       }
