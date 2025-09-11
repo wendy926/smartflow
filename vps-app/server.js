@@ -982,10 +982,15 @@ class SmartFlowServer {
       this.dataRefreshManager = new DataRefreshManager(this.db);
       console.log('✅ 数据刷新管理器初始化完成');
 
-      // 初始化数据库优化
+      // 初始化数据库优化（暂时跳过，避免启动失败）
       this.databaseOptimization = new DatabaseOptimization();
-      await this.databaseOptimization.optimizeDatabase();
-      console.log('✅ 数据库优化完成');
+      try {
+        await this.databaseOptimization.optimizeDatabase();
+        console.log('✅ 数据库优化完成');
+      } catch (error) {
+        console.error('❌ 数据库优化失败，跳过:', error.message);
+        // 数据库优化失败不应该阻止服务器启动
+      }
 
       // 初始化缓存管理器
       this.cacheManager = new CacheManager({
