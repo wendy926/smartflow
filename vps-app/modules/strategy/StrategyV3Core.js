@@ -1,11 +1,13 @@
 // StrategyV3Core.js - 策略V3核心实现模块
 
 const BinanceAPI = require('../api/BinanceAPI');
+const FactorWeightManager = require('./FactorWeightManager');
 
 class StrategyV3Core {
-  constructor() {
+  constructor(database = null) {
     this.deltaData = new Map(); // 存储Delta数据
     this.dataMonitor = null; // 将在外部设置
+    this.factorWeightManager = new FactorWeightManager(database);
   }
 
   /**
@@ -394,8 +396,8 @@ class StrategyV3Core {
 
       console.log(`✅ VWAP方向一致 [${symbol}]: 开始计算其他因子`);
 
-      let score = 0;
-      const factors = {};
+      // 收集因子数据
+      const factorValues = {};
 
       // 2. 突破确认（4H关键位突破）
       const klines4h = await BinanceAPI.getKlines(symbol, '4h', 20);
@@ -413,15 +415,11 @@ class StrategyV3Core {
           breakout: trend4h === '多头趋势' ? last1h.close > maxHigh : last1h.close < minLow
         });
 
-        if (trend4h === '多头趋势' && last1h.close > maxHigh) {
-          score++;
-          factors.breakout = true;
-          console.log(`✅ 多头突破确认 [${symbol}]: +1分`);
-        } else if (trend4h === '空头趋势' && last1h.close < minLow) {
-          score++;
-          factors.breakout = true;
-          console.log(`✅ 空头突破确认 [${symbol}]: +1分`);
-        }
+        factorValues.breakout = (trend4h === '多头趋势' && last1h.close > maxHigh) || 
+                               (trend4h === '空头趋势' && last1h.close < minLow);
+      } else {
+        factorValues.breakout = false;
+        console.log(`❌ 4H数据不足，突破确认失败 [${symbol}]`);
       }
 
       // 3. 成交量双确认
@@ -439,11 +437,7 @@ class StrategyV3Core {
         volumeConfirm: vol15mRatio >= 1.5 && vol1hRatio >= 1.2
       });
 
-      if (vol15mRatio >= 1.5 && vol1hRatio >= 1.2) {
-        score++;
-        factors.volume = true;
-        console.log(`✅ 成交量确认 [${symbol}]: +1分`);
-      }
+      factorValues.volume = vol15mRatio >= 1.5 && vol1hRatio >= 1.2;
 
       // 4. OI变化
       let oiChange6h = 0;
@@ -453,20 +447,12 @@ class StrategyV3Core {
         oiChange6h = (oiEnd - oiStart) / oiStart;
       }
 
-      if (trend4h === '多头趋势' && oiChange6h >= 0.02) {
-        score++;
-        factors.oi = true;
-      } else if (trend4h === '空头趋势' && oiChange6h <= -0.03) {
-        score++;
-        factors.oi = true;
-      }
+      factorValues.oi = (trend4h === '多头趋势' && oiChange6h >= 0.02) || 
+                       (trend4h === '空头趋势' && oiChange6h <= -0.03);
 
       // 5. 资金费率
       const fundingRate = funding && funding.length > 0 ? parseFloat(funding[0].fundingRate) : 0;
-      if (fundingRate >= -0.0005 && fundingRate <= 0.0005) {
-        score++;
-        factors.funding = true;
-      }
+      factorValues.funding = fundingRate >= -0.0005 && fundingRate <= 0.0005;
 
       // 6. Delta/买卖盘不平衡（使用实时Delta数据）
       let deltaImbalance = 0;
@@ -487,20 +473,24 @@ class StrategyV3Core {
         deltaImbalance = deltaSell > 0 ? deltaBuy / deltaSell : 0;
       }
 
-      if (trend4h === '多头趋势' && deltaImbalance >= 1.2) {
-        score++;
-        factors.delta = true;
-      } else if (trend4h === '空头趋势' && deltaImbalance <= 0.83) { // 1/1.2
-        score++;
-        factors.delta = true;
-      }
+      factorValues.delta = (trend4h === '多头趋势' && deltaImbalance >= 1.2) || 
+                          (trend4h === '空头趋势' && deltaImbalance <= 0.83);
 
+      // 使用分类权重计算加权得分
+      const weightedResult = await this.factorWeightManager.calculateWeightedScore(
+        symbol, 
+        '1h_scoring', 
+        factorValues
+      );
+
+      const score = Math.round(weightedResult.score);
       const allowEntry = score >= 3;
 
-      console.log(`📊 多因子得分汇总 [${symbol}]:`, {
+      console.log(`📊 1H多因子打分结果 [${symbol}]:`, {
+        category: weightedResult.category,
         score,
         allowEntry,
-        factors,
+        factorScores: weightedResult.factorScores,
         vwapDirectionConsistent
       });
 
@@ -510,7 +500,7 @@ class StrategyV3Core {
           score,
           allowEntry,
           vwapDirectionConsistent,
-          factors,
+          factors: factorValues,
           vwap,
           vol15mRatio,
           vol1hRatio,
@@ -518,7 +508,9 @@ class StrategyV3Core {
           fundingRate,
           deltaImbalance,
           deltaBuy,
-          deltaSell
+          deltaSell,
+          category: weightedResult.category,
+          weightedScores: weightedResult.factorScores
         }, Date.now());
       }
 
@@ -526,7 +518,7 @@ class StrategyV3Core {
         score,
         allowEntry,
         vwapDirectionConsistent,
-        factors,
+        factors: factorValues,
         vwap,
         vol15mRatio,
         vol1hRatio,
@@ -534,7 +526,9 @@ class StrategyV3Core {
         fundingRate,
         deltaImbalance,
         deltaBuy,
-        deltaSell
+        deltaSell,
+        category: weightedResult.category,
+        weightedScores: weightedResult.factorScores
       };
 
     } catch (error) {

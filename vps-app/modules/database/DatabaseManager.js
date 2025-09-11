@@ -35,6 +35,7 @@ class DatabaseManager {
       `CREATE TABLE IF NOT EXISTS strategy_analysis (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         symbol TEXT NOT NULL,
+        category TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         -- 天级趋势数据
         trend TEXT,
@@ -122,6 +123,36 @@ class DatabaseManager {
         last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
 
+      // 交易对分类表
+      `CREATE TABLE IF NOT EXISTS symbol_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT NOT NULL UNIQUE,
+        category TEXT NOT NULL,
+        name TEXT,
+        market_cap REAL,
+        price REAL,
+        suggested_frequency TEXT,
+        suggested_holding_period TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+
+      // 多因子权重配置表
+      `CREATE TABLE IF NOT EXISTS factor_weights (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category TEXT NOT NULL,
+        analysis_type TEXT NOT NULL,
+        vwap_weight REAL NOT NULL,
+        delta_weight REAL NOT NULL,
+        oi_weight REAL NOT NULL,
+        volume_weight REAL NOT NULL,
+        breakout_weight REAL,
+        funding_weight REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(category, analysis_type)
+      )`,
+
       // 告警历史记录表
       `CREATE TABLE IF NOT EXISTS alert_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -207,6 +238,74 @@ class DatabaseManager {
     });
   }
 
+  // 记录交易对分类
+  async recordSymbolCategory(symbolData) {
+    const sql = `
+      INSERT OR REPLACE INTO symbol_categories 
+      (symbol, category, name, market_cap, price, suggested_frequency, suggested_holding_period, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `;
+    
+    const params = [
+      symbolData.symbol,
+      symbolData.category,
+      symbolData.name,
+      symbolData.marketCap,
+      symbolData.price,
+      symbolData.suggestedFrequency,
+      symbolData.suggestedHoldingPeriod
+    ];
+
+    return await this.run(sql, params);
+  }
+
+  // 获取交易对分类
+  async getSymbolCategory(symbol) {
+    const sql = `SELECT * FROM symbol_categories WHERE symbol = ?`;
+    return await this.get(sql, [symbol]);
+  }
+
+  // 获取所有交易对分类
+  async getAllSymbolCategories() {
+    const sql = `SELECT * FROM symbol_categories ORDER BY category, symbol`;
+    return await this.all(sql);
+  }
+
+  // 记录多因子权重配置
+  async recordFactorWeights(weightData) {
+    const sql = `
+      INSERT OR REPLACE INTO factor_weights 
+      (category, analysis_type, vwap_weight, delta_weight, oi_weight, volume_weight, 
+       breakout_weight, funding_weight, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `;
+    
+    const params = [
+      weightData.category,
+      weightData.analysisType,
+      weightData.vwapWeight,
+      weightData.deltaWeight,
+      weightData.oiWeight,
+      weightData.volumeWeight,
+      weightData.breakoutWeight,
+      weightData.fundingWeight
+    ];
+
+    return await this.run(sql, params);
+  }
+
+  // 获取多因子权重配置
+  async getFactorWeights(category, analysisType) {
+    const sql = `SELECT * FROM factor_weights WHERE category = ? AND analysis_type = ?`;
+    return await this.get(sql, [category, analysisType]);
+  }
+
+  // 获取所有多因子权重配置
+  async getAllFactorWeights() {
+    const sql = `SELECT * FROM factor_weights ORDER BY category, analysis_type`;
+    return await this.all(sql);
+  }
+
   // 记录策略分析结果 - 适配V3策略
   async recordStrategyAnalysis(analysisData) {
     // 检查是否是V3策略数据
@@ -216,17 +315,18 @@ class DatabaseManager {
       // V3策略数据结构
       const sql = `
         INSERT INTO strategy_analysis (
-          symbol, trend, trend_strength, ma20, ma50, ma200, bbw_expanding,
+          symbol, category, trend, trend_strength, ma20, ma50, ma200, bbw_expanding,
           signal, signal_strength, hourly_score, vwap, oi_change, funding_rate,
           execution, execution_mode, mode_a, mode_b, entry_signal, stop_loss, take_profit,
           current_price, data_collection_rate, full_analysis_data, data_valid, error_message,
           market_type, vwap_direction_consistent, factors, vol15m_ratio, vol1h_ratio,
           delta_imbalance, strategy_version
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const params = [
         analysisData.symbol,
+        analysisData.category,
         analysisData.trend4h || analysisData.trend, // V3使用trend4h
         analysisData.trendStrength,
         analysisData.ma20,

@@ -841,6 +841,108 @@ class SmartFlowServer {
       }
     });
 
+    // 获取多因子权重配置
+    this.app.get('/api/factor-weights', async (req, res) => {
+      try {
+        const factorWeightManager = new FactorWeightManager(this.db);
+        const weights = await factorWeightManager.getAllWeights();
+        
+        res.json({
+          success: true,
+          data: weights
+        });
+      } catch (error) {
+        console.error('获取多因子权重配置失败:', error);
+        res.status(500).json({
+          success: false,
+          error: '获取多因子权重配置失败'
+        });
+      }
+    });
+
+    // 获取特定交易对的分类和权重信息
+    this.app.get('/api/symbol-info/:symbol', async (req, res) => {
+      try {
+        const { symbol } = req.params;
+        const factorWeightManager = new FactorWeightManager(this.db);
+        
+        const category = await factorWeightManager.getSymbolCategory(symbol);
+        const weights = await factorWeightManager.getAllWeights();
+        
+        // 过滤出该分类的权重配置
+        const categoryWeights = weights.filter(w => w.category === category);
+        
+        res.json({
+          success: true,
+          data: {
+            symbol,
+            category,
+            weights: categoryWeights
+          }
+        });
+      } catch (error) {
+        console.error('获取交易对信息失败:', error);
+        res.status(500).json({
+          success: false,
+          error: '获取交易对信息失败'
+        });
+      }
+    });
+
+    // 更新多因子权重配置
+    this.app.post('/api/factor-weights', async (req, res) => {
+      try {
+        const { category, analysisType, weights } = req.body;
+        
+        if (!category || !analysisType || !weights) {
+          return res.status(400).json({
+            success: false,
+            error: '缺少必要参数'
+          });
+        }
+
+        const factorWeightManager = new FactorWeightManager(this.db);
+        const success = await factorWeightManager.updateWeights(category, analysisType, weights);
+        
+        if (success) {
+          res.json({
+            success: true,
+            message: '权重配置更新成功'
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            error: '权重配置更新失败'
+          });
+        }
+      } catch (error) {
+        console.error('更新多因子权重配置失败:', error);
+        res.status(500).json({
+          success: false,
+          error: '更新多因子权重配置失败'
+        });
+      }
+    });
+
+    // 初始化默认权重配置
+    this.app.post('/api/factor-weights/init', async (req, res) => {
+      try {
+        const factorWeightManager = new FactorWeightManager(this.db);
+        await factorWeightManager.initializeDefaultWeights();
+        
+        res.json({
+          success: true,
+          message: '默认权重配置初始化成功'
+        });
+      } catch (error) {
+        console.error('初始化默认权重配置失败:', error);
+        res.status(500).json({
+          success: false,
+          error: '初始化默认权重配置失败'
+        });
+      }
+    });
+
     // 设置监控阈值
     this.app.post('/api/monitoring-thresholds', async (req, res) => {
       try {
@@ -1902,6 +2004,7 @@ process.on('unhandledRejection', async (reason, promise) => {
 
 // 添加交易对分类获取方法
 const BinanceContractChecker = require('./modules/api/BinanceContractChecker');
+const FactorWeightManager = require('./modules/strategy/FactorWeightManager');
 
 class SymbolCategoryManager {
   static contractChecker = new BinanceContractChecker();

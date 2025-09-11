@@ -1,11 +1,13 @@
 // StrategyV3Execution.js - 策略V3执行逻辑模块
 
 const BinanceAPI = require('../api/BinanceAPI');
+const FactorWeightManager = require('./FactorWeightManager');
 
 class StrategyV3Execution {
-  constructor() {
+  constructor(database = null) {
     this.maxTimeInPosition = 24; // 6小时 = 24个15分钟（严格按照strategy-v3.md文档）
     this.dataMonitor = null; // 将在外部设置
+    this.factorWeightManager = new FactorWeightManager(database);
   }
 
   /**
@@ -218,7 +220,7 @@ class StrategyV3Execution {
 
       // 6a. 获取15分钟多因子数据
       const multiFactorData = await this.getMultiFactorData(symbol, last15m.close, deltaManager);
-      const factorScore15m = this.calculateFactorScore({
+      const factorScore15mResult = await this.calculateFactorScore(symbol, {
         currentPrice: multiFactorData.currentPrice,
         vwap: multiFactorData.vwap,
         delta: multiFactorData.delta,
@@ -229,7 +231,7 @@ class StrategyV3Execution {
 
       // 6b. 空头假突破：突破上沿后快速回撤 + 多因子确认
       if (prevClose > rangeHigh && lastClose < rangeHigh && upperBoundaryValid) {
-        const shortFactorScore = this.calculateFactorScore({
+        const shortFactorScoreResult = await this.calculateFactorScore(symbol, {
           currentPrice: multiFactorData.currentPrice,
           vwap: multiFactorData.vwap,
           delta: multiFactorData.delta,
@@ -238,25 +240,25 @@ class StrategyV3Execution {
           signalType: 'short'
         });
 
-        if (shortFactorScore >= 2) { // 多因子得分≥2才入场
+        if (shortFactorScoreResult.score >= 2) { // 多因子得分≥2才入场
           signal = 'SHORT';
           mode = '假突破反手';
           entry = lastClose;
           stopLoss = rangeHigh;
           takeProfit = entry - 2 * (stopLoss - entry); // 1:2 RR
-          reason = `假突破上沿→空头入场 (多因子得分:${shortFactorScore})`;
+          reason = `假突破上沿→空头入场 (多因子得分:${shortFactorScoreResult.score}, 分类:${shortFactorScoreResult.category})`;
         }
       }
 
       // 6c. 多头假突破：突破下沿后快速回撤 + 多因子确认
       if (prevClose < rangeLow && lastClose > rangeLow && lowerBoundaryValid) {
-        if (factorScore15m >= 2) { // 多因子得分≥2才入场
+        if (factorScore15mResult.score >= 2) { // 多因子得分≥2才入场
           signal = 'BUY';
           mode = '假突破反手';
           entry = lastClose;
           stopLoss = rangeLow;
           takeProfit = entry + 2 * (entry - stopLoss); // 1:2 RR
-          reason = `假突破下沿→多头入场 (多因子得分:${factorScore15m})`;
+          reason = `假突破下沿→多头入场 (多因子得分:${factorScore15mResult.score}, 分类:${factorScore15mResult.category})`;
         }
       }
 
@@ -286,11 +288,13 @@ class StrategyV3Execution {
           takeProfit,
           atr14: lastATR,
           bbWidth: bbWidth,
-          factorScore15m,
+          factorScore15m: factorScore15mResult.score,
           vwap15m: multiFactorData.vwap,
           delta: multiFactorData.delta,
           oi: multiFactorData.oi,
-          volume: multiFactorData.volume
+          volume: multiFactorData.volume,
+          category: factorScore15mResult.category,
+          weightedScores: factorScore15mResult.factorScores
         }, Date.now());
       }
 
@@ -342,9 +346,49 @@ class StrategyV3Execution {
   }
 
   /**
-   * 多因子打分系统 - 按照strategy-v3.md优化实现
+   * 多因子打分系统 - 使用分类权重优化实现
    */
-  calculateFactorScore({ currentPrice, vwap, delta, oi, volume, signalType }) {
+  async calculateFactorScore(symbol, { currentPrice, vwap, delta, oi, volume, signalType }) {
+    try {
+      // 准备因子数据
+      const factorValues = {
+        vwap: currentPrice > vwap,
+        delta: signalType === 'long' ? delta > 0 : delta < 0,
+        oi: signalType === 'long' ? oi > 0 : oi < 0,
+        volume: signalType === 'long' ? volume > 0 : volume < 0
+      };
+
+      // 使用分类权重计算加权得分
+      const weightedResult = await this.factorWeightManager.calculateWeightedScore(
+        symbol, 
+        '15m_execution', 
+        factorValues
+      );
+
+      // 根据信号类型调整得分
+      let finalScore = weightedResult.score;
+      if (signalType === "short") {
+        // 空头信号：得分取反
+        finalScore = -finalScore;
+      }
+
+      return {
+        score: Math.round(finalScore * 100) / 100,
+        category: weightedResult.category,
+        factorScores: weightedResult.factorScores,
+        weights: weightedResult.weights
+      };
+    } catch (error) {
+      console.error(`计算多因子得分失败 [${symbol}]:`, error);
+      // 降级到传统计算
+      return this.calculateLegacyFactorScore({ currentPrice, vwap, delta, oi, volume, signalType });
+    }
+  }
+
+  /**
+   * 传统多因子打分系统 - 作为降级方案
+   */
+  calculateLegacyFactorScore({ currentPrice, vwap, delta, oi, volume, signalType }) {
     let score = 0;
 
     // 1. VWAP因子：当前价 > VWAP → +1，否则 -1
@@ -366,13 +410,13 @@ class StrategyV3Execution {
     // 根据信号类型调整得分
     if (signalType === "long") {
       // 多头信号：所有因子都应该是正值
-      return score;
+      return { score, category: 'mainstream', factorScores: {}, weights: null };
     } else if (signalType === "short") {
       // 空头信号：所有因子都应该是负值，所以得分取反
-      return -score;
+      return { score: -score, category: 'mainstream', factorScores: {}, weights: null };
     }
 
-    return score;
+    return { score, category: 'mainstream', factorScores: {}, weights: null };
   }
 
   /**
