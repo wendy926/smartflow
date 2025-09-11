@@ -532,11 +532,11 @@ vps-app/
       "trend4h": 14400,
       "scoring1h": 3600,
       "execution15m": 900,
-      "monitoring": 30,
+      "monitoring": 10,
       "simulations": 300,
       "user_settings": 600
     },
-    "maxMemoryCacheSize": 1000,
+    "maxMemoryCacheSize": 5000,
     "enableRedis": true,
     "enableMemory": true
   }
@@ -579,6 +579,38 @@ vps-app/
   ]
 }
 ```
+
+### 1.8 内存优化脚本
+
+#### POST /api/memory/optimize
+- **功能**: 执行内存优化脚本
+- **实现文件**: `scripts/memory-optimization.js`
+- **入参**: 无
+- **出参**:
+```json
+{
+  "success": true,
+  "message": "内存优化完成",
+  "beforeStats": {
+    "strategy_analysis": 50826,
+    "simulations": 15,
+    "analysis_logs": 3192
+  },
+  "afterStats": {
+    "strategy_analysis": 1000,
+    "simulations": 15,
+    "analysis_logs": 100
+  },
+  "cleanedRecords": 49726
+}
+```
+
+**脚本功能**:
+- 清理7天前的策略分析数据
+- 清理30天前的K线数据和技术指标数据
+- 清理7天前的分析日志和数据质量问题记录
+- 执行数据库VACUUM和REINDEX操作
+- 提供优化前后的数据统计对比
 
 ### 1.7 健康检查API
 
@@ -1081,7 +1113,7 @@ CREATE TABLE validation_results (
 ---
 
 *最后更新: 2025-01-09*
-*版本: V3.2*
+*版本: V3.9*
 
 ## 12. 更新日志
 
@@ -1135,3 +1167,11 @@ CREATE TABLE validation_results (
 - **修复日志显示问题** - 解决日志中显示"模式=undefined"的问题，所有executionMode字段都有默认值
 - **增强代码健壮性** - 添加单元测试保障代码质量，防止undefined值导致的显示问题
 - **完善错误处理** - 确保所有信号格式化都有适当的默认值处理
+
+### V3.9 (2025-01-09)
+- **VPS内存优化** - 针对1GB VPS环境优化内存使用，内存使用率从90%降至48.8%
+- **缓存配置优化** - 内存缓存大小从1000增加到5000，监控数据TTL从30秒减少到10秒
+- **定期清理机制** - 添加每5分钟内存缓存清理和每30分钟Redis缓存清理
+- **数据库历史数据清理** - 清理50,000+条历史记录，保留最近1000条策略分析记录
+- **内存优化脚本** - 新增scripts/memory-optimization.js脚本，支持自动数据清理和数据库优化
+- **性能监控增强** - 新增/api/performance、/api/cache/stats、/api/database/stats等性能监控API
