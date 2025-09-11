@@ -1391,8 +1391,11 @@ async function loadUnifiedMonitoring() {
 
     // 异步加载数据并更新界面
     try {
-      const data = await dataManager.getMonitoringData();
-      await updateMonitoringPanel(data);
+      const [monitoringData, realtimeData] = await Promise.all([
+        fetch('/api/monitoring-dashboard').then(res => res.json()),
+        fetch('/api/realtime-data-stats').then(res => res.json())
+      ]);
+      await updateMonitoringPanel(monitoringData, realtimeData);
     } catch (error) {
       console.error('加载监控数据失败:', error);
       updateMonitoringPanelWithError(error.message);
@@ -1405,7 +1408,7 @@ async function loadUnifiedMonitoring() {
 }
 
 // 更新监控面板内容
-async function updateMonitoringPanel(data) {
+async function updateMonitoringPanel(monitoringData, realtimeData) {
   const panel = document.querySelector('.unified-monitoring-panel');
   if (!panel) return;
 
@@ -1416,6 +1419,7 @@ async function updateMonitoringPanel(data) {
         <h3>📊 SmartFlow 统一监控中心</h3>
         <div class="monitoring-controls">
           <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>
+          <button class="btn secondary" onclick="clearCacheAndRefresh()">🗑️ 清除缓存</button>
           <button class="btn secondary" onclick="closeMonitoringPanel()">×</button>
         </div>
       </div>
@@ -1427,51 +1431,51 @@ async function updateMonitoringPanel(data) {
               <span class="card-icon">📊</span>
               <div class="card-content">
                 <div class="card-title">总交易对</div>
-                <div class="card-value" id="totalSymbols">${data.summary.totalSymbols}</div>
+                <div class="card-value" id="totalSymbols">${monitoringData.summary.totalSymbols}</div>
               </div>
             </div>
             <div class="overview-card">
               <span class="card-icon">✅</span>
               <div class="card-content">
                 <div class="card-title">健康状态</div>
-                <div class="card-value" id="healthySymbols">${data.summary.healthySymbols}</div>
+                <div class="card-value" id="healthySymbols">${monitoringData.summary.healthySymbols}</div>
               </div>
             </div>
             <div class="overview-card">
               <span class="card-icon">⚠️</span>
               <div class="card-content">
                 <div class="card-title">警告状态</div>
-                <div class="card-value" id="warningSymbols">${data.summary.warningSymbols}</div>
+                <div class="card-value" id="warningSymbols">${monitoringData.summary.warningSymbols}</div>
               </div>
             </div>
             <div class="overview-card">
               <span class="card-icon">📈</span>
               <div class="card-content">
                 <div class="card-title">数据收集率</div>
-                <div class="card-value" id="dataCollectionRate">${data.summary.completionRates.dataCollection.toFixed(2)}%</div>
+                <div class="card-value" id="dataCollectionRate">${monitoringData.summary.completionRates.dataCollection.toFixed(2)}%</div>
               </div>
             </div>
             <div class="overview-card">
               <span class="card-icon">🌐</span>
               <div class="card-content">
                 <div class="card-title">Binance API成功率</div>
-                <div class="card-value" id="binanceApiSuccessRate">加载中...</div>
+                <div class="card-value" id="binanceApiSuccessRate">${realtimeData?.global?.successRate?.toFixed(2) || '0.00'}%</div>
               </div>
             </div>
             <div class="overview-card">
               <span class="card-icon">🔍</span>
               <div class="card-content">
                 <div class="card-title">数据验证</div>
-                <div class="card-value" id="dataValidationStatus">${data.summary.dataValidation?.hasErrors ? '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常'}</div>
-                ${data.summary.dataValidation?.hasErrors ? '<div class="card-details" id="dataValidationDetails" style="font-size: 0.8rem; color: #dc3545; margin-top: 5px; cursor: pointer;">点击查看详情</div>' : ''}
+                <div class="card-value" id="dataValidationStatus">${monitoringData.summary.dataValidation?.hasErrors ? '⚠️ ' + monitoringData.summary.dataValidation.errorCount + ' 错误' : '✅ 正常'}</div>
+                ${monitoringData.summary.dataValidation?.hasErrors ? '<div class="card-details" id="dataValidationDetails" style="font-size: 0.8rem; color: #dc3545; margin-top: 5px; cursor: pointer;">点击查看详情</div>' : ''}
               </div>
             </div>
             <div class="overview-card">
               <span class="card-icon">⚠️</span>
               <div class="card-content">
                 <div class="card-title">数据质量</div>
-                <div class="card-value" id="dataQualityStatus">${data.summary.dataQuality?.hasIssues ? '⚠️ ' + data.summary.dataQuality.issueCount + ' 问题' : '✅ 正常'}</div>
-                ${data.summary.dataQuality?.hasIssues ? '<div class="card-details" id="dataQualityDetails" style="font-size: 0.8rem; color: #ff6b35; margin-top: 5px; cursor: pointer;">点击查看详情</div>' : ''}
+                <div class="card-value" id="dataQualityStatus">${monitoringData.summary.dataQuality?.hasIssues ? '⚠️ ' + monitoringData.summary.dataQuality.issueCount + ' 问题' : '✅ 正常'}</div>
+                ${monitoringData.summary.dataQuality?.hasIssues ? '<div class="card-details" id="dataQualityDetails" style="font-size: 0.8rem; color: #ff6b35; margin-top: 5px; cursor: pointer;">点击查看详情</div>' : ''}
               </div>
             </div>
           </div>
@@ -1536,8 +1540,8 @@ async function updateMonitoringPanel(data) {
   panel.innerHTML = monitoringHtml;
 
   // 更新表格数据
-  updateSummaryTable(data);
-  updateDetailedTable(data);
+  updateSummaryTable(monitoringData, realtimeData);
+  updateDetailedTable(monitoringData, realtimeData);
 
   // 延迟检查表格滚动性
   setTimeout(() => {
@@ -1546,13 +1550,13 @@ async function updateMonitoringPanel(data) {
 
   // 添加点击事件
   const dataValidationDetails = document.getElementById('dataValidationDetails');
-  if (dataValidationDetails && data.summary.dataValidation?.hasErrors) {
-    dataValidationDetails.onclick = () => showDataValidationDetails(data.summary.dataValidation.errors);
+  if (dataValidationDetails && monitoringData.summary.dataValidation?.hasErrors) {
+    dataValidationDetails.onclick = () => showDataValidationDetails(monitoringData.summary.dataValidation.errors);
   }
 
   const dataQualityDetails = document.getElementById('dataQualityDetails');
-  if (dataQualityDetails && data.summary.dataQuality?.hasIssues) {
-    dataQualityDetails.onclick = () => showDataQualityDetails(data.summary.dataQuality.issues);
+  if (dataQualityDetails && monitoringData.summary.dataQuality?.hasIssues) {
+    dataQualityDetails.onclick = () => showDataQualityDetails(monitoringData.summary.dataQuality.issues);
   }
 }
 
@@ -1581,11 +1585,44 @@ function updateMonitoringPanelWithError(errorMessage) {
   `;
 }
 
+// 清除缓存并刷新监控数据
+async function clearCacheAndRefresh() {
+  try {
+    // 清除DataManager缓存
+    if (window.dataManager) {
+      window.dataManager.clearCache();
+    }
+    
+    // 清除浏览器缓存
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(cacheName => caches.delete(cacheName))
+      );
+    }
+    
+    // 清除localStorage
+    try {
+      localStorage.clear();
+      console.log('🗑️ 已清除localStorage缓存');
+    } catch (error) {
+      console.warn('清除localStorage失败:', error);
+    }
+    
+    // 强制刷新页面
+    window.location.reload(true);
+  } catch (error) {
+    console.error('清除缓存失败:', error);
+    // 即使清除失败也尝试刷新
+    window.location.reload(true);
+  }
+}
+
 // 刷新监控数据
 async function refreshMonitoringData() {
   try {
     const [monitoringData, realtimeData] = await Promise.all([
-      dataManager.getMonitoringData(),
+      fetch('/api/monitoring-dashboard').then(res => res.json()),
       fetch('/api/realtime-data-stats').then(res => res.json())
     ]);
 
@@ -1602,12 +1639,15 @@ async function refreshMonitoringData() {
     if (warningSymbolsEl) warningSymbolsEl.textContent = monitoringData.summary.warningSymbols;
     if (dataCollectionRateEl) dataCollectionRateEl.textContent = monitoringData.summary.completionRates.dataCollection.toFixed(2) + '%';
     
-    // 更新Binance API成功率
-    if (binanceApiSuccessRateEl && realtimeData.global) {
-      const successRate = realtimeData.global.successRate || 0;
-      binanceApiSuccessRateEl.textContent = successRate.toFixed(2) + '%';
-      binanceApiSuccessRateEl.style.color = successRate >= 95 ? '#28a745' : successRate >= 80 ? '#ffc107' : '#dc3545';
-    }
+  // 更新Binance API成功率
+  if (binanceApiSuccessRateEl && realtimeData.global) {
+    const successRate = realtimeData.global.successRate || 0;
+    binanceApiSuccessRateEl.textContent = successRate.toFixed(2) + '%';
+    binanceApiSuccessRateEl.style.color = successRate >= 95 ? '#28a745' : successRate >= 80 ? '#ffc107' : '#dc3545';
+  } else if (binanceApiSuccessRateEl) {
+    binanceApiSuccessRateEl.textContent = '0.00%';
+    binanceApiSuccessRateEl.style.color = '#dc3545';
+  }
     
     if (dataValidationStatusEl) {
       const validationStatus = monitoringData.summary.dataValidation?.hasErrors ?
