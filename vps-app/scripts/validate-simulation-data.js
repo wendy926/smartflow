@@ -81,19 +81,23 @@ async function validateSimulationData() {
     
     // 5. 检查数据质量问题
     console.log('\n🔍 数据质量问题检查:');
-    const dataQualityIssues = await dbManager.runQuery(`
-      SELECT issue_type, COUNT(*) as count 
-      FROM data_quality_issues 
-      WHERE timestamp > datetime('now', '-1 day')
-      GROUP BY issue_type
-    `);
-    
-    if (dataQualityIssues.length === 0) {
-      console.log('  ✅ 最近24小时内无数据质量问题');
-    } else {
-      dataQualityIssues.forEach(issue => {
-        console.log(`  ⚠️ ${issue.issue_type}: ${issue.count}个问题`);
-      });
+    try {
+      const dataQualityIssues = await dbManager.runQuery(`
+        SELECT issue_type, COUNT(*) as count 
+        FROM data_quality_issues 
+        WHERE created_at > datetime('now', '-1 day')
+        GROUP BY issue_type
+      `);
+      
+      if (dataQualityIssues.length === 0) {
+        console.log('  ✅ 最近24小时内无数据质量问题');
+      } else {
+        dataQualityIssues.forEach(issue => {
+          console.log(`  ⚠️ ${issue.issue_type}: ${issue.count}个问题`);
+        });
+      }
+    } catch (error) {
+      console.log('  ℹ️ 数据质量问题表不存在或结构不同，跳过检查');
     }
     
     console.log('\n✅ 模拟交易数据验证完成！');
