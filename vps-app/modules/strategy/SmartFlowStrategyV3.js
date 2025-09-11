@@ -50,11 +50,21 @@ static async analyzeSymbol(symbol, options = {}) {
         analysisResult = this.createNoSignalResult(symbol, '市场类型未确定');
       }
 
-      // 4. 合并结果
+      // 4. 获取当前价格
+      let currentPrice = null;
+      try {
+        const ticker = await BinanceAPI.getTicker(symbol);
+        currentPrice = parseFloat(ticker.lastPrice);
+      } catch (error) {
+        console.warn(`获取 ${symbol} 当前价格失败:`, error.message);
+      }
+
+      // 5. 合并结果
       const finalResult = {
         ...trend4hResult,
         ...analysisResult,
         symbol,
+        currentPrice,
         timestamp: new Date().toISOString(),
         strategyVersion: 'V3',
         dataRefreshInfo: {
@@ -65,7 +75,7 @@ static async analyzeSymbol(symbol, options = {}) {
         }
       };
 
-      // 5. 更新数据刷新时间（如果传入了dataRefreshManager）
+      // 6. 更新数据刷新时间（如果传入了dataRefreshManager）
       if (options.dataRefreshManager) {
         await options.dataRefreshManager.updateRefreshTime(symbol, '4h_trend');
         await options.dataRefreshManager.updateRefreshTime(symbol, '1h_scoring');
@@ -420,6 +430,7 @@ static async analyzeSymbol(symbol, options = {}) {
       stopLossDistance: 0,
       atrValue: null,
       atr14: null,
+      currentPrice: null,  // 添加当前价格字段
       reason,
       score1h: 0,
       vwapDirectionConsistent: false,
@@ -442,6 +453,7 @@ static async analyzeSymbol(symbol, options = {}) {
       entrySignal: null,
       stopLoss: null,
       takeProfit: null,
+      currentPrice: null,  // 添加当前价格字段
       reason: `${type}: ${message}`,
       error: true,
       errorType: type,
