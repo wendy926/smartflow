@@ -12,12 +12,6 @@ describe('指标监控系统测试', () => {
   let strategyCore;
   let strategyExecution;
 
-  beforeAll(() => {
-    // 在测试环境中启动定时器
-    const BinanceAPI = require('../modules/api/BinanceAPI');
-    BinanceAPI.rateLimiter.startCleanup();
-  });
-
   afterAll(() => {
     // 清理所有定时器
     try {
