@@ -37,11 +37,21 @@ describe('V3策略指标监控测试', () => {
     test('analyze4HTrend应该记录4H MA指标', async () => {
       const symbol = 'BTCUSDT';
       
-      // Mock API响应
-      BinanceAPI.getKlines.mockResolvedValue([
-        [1640995200000, '50000', '51000', '49000', '50500', '1000'],
-        [1641009600000, '50500', '51500', '49500', '51000', '1200']
-      ]);
+      // Mock API响应 - 提供足够的数据
+      const mockKlines = [];
+      for (let i = 0; i < 250; i++) {
+        const timestamp = 1640995200000 + i * 4 * 60 * 60 * 1000; // 4小时间隔
+        const price = 50000 + Math.random() * 1000;
+        mockKlines.push([
+          timestamp,
+          price.toString(),
+          (price + 100).toString(),
+          (price - 100).toString(),
+          (price + 50).toString(),
+          '1000'
+        ]);
+      }
+      BinanceAPI.getKlines.mockResolvedValue(mockKlines);
 
       const result = await strategyCore.analyze4HTrend(symbol);
       
@@ -61,11 +71,21 @@ describe('V3策略指标监控测试', () => {
     test('analyze1HScoring应该记录1H多因子打分指标', async () => {
       const symbol = 'ETHUSDT';
       
-      // Mock API响应
-      BinanceAPI.getKlines.mockResolvedValue([
-        [1640995200000, '3000', '3100', '2900', '3050', '500'],
-        [1641000000000, '3050', '3150', '2950', '3100', '600']
-      ]);
+      // Mock API响应 - 提供足够的数据
+      const mockKlines = [];
+      for (let i = 0; i < 50; i++) {
+        const timestamp = 1640995200000 + i * 60 * 60 * 1000; // 1小时间隔
+        const price = 3000 + Math.random() * 200;
+        mockKlines.push([
+          timestamp,
+          price.toString(),
+          (price + 50).toString(),
+          (price - 50).toString(),
+          (price + 25).toString(),
+          '500'
+        ]);
+      }
+      BinanceAPI.getKlines.mockResolvedValue(mockKlines);
       BinanceAPI.get24hrTicker.mockResolvedValue({
         lastPrice: '3100',
         volume: '1000000'
@@ -96,11 +116,21 @@ describe('V3策略指标监控测试', () => {
     test('analyzeRangeBoundary应该记录震荡市1H边界判断指标', async () => {
       const symbol = 'ADAUSDT';
       
-      // Mock API响应
-      BinanceAPI.getKlines.mockResolvedValue([
-        [1640995200000, '1.0', '1.1', '0.9', '1.05', '1000000'],
-        [1641000000000, '1.05', '1.15', '0.95', '1.1', '1200000']
-      ]);
+      // Mock API响应 - 提供足够的数据
+      const mockKlines = [];
+      for (let i = 0; i < 50; i++) {
+        const timestamp = 1640995200000 + i * 60 * 60 * 1000; // 1小时间隔
+        const price = 1.0 + Math.random() * 0.2;
+        mockKlines.push([
+          timestamp,
+          price.toString(),
+          (price + 0.05).toString(),
+          (price - 0.05).toString(),
+          (price + 0.025).toString(),
+          '1000000'
+        ]);
+      }
+      BinanceAPI.getKlines.mockResolvedValue(mockKlines);
       BinanceAPI.get24hrTicker.mockResolvedValue({
         lastPrice: '1.1',
         volume: '2000000'
