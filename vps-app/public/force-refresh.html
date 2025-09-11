@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>强制刷新页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 SmartFlow 强制刷新页面</h1>
+        <p>如果主页面显示的数据采集率还是50%，请使用以下方法强制刷新：</p>
+        
+        <div class="status">
+            <h3>📊 当前API状态</h3>
+            <div id="apiStatus">正在检查...</div>
+        </div>
+        
+        <h3>🛠️ 刷新方法：</h3>
+        <ol>
+            <li><strong>方法1：</strong> 点击下面的"强制刷新主页面"按钮</li>
+            <li><strong>方法2：</strong> 在浏览器中按 <kbd>Ctrl+F5</kbd> (Windows) 或 <kbd>Cmd+Shift+R</kbd> (Mac)</li>
+            <li><strong>方法3：</strong> 清除浏览器缓存后重新访问</li>
+        </ol>
+        
+        <button class="btn" onclick="forceRefresh()">🔄 强制刷新主页面</button>
+        <button class="btn btn-danger" onclick="clearAllCache()">🗑️ 清除所有缓存</button>
+        <button class="btn" onclick="checkAPI()">📊 检查API状态</button>
+        
+        <div id="result" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        // 检查API状态
+        async function checkAPI() {
+            const statusDiv = document.getElementById('apiStatus');
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                statusDiv.innerHTML = '正在检查API...';
+                
+                const [monitoringResponse, realtimeResponse] = await Promise.all([
+                    fetch('/api/monitoring-dashboard?t=' + Date.now()),
+                    fetch('/api/realtime-data-stats?t=' + Date.now())
+                ]);
+                
+                const monitoringData = await monitoringResponse.json();
+                const realtimeData = await realtimeResponse.json();
+                
+                statusDiv.innerHTML = `
+                    <strong>监控数据采集率：</strong> ${monitoringData.summary.completionRates.dataCollection.toFixed(2)}%<br>
+                    <strong>Binance API成功率：</strong> ${realtimeData.global.successRate.toFixed(2)}%<br>
+                    <strong>API调用次数：</strong> ${realtimeData.global.totalCalls}<br>
+                    <strong>成功次数：</strong> ${realtimeData.global.successfulCalls}<br>
+                    <strong>失败次数：</strong> ${realtimeData.global.failedCalls}
+                `;
+                
+                resultDiv.innerHTML = '<div style="color: green;">✅ API状态正常</div>';
+            } catch (error) {
+                statusDiv.innerHTML = '❌ API检查失败';
+                resultDiv.innerHTML = `<div style="color: red;">❌ 错误: ${error.message}</div>`;
+            }
+        }
+        
+        // 强制刷新主页面
+        function forceRefresh() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '正在跳转到主页面...';
+            
+            // 添加时间戳强制刷新
+            const timestamp = Date.now();
+            window.location.href = `index.html?t=${timestamp}&force=1`;
+        }
+        
+        // 清除所有缓存
+        async function clearAllCache() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '正在清除缓存...';
+            
+            try {
+                // 清除localStorage
+                localStorage.clear();
+                
+                // 清除sessionStorage
+                sessionStorage.clear();
+                
+                // 清除Service Worker缓存
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(
+                        cacheNames.map(cacheName => caches.delete(cacheName))
+                    );
+                }
+                
+                resultDiv.innerHTML = '<div style="color: green;">✅ 缓存已清除，正在跳转...</div>';
+                
+                // 延迟跳转
+                setTimeout(() => {
+                    window.location.href = `index.html?t=${Date.now()}&cleared=1`;
+                }, 1000);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div style="color: orange;">⚠️ 部分缓存清除失败: ${error.message}</div>`;
+            }
+        }
+        
+        // 页面加载时自动检查API
+        window.onload = function() {
+            checkAPI();
+        };
+    </script>
+</body>
+</html>
