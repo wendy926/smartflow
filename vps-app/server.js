@@ -111,16 +111,20 @@ class SmartFlowServer {
             // 使用V3策略进行分析
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { maxLossAmount: parseFloat(maxLossAmount) });
 
-            // 存储到监控系统用于数据验证 - 先记录分析日志
+            // 检查分析是否成功（数据是否充足）
+            const isDataSufficient = !analysis.reason || !analysis.reason.includes('数据不足');
+            const isAnalysisSuccessful = analysis && (analysis.trend4h || analysis.signal || analysis.execution);
+
+            // 存储到监控系统用于数据验证 - 根据实际结果记录分析日志
             if (this.dataMonitor) {
               this.dataMonitor.recordAnalysisLog(symbol, {
-                success: true,
+                success: isAnalysisSuccessful,
                 symbol,
                 strategyVersion: 'V3', // 明确设置策略版本
                 phases: {
-                  dataCollection: { success: true },
-                  signalAnalysis: { success: true },
-                  simulationTrading: { success: true }
+                  dataCollection: { success: isDataSufficient },
+                  signalAnalysis: { success: isAnalysisSuccessful },
+                  simulationTrading: { success: isAnalysisSuccessful }
                 },
                 trend: analysis.trend4h,
                 signal: analysis.signal,
@@ -152,15 +156,8 @@ class SmartFlowServer {
               }
             }
             
-            // 检查是否有数据不足的情况，如果有则设置数据采集率为0并记录告警
-            if (analysis.reason && analysis.reason.includes('数据不足')) {
-              dataCollectionRate = 0;
-              
-              // 记录数据质量告警
-              if (this.dataMonitor) {
-                this.dataMonitor.recordDataQualityIssue(symbol, '4H趋势分析', analysis.reason);
-              }
-            }
+            // 数据采集率现在基于实际的数据采集成功状态计算
+            // 如果数据不足，dataCollection.success 已经是 false，数据采集率会自动为0
 
             // 存储策略分析结果到数据库
             try {
