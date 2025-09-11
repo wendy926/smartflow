@@ -247,14 +247,26 @@ class DataMonitor {
       const dataSufficient = Boolean(isDataSufficient);
       const analysisSuccessful = Boolean(isAnalysisSuccessful);
       
+      // 记录增加前的值
+      const beforeDataSuccesses = stats.dataCollectionSuccesses;
+      const beforeSignalSuccesses = stats.signalAnalysisSuccesses;
+      
       if (dataSufficient) {
         stats.dataCollectionSuccesses++;
         stats.lastDataCollectionTime = Date.now();
+        console.log(`✅ ${symbol} 数据采集成功次数增加: ${beforeDataSuccesses} -> ${stats.dataCollectionSuccesses}`);
+      } else {
+        console.log(`❌ ${symbol} 数据采集失败: dataSufficient=${dataSufficient}`);
       }
+      
       if (analysisSuccessful) {
         stats.signalAnalysisSuccesses++;
         stats.lastSignalAnalysisTime = Date.now();
+        console.log(`✅ ${symbol} 信号分析成功次数增加: ${beforeSignalSuccesses} -> ${stats.signalAnalysisSuccesses}`);
+      } else {
+        console.log(`❌ ${symbol} 信号分析失败: analysisSuccessful=${analysisSuccessful}`);
       }
+      
       if (analysisResult.phases?.simulationTrading?.success) {
         stats.simulationCompletions++;
         stats.lastSimulationTime = Date.now();
@@ -269,7 +281,8 @@ class DataMonitor {
         dataSufficient,
         analysisSuccessful,
         dataCollectionAttempts: stats.dataCollectionAttempts,
-        dataCollectionSuccesses: stats.dataCollectionSuccesses
+        dataCollectionSuccesses: stats.dataCollectionSuccesses,
+        signalAnalysisSuccesses: stats.signalAnalysisSuccesses
       });
       
       // 重新计算完成率
