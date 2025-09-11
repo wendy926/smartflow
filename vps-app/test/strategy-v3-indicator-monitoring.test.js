@@ -77,15 +77,8 @@ describe('V3策略指标监控测试', () => {
     test('analyze1HScoring应该记录1H多因子打分指标', async () => {
       const symbol = 'ETHUSDT';
 
-      // 捕获console.log输出
-      const originalConsoleLog = console.log;
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation((...args) => {
-        // 只输出我们关心的调试信息
-        if (args[0] && typeof args[0] === 'string' && 
-            (args[0].includes('测试数据验证') || args[0].includes('警告') || args[0].includes('调整'))) {
-          originalConsoleLog(...args);
-        }
-      });
+      // 简化调试，直接输出到stderr避免Jest干扰
+      const debugLog = (...args) => process.stderr.write(args.join(' ') + '\n');
 
       // Mock API响应 - 提供足够的数据，确保VWAP方向一致性
       const mockKlines1h = [];
@@ -150,23 +143,23 @@ describe('V3策略指标监控测试', () => {
       }));
       const testVWAP = strategyCore.calculateVWAP(testCandles);
       const lastClose = testCandles[testCandles.length - 1].close;
-      console.log('测试数据验证:', {
+      debugLog('测试数据验证:', JSON.stringify({
         lastClose,
         vwap: testVWAP,
         vwapDirectionConsistent: lastClose > testVWAP,
         candlesCount: testCandles.length,
         lastCandle: testCandles[testCandles.length - 1]
-      });
+      }));
       
       // 检查VWAP计算是否正确
       if (lastClose <= testVWAP) {
-        console.log('⚠️ 警告: 测试数据不满足VWAP方向一致性条件');
-        console.log('调整测试数据...');
+        debugLog('⚠️ 警告: 测试数据不满足VWAP方向一致性条件');
+        debugLog('调整测试数据...');
         // 调整最后一条数据确保收盘价高于VWAP
         const lastIndex = mockKlines1h.length - 1;
         const adjustedClose = testVWAP + 100; // 确保收盘价远高于VWAP
         mockKlines1h[lastIndex][4] = adjustedClose.toString();
-        console.log('调整后的收盘价:', adjustedClose);
+        debugLog('调整后的收盘价:', adjustedClose);
       }
 
       const result = await strategyCore.analyze1HScoring(symbol, '多头趋势');
@@ -178,15 +171,12 @@ describe('V3策略指标监控测试', () => {
 
       // 验证指标记录
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
-      console.log('Analysis log:', JSON.stringify(analysisLog, null, 2));
-      console.log('Indicators:', analysisLog.indicators);
+      debugLog('Analysis log:', JSON.stringify(analysisLog, null, 2));
+      debugLog('Indicators:', JSON.stringify(analysisLog.indicators, null, 2));
       expect(analysisLog.indicators['1H多因子打分']).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.score).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.allowEntry).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.vwapDirectionConsistent).toBeDefined();
-
-      // 恢复console.log
-      consoleSpy.mockRestore();
     });
 
     test('analyzeRangeBoundary应该记录震荡市1H边界判断指标', async () => {
