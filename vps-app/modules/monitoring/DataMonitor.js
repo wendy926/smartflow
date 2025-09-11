@@ -482,6 +482,11 @@ class DataMonitor {
   async getMonitoringDashboard() {
     this.calculateCompletionRates();
     this.checkHealthStatus();
+    
+    // 获取实时Binance API成功率
+    const BinanceAPI = require('../api/BinanceAPI');
+    const realtimeStats = BinanceAPI.getRealTimeStats();
+    const binanceApiSuccessRate = realtimeStats.global.successRate;
 
     // 优先从数据库同步模拟交易统计
     if (this.db) {
@@ -770,7 +775,7 @@ class DataMonitor {
         totalErrors: totalErrors, // 添加总错误数
         overallHealth: totalErrors > 0 ? 'ERROR' : (errorSymbols > 0 ? 'WARNING' : 'HEALTHY'),
         completionRates: {
-          dataCollection: this.completionRates.dataCollection,
+          dataCollection: binanceApiSuccessRate, // 使用Binance API成功率
           signalAnalysis: this.completionRates.signalAnalysis,
           simulationTrading: this.completionRates.simulationTrading
         },

@@ -100,6 +100,128 @@ server.js
 └── MemoryMiddleware.js
 ```
 
+### 3. 数据库表结构关系图
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    SmartFlow 数据库表结构关系图                │
+├─────────────────────────────────────────────────────────────┤
+│  核心业务表                                                  │
+│  ┌─────────────────┐    ┌─────────────────┐                │
+│  │  strategy_analysis │    │  simulations    │                │
+│  │  (策略分析表)     │    │  (模拟交易表)   │                │
+│  │  - id (PK)       │    │  - id (PK)      │                │
+│  │  - symbol        │    │  - symbol       │                │
+│  │  - trend4h       │    │  - entry_price  │                │
+│  │  - signal        │    │  - stop_loss    │                │
+│  │  - execution     │    │  - take_profit  │                │
+│  │  - timestamp     │    │  - status       │                │
+│  └─────────────────┘    └─────────────────┘                │
+│           │                       │                        │
+│           └───────────┬───────────┘                        │
+│                       │                                    │
+│  ┌─────────────────┐  │  ┌─────────────────┐                │
+│  │  kline_data     │  │  │  technical_indicators │          │
+│  │  (K线数据表)     │  │  │  (技术指标表)   │                │
+│  │  - id (PK)      │  │  │  - id (PK)      │                │
+│  │  - symbol       │  │  │  - symbol       │                │
+│  │  - interval     │  │  │  - interval     │                │
+│  │  - open_time    │  │  │  - timestamp    │                │
+│  │  - open_price   │  │  │  - atr14        │                │
+│  │  - high_price   │  │  │  - vwap         │                │
+│  │  - low_price    │  │  │  - delta        │                │
+│  │  - close_price  │  │  │  - oi           │                │
+│  │  - volume       │  │  │  - trend_4h     │                │
+│  └─────────────────┘  │  └─────────────────┘                │
+│           │           │           │                        │
+│           └───────────┼───────────┘                        │
+│                       │                                    │
+├─────────────────────────────────────────────────────────────┤
+│  监控和日志表                                                │
+│  ┌─────────────────┐    ┌─────────────────┐                │
+│  │  analysis_logs  │    │  data_quality_issues │            │
+│  │  (分析日志表)    │    │  (数据质量表)   │                │
+│  │  - id (PK)      │    │  - id (PK)      │                │
+│  │  - symbol       │    │  - symbol       │                │
+│  │  - analysis_type│    │  - issue_type   │                │
+│  │  - success      │    │  - description  │                │
+│  │  - error_msg    │    │  - severity     │                │
+│  │  - timestamp    │    │  - timestamp    │                │
+│  └─────────────────┘    └─────────────────┘                │
+│           │                       │                        │
+│           └───────────┬───────────┘                        │
+│                       │                                    │
+│  ┌─────────────────┐  │  ┌─────────────────┐                │
+│  │  validation_results │  │  win_rate_stats │                │
+│  │  (验证结果表)    │  │  │  (胜率统计表)   │                │
+│  │  - id (PK)      │  │  │  - id (PK)      │                │
+│  │  - symbol       │  │  │  - total_trades │                │
+│  │  - validation_type│  │  │  - winning_trades │            │
+│  │  - result       │  │  │  - win_rate     │                │
+│  │  - details      │  │  │  - total_profit │                │
+│  │  - timestamp    │  │  │  - last_updated │                │
+│  └─────────────────┘  │  └─────────────────┘                │
+│                       │                                    │
+├─────────────────────────────────────────────────────────────┤
+│  配置和状态表                                                │
+│  ┌─────────────────┐    ┌─────────────────┐                │
+│  │  data_refresh_status │  │  user_settings │                │
+│  │  (数据刷新状态) │    │  │  (用户设置表)   │                │
+│  │  - id (PK)      │    │  │  - id (PK)      │                │
+│  │  - symbol       │    │  │  - setting_key  │                │
+│  │  - data_type    │    │  │  - setting_value│                │
+│  │  - last_refresh │    │  │  - updated_at   │                │
+│  │  - next_refresh │    │  └─────────────────┘                │
+│  │  - should_refresh│   │                                    │
+│  └─────────────────┘    │                                    │
+│           │             │                                    │
+│           └─────────────┼────────────────────────────────────┘
+│                         │
+│  ┌─────────────────┐    │
+│  │  trend_reversal_records │
+│  │  (趋势反转记录) │    │
+│  │  - id (PK)      │    │
+│  │  - symbol       │    │
+│  │  - old_trend    │    │
+│  │  - new_trend    │    │
+│  │  - timestamp    │    │
+│  └─────────────────┘    │
+│                         │
+│  ┌─────────────────┐    │
+│  │  aggregated_metrics │
+│  │  (聚合指标表)    │    │
+│  │  - id (PK)      │    │
+│  │  - symbol       │    │
+│  │  - time_window  │    │
+│  │  - timestamp    │    │
+│  │  - avg_atr      │    │
+│  │  - avg_vwap     │    │
+│  │  - avg_delta    │    │
+│  └─────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 表关系说明
+
+**主要关系**：
+- `strategy_analysis` ←→ `simulations`：策略分析结果触发模拟交易
+- `kline_data` ←→ `technical_indicators`：K线数据计算技术指标
+- `strategy_analysis` ←→ `analysis_logs`：策略分析记录日志
+- `simulations` ←→ `win_rate_stats`：模拟交易结果统计胜率
+
+**数据流向**：
+1. **数据采集**：`kline_data` ← Binance API
+2. **指标计算**：`kline_data` → `technical_indicators`
+3. **策略分析**：`technical_indicators` → `strategy_analysis`
+4. **模拟交易**：`strategy_analysis` → `simulations`
+5. **监控记录**：所有表 → `analysis_logs`, `data_quality_issues`
+6. **统计汇总**：`simulations` → `win_rate_stats`
+
+**索引优化**：
+- 所有表都有 `(symbol, timestamp)` 复合索引
+- 外键关系通过 `symbol` 字段关联
+- 时间范围查询优化：`timestamp` 字段索引
+
 ## 核心功能详细设计
 
 ### 1. 交易策略分析系统
