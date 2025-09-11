@@ -213,7 +213,7 @@ describe('FactorWeightManager', () => {
 
     test('应该处理数据库未初始化的情况', async () => {
       const manager = new FactorWeightManager(null);
-      
+
       // 不应该抛出错误
       await expect(manager.initializeDefaultWeights()).resolves.toBeUndefined();
     });
@@ -247,9 +247,9 @@ describe('FactorWeightManager', () => {
 
     test('应该处理数据库未初始化的情况', async () => {
       const manager = new FactorWeightManager(null);
-      
+
       const result = await manager.updateWeights('mainstream', '15m_execution', {});
-      
+
       expect(result).toBe(false);
     });
   });
