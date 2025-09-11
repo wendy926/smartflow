@@ -304,13 +304,13 @@ describe('V3策略指标监控测试', () => {
       const bb1h = strategyCore.calculateBollingerBands(candles1h.slice(-20), 20, 2);
       const lastBB = bb1h[bb1h.length - 1];
       const bbWidth = (lastBB.upper - lastBB.lower) / lastBB.middle;
-      debugLog('布林带收窄检查:', {
+      debugLog('布林带收窄检查:', JSON.stringify({
         bbWidth,
         narrowBB: bbWidth < 0.05,
         upper: lastBB.upper,
         lower: lastBB.lower,
         middle: lastBB.middle
-      });
+      }));
 
       // 验证结果
       expect(result).toBeDefined();
