@@ -151,6 +151,16 @@ class SmartFlowServer {
                 dataCollectionRate = this.dataMonitor.completionRates.dataCollection;
               }
             }
+            
+            // 检查是否有数据不足的情况，如果有则设置数据采集率为0并记录告警
+            if (analysis.reason && analysis.reason.includes('数据不足')) {
+              dataCollectionRate = 0;
+              
+              // 记录数据质量告警
+              if (this.dataMonitor) {
+                this.dataMonitor.recordDataQualityIssue(symbol, '4H趋势分析', analysis.reason);
+              }
+            }
 
             // 存储策略分析结果到数据库
             try {

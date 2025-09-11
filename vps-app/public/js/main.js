@@ -376,17 +376,31 @@ class SmartFlowApp {
       const marketType = signal.marketType || '--';
       const strategyVersion = signal.strategyVersion || 'V2';
       
+      // 检查是否有数据不足的情况
+      const hasDataIssue = signal.reason && signal.reason.includes('数据不足');
+      const hasDataError = signal.reason && signal.reason.includes('数据');
+      
       // 构建趋势列显示（4H趋势 + 市场类型）
       let trendDisplay = trend4h;
       if (strategyVersion === 'V3') {
-        trendDisplay = `${trend4h}<br><small style="color: #666;">${marketType}</small>`;
+        if (hasDataIssue) {
+          trendDisplay = `数据不足<br><small style="color: #ff6b6b;">${signal.reason}</small>`;
+        } else {
+          trendDisplay = `${trend4h}<br><small style="color: #666;">${marketType}</small>`;
+        }
       }
 
       // 构建信号列显示（1H加强趋势）
       let signalDisplay = signal.signal || '--';
-      if (strategyVersion === 'V3' && signal.vwapDirectionConsistent !== undefined && marketType !== '震荡市') {
-        const vwapStatus = signal.vwapDirectionConsistent ? '✅' : '❌';
-        signalDisplay = `${signal.signal || '--'}<br><small style="color: #666;">VWAP: ${vwapStatus}</small>`;
+      if (strategyVersion === 'V3') {
+        if (hasDataIssue) {
+          signalDisplay = '数据不足';
+        } else if (signal.vwapDirectionConsistent !== undefined && marketType !== '震荡市') {
+          const vwapStatus = signal.vwapDirectionConsistent ? '✅' : '❌';
+          signalDisplay = `${signal.signal || '--'}<br><small style="color: #666;">VWAP: ${vwapStatus}</small>`;
+        } else if (marketType === '震荡市') {
+          signalDisplay = '--'; // 震荡市不显示1H加强趋势
+        }
       }
 
       // 构建15分钟信号列显示
