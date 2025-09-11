@@ -84,10 +84,10 @@ describe('Delta实时计算测试', () => {
   describe('Delta数据管理测试', () => {
     test('应该正确启动和停止Delta管理器', async () => {
       const symbols = ['BTCUSDT', 'ETHUSDT'];
-      
+
       await deltaManager.start(symbols);
       expect(deltaManager.isRunning).toBe(true);
-      
+
       deltaManager.stop();
       expect(deltaManager.isRunning).toBe(false);
     });
@@ -103,7 +103,7 @@ describe('Delta实时计算测试', () => {
 
       deltaManager.processTrade(symbol, trade);
       const deltaData = deltaManager.getDeltaData(symbol, 'realtime');
-      
+
       expect(deltaData).toBeDefined();
       expect(deltaData.deltaBuy).toBe(100);
       expect(deltaData.deltaSell).toBe(0);
@@ -111,7 +111,7 @@ describe('Delta实时计算测试', () => {
 
     test('应该正确获取不同时间级别的Delta数据', () => {
       const symbol = 'BTCUSDT';
-      
+
       // 模拟设置Delta数据
       const deltaData = deltaManager.deltaData.get(symbol);
       if (deltaData) {
@@ -132,7 +132,7 @@ describe('Delta实时计算测试', () => {
   describe('时间级别处理测试', () => {
     test('应该正确处理15分钟Delta聚合', () => {
       const symbol = 'BTCUSDT';
-      
+
       // 模拟交易数据
       const now = Date.now();
       const trades = [
@@ -140,17 +140,17 @@ describe('Delta实时计算测试', () => {
         { T: now - 5 * 60 * 1000, q: '50', maker: true },
         { T: now - 2 * 60 * 1000, q: '200', maker: false }
       ];
-      
+
       deltaManager.trades.set(symbol, trades);
       deltaManager.process15mDelta(symbol);
-      
+
       const deltaData = deltaManager.getDeltaData(symbol, '15m');
       expect(deltaData).toBeDefined();
     });
 
     test('应该正确处理1小时Delta聚合', () => {
       const symbol = 'BTCUSDT';
-      
+
       // 模拟交易数据
       const now = Date.now();
       const trades = [
@@ -158,10 +158,10 @@ describe('Delta实时计算测试', () => {
         { T: now - 15 * 60 * 1000, q: '50', maker: true },
         { T: now - 5 * 60 * 1000, q: '200', maker: false }
       ];
-      
+
       deltaManager.trades.set(symbol, trades);
       deltaManager.process1hDelta(symbol);
-      
+
       const deltaData = deltaManager.getDeltaData(symbol, '1h');
       expect(deltaData).toBeDefined();
     });
@@ -171,12 +171,12 @@ describe('Delta实时计算测试', () => {
     test('应该正确获取Delta统计信息', async () => {
       const symbols = ['BTCUSDT', 'ETHUSDT'];
       await deltaManager.start(symbols);
-      
+
       const stats = deltaManager.getStats();
       expect(stats.totalSymbols).toBe(2);
       expect(stats.activeConnections).toBe(2);
       expect(stats.symbols).toHaveLength(2);
-      
+
       deltaManager.stop();
     });
   });
@@ -206,7 +206,7 @@ describe('Delta实时计算测试', () => {
     test('应该高效处理大量交易数据', () => {
       const symbol = 'BTCUSDT';
       const trades = [];
-      
+
       // 生成1000个模拟交易
       for (let i = 0; i < 1000; i++) {
         trades.push({
@@ -216,13 +216,13 @@ describe('Delta实时计算测试', () => {
           m: Math.random() > 0.5
         });
       }
-      
+
       deltaManager.trades.set(symbol, trades);
-      
+
       const startTime = Date.now();
       deltaManager.process15mDelta(symbol);
       const endTime = Date.now();
-      
+
       expect(endTime - startTime).toBeLessThan(100); // 应该在100ms内完成
     });
   });

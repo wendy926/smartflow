@@ -23,8 +23,8 @@ class MemoryOptimizedManager {
       activeSimulations: 1 * 60 * 1000,    // 1分钟
     };
 
-    // 启动定期清理
-    this.startMemoryCleanup();
+    // 定时器ID存储
+    this.memoryCleanupTimer = null;
   }
 
   /**
@@ -235,11 +235,24 @@ class MemoryOptimizedManager {
    * 启动定期内存清理
    */
   startMemoryCleanup() {
+    // 清理现有定时器
+    this.stopMemoryCleanup();
+    
     // 每5分钟清理一次过期数据
-    setInterval(() => {
+    this.memoryCleanupTimer = setInterval(() => {
       this.cleanExpiredData();
       console.log(`🧹 内存清理完成 - 聚合指标: ${this.aggregatedMetrics.size}, 全局统计: ${this.globalStats.size}, 活跃交易: ${this.activeSimulations.size}`);
     }, 5 * 60 * 1000);
+  }
+
+  /**
+   * 停止内存清理定时器
+   */
+  stopMemoryCleanup() {
+    if (this.memoryCleanupTimer) {
+      clearInterval(this.memoryCleanupTimer);
+      this.memoryCleanupTimer = null;
+    }
   }
 
   /**

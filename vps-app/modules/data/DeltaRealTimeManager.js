@@ -19,8 +19,9 @@ class DeltaRealTimeManager {
     this.delta1h = new Map(); // 1小时Delta数据
     this.ema1hPeriod = 6; // EMA(6)平滑
     
-    // 启动定时器
-    this.startTimers();
+    // 定时器ID存储
+    this.timer15m = null;
+    this.timer1h = null;
   }
 
   /**
@@ -30,6 +31,9 @@ class DeltaRealTimeManager {
   async start(symbols) {
     this.isRunning = true;
     console.log(`🚀 启动Delta实时计算管理器，监控 ${symbols.length} 个交易对`);
+    
+    // 启动定时器
+    this.startTimers();
     
     for (const symbol of symbols) {
       await this.startSymbolDelta(symbol);
@@ -43,7 +47,7 @@ class DeltaRealTimeManager {
   async startSymbolDelta(symbol) {
     try {
       const symbolLower = symbol.toLowerCase();
-      
+
       // 初始化Delta数据
       this.deltaData.set(symbol, {
         deltaBuy: 0,
@@ -61,7 +65,7 @@ class DeltaRealTimeManager {
 
       // 连接aggTrade WebSocket
       const tradeWs = new WebSocket(`wss://fstream.binance.com/ws/${symbolLower}@aggTrade`);
-      
+
       tradeWs.on('open', () => {
         console.log(`📊 Delta WebSocket已连接: ${symbol}`);
       });
@@ -103,7 +107,7 @@ class DeltaRealTimeManager {
    */
   processTrade(symbol, trade) {
     const trades = this.trades.get(symbol) || [];
-    
+
     // 添加交易记录
     trades.push({
       T: trade.T,  // 成交时间
@@ -131,7 +135,7 @@ class DeltaRealTimeManager {
     if (!deltaData) return;
 
     const quantity = parseFloat(trade.q);
-    
+
     if (trade.m) {
       // maker = true 表示买方被动成交 → 主动卖单
       deltaData.deltaSell += quantity;
@@ -247,8 +251,11 @@ class DeltaRealTimeManager {
    * 启动定时器
    */
   startTimers() {
+    // 清理现有定时器
+    this.stopTimers();
+    
     // 15分钟Delta聚合定时器
-    setInterval(() => {
+    this.timer15m = setInterval(() => {
       if (this.isRunning) {
         for (const symbol of this.deltaData.keys()) {
           this.process15mDelta(symbol);
@@ -257,13 +264,27 @@ class DeltaRealTimeManager {
     }, 15 * 60 * 1000); // 每15分钟
 
     // 1小时Delta聚合定时器
-    setInterval(() => {
+    this.timer1h = setInterval(() => {
       if (this.isRunning) {
         for (const symbol of this.deltaData.keys()) {
           this.process1hDelta(symbol);
         }
       }
     }, 60 * 60 * 1000); // 每1小时
+  }
+
+  /**
+   * 停止定时器
+   */
+  stopTimers() {
+    if (this.timer15m) {
+      clearInterval(this.timer15m);
+      this.timer15m = null;
+    }
+    if (this.timer1h) {
+      clearInterval(this.timer1h);
+      this.timer1h = null;
+    }
   }
 
   /**
@@ -303,6 +324,9 @@ class DeltaRealTimeManager {
    */
   stop() {
     this.isRunning = false;
+    
+    // 停止定时器
+    this.stopTimers();
     
     // 关闭所有WebSocket连接
     for (const [symbol, ws] of this.connections) {

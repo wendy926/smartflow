@@ -25,11 +25,11 @@ describe('Delta集成测试', () => {
     deltaManager = new DeltaRealTimeManager();
     strategyCore = new StrategyV3Core();
     strategyExecution = new StrategyV3Execution();
-    
+
     // 设置dataMonitor引用
     strategyCore.dataMonitor = { recordIndicator: jest.fn() };
     strategyExecution.dataMonitor = { recordIndicator: jest.fn() };
-    
+
     // 重置mock
     jest.clearAllMocks();
   });
@@ -43,7 +43,7 @@ describe('Delta集成测试', () => {
   describe('StrategyV3Core Delta集成测试', () => {
     test('analyze1HScoring应该使用实时Delta数据', async () => {
       const symbol = 'BTCUSDT';
-      
+
       // 模拟Delta数据
       const deltaData = {
         delta: 0.5,
@@ -70,14 +70,14 @@ describe('Delta集成测试', () => {
       ]);
 
       const result = await strategyCore.analyze1HScoring(symbol, '多头趋势', deltaManager);
-      
+
       expect(result).toBeDefined();
       expect(result.deltaImbalance).toBe(0.5);
     });
 
     test('analyzeRangeBoundary应该使用实时Delta数据', async () => {
       const symbol = 'BTCUSDT';
-      
+
       // 模拟Delta数据
       deltaManager.deltaData.set(symbol, {
         deltaBuy: 100,
@@ -99,7 +99,7 @@ describe('Delta集成测试', () => {
       ]);
 
       const result = await strategyCore.analyzeRangeBoundary(symbol, deltaManager);
-      
+
       expect(result).toBeDefined();
       expect(result.delta).toBe(0.5);
     });
@@ -108,7 +108,7 @@ describe('Delta集成测试', () => {
   describe('StrategyV3Execution Delta集成测试', () => {
     test('getMultiFactorData应该使用实时Delta数据', async () => {
       const symbol = 'BTCUSDT';
-      
+
       // 模拟Delta数据
       deltaManager.deltaData.set(symbol, {
         deltaBuy: 100,
@@ -131,14 +131,14 @@ describe('Delta集成测试', () => {
       ]);
 
       const result = await strategyExecution.getMultiFactorData(symbol, 50500, deltaManager);
-      
+
       expect(result).toBeDefined();
       expect(result.delta).toBe(0.3); // 15分钟Delta
     });
 
     test('analyzeRangeExecution应该使用实时Delta数据', async () => {
       const symbol = 'BTCUSDT';
-      
+
       // 模拟Delta数据
       deltaManager.deltaData.set(symbol, {
         deltaBuy: 100,
@@ -184,13 +184,13 @@ describe('Delta集成测试', () => {
       ]);
 
       const result = await strategyExecution.analyzeRangeExecution(
-        symbol, 
-        rangeResult, 
-        candles15m, 
-        candles1h, 
+        symbol,
+        rangeResult,
+        candles15m,
+        candles1h,
         deltaManager
       );
-      
+
       expect(result).toBeDefined();
     });
   });
@@ -198,7 +198,7 @@ describe('Delta集成测试', () => {
   describe('Delta降级测试', () => {
     test('当Delta管理器不可用时应该降级到传统计算', async () => {
       const symbol = 'BTCUSDT';
-      
+
       // Mock API调用
       BinanceAPI.getKlines.mockResolvedValue([
         [Date.now(), '50000', '51000', '49000', '50500', '1000'],
@@ -212,7 +212,7 @@ describe('Delta集成测试', () => {
 
       // 不传入deltaManager，应该降级到传统计算
       const result = await strategyCore.analyze1HScoring(symbol, '多头趋势');
-      
+
       expect(result).toBeDefined();
       expect(result.deltaImbalance).toBeDefined();
     });
@@ -221,7 +221,7 @@ describe('Delta集成测试', () => {
   describe('Delta数据一致性测试', () => {
     test('不同时间级别的Delta数据应该保持一致', async () => {
       const symbol = 'BTCUSDT';
-      
+
       // 模拟Delta数据
       deltaManager.deltaData.set(symbol, {
         deltaBuy: 100,
@@ -245,20 +245,20 @@ describe('Delta集成测试', () => {
   describe('性能测试', () => {
     test('应该高效处理多个交易对的Delta计算', async () => {
       const symbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT'];
-      
+
       await deltaManager.start(symbols);
-      
+
       const startTime = Date.now();
-      
+
       // 模拟处理多个交易对
       for (const symbol of symbols) {
         const deltaData = deltaManager.getDeltaData(symbol, '15m');
         expect(deltaData).toBeDefined();
       }
-      
+
       const endTime = Date.now();
       expect(endTime - startTime).toBeLessThan(50); // 应该在50ms内完成
-      
+
       deltaManager.stop();
     });
   });

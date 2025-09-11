@@ -19,8 +19,8 @@ class DataMonitor {
     this.alertCooldown = 30 * 60 * 1000; // 30分钟冷却时间
     this.refreshInterval = 30000; // 30秒
 
-    // 启动定期清理
-    this.startMemoryCleanup();
+    // 定时器ID存储
+    this.memoryCleanupTimer = null;
   }
 
   /**
@@ -959,10 +959,21 @@ class DataMonitor {
 
   // 启动定期内存清理
   startMemoryCleanup() {
+    // 清理现有定时器
+    this.stopMemoryCleanup();
+    
     // 每5分钟清理一次内存
-    setInterval(() => {
+    this.memoryCleanupTimer = setInterval(() => {
       this.clearOldLogs();
     }, 5 * 60 * 1000);
+  }
+
+  // 停止内存清理定时器
+  stopMemoryCleanup() {
+    if (this.memoryCleanupTimer) {
+      clearInterval(this.memoryCleanupTimer);
+      this.memoryCleanupTimer = null;
+    }
   }
 
   // 限制交易对数量

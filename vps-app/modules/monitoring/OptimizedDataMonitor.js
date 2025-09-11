@@ -43,8 +43,8 @@ class OptimizedDataMonitor {
     
     this.refreshInterval = 30000; // 30秒
     
-    // 启动定期清理
-    this.startMemoryCleanup();
+    // 定时器ID存储
+    this.memoryCleanupTimer = null;
   }
 
   /**
@@ -174,11 +174,24 @@ class OptimizedDataMonitor {
    * 启动内存清理
    */
   startMemoryCleanup() {
+    // 清理现有定时器
+    this.stopMemoryCleanup();
+    
     // 每10分钟清理一次过期数据
-    setInterval(() => {
+    this.memoryCleanupTimer = setInterval(() => {
       this.limitMemoryUsage();
       console.log(`🧹 数据监控内存清理完成 - 交易对: ${this.symbolStats.size}, 日志: ${this.analysisLogs.size}, 问题: ${this.dataQualityIssues.size}`);
     }, 10 * 60 * 1000);
+  }
+
+  /**
+   * 停止内存清理定时器
+   */
+  stopMemoryCleanup() {
+    if (this.memoryCleanupTimer) {
+      clearInterval(this.memoryCleanupTimer);
+      this.memoryCleanupTimer = null;
+    }
   }
 
   /**
