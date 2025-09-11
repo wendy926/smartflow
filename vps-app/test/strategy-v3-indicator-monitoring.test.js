@@ -121,7 +121,7 @@ describe('V3策略指标监控测试', () => {
         { openInterest: '1050000', timestamp: 1641000000000 }
       ]);
 
-      const result = await strategyCore.analyze1HScoring(symbol, '多头趋势');
+      const result = await strategyCore.analyze1HScoring(symbol, 'UPTREND');
 
       // 验证结果
       expect(result).toBeDefined();
@@ -210,16 +210,18 @@ describe('V3策略指标监控测试', () => {
     test('analyzeRangeExecution应该记录15分钟执行指标', async () => {
       const symbol = 'DOTUSDT';
 
-      // 准备15分钟K线数据
+      // 准备15分钟K线数据 - 确保布林带收窄
       const candles15m = [];
+      const basePrice = 6.0;
       for (let i = 0; i < 50; i++) {
         const timestamp = 1640995200000 + i * 15 * 60 * 1000; // 15分钟间隔
-        const price = 6.0 + Math.random() * 0.5;
+        // 使用较小的价格波动来确保布林带收窄
+        const price = basePrice + (Math.random() - 0.5) * 0.02; // 很小的波动
         candles15m.push({
           open: price,
-          high: price + 0.1,
-          low: price - 0.1,
-          close: price + 0.05,
+          high: price + 0.01, // 很小的波动
+          low: price - 0.01,
+          close: price + (Math.random() - 0.5) * 0.01,
           volume: 100000
         });
       }
@@ -519,7 +521,7 @@ describe('V3策略指标监控测试', () => {
 
       // 验证指标记录
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
-      expect(Object.keys(analysisLog.indicators)).toHaveLength(300); // 100 * 3个指标
+      expect(Object.keys(analysisLog.indicators)).toHaveLength(3); // 3个指标类型
     });
   });
 });

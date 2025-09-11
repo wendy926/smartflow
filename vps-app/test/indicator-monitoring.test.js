@@ -225,8 +225,9 @@ describe('指标监控系统测试', () => {
       const monitoringData = dataMonitor.getMonitoringDashboard();
       
       // 检查是否有数据验证错误
-      expect(monitoringData.dataValidationErrors).toBeDefined();
-      expect(monitoringData.dataValidationErrors.length).toBeGreaterThan(0);
+      expect(monitoringData.summary.dataValidation).toBeDefined();
+      expect(monitoringData.summary.dataValidation.errors).toBeDefined();
+      expect(monitoringData.summary.dataValidation.errors.length).toBeGreaterThan(0);
     });
 
     test('应该记录指标计算成功率', () => {
@@ -257,8 +258,8 @@ describe('指标监控系统测试', () => {
       const monitoringData = dataMonitor.getMonitoringDashboard();
       
       // 检查数据验证状态
-      expect(monitoringData.dataValidationStatus).toBeDefined();
-      expect(monitoringData.dataValidationStatus.totalSymbols).toBe(3);
+      expect(monitoringData.summary.dataValidation).toBeDefined();
+      expect(monitoringData.summary.totalSymbols).toBe(3);
     });
   });
 
