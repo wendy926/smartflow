@@ -256,6 +256,9 @@ describe('V3策略指标监控测试', () => {
   describe('StrategyV3Execution指标监控测试', () => {
     test('analyzeRangeExecution应该记录15分钟执行指标', async () => {
       const symbol = 'DOTUSDT';
+      
+      // 简化调试，直接输出到stderr避免Jest干扰
+      const debugLog = (...args) => process.stderr.write(args.join(' ') + '\n');
 
       // 准备15分钟K线数据 - 确保布林带收窄
       const candles15m = [];
