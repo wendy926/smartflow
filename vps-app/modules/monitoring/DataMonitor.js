@@ -241,7 +241,7 @@ class DataMonitor {
       const isDataSufficient = analysisResult.phases?.dataCollection?.success || 
                               (analysisResult.success && !analysisResult.reason?.includes('数据不足'));                                                                           
       const isAnalysisSuccessful = analysisResult.phases?.signalAnalysis?.success || 
-                                  (analysisResult.success && (analysisResult.trend4h || analysisResult.signal || analysisResult.execution));
+                                  !!analysisResult.success;
       
       // 确保布尔值判断正确
       const dataSufficient = Boolean(isDataSufficient);
