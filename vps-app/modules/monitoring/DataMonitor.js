@@ -221,7 +221,6 @@ class DataMonitor {
     
     stats.indicators[indicatorType] = {
       data,
-      executionTime: calculationTime,
       calculationTime,
       timestamp: Date.now(),
       success: !data.error
