@@ -18,6 +18,7 @@ class SmartAPIRateLimiter {
     this.cache = new DataCache();
     this.queue = [];
     this.processing = false;
+    this.cleanupTimer = null; // 存储定时器ID
   }
 
   setSymbolPriority(symbol, priority = 1) {
@@ -187,9 +188,20 @@ class SmartAPIRateLimiter {
 
   // 定期清理过期的使用记录
   startCleanup() {
-    setInterval(() => {
+    // 清理现有定时器
+    this.stopCleanup();
+    
+    this.cleanupTimer = setInterval(() => {
       this.cleanupExpiredUsage();
     }, 5 * 60 * 1000); // 每5分钟清理一次
+  }
+
+  // 停止清理定时器
+  stopCleanup() {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
   }
 
   cleanupExpiredUsage() {

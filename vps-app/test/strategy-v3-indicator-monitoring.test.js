@@ -41,6 +41,9 @@ describe('V3策略指标监控测试', () => {
 
   afterEach(() => {
     dataMonitor.reset();
+    // 清理BinanceAPI的定时器
+    const BinanceAPI = require('../modules/api/BinanceAPI');
+    BinanceAPI.stopCleanup();
   });
 
   describe('StrategyV3Core指标监控测试', () => {

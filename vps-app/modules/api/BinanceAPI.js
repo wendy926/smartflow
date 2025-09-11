@@ -14,6 +14,11 @@ class BinanceAPI {
     this.rateLimiter.startCleanup();
   }
 
+  // 停止RateLimiter的清理机制
+  static stopCleanup() {
+    this.rateLimiter.stopCleanup();
+  }
+
   static async getKlines(symbol, interval, limit = 500) {
     const endpoint = '/fapi/v1/klines';
     const params = new URLSearchParams({

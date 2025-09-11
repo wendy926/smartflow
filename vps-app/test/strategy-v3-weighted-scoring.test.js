@@ -57,6 +57,9 @@ describe('策略V3分类权重打分测试', () => {
     if (mockDatabase) {
       mockDatabase = null;
     }
+    // 清理BinanceAPI的定时器
+    const BinanceAPI = require('../modules/api/BinanceAPI');
+    BinanceAPI.stopCleanup();
   });
 
   describe('StrategyV3Core - analyze1HScoring', () => {
