@@ -78,7 +78,13 @@ describe('V3策略指标监控测试', () => {
       const symbol = 'ETHUSDT';
 
       // 捕获console.log输出
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => { });
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation((...args) => {
+        // 只输出我们关心的调试信息
+        if (args[0] && typeof args[0] === 'string' && 
+            (args[0].includes('测试数据验证') || args[0].includes('警告') || args[0].includes('调整'))) {
+          console.log(...args);
+        }
+      });
 
       // Mock API响应 - 提供足够的数据，确保VWAP方向一致性
       const mockKlines1h = [];
