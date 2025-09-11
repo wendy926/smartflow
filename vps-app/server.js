@@ -93,7 +93,7 @@ class SmartFlowServer {
     });
 
     // 获取所有信号 - V3策略（添加缓存）
-    this.app.get('/api/signals', this.cacheMiddleware.cacheGet('signals', 60), async (req, res) => {
+    this.app.get('/api/signals', this.cacheMiddleware ? this.cacheMiddleware.cacheGet('signals', 60) : (req, res, next) => next(), async (req, res) => {
       try {
         const symbols = await this.db.getCustomSymbols();
         const signals = [];
