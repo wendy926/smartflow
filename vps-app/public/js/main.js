@@ -447,8 +447,8 @@ class SmartFlowApp {
                     ${executionDisplay}
                 </td>
                 <td>${priceDisplay}</td>
-                <td class="${dataCollectionClass}" title="数据采集成功率: ${dataCollectionRate.toFixed(1)}%">
-                    ${dataCollectionRate.toFixed(1)}%
+                <td class="${dataCollectionClass}" title="数据采集成功率: ${dataCollectionRate.toFixed(2)}%">
+                    ${dataCollectionRate.toFixed(2)}%
                 </td>
             `;
 
@@ -1135,7 +1135,7 @@ async function loadFullSignalDetails(contentDiv, symbol, signalData) {
         <h5>📊 数据采集状态</h5>
         <div class="data-collection-item">
           <span class="label">数据采集率:</span>
-          <span class="value ${statusClass}">${signalData.dataCollectionRate.toFixed(1)}%</span>
+          <span class="value ${statusClass}">${signalData.dataCollectionRate.toFixed(2)}%</span>
         </div>
       </div>
     `;
@@ -1232,7 +1232,7 @@ async function showSignalDetails(symbol) {
           <h5>📊 数据采集状态</h5>
           <div class="data-collection-item">
             <span class="label">数据采集率:</span>
-            <span class="value ${statusClass}">${signalData.dataCollectionRate.toFixed(1)}%</span>
+            <span class="value ${statusClass}">${signalData.dataCollectionRate.toFixed(2)}%</span>
           </div>
         </div>
       `;
@@ -1448,7 +1448,7 @@ async function updateMonitoringPanel(data) {
               <span class="card-icon">📈</span>
               <div class="card-content">
                 <div class="card-title">数据收集率</div>
-                <div class="card-value" id="dataCollectionRate">${data.summary.completionRates.dataCollection.toFixed(1)}%</div>
+                <div class="card-value" id="dataCollectionRate">${data.summary.completionRates.dataCollection.toFixed(2)}%</div>
               </div>
             </div>
             <div class="overview-card">
@@ -1589,7 +1589,7 @@ async function refreshMonitoringData() {
     if (totalSymbolsEl) totalSymbolsEl.textContent = data.summary.totalSymbols;
     if (healthySymbolsEl) healthySymbolsEl.textContent = data.summary.healthySymbols;
     if (warningSymbolsEl) warningSymbolsEl.textContent = data.summary.warningSymbols;
-    if (dataCollectionRateEl) dataCollectionRateEl.textContent = data.summary.completionRates.dataCollection.toFixed(1) + '%';
+    if (dataCollectionRateEl) dataCollectionRateEl.textContent = data.summary.completionRates.dataCollection.toFixed(2) + '%';
     if (dataValidationStatusEl) {
       const validationStatus = data.summary.dataValidation?.hasErrors ?
         '⚠️ ' + data.summary.dataValidation.errorCount + ' 错误' : '✅ 正常';
@@ -1660,19 +1660,19 @@ function updateSummaryTable(data) {
           ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
         </td>
         <td>
-          <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
+          <div class="metric-rate">${symbol.dataCollection.rate.toFixed(2)}%</div>
           <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
         </td>
         <td>
-          <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
+          <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(2)}%</div>
           <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
         </td>
         <td>
-          <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
+          <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(2)}%</div>
           <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
         </td>
         <td>
-          <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(1)}%</div>
+          <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(2)}%</div>
           <div class="metric-details">${symbol.simulationProgress.inProgress}/${symbol.simulationProgress.triggers}</div>
         </td>
         <td>
@@ -1680,7 +1680,7 @@ function updateSummaryTable(data) {
         </td>
         <td>
           <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
-            ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(1)}%
+            ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(2)}%
           </span>
         </td>
       `;
@@ -1725,23 +1725,23 @@ function updateDetailedTable(data) {
         </td>
         <td>
           <div class="metric-detail">
-            <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
+            <div class="metric-rate">${symbol.dataCollection.rate.toFixed(2)}%</div>
             <div class="metric-info">成功: ${symbol.dataCollection.successes} | 尝试: ${symbol.dataCollection.attempts}</div>
             <div class="metric-time">最后: ${formatTime(symbol.dataCollection.lastTime)}</div>
           </div>
         </td>
         <td>
           <div class="metric-detail">
-            <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
+            <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(2)}%</div>
             <div class="metric-info">成功: ${symbol.signalAnalysis.successes} | 尝试: ${symbol.signalAnalysis.attempts}</div>
             <div class="metric-time">最后: ${formatTime(symbol.signalAnalysis.lastTime)}</div>
           </div>
         </td>
         <td>
           <div class="metric-detail">
-            <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
+            <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(2)}%</div>
             <div class="metric-info">完成: ${symbol.simulationCompletion.completions} | 触发: ${symbol.simulationCompletion.triggers}</div>
-            <div class="metric-rate">进行: ${symbol.simulationProgress.rate.toFixed(1)}%</div>
+            <div class="metric-rate">进行: ${symbol.simulationProgress.rate.toFixed(2)}%</div>
             <div class="metric-info">进行中: ${symbol.simulationProgress.inProgress} | 触发: ${symbol.simulationProgress.triggers}</div>
           </div>
         </td>
@@ -1776,7 +1776,7 @@ function updateDetailedTable(data) {
         <td>
           <div class="health-status">
             <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
-              ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(1)}%
+              ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(2)}%
             </span>
             <div class="health-details">
               <div>优先级: ${symbol.priorityScore}</div>
