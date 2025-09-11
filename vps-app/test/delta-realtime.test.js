@@ -270,7 +270,7 @@ describe('Delta实时计算测试', () => {
   describe('内存管理测试', () => {
     test('应该限制交易记录数量', () => {
       const symbol = 'BTCUSDT';
-      
+
       // 模拟大量交易数据
       for (let i = 0; i < 1500; i++) {
         deltaManager.processTrade(symbol, {
@@ -280,14 +280,14 @@ describe('Delta实时计算测试', () => {
           m: i % 2 === 0
         });
       }
-      
+
       const trades = deltaManager.trades.get(symbol) || [];
       expect(trades.length).toBeLessThanOrEqual(deltaManager.maxTradesPerSymbol);
     });
 
     test('应该清理过期数据', () => {
       const symbol = 'BTCUSDT';
-      
+
       // 添加一些交易数据
       deltaManager.processTrade(symbol, {
         T: Date.now() - 3 * 60 * 60 * 1000, // 3小时前
@@ -295,24 +295,24 @@ describe('Delta实时计算测试', () => {
         p: '50000',
         m: false
       });
-      
+
       deltaManager.processTrade(symbol, {
         T: Date.now(), // 现在
         q: '1.0',
         p: '50000',
         m: false
       });
-      
+
       // 执行内存清理
       deltaManager.cleanupMemory();
-      
+
       const trades = deltaManager.trades.get(symbol) || [];
       expect(trades.length).toBe(1); // 只保留最近的数据
     });
 
     test('应该提供内存使用统计', () => {
       const symbol = 'BTCUSDT';
-      
+
       // 初始化Delta数据
       deltaManager.deltaData.set(symbol, {
         deltaBuy: 0,
@@ -322,7 +322,7 @@ describe('Delta实时计算测试', () => {
         delta15m: 0,
         delta1h: 0
       });
-      
+
       // 添加一些数据
       deltaManager.processTrade(symbol, {
         T: Date.now(),
@@ -330,7 +330,7 @@ describe('Delta实时计算测试', () => {
         p: '50000',
         m: false
       });
-      
+
       const memoryUsage = deltaManager.getMemoryUsage();
       expect(memoryUsage.totalTrades).toBeGreaterThan(0);
       expect(memoryUsage.totalSymbols).toBe(1);
@@ -339,19 +339,19 @@ describe('Delta实时计算测试', () => {
 
     test('应该防止重复启动导致内存泄漏', async () => {
       const symbols = ['BTCUSDT'];
-      
+
       // 第一次启动
       await deltaManager.start(symbols);
       const firstTimer15m = deltaManager.timer15m;
       const firstTimer1h = deltaManager.timer1h;
-      
+
       // 第二次启动（应该先停止旧的）
       await deltaManager.start(symbols);
       expect(deltaManager.timer15m).toBeDefined();
       expect(deltaManager.timer1h).toBeDefined();
       expect(deltaManager.timer15m).not.toBe(firstTimer15m);
       expect(deltaManager.timer1h).not.toBe(firstTimer1h);
-      
+
       deltaManager.stop();
     });
   });

@@ -70,6 +70,9 @@ describe('V3策略指标监控测试', () => {
 
     test('analyze1HScoring应该记录1H多因子打分指标', async () => {
       const symbol = 'ETHUSDT';
+      
+      // 捕获console.log输出
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
       // Mock API响应 - 提供足够的数据，确保VWAP方向一致性
       const mockKlines1h = [];
@@ -77,13 +80,13 @@ describe('V3策略指标监控测试', () => {
       for (let i = 0; i < 50; i++) {
         const timestamp = 1640995200000 + i * 60 * 60 * 1000; // 1小时间隔
         // 使用稳定的递增价格确保收盘价始终高于VWAP
-        const price = basePrice + i * 20; // 每小时间隔20，确保递增
-        const closePrice = price + 10; // 收盘价总是比开盘价高10
+        const price = basePrice + i * 50; // 每小时间隔50，确保大幅递增
+        const closePrice = price + 20; // 收盘价总是比开盘价高20
         mockKlines1h.push([
           timestamp,
           price.toString(),
-          (closePrice + 5).toString(), // 最高价
-          (price - 5).toString(), // 最低价
+          (closePrice + 10).toString(), // 最高价
+          (price - 10).toString(), // 最低价
           closePrice.toString(), // 收盘价
           '1000' // 成交量
         ]);
@@ -124,6 +127,23 @@ describe('V3策略指标监控测试', () => {
         { openInterest: '1050000', timestamp: 1641000000000 }
       ]);
 
+      // 先手动计算VWAP来验证测试数据
+      const testCandles = mockKlines1h.slice(-20).map(k => ({
+        open: parseFloat(k[1]),
+        high: parseFloat(k[2]),
+        low: parseFloat(k[3]),
+        close: parseFloat(k[4]),
+        volume: parseFloat(k[5])
+      }));
+      const testVWAP = strategyCore.calculateVWAP(testCandles);
+      const lastClose = testCandles[testCandles.length - 1].close;
+      console.log('测试数据验证:', {
+        lastClose,
+        vwap: testVWAP,
+        vwapDirectionConsistent: lastClose > testVWAP,
+        candlesCount: testCandles.length
+      });
+
       const result = await strategyCore.analyze1HScoring(symbol, '多头趋势');
 
       // 验证结果
@@ -139,6 +159,9 @@ describe('V3策略指标监控测试', () => {
       expect(analysisLog.indicators['1H多因子打分'].data.score).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.allowEntry).toBeDefined();
       expect(analysisLog.indicators['1H多因子打分'].data.vwapDirectionConsistent).toBeDefined();
+      
+      // 恢复console.log
+      consoleSpy.mockRestore();
     });
 
     test('analyzeRangeBoundary应该记录震荡市1H边界判断指标', async () => {

@@ -35,18 +35,18 @@ class MemoryMonitor {
   checkMemory() {
     const usage = process.memoryUsage();
     const uptime = Date.now() - this.startTime;
-    
+
     console.log(`\n📊 内存使用情况 (运行时间: ${Math.round(uptime / 1000)}s)`);
     console.log(`  RSS: ${Math.round(usage.rss / 1024 / 1024)}MB`);
     console.log(`  Heap Used: ${Math.round(usage.heapUsed / 1024 / 1024)}MB`);
     console.log(`  Heap Total: ${Math.round(usage.heapTotal / 1024 / 1024)}MB`);
     console.log(`  External: ${Math.round(usage.external / 1024 / 1024)}MB`);
-    
+
     // 检查内存泄漏
     if (usage.heapUsed > 200 * 1024 * 1024) { // 200MB
       console.log('⚠️ 警告: 堆内存使用超过200MB');
     }
-    
+
     if (usage.rss > 500 * 1024 * 1024) { // 500MB
       console.log('⚠️ 警告: RSS内存使用超过500MB');
     }
@@ -96,17 +96,17 @@ class MemoryMonitor {
 // 如果直接运行此脚本
 if (require.main === module) {
   const monitor = new MemoryMonitor();
-  
+
   // 启动监控
   monitor.start(3000); // 每3秒检查一次
-  
+
   // 处理退出信号
   process.on('SIGINT', () => {
     console.log('\n🛑 收到退出信号');
     monitor.stop();
     process.exit(0);
   });
-  
+
   // 定期显示系统信息
   setInterval(() => {
     monitor.getSystemMemory().catch(console.error);

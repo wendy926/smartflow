@@ -16,7 +16,7 @@ describe('指标监控系统测试', () => {
     dataMonitor = new DataMonitor(null); // 传入null作为数据库参数
     strategyCore = new StrategyV3Core();
     strategyExecution = new StrategyV3Execution();
-    
+
     // 设置dataMonitor引用
     strategyCore.dataMonitor = dataMonitor;
     strategyExecution.dataMonitor = dataMonitor;
@@ -147,7 +147,7 @@ describe('指标监控系统测试', () => {
 
     test('应该支持多个指标记录', () => {
       const symbol = 'UNIUSDT';
-      
+
       // 记录多个指标
       dataMonitor.recordIndicator(symbol, '4H MA指标', { ma20: 10, ma50: 9, ma200: 8 }, 100);
       dataMonitor.recordIndicator(symbol, '1H多因子打分', { score: 3, allowEntry: true }, 150);
@@ -164,11 +164,11 @@ describe('指标监控系统测试', () => {
   describe('指标监控覆盖完整性测试', () => {
     test('应该覆盖所有时间级别的指标计算', () => {
       const symbol = 'TESTUSDT';
-      
+
       // 模拟完整的指标计算流程
       const indicators = [
         '4H MA指标',
-        '1H多因子打分', 
+        '1H多因子打分',
         '震荡市1H边界判断',
         '15分钟执行'
       ];
@@ -182,7 +182,7 @@ describe('指标监控系统测试', () => {
 
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       expect(Object.keys(analysisLog.indicators)).toHaveLength(4);
-      
+
       indicators.forEach(indicatorName => {
         expect(analysisLog.indicators[indicatorName]).toBeDefined();
       });
@@ -190,13 +190,13 @@ describe('指标监控系统测试', () => {
 
     test('应该记录指标计算时间统计', () => {
       const symbol = 'TESTUSDT';
-      
+
       dataMonitor.recordIndicator(symbol, '4H MA指标', { test: true }, 200);
       dataMonitor.recordIndicator(symbol, '1H多因子打分', { test: true }, 150);
       dataMonitor.recordIndicator(symbol, '15分钟执行', { test: true }, 100);
 
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
-      
+
       expect(analysisLog.indicators['4H MA指标'].calculationTime).toBe(200);
       expect(analysisLog.indicators['1H多因子打分'].calculationTime).toBe(150);
       expect(analysisLog.indicators['15分钟执行'].calculationTime).toBe(100);
@@ -204,9 +204,9 @@ describe('指标监控系统测试', () => {
   });
 
   describe('指标监控告警测试', () => {
-    test('应该检测指标计算失败并生成告警', () => {
+    test('应该检测指标计算失败并生成告警', async () => {
       const symbol = 'ERRORUSDT';
-      
+
       // 记录失败的指标计算
       dataMonitor.recordIndicator(symbol, '4H MA指标', {
         ma20: 0,
@@ -223,16 +223,16 @@ describe('指标监控系统测试', () => {
 
       // 获取监控数据
       const monitoringData = await dataMonitor.getMonitoringDashboard();
-      
+
       // 检查是否有数据验证错误
       expect(monitoringData.summary.dataValidation).toBeDefined();
       expect(monitoringData.summary.dataValidation.errors).toBeDefined();
       expect(monitoringData.summary.dataValidation.errors.length).toBeGreaterThan(0);
     });
 
-    test('应该记录指标计算成功率', () => {
+    test('应该记录指标计算成功率', async () => {
       const symbols = ['BTCUSDT', 'ETHUSDT', 'ADAUSDT'];
-      
+
       symbols.forEach((symbol, index) => {
         // 成功案例
         dataMonitor.recordIndicator(symbol, '4H MA指标', {
@@ -240,7 +240,7 @@ describe('指标监控系统测试', () => {
           ma50: 48000 + index * 1000,
           ma200: 45000 + index * 1000
         }, 100 + index * 10);
-        
+
         // 失败案例（只有第一个交易对）
         if (index === 0) {
           dataMonitor.recordIndicator(symbol, '1H多因子打分', {
@@ -256,7 +256,7 @@ describe('指标监控系统测试', () => {
       });
 
       const monitoringData = await dataMonitor.getMonitoringDashboard();
-      
+
       // 检查数据验证状态
       expect(monitoringData.summary.dataValidation).toBeDefined();
       expect(monitoringData.summary.totalSymbols).toBe(3);
@@ -267,7 +267,7 @@ describe('指标监控系统测试', () => {
     test('应该高效处理大量指标记录', () => {
       const symbol = 'PERFUSDT';
       const startTime = Date.now();
-      
+
       // 记录1000个指标
       for (let i = 0; i < 1000; i++) {
         dataMonitor.recordIndicator(symbol, `指标${i}`, {
@@ -275,20 +275,20 @@ describe('指标监控系统测试', () => {
           timestamp: Date.now()
         }, Math.random() * 100);
       }
-      
+
       const endTime = Date.now();
       const executionTime = endTime - startTime;
-      
+
       // 应该在合理时间内完成（小于1秒）
       expect(executionTime).toBeLessThan(1000);
-      
+
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       expect(Object.keys(analysisLog.indicators)).toHaveLength(1000);
     });
 
     test('应该限制内存使用', () => {
       const symbols = Array.from({ length: 100 }, (_, i) => `SYMBOL${i}USDT`);
-      
+
       symbols.forEach(symbol => {
         dataMonitor.recordIndicator(symbol, '测试指标', {
           data: 'test data',
@@ -305,7 +305,7 @@ describe('指标监控系统测试', () => {
   describe('指标监控数据验证测试', () => {
     test('应该验证指标数据的完整性', () => {
       const symbol = 'VALIDUSDT';
-      
+
       // 记录完整的指标数据
       const completeData = {
         ma20: 50000,
@@ -322,7 +322,7 @@ describe('指标监控系统测试', () => {
 
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       const indicator = analysisLog.indicators['4H MA指标'];
-      
+
       // 验证必要字段
       expect(indicator.data.ma20).toBeDefined();
       expect(indicator.data.ma50).toBeDefined();
@@ -334,7 +334,7 @@ describe('指标监控系统测试', () => {
 
     test('应该处理无效的指标数据', () => {
       const symbol = 'INVALIDUSDT';
-      
+
       // 记录无效数据
       dataMonitor.recordIndicator(symbol, '4H MA指标', {
         ma20: null,
@@ -344,7 +344,7 @@ describe('指标监控系统测试', () => {
 
       const analysisLog = dataMonitor.getAnalysisLog(symbol);
       const indicator = analysisLog.indicators['4H MA指标'];
-      
+
       // 应该仍然记录数据，但标记为无效
       expect(indicator).toBeDefined();
       expect(indicator.data.ma20).toBeNull();

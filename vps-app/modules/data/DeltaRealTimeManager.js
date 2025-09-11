@@ -10,21 +10,21 @@ class DeltaRealTimeManager {
     this.connections = new Map(); // 存储WebSocket连接
     this.trades = new Map(); // 存储原始交易数据
     this.isRunning = false;
-    
+
     // 15分钟Delta平滑配置
     this.delta15m = new Map(); // 15分钟Delta数据
     this.ema15mPeriod = 3; // EMA(3)平滑
-    
+
     // 1小时Delta平滑配置
     this.delta1h = new Map(); // 1小时Delta数据
     this.ema1hPeriod = 6; // EMA(6)平滑
-    
+
     // 定时器ID存储
     this.timer15m = null;
     this.timer1h = null;
     this.cleanupInterval = null; // 内存清理定时器
     this.reconnectTimeouts = new Map(); // 重连定时器存储
-    
+
     // 内存管理配置
     this.maxTradesPerSymbol = 1000; // 每个交易对最多保留1000条交易记录
     this.maxHistoryPeriods = 20; // 最多保留20个历史周期
@@ -40,16 +40,16 @@ class DeltaRealTimeManager {
       console.log('⚠️ Delta管理器已在运行，先停止旧实例');
       this.stop();
     }
-    
+
     this.isRunning = true;
     console.log(`🚀 启动Delta实时计算管理器，监控 ${symbols.length} 个交易对`);
-    
+
     // 启动定时器
     this.startTimers();
-    
+
     // 启动内存清理定时器
     this.startMemoryCleanup();
-    
+
     for (const symbol of symbols) {
       await this.startSymbolDelta(symbol);
     }
@@ -109,7 +109,7 @@ class DeltaRealTimeManager {
         console.log(`Delta WebSocket已断开: ${symbol}, code: ${code}, reason: ${reason}`);
         // 从连接映射中移除
         this.connections.delete(symbol);
-        
+
         // 只有在管理器仍在运行且不是主动关闭时才重连
         if (this.isRunning && code !== 1000) {
           console.log(`🔄 5秒后重连: ${symbol}`);
@@ -297,7 +297,7 @@ class DeltaRealTimeManager {
   startTimers() {
     // 清理现有定时器
     this.stopTimers();
-    
+
     // 15分钟Delta聚合定时器
     this.timer15m = setInterval(() => {
       if (this.isRunning) {
@@ -365,7 +365,7 @@ class DeltaRealTimeManager {
       const cutoff = now - 2 * 60 * 60 * 1000; // 2小时前
       const originalLength = trades.length;
       const filteredTrades = trades.filter(t => t.T >= cutoff);
-      
+
       if (filteredTrades.length !== originalLength) {
         this.trades.set(symbol, filteredTrades);
         totalTradesRemoved += (originalLength - filteredTrades.length);
@@ -426,10 +426,10 @@ class DeltaRealTimeManager {
    */
   stop() {
     this.isRunning = false;
-    
+
     // 停止定时器
     this.stopTimers();
-    
+
     // 关闭所有WebSocket连接
     for (const [symbol, ws] of this.connections) {
       try {
@@ -438,14 +438,14 @@ class DeltaRealTimeManager {
         console.error(`关闭WebSocket失败 ${symbol}:`, error);
       }
     }
-    
+
     // 清理所有数据
     this.connections.clear();
     this.deltaData.clear();
     this.delta15m.clear();
     this.delta1h.clear();
     this.trades.clear();
-    
+
     console.log('Delta实时计算管理器已停止');
   }
 
@@ -465,7 +465,7 @@ class DeltaRealTimeManager {
       const trades = this.trades.get(symbol) || [];
       const delta15mArray = this.delta15m.get(symbol) || [];
       const delta1hArray = this.delta1h.get(symbol) || [];
-      
+
       stats.symbols.push({
         symbol,
         deltaBuy: data.deltaBuy,
