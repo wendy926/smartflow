@@ -298,7 +298,7 @@ describe('V3策略指标监控测试', () => {
       }, candles15m, candles1h);
 
       // 先手动计算布林带宽度来验证测试数据
-      const bb1h = strategyExecution.calculateBollingerBands(candles1h.slice(-20), 20, 2);
+      const bb1h = strategyCore.calculateBollingerBands(candles1h.slice(-20), 20, 2);
       const bbWidth = (bb1h.upper[bb1h.upper.length - 1] - bb1h.lower[bb1h.lower.length - 1]) / bb1h.middle[bb1h.middle.length - 1];
       debugLog('布林带收窄检查:', {
         bbWidth,
