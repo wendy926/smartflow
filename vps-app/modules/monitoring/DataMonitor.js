@@ -247,18 +247,6 @@ class DataMonitor {
       const dataSufficient = Boolean(isDataSufficient);
       const analysisSuccessful = Boolean(isAnalysisSuccessful);
       
-      // 调试日志
-      console.log(`📊 ${symbol} 分析结果:`, {
-        success: analysisResult.success,
-        reason: analysisResult.reason,
-        isDataSufficient,
-        isAnalysisSuccessful,
-        dataSufficient,
-        analysisSuccessful,
-        dataCollectionAttempts: stats.dataCollectionAttempts,
-        dataCollectionSuccesses: stats.dataCollectionSuccesses
-      });
-      
       if (dataSufficient) {
         stats.dataCollectionSuccesses++;
         stats.lastDataCollectionTime = Date.now();
@@ -271,6 +259,18 @@ class DataMonitor {
         stats.simulationCompletions++;
         stats.lastSimulationTime = Date.now();
       }
+      
+      // 调试日志 - 放在增加成功次数之后
+      console.log(`📊 ${symbol} 分析结果:`, {
+        success: analysisResult.success,
+        reason: analysisResult.reason,
+        isDataSufficient,
+        isAnalysisSuccessful,
+        dataSufficient,
+        analysisSuccessful,
+        dataCollectionAttempts: stats.dataCollectionAttempts,
+        dataCollectionSuccesses: stats.dataCollectionSuccesses
+      });
       
       // 重新计算完成率
       this.calculateCompletionRates();
