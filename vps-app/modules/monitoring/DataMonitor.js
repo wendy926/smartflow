@@ -7,10 +7,10 @@ class DataMonitor {
   constructor(database = null) {
     this.database = database; // 数据库引用
     this.validationSystem = new DataValidationSystem(database); // 数据验证系统
-    
+
     // 初始化数据
     this.reset();
-    
+
     // 只保留最近15分钟的数据在内存中
     this.memoryRetentionMs = 15 * 60 * 1000; // 15分钟
     this.symbolStats = new Map(); // 只保留实时统计
@@ -44,12 +44,12 @@ class DataMonitor {
       signalAnalysis: 95, // 降低阈值，95%以上认为正常
       simulationTrading: 90 // 降低阈值，90%以上认为正常
     };
-    
+
     // 清空内存数据
     this.symbolStats = new Map();
     this.lastRefreshTime = new Map();
     this.lastAlertTime = new Map();
-    
+
     console.log('🔄 DataMonitor 数据已重置');
   }
 
@@ -244,24 +244,24 @@ class DataMonitor {
    */
   recordAnalysisLog(symbol, analysisResult) {
     // 分析日志不再存储在内存中，直接使用结果
-    
+
     // 更新统计数据
     const stats = this.symbolStats.get(symbol);
     if (stats) {
       // 总是增加尝试次数
       stats.dataCollectionAttempts++;
       stats.signalAnalysisAttempts++;
-      
+
       // 根据分析结果更新成功次数
-      const isDataSufficient = analysisResult.phases?.dataCollection?.success || 
-                              (analysisResult.success && !analysisResult.reason?.includes('数据不足'));                                                                           
-      const isAnalysisSuccessful = analysisResult.phases?.signalAnalysis?.success || 
-                                  !!analysisResult.success;
-      
+      const isDataSufficient = analysisResult.phases?.dataCollection?.success ||
+        (analysisResult.success && !analysisResult.reason?.includes('数据不足'));
+      const isAnalysisSuccessful = analysisResult.phases?.signalAnalysis?.success ||
+        !!analysisResult.success;
+
       // 确保布尔值判断正确
       const dataSufficient = Boolean(isDataSufficient);
       const analysisSuccessful = Boolean(isAnalysisSuccessful);
-      
+
       // 详细调试日志
       console.log(`🔍 ${symbol} 详细分析:`, {
         'analysisResult.phases': analysisResult.phases,
@@ -274,11 +274,11 @@ class DataMonitor {
         'dataSufficient': dataSufficient,
         'analysisSuccessful': analysisSuccessful
       });
-      
+
       // 记录增加前的值
       const beforeDataSuccesses = stats.dataCollectionSuccesses;
       const beforeSignalSuccesses = stats.signalAnalysisSuccesses;
-      
+
       if (dataSufficient) {
         stats.dataCollectionSuccesses++;
         stats.lastDataCollectionTime = Date.now();
@@ -286,7 +286,7 @@ class DataMonitor {
       } else {
         console.log(`❌ ${symbol} 数据采集失败: dataSufficient=${dataSufficient}`);
       }
-      
+
       if (analysisSuccessful) {
         stats.signalAnalysisSuccesses++;
         stats.lastSignalAnalysisTime = Date.now();
@@ -294,12 +294,16 @@ class DataMonitor {
       } else {
         console.log(`❌ ${symbol} 信号分析失败: analysisSuccessful=${analysisSuccessful}`);
       }
-      
-      if (analysisResult.phases?.simulationTrading?.success) {
-        stats.simulationCompletions++;
-        stats.lastSimulationTime = Date.now();
+
+      // 模拟交易统计 - 只有在有模拟交易触发时才记录
+      if (analysisResult.phases?.simulationTrading) {
+        stats.simulationTriggers++;
+        if (analysisResult.phases.simulationTrading.success) {
+          stats.simulationCompletions++;
+          stats.lastSimulationTime = Date.now();
+        }
       }
-      
+
       // 调试日志 - 放在增加成功次数之后
       console.log(`📊 ${symbol} 分析结果:`, {
         success: analysisResult.success,
@@ -312,7 +316,7 @@ class DataMonitor {
         dataCollectionSuccesses: stats.dataCollectionSuccesses,
         signalAnalysisSuccesses: stats.signalAnalysisSuccesses
       });
-      
+
       // 重新计算完成率
       this.calculateCompletionRates();
     }
@@ -351,21 +355,21 @@ class DataMonitor {
 
     for (const symbol of symbols) {
       const stats = this.symbolStats.get(symbol);
-      
+
       // 计算数据收集率
       if (stats.dataCollectionAttempts > 0) {
         const dataCollectionRate = (stats.dataCollectionSuccesses / stats.dataCollectionAttempts) * 100;
         totalDataCollectionRate += dataCollectionRate;
         validDataCollectionCount++;
       }
-      
+
       // 计算信号分析率
       if (stats.signalAnalysisAttempts > 0) {
         const signalAnalysisRate = (stats.signalAnalysisSuccesses / stats.signalAnalysisAttempts) * 100;
         totalSignalAnalysisRate += signalAnalysisRate;
         validSignalAnalysisCount++;
       }
-      
+
       // 计算模拟交易完成率
       if (stats.simulationTriggers > 0) {
         const simulationTradingRate = (stats.simulationCompletions / stats.simulationTriggers) * 100;
@@ -482,7 +486,7 @@ class DataMonitor {
   async getMonitoringDashboard() {
     this.calculateCompletionRates();
     this.checkHealthStatus();
-    
+
     // 获取实时Binance API成功率
     const BinanceAPI = require('../api/BinanceAPI');
     const realtimeStats = BinanceAPI.getRealTimeStats();
@@ -717,7 +721,7 @@ class DataMonitor {
         simulationCompletion: {
           rate: simulationCompletionRate,
           triggers: stats.simulationTriggers,
-          completions: stats.simulationCompletions
+          completions: stats.simulationTriggers > 0 ? stats.simulationCompletions : 0
         },
         simulationProgress: {
           rate: simulationProgressRate,
