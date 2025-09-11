@@ -21,12 +21,12 @@ class CacheManager {
         'trend4h': 4 * 60 * 60,  // 4H趋势4小时
         'scoring1h': 60 * 60,    // 1H打分1小时
         'execution15m': 15 * 60, // 15分钟执行15分钟
-        'monitoring': 30,        // 监控数据30秒
+        'monitoring': 10,        // 监控数据10秒 (减少内存占用)
         'simulations': 5 * 60,   // 模拟交易5分钟
         'user_settings': 10 * 60 // 用户设置10分钟
       },
-      // 内存缓存大小限制
-      maxMemoryCacheSize: 1000,
+      // 内存缓存大小限制 (针对1GB VPS优化)
+      maxMemoryCacheSize: 5000,
       // 是否启用Redis
       enableRedis: options.enableRedis !== false,
       // 是否启用内存缓存
@@ -297,6 +297,29 @@ class CacheManager {
 
     // Redis会自动清理过期键，这里不需要手动清理
     console.log('✅ 缓存清理完成');
+  }
+
+  /**
+   * 启动定期清理任务
+   */
+  startPeriodicCleanup() {
+    // 每5分钟清理一次过期缓存
+    setInterval(() => {
+      this.cleanupMemoryCache();
+    }, 5 * 60 * 1000);
+
+    // 每30分钟清理一次Redis缓存
+    if (this.config.enableRedis && this.redis.isConnected) {
+      setInterval(async () => {
+        try {
+          await this.redis.flushExpired();
+        } catch (error) {
+          console.warn('Redis缓存清理失败:', error.message);
+        }
+      }, 30 * 60 * 1000);
+    }
+
+    console.log('✅ 定期清理任务已启动');
   }
 
   /**

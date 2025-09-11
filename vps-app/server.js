@@ -1012,6 +1012,10 @@ class SmartFlowServer {
       });
       await this.cacheManager.initialize();
       this.cacheMiddleware = CacheMiddleware.create(this.cacheManager);
+      
+      // 启动定期清理任务
+      this.cacheManager.startPeriodicCleanup();
+      
       console.log('✅ 缓存系统初始化完成');
 
       // 清理不一致的模拟交易记录
