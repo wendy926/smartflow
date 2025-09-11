@@ -50,7 +50,8 @@ describe('StrategyV3Execution', () => {
   describe('calculateFactorScore', () => {
     test('应该正确计算多头因子得分', () => {
       const factors = {
-        vwap: 1,
+        currentPrice: 100,
+        vwap: 95,
         delta: 1,
         oi: 1,
         volume: 1,
@@ -62,7 +63,8 @@ describe('StrategyV3Execution', () => {
 
     test('应该正确计算空头因子得分', () => {
       const factors = {
-        vwap: -1,
+        currentPrice: 95,
+        vwap: 100,
         delta: -1,
         oi: -1,
         volume: -1,
@@ -74,7 +76,8 @@ describe('StrategyV3Execution', () => {
 
     test('应该处理混合因子得分', () => {
       const factors = {
-        vwap: 1,
+        currentPrice: 100,
+        vwap: 95,
         delta: -1,
         oi: 1,
         volume: -1,
@@ -82,6 +85,32 @@ describe('StrategyV3Execution', () => {
       };
       const score = strategyExecution.calculateFactorScore(factors);
       expect(score).toBe(0);
+    });
+
+    test('应该正确处理VWAP因子：当前价格高于VWAP', () => {
+      const factors = {
+        currentPrice: 100,
+        vwap: 95,
+        delta: 0,
+        oi: 0,
+        volume: 0,
+        signalType: 'long'
+      };
+      const score = strategyExecution.calculateFactorScore(factors);
+      expect(score).toBe(1); // 只有VWAP因子得+1分
+    });
+
+    test('应该正确处理VWAP因子：当前价格低于VWAP', () => {
+      const factors = {
+        currentPrice: 95,
+        vwap: 100,
+        delta: 0,
+        oi: 0,
+        volume: 0,
+        signalType: 'long'
+      };
+      const score = strategyExecution.calculateFactorScore(factors);
+      expect(score).toBe(-1); // VWAP因子得-1分
     });
   });
 
