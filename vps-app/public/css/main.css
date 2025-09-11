@@ -2284,3 +2284,140 @@ tr:hover {
   font-size: 0.8rem;
   color: #666;
 }
+
+/* 告警列表样式 */
+.alert-list {
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.alert-item {
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.alert-item:hover {
+  background: #f0f0f0;
+}
+
+.alert-item.error {
+  border-left: 4px solid #dc3545;
+  background: #fff5f5;
+}
+
+.alert-item.warning {
+  border-left: 4px solid #ffc107;
+  background: #fffbf0;
+}
+
+.alert-item.success {
+  border-left: 4px solid #28a745;
+  background: #f0fff4;
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.alert-level {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.alert-category {
+  background: #6c757d;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.alert-symbol {
+  background: #007bff;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.alert-time {
+  color: #6c757d;
+  font-size: 0.8rem;
+  margin-left: auto;
+}
+
+.alert-message {
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-left: 30px;
+}
+
+.alert-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.filter-btn:hover {
+  background: #f8f9fa;
+  border-color: #007bff;
+}
+
+.filter-btn.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.filter-btn.danger {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.filter-btn.danger:hover {
+  background: #c82333;
+  border-color: #bd2130;
+}
+
+@media (max-width: 768px) {
+  .alert-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .alert-time {
+    margin-left: 0;
+  }
+  
+  .alert-message {
+    margin-left: 0;
+  }
+}

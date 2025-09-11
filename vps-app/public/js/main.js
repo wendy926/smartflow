@@ -1817,6 +1817,130 @@ function switchMonitoringTab(tabName) {
 
   if (targetView) targetView.classList.add('active');
   if (targetBtn) targetBtn.classList.add('active');
+
+  // 如果是告警明细标签，加载告警数据
+  if (tabName === 'alerts') {
+    loadAlertsData();
+  }
+}
+
+// 加载告警数据
+async function loadAlertsData() {
+  try {
+    const data = await dataManager.getMonitoringDashboard();
+    renderAlertsList(data);
+  } catch (error) {
+    console.error('加载告警数据失败:', error);
+    const alertList = document.getElementById('alertList');
+    if (alertList) {
+      alertList.innerHTML = '<div class="alert-item error">❌ 加载告警数据失败: ' + error.message + '</div>';
+    }
+  }
+}
+
+// 渲染告警列表
+function renderAlertsList(data) {
+  const alertList = document.getElementById('alertList');
+  if (!alertList) return;
+
+  let alerts = [];
+
+  // 添加数据质量问题告警
+  if (data.summary.dataQuality?.hasIssues) {
+    data.summary.dataQuality.issues.forEach(issue => {
+      alerts.push({
+        type: 'data-quality',
+        level: 'warning',
+        symbol: issue.split(': ')[0],
+        message: issue.split(': ')[1],
+        timestamp: new Date().toISOString(),
+        category: '数据质量'
+      });
+    });
+  }
+
+  // 添加数据验证错误告警
+  if (data.summary.dataValidation?.hasErrors) {
+    data.summary.dataValidation.errors.forEach(error => {
+      alerts.push({
+        type: 'data-validation',
+        level: 'error',
+        symbol: error.split(': ')[0],
+        message: error.split(': ')[1],
+        timestamp: new Date().toISOString(),
+        category: '数据验证'
+      });
+    });
+  }
+
+  // 添加数据收集率告警
+  if (data.summary.completionRates.dataCollection < 95) {
+    alerts.push({
+      type: 'data-collection',
+      level: 'warning',
+      symbol: '系统',
+      message: `数据收集率过低: ${data.summary.completionRates.dataCollection.toFixed(2)}%`,
+      timestamp: new Date().toISOString(),
+      category: '数据收集'
+    });
+  }
+
+  // 添加信号分析率告警
+  if (data.summary.completionRates.signalAnalysis < 95) {
+    alerts.push({
+      type: 'signal-analysis',
+      level: 'warning',
+      symbol: '系统',
+      message: `信号分析率过低: ${data.summary.completionRates.signalAnalysis.toFixed(2)}%`,
+      timestamp: new Date().toISOString(),
+      category: '信号分析'
+    });
+  }
+
+  // 渲染告警列表
+  if (alerts.length === 0) {
+    alertList.innerHTML = '<div class="alert-item success">✅ 暂无告警</div>';
+  } else {
+    alertList.innerHTML = alerts.map(alert => `
+      <div class="alert-item ${alert.level}" data-type="${alert.type}">
+        <div class="alert-header">
+          <span class="alert-level">${alert.level === 'error' ? '❌' : '⚠️'}</span>
+          <span class="alert-category">${alert.category}</span>
+          <span class="alert-symbol">${alert.symbol}</span>
+          <span class="alert-time">${new Date(alert.timestamp).toLocaleString('zh-CN')}</span>
+        </div>
+        <div class="alert-message">${alert.message}</div>
+      </div>
+    `).join('');
+  }
+}
+
+// 过滤告警
+function filterAlerts(type) {
+  const alertItems = document.querySelectorAll('.alert-item');
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  
+  // 更新按钮状态
+  filterBtns.forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+
+  // 过滤显示
+  alertItems.forEach(item => {
+    if (type === 'all' || item.dataset.type === type) {
+      item.style.display = 'block';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+}
+
+// 清空所有错误
+function clearAllErrors() {
+  if (confirm('确定要清空所有错误吗？')) {
+    // 这里可以添加清空错误的API调用
+    console.log('清空所有错误');
+    loadAlertsData(); // 重新加载数据
+  }
 }
 
 // 关闭监控面板
