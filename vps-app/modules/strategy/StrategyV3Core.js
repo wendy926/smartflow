@@ -470,15 +470,20 @@ class StrategyV3Core {
 
       // 6. Delta/买卖盘不平衡（使用实时Delta数据）
       let deltaImbalance = 0;
+      let deltaBuy = 0;
+      let deltaSell = 0;
+      
       if (deltaManager) {
         const deltaData = deltaManager.getDeltaData(symbol, '1h');
         if (deltaData && deltaData.delta !== null) {
           deltaImbalance = deltaData.delta;
+          deltaBuy = deltaData.deltaBuy || 0;
+          deltaSell = deltaData.deltaSell || 0;
         }
       } else {
         // 降级到传统计算
-        const deltaBuy = this.deltaData.get(`${symbol}_buy`) || 0;
-        const deltaSell = this.deltaData.get(`${symbol}_sell`) || 0;
+        deltaBuy = this.deltaData.get(`${symbol}_buy`) || 0;
+        deltaSell = this.deltaData.get(`${symbol}_sell`) || 0;
         deltaImbalance = deltaSell > 0 ? deltaBuy / deltaSell : 0;
       }
 
