@@ -180,8 +180,9 @@ class StrategyV3Execution {
       let signal = 'NONE', mode = 'NONE', entry = null, stopLoss = null, takeProfit = null, reason = '';
 
       // 6a. 获取15分钟多因子数据
-      const multiFactorData = await this.getMultiFactorData(symbol);
+      const multiFactorData = await this.getMultiFactorData(symbol, last15m.close);
       const factorScore15m = this.calculateFactorScore({
+        currentPrice: multiFactorData.currentPrice,
         vwap: multiFactorData.vwap,
         delta: multiFactorData.delta,
         oi: multiFactorData.oi,
@@ -192,6 +193,7 @@ class StrategyV3Execution {
       // 6b. 空头假突破：突破上沿后快速回撤 + 多因子确认
       if (prevClose > rangeHigh && lastClose < rangeHigh && upperBoundaryValid) {
         const shortFactorScore = this.calculateFactorScore({
+          currentPrice: multiFactorData.currentPrice,
           vwap: multiFactorData.vwap,
           delta: multiFactorData.delta,
           oi: multiFactorData.oi,
@@ -277,11 +279,11 @@ class StrategyV3Execution {
   /**
    * 多因子打分系统 - 按照strategy-v3.md优化实现
    */
-  calculateFactorScore({ vwap, delta, oi, volume, signalType }) {
+  calculateFactorScore({ currentPrice, vwap, delta, oi, volume, signalType }) {
     let score = 0;
     
     // 1. VWAP因子：当前价 > VWAP → +1，否则 -1
-    const vwapFactor = vwap > 0 ? +1 : -1;
+    const vwapFactor = currentPrice > vwap ? +1 : -1;
     score += vwapFactor;
     
     // 2. Delta因子：Delta正值 → +1，负值 → -1
@@ -311,16 +313,18 @@ class StrategyV3Execution {
   /**
    * 获取多因子数据 - 按照strategy-v3.md实现
    */
-  async getMultiFactorData(symbol) {
+  async getMultiFactorData(symbol, currentPrice = null) {
     try {
-      const [vwapPrice, delta, oi, volDelta] = await Promise.all([
+      const [vwapPrice, delta, oi, volDelta, price] = await Promise.all([
         this.getVWAP(symbol, "15m"),
         this.getDelta(symbol, "15m"),
         this.getOI(symbol),
-        this.getVolume(symbol, "15m")
+        this.getVolume(symbol, "15m"),
+        currentPrice || this.getCurrentPrice(symbol)
       ]);
 
       return {
+        currentPrice: price,
         vwap: vwapPrice,
         delta: delta,
         oi: oi,
@@ -329,11 +333,25 @@ class StrategyV3Execution {
     } catch (error) {
       console.error(`获取多因子数据失败 [${symbol}]:`, error);
       return {
+        currentPrice: currentPrice || 0,
         vwap: 0,
         delta: 0,
         oi: 0,
         volume: 0
       };
+    }
+  }
+
+  /**
+   * 获取当前价格
+   */
+  async getCurrentPrice(symbol) {
+    try {
+      const ticker = await BinanceAPI.get24hrTicker(symbol);
+      return parseFloat(ticker.lastPrice);
+    } catch (error) {
+      console.error(`获取当前价格失败 [${symbol}]:`, error);
+      return 0;
     }
   }
 

@@ -550,7 +550,7 @@ class StrategyV3Core {
         delta,
         oiChange,
         lastBreakout,
-        vwap: lastBB.middle, // 使用布林带中轨作为VWAP参考
+        vwap: vwap, // 使用真正的1H VWAP
         currentPrice: lastClose
       });
 
@@ -633,10 +633,12 @@ class StrategyV3Core {
       score += 1;
     }
     
-    // 6. VWAP因子 (0-1分) - 价格接近布林带中轨
-    const vwapDistance = Math.abs(currentPrice - vwap) / vwap;
-    if (vwapDistance <= 0.01) { // 1%以内
-      score += 1;
+    // 6. VWAP因子 (0-1分) - 价格接近1H VWAP
+    if (vwap > 0) {
+      const vwapDistance = Math.abs(currentPrice - vwap) / vwap;
+      if (vwapDistance <= 0.01) { // 1%以内
+        score += 1;
+      }
     }
     
     return score;
