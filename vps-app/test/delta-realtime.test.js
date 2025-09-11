@@ -202,6 +202,69 @@ describe('Delta实时计算测试', () => {
     });
   });
 
+  describe('定时器管理测试', () => {
+    test('应该正确启动和停止定时器', () => {
+      // 启动定时器
+      deltaManager.startTimers();
+      expect(deltaManager.timer15m).toBeDefined();
+      expect(deltaManager.timer1h).toBeDefined();
+      expect(deltaManager.timer15m).not.toBeNull();
+      expect(deltaManager.timer1h).not.toBeNull();
+
+      // 停止定时器
+      deltaManager.stopTimers();
+      expect(deltaManager.timer15m).toBeNull();
+      expect(deltaManager.timer1h).toBeNull();
+    });
+
+    test('重复启动定时器应该先清理旧的', () => {
+      // 第一次启动
+      deltaManager.startTimers();
+      const firstTimer15m = deltaManager.timer15m;
+      const firstTimer1h = deltaManager.timer1h;
+
+      // 第二次启动
+      deltaManager.startTimers();
+      const secondTimer15m = deltaManager.timer15m;
+      const secondTimer1h = deltaManager.timer1h;
+
+      // 应该是不同的定时器ID
+      expect(firstTimer15m).not.toBe(secondTimer15m);
+      expect(firstTimer1h).not.toBe(secondTimer1h);
+      expect(secondTimer15m).toBeDefined();
+      expect(secondTimer1h).toBeDefined();
+    });
+
+    test('停止不存在的定时器应该不会报错', () => {
+      // 直接停止（没有启动过）
+      expect(() => {
+        deltaManager.stopTimers();
+      }).not.toThrow();
+    });
+
+    test('stop方法应该清理所有资源', async () => {
+      const symbols = ['BTCUSDT', 'ETHUSDT'];
+      await deltaManager.start(symbols);
+
+      // 验证资源存在
+      expect(deltaManager.isRunning).toBe(true);
+      expect(deltaManager.timer15m).toBeDefined();
+      expect(deltaManager.timer1h).toBeDefined();
+      expect(deltaManager.connections.size).toBeGreaterThan(0);
+
+      // 停止
+      deltaManager.stop();
+
+      // 验证所有资源被清理
+      expect(deltaManager.isRunning).toBe(false);
+      expect(deltaManager.timer15m).toBeNull();
+      expect(deltaManager.timer1h).toBeNull();
+      expect(deltaManager.connections.size).toBe(0);
+      expect(deltaManager.deltaData.size).toBe(0);
+      expect(deltaManager.trades.size).toBe(0);
+    });
+  });
+
   describe('性能测试', () => {
     test('应该高效处理大量交易数据', () => {
       const symbol = 'BTCUSDT';
