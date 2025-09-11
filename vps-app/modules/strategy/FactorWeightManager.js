@@ -131,7 +131,8 @@ class FactorWeightManager {
       return this.getDefaultCategory(symbol);
     } catch (error) {
       console.error(`获取交易对分类失败 [${symbol}]:`, error);
-      return 'mainstream'; // 默认分类
+      // 重新抛出错误，让上层处理
+      throw error;
     }
   }
 
