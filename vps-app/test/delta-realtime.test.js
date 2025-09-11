@@ -313,6 +313,16 @@ describe('Delta实时计算测试', () => {
     test('应该提供内存使用统计', () => {
       const symbol = 'BTCUSDT';
       
+      // 初始化Delta数据
+      deltaManager.deltaData.set(symbol, {
+        deltaBuy: 0,
+        deltaSell: 0,
+        lastUpdate: Date.now(),
+        imbalance: 0,
+        delta15m: 0,
+        delta1h: 0
+      });
+      
       // 添加一些数据
       deltaManager.processTrade(symbol, {
         T: Date.now(),
