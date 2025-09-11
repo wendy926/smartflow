@@ -7,6 +7,13 @@ describe('告警系统测试', () => {
     dataMonitor = new DataMonitor();
   });
 
+  afterEach(() => {
+    if (dataMonitor) {
+      dataMonitor.stopMemoryCleanup();
+      dataMonitor = null;
+    }
+  });
+
   describe('告警数据生成', () => {
     test('应该正确生成数据质量问题告警', () => {
       const mockData = {

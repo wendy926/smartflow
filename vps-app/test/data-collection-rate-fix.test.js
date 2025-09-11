@@ -7,6 +7,13 @@ describe('数据收集率计算修复测试', () => {
     dataMonitor = new DataMonitor();
   });
 
+  afterEach(() => {
+    if (dataMonitor) {
+      dataMonitor.stopMemoryCleanup();
+      dataMonitor = null;
+    }
+  });
+
   describe('数据收集率计算逻辑', () => {
     test('应该正确计算所有交易对数据采集率的平均值', () => {
       // 模拟交易对统计数据

@@ -43,6 +43,22 @@ describe('策略V3分类权重打分测试', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    // 清理资源
+    if (strategyCore) {
+      strategyCore = null;
+    }
+    if (strategyExecution) {
+      strategyExecution = null;
+    }
+    if (mockDataMonitor) {
+      mockDataMonitor = null;
+    }
+    if (mockDatabase) {
+      mockDatabase = null;
+    }
+  });
+
   describe('StrategyV3Core - analyze1HScoring', () => {
     test('应该使用分类权重计算1H多因子得分', async () => {
       const symbol = 'BTCUSDT';

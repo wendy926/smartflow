@@ -19,6 +19,16 @@ describe('FactorWeightManager', () => {
     factorWeightManager = new FactorWeightManager(mockDatabase);
   });
 
+  afterEach(() => {
+    // 清理资源
+    if (factorWeightManager) {
+      factorWeightManager = null;
+    }
+    if (mockDatabase) {
+      mockDatabase = null;
+    }
+  });
+
   describe('getSymbolCategory', () => {
     test('应该从数据库获取交易对分类', async () => {
       mockDatabase.getSymbolCategory.mockResolvedValue({ category: 'mainstream' });

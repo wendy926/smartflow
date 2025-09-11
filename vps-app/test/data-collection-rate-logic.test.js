@@ -11,6 +11,13 @@ describe('数据采集率逻辑测试', () => {
     dataMonitor = new DataMonitor();
   });
 
+  afterEach(() => {
+    if (dataMonitor) {
+      dataMonitor.stopMemoryCleanup();
+      dataMonitor = null;
+    }
+  });
+
   test('DataMonitor重置后数据应该为0', () => {
     dataMonitor.reset();
     
