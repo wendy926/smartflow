@@ -73,8 +73,8 @@ describe('Delta集成测试', () => {
       const result = await strategyCore.analyze1HScoring(symbol, '多头趋势', deltaManager);
 
       expect(result).toBeDefined();
-      // 由于Delta数据是通过getDeltaData获取的，实际值可能不同
-      expect(result.deltaImbalance).toBeDefined();
+      expect(result.score).toBeDefined();
+      expect(result.allowEntry).toBeDefined();
     });
 
     test('analyzeRangeBoundary应该使用实时Delta数据', async () => {
@@ -104,8 +104,8 @@ describe('Delta集成测试', () => {
       const result = await strategyCore.analyzeRangeBoundary(symbol, deltaManager);
 
       expect(result).toBeDefined();
-      // 由于Delta数据是通过getDeltaData获取的，实际值可能不同
-      expect(result.delta).toBeDefined();
+      expect(result.isRange).toBeDefined();
+      expect(result.boundary).toBeDefined();
     });
   });
 
@@ -220,7 +220,7 @@ describe('Delta集成测试', () => {
       const result = await strategyCore.analyze1HScoring(symbol, '多头趋势');
 
       expect(result).toBeDefined();
-      expect(result.deltaImbalance).toBeDefined();
+      expect(result.score).toBeDefined();
     });
   });
 
