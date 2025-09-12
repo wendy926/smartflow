@@ -224,6 +224,7 @@ class SmartFlowApp {
       }
 
       // 如果没有缓存或缓存过期，重新加载数据
+      console.log('📦 缓存过期，重新加载数据...');
       await this.loadAllData();
     } catch (error) {
       console.error('从缓存加载数据失败:', error);
