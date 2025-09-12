@@ -213,12 +213,12 @@ class DataMonitor {
     }
 
     const stats = this.symbolStats.get(symbol);
-    
+
     // 记录指标数据
     if (!stats.indicators) {
       stats.indicators = {};
     }
-    
+
     stats.indicators[indicatorType] = {
       data,
       calculationTime,
@@ -230,7 +230,7 @@ class DataMonitor {
     if (data.error) {
       // 记录指标计算失败
       this.recordDataQualityIssue(symbol, indicatorType, data.error);
-      
+
       // 生成指标计算失败告警
       this.generateIndicatorFailureAlert(symbol, indicatorType, data.error);
     } else {
@@ -303,7 +303,7 @@ class DataMonitor {
 
     for (const [indicatorType, indicatorData] of Object.entries(indicators)) {
       status.total++;
-      
+
       if (indicatorData.success) {
         status.successful++;
         status.indicators[indicatorType] = {
@@ -453,24 +453,24 @@ class DataMonitor {
 
   getAnalysisLog(symbol) {
     const stats = this.symbolStats.get(symbol);
-    
+
     // 返回包含指标数据的分析日志
     return {
       success: stats ? stats.dataCollectionSuccesses > 0 : false,
       symbol,
       strategyVersion: 'V3', // 默认V3策略
       phases: {
-        dataCollection: { 
+        dataCollection: {
           success: stats ? stats.dataCollectionSuccesses > 0 : false,
           attempts: stats ? stats.dataCollectionAttempts : 0,
           successes: stats ? stats.dataCollectionSuccesses : 0
         },
-        signalAnalysis: { 
+        signalAnalysis: {
           success: stats ? stats.signalAnalysisSuccesses > 0 : false,
           attempts: stats ? stats.signalAnalysisAttempts : 0,
           successes: stats ? stats.signalAnalysisSuccesses : 0
         },
-        simulationTrading: { 
+        simulationTrading: {
           success: stats ? stats.simulationCompletions > 0 : false,
           triggers: stats ? stats.simulationTriggers : 0,
           completions: stats ? stats.simulationCompletions : 0
@@ -636,19 +636,19 @@ class DataMonitor {
 
     detailedStats.forEach(stat => {
       totalCount++;
-      
+
       // 检查趋势打分数据
       if (stat.trendScore !== undefined && stat.trendScore !== null) {
         const score = stat.trendScore;
         const direction = stat.trendDirection;
-        
+
         // 验证打分范围 (0-5)
         if (score >= 0 && score <= 5) {
           // 验证方向一致性
           if (score > 0) {
-            if ((direction === 'BULL' && stat.trend4h === '多头趋势') || 
-                (direction === 'BEAR' && stat.trend4h === '空头趋势') ||
-                (score === 0 && stat.trend4h === '震荡市')) {
+            if ((direction === 'BULL' && stat.trend4h === '多头趋势') ||
+              (direction === 'BEAR' && stat.trend4h === '空头趋势') ||
+              (score === 0 && stat.trend4h === '震荡市')) {
               validCount++;
             } else {
               errorCount++;
@@ -665,7 +665,7 @@ class DataMonitor {
     });
 
     const successRate = totalCount > 0 ? (validCount / totalCount * 100).toFixed(1) : 0;
-    
+
     if (errorCount === 0) {
       return `✅ ${successRate}%`;
     } else if (errorCount <= totalCount * 0.1) {
@@ -1011,7 +1011,7 @@ class DataMonitor {
   startMemoryCleanup() {
     // 清理现有定时器
     this.stopMemoryCleanup();
-    
+
     // 每5分钟清理一次内存
     this.memoryCleanupTimer = setInterval(() => {
       this.clearOldLogs();

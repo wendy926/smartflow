@@ -52,7 +52,7 @@ describe('趋势打分显示功能测试', () => {
       let trendScoreDisplay = '--';
       let trendScoreClass = 'score-none';
       let trendScoreTitle = '';
-      
+
       if (trendScore > 0) {
         trendScoreDisplay = `${trendScore}/5`;
         trendScoreClass = trendScore >= 3 ? 'score-strong' : 'score-none';
@@ -82,7 +82,7 @@ describe('趋势打分显示功能测试', () => {
       let trendScoreDisplay = '--';
       let trendScoreClass = 'score-none';
       let trendScoreTitle = '';
-      
+
       if (trendScore > 0) {
         trendScoreDisplay = `${trendScore}/5`;
         trendScoreClass = trendScore >= 3 ? 'score-strong' : 'score-none';
@@ -112,7 +112,7 @@ describe('趋势打分显示功能测试', () => {
       let trendScoreDisplay = '--';
       let trendScoreClass = 'score-none';
       let trendScoreTitle = '';
-      
+
       if (trendScore > 0) {
         trendScoreDisplay = `${trendScore}/5`;
         trendScoreClass = trendScore >= 3 ? 'score-strong' : 'score-none';
@@ -185,16 +185,16 @@ describe('趋势打分显示功能测试', () => {
 
       detailedStats.forEach(stat => {
         totalCount++;
-        
+
         if (stat.trendScore !== undefined && stat.trendScore !== null) {
           const score = stat.trendScore;
           const direction = stat.trendDirection;
-          
+
           if (score >= 0 && score <= 5) {
             if (score > 0) {
-              if ((direction === 'BULL' && stat.trend4h === '多头趋势') || 
-                  (direction === 'BEAR' && stat.trend4h === '空头趋势') ||
-                  (score === 0 && stat.trend4h === '震荡市')) {
+              if ((direction === 'BULL' && stat.trend4h === '多头趋势') ||
+                (direction === 'BEAR' && stat.trend4h === '空头趋势') ||
+                (score === 0 && stat.trend4h === '震荡市')) {
                 validCount++;
               } else {
                 errorCount++;
@@ -211,7 +211,7 @@ describe('趋势打分显示功能测试', () => {
       });
 
       const successRate = totalCount > 0 ? (validCount / totalCount * 100).toFixed(1) : 0;
-      
+
       expect(totalCount).toBe(3);
       expect(validCount).toBe(3);
       expect(errorCount).toBe(0);
@@ -227,7 +227,7 @@ describe('趋势打分显示功能测试', () => {
 
       testCases.forEach(({ validCount, totalCount, errorCount, expected }) => {
         const successRate = totalCount > 0 ? (validCount / totalCount * 100).toFixed(1) : 0;
-        
+
         let result;
         if (errorCount === 0) {
           result = `✅ ${successRate}%`;

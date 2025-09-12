@@ -423,9 +423,9 @@ class SmartFlowApp {
           const upperValid = signal.rangeUpperBoundaryValid === true ? 1 : 0;
           const boundaryScore = lowerValid + upperValid;
           multifactorDisplay = `${boundaryScore}/2`;
-          // 优化：≥3分绿色，<3分灰色（震荡市边界得分≥3分可入场）
-          multifactorClass = boundaryScore >= 3 ? 'score-strong' : 'score-none';
-          multifactorTitle = `1H边界有效性判断: 下边界${lowerValid ? '✓' : '✗'} 上边界${upperValid ? '✓' : '✗'} (≥3分可入场)`;
+          // 优化：≥1分绿色，<1分灰色（震荡市边界得分≥1分可入场）
+          multifactorClass = boundaryScore >= 1 ? 'score-strong' : 'score-none';
+          multifactorTitle = `1H边界有效性判断: 下边界${lowerValid ? '✓' : '✗'} 上边界${upperValid ? '✓' : '✗'} (≥1分可入场)`;
         } else {
           // 其他情况（如数据不足等）
           multifactorDisplay = '--';
@@ -476,20 +476,13 @@ class SmartFlowApp {
       // 构建趋势打分列显示
       const trendScore = signal.score || 0;
       const trendDirection = signal.direction || null;
-      let trendScoreDisplay = '--';
+      let trendScoreDisplay = `${trendScore}/5`;
       let trendScoreClass = 'score-none';
       let trendScoreTitle = '';
       
-      if (trendScore > 0) {
-        trendScoreDisplay = `${trendScore}/5`;
-        // 根据得分设置颜色：≥3分绿色，<3分灰色
-        trendScoreClass = trendScore >= 3 ? 'score-strong' : 'score-none';
-        trendScoreTitle = `4H趋势打分: ${trendScore}/5 (${trendDirection || '无方向'})`;
-      } else {
-        trendScoreDisplay = '--';
-        trendScoreClass = 'score-none';
-        trendScoreTitle = '4H趋势打分: 无趋势方向';
-      }
+      // 根据得分设置颜色：≥3分绿色，<3分灰色
+      trendScoreClass = trendScore >= 3 ? 'score-strong' : 'score-none';
+      trendScoreTitle = `4H趋势打分: ${trendScore}/5 (${trendDirection || '无方向'})`;
 
       row.innerHTML = `
                 <td>

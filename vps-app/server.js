@@ -207,7 +207,7 @@ class SmartFlowServer {
               entrySignal: analysis.entrySignal,
               stopLoss: analysis.stopLoss,
               takeProfit: analysis.takeProfit,
-              currentPrice: analysis.closePrice,
+              currentPrice: analysis.currentPrice,
               dataCollectionRate: Math.round(dataCollectionRate * 10) / 10, // 保留一位小数
               // V3新增字段
               score1h: analysis.score1h, // 添加score1h字段

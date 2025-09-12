@@ -394,7 +394,7 @@ async function loadAlertHistory() {
         symbol: 'BTCUSDT',
         alert_type: 'data-quality',
         severity: 'high',
-        message: '日线趋势分析失败 - 数据不足',
+        message: '4H趋势分析失败 - 数据不足',
         timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
         details: 'K线数据长度不足，无法计算BBW指标'
       },
@@ -403,7 +403,7 @@ async function loadAlertHistory() {
         symbol: 'ETHUSDT',
         alert_type: 'data-validation',
         severity: 'medium',
-        message: '小时K线数据无效',
+        message: '1H多因子打分数据无效',
         timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
         details: 'API返回的数据格式不正确'
       },
@@ -415,6 +415,24 @@ async function loadAlertHistory() {
         message: '24小时行情数据获取失败',
         timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
         details: '网络超时，重试后成功'
+      },
+      {
+        id: 4,
+        symbol: 'AVAXUSDT',
+        alert_type: 'data-validation',
+        severity: 'high',
+        message: '趋势打分与市场类型不一致',
+        timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+        details: '4H趋势为多头趋势但市场类型为震荡市'
+      },
+      {
+        id: 5,
+        symbol: 'DOGEUSDT',
+        alert_type: 'data-quality',
+        severity: 'medium',
+        message: '当前价格获取失败',
+        timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+        details: 'Binance API返回null价格'
       }
     ];
     renderAlertHistory();
