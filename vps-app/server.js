@@ -198,9 +198,9 @@ class SmartFlowServer {
               trend4h: analysis.trend4h,
               marketType: analysis.marketType,
               trend: analysis.trend4h, // 保持向后兼容
-              trendStrength: analysis.trendConfirmed ? '强' : '弱',
+              trendStrength: analysis.trendStrength || (analysis.trendConfirmed ? '强' : '弱'),
               signal: analysis.signal,
-              signalStrength: analysis.score1h >= 3 ? '强' : '弱',
+              signalStrength: analysis.signalStrength || (analysis.score1h >= 3 ? '强' : '弱'),
               hourlyScore: analysis.score1h,
               execution: analysis.execution,
               executionMode: analysis.executionMode,
