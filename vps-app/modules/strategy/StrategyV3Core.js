@@ -418,8 +418,8 @@ class StrategyV3Core {
           breakout: trend4h === '多头趋势' ? last1h.close > maxHigh : last1h.close < minLow
         });
 
-        factorValues.breakout = (trend4h === '多头趋势' && last1h.close > maxHigh) || 
-                               (trend4h === '空头趋势' && last1h.close < minLow);
+        factorValues.breakout = (trend4h === '多头趋势' && last1h.close > maxHigh) ||
+          (trend4h === '空头趋势' && last1h.close < minLow);
       } else {
         factorValues.breakout = false;
         console.log(`❌ 4H数据不足，突破确认失败 [${symbol}]`);
@@ -440,7 +440,7 @@ class StrategyV3Core {
         volumeConfirm: vol15mRatio >= 1.5 && vol1hRatio >= 1.2
       });
 
-      factorValues.volume = vol15mRatio >= 1.5 && vol1hRatio >= 1.2;
+      factorValues.volume = Math.min(vol15mRatio, vol1hRatio); // 传入较小的比率值
 
       // 4. OI变化
       let oiChange6h = 0;
@@ -450,18 +450,17 @@ class StrategyV3Core {
         oiChange6h = (oiEnd - oiStart) / oiStart;
       }
 
-      factorValues.oi = (trend4h === '多头趋势' && oiChange6h >= 0.02) || 
-                       (trend4h === '空头趋势' && oiChange6h <= -0.03);
+      factorValues.oi = oiChange6h; // 传入实际OI变化数值
 
       // 5. 资金费率
       const fundingRate = funding && funding.length > 0 ? parseFloat(funding[0].fundingRate) : 0;
-      factorValues.funding = fundingRate >= -0.0005 && fundingRate <= 0.0005;
+      factorValues.funding = fundingRate; // 传入实际数值而不是布尔值
 
       // 6. Delta/买卖盘不平衡（使用实时Delta数据）
       let deltaImbalance = 0;
       let deltaBuy = 0;
       let deltaSell = 0;
-      
+
       if (deltaManager) {
         const deltaData = deltaManager.getDeltaData(symbol, '1h');
         if (deltaData && deltaData.delta !== null) {
@@ -476,13 +475,12 @@ class StrategyV3Core {
         deltaImbalance = deltaSell > 0 ? deltaBuy / deltaSell : 0;
       }
 
-      factorValues.delta = (trend4h === '多头趋势' && deltaImbalance >= 1.2) || 
-                          (trend4h === '空头趋势' && deltaImbalance <= 0.83);
+      factorValues.delta = deltaImbalance; // 传入实际Delta不平衡数值
 
       // 使用分类权重计算加权得分
       const weightedResult = await this.factorWeightManager.calculateWeightedScore(
-        symbol, 
-        '1h_scoring', 
+        symbol,
+        '1h_scoring',
         factorValues
       );
 
