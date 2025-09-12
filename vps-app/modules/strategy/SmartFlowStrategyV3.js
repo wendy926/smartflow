@@ -266,7 +266,7 @@ class SmartFlowStrategyV3 {
   static async analyzeRangeMarket(symbol, trend4hResult, scoringResult = null) {
     try {
       // 1. 1H边界判断
-      const rangeResult = await this.core.analyzeRangeBoundary(symbol, this.deltaManager);
+      const rangeResult = await StrategyV3Core.prototype.analyzeRangeBoundary.call(this.core, symbol, this.deltaManager);
       if (rangeResult.error) {
         return this.createNoSignalResult(symbol, '1H边界分析失败: ' + rangeResult.error);
       }

@@ -606,6 +606,171 @@ class StrategyV3Core {
   calculateFundingScore(fundingRate) {
     return Math.abs(fundingRate) <= 0.001 ? 1 : (Math.abs(fundingRate) <= 0.002 ? 0.5 : 0);
   }
+
+  /**
+   * 震荡市1H边界判断
+   */
+  async analyzeRangeBoundary(symbol, deltaManager = null) {
+    try {
+      console.log(`🔍 开始震荡市1H边界判断 [${symbol}]`);
+
+      // 从数据库获取1H K线数据
+      const klines1h = await this.getKlineDataFromDB(symbol, '1h', 50);
+      
+      if (!klines1h || klines1h.length < 20) {
+        await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT', 
+          `1H K线数据不足: ${klines1h ? klines1h.length : 0}条，需要至少20条`);
+        
+        return { error: '1H K线数据不足' };
+      }
+
+      const candles = klines1h.map(k => ({
+        open: parseFloat(k[1]),
+        high: parseFloat(k[2]),
+        low: parseFloat(k[3]),
+        close: parseFloat(k[4]),
+        volume: parseFloat(k[5])
+      }));
+
+      // 计算布林带
+      const bb = this.calculateBollingerBands(candles, 20, 2);
+      const lastBB = bb[bb.length - 1];
+
+      // 计算连续触碰因子
+      const touchScore = this.calculateTouchScore(candles, lastBB);
+
+      // 计算成交量因子
+      const recentVolume = candles.slice(-1)[0].volume;
+      const avgVolume = candles.slice(-20).reduce((sum, c) => sum + c.volume, 0) / Math.min(20, candles.length);
+      const volumeRatio = recentVolume / avgVolume;
+      const volumeScore = volumeRatio <= 1.7 ? 1 : (volumeRatio <= 2.0 ? 0.5 : 0);
+
+      // 获取Delta数据
+      let delta = 0;
+      if (deltaManager) {
+        const deltaData = deltaManager.getDeltaData(symbol, '1h');
+        if (deltaData) {
+          delta = deltaData.delta || 0;
+        }
+      }
+      const deltaScore = Math.abs(delta) <= 0.02 ? 1 : (Math.abs(delta) <= 0.05 ? 0.5 : 0);
+
+      // 获取OI数据
+      let oiChange = 0;
+      try {
+        const oiHist = await BinanceAPI.getOpenInterestHist(symbol, '1h', 6);
+        if (oiHist && oiHist.length >= 2) {
+          const latest = oiHist[oiHist.length - 1];
+          const earliest = oiHist[0];
+          oiChange = (latest.sumOpenInterest - earliest.sumOpenInterest) / earliest.sumOpenInterest;
+        }
+      } catch (error) {
+        console.warn(`获取 ${symbol} OI数据失败:`, error.message);
+      }
+      const oiScore = Math.abs(oiChange) <= 0.02 ? 1 : (Math.abs(oiChange) <= 0.05 ? 0.5 : 0);
+
+      // 计算无突破因子
+      const noBreakoutScore = this.calculateNoBreakoutScore(candles);
+
+      // 计算VWAP因子
+      const vwap = this.calculateVWAP(candles);
+      const lastVWAP = vwap[vwap.length - 1];
+      const currentPrice = candles[candles.length - 1].close;
+      const vwapDistance = Math.abs(currentPrice - lastVWAP) / lastVWAP;
+      const vwapScore = vwapDistance <= 0.01 ? 1 : (vwapDistance <= 0.02 ? 0.5 : 0);
+
+      // 计算总分
+      const totalScore = touchScore + volumeScore + deltaScore + oiScore + noBreakoutScore + vwapScore;
+
+      // 判断边界有效性
+      const lowerBoundaryValid = totalScore >= 3;
+      const upperBoundaryValid = totalScore >= 3;
+
+      console.log(`📊 震荡市1H边界判断结果 [${symbol}]: 总分=${totalScore}, 下边界=${lowerBoundaryValid}, 上边界=${upperBoundaryValid}`);
+
+      // 记录分析结果
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '震荡市1H边界判断', {
+          totalScore,
+          lowerBoundaryValid,
+          upperBoundaryValid,
+          touchScore,
+          volumeScore,
+          deltaScore,
+          oiScore,
+          noBreakoutScore,
+          vwapScore,
+          currentPrice,
+          lastVWAP,
+          delta,
+          oiChange,
+          volumeRatio
+        }, Date.now());
+      }
+
+      return {
+        totalScore,
+        lowerBoundaryValid,
+        upperBoundaryValid,
+        bb1h: lastBB,
+        factorScores: {
+          touch: touchScore,
+          volume: volumeScore,
+          delta: deltaScore,
+          oi: oiScore,
+          noBreakout: noBreakoutScore,
+          vwap: vwapScore
+        }
+      };
+
+    } catch (error) {
+      console.error(`震荡市1H边界判断失败 [${symbol}]:`, error);
+      await this.recordDataQualityAlert(symbol, 'RANGE_BOUNDARY_ANALYSIS_ERROR', 
+        `震荡市1H边界判断失败: ${error.message}`);
+      
+      return { error: error.message };
+    }
+  }
+
+  /**
+   * 计算触碰得分
+   */
+  calculateTouchScore(candles, bb) {
+    if (candles.length < 6) return 0;
+
+    const recent6 = candles.slice(-6);
+    let touchCount = 0;
+
+    for (const candle of recent6) {
+      // 检查是否触碰上轨或下轨
+      if (candle.high >= bb.upper * 0.99 || candle.low <= bb.lower * 1.01) {
+        touchCount++;
+      }
+    }
+
+    return touchCount >= 3 ? 1 : (touchCount >= 2 ? 0.5 : 0);
+  }
+
+  /**
+   * 计算无突破得分
+   */
+  calculateNoBreakoutScore(candles) {
+    if (candles.length < 20) return 0;
+
+    const recent20 = candles.slice(-20);
+    const highs = recent20.map(c => c.high);
+    const lows = recent20.map(c => c.low);
+
+    const maxHigh = Math.max(...highs);
+    const minLow = Math.min(...lows);
+
+    // 检查最近20根K线是否有新高或新低突破
+    const last5 = candles.slice(-5);
+    const hasNewHigh = last5.some(c => c.high > maxHigh);
+    const hasNewLow = last5.some(c => c.low < minLow);
+
+    return !hasNewHigh && !hasNewLow ? 1 : 0;
+  }
 }
 
 module.exports = StrategyV3Core;
