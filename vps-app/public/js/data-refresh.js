@@ -45,8 +45,9 @@ class DataRefreshManager {
       const row = document.createElement('tr');
       
       const dataTypeNames = {
-        'trend_analysis': '4H和1H趋势判断',
-        'trend_scoring': '趋势市1H多因子打分',
+        'trend_analysis': '4H趋势判断',
+        'trend_scoring': '1H多因子打分',
+        'trend_strength': '1H加强趋势判断',
         'trend_entry': '趋势市15分钟入场判断',
         'range_boundary': '震荡市1H边界判断',
         'range_entry': '震荡市15分钟入场判断'
@@ -55,6 +56,7 @@ class DataRefreshManager {
       const refreshIntervals = {
         'trend_analysis': '60分钟',
         'trend_scoring': '5分钟',
+        'trend_strength': '5分钟',
         'trend_entry': '2分钟',
         'range_boundary': '5分钟',
         'range_entry': '2分钟'
@@ -91,8 +93,9 @@ class DataRefreshManager {
       const row = document.createElement('tr');
       
       const dataTypeNames = {
-        'trend_analysis': '4H和1H趋势判断',
-        'trend_scoring': '趋势市1H多因子打分',
+        'trend_analysis': '4H趋势判断',
+        'trend_scoring': '1H多因子打分',
+        'trend_strength': '1H加强趋势判断',
         'trend_entry': '趋势市15分钟入场判断',
         'range_boundary': '震荡市1H边界判断',
         'range_entry': '震荡市15分钟入场判断'

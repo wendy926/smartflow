@@ -5,8 +5,9 @@ class DataRefreshManager {
   constructor(database) {
     this.db = database;
     this.refreshIntervals = {
-      'trend_analysis': 60,        // 4H和1H趋势判断：每1小时
-      'trend_scoring': 5,          // 趋势市1H多因子打分：每5分钟
+      'trend_analysis': 60,        // 4H趋势判断：每1小时
+      'trend_scoring': 5,          // 1H多因子打分：每5分钟
+      'trend_strength': 5,         // 1H加强趋势判断：每5分钟
       'trend_entry': 2,            // 趋势市15分钟入场判断：每2分钟
       'range_boundary': 5,         // 震荡市1H边界判断：每5分钟
       'range_entry': 2             // 震荡市15分钟入场判断：每2分钟

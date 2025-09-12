@@ -28,10 +28,11 @@ class SmartFlowStrategyV3 {
       if (options.dataRefreshManager) {
         const shouldRefreshTrend = await options.dataRefreshManager.shouldRefresh(symbol, 'trend_analysis');
         const shouldRefreshScoring = await options.dataRefreshManager.shouldRefresh(symbol, 'trend_scoring');
+        const shouldRefreshStrength = await options.dataRefreshManager.shouldRefresh(symbol, 'trend_strength');
         const shouldRefreshEntry = await options.dataRefreshManager.shouldRefresh(symbol, 'trend_entry');
         const shouldRefreshRange = await options.dataRefreshManager.shouldRefresh(symbol, 'range_boundary');
 
-        console.log(`📊 数据刷新状态 [${symbol}]: 趋势分析=${shouldRefreshTrend}, 趋势打分=${shouldRefreshScoring}, 趋势入场=${shouldRefreshEntry}, 震荡边界=${shouldRefreshRange}`);
+        console.log(`📊 数据刷新状态 [${symbol}]: 趋势分析=${shouldRefreshTrend}, 趋势打分=${shouldRefreshScoring}, 加强趋势=${shouldRefreshStrength}, 趋势入场=${shouldRefreshEntry}, 震荡边界=${shouldRefreshRange}`);
       }
 
       // 2. 4H趋势过滤
@@ -84,6 +85,7 @@ class SmartFlowStrategyV3 {
         
         if (marketType === '趋势市') {
           await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_scoring');
+          await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_strength');
           await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_entry');
         } else if (marketType === '震荡市') {
           await options.dataRefreshManager.updateRefreshTime(symbol, 'range_boundary');
