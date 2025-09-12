@@ -122,12 +122,17 @@ class DataRefreshManager {
           COUNT(DISTINCT symbol) as total_symbols,
           AVG(data_freshness_score) as avg_freshness,
           MIN(data_freshness_score) as min_freshness,
-          MAX(data_freshness_score) as max_freshness
+          MAX(data_freshness_score) as max_freshness,
+          GROUP_CONCAT(DISTINCT symbol) as symbols
         FROM data_refresh_log 
         GROUP BY data_type
       `);
 
-      return stats;
+      // 将symbols字符串转换为数组
+      return stats.map(stat => ({
+        ...stat,
+        symbols: stat.symbols ? stat.symbols.split(',') : []
+      }));
     } catch (error) {
       console.error('获取刷新统计失败:', error);
       return [];
