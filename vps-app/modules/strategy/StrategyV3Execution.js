@@ -43,8 +43,8 @@ class StrategyV3Execution {
         // 检查价格回踩EMA支撑
         const priceAtSupport = last15m.close >= lastEMA20 && last15m.close >= lastEMA50;
 
-        // 检查突破setup candle高点
-        const setupBreakout = last15m.high > prev15m.high && last15m.close > prev15m.high;
+        // 检查突破setup candle高点（按照strategy-v3.md：收盘价突破setup candle高点）
+        const setupBreakout = last15m.close > prev15m.high;
 
         // 检查成交量确认
         const avgVol = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
@@ -77,8 +77,8 @@ class StrategyV3Execution {
         // 检查价格反抽EMA阻力
         const priceAtResistance = last15m.close <= lastEMA20 && last15m.close <= lastEMA50;
 
-        // 检查跌破setup candle低点
-        const setupBreakdown = last15m.low < prev15m.low && last15m.close < prev15m.low;
+        // 检查跌破setup candle低点（按照strategy-v3.md：收盘价跌破setup candle低点）
+        const setupBreakdown = last15m.close < prev15m.low;
 
         // 检查成交量确认
         const avgVol = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
