@@ -613,7 +613,7 @@ class SmartFlowApp {
       try {
         // 静默刷新监控数据，不显示加载状态和消息
         const [signals, stats] = await Promise.all([
-          dataManager.getAllSignals(),
+          dataManager.getAllSignals(true), // 强制刷新信号数据
           dataManager.getWinRateStats()
         ]);
 
