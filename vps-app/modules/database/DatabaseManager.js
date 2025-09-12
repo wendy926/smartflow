@@ -669,6 +669,48 @@ class DatabaseManager {
       this.db.close();
     }
   }
+  /**
+   * 获取K线数据
+   */
+  async getKlineData(symbol, interval, limit = 250) {
+    try {
+      const sql = `
+        SELECT open_time, close_time, open_price, high_price, low_price, close_price, 
+               volume, quote_volume, trades_count, taker_buy_volume, taker_buy_quote_volume
+        FROM kline_data 
+        WHERE symbol = ? AND interval = ?
+        ORDER BY open_time DESC 
+        LIMIT ?
+      `;
+      
+      return await this.runQuery(sql, [symbol, interval, limit]);
+    } catch (error) {
+      console.error(`获取K线数据失败 [${symbol} ${interval}]:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * 记录数据质量告警
+   */
+  async recordDataQualityAlert(symbol, issueType, message, details = null) {
+    try {
+      const sql = `
+        INSERT INTO data_quality_issues (symbol, issue_type, severity, message, details)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      
+      await this.runQuery(sql, [
+        symbol,
+        issueType,
+        'WARNING',
+        message,
+        details ? JSON.stringify(details) : null
+      ]);
+    } catch (error) {
+      console.error('记录数据质量告警失败:', error);
+    }
+  }
 }
 
 module.exports = DatabaseManager;

@@ -1,4 +1,23 @@
-// StrategyV3Core.js - 策略V3核心实现模块
+#!/usr/bin/env node
+
+// 修复策略数据库集成问题
+// 1. 修改策略代码从数据库读取K线数据而不是从API
+// 2. 添加数据监控告警机制
+// 3. 修复数据收集失败的问题
+
+const fs = require('fs');
+const path = require('path');
+
+class StrategyDatabaseFixer {
+  constructor() {
+    this.strategyCorePath = 'modules/strategy/StrategyV3Core.js';
+    this.databaseManagerPath = 'modules/database/DatabaseManager.js';
+  }
+
+  async fixStrategyCore() {
+    console.log('🔧 修复StrategyV3Core.js - 从数据库读取K线数据...');
+    
+    const strategyCoreContent = `// StrategyV3Core.js - 策略V3核心实现模块
 
 const BinanceAPI = require('../api/BinanceAPI');
 const FactorWeightManager = require('./FactorWeightManager');
@@ -20,14 +39,14 @@ class StrategyV3Core {
     }
 
     try {
-      const sql = `
+      const sql = \`
         SELECT open_time, close_time, open_price, high_price, low_price, close_price, 
                volume, quote_volume, trades_count, taker_buy_volume, taker_buy_quote_volume
         FROM kline_data 
         WHERE symbol = ? AND interval = ?
         ORDER BY open_time DESC 
         LIMIT ?
-      `;
+      \`;
       
       const results = await this.database.runQuery(sql, [symbol, interval, limit]);
       
@@ -51,7 +70,7 @@ class StrategyV3Core {
         0                        // 11: ignore
       ]);
     } catch (error) {
-      console.error(`从数据库获取K线数据失败 [${symbol} ${interval}]:`, error);
+      console.error(\`从数据库获取K线数据失败 [\${symbol} \${interval}]:\`, error);
       return null;
     }
   }
@@ -63,10 +82,10 @@ class StrategyV3Core {
     if (!this.database) return;
 
     try {
-      const sql = `
+      const sql = \`
         INSERT INTO data_quality_issues (symbol, issue_type, severity, message, details)
         VALUES (?, ?, ?, ?, ?)
-      `;
+      \`;
       
       await this.database.runQuery(sql, [
         symbol,
@@ -213,7 +232,7 @@ class StrategyV3Core {
       if (!klines4h || klines4h.length < 200) {
         // 记录数据质量告警
         await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT', 
-          `4H K线数据不足: ${klines4h ? klines4h.length : 0}条，需要至少200条`);
+          \`4H K线数据不足: \${klines4h ? klines4h.length : 0}条，需要至少200条\`);
         
         if (this.dataMonitor) {
           this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
@@ -371,11 +390,11 @@ class StrategyV3Core {
         direction
       };
     } catch (error) {
-      console.error(`4H趋势分析失败 [${symbol}]:`, error);
+      console.error(\`4H趋势分析失败 [\${symbol}]:\`, error);
       
       // 记录错误告警
       await this.recordDataQualityAlert(symbol, 'TREND_ANALYSIS_ERROR', 
-        `4H趋势分析失败: ${error.message}`);
+        \`4H趋势分析失败: \${error.message}\`);
       
       return { trend4h: '震荡市', marketType: '震荡市', error: error.message };
     }
@@ -385,4 +404,94 @@ class StrategyV3Core {
   // 注意：需要保持原有的其他方法不变
 }
 
-module.exports = StrategyV3Core;
+module.exports = StrategyV3Core;`;
+
+    fs.writeFileSync(this.strategyCorePath, strategyCoreContent);
+    console.log('✅ StrategyV3Core.js 修复完成');
+  }
+
+  async addDatabaseMethods() {
+    console.log('🔧 添加数据库方法到DatabaseManager...');
+    
+    const dbManagerContent = fs.readFileSync(this.databaseManagerPath, 'utf8');
+    
+    // 添加获取K线数据的方法
+    const klineMethod = `
+  /**
+   * 获取K线数据
+   */
+  async getKlineData(symbol, interval, limit = 250) {
+    try {
+      const sql = \`
+        SELECT open_time, close_time, open_price, high_price, low_price, close_price, 
+               volume, quote_volume, trades_count, taker_buy_volume, taker_buy_quote_volume
+        FROM kline_data 
+        WHERE symbol = ? AND interval = ?
+        ORDER BY open_time DESC 
+        LIMIT ?
+      \`;
+      
+      return await this.runQuery(sql, [symbol, interval, limit]);
+    } catch (error) {
+      console.error(\`获取K线数据失败 [\${symbol} \${interval}]:\`, error);
+      return null;
+    }
+  }
+
+  /**
+   * 记录数据质量告警
+   */
+  async recordDataQualityAlert(symbol, issueType, message, details = null) {
+    try {
+      const sql = \`
+        INSERT INTO data_quality_issues (symbol, issue_type, severity, message, details)
+        VALUES (?, ?, ?, ?, ?)
+      \`;
+      
+      await this.runQuery(sql, [
+        symbol,
+        issueType,
+        'WARNING',
+        message,
+        details ? JSON.stringify(details) : null
+      ]);
+    } catch (error) {
+      console.error('记录数据质量告警失败:', error);
+    }
+  }`;
+
+    // 在类的末尾添加方法
+    const updatedContent = dbManagerContent.replace(
+      /(\s+}\s*module\.exports = DatabaseManager;)/,
+      klineMethod + '$1'
+    );
+
+    fs.writeFileSync(this.databaseManagerPath, updatedContent);
+    console.log('✅ DatabaseManager.js 方法添加完成');
+  }
+
+  async fix() {
+    try {
+      console.log('🚀 开始修复策略数据库集成问题...');
+      
+      await this.fixStrategyCore();
+      await this.addDatabaseMethods();
+      
+      console.log('🎉 修复完成！');
+      console.log('📋 修复内容：');
+      console.log('  1. 修改StrategyV3Core从数据库读取K线数据');
+      console.log('  2. 添加数据质量告警机制');
+      console.log('  3. 添加数据库K线数据查询方法');
+      
+    } catch (error) {
+      console.error('❌ 修复失败:', error);
+    }
+  }
+}
+
+if (require.main === module) {
+  const fixer = new StrategyDatabaseFixer();
+  fixer.fix();
+}
+
+module.exports = StrategyDatabaseFixer;
