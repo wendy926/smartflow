@@ -358,7 +358,7 @@ class StrategyV3Execution {
       setupCandleHigh: candles15m.length >= 2 ? candles15m[candles15m.length - 2].high : null,
       setupCandleLow: candles15m.length >= 2 ? candles15m[candles15m.length - 2].low : null
     };
-    
+
     } catch (error) {
       console.error(`震荡市15m执行分析失败 [${symbol}]:`, error);
       // 记录15分钟执行指标失败
