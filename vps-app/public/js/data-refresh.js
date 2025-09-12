@@ -45,17 +45,19 @@ class DataRefreshManager {
       const row = document.createElement('tr');
       
       const dataTypeNames = {
-        '4h_trend': '4H趋势',
-        '1h_scoring': '1H打分',
-        '15m_entry': '15m入场',
-        'delta': 'Delta数据'
+        'trend_analysis': '4H和1H趋势判断',
+        'trend_scoring': '趋势市1H多因子打分',
+        'trend_entry': '趋势市15分钟入场判断',
+        'range_boundary': '震荡市1H边界判断',
+        'range_entry': '震荡市15分钟入场判断'
       };
       
       const refreshIntervals = {
-        '4h_trend': '60分钟',
-        '1h_scoring': '5分钟',
-        '15m_entry': '2分钟',
-        'delta': '6秒'
+        'trend_analysis': '60分钟',
+        'trend_scoring': '5分钟',
+        'trend_entry': '2分钟',
+        'range_boundary': '5分钟',
+        'range_entry': '2分钟'
       };
       
       row.innerHTML = `
@@ -89,10 +91,11 @@ class DataRefreshManager {
       const row = document.createElement('tr');
       
       const dataTypeNames = {
-        '4h_trend': '4H趋势',
-        '1h_scoring': '1H打分',
-        '15m_entry': '15m入场',
-        'delta': 'Delta数据'
+        'trend_analysis': '4H和1H趋势判断',
+        'trend_scoring': '趋势市1H多因子打分',
+        'trend_entry': '趋势市15分钟入场判断',
+        'range_boundary': '震荡市1H边界判断',
+        'range_entry': '震荡市15分钟入场判断'
       };
       
       row.innerHTML = `

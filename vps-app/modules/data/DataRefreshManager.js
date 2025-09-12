@@ -5,10 +5,11 @@ class DataRefreshManager {
   constructor(database) {
     this.db = database;
     this.refreshIntervals = {
-      '4h_trend': 60,      // 4H趋势：每1小时
-      '1h_scoring': 5,     // 1H打分：每5分钟
-      '15m_entry': 2,      // 15m入场：每1-3分钟（取2分钟）
-      'delta': 0.1         // Delta/盘口：实时（0.1分钟=6秒）
+      'trend_analysis': 60,        // 4H和1H趋势判断：每1小时
+      'trend_scoring': 5,          // 趋势市1H多因子打分：每5分钟
+      'trend_entry': 2,            // 趋势市15分钟入场判断：每2分钟
+      'range_boundary': 5,         // 震荡市1H边界判断：每5分钟
+      'range_entry': 2             // 震荡市15分钟入场判断：每2分钟
     };
   }
 
@@ -48,11 +49,16 @@ class DataRefreshManager {
   /**
    * 更新数据刷新时间
    */
-  async updateRefreshTime(symbol, dataType, dataFreshnessScore = 0) {
+  async updateRefreshTime(symbol, dataType, dataFreshnessScore = null) {
     try {
       const interval = this.refreshIntervals[dataType];
       const now = new Date();
       const nextUpdate = new Date(now.getTime() + interval * 60 * 1000);
+
+      // 如果没有传入新鲜度得分，则计算当前新鲜度
+      if (dataFreshnessScore === null) {
+        dataFreshnessScore = this.calculateDataFreshnessScore(symbol, dataType, now.toISOString());
+      }
 
       await this.db.run(`
         INSERT OR REPLACE INTO data_refresh_log 
@@ -60,7 +66,7 @@ class DataRefreshManager {
         VALUES (?, ?, ?, ?, ?, ?)
       `, [symbol, dataType, now.toISOString(), nextUpdate.toISOString(), interval, dataFreshnessScore]);
 
-      console.log(`✅ 更新刷新时间 [${symbol}][${dataType}]: 下次刷新 ${nextUpdate.toISOString()}`);
+      console.log(`✅ 更新刷新时间 [${symbol}][${dataType}]: 下次刷新 ${nextUpdate.toISOString()}, 新鲜度: ${dataFreshnessScore}%`);
     } catch (error) {
       console.error(`更新刷新时间失败 [${symbol}][${dataType}]:`, error);
     }

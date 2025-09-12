@@ -26,11 +26,12 @@ class SmartFlowStrategyV3 {
 
       // 1. 检查数据刷新频率（如果传入了dataRefreshManager）
       if (options.dataRefreshManager) {
-        const shouldRefresh4H = await options.dataRefreshManager.shouldRefresh(symbol, '4h_trend');
-        const shouldRefresh1H = await options.dataRefreshManager.shouldRefresh(symbol, '1h_scoring');
-        const shouldRefresh15M = await options.dataRefreshManager.shouldRefresh(symbol, '15m_entry');
+        const shouldRefreshTrend = await options.dataRefreshManager.shouldRefresh(symbol, 'trend_analysis');
+        const shouldRefreshScoring = await options.dataRefreshManager.shouldRefresh(symbol, 'trend_scoring');
+        const shouldRefreshEntry = await options.dataRefreshManager.shouldRefresh(symbol, 'trend_entry');
+        const shouldRefreshRange = await options.dataRefreshManager.shouldRefresh(symbol, 'range_boundary');
 
-        console.log(`📊 数据刷新状态 [${symbol}]: 4H=${shouldRefresh4H}, 1H=${shouldRefresh1H}, 15M=${shouldRefresh15M}`);
+        console.log(`📊 数据刷新状态 [${symbol}]: 趋势分析=${shouldRefreshTrend}, 趋势打分=${shouldRefreshScoring}, 趋势入场=${shouldRefreshEntry}, 震荡边界=${shouldRefreshRange}`);
       }
 
       // 2. 4H趋势过滤
@@ -78,10 +79,16 @@ class SmartFlowStrategyV3 {
 
       // 6. 更新数据刷新时间（如果传入了dataRefreshManager）
       if (options.dataRefreshManager) {
-        await options.dataRefreshManager.updateRefreshTime(symbol, '4h_trend');
-        await options.dataRefreshManager.updateRefreshTime(symbol, '1h_scoring');
-        await options.dataRefreshManager.updateRefreshTime(symbol, '15m_entry');
-        await options.dataRefreshManager.updateRefreshTime(symbol, 'delta');
+        // 根据市场类型更新不同的数据类型
+        await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_analysis');
+        
+        if (marketType === '趋势市') {
+          await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_scoring');
+          await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_entry');
+        } else if (marketType === '震荡市') {
+          await options.dataRefreshManager.updateRefreshTime(symbol, 'range_boundary');
+          await options.dataRefreshManager.updateRefreshTime(symbol, 'range_entry');
+        }
       }
 
       console.log(`✅ V3策略分析完成 [${symbol}]: ${marketType} - ${analysisResult.signal || 'NONE'}`);
