@@ -21,7 +21,7 @@ class MonitoringAlertFixer {
 
   async syncAlertsToHistory() {
     console.log('🔄 同步告警数据到alert_history表...');
-    
+
     try {
       // 获取data_quality_issues中的数据
       const qualityIssues = await new Promise((resolve, reject) => {
@@ -80,7 +80,7 @@ class MonitoringAlertFixer {
 
   async addMonitoringAPI() {
     console.log('🔧 添加监控中心API接口...');
-    
+
     const serverPath = 'server.js';
     const fs = require('fs');
     let serverContent = fs.readFileSync(serverPath, 'utf8');
@@ -166,7 +166,7 @@ class MonitoringAlertFixer {
 
   async verifyAlerts() {
     console.log('🔍 验证告警数据...');
-    
+
     const alertCount = await new Promise((resolve, reject) => {
       this.db.get('SELECT COUNT(*) as count FROM alert_history', (err, row) => {
         if (err) reject(err);
@@ -193,18 +193,18 @@ class MonitoringAlertFixer {
   async fix() {
     try {
       console.log('🚀 开始修复监控中心告警显示问题...');
-      
+
       await this.init();
       await this.syncAlertsToHistory();
       await this.addMonitoringAPI();
       await this.verifyAlerts();
-      
+
       console.log('🎉 修复完成！');
       console.log('📋 修复内容：');
       console.log('  1. 将data_quality_issues数据同步到alert_history表');
       console.log('  2. 添加监控中心API接口');
       console.log('  3. 修复数据收集率显示问题');
-      
+
     } catch (error) {
       console.error('❌ 修复失败:', error);
     } finally {

@@ -36,7 +36,7 @@ class SmartFlowStrategyV3 {
       }
 
       // 2. 4H趋势过滤
-      const trend4hResult = await this.core.analyze4HTrend(symbol);
+      const trend4hResult = await StrategyV3Core.prototype.analyze4HTrend.call(this.core, symbol);
       if (trend4hResult.error) {
         return this.createErrorResult(symbol, '4H趋势分析失败', trend4hResult.error);
       }
@@ -51,7 +51,7 @@ class SmartFlowStrategyV3 {
       let scoringResult;
       if (trend4h === '多头趋势' || trend4h === '空头趋势') {
         // 4H有趋势方向，进行1H多因子打分
-        scoringResult = await this.core.analyze1HScoring(symbol, trend4h, this.deltaManager);
+        scoringResult = await StrategyV3Core.prototype.analyze1HScoring.call(this.core, symbol, trend4h, this.deltaManager);
         if (scoringResult.error) {
           return this.createErrorResult(symbol, '1H打分分析失败', scoringResult.error);
         }
@@ -66,7 +66,7 @@ class SmartFlowStrategyV3 {
         }
       } else {
         // 4H无趋势方向，直接为震荡市，但仍需1H打分
-        scoringResult = await this.core.analyze1HScoring(symbol, '震荡市', this.deltaManager);
+        scoringResult = await StrategyV3Core.prototype.analyze1HScoring.call(this.core, symbol, '震荡市', this.deltaManager);
         if (scoringResult.error) {
           return this.createErrorResult(symbol, '1H打分分析失败', scoringResult.error);
         }

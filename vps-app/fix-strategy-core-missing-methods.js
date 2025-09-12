@@ -1,4 +1,20 @@
-// StrategyV3Core.js - 策略V3核心实现模块
+#!/usr/bin/env node
+
+// 修复StrategyV3Core缺失的analyze1HScoring方法
+// 添加完整的1H多因子打分逻辑
+
+const fs = require('fs');
+const path = require('path');
+
+class StrategyCoreMethodFixer {
+  constructor() {
+    this.corePath = 'modules/strategy/StrategyV3Core.js';
+  }
+
+  async fix() {
+    console.log('🔧 修复StrategyV3Core缺失的analyze1HScoring方法...');
+    
+    const coreContent = `// StrategyV3Core.js - 策略V3核心实现模块
 
 const BinanceAPI = require('../api/BinanceAPI');
 const FactorWeightManager = require('./FactorWeightManager');
@@ -20,14 +36,14 @@ class StrategyV3Core {
     }
 
     try {
-      const sql = `
+      const sql = \`
         SELECT open_time, close_time, open_price, high_price, low_price, close_price, 
                volume, quote_volume, trades_count, taker_buy_volume, taker_buy_quote_volume
         FROM kline_data 
         WHERE symbol = ? AND interval = ?
         ORDER BY open_time DESC 
         LIMIT ?
-      `;
+      \`;
       
       const results = await this.database.runQuery(sql, [symbol, interval, limit]);
       
@@ -51,7 +67,7 @@ class StrategyV3Core {
         0                        // 11: ignore
       ]);
     } catch (error) {
-      console.error(`从数据库获取K线数据失败 [${symbol} ${interval}]:`, error);
+      console.error(\`从数据库获取K线数据失败 [\${symbol} \${interval}]:\`, error);
       return null;
     }
   }
@@ -63,10 +79,10 @@ class StrategyV3Core {
     if (!this.database) return;
 
     try {
-      const sql = `
+      const sql = \`
         INSERT INTO data_quality_issues (symbol, issue_type, severity, message, details)
         VALUES (?, ?, ?, ?, ?)
-      `;
+      \`;
       
       await this.database.runQuery(sql, [
         symbol,
@@ -213,7 +229,7 @@ class StrategyV3Core {
       if (!klines4h || klines4h.length < 200) {
         // 记录数据质量告警
         await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT', 
-          `4H K线数据不足: ${klines4h ? klines4h.length : 0}条，需要至少200条`);
+          \`4H K线数据不足: \${klines4h ? klines4h.length : 0}条，需要至少200条\`);
         
         if (this.dataMonitor) {
           this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
@@ -371,11 +387,11 @@ class StrategyV3Core {
         direction
       };
     } catch (error) {
-      console.error(`4H趋势分析失败 [${symbol}]:`, error);
+      console.error(\`4H趋势分析失败 [\${symbol}]:\`, error);
       
       // 记录错误告警
       await this.recordDataQualityAlert(symbol, 'TREND_ANALYSIS_ERROR', 
-        `4H趋势分析失败: ${error.message}`);
+        \`4H趋势分析失败: \${error.message}\`);
       
       return { trend4h: '震荡市', marketType: '震荡市', error: error.message };
     }
@@ -386,14 +402,14 @@ class StrategyV3Core {
    */
   async analyze1HScoring(symbol, trend4h, deltaManager = null) {
     try {
-      console.log(`🔍 开始1H多因子打分 [${symbol}] 趋势: ${trend4h}`);
+      console.log(\`🔍 开始1H多因子打分 [\${symbol}] 趋势: \${trend4h}\`);
 
       // 从数据库获取1H K线数据
       const klines1h = await this.getKlineDataFromDB(symbol, '1h', 50);
       
       if (!klines1h || klines1h.length < 20) {
         await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT', 
-          `1H K线数据不足: ${klines1h ? klines1h.length : 0}条，需要至少20条`);
+          \`1H K线数据不足: \${klines1h ? klines1h.length : 0}条，需要至少20条\`);
         
         return { score: 0, error: '1H K线数据不足' };
       }
@@ -412,7 +428,7 @@ class StrategyV3Core {
         const ticker = await BinanceAPI.getTicker(symbol);
         currentPrice = parseFloat(ticker.lastPrice);
       } catch (error) {
-        console.warn(`获取 ${symbol} 当前价格失败:`, error.message);
+        console.warn(\`获取 \${symbol} 当前价格失败:\`, error.message);
         currentPrice = candles[candles.length - 1].close;
       }
 
@@ -439,7 +455,7 @@ class StrategyV3Core {
           oiChange = (latest.sumOpenInterest - earliest.sumOpenInterest) / earliest.sumOpenInterest;
         }
       } catch (error) {
-        console.warn(`获取 ${symbol} OI数据失败:`, error.message);
+        console.warn(\`获取 \${symbol} OI数据失败:\`, error.message);
       }
 
       // 计算成交量因子
@@ -455,7 +471,7 @@ class StrategyV3Core {
           fundingRate = parseFloat(funding[0].fundingRate);
         }
       } catch (error) {
-        console.warn(`获取 ${symbol} 资金费率失败:`, error.message);
+        console.warn(\`获取 \${symbol} 资金费率失败:\`, error.message);
       }
 
       // 计算因子得分
@@ -493,7 +509,7 @@ class StrategyV3Core {
       score += fundingScore;
       factorScores.funding = fundingScore;
 
-      console.log(`📊 1H多因子打分结果 [${symbol}]: 总分=${score}, 因子得分=`, factorScores);
+      console.log(\`📊 1H多因子打分结果 [\${symbol}]: 总分=\${score}, 因子得分=\`, factorScores);
 
       // 记录分析结果
       if (this.dataMonitor) {
@@ -523,9 +539,9 @@ class StrategyV3Core {
       };
 
     } catch (error) {
-      console.error(`1H多因子打分失败 [${symbol}]:`, error);
+      console.error(\`1H多因子打分失败 [\${symbol}]:\`, error);
       await this.recordDataQualityAlert(symbol, 'SCORING_ANALYSIS_ERROR', 
-        `1H多因子打分失败: ${error.message}`);
+        \`1H多因子打分失败: \${error.message}\`);
       
       return { score: 0, error: error.message };
     }
@@ -608,4 +624,16 @@ class StrategyV3Core {
   }
 }
 
-module.exports = StrategyV3Core;
+module.exports = StrategyV3Core;`;
+
+    fs.writeFileSync(this.corePath, coreContent);
+    console.log('✅ StrategyV3Core.js 修复完成');
+  }
+}
+
+if (require.main === module) {
+  const fixer = new StrategyCoreMethodFixer();
+  fixer.fix();
+}
+
+module.exports = StrategyCoreMethodFixer;

@@ -16,7 +16,7 @@ class StrategyDatabaseFixer {
 
   async fixStrategyCore() {
     console.log('🔧 修复StrategyV3Core.js - 从数据库读取K线数据...');
-    
+
     const strategyCoreContent = `// StrategyV3Core.js - 策略V3核心实现模块
 
 const BinanceAPI = require('../api/BinanceAPI');
@@ -412,9 +412,9 @@ module.exports = StrategyV3Core;`;
 
   async addDatabaseMethods() {
     console.log('🔧 添加数据库方法到DatabaseManager...');
-    
+
     const dbManagerContent = fs.readFileSync(this.databaseManagerPath, 'utf8');
-    
+
     // 添加获取K线数据的方法
     const klineMethod = `
   /**
@@ -473,16 +473,16 @@ module.exports = StrategyV3Core;`;
   async fix() {
     try {
       console.log('🚀 开始修复策略数据库集成问题...');
-      
+
       await this.fixStrategyCore();
       await this.addDatabaseMethods();
-      
+
       console.log('🎉 修复完成！');
       console.log('📋 修复内容：');
       console.log('  1. 修改StrategyV3Core从数据库读取K线数据');
       console.log('  2. 添加数据质量告警机制');
       console.log('  3. 添加数据库K线数据查询方法');
-      
+
     } catch (error) {
       console.error('❌ 修复失败:', error);
     }

@@ -29,7 +29,7 @@ class MissingKlineDataCollector {
       const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
       const response = await fetch(url);
       const data = await response.json();
-      
+
       if (!data || data.length === 0) {
         throw new Error('API返回空数据');
       }
@@ -96,9 +96,9 @@ class MissingKlineDataCollector {
 
   async checkMissingSymbols() {
     console.log('🔍 检查缺失的交易对数据...');
-    
+
     const missingSymbols = [];
-    
+
     for (const symbol of this.apiSymbols) {
       const count = await new Promise((resolve, reject) => {
         this.db.get(
@@ -110,28 +110,28 @@ class MissingKlineDataCollector {
           }
         );
       });
-      
+
       if (count < 200) {
         missingSymbols.push(symbol);
         console.log(`⚠️  ${symbol}: 4H数据不足 (${count}/200)`);
       }
     }
-    
+
     return missingSymbols;
   }
 
   async collectMissingData() {
     console.log('🔧 开始收集缺失的K线数据...');
-    
+
     const missingSymbols = await this.checkMissingSymbols();
-    
+
     if (missingSymbols.length === 0) {
       console.log('✅ 所有交易对数据完整，无需收集');
       return;
     }
-    
+
     console.log(`📊 需要收集 ${missingSymbols.length} 个交易对的数据`);
-    
+
     const results = {
       total: 0,
       success: 0,
@@ -140,7 +140,7 @@ class MissingKlineDataCollector {
 
     for (const symbol of missingSymbols) {
       console.log(`\n📊 处理 ${symbol}...`);
-      
+
       // 收集4H数据
       const klineData4h = await this.getKlineData(symbol, '4h', 250);
       if (klineData4h) {
@@ -181,16 +181,16 @@ class MissingKlineDataCollector {
 
   async verifyData() {
     console.log('\n🔍 验证数据收集结果...');
-    
+
     const totalCount = await new Promise((resolve, reject) => {
       this.db.get('SELECT COUNT(*) as count FROM kline_data', (err, row) => {
         if (err) reject(err);
         else resolve(row.count);
       });
     });
-    
+
     console.log(`✅ 数据库中总K线记录数: ${totalCount}`);
-    
+
     // 检查每个交易对的数据完整性
     for (const symbol of this.apiSymbols) {
       const counts = await new Promise((resolve, reject) => {
@@ -203,12 +203,12 @@ class MissingKlineDataCollector {
           }
         );
       });
-      
+
       const countMap = {};
       counts.forEach(row => {
         countMap[row.interval] = row.count;
       });
-      
+
       console.log(`${symbol}: 4H=${countMap['4h'] || 0}, 1H=${countMap['1h'] || 0}, 15m=${countMap['15m'] || 0}`);
     }
   }
@@ -222,7 +222,7 @@ class MissingKlineDataCollector {
 
 async function main() {
   const collector = new MissingKlineDataCollector();
-  
+
   try {
     await collector.init();
     await collector.collectMissingData();
