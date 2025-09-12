@@ -212,7 +212,7 @@
 
       <div class="strategy-details">
         <div class="strategy-phase">
-          <h3>📈 1. 4H级趋势判断（4H）</h3>
+          <h3>📈 1. 4H级趋势判断（4H）- 10分打分机制</h3>
           <div class="phase-content">
             <h4>数据来源：</h4>
             <ul>
@@ -229,14 +229,19 @@
               <li><strong>BBW（布林带带宽）：</strong> (上轨 - 下轨) / 中轨，其中中轨 = MA20，上下轨 = 中轨 ± 2×标准差</li>
             </ul>
 
-            <h4>判断逻辑（严格按照strategy-v3.md）：</h4>
+            <h4>10分打分机制（严格按照strategy-v3.md）：</h4>
             <ul>
-              <li><strong>多头趋势基础条件：</strong> 收盘价 > MA20 且 MA20 > MA50 且 MA50 > MA200</li>
-              <li><strong>空头趋势基础条件：</strong> 收盘价 < MA20 且 MA20 < MA50 且 MA50 < MA200</li>
-              <li><strong>连续确认机制：</strong> 至少2根4H K线满足基础条件，确保趋势稳定性</li>
-              <li><strong>趋势强度确认：</strong> ADX(14) > 20 且 DI方向正确 AND 布林带带宽扩张</li>
-              <li><strong>布林带扩张判断：</strong> 最近10根K线中，后半段平均带宽比前半段大5%以上</li>
-              <li><strong>最终判断：</strong> 基础条件 + 连续确认 + 趋势强度确认 = 趋势市，否则 = 震荡市</li>
+              <li><strong>趋势方向（必选）</strong>：每个方向至少需要2分
+                <ul>
+                  <li>多头方向：收盘价 > MA20（1分）+ MA20 > MA50（1分）+ MA50 > MA200（1分）</li>
+                  <li>空头方向：收盘价 < MA20（1分）+ MA20 < MA50（1分）+ MA50 < MA200（1分）</li>
+                </ul>
+              </li>
+              <li><strong>趋势稳定性（1分）</strong>：连续≥2根4H K线满足趋势方向，确保趋势稳定性</li>
+              <li><strong>趋势强度（1分）</strong>：ADX(14) > 20 且 DI方向正确</li>
+              <li><strong>布林带扩张（1分）</strong>：最近10根K线，后5根BBW均值 > 前5根均值 × 1.05</li>
+              <li><strong>动量确认（1分）</strong>：当前K线收盘价离MA20距离 ≥ 0.5%</li>
+              <li><strong>最终判断</strong>：得分≥4分才保留趋势，否则 = 震荡市</li>
             </ul>
           </div>
         </div>
