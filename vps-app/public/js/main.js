@@ -395,11 +395,15 @@ class SmartFlowApp {
       if (strategyVersion === 'V3') {
         if (hasDataIssue) {
           signalDisplay = '数据不足';
-        } else if (marketType === '趋势市' && signal.trendStrength) {
+        } else if (marketType === '趋势市') {
           // 趋势市显示1H趋势加强判断结果
-          const strengthClass = signal.signalStrength === '强' ? 'trend-strong' :
-            signal.signalStrength === '中' ? 'trend-medium' : 'trend-weak';
-          signalDisplay = `${signal.trendStrength}<br><small class="${strengthClass}">${signal.signalStrength}</small>`;
+          if (signal.trendStrength) {
+            const strengthClass = signal.signalStrength === '强' ? 'trend-strong' :
+              signal.signalStrength === '中' ? 'trend-medium' : 'trend-weak';
+            signalDisplay = `${signal.trendStrength}<br><small class="${strengthClass}">${signal.signalStrength}</small>`;
+          } else {
+            signalDisplay = '--';
+          }
         } else if (marketType === '震荡市') {
           // 震荡市显示1H边界有效性判断结果
           // 使用震荡市特有的边界有效性数据
