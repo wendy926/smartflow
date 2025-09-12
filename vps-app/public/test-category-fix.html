@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分类显示修复测试</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .test-result {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+
+    .success {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+
+    .error {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>分类显示修复测试</h1>
+  <div id="results"></div>
+
+  <script>
+    // 复制getCategoryDisplay函数
+    function getCategoryDisplay(category) {
+      const categoryMap = {
+        'mainstream': '主流币',
+        'high-cap-trending': '高市值趋势币',
+        'highcap': '高市值', // 保持向后兼容
+        'trending': '热点币',
+        'smallcap': '小币'
+      };
+      const result = categoryMap[category] || '未知';
+      console.log(`分类映射调试: ${category} -> ${result}`);
+      return result;
+    }
+
+    // 测试分类映射
+    function testCategoryMapping() {
+      const testCategories = [
+        'mainstream',
+        'high-cap-trending',
+        'trending',
+        'smallcap',
+        'unknown'
+      ];
+
+      let html = '';
+      testCategories.forEach(category => {
+        const result = getCategoryDisplay(category);
+        const isCorrect = (category === 'mainstream' && result === '主流币') ||
+          (category === 'high-cap-trending' && result === '高市值趋势币') ||
+          (category === 'trending' && result === '热点币') ||
+          (category === 'smallcap' && result === '小币') ||
+          (category === 'unknown' && result === '未知');
+
+        html += `<div class="test-result ${isCorrect ? 'success' : 'error'}">
+                    <strong>${category}</strong> -> <strong>${result}</strong> ${isCorrect ? '✓' : '✗'}
+                </div>`;
+      });
+
+      document.getElementById('results').innerHTML = html;
+    }
+
+    // 测试API调用
+    async function testAPICall() {
+      try {
+        const response = await fetch('/api/signals');
+        const data = await response.json();
+
+        const solusdt = data.find(item => item.symbol === 'SOLUSDT');
+        if (solusdt) {
+          const display = getCategoryDisplay(solusdt.category);
+          const html = `<div class="test-result ${display === '高市值趋势币' ? 'success' : 'error'}">
+                        <strong>SOLUSDT API测试:</strong><br>
+                        原始分类: ${solusdt.category}<br>
+                        显示分类: ${display}<br>
+                        ${display === '高市值趋势币' ? '✓ 正确' : '✗ 错误'}
+                    </div>`;
+          document.getElementById('results').innerHTML += html;
+        } else {
+          document.getElementById('results').innerHTML += '<div class="test-result error">未找到SOLUSDT</div>';
+        }
+      } catch (error) {
+        document.getElementById('results').innerHTML += `<div class="test-result error">API调用错误: ${error.message}</div>`;
+      }
+    }
+
+    // 页面加载时执行测试
+    testCategoryMapping();
+    testAPICall();
+  </script>
+</body>
+
+</html>

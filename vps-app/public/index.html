@@ -140,7 +140,7 @@
               <th>交易对</th>
               <th>分类</th>
               <th>4H趋势</th>
-              <th>多因子得分<br><small>趋势市:1H趋势加强 | 震荡市:1H边界有效性</small></th>
+              <th>多因子得分<br><small>多头/空头趋势:1H趋势加强 | 震荡市:1H边界有效性</small></th>
               <th>1H加强趋势</th>
               <th>15min信号</th>
               <th>当前价格</th>
@@ -661,6 +661,57 @@
   <script src="js/components/Modal.js?v=20250111-16"></script>
   <script src="js/data/DataManager.js?v=20250111-16"></script>
   <script src="js/main.js?v=20250111-16"></script>
+
+  <!-- 临时测试代码 -->
+  <script>
+    console.log('临时测试代码开始执行');
+
+    // 测试分类映射
+    function testCategoryDisplay(category) {
+      const categoryMap = {
+        'mainstream': '主流币',
+        'high-cap-trending': '高市值趋势币',
+        'trending': '热点币',
+        'smallcap': '小币'
+      };
+      return categoryMap[category] || '未知';
+    }
+
+    // 测试API调用
+    setTimeout(async () => {
+      try {
+        console.log('开始测试API调用');
+        const response = await fetch('/api/signals');
+        const data = await response.json();
+        console.log('API调用成功，数据长度:', data.length);
+
+        const solusdt = data.find(item => item.symbol === 'SOLUSDT');
+        if (solusdt) {
+          const display = testCategoryDisplay(solusdt.category);
+          console.log('SOLUSDT测试结果:', {
+            symbol: solusdt.symbol,
+            category: solusdt.category,
+            display: display
+          });
+
+          // 在页面上显示结果
+          const testDiv = document.createElement('div');
+          testDiv.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #fff; border: 2px solid #000; padding: 10px; z-index: 9999;';
+          testDiv.innerHTML = `
+            <h3>SOLUSDT测试结果</h3>
+            <p>原始分类: ${solusdt.category}</p>
+            <p>显示分类: ${display}</p>
+            <p>时间: ${new Date().toLocaleString()}</p>
+          `;
+          document.body.appendChild(testDiv);
+        } else {
+          console.log('未找到SOLUSDT');
+        }
+      } catch (error) {
+        console.error('API调用失败:', error);
+      }
+    }, 2000);
+  </script>
 </body>
 
 </html>

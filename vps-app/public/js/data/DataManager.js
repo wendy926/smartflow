@@ -223,14 +223,27 @@ class DataManager {
   }
 
   // 获取趋势状态样式
-  getTrendClass(trend) {
-    switch (trend) {
-      case 'UPTREND':
-        return 'trend-uptrend';
-      case 'DOWNTREND':
-        return 'trend-downtrend';
-      default:
-        return 'trend-range';
+  getTrendClass(trend, marketType) {
+    // 优化：趋势市多头绿色，空头红色
+    if (marketType === '趋势市') {
+      switch (trend) {
+        case '多头趋势':
+          return 'trend-uptrend';
+        case '空头趋势':
+          return 'trend-downtrend';
+        default:
+          return 'trend-range';
+      }
+    } else {
+      // 震荡市保持原有逻辑
+      switch (trend) {
+        case 'UPTREND':
+          return 'trend-uptrend';
+        case 'DOWNTREND':
+          return 'trend-downtrend';
+        default:
+          return 'trend-range';
+      }
     }
   }
 

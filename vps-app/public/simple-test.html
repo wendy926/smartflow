@@ -5,118 +5,53 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>简单测试</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-
-    .result {
-      margin: 10px 0;
-      padding: 10px;
-      border: 1px solid #ccc;
-    }
-
-    .success {
-      background: #d4edda;
-      color: #155724;
-    }
-
-    .error {
-      background: #f8d7da;
-      color: #721c24;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin: 10px 0;
-    }
-
-    th,
-    td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-
-    th {
-      background-color: #f2f2f2;
-    }
-  </style>
 </head>
 
 <body>
-  <h1>简单API测试</h1>
-  <div id="result">测试中...</div>
+  <h1>JavaScript执行测试</h1>
+  <div id="test-result">测试中...</div>
 
-  <script src="js/api.js"></script>
   <script>
+    console.log('页面JavaScript开始执行');
+
+    // 测试分类映射
+    function testCategoryDisplay(category) {
+      const categoryMap = {
+        'mainstream': '主流币',
+        'high-cap-trending': '高市值趋势币',
+        'trending': '热点币',
+        'smallcap': '小币'
+      };
+      return categoryMap[category] || '未知';
+    }
+
+    // 测试API调用
     async function testAPI() {
-      const resultDiv = document.getElementById('result');
-
       try {
-        const apiClient = new APIClient();
-        const data = await apiClient.getSimulationHistory();
+        console.log('开始API调用');
+        const response = await fetch('/api/signals');
+        const data = await response.json();
+        console.log('API调用成功，数据长度:', data.length);
 
-        console.log('API返回数据:', data);
-
-        const allSimulations = Array.isArray(data) ? data : (data.simulations || []);
-
-        // 模拟筛选逻辑
-        const filteredSimulations = allSimulations.filter(sim => {
-          // 不应用任何筛选条件，显示所有记录
-          return true;
-        });
-
-        const tableHTML = filteredSimulations.slice(0, 10).map(sim => `
-                    <tr>
-                        <td>${sim.symbol}</td>
-                        <td>${sim.direction}</td>
-                        <td>${sim.trigger_reason}</td>
-                        <td>${sim.exit_reason || 'N/A'}</td>
-                        <td>${sim.status}</td>
-                        <td>${sim.is_win === null ? 'null' : sim.is_win === undefined ? 'undefined' : sim.is_win}</td>
-                    </tr>
-                `).join('');
-
-        resultDiv.innerHTML = `
-                    <div class="result success">
-                        <h3>✅ API测试成功</h3>
-                        <p>总记录数: ${allSimulations.length}</p>
-                        <p>筛选后记录数: ${filteredSimulations.length}</p>
-                        <p>显示前10条记录:</p>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>交易对</th>
-                                    <th>方向</th>
-                                    <th>触发原因</th>
-                                    <th>出场原因</th>
-                                    <th>状态</th>
-                                    <th>is_win</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${tableHTML}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-
+        const solusdt = data.find(item => item.symbol === 'SOLUSDT');
+        if (solusdt) {
+          const display = testCategoryDisplay(solusdt.category);
+          document.getElementById('test-result').innerHTML = `
+                        <p>SOLUSDT 原始分类: ${solusdt.category}</p>
+                        <p>SOLUSDT 显示分类: ${display}</p>
+                        <p>测试时间: ${new Date().toLocaleString()}</p>
+                    `;
+        } else {
+          document.getElementById('test-result').innerHTML = '未找到SOLUSDT';
+        }
       } catch (error) {
-        console.error('API测试失败:', error);
-        resultDiv.innerHTML = `
-                    <div class="result error">
-                        <h3>❌ API测试失败</h3>
-                        <p>错误信息: ${error.message}</p>
-                    </div>
-                `;
+        console.error('API调用失败:', error);
+        document.getElementById('test-result').innerHTML = 'API调用失败: ' + error.message;
       }
     }
 
-    // 页面加载完成后执行测试
-    document.addEventListener('DOMContentLoaded', testAPI);
+    // 立即执行测试
+    testAPI();
   </script>
 </body>
 
