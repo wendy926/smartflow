@@ -1171,6 +1171,8 @@ class SmartFlowServer {
       this.deltaManager = new DeltaManager();
       // 将DeltaManager实例传递给SmartFlowStrategy
       SmartFlowStrategy.deltaManager = this.deltaManager;
+      // 将DeltaManager实例传递给SmartFlowStrategyV3
+      SmartFlowStrategyV3.setDeltaManager(this.deltaManager);
       console.log('✅ Delta数据管理器初始化完成');
 
       // 初始化数据刷新管理器

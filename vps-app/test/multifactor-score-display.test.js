@@ -6,7 +6,7 @@
 const { test, expect, describe } = require('@jest/globals');
 
 describe('多因子得分显示逻辑测试', () => {
-  
+
   test('趋势市多因子得分显示逻辑', () => {
     // 模拟趋势市信号数据
     const trendMarketSignal = {
@@ -20,7 +20,7 @@ describe('多因子得分显示逻辑测试', () => {
     // 模拟前端显示逻辑
     let multifactorDisplay = '--';
     let multifactorClass = 'score-none';
-    
+
     if (trendMarketSignal.trend4h === '多头趋势' || trendMarketSignal.trend4h === '空头趋势') {
       const trendScore1h = trendMarketSignal.score1h || 0;
       multifactorDisplay = trendScore1h.toString();
@@ -46,7 +46,7 @@ describe('多因子得分显示逻辑测试', () => {
     // 模拟前端显示逻辑
     let multifactorDisplay = '--';
     let multifactorClass = 'score-none';
-    
+
     if (rangeMarketSignal.trend4h === '震荡市') {
       const lowerValid = rangeMarketSignal.rangeLowerBoundaryValid === true ? 1 : 0;
       const upperValid = rangeMarketSignal.rangeUpperBoundaryValid === true ? 1 : 0;
@@ -129,7 +129,7 @@ describe('多因子得分显示逻辑测试', () => {
 
     // 验证score1h是数字
     expect(typeof apiResponse.score1h).toBe('number');
-    
+
     // 验证score1h可能是小数
     expect(Number.isFinite(apiResponse.score1h)).toBe(true);
   });

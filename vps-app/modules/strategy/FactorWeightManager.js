@@ -266,21 +266,21 @@ class FactorWeightManager {
           // 震荡市1H边界判断：成交量低 → 震荡区间有效
           return value <= 1.0 ? 1 : (value <= 1.2 ? 0.5 : 0);
         } else {
-          // 趋势市1H多因子打分：成交量高 → 趋势确认（降低阈值）
-          return value >= 1.2 ? 1 : (value >= 0.8 ? 0.5 : 0);
+          // 趋势市1H多因子打分：成交量高 → 趋势确认（进一步降低阈值）
+          return value >= 0.8 ? 1 : (value >= 0.6 ? 0.5 : 0);
         }
 
       case 'oi':
-        // OI变化确认（降低阈值）
-        return Math.abs(value) >= 0.01 ? 1 : (Math.abs(value) >= 0.005 ? 0.5 : 0);
+        // OI变化确认（进一步降低阈值）
+        return Math.abs(value) >= 0.005 ? 1 : (Math.abs(value) >= 0.002 ? 0.5 : 0);
 
       case 'delta':
         // Delta不平衡
         return Math.abs(value) >= 0.1 ? 1 : (Math.abs(value) >= 0.05 ? 0.5 : 0);
 
       case 'funding':
-        // 资金费率 - 严格按照strategy-v3.md: 0.05% ≤ Funding Rate ≤ +0.05%
-        return Math.abs(value) <= 0.0005 ? 1 : (Math.abs(value) <= 0.001 ? 0.5 : 0);
+        // 资金费率 - 放宽阈值，更符合实际市场情况
+        return Math.abs(value) <= 0.001 ? 1 : (Math.abs(value) <= 0.002 ? 0.5 : 0);
 
       case 'touch':
         // 触碰因子

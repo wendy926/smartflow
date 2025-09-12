@@ -115,14 +115,25 @@ class DeltaManager {
   /**
    * 获取Delta数据
    * @param {string} symbol - 交易对
+   * @param {string} interval - 时间级别（兼容V3策略）
    * @returns {Object} Delta数据
    */
-  getDeltaData(symbol) {
-    return this.deltaData.get(symbol) || {
+  getDeltaData(symbol, interval = '1h') {
+    const data = this.deltaData.get(symbol) || {
       deltaBuy: 0,
       deltaSell: 0,
       lastUpdate: 0,
       imbalance: 0
+    };
+    
+    // 计算Delta不平衡值
+    const delta = data.deltaSell > 0 ? data.deltaBuy / data.deltaSell : 0;
+    
+    return {
+      ...data,
+      delta: delta,
+      delta15m: delta, // 简化处理，15分钟和1小时使用相同值
+      delta1h: delta
     };
   }
 
