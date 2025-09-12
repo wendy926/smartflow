@@ -771,7 +771,8 @@ class SmartFlowApp {
   getCategoryDisplay(category) {
     const categoryMap = {
       'mainstream': '主流币',
-      'highcap': '高市值',
+      'high-cap-trending': '高市值趋势币',
+      'highcap': '高市值', // 保持向后兼容
       'trending': '热点币',
       'smallcap': '小币'
     };
@@ -782,7 +783,8 @@ class SmartFlowApp {
   getCategoryClass(category) {
     const classMap = {
       'mainstream': 'category-mainstream',
-      'highcap': 'category-highcap',
+      'high-cap-trending': 'category-highcap',
+      'highcap': 'category-highcap', // 保持向后兼容
       'trending': 'category-trending',
       'smallcap': 'category-smallcap'
     };

@@ -70,7 +70,7 @@ class SmartFlowStrategyV3 {
         if (scoringResult.error) {
           return this.createErrorResult(symbol, '1H打分分析失败', scoringResult.error);
         }
-        
+
         finalMarketType = '震荡市';
         analysisResult = await this.analyzeRangeMarket(symbol, { ...trend4hResult, marketType: '震荡市' }, scoringResult);
       }

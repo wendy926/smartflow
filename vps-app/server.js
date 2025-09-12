@@ -117,9 +117,9 @@ class SmartFlowServer {
             }
 
             // 使用V3策略进行分析
-            const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { 
+            const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
               maxLossAmount: parseFloat(maxLossAmount),
-              dataRefreshManager: this.dataRefreshManager 
+              dataRefreshManager: this.dataRefreshManager
             });
 
             // 检查分析是否成功（数据是否充足）
@@ -260,9 +260,9 @@ class SmartFlowServer {
         for (const symbol of symbols) {
           try {
             // 只更新信号和执行数据，不更新趋势数据
-            const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { 
+            const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
               maxLossAmount: parseFloat(maxLossAmount),
-              dataRefreshManager: this.dataRefreshManager 
+              dataRefreshManager: this.dataRefreshManager
             });
 
             // 存储策略分析结果到数据库
@@ -644,7 +644,7 @@ class SmartFlowServer {
     this.app.post('/api/refresh-all-stale', async (req, res) => {
       try {
         const result = await this.dataRefreshManager.refreshAllStaleData();
-        
+
         if (result.success) {
           res.json({
             success: true,
@@ -886,7 +886,7 @@ class SmartFlowServer {
       try {
         const factorWeightManager = new FactorWeightManager(this.db);
         const weights = await factorWeightManager.getAllWeights();
-        
+
         res.json({
           success: true,
           data: weights
@@ -905,13 +905,13 @@ class SmartFlowServer {
       try {
         const { symbol } = req.params;
         const factorWeightManager = new FactorWeightManager(this.db);
-        
+
         const category = await factorWeightManager.getSymbolCategory(symbol);
         const weights = await factorWeightManager.getAllWeights();
-        
+
         // 过滤出该分类的权重配置
         const categoryWeights = weights.filter(w => w.category === category);
-        
+
         res.json({
           success: true,
           data: {
@@ -933,7 +933,7 @@ class SmartFlowServer {
     this.app.post('/api/factor-weights', async (req, res) => {
       try {
         const { category, analysisType, weights } = req.body;
-        
+
         if (!category || !analysisType || !weights) {
           return res.status(400).json({
             success: false,
@@ -943,7 +943,7 @@ class SmartFlowServer {
 
         const factorWeightManager = new FactorWeightManager(this.db);
         const success = await factorWeightManager.updateWeights(category, analysisType, weights);
-        
+
         if (success) {
           res.json({
             success: true,
@@ -969,7 +969,7 @@ class SmartFlowServer {
       try {
         const factorWeightManager = new FactorWeightManager(this.db);
         await factorWeightManager.initializeDefaultWeights();
-        
+
         res.json({
           success: true,
           message: '默认权重配置初始化成功'
@@ -1379,10 +1379,10 @@ class SmartFlowServer {
 
       for (const symbol of symbols) {
         try {
-          const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { 
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager 
-      });
+          const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
+            maxLossAmount: parseFloat(maxLossAmount),
+            dataRefreshManager: this.dataRefreshManager
+          });
 
           // 存储策略分析结果到数据库
           try {
@@ -1412,9 +1412,9 @@ class SmartFlowServer {
     try {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
-      const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { 
+      const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
         maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager 
+        dataRefreshManager: this.dataRefreshManager
       });
 
       // 存储策略分析结果到数据库
@@ -1441,9 +1441,9 @@ class SmartFlowServer {
     try {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
-      const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { 
+      const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
         maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager 
+        dataRefreshManager: this.dataRefreshManager
       });
 
       // 存储策略分析结果到数据库
@@ -1470,9 +1470,9 @@ class SmartFlowServer {
     try {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
-      const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { 
+      const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
         maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager 
+        dataRefreshManager: this.dataRefreshManager
       });
 
       // 存储策略分析结果到数据库
@@ -1773,10 +1773,10 @@ class SmartFlowServer {
       for (const symbol of symbols) {
         try {
           // 只更新信号和执行数据，不重新计算趋势数据
-          const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, { 
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager 
-      });
+          const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
+            maxLossAmount: parseFloat(maxLossAmount),
+            dataRefreshManager: this.dataRefreshManager
+          });
 
           // 获取数据采集成功率 - 使用Binance API成功率
           let dataCollectionRate = 0;
