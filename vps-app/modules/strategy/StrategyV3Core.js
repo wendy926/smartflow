@@ -465,7 +465,9 @@ class StrategyV3Core {
       const factorScores = {};
 
       // 1. VWAP方向一致性（必须满足，不计分但计入总分）
+      console.log(`🔍 VWAP方向一致性检查 [${symbol}]: currentPrice=${currentPrice}, lastVWAP=${lastVWAP}, trend4h=${trend4h}`);
       const vwapDirectionConsistent = this.checkVWAPDirectionConsistency(currentPrice, lastVWAP, trend4h);
+      console.log(`🔍 VWAP方向一致性结果 [${symbol}]: ${vwapDirectionConsistent}`);
       if (vwapDirectionConsistent) {
         score += 1; // 计入总分
       }
