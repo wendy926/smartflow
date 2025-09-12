@@ -152,7 +152,27 @@ class SmartFlowStrategyV3 {
         }
       }
 
-      // 2. 检查是否允许入场
+      // 2. 1H加强趋势判断（基于1H多因子打分结果）
+      let trendStrength = '观望';
+      let signalStrength = '弱';
+      
+      if (scoringResult.vwapDirectionConsistent) {
+        if (scoringResult.score >= 4) {
+          trendStrength = trend4hResult.trend4h === '多头趋势' ? '做多' : '做空';
+          signalStrength = '强';
+        } else if (scoringResult.score >= 3) {
+          trendStrength = trend4hResult.trend4h === '多头趋势' ? '做多' : '做空';
+          signalStrength = '中';
+        } else {
+          trendStrength = '观望';
+          signalStrength = '弱';
+        }
+      } else {
+        trendStrength = '观望';
+        signalStrength = '弱';
+      }
+
+      // 3. 检查是否允许入场
       console.log(`🔍 趋势市入场检查 [${symbol}]: allowEntry=${scoringResult.allowEntry}, score=${scoringResult.score}, vwapDirectionConsistent=${scoringResult.vwapDirectionConsistent}`);
       if (!scoringResult.allowEntry) {
         // 即使不允许入场，也要返回实际的得分，而不是0
@@ -167,6 +187,8 @@ class SmartFlowStrategyV3 {
           oiChange6h: scoringResult.oiChange6h,
           fundingRate: scoringResult.fundingRate,
           deltaImbalance: scoringResult.deltaImbalance,
+          trendStrength: trendStrength,
+          signalStrength: signalStrength,
           signal: 'NONE',
           execution: null,
           executionMode: 'NONE',
@@ -239,6 +261,8 @@ class SmartFlowStrategyV3 {
         oiChange6h: scoringResult.oiChange6h,
         fundingRate: scoringResult.fundingRate,
         deltaImbalance: scoringResult.deltaImbalance,
+        trendStrength: trendStrength,
+        signalStrength: signalStrength,
         signal: executionResult.signal,
         execution: executionResult.signal === 'NONE' ? null : this.formatExecution(executionResult),
         executionMode: executionResult.mode || 'NONE',

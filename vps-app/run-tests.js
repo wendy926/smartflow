@@ -32,20 +32,20 @@ for (const testFile of testFiles) {
   try {
     console.log(`\n🧪 运行测试: ${testFile}`);
     console.log('─'.repeat(50));
-    
+
     const startTime = Date.now();
     const result = execSync(`npx jest ${testFile} --verbose --no-cache`, {
       cwd: process.cwd(),
       encoding: 'utf8',
       stdio: 'pipe'
     });
-    
+
     const endTime = Date.now();
     const duration = ((endTime - startTime) / 1000).toFixed(2);
-    
+
     console.log(`✅ ${testFile} 通过 (${duration}s)`);
     console.log(result);
-    
+
     // 解析测试结果
     const lines = result.split('\n');
     const testSummary = lines.find(line => line.includes('Tests:') || line.includes('test'));
@@ -59,7 +59,7 @@ for (const testFile of testFiles) {
         totalTests += passed + failed;
       }
     }
-    
+
   } catch (error) {
     console.log(`❌ ${testFile} 失败`);
     console.log(error.stdout || error.message);

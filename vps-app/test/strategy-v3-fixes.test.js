@@ -35,7 +35,7 @@ describe('策略V3修复逻辑测试', () => {
   beforeEach(() => {
     strategyCore = new StrategyV3Core();
     strategyExecution = new StrategyV3Execution();
-    
+
     // Mock 1小时K线数据
     mockCandles = Array.from({ length: 50 }, (_, i) => ({
       open: 100 + i * 0.1,
@@ -51,7 +51,7 @@ describe('策略V3修复逻辑测试', () => {
       const currentPrice = 100;
       const vwap = 105;
       const trend4h = '空头趋势';
-      
+
       const result = strategyCore.checkVWAPDirectionConsistency(currentPrice, vwap, trend4h);
       expect(result).toBe(true);
     });
@@ -60,7 +60,7 @@ describe('策略V3修复逻辑测试', () => {
       const currentPrice = 105;
       const vwap = 100;
       const trend4h = '空头趋势';
-      
+
       const result = strategyCore.checkVWAPDirectionConsistency(currentPrice, vwap, trend4h);
       expect(result).toBe(false);
     });
@@ -69,7 +69,7 @@ describe('策略V3修复逻辑测试', () => {
       const currentPrice = 105;
       const vwap = 100;
       const trend4h = '多头趋势';
-      
+
       const result = strategyCore.checkVWAPDirectionConsistency(currentPrice, vwap, trend4h);
       expect(result).toBe(true);
     });
@@ -78,7 +78,7 @@ describe('策略V3修复逻辑测试', () => {
       const currentPrice = 100;
       const vwap = 105;
       const trend4h = '多头趋势';
-      
+
       const result = strategyCore.checkVWAPDirectionConsistency(currentPrice, vwap, trend4h);
       expect(result).toBe(false);
     });
@@ -103,10 +103,10 @@ describe('策略V3修复逻辑测试', () => {
       mockCandles15m[49].close = 99.5; // 当前收盘价
       mockCandles15m[48].low = 100.0;  // 前一根低点
       mockCandles15m[49].close = 99.5; // 当前收盘价 < 前一根低点
-      
+
       const last15m = mockCandles15m[49];
       const prev15m = mockCandles15m[48];
-      
+
       // 按照修复后的逻辑：收盘价跌破setup candle低点
       const setupBreakdown = last15m.close < prev15m.low;
       expect(setupBreakdown).toBe(true);
@@ -116,10 +116,10 @@ describe('策略V3修复逻辑测试', () => {
       // 设置测试数据：收盘价突破前一根高点
       mockCandles15m[49].close = 101.5; // 当前收盘价
       mockCandles15m[48].high = 101.0;  // 前一根高点
-      
+
       const last15m = mockCandles15m[49];
       const prev15m = mockCandles15m[48];
-      
+
       // 按照修复后的逻辑：收盘价突破setup candle高点
       const setupBreakout = last15m.close > prev15m.high;
       expect(setupBreakout).toBe(true);
@@ -129,10 +129,10 @@ describe('策略V3修复逻辑测试', () => {
       const candles = mockCandles15m.slice(-20);
       const avgVol = candles.reduce((a, c) => a + c.volume, 0) / 20;
       const last15m = mockCandles15m[49];
-      
+
       // 设置当前成交量等于平均成交量
       last15m.volume = avgVol;
-      
+
       // 按照修复后的逻辑：1.0倍平均成交量
       const volConfirm = last15m.volume >= avgVol * 1.0;
       expect(volConfirm).toBe(true);
@@ -159,7 +159,7 @@ describe('策略V3修复逻辑测试', () => {
       jest.spyOn(strategyCore, 'analyze1HScoring').mockResolvedValue(mockResult);
 
       const result = await strategyCore.analyze1HScoring('BTCUSDT', '空头趋势', null);
-      
+
       expect(result).toHaveProperty('allowEntry');
       expect(result.allowEntry).toBe(true);
     });
@@ -167,7 +167,7 @@ describe('策略V3修复逻辑测试', () => {
     test('VWAP方向不一致且得分≥3时，allowEntry应该为false', () => {
       const score = 4;
       const vwapDirectionConsistent = false;
-      
+
       // 按照修复后的逻辑：VWAP方向一致且得分≥3
       const allowEntry = vwapDirectionConsistent && score >= 3;
       expect(allowEntry).toBe(false);
@@ -176,7 +176,7 @@ describe('策略V3修复逻辑测试', () => {
     test('VWAP方向一致且得分≥3时，allowEntry应该为true', () => {
       const score = 4;
       const vwapDirectionConsistent = true;
-      
+
       // 按照修复后的逻辑：VWAP方向一致且得分≥3
       const allowEntry = vwapDirectionConsistent && score >= 3;
       expect(allowEntry).toBe(true);
@@ -209,7 +209,7 @@ describe('策略V3修复逻辑测试', () => {
       });
 
       const result = await SmartFlowStrategyV3.analyzeTrendMarket('BTCUSDT', mockTrend4hResult, mockScoringResult);
-      
+
       expect(result).toHaveProperty('signal');
       expect(result).toHaveProperty('execution');
       expect(result).toHaveProperty('reason');
@@ -221,7 +221,7 @@ describe('策略V3修复逻辑测试', () => {
       const trend4h = '空头趋势';
       const score = 4;
       const vwapDirectionConsistent = true;
-      
+
       // 空头趋势 + 得分≥3 + VWAP方向一致 = 允许入场
       const allowEntry = vwapDirectionConsistent && score >= 3;
       expect(allowEntry).toBe(true);
@@ -233,7 +233,7 @@ describe('策略V3修复逻辑测试', () => {
         vwapDirectionConsistent: true,
         allowEntry: true
       };
-      
+
       // 当allowEntry为true时，应该允许1H加强趋势判断
       expect(scoringResult.allowEntry).toBe(true);
     });
@@ -242,7 +242,7 @@ describe('策略V3修复逻辑测试', () => {
       const trend4h = '空头趋势';
       const score1h = 4;
       const vwapDirectionConsistent = true;
-      
+
       // 基本条件：趋势市 + 得分≥3 + VWAP方向一致
       const basicConditions = trend4h === '空头趋势' && score1h >= 3 && vwapDirectionConsistent;
       expect(basicConditions).toBe(true);

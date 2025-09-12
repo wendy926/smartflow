@@ -391,15 +391,19 @@ class SmartFlowApp {
       }
 
       // 构建信号列显示（1H加强趋势）
-      let signalDisplay = signal.signal || '--';
+      let signalDisplay = '--';
       if (strategyVersion === 'V3') {
         if (hasDataIssue) {
           signalDisplay = '数据不足';
-        } else if (signal.vwapDirectionConsistent !== undefined && marketType !== '震荡市') {
-          const vwapStatus = signal.vwapDirectionConsistent ? '✅' : '❌';
-          signalDisplay = `${signal.signal || '--'}<br><small style="color: #666;">VWAP: ${vwapStatus}</small>`;
+        } else if (marketType === '趋势市' && signal.trendStrength) {
+          // 趋势市显示1H加强趋势判断结果
+          const strengthClass = signal.signalStrength === '强' ? 'trend-strong' : 
+                               signal.signalStrength === '中' ? 'trend-medium' : 'trend-weak';
+          signalDisplay = `${signal.trendStrength}<br><small class="${strengthClass}">${signal.signalStrength}</small>`;
         } else if (marketType === '震荡市') {
           signalDisplay = '--'; // 震荡市不显示1H加强趋势
+        } else {
+          signalDisplay = '--';
         }
       }
 

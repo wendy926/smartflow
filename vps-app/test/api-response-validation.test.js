@@ -130,7 +130,7 @@ describe('API响应验证测试', () => {
         .expect(200);
 
       const bearishTrends = response.body.filter(signal => signal.trend4h === '空头趋势');
-      
+
       bearishTrends.forEach(signal => {
         // 空头趋势：当前价格应该低于VWAP
         if (signal.vwapDirectionConsistent) {
@@ -145,7 +145,7 @@ describe('API响应验证测试', () => {
         .expect(200);
 
       const bullishTrends = response.body.filter(signal => signal.trend4h === '多头趋势');
-      
+
       bullishTrends.forEach(signal => {
         // 多头趋势：当前价格应该高于VWAP
         if (signal.vwapDirectionConsistent) {
@@ -160,7 +160,7 @@ describe('API响应验证测试', () => {
         .expect(200);
 
       const highScoreSignals = response.body.filter(signal => signal.score1h >= 3);
-      
+
       highScoreSignals.forEach(signal => {
         // 得分≥3且VWAP方向一致时，应该允许入场
         if (signal.vwapDirectionConsistent) {
@@ -175,7 +175,7 @@ describe('API响应验证测试', () => {
         .expect(200);
 
       const trendMarkets = response.body.filter(signal => signal.marketType === '趋势市');
-      
+
       trendMarkets.forEach(signal => {
         // 趋势市：1H多因子得分应该>0
         expect(signal.score1h).toBeGreaterThan(0);
@@ -188,7 +188,7 @@ describe('API响应验证测试', () => {
         .expect(200);
 
       const rangeMarkets = response.body.filter(signal => signal.marketType === '震荡市');
-      
+
       rangeMarkets.forEach(signal => {
         // 震荡市：应该有边界有效性得分
         expect(signal.score1h).toBeGreaterThanOrEqual(0);
@@ -204,7 +204,7 @@ describe('API响应验证测试', () => {
 
       const avaxSignal = response.body.find(signal => signal.symbol === 'AVAXUSDT');
       expect(avaxSignal).toBeDefined();
-      
+
       if (avaxSignal) {
         expect(typeof avaxSignal.score).toBe('number');
         expect(typeof avaxSignal.score1h).toBe('number');
@@ -221,7 +221,7 @@ describe('API响应验证测试', () => {
 
       const linkSignal = response.body.find(signal => signal.symbol === 'LINKUSDT');
       expect(linkSignal).toBeDefined();
-      
+
       if (linkSignal) {
         expect(typeof linkSignal.score).toBe('number');
         expect(typeof linkSignal.score1h).toBe('number');
@@ -238,7 +238,7 @@ describe('API响应验证测试', () => {
 
       const solSignal = response.body.find(signal => signal.symbol === 'SOLUSDT');
       expect(solSignal).toBeDefined();
-      
+
       if (solSignal) {
         expect(typeof solSignal.score).toBe('number');
         expect(typeof solSignal.score1h).toBe('number');
