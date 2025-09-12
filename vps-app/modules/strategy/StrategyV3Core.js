@@ -512,7 +512,7 @@ class StrategyV3Core {
 
       // 判断是否允许入场：VWAP方向一致且得分≥3
       const allowEntry = vwapDirectionConsistent && score >= 3;
-      
+
       console.log(`🔍 VWAP方向一致性检查 [${symbol}]: 当前价格=${currentPrice}, VWAP=${lastVWAP}, 趋势=${trend4h}, 方向一致=${vwapDirectionConsistent}, 得分=${score}, 允许入场=${allowEntry}`);
 
       return {

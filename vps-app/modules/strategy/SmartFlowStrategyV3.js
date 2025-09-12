@@ -153,6 +153,7 @@ class SmartFlowStrategyV3 {
       }
 
       // 2. 检查是否允许入场
+      console.log(`🔍 趋势市入场检查 [${symbol}]: allowEntry=${scoringResult.allowEntry}, score=${scoringResult.score}, vwapDirectionConsistent=${scoringResult.vwapDirectionConsistent}`);
       if (!scoringResult.allowEntry) {
         // 即使不允许入场，也要返回实际的得分，而不是0
         return {
