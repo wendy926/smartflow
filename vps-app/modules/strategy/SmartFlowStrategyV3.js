@@ -96,16 +96,20 @@ class SmartFlowStrategyV3 {
 
       // 6. 更新数据刷新时间（如果传入了dataRefreshManager）
       if (options.dataRefreshManager) {
-        // 根据市场类型更新不同的数据类型
-        await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_analysis');
+        try {
+          // 根据市场类型更新不同的数据类型
+          await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_analysis');
 
-        if (finalMarketType === '趋势市') {
-          await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_scoring');
-          await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_strength');
-          await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_entry');
-        } else if (finalMarketType === '震荡市') {
-          await options.dataRefreshManager.updateRefreshTime(symbol, 'range_boundary');
-          await options.dataRefreshManager.updateRefreshTime(symbol, 'range_entry');
+          if (finalMarketType === '趋势市') {
+            await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_scoring');
+            await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_strength');
+            await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_entry');
+          } else if (finalMarketType === '震荡市') {
+            await options.dataRefreshManager.updateRefreshTime(symbol, 'range_boundary');
+            await options.dataRefreshManager.updateRefreshTime(symbol, 'range_entry');
+          }
+        } catch (error) {
+          console.warn(`更新数据刷新时间失败 [${symbol}]:`, error.message);
         }
       }
 
@@ -114,6 +118,16 @@ class SmartFlowStrategyV3 {
 
     } catch (error) {
       console.error(`❌ V3策略分析失败 [${symbol}]:`, error);
+      
+      // 即使分析失败，也要更新数据刷新时间
+      if (options && options.dataRefreshManager) {
+        try {
+          await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_analysis');
+        } catch (refreshError) {
+          console.warn(`更新数据刷新时间失败 [${symbol}]:`, refreshError.message);
+        }
+      }
+      
       return this.createErrorResult(symbol, '策略分析异常', error.message);
     }
   }

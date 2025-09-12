@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,46 +12,56 @@
             margin: 0 auto;
             padding: 20px;
         }
-        
-        .stats-card, .stale-data-card {
+
+        .stats-card,
+        .stale-data-card {
             background: white;
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        
+
         .card-title {
             font-size: 18px;
             font-weight: bold;
             margin-bottom: 15px;
             color: #333;
         }
-        
+
         .table {
             width: 100%;
             border-collapse: collapse;
         }
-        
-        .table th, .table td {
+
+        .table th,
+        .table td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
-        
+
         .table th {
             background-color: #f8f9fa;
             font-weight: bold;
         }
-        
+
         .freshness-score {
             font-weight: bold;
         }
-        
-        .text-success { color: #28a745; }
-        .text-warning { color: #ffc107; }
-        .text-danger { color: #dc3545; }
-        
+
+        .text-success {
+            color: #28a745;
+        }
+
+        .text-warning {
+            color: #ffc107;
+        }
+
+        .text-danger {
+            color: #dc3545;
+        }
+
         .btn {
             padding: 6px 12px;
             border: none;
@@ -58,37 +69,37 @@
             cursor: pointer;
             font-size: 12px;
         }
-        
+
         .btn-primary {
             background-color: #007bff;
             color: white;
         }
-        
+
         .btn-primary:hover {
             background-color: #0056b3;
         }
-        
+
         .refresh-summary {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
-        
+
         .summary-item {
             background: white;
             padding: 15px;
             border-radius: 8px;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        
+
         .summary-value {
             font-size: 24px;
             font-weight: bold;
             color: #007bff;
         }
-        
+
         .summary-label {
             font-size: 14px;
             color: #666;
@@ -96,18 +107,19 @@
         }
     </style>
 </head>
+
 <body>
     <div class="refresh-container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h1>数据刷新状态监控</h1>
             <a href="index.html" class="btn btn-primary" style="text-decoration: none;">← 返回主页</a>
         </div>
-        
+
         <!-- 刷新摘要 -->
         <div class="refresh-summary" id="refresh-summary">
             <!-- 动态生成 -->
         </div>
-        
+
         <!-- 刷新统计表格 -->
         <div class="stats-card">
             <div class="card-title">数据刷新统计</div>
@@ -127,12 +139,13 @@
                 </tbody>
             </table>
         </div>
-        
+
         <!-- 过期数据表格 -->
         <div class="stale-data-card">
             <div class="card-title">
                 过期数据列表
-                <button id="refresh-all-btn" class="btn btn-primary" style="float: right; margin-left: 10px;" onclick="dataRefreshManager.refreshAllStale()">
+                <button id="refresh-all-btn" class="btn btn-primary" style="float: right; margin-left: 10px;"
+                    onclick="dataRefreshManager.refreshAllStale()">
                     一键刷新所有过期数据
                 </button>
             </div>
@@ -157,7 +170,7 @@
         function updateRefreshSummary() {
             const summary = document.getElementById('refresh-summary');
             if (!summary || !dataRefreshManager.refreshStats) return;
-            
+
             // 计算唯一交易对数量（从所有数据类型中获取唯一交易对）
             const allSymbols = new Set();
             dataRefreshManager.refreshStats.forEach(stat => {
@@ -166,10 +179,10 @@
                 }
             });
             const totalSymbols = allSymbols.size;
-            
+
             const avgFreshness = dataRefreshManager.refreshStats.reduce((sum, stat) => sum + (stat.avg_freshness || 0), 0) / dataRefreshManager.refreshStats.length;
             const staleCount = dataRefreshManager.staleData.length;
-            
+
             summary.innerHTML = `
                 <div class="summary-item">
                     <div class="summary-value">${totalSymbols}</div>
@@ -189,13 +202,14 @@
                 </div>
             `;
         }
-        
+
         // 重写updateUI方法以包含摘要更新
         const originalUpdateUI = dataRefreshManager.updateUI;
-        dataRefreshManager.updateUI = function() {
+        dataRefreshManager.updateUI = function () {
             originalUpdateUI.call(this);
             updateRefreshSummary();
         };
     </script>
 </body>
+
 </html>
