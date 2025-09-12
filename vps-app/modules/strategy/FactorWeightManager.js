@@ -25,7 +25,7 @@ class FactorWeightManager {
           delta: 0.15,
           funding: 0.10
         },
-        'highcap': {
+        'high-cap-trending': {
           vwap: 0, // 必须满足，不计分
           breakout: 0.25,
           volume: 0.25,
@@ -60,7 +60,7 @@ class FactorWeightManager {
           oi: 0.10,
           no_breakout: 0.05
         },
-        'highcap': {
+        'high-cap-trending': {
           vwap: 0.20,
           touch: 0.30,
           volume: 0.25,
@@ -93,7 +93,7 @@ class FactorWeightManager {
           oi: 0.20,
           volume: 0.20
         },
-        'highcap': {
+        'high-cap-trending': {
           vwap: 0.20,
           delta: 0.30,
           oi: 0.30,
@@ -186,11 +186,15 @@ class FactorWeightManager {
       }
 
       // 使用默认权重
-      return this.defaultWeights[analysisType]?.[category] || this.defaultWeights[analysisType]?.['mainstream'];
+      return this.defaultWeights[analysisType]?.[category] || 
+             this.defaultWeights[analysisType]?.['mainstream'] || 
+             this.defaultWeights['1h_scoring']?.['mainstream'];
     } catch (error) {
       console.error(`获取因子权重失败 [${category}, ${analysisType}]:`, error);
       // 返回默认权重而不是抛出错误
-      return this.defaultWeights[analysisType]?.[category] || this.defaultWeights[analysisType]?.['mainstream'];
+      return this.defaultWeights[analysisType]?.[category] || 
+             this.defaultWeights[analysisType]?.['mainstream'] || 
+             this.defaultWeights['1h_scoring']?.['mainstream'];
     }
   }
 
@@ -251,8 +255,14 @@ class FactorWeightManager {
         return value ? 1 : 0;
 
       case 'volume':
-        // 成交量确认
-        return value >= 1.5 ? 1 : (value >= 1.2 ? 0.5 : 0);
+        // 成交量确认 - 根据分析类型使用不同逻辑
+        if (analysisType === '1h_boundary') {
+          // 震荡市1H边界判断：成交量低 → 震荡区间有效
+          return value <= 1.0 ? 1 : (value <= 1.2 ? 0.5 : 0);
+        } else {
+          // 趋势市1H多因子打分：成交量高 → 趋势确认
+          return value >= 1.5 ? 1 : (value >= 1.2 ? 0.5 : 0);
+        }
 
       case 'oi':
         // OI变化确认
@@ -263,8 +273,8 @@ class FactorWeightManager {
         return Math.abs(value) >= 0.1 ? 1 : (Math.abs(value) >= 0.05 ? 0.5 : 0);
 
       case 'funding':
-        // 资金费率
-        return Math.abs(value) <= 0.0015 ? 1 : (Math.abs(value) <= 0.003 ? 0.5 : 0);
+        // 资金费率 - 严格按照strategy-v3.md: 0.05% ≤ Funding Rate ≤ +0.05%
+        return Math.abs(value) <= 0.0005 ? 1 : (Math.abs(value) <= 0.001 ? 0.5 : 0);
 
       case 'touch':
         // 触碰因子
