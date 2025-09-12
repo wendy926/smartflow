@@ -170,7 +170,9 @@ class FactorWeightManager {
   async getFactorWeights(category, analysisType) {
     try {
       if (this.database) {
-        const weights = await this.database.getFactorWeights(category, analysisType);
+        // 将1h_scoring映射到1h
+        const dbAnalysisType = analysisType === '1h_scoring' ? '1h' : analysisType;
+        const weights = await this.database.getFactorWeights(category, dbAnalysisType);
         if (weights) {
           return {
             vwap: weights.vwap_weight,
