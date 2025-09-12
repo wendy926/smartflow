@@ -142,7 +142,7 @@
               <th>趋势打分</th>
               <th>4H趋势</th>
               <th>多因子得分</th>
-              <th>1H加强趋势</th>
+              <th>1H判断</th>
               <th>15min信号</th>
               <th>当前价格</th>
               <th>数据采集率</th>
@@ -661,7 +661,12 @@
                   <li>震荡市：1H边界有效性判断（0-2分），≥1分绿色</li>
                 </ul>
               </li>
-              <li><strong>1H加强趋势列：</strong> 1H级别多因子打分结果（0-6分）和信号强度（做多/做空/观望/不做）</li>
+              <li><strong>1H判断列：</strong> 根据市场类型显示不同判断结果
+                <ul>
+                  <li>趋势市：1H趋势加强多因子打分结果（做多/做空/观望）和信号强度（强/中/弱）</li>
+                  <li>震荡市：1H边界有效性判断（边界有效/边界无效）和得分（0-2分）</li>
+                </ul>
+              </li>
               <li><strong>15min信号列：</strong> 15分钟级别入场判断结果（趋势市：多头回踩突破/空头反抽破位；震荡市：区间多头/区间空头/假突破反手）</li>
               <li><strong>当前价格列：</strong> 当前价格和入场价格（如有）</li>
               <li><strong>数据采集率列：</strong> Binance API实时成功率（100%表示API调用正常）</li>
@@ -684,10 +689,10 @@
   </div>
 
   <!-- 加载JavaScript模块 -->
-  <script src="js/api.js?v=20250112-01"></script>
-  <script src="js/components/Modal.js?v=20250112-01"></script>
-  <script src="js/data/DataManager.js?v=20250112-01"></script>
-  <script src="js/main.js?v=20250112-01"></script>
+    <script src="js/api.js?v=20250112-02"></script>
+    <script src="js/components/Modal.js?v=20250112-02"></script>
+    <script src="js/data/DataManager.js?v=20250112-02"></script>
+    <script src="js/main.js?v=20250112-02"></script>
 
   <!-- 优化表格样式 -->
   <style>

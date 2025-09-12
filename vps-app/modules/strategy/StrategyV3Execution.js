@@ -33,10 +33,8 @@ class StrategyV3Execution {
       const atr14 = this.calculateATR(candles15m, 14);
       const lastATR = atr14[atr14.length - 1];
 
-      // 检查VWAP方向一致性（必须满足）
-      if (!vwapDirectionConsistent) {
-        return { signal: 'NONE', mode: 'NONE', reason: 'VWAP方向不一致' };
-      }
+      // 检查VWAP方向一致性（影响最终信号，但不阻止执行判断）
+      const vwapConsistent = vwapDirectionConsistent;
 
       // 多头模式：多头回踩突破
       if (trend4h === '多头趋势' && score1h >= 3) {
@@ -59,7 +57,7 @@ class StrategyV3Execution {
           console.log(`多头回踩突破: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, atr14=${lastATR}`);
 
           return {
-            signal: 'BUY',
+            signal: vwapConsistent ? 'BUY' : 'NONE',
             mode: '多头回踩突破',
             entry,
             stopLoss,
@@ -67,7 +65,7 @@ class StrategyV3Execution {
             setupCandleHigh: prev15m.high,
             setupCandleLow: prev15m.low,
             atr14: lastATR,
-            reason: '趋势市多头回踩突破触发'
+            reason: vwapConsistent ? '趋势市多头回踩突破触发' : '多头回踩突破条件满足但VWAP方向不一致'
           };
         }
       }
@@ -95,7 +93,7 @@ class StrategyV3Execution {
           console.log(`空头反抽破位: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, atr14=${lastATR}`);
 
           return {
-            signal: 'SELL',
+            signal: vwapConsistent ? 'SELL' : 'NONE',
             mode: '空头反抽破位',
             entry,
             stopLoss,
@@ -103,12 +101,45 @@ class StrategyV3Execution {
             setupCandleHigh: prev15m.high,
             setupCandleLow: prev15m.low,
             atr14: lastATR,
-            reason: '趋势市空头反抽破位触发'
+            reason: vwapConsistent ? '趋势市空头反抽破位触发' : '空头反抽破位条件满足但VWAP方向不一致'
           };
         }
       }
 
-      return { signal: 'NONE', mode: 'NONE', reason: '未满足趋势市入场条件', atr14: lastATR };
+      // 检查是否满足部分条件，提供更详细的判断信息
+      let reason = '未满足趋势市入场条件';
+      let mode = 'NONE';
+      
+      if (trend4h === '多头趋势') {
+        mode = '多头回踩突破';
+        if (score1h < 3) {
+          reason = `1H打分不足: ${score1h}/3`;
+        } else if (!vwapConsistent) {
+          reason = 'VWAP方向不一致';
+        } else {
+          reason = '多头回踩突破条件未满足';
+        }
+      } else if (trend4h === '空头趋势') {
+        mode = '空头反抽破位';
+        if (score1h < 3) {
+          reason = `1H打分不足: ${score1h}/3`;
+        } else if (!vwapConsistent) {
+          reason = 'VWAP方向不一致';
+        } else {
+          reason = '空头反抽破位条件未满足';
+        }
+      } else {
+        reason = '4H趋势不明确';
+      }
+      
+      return { 
+        signal: 'NONE', 
+        mode: mode, 
+        reason: reason, 
+        atr14: lastATR,
+        setupCandleHigh: candles15m.length >= 2 ? candles15m[candles15m.length - 2].high : null,
+        setupCandleLow: candles15m.length >= 2 ? candles15m[candles15m.length - 2].low : null
+      };
 
     } catch (error) {
       console.error(`趋势市15m执行分析失败 [${symbol}]:`, error);
@@ -316,6 +347,18 @@ class StrategyV3Execution {
         rewardAmount: leverageData.rewardAmount,
         riskRewardRatio: leverageData.riskRewardRatio
       };
+    }
+    
+    // 默认返回：未满足震荡市入场条件
+    return { 
+      signal: 'NONE', 
+      mode: '区间震荡', 
+      reason: '未满足震荡市入场条件', 
+      atr14: lastATR,
+      setupCandleHigh: candles15m.length >= 2 ? candles15m[candles15m.length - 2].high : null,
+      setupCandleLow: candles15m.length >= 2 ? candles15m[candles15m.length - 2].low : null
+    };
+    
     } catch (error) {
       console.error(`震荡市15m执行分析失败 [${symbol}]:`, error);
       // 记录15分钟执行指标失败

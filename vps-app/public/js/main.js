@@ -390,18 +390,22 @@ class SmartFlowApp {
         }
       }
 
-      // 构建信号列显示（1H加强趋势）
+      // 构建1H判断列显示
       let signalDisplay = '--';
       if (strategyVersion === 'V3') {
         if (hasDataIssue) {
           signalDisplay = '数据不足';
         } else if (marketType === '趋势市' && signal.trendStrength) {
-          // 趋势市显示1H加强趋势判断结果
+          // 趋势市显示1H趋势加强判断结果
           const strengthClass = signal.signalStrength === '强' ? 'trend-strong' :
             signal.signalStrength === '中' ? 'trend-medium' : 'trend-weak';
           signalDisplay = `${signal.trendStrength}<br><small class="${strengthClass}">${signal.signalStrength}</small>`;
         } else if (marketType === '震荡市') {
-          signalDisplay = '--'; // 震荡市不显示1H加强趋势
+          // 震荡市显示1H边界有效性判断结果
+          const boundaryScore = signal.score1h || 0;
+          const boundaryClass = boundaryScore >= 1 ? 'score-strong' : 'score-none';
+          const boundaryStatus = boundaryScore >= 1 ? '边界有效' : '边界无效';
+          signalDisplay = `${boundaryStatus}<br><small class="${boundaryClass}">${boundaryScore}/2分</small>`;
         } else {
           signalDisplay = '--';
         }
@@ -445,12 +449,20 @@ class SmartFlowApp {
       }
 
       // 构建15分钟信号列显示
-      let executionDisplay = signal.execution || '--';
+      let executionDisplay = '--';
       if (strategyVersion === 'V3') {
-        // V3策略：显示执行模式
-        if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
-          const mode = signal.executionMode || 'NONE';
-          executionDisplay = `${signal.execution}<br><small style="color: #666;">${mode}</small>`;
+        // V3策略：显示执行模式和执行结果
+        const mode = signal.executionMode || 'NONE';
+        const execution = signal.execution;
+        
+        if (execution && execution !== 'null') {
+          // 有执行结果
+          executionDisplay = `${execution}<br><small style="color: #666;">${mode}</small>`;
+        } else if (mode && mode !== 'NONE') {
+          // 有执行模式但没有执行结果
+          executionDisplay = `--<br><small style="color: #999;">${mode}</small>`;
+        } else {
+          executionDisplay = '--';
         }
       } else {
         // V2策略：保持原有逻辑
@@ -505,7 +517,7 @@ class SmartFlowApp {
                 <td class="${multifactorClass}" title="${multifactorTitle}">
                     ${multifactorDisplay}
                 </td>
-                <td class="${dataManager.getSignalClass(signal.signal)}" title="1H加强趋势">
+                <td class="${dataManager.getSignalClass(signal.signal)}" title="1H判断">
                     ${signalDisplay}
                 </td>
                 <td class="${dataManager.getExecutionClass(signal.execution)}" title="15分钟信号">

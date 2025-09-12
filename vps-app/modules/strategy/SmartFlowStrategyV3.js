@@ -179,30 +179,8 @@ class SmartFlowStrategyV3 {
 
       // 3. 检查是否允许入场
       console.log(`🔍 趋势市入场检查 [${symbol}]: allowEntry=${scoringResult.allowEntry}, score=${scoringResult.score}, vwapDirectionConsistent=${scoringResult.vwapDirectionConsistent}`);
-      if (!scoringResult.allowEntry) {
-        // 即使不允许入场，也要返回实际的得分，而不是0
-        return {
-          marketType: '趋势市',
-          score1h: scoringResult.score,
-          vwapDirectionConsistent: scoringResult.vwapDirectionConsistent,
-          factors: scoringResult.factors,
-          vwap: scoringResult.vwap,
-          vol15mRatio: scoringResult.vol15mRatio,
-          vol1hRatio: scoringResult.vol1hRatio,
-          oiChange6h: scoringResult.oiChange6h,
-          fundingRate: scoringResult.fundingRate,
-          deltaImbalance: scoringResult.deltaImbalance,
-          trendStrength: trendStrength,
-          signalStrength: signalStrength,
-          signal: 'NONE',
-          execution: null,
-          executionMode: 'NONE',
-          entrySignal: null,
-          stopLoss: null,
-          takeProfit: null,
-          reason: `1H打分不足: ${scoringResult.score}/3`
-        };
-      }
+      
+      // 无论是否允许入场，都要执行15分钟入场执行判断
 
       // 3. 15分钟入场执行
       const [klines15m, klines1h] = await Promise.all([
@@ -255,6 +233,12 @@ class SmartFlowStrategyV3 {
 
 
       // 5. 合并结果
+      // 根据allowEntry决定最终信号
+      const finalSignal = scoringResult.allowEntry ? executionResult.signal : 'NONE';
+      const finalExecution = scoringResult.allowEntry ? (executionResult.signal === 'NONE' ? null : this.formatExecution(executionResult)) : null;
+      const finalExecutionMode = scoringResult.allowEntry ? (executionResult.mode || 'NONE') : 'NONE';
+      const finalReason = scoringResult.allowEntry ? executionResult.reason : `1H打分不足: ${scoringResult.score}/3`;
+      
       return {
         marketType: '趋势市',
         score1h: scoringResult.score,
@@ -268,12 +252,12 @@ class SmartFlowStrategyV3 {
         deltaImbalance: scoringResult.deltaImbalance,
         trendStrength: trendStrength,
         signalStrength: signalStrength,
-        signal: executionResult.signal,
-        execution: executionResult.signal === 'NONE' ? null : this.formatExecution(executionResult),
-        executionMode: executionResult.mode || 'NONE',
-        entrySignal: executionResult.entry,
-        stopLoss: executionResult.stopLoss,
-        takeProfit: executionResult.takeProfit,
+        signal: finalSignal,
+        execution: finalExecution,
+        executionMode: finalExecutionMode,
+        entrySignal: scoringResult.allowEntry ? executionResult.entry : null,
+        stopLoss: scoringResult.allowEntry ? executionResult.stopLoss : null,
+        takeProfit: scoringResult.allowEntry ? executionResult.takeProfit : null,
         setupCandleHigh: executionResult.setupCandleHigh,
         setupCandleLow: executionResult.setupCandleLow,
         atr14: executionResult.atr14,
@@ -281,7 +265,7 @@ class SmartFlowStrategyV3 {
         minMargin: leverageData.minMargin,
         stopLossDistance: leverageData.stopLossDistance,
         atrValue: leverageData.atrValue,
-        reason: executionResult.reason
+        reason: finalReason
       };
 
     } catch (error) {
