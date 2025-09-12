@@ -626,6 +626,55 @@ class DataMonitor {
     this.healthStatus.overall = overallRate >= 99 ? 'HEALTHY' : 'WARNING';
   }
 
+  /**
+   * 获取趋势打分验证状态
+   */
+  getTrendScoreValidationStatus(detailedStats) {
+    let validCount = 0;
+    let totalCount = 0;
+    let errorCount = 0;
+
+    detailedStats.forEach(stat => {
+      totalCount++;
+      
+      // 检查趋势打分数据
+      if (stat.trendScore !== undefined && stat.trendScore !== null) {
+        const score = stat.trendScore;
+        const direction = stat.trendDirection;
+        
+        // 验证打分范围 (0-5)
+        if (score >= 0 && score <= 5) {
+          // 验证方向一致性
+          if (score > 0) {
+            if ((direction === 'BULL' && stat.trend4h === '多头趋势') || 
+                (direction === 'BEAR' && stat.trend4h === '空头趋势') ||
+                (score === 0 && stat.trend4h === '震荡市')) {
+              validCount++;
+            } else {
+              errorCount++;
+            }
+          } else {
+            validCount++;
+          }
+        } else {
+          errorCount++;
+        }
+      } else {
+        errorCount++;
+      }
+    });
+
+    const successRate = totalCount > 0 ? (validCount / totalCount * 100).toFixed(1) : 0;
+    
+    if (errorCount === 0) {
+      return `✅ ${successRate}%`;
+    } else if (errorCount <= totalCount * 0.1) {
+      return `⚠️ ${successRate}% (${errorCount}错误)`;
+    } else {
+      return `❌ ${successRate}% (${errorCount}错误)`;
+    }
+  }
+
   async getMonitoringDashboard() {
     this.calculateCompletionRates();
     this.checkHealthStatus();
@@ -943,7 +992,9 @@ class DataMonitor {
           issues: dataQualityIssues,
           issueCount: dataQualityIssues.length,
           hasIssues: dataQualityIssues.length > 0
-        }
+        },
+        // 趋势打分验证状态
+        trendScoreValidation: this.getTrendScoreValidationStatus(detailedStats)
       },
       detailedStats,
       recentLogs: recentLogs.slice(0, 10),

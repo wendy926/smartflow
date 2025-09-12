@@ -473,6 +473,24 @@ class SmartFlowApp {
       const categoryClass = app.getCategoryClass(category);
       console.log(`处理交易对 ${signal.symbol}: 显示分类=${categoryDisplay}, 样式类=${categoryClass}`);
 
+      // 构建趋势打分列显示
+      const trendScore = signal.score || 0;
+      const trendDirection = signal.direction || null;
+      let trendScoreDisplay = '--';
+      let trendScoreClass = 'score-none';
+      let trendScoreTitle = '';
+      
+      if (trendScore > 0) {
+        trendScoreDisplay = `${trendScore}/5`;
+        // 根据得分设置颜色：≥3分绿色，<3分灰色
+        trendScoreClass = trendScore >= 3 ? 'score-strong' : 'score-none';
+        trendScoreTitle = `4H趋势打分: ${trendScore}/5 (${trendDirection || '无方向'})`;
+      } else {
+        trendScoreDisplay = '--';
+        trendScoreClass = 'score-none';
+        trendScoreTitle = '4H趋势打分: 无趋势方向';
+      }
+
       row.innerHTML = `
                 <td>
                     <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
@@ -480,6 +498,9 @@ class SmartFlowApp {
                 <td>${signal.symbol}</td>
                 <td class="${categoryClass}" title="交易对分类: ${categoryDisplay}">
                     ${categoryDisplay}
+                </td>
+                <td class="${trendScoreClass}" title="${trendScoreTitle}">
+                    ${trendScoreDisplay}
                 </td>
                 <td class="${dataManager.getTrendClass(trend4h, marketType)}" title="4H趋势: ${trend4h} | 市场类型: ${marketType}">
                     ${trendDisplay}
@@ -1527,6 +1548,13 @@ async function updateMonitoringPanel(monitoringData, realtimeData) {
               <div class="card-content">
                 <div class="card-title">数据收集率</div>
                 <div class="card-value" id="dataCollectionRate">${monitoringData.summary.completionRates.dataCollection.toFixed(2)}%</div>
+              </div>
+            </div>
+            <div class="overview-card">
+              <span class="card-icon">🎯</span>
+              <div class="card-content">
+                <div class="card-title">趋势打分验证</div>
+                <div class="card-value" id="trendScoreValidation">${monitoringData.summary.trendScoreValidation || '--'}</div>
               </div>
             </div>
             <div class="overview-card">

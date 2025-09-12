@@ -50,7 +50,8 @@ class DataRefreshManager {
         'trend_strength': '1H加强趋势判断',
         'trend_entry': '趋势市15分钟入场判断',
         'range_boundary': '震荡市1H边界判断',
-        'range_entry': '震荡市15分钟入场判断'
+        'range_entry': '震荡市15分钟入场判断',
+        'trend_score': '4H趋势打分'
       };
 
       const refreshIntervals = {
@@ -98,7 +99,8 @@ class DataRefreshManager {
         'trend_strength': '1H加强趋势判断',
         'trend_entry': '趋势市15分钟入场判断',
         'range_boundary': '震荡市1H边界判断',
-        'range_entry': '震荡市15分钟入场判断'
+        'range_entry': '震荡市15分钟入场判断',
+        'trend_score': '4H趋势打分'
       };
 
       // 修复字段名问题：使用 data_type 而不是 dataType
