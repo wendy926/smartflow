@@ -219,11 +219,11 @@ class FactorWeightManager {
       for (const [factor, value] of Object.entries(factorValues)) {
         const factorScore = this.calculateFactorScore(factor, value, analysisType);
         totalScore += factorScore; // 累加原始得分
-        
+
         if (weights[factor] && weights[factor] > 0) {
           weightedScore += factorScore * weights[factor];
         }
-        
+
         factorScores[factor] = {
           value,
           weight: weights[factor] || 0,
