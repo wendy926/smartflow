@@ -23,11 +23,12 @@ class DataRefreshManager {
         return true;
       }
 
-      const result = await this.db.get(
+      const rows = await this.db.runQuery(
         `SELECT last_update, next_update FROM data_refresh_log 
          WHERE symbol = ? AND data_type = ?`,
         [symbol, dataType]
       );
+      const result = rows.length > 0 ? rows[0] : null;
 
       if (!result) {
         // 首次刷新
@@ -85,7 +86,7 @@ class DataRefreshManager {
   async getStaleData() {
     try {
       const staleData = [];
-      const symbols = await this.db.all(`SELECT DISTINCT symbol FROM data_refresh_log`);
+      const symbols = await this.db.runQuery(`SELECT DISTINCT symbol FROM data_refresh_log`);
       
       for (const { symbol } of symbols) {
         for (const dataType of Object.keys(this.refreshIntervals)) {
@@ -108,7 +109,7 @@ class DataRefreshManager {
    */
   async getRefreshStats() {
     try {
-      const stats = await this.db.all(`
+      const stats = await this.db.runQuery(`
         SELECT 
           data_type,
           COUNT(*) as total_symbols,
