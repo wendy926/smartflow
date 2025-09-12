@@ -13,7 +13,7 @@ class StrategyCoreMethodFixer {
 
   async fix() {
     console.log('🔧 修复StrategyV3Core缺失的analyze1HScoring方法...');
-    
+
     const coreContent = `// StrategyV3Core.js - 策略V3核心实现模块
 
 const BinanceAPI = require('../api/BinanceAPI');

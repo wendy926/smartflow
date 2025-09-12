@@ -410,7 +410,7 @@ class StrategyV3Core {
       let currentPrice = null;
       try {
         const ticker = await BinanceAPI.getTicker(symbol);
-        currentPrice = parseFloat(ticker.lastPrice);
+        currentPrice = parseFloat(ticker.price);
       } catch (error) {
         console.warn(`获取 ${symbol} 当前价格失败:`, error.message);
         currentPrice = candles[candles.length - 1].close;
@@ -423,7 +423,7 @@ class StrategyV3Core {
       // 获取Delta数据
       let delta = 0;
       if (deltaManager) {
-        const deltaData = deltaManager.getDelta(symbol);
+        const deltaData = deltaManager.getDeltaData(symbol, '1h');
         if (deltaData) {
           delta = deltaData.delta || 0;
         }
