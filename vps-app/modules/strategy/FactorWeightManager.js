@@ -151,7 +151,7 @@ class FactorWeightManager {
     const highCapSymbols = ['BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT',
       'DOTUSDT', 'LTCUSDT', 'TRXUSDT', 'BCHUSDT', 'ETCUSDT'];
     if (highCapSymbols.includes(symbolUpper)) {
-      return 'highcap';
+      return 'high-cap-trending';
     }
 
     // 热点币（通常包含MEME、PEPE等）

@@ -38,7 +38,7 @@ class DataRefreshManager {
 
       const now = new Date();
       const nextUpdate = new Date(result.next_update);
-      
+
       return now >= nextUpdate;
     } catch (error) {
       console.error(`检查刷新状态失败 [${symbol}][${dataType}]:`, error);
@@ -93,7 +93,7 @@ class DataRefreshManager {
     try {
       const staleData = [];
       const symbols = await this.db.runQuery(`SELECT DISTINCT symbol FROM data_refresh_log`);
-      
+
       for (const { symbol } of symbols) {
         for (const dataType of Object.keys(this.refreshIntervals)) {
           const shouldRefresh = await this.shouldRefresh(symbol, dataType);
@@ -102,7 +102,7 @@ class DataRefreshManager {
           }
         }
       }
-      
+
       return staleData;
     } catch (error) {
       console.error('获取过期数据失败:', error);
@@ -118,14 +118,14 @@ class DataRefreshManager {
       const stats = await this.db.runQuery(`
         SELECT 
           data_type,
-          COUNT(*) as total_symbols,
+          COUNT(DISTINCT symbol) as total_symbols,
           AVG(data_freshness_score) as avg_freshness,
           MIN(data_freshness_score) as min_freshness,
           MAX(data_freshness_score) as max_freshness
         FROM data_refresh_log 
         GROUP BY data_type
       `);
-      
+
       return stats;
     } catch (error) {
       console.error('获取刷新统计失败:', error);
@@ -140,7 +140,7 @@ class DataRefreshManager {
     try {
       const staleData = await this.getStaleData();
       const refreshResults = [];
-      
+
       for (const item of staleData) {
         try {
           // 更新刷新时间
@@ -159,12 +159,12 @@ class DataRefreshManager {
           });
         }
       }
-      
+
       const successCount = refreshResults.filter(r => r.success).length;
       const failCount = refreshResults.filter(r => !r.success).length;
-      
+
       console.log(`✅ 批量刷新完成: 成功 ${successCount} 个, 失败 ${failCount} 个`);
-      
+
       return {
         success: true,
         total: staleData.length,
@@ -187,12 +187,12 @@ class DataRefreshManager {
   async cleanupExpiredRecords() {
     try {
       const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24小时前
-      
+
       await this.db.run(`
         DELETE FROM data_refresh_log 
         WHERE last_update < ?
       `, [cutoffTime.toISOString()]);
-      
+
       console.log('✅ 清理过期刷新记录完成');
     } catch (error) {
       console.error('清理过期记录失败:', error);
