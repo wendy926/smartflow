@@ -402,10 +402,13 @@ class SmartFlowApp {
           signalDisplay = `${signal.trendStrength}<br><small class="${strengthClass}">${signal.signalStrength}</small>`;
         } else if (marketType === '震荡市') {
           // 震荡市显示1H边界有效性判断结果
-          const boundaryScore = signal.score1h || 0;
-          const boundaryClass = boundaryScore >= 1 ? 'score-strong' : 'score-none';
-          const boundaryStatus = boundaryScore >= 1 ? '边界有效' : '边界无效';
-          signalDisplay = `${boundaryStatus}<br><small class="${boundaryClass}">${boundaryScore}/2分</small>`;
+          // 使用震荡市特有的边界有效性数据
+          const rangeLowerValid = signal.rangeLowerBoundaryValid || false;
+          const rangeUpperValid = signal.rangeUpperBoundaryValid || false;
+          const boundaryCount = (rangeLowerValid ? 1 : 0) + (rangeUpperValid ? 1 : 0);
+          const boundaryClass = boundaryCount >= 1 ? 'score-strong' : 'score-none';
+          const boundaryStatus = boundaryCount >= 1 ? '边界有效' : '边界无效';
+          signalDisplay = `${boundaryStatus}<br><small class="${boundaryClass}">${boundaryCount}/2分</small>`;
         } else {
           signalDisplay = '--';
         }

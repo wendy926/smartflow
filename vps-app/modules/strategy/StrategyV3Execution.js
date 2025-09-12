@@ -300,10 +300,12 @@ class StrategyV3Execution {
       if (signal === 'NONE') {
         return {
           signal: 'NONE',
-          mode: 'NONE',
+          mode: '区间震荡',
           reason: '未满足假突破条件',
           atr14: lastATR,
-          bbWidth: bbWidth
+          bbWidth: bbWidth,
+          setupCandleHigh: candles15m.length >= 2 ? candles15m[candles15m.length - 2].high : null,
+          setupCandleLow: candles15m.length >= 2 ? candles15m[candles15m.length - 2].low : null
         };
       }
 
@@ -348,16 +350,6 @@ class StrategyV3Execution {
         riskRewardRatio: leverageData.riskRewardRatio
       };
     }
-    
-    // 默认返回：未满足震荡市入场条件
-    return { 
-      signal: 'NONE', 
-      mode: '区间震荡', 
-      reason: '未满足震荡市入场条件', 
-      atr14: lastATR,
-      setupCandleHigh: candles15m.length >= 2 ? candles15m[candles15m.length - 2].high : null,
-      setupCandleLow: candles15m.length >= 2 ? candles15m[candles15m.length - 2].low : null
-    };
 
     } catch (error) {
       console.error(`震荡市15m执行分析失败 [${symbol}]:`, error);
