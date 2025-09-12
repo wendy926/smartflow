@@ -98,7 +98,7 @@ class DataRefreshManager {
         for (const dataType of Object.keys(this.refreshIntervals)) {
           const shouldRefresh = await this.shouldRefresh(symbol, dataType);
           if (shouldRefresh) {
-            staleData.push({ symbol, dataType });
+            staleData.push({ symbol, data_type: dataType });
           }
         }
       }
@@ -130,6 +130,54 @@ class DataRefreshManager {
     } catch (error) {
       console.error('获取刷新统计失败:', error);
       return [];
+    }
+  }
+
+  /**
+   * 批量刷新所有过期数据
+   */
+  async refreshAllStaleData() {
+    try {
+      const staleData = await this.getStaleData();
+      const refreshResults = [];
+      
+      for (const item of staleData) {
+        try {
+          // 更新刷新时间
+          await this.updateRefreshTime(item.symbol, item.data_type);
+          refreshResults.push({
+            symbol: item.symbol,
+            data_type: item.data_type,
+            success: true
+          });
+        } catch (error) {
+          refreshResults.push({
+            symbol: item.symbol,
+            data_type: item.data_type,
+            success: false,
+            error: error.message
+          });
+        }
+      }
+      
+      const successCount = refreshResults.filter(r => r.success).length;
+      const failCount = refreshResults.filter(r => !r.success).length;
+      
+      console.log(`✅ 批量刷新完成: 成功 ${successCount} 个, 失败 ${failCount} 个`);
+      
+      return {
+        success: true,
+        total: staleData.length,
+        successCount,
+        failCount,
+        results: refreshResults
+      };
+    } catch (error) {
+      console.error('批量刷新失败:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 

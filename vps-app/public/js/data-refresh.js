@@ -98,11 +98,14 @@ class DataRefreshManager {
         'range_entry': '震荡市15分钟入场判断'
       };
       
+      // 修复字段名问题：使用 data_type 而不是 dataType
+      const dataType = item.data_type || item.dataType;
+      
       row.innerHTML = `
         <td>${item.symbol}</td>
-        <td>${dataTypeNames[item.data_type] || item.data_type}</td>
+        <td>${dataTypeNames[dataType] || dataType}</td>
         <td>
-          <button class="btn btn-sm btn-primary" onclick="dataRefreshManager.forceRefresh('${item.symbol}', '${item.data_type}')">
+          <button class="btn btn-sm btn-primary" onclick="dataRefreshManager.forceRefresh('${item.symbol}', '${dataType}')">
             强制刷新
           </button>
         </td>
@@ -141,6 +144,48 @@ class DataRefreshManager {
     } catch (error) {
       console.error('强制刷新失败:', error);
       alert('强制刷新失败');
+    }
+  }
+
+  // 批量刷新所有过期数据
+  async refreshAllStale() {
+    if (!confirm('确定要刷新所有过期数据吗？这可能需要一些时间。')) {
+      return;
+    }
+
+    try {
+      // 显示加载状态
+      const refreshAllBtn = document.getElementById('refresh-all-btn');
+      if (refreshAllBtn) {
+        refreshAllBtn.disabled = true;
+        refreshAllBtn.textContent = '刷新中...';
+      }
+
+      const response = await fetch('/api/refresh-all-stale', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`批量刷新完成！\n总计: ${data.total} 个\n成功: ${data.successCount} 个\n失败: ${data.failCount} 个`);
+        await this.loadRefreshStatus();
+      } else {
+        alert('批量刷新失败: ' + data.error);
+      }
+    } catch (error) {
+      console.error('批量刷新失败:', error);
+      alert('批量刷新失败');
+    } finally {
+      // 恢复按钮状态
+      const refreshAllBtn = document.getElementById('refresh-all-btn');
+      if (refreshAllBtn) {
+        refreshAllBtn.disabled = false;
+        refreshAllBtn.textContent = '一键刷新所有过期数据';
+      }
     }
   }
 

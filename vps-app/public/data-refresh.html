@@ -127,7 +127,12 @@
         
         <!-- 过期数据表格 -->
         <div class="stale-data-card">
-            <div class="card-title">过期数据列表</div>
+            <div class="card-title">
+                过期数据列表
+                <button id="refresh-all-btn" class="btn btn-primary" style="float: right; margin-left: 10px;" onclick="dataRefreshManager.refreshAllStale()">
+                    一键刷新所有过期数据
+                </button>
+            </div>
             <table class="table">
                 <thead>
                     <tr>

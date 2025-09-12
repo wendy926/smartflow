@@ -628,6 +628,28 @@ class SmartFlowServer {
       }
     });
 
+    // 批量刷新所有过期数据
+    this.app.post('/api/refresh-all-stale', async (req, res) => {
+      try {
+        const result = await this.dataRefreshManager.refreshAllStaleData();
+        
+        if (result.success) {
+          res.json({
+            success: true,
+            message: `批量刷新完成: 成功 ${result.successCount} 个, 失败 ${result.failCount} 个`,
+            total: result.total,
+            successCount: result.successCount,
+            failCount: result.failCount
+          });
+        } else {
+          res.status(500).json({ error: result.error });
+        }
+      } catch (error) {
+        console.error('批量刷新失败:', error);
+        res.status(500).json({ error: '批量刷新失败' });
+      }
+    });
+
     // 获取告警历史（只保留最近3天数据）
     this.app.get('/api/alert-history', async (req, res) => {
       try {
