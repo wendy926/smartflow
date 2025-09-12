@@ -2364,12 +2364,6 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('window.apiClient状态:', window.apiClient);
   console.log('window.apiClient类型:', typeof window.apiClient);
 
-  // 测试分类映射函数
-  console.log('🧪 测试分类映射函数:');
-  console.log('high-cap-trending ->', app.getCategoryDisplay('high-cap-trending'));
-  console.log('mainstream ->', app.getCategoryDisplay('mainstream'));
-  console.log('unknown ->', app.getCategoryDisplay('unknown'));
-
   if (window.apiClient) {
     console.log('API客户端方法列表:', Object.getOwnPropertyNames(window.apiClient));
     console.log('getUpdateTimes方法:', typeof window.apiClient.getUpdateTimes);
@@ -2380,17 +2374,33 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.apiClient) {
         console.log('✅ API客户端延迟初始化成功');
         window.app = new SmartFlowApp();
+        // 测试分类映射函数
+        testCategoryMapping();
       } else {
         console.error('❌ API客户端初始化失败');
         // 即使API客户端失败，也创建应用实例
         window.app = new SmartFlowApp();
+        // 测试分类映射函数
+        testCategoryMapping();
       }
     }, 100);
     return;
   }
 
   window.app = new SmartFlowApp();
+  // 测试分类映射函数
+  testCategoryMapping();
 });
+
+// 测试分类映射函数
+function testCategoryMapping() {
+  if (window.app) {
+    console.log('🧪 测试分类映射函数:');
+    console.log('high-cap-trending ->', window.app.getCategoryDisplay('high-cap-trending'));
+    console.log('mainstream ->', window.app.getCategoryDisplay('mainstream'));
+    console.log('unknown ->', window.app.getCategoryDisplay('unknown'));
+  }
+}
 
 // 刷新数据函数
 async function refreshData() {

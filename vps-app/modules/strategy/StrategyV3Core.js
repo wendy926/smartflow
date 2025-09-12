@@ -218,14 +218,14 @@ class StrategyV3Core {
       let marketType = '震荡市';
 
       // 1. 趋势方向（必选）- 1分
-      if (lastClose > ma20[ma20.length - 1] && 
-          ma20[ma20.length - 1] > ma50[ma50.length - 1] && 
-          ma50[ma50.length - 1] > ma200[ma200.length - 1]) {
+      if (lastClose > ma20[ma20.length - 1] &&
+        ma20[ma20.length - 1] > ma50[ma50.length - 1] &&
+        ma50[ma50.length - 1] > ma200[ma200.length - 1]) {
         direction = "BULL";
         score++;
-      } else if (lastClose < ma20[ma20.length - 1] && 
-                 ma20[ma20.length - 1] < ma50[ma50.length - 1] && 
-                 ma50[ma50.length - 1] < ma200[ma200.length - 1]) {
+      } else if (lastClose < ma20[ma20.length - 1] &&
+        ma20[ma20.length - 1] < ma50[ma50.length - 1] &&
+        ma50[ma50.length - 1] < ma200[ma200.length - 1]) {
         direction = "BEAR";
         score++;
       } else {
@@ -238,8 +238,8 @@ class StrategyV3Core {
             reason: '趋势方向不成立'
           }, Date.now());
         }
-        return { 
-          trend4h: '震荡市', 
+        return {
+          trend4h: '震荡市',
           marketType: '震荡市',
           ma20: ma20[ma20.length - 1],
           ma50: ma50[ma50.length - 1],
@@ -255,30 +255,30 @@ class StrategyV3Core {
       const last2MA20 = ma20.slice(-2);
       const last2MA50 = ma50.slice(-2);
       const last2MA200 = ma200.slice(-2);
-      
+
       let trendStability = false;
       if (direction === "BULL") {
-        trendStability = last2.every((c, i) => 
-          c > last2MA20[i] && 
-          last2MA20[i] > last2MA50[i] && 
+        trendStability = last2.every((c, i) =>
+          c > last2MA20[i] &&
+          last2MA20[i] > last2MA50[i] &&
           last2MA50[i] > last2MA200[i]
         );
       } else if (direction === "BEAR") {
-        trendStability = last2.every((c, i) => 
-          c < last2MA20[i] && 
-          last2MA20[i] < last2MA50[i] && 
+        trendStability = last2.every((c, i) =>
+          c < last2MA20[i] &&
+          last2MA20[i] < last2MA50[i] &&
           last2MA50[i] < last2MA200[i]
         );
       }
-      
+
       if (trendStability) {
         score++;
       }
 
       // 3. 趋势强度 - 1分（ADX(14) > 20 且 DI方向正确）
-      if (ADX > 20 && 
-          ((direction === "BULL" && DIplus > DIminus) || 
-           (direction === "BEAR" && DIminus > DIplus))) {
+      if (ADX > 20 &&
+        ((direction === "BULL" && DIplus > DIminus) ||
+          (direction === "BEAR" && DIminus > DIplus))) {
         score++;
       }
 

@@ -28,7 +28,7 @@ describe('4H趋势判断5分打分机制测试', () => {
         const highs = candles.map(c => c.high);
         const lows = candles.map(c => c.low);
         const closes = candles.map(c => c.close);
-        
+
         let trList = [], dmPlusList = [], dmMinusList = [];
         for (let i = 1; i < highs.length; i++) {
           const highDiff = highs[i] - highs[i - 1];
@@ -82,7 +82,7 @@ describe('4H趋势判断5分打分机制测试', () => {
         return secondHalf > firstHalf * 1.05;
       },
       dataMonitor: {
-        recordIndicator: () => {}
+        recordIndicator: () => { }
       }
     };
   });
@@ -110,10 +110,10 @@ describe('4H趋势判断5分打分机制测试', () => {
       // 1. 趋势方向（必选）- 1分
       let score = 0;
       let direction = null;
-      
-      if (lastClose > ma20[ma20.length - 1] && 
-          ma20[ma20.length - 1] > ma50[ma50.length - 1] && 
-          ma50[ma50.length - 1] > ma200[ma200.length - 1]) {
+
+      if (lastClose > ma20[ma20.length - 1] &&
+        ma20[ma20.length - 1] > ma50[ma50.length - 1] &&
+        ma50[ma50.length - 1] > ma200[ma200.length - 1]) {
         direction = "BULL";
         score++;
       }
@@ -126,16 +126,16 @@ describe('4H趋势判断5分打分机制测试', () => {
       const last2MA20 = ma20.slice(-2);
       const last2MA50 = ma50.slice(-2);
       const last2MA200 = ma200.slice(-2);
-      
+
       let trendStability = false;
       if (direction === "BULL") {
-        trendStability = last2.every((c, i) => 
-          c > last2MA20[i] && 
-          last2MA20[i] > last2MA50[i] && 
+        trendStability = last2.every((c, i) =>
+          c > last2MA20[i] &&
+          last2MA20[i] > last2MA50[i] &&
           last2MA50[i] > last2MA200[i]
         );
       }
-      
+
       if (trendStability) {
         score++;
       }
@@ -161,7 +161,7 @@ describe('4H趋势判断5分打分机制测试', () => {
       // 最终判断
       let trend4h = '震荡市';
       let marketType = '震荡市';
-      
+
       if (score >= 3) {
         if (direction === "BULL") {
           trend4h = '多头趋势';
@@ -196,10 +196,10 @@ describe('4H趋势判断5分打分机制测试', () => {
       // 1. 趋势方向（必选）- 1分
       let score = 0;
       let direction = null;
-      
-      if (lastClose < ma20[ma20.length - 1] && 
-          ma20[ma20.length - 1] < ma50[ma50.length - 1] && 
-          ma50[ma50.length - 1] < ma200[ma200.length - 1]) {
+
+      if (lastClose < ma20[ma20.length - 1] &&
+        ma20[ma20.length - 1] < ma50[ma50.length - 1] &&
+        ma50[ma50.length - 1] < ma200[ma200.length - 1]) {
         direction = "BEAR";
         score++;
       }
@@ -210,7 +210,7 @@ describe('4H趋势判断5分打分机制测试', () => {
       // 最终判断
       let trend4h = '震荡市';
       let marketType = '震荡市';
-      
+
       if (score >= 3) {
         if (direction === "BEAR") {
           trend4h = '空头趋势';
@@ -245,15 +245,15 @@ describe('4H趋势判断5分打分机制测试', () => {
       // 1. 趋势方向（必选）- 1分
       let score = 0;
       let direction = null;
-      
-      if (lastClose > ma20[ma20.length - 1] && 
-          ma20[ma20.length - 1] > ma50[ma50.length - 1] && 
-          ma50[ma50.length - 1] > ma200[ma200.length - 1]) {
+
+      if (lastClose > ma20[ma20.length - 1] &&
+        ma20[ma20.length - 1] > ma50[ma50.length - 1] &&
+        ma50[ma50.length - 1] > ma200[ma200.length - 1]) {
         direction = "BULL";
         score++;
-      } else if (lastClose < ma20[ma20.length - 1] && 
-                 ma20[ma20.length - 1] < ma50[ma50.length - 1] && 
-                 ma50[ma50.length - 1] < ma200[ma200.length - 1]) {
+      } else if (lastClose < ma20[ma20.length - 1] &&
+        ma20[ma20.length - 1] < ma50[ma50.length - 1] &&
+        ma50[ma50.length - 1] < ma200[ma200.length - 1]) {
         direction = "BEAR";
         score++;
       }
@@ -261,7 +261,7 @@ describe('4H趋势判断5分打分机制测试', () => {
       // 最终判断
       let trend4h = '震荡市';
       let marketType = '震荡市';
-      
+
       if (score >= 3) {
         if (direction === "BULL") {
           trend4h = '多头趋势';
@@ -294,10 +294,10 @@ describe('4H趋势判断5分打分机制测试', () => {
     test('得分<3分应该返回震荡市', () => {
       const score = 2;
       const direction = "BULL";
-      
+
       let trend4h = '震荡市';
       let marketType = '震荡市';
-      
+
       if (score >= 3) {
         if (direction === "BULL") {
           trend4h = '多头趋势';
@@ -312,10 +312,10 @@ describe('4H趋势判断5分打分机制测试', () => {
     test('得分≥3分应该返回对应趋势', () => {
       const score = 4;
       const direction = "BULL";
-      
+
       let trend4h = '震荡市';
       let marketType = '震荡市';
-      
+
       if (score >= 3) {
         if (direction === "BULL") {
           trend4h = '多头趋势';
