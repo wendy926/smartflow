@@ -217,9 +217,7 @@ class FactorWeightManager {
 
       // 计算各因子得分
       for (const [factor, value] of Object.entries(factorValues)) {
-        console.log(`处理因子: ${factor}, 值: ${value}, 权重: ${weights[factor]}`);
         const factorScore = this.calculateFactorScore(factor, value, analysisType);
-        console.log(`因子 ${factor} 得分: ${factorScore}`);
         totalScore += factorScore; // 累加原始得分
         
         if (weights[factor] && weights[factor] > 0) {
@@ -232,7 +230,6 @@ class FactorWeightManager {
           score: factorScore,
           weightedScore: factorScore * (weights[factor] || 0)
         };
-        console.log(`因子 ${factor} 已添加到factorScores, 当前总分: ${totalScore}`);
       }
 
       return {

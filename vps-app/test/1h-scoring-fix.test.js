@@ -89,10 +89,12 @@ describe('1H多因子打分修复验证测试', () => {
 
       const result = await factorWeightManager.calculateWeightedScore('BNBUSDT', '1h_scoring', factorValues);
       
-      // 总分应该是所有因子得分的总和：1+0+0.5+0+0.5+0.5 = 2.5分
+      // 总分应该是所有因子得分的总和：1(vwap)+0(breakout)+0.5(volume)+0(oi)+0.5(funding)+0.5(delta) = 2.5分
       expect(result.score).toBe(2.5);
       expect(result.category).toBe('high-cap-trending');
-      // vwap权重为0，所以不会出现在factorScores中
+      // vwap权重为0但仍然计入总分
+      expect(result.factorScores.vwap.score).toBe(1);
+      expect(result.factorScores.vwap.weight).toBe(0);
       expect(result.factorScores.volume.score).toBe(0.5);
       expect(result.factorScores.funding.score).toBe(0.5);
       expect(result.factorScores.delta.score).toBe(0.5);
