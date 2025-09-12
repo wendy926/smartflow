@@ -124,7 +124,7 @@
       <a href="rollup-calculator.html" class="btn calculator-btn">📊 滚仓计算器</a>
       <a href="symbol-management.html" class="btn symbols-list-btn">📋 交易对管理</a>
       <div class="btn-group">
-        <a href="data-refresh.html" class="btn info">📊 数据刷新状态</a>
+      <a href="data-refresh.html" class="btn info">📊 数据刷新状态</a>
         <button class="btn primary" onclick="refreshData()" title="立即刷新所有数据">🔄 刷新数据</button>
       </div>
     </div>
@@ -149,11 +149,7 @@
             </tr>
           </thead>
           <tbody id="signalsTableBody">
-            <tr>
-              <td colspan="9" style="text-align: center; color: #6c757d;">
-                系统将自动刷新分析数据
-              </td>
-            </tr>
+            <!-- 数据将通过JavaScript动态加载 -->
           </tbody>
         </table>
       </div>
@@ -1025,32 +1021,18 @@
       }
     }
 
-    // 立即执行一次
-    forceLoadData();
+    // 页面加载完成后立即执行
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', forceLoadData);
+    } else {
+      forceLoadData();
+    }
     
-    // 延迟执行强制加载
-    setTimeout(forceLoadData, 1000);
-    
-    // 再次延迟执行，确保DOM完全加载
-    setTimeout(forceLoadData, 3000);
+    // 页面完全加载后再次执行
+    window.addEventListener('load', forceLoadData);
     
     // 每5秒强制刷新一次，确保数据始终显示
     setInterval(forceLoadData, 5000);
-    
-    // 页面加载完成后再次执行
-    window.addEventListener('load', forceLoadData);
-    
-    // DOM内容加载完成后执行
-    document.addEventListener('DOMContentLoaded', forceLoadData);
-    
-    // 强制替换表格内容
-    setTimeout(() => {
-      const tbody = document.getElementById('signalsTableBody');
-      if (tbody && tbody.innerHTML.includes('系统将自动刷新分析数据')) {
-        console.log('🔄 检测到默认内容，强制替换...');
-        forceLoadData();
-      }
-    }, 2000);
   </script>
 </body>
 
