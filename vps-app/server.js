@@ -234,6 +234,9 @@ class SmartFlowServer {
               setupCandleHigh: analysis.setupCandleHigh,
               setupCandleLow: analysis.setupCandleLow,
               atr14: analysis.atr14,
+              // 4H趋势打分字段
+              score: analysis.score,
+              direction: analysis.direction,
               reason: analysis.reason,
               strategyVersion: 'V3'
             });
