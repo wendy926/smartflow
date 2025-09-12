@@ -147,7 +147,7 @@ class DataManager {
 
       // 重新获取数据
       const [signals, monitoring, history, stats] = await Promise.all([
-        this.getAllSignals(),
+        this.getAllSignals(true), // 强制刷新信号数据
         this.getMonitoringData(),
         this.getSimulationHistory(),
         this.getWinRateStats()

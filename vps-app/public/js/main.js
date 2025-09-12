@@ -611,18 +611,20 @@ class SmartFlowApp {
   startMonitoringRefresh() {
     this.monitoringInterval = setInterval(async () => {
       try {
+        console.log('🔄 监控数据自动刷新开始...');
         // 静默刷新监控数据，不显示加载状态和消息
         const [signals, stats] = await Promise.all([
           dataManager.getAllSignals(true), // 强制刷新信号数据
           dataManager.getWinRateStats()
         ]);
 
+        console.log('📊 监控数据刷新结果:', { signals: signals.length, stats });
         this.updateStatsDisplay(signals, stats);
         this.updateSignalsTable(signals);
 
-        console.log('监控数据静默刷新完成');
+        console.log('✅ 监控数据静默刷新完成');
       } catch (error) {
-        console.error('监控数据刷新失败:', error);
+        console.error('❌ 监控数据刷新失败:', error);
       }
     }, 300000); // 5分钟 = 300000毫秒
   }
@@ -2437,7 +2439,7 @@ function testCategoryMapping() {
 // 刷新数据函数
 async function refreshData() {
   try {
-    console.log('🔄 手动刷新数据...');
+    console.log('🔄 手动刷新数据开始...');
     // 清除所有缓存（包括localStorage）
     dataManager.clearCache();
     // 清除localStorage中的缓存数据
@@ -2449,9 +2451,9 @@ async function refreshData() {
     }
     // 重新加载数据
     await app.loadAllData();
-    console.log('✅ 数据刷新完成');
+    console.log('✅ 手动数据刷新完成');
   } catch (error) {
-    console.error('刷新数据失败:', error);
+    console.error('❌ 刷新数据失败:', error);
     modal.showMessage('刷新数据失败: ' + error.message, 'error');
   }
 }
