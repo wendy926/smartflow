@@ -36,7 +36,7 @@ class SmartFlowStrategyV3 {
       }
 
       // 2. 4H趋势过滤
-      const trend4hResult = await StrategyV3Core.prototype.analyze4HTrend.call(this.core, symbol);
+      const trend4hResult = await this.core.analyze4HTrend(symbol);
       if (trend4hResult.error) {
         return this.createErrorResult(symbol, '4H趋势分析失败', trend4hResult.error);
       }
