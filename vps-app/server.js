@@ -242,6 +242,8 @@ class SmartFlowServer {
               // 4H趋势打分字段
               score: analysis.score,
               direction: analysis.direction,
+              bullScore: analysis.bullScore,
+              bearScore: analysis.bearScore,
               reason: analysis.reason,
               strategyVersion: 'V3'
             });
