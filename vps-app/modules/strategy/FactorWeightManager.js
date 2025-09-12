@@ -53,7 +53,7 @@ class FactorWeightManager {
       // 震荡市1H边界确认权重
       '1h_boundary': {
         'mainstream': {
-          vwap: 0.20,
+          vwap: 0.20, // 20%
           touch: 0.30,
           volume: 0.20,
           delta: 0.15,
@@ -61,7 +61,7 @@ class FactorWeightManager {
           no_breakout: 0.05
         },
         'high-cap-trending': {
-          vwap: 0.20,
+          vwap: 0.20, // 20%
           touch: 0.30,
           volume: 0.25,
           delta: 0.15,
@@ -69,7 +69,7 @@ class FactorWeightManager {
           no_breakout: 0
         },
         'trending': {
-          vwap: 0.10,
+          vwap: 0.10, // 10%
           touch: 0.25,
           volume: 0.30,
           delta: 0.25,
@@ -77,7 +77,7 @@ class FactorWeightManager {
           no_breakout: 0
         },
         'smallcap': {
-          vwap: 0.10,
+          vwap: 0.10, // 10%
           touch: 0.25,
           volume: 0.30,
           delta: 0.25,
@@ -217,17 +217,22 @@ class FactorWeightManager {
 
       // 计算各因子得分
       for (const [factor, value] of Object.entries(factorValues)) {
+        console.log(`处理因子: ${factor}, 值: ${value}, 权重: ${weights[factor]}`);
+        const factorScore = this.calculateFactorScore(factor, value, analysisType);
+        console.log(`因子 ${factor} 得分: ${factorScore}`);
+        totalScore += factorScore; // 累加原始得分
+        
         if (weights[factor] && weights[factor] > 0) {
-          const factorScore = this.calculateFactorScore(factor, value, analysisType);
-          totalScore += factorScore; // 累加原始得分
           weightedScore += factorScore * weights[factor];
-          factorScores[factor] = {
-            value,
-            weight: weights[factor],
-            score: factorScore,
-            weightedScore: factorScore * weights[factor]
-          };
         }
+        
+        factorScores[factor] = {
+          value,
+          weight: weights[factor] || 0,
+          score: factorScore,
+          weightedScore: factorScore * (weights[factor] || 0)
+        };
+        console.log(`因子 ${factor} 已添加到factorScores, 当前总分: ${totalScore}`);
       }
 
       return {
