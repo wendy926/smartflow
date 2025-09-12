@@ -203,7 +203,7 @@ class StrategyV3Core {
   }
 
   /**
-   * 4H趋势过滤 - 按照strategy-v3.md文档的5分打分机制
+   * 4H趋势过滤 - 按照strategy-v3.md文档的10分打分机制
    */
   async analyze4HTrend(symbol) {
     try {
@@ -250,42 +250,59 @@ class StrategyV3Core {
       const bb = this.calculateBollingerBands(candles, 20, 2);
       const bbw = bb[bb.length - 1]?.bandwidth || 0;
 
-      // 按照文档的5分打分机制
-      let score = 0;
+      // 按照文档的10分打分机制
+      let totalScore = 0;
+      let bullScore = 0;
+      let bearScore = 0;
       let direction = null;
       let trend4h = '震荡市';
       let marketType = '震荡市';
 
-      // 1. 趋势方向（必选）- 1分
-      if (lastClose > ma20[ma20.length - 1] &&
-        ma20[ma20.length - 1] > ma50[ma50.length - 1] &&
-        ma50[ma50.length - 1] > ma200[ma200.length - 1]) {
+      // 1. 趋势方向（必选）- 每个方向至少需要2分
+      const currentMA20 = ma20[ma20.length - 1];
+      const currentMA50 = ma50[ma50.length - 1];
+      const currentMA200 = ma200[ma200.length - 1];
+
+      // 多头方向得分
+      if (lastClose > currentMA20) bullScore++;
+      if (currentMA20 > currentMA50) bullScore++;
+      if (currentMA50 > currentMA200) bullScore++;
+
+      // 空头方向得分
+      if (lastClose < currentMA20) bearScore++;
+      if (currentMA20 < currentMA50) bearScore++;
+      if (currentMA50 < currentMA200) bearScore++;
+
+      // 检查每个方向是否至少2分
+      if (bullScore >= 2) {
         direction = "BULL";
-        score++;
-      } else if (lastClose < ma20[ma20.length - 1] &&
-        ma20[ma20.length - 1] < ma50[ma50.length - 1] &&
-        ma50[ma50.length - 1] < ma200[ma200.length - 1]) {
+        totalScore += bullScore;
+      } else if (bearScore >= 2) {
         direction = "BEAR";
-        score++;
+        totalScore += bearScore;
       } else {
-        // 趋势方向不成立，直接返回震荡市
+        // 每个方向都没有到2分，直接返回震荡市
         if (this.dataMonitor) {
           this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
             trend4h: '震荡市',
             marketType: '震荡市',
             score: 0,
-            reason: '趋势方向不成立'
+            bullScore,
+            bearScore,
+            reason: '每个方向都没有到2分'
           }, Date.now());
         }
         return {
           trend4h: '震荡市',
           marketType: '震荡市',
-          ma20: ma20[ma20.length - 1],
-          ma50: ma50[ma50.length - 1],
-          ma200: ma200[ma200.length - 1],
+          ma20: currentMA20,
+          ma50: currentMA50,
+          ma200: currentMA200,
           adx14: ADX,
           bbw: bbw,
-          score: 0
+          score: 0,
+          bullScore,
+          bearScore
         };
       }
 
@@ -311,49 +328,53 @@ class StrategyV3Core {
       }
 
       if (trendStability) {
-        score++;
+        totalScore++;
       }
 
       // 3. 趋势强度 - 1分（ADX(14) > 20 且 DI方向正确）
       if (ADX > 20 &&
         ((direction === "BULL" && DIplus > DIminus) ||
           (direction === "BEAR" && DIminus > DIplus))) {
-        score++;
+        totalScore++;
       }
 
       // 4. 布林带扩张 - 1分（最近10根K线，后5根BBW均值 > 前5根均值 × 1.05）
       const bbwExpanding = this.isBBWExpanding(candles, 20, 2);
       if (bbwExpanding) {
-        score++;
+        totalScore++;
       }
 
       // 5. 动量确认 - 1分（当前K线收盘价离MA20距离 ≥ 0.5%）
-      const momentumDistance = Math.abs((lastClose - ma20[ma20.length - 1]) / ma20[ma20.length - 1]);
+      const momentumDistance = Math.abs((lastClose - currentMA20) / currentMA20);
       if (momentumDistance >= 0.005) {
-        score++;
+        totalScore++;
       }
 
-      // 最终判断：得分≥3分才保留趋势
-      if (score >= 3) {
+      // 最终判断：得分≥4分才保留趋势
+      if (totalScore >= 4) {
         if (direction === "BULL") {
           trend4h = "多头趋势";
         } else {
           trend4h = "空头趋势";
         }
+        marketType = "趋势市";
       } else {
         trend4h = "震荡市";
+        marketType = "震荡市";
       }
 
       // 记录分析结果
       if (this.dataMonitor) {
         this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
           trend4h,
-          marketType: trend4h === '震荡市' ? '震荡市' : '趋势市',
-          score,
+          marketType,
+          score: totalScore,
           direction,
-          ma20: ma20[ma20.length - 1],
-          ma50: ma50[ma50.length - 1],
-          ma200: ma200[ma200.length - 1],
+          bullScore,
+          bearScore,
+          ma20: currentMA20,
+          ma50: currentMA50,
+          ma200: currentMA200,
           adx14: ADX,
           bbw: bbw
         }, Date.now());
@@ -361,14 +382,16 @@ class StrategyV3Core {
 
       return {
         trend4h,
-        marketType: trend4h === '震荡市' ? '震荡市' : '趋势市',
-        ma20: ma20[ma20.length - 1],
-        ma50: ma50[ma50.length - 1],
-        ma200: ma200[ma200.length - 1],
+        marketType,
+        ma20: currentMA20,
+        ma50: currentMA50,
+        ma200: currentMA200,
         adx14: ADX,
         bbw: bbw,
-        score,
-        direction
+        score: totalScore,
+        direction,
+        bullScore,
+        bearScore
       };
     } catch (error) {
       console.error(`4H趋势分析失败 [${symbol}]:`, error);
