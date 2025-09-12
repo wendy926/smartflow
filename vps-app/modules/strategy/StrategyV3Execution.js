@@ -48,7 +48,7 @@ class StrategyV3Execution {
 
         // 检查成交量确认
         const avgVol = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
-        const volConfirm = last15m.volume >= avgVol * 1.2;
+        const volConfirm = last15m.volume >= avgVol * 1.0;
 
         if (priceAtSupport && setupBreakout && volConfirm) {
           const entry = Math.max(last15m.close, prev15m.high);
@@ -82,7 +82,7 @@ class StrategyV3Execution {
 
         // 检查成交量确认
         const avgVol = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
-        const volConfirm = last15m.volume >= avgVol * 1.2;
+        const volConfirm = last15m.volume >= avgVol * 1.0;
 
         console.log(`🔍 空头15分钟入场检查 [${symbol}]: 价格=${last15m.close}, EMA20=${lastEMA20}, EMA50=${lastEMA50}, 价格反抽阻力=${priceAtResistance}, 跌破setup=${setupBreakdown}, 成交量确认=${volConfirm}, 当前成交量=${last15m.volume}, 平均成交量=${avgVol}`);
 
