@@ -674,7 +674,7 @@
   <script>
     console.log('🚀 强制数据加载测试开始');
 
-    // 强制加载数据
+    // 强制加载数据并直接更新表格
     async function forceLoadData() {
       try {
         console.log('🔄 强制加载数据...');
@@ -683,13 +683,48 @@
         console.log('✅ API调用成功，数据长度:', data.length);
         console.log('📊 前3个交易对数据:', data.slice(0, 3));
 
-        // 强制更新表格
-        if (window.app && window.app.updateSignalsTable) {
-          console.log('🔄 强制更新表格...');
-          window.app.updateSignalsTable(data);
-          console.log('✅ 表格更新完成');
+        // 直接更新表格，不依赖app对象
+        const tbody = document.getElementById('signalsTableBody');
+        if (tbody && data.length > 0) {
+          console.log('🔄 直接更新表格...');
+          tbody.innerHTML = '';
+          
+          data.forEach(signal => {
+            const row = document.createElement('tr');
+            const trendScore = signal.score || 0;
+            const trendDirection = signal.direction || null;
+            const trend4h = signal.trend4h || signal.trend || '--';
+            const marketType = signal.marketType || '--';
+            const category = signal.category || 'mainstream';
+            const currentPrice = signal.currentPrice || 0;
+            
+            // 简化的分类显示
+            const categoryMap = {
+              'mainstream': '主流币',
+              'high-cap-trending': '高市值趋势币',
+              'trending': '热点币',
+              'smallcap': '小币'
+            };
+            const categoryDisplay = categoryMap[category] || '未知';
+            
+            row.innerHTML = `
+              <td><button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button></td>
+              <td>${signal.symbol}</td>
+              <td>${categoryDisplay}</td>
+              <td>${trendScore}/5</td>
+              <td>${trend4h}<br><small style="color: #666;">${marketType}</small></td>
+              <td>--</td>
+              <td>--</td>
+              <td>--</td>
+              <td>${currentPrice.toFixed(4)}</td>
+              <td>100%</td>
+            `;
+            tbody.appendChild(row);
+          });
+          
+          console.log('✅ 表格直接更新完成');
         } else {
-          console.error('❌ app对象或updateSignalsTable方法不存在');
+          console.error('❌ 表格元素不存在或数据为空');
         }
       } catch (error) {
         console.error('❌ 强制加载数据失败:', error);
