@@ -670,6 +670,33 @@
   <script src="js/data/DataManager.js?v=20250111-16"></script>
   <script src="js/main.js?v=20250111-16"></script>
 
+  <!-- 添加颜色样式 -->
+  <style>
+    .score-strong {
+      background-color: #ffa500 !important;
+      color: #000 !important;
+      font-weight: bold !important;
+    }
+    .score-none {
+      background-color: #6c757d !important;
+      color: #fff !important;
+    }
+    .trend-bull {
+      background-color: #28a745 !important;
+      color: #fff !important;
+      font-weight: bold !important;
+    }
+    .trend-bear {
+      background-color: #dc3545 !important;
+      color: #fff !important;
+      font-weight: bold !important;
+    }
+    .trend-none {
+      background-color: #6c757d !important;
+      color: #fff !important;
+    }
+  </style>
+
   <!-- 强制数据加载测试代码 -->
   <script>
     console.log('🚀 强制数据加载测试开始');
@@ -709,35 +736,48 @@
 
             // 构建多因子得分显示
             let multifactorDisplay = '--';
+            let multifactorClass = 'score-none';
             if (trend4h === '多头趋势' || trend4h === '空头趋势') {
               // 趋势市：显示1H趋势加强多因子打分得分
               const trendScore1h = signal.score1h || 0;
               multifactorDisplay = trendScore1h.toString();
+              multifactorClass = trendScore1h >= 3 ? 'score-strong' : 'score-none';
             } else if (trend4h === '震荡市') {
               // 震荡市：显示1H边界有效性判断多因子打分得分
               const lowerValid = signal.rangeLowerBoundaryValid === true ? 1 : 0;
               const upperValid = signal.rangeUpperBoundaryValid === true ? 1 : 0;
               const boundaryScore = lowerValid + upperValid;
               multifactorDisplay = boundaryScore.toString();
+              multifactorClass = boundaryScore >= 1 ? 'score-strong' : 'score-none';
             }
 
             // 构建4H趋势显示（只显示趋势，不显示市场类型）
             let trendDisplay = trend4h;
+            let trendClass = 'trend-none';
             if (trend4h === '震荡市') {
               trendDisplay = '震荡市';
+              trendClass = 'trend-none';
             } else if (trend4h === '多头趋势') {
               trendDisplay = '多头趋势';
+              trendClass = 'trend-bull';
             } else if (trend4h === '空头趋势') {
               trendDisplay = '空头趋势';
+              trendClass = 'trend-bear';
+            }
+
+            // 构建趋势打分显示
+            let trendScoreClass = 'score-none';
+            if (trendScore >= 3) {
+              trendScoreClass = 'score-strong';
             }
 
             row.innerHTML = `
               <td><button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button></td>
               <td>${signal.symbol}</td>
               <td>${categoryDisplay}</td>
-              <td>${trendScore}</td>
-              <td>${trendDisplay}</td>
-              <td>${multifactorDisplay}</td>
+              <td class="${trendScoreClass}">${trendScore}</td>
+              <td class="${trendClass}">${trendDisplay}</td>
+              <td class="${multifactorClass}">${multifactorDisplay}</td>
               <td>--</td>
               <td>--</td>
               <td>${currentPrice.toFixed(4)}</td>

@@ -480,7 +480,7 @@ class SmartFlowApp {
       let trendScoreClass = 'score-none';
       let trendScoreTitle = '';
 
-      // 根据得分设置颜色：≥3分绿色，<3分灰色
+      // 根据得分设置颜色：≥3分橙色，<3分灰色
       trendScoreClass = trendScore >= 3 ? 'score-strong' : 'score-none';
       trendScoreTitle = `4H趋势打分: ${trendScore}/5 (${trendDirection || '无方向'})`;
 
@@ -495,7 +495,7 @@ class SmartFlowApp {
                 <td class="${trendScoreClass}" title="${trendScoreTitle}">
                     ${trendScoreDisplay}
                 </td>
-                <td class="${dataManager.getTrendClass(trend4h, marketType)}" title="4H趋势: ${trend4h} | 市场类型: ${marketType}">
+                <td class="${trend4h === '多头趋势' ? 'trend-bull' : trend4h === '空头趋势' ? 'trend-bear' : 'trend-none'}" title="4H趋势: ${trend4h} | 市场类型: ${marketType}">
                     ${trendDisplay}
                 </td>
                 <td class="${multifactorClass}" title="${multifactorTitle}">
