@@ -139,9 +139,9 @@
               <th>详情</th>
               <th>交易对</th>
               <th>分类</th>
-              <th>趋势打分<br><small>4H趋势判断得分(0-5分)</small></th>
+              <th>趋势打分</th>
               <th>4H趋势</th>
-              <th>多因子得分<br><small>多头/空头趋势:1H趋势加强 | 震荡市:1H边界有效性</small></th>
+              <th>多因子得分</th>
               <th>1H加强趋势</th>
               <th>15min信号</th>
               <th>当前价格</th>
@@ -678,14 +678,14 @@
       overflow: hidden;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
-    
+
     .table {
       margin-bottom: 0;
       font-size: 14px;
       table-layout: fixed;
       width: 100%;
     }
-    
+
     .table th {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
@@ -698,7 +698,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    
+
     .table td {
       padding: 10px 8px;
       text-align: center;
@@ -709,29 +709,79 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    
+
     .table tbody tr:nth-child(even) {
       background-color: #f8f9fa;
     }
-    
+
     .table tbody tr:hover {
       background-color: #e3f2fd;
       transform: scale(1.01);
       transition: all 0.2s ease;
     }
-    
+
     /* 列宽度设置 */
-    .table th:nth-child(1), .table td:nth-child(1) { width: 8%; }  /* 详情 */
-    .table th:nth-child(2), .table td:nth-child(2) { width: 12%; } /* 交易对 */
-    .table th:nth-child(3), .table td:nth-child(3) { width: 10%; } /* 分类 */
-    .table th:nth-child(4), .table td:nth-child(4) { width: 8%; }  /* 趋势打分 */
-    .table th:nth-child(5), .table td:nth-child(5) { width: 10%; } /* 4H趋势 */
-    .table th:nth-child(6), .table td:nth-child(6) { width: 10%; } /* 多因子得分 */
-    .table th:nth-child(7), .table td:nth-child(7) { width: 10%; } /* 1H加强趋势 */
-    .table th:nth-child(8), .table td:nth-child(8) { width: 10%; } /* 15min信号 */
-    .table th:nth-child(9), .table td:nth-child(9) { width: 12%; } /* 当前价格 */
-    .table th:nth-child(10), .table td:nth-child(10) { width: 10%; } /* 数据采集率 */
-    
+    .table th:nth-child(1),
+    .table td:nth-child(1) {
+      width: 6%;
+    }
+
+    /* 详情 */
+    .table th:nth-child(2),
+    .table td:nth-child(2) {
+      width: 10%;
+    }
+
+    /* 交易对 */
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+      width: 8%;
+    }
+
+    /* 分类 */
+    .table th:nth-child(4),
+    .table td:nth-child(4) {
+      width: 8%;
+    }
+
+    /* 趋势打分 */
+    .table th:nth-child(5),
+    .table td:nth-child(5) {
+      width: 10%;
+    }
+
+    /* 4H趋势 */
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+      width: 10%;
+    }
+
+    /* 多因子得分 */
+    .table th:nth-child(7),
+    .table td:nth-child(7) {
+      width: 10%;
+    }
+
+    /* 1H加强趋势 */
+    .table th:nth-child(8),
+    .table td:nth-child(8) {
+      width: 12%;
+    }
+
+    /* 15min信号 */
+    .table th:nth-child(9),
+    .table td:nth-child(9) {
+      width: 12%;
+    }
+
+    /* 当前价格 */
+    .table th:nth-child(10),
+    .table td:nth-child(10) {
+      width: 10%;
+    }
+
+    /* 数据采集率 */
+
     /* 颜色样式 */
     .score-strong {
       background: linear-gradient(135deg, #ffa500, #ff8c00) !important;
@@ -740,11 +790,13 @@
       border-radius: 4px;
       box-shadow: 0 2px 4px rgba(255, 165, 0, 0.3);
     }
+
     .score-none {
       background: linear-gradient(135deg, #6c757d, #5a6268) !important;
       color: #fff !important;
       border-radius: 4px;
     }
+
     .trend-bull {
       background: linear-gradient(135deg, #28a745, #20c997) !important;
       color: #fff !important;
@@ -752,6 +804,7 @@
       border-radius: 4px;
       box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
     }
+
     .trend-bear {
       background: linear-gradient(135deg, #dc3545, #e74c3c) !important;
       color: #fff !important;
@@ -759,12 +812,13 @@
       border-radius: 4px;
       box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
     }
+
     .trend-none {
       background: linear-gradient(135deg, #6c757d, #5a6268) !important;
       color: #fff !important;
       border-radius: 4px;
     }
-    
+
     /* 按钮样式 */
     .expand-btn {
       background: linear-gradient(135deg, #007bff, #0056b3);
@@ -782,27 +836,46 @@
       justify-content: center;
       margin: 0 auto;
     }
-    
+
     .expand-btn:hover {
       background: linear-gradient(135deg, #0056b3, #004085);
       transform: scale(1.1);
       box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
     }
-    
+
     /* 价格样式 */
     .price-cell {
       font-family: 'Courier New', monospace;
       font-weight: 600;
       color: #2c3e50;
     }
-    
+
     /* 分类样式 */
-    .category-mainstream { color: #007bff; font-weight: 600; }
-    .category-highcap { color: #28a745; font-weight: 600; }
-    .category-trending { color: #ffc107; font-weight: 600; }
-    .category-smallcap { color: #6c757d; font-weight: 600; }
-    .category-unknown { color: #dc3545; font-weight: 600; }
-    
+    .category-mainstream {
+      color: #007bff;
+      font-weight: 600;
+    }
+
+    .category-highcap {
+      color: #28a745;
+      font-weight: 600;
+    }
+
+    .category-trending {
+      color: #ffc107;
+      font-weight: 600;
+    }
+
+    .category-smallcap {
+      color: #6c757d;
+      font-weight: 600;
+    }
+
+    .category-unknown {
+      color: #dc3545;
+      font-weight: 600;
+    }
+
     /* Badge样式 */
     .badge {
       display: inline-block;
@@ -815,31 +888,42 @@
       vertical-align: baseline;
       border-radius: 4px;
     }
-    
+
     .badge-success {
       background-color: #28a745;
       color: white;
     }
-    
+
     .badge-warning {
       background-color: #ffc107;
       color: #212529;
     }
-    
+
     .badge-danger {
       background-color: #dc3545;
       color: white;
     }
-    
+
     /* 响应式设计 */
     @media (max-width: 1200px) {
-      .table { font-size: 12px; }
-      .table th, .table td { padding: 8px 4px; }
+      .table {
+        font-size: 12px;
+      }
+
+      .table th,
+      .table td {
+        padding: 8px 4px;
+      }
     }
-    
+
     @media (max-width: 768px) {
-      .table-responsive { overflow-x: auto; }
-      .table { min-width: 800px; }
+      .table-responsive {
+        overflow-x: auto;
+      }
+
+      .table {
+        min-width: 800px;
+      }
     }
   </style>
 

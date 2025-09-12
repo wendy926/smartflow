@@ -233,7 +233,8 @@ class FactorWeightManager {
       }
 
       return {
-        score: Math.round(totalScore * 100) / 100, // 返回原始得分总和（满分6分）
+        score: Math.round(weightedScore * 100) / 100, // 返回加权得分（主要评分）
+        totalScore: Math.round(totalScore * 100) / 100, // 原始得分总和（满分6分）
         weightedScore: Math.round(weightedScore * 100) / 100, // 加权得分
         category,
         weights,
@@ -265,13 +266,13 @@ class FactorWeightManager {
           // 震荡市1H边界判断：成交量低 → 震荡区间有效
           return value <= 1.0 ? 1 : (value <= 1.2 ? 0.5 : 0);
         } else {
-          // 趋势市1H多因子打分：成交量高 → 趋势确认
-          return value >= 1.5 ? 1 : (value >= 1.2 ? 0.5 : 0);
+          // 趋势市1H多因子打分：成交量高 → 趋势确认（降低阈值）
+          return value >= 1.2 ? 1 : (value >= 0.8 ? 0.5 : 0);
         }
 
       case 'oi':
-        // OI变化确认
-        return Math.abs(value) >= 0.02 ? 1 : 0;
+        // OI变化确认（降低阈值）
+        return Math.abs(value) >= 0.01 ? 1 : (Math.abs(value) >= 0.005 ? 0.5 : 0);
 
       case 'delta':
         // Delta不平衡
