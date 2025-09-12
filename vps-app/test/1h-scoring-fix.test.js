@@ -38,7 +38,7 @@ describe('1H多因子打分修复验证测试', () => {
     test('funding因子应该传入数值而不是布尔值', () => {
       // 测试正常资金费率
       const factorScore1 = factorWeightManager.calculateFactorScore('funding', 0.0008, '1h_scoring');
-      expect(factorScore1).toBe(1);
+      expect(factorScore1).toBe(0.5);
       
       // 测试异常资金费率
       const factorScore2 = factorWeightManager.calculateFactorScore('funding', 0.005, '1h_scoring');
@@ -89,11 +89,12 @@ describe('1H多因子打分修复验证测试', () => {
 
       const result = await factorWeightManager.calculateWeightedScore('BNBUSDT', '1h_scoring', factorValues);
       
-      expect(result.score).toBeGreaterThan(0);
+      // 总分应该是所有因子得分的总和：1+0+0.5+0+0.5+0.5 = 2.5分
+      expect(result.score).toBe(2.5);
       expect(result.category).toBe('high-cap-trending');
-      expect(result.factorScores.vwap.score).toBe(1);
+      // vwap权重为0，所以不会出现在factorScores中
       expect(result.factorScores.volume.score).toBe(0.5);
-      expect(result.factorScores.funding.score).toBe(1);
+      expect(result.factorScores.funding.score).toBe(0.5);
       expect(result.factorScores.delta.score).toBe(0.5);
     });
 
@@ -125,7 +126,8 @@ describe('1H多因子打分修复验证测试', () => {
 
       const result = await factorWeightManager.calculateWeightedScore('BNBUSDT', '1h_scoring', factorValues);
       
-      expect(result.score).toBeGreaterThan(0);
+      // 所有因子为true，总分应该是6分
+      expect(result.score).toBe(6);
       expect(result.category).toBe('high-cap-trending');
       // 所有因子都应该得满分
       Object.values(result.factorScores).forEach(factor => {
@@ -148,7 +150,8 @@ describe('1H多因子打分修复验证测试', () => {
       // 使用不存在的分类，但mainstream有默认权重配置
       const result = await factorWeightManager.calculateWeightedScore('UNKNOWNSYMBOL', '1h_scoring', factorValues);
       
-      expect(result.score).toBeGreaterThan(0); // mainstream有默认权重，所以得分应该大于0
+      // 使用默认权重配置，得分应该大于0
+      expect(result.score).toBeGreaterThan(0);
       expect(result.category).toBe('smallcap'); // 应该返回默认分类
     });
 

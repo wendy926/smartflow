@@ -186,15 +186,15 @@ class FactorWeightManager {
       }
 
       // 使用默认权重
-      return this.defaultWeights[analysisType]?.[category] || 
-             this.defaultWeights[analysisType]?.['mainstream'] || 
-             this.defaultWeights['1h_scoring']?.['mainstream'];
+      return this.defaultWeights[analysisType]?.[category] ||
+        this.defaultWeights[analysisType]?.['mainstream'] ||
+        this.defaultWeights['1h_scoring']?.['mainstream'];
     } catch (error) {
       console.error(`获取因子权重失败 [${category}, ${analysisType}]:`, error);
       // 返回默认权重而不是抛出错误
-      return this.defaultWeights[analysisType]?.[category] || 
-             this.defaultWeights[analysisType]?.['mainstream'] || 
-             this.defaultWeights['1h_scoring']?.['mainstream'];
+      return this.defaultWeights[analysisType]?.[category] ||
+        this.defaultWeights[analysisType]?.['mainstream'] ||
+        this.defaultWeights['1h_scoring']?.['mainstream'];
     }
   }
 
@@ -211,13 +211,15 @@ class FactorWeightManager {
         return { score: 0, category, weights: null };
       }
 
-      let weightedScore = 0;
+      let totalScore = 0; // 原始因子得分总和
+      let weightedScore = 0; // 加权得分
       const factorScores = {};
 
-      // 计算各因子加权得分
+      // 计算各因子得分
       for (const [factor, value] of Object.entries(factorValues)) {
         if (weights[factor] && weights[factor] > 0) {
           const factorScore = this.calculateFactorScore(factor, value, analysisType);
+          totalScore += factorScore; // 累加原始得分
           weightedScore += factorScore * weights[factor];
           factorScores[factor] = {
             value,
@@ -229,7 +231,8 @@ class FactorWeightManager {
       }
 
       return {
-        score: Math.round(weightedScore * 100) / 100, // 保留2位小数
+        score: Math.round(totalScore * 100) / 100, // 返回原始得分总和（满分6分）
+        weightedScore: Math.round(weightedScore * 100) / 100, // 加权得分
         category,
         weights,
         factorScores,
