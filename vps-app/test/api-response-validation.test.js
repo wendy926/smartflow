@@ -1,23 +1,23 @@
 // API响应验证测试
 const request = require('supertest');
-const app = require('../server');
+const http = require('http');
 
 describe('API响应验证测试', () => {
   let server;
+  let baseURL;
 
   beforeAll(async () => {
-    server = app.listen(0);
+    // 使用VPS上的实际API端点
+    baseURL = 'http://localhost:8080';
   });
 
   afterAll(async () => {
-    if (server) {
-      await new Promise((resolve) => server.close(resolve));
-    }
+    // 不需要关闭服务器，因为使用的是外部API
   });
 
   describe('/api/signals 端点', () => {
     test('应该返回所有交易对的信号数据', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -26,7 +26,7 @@ describe('API响应验证测试', () => {
     });
 
     test('每个交易对应该包含必要的字段', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -44,7 +44,7 @@ describe('API响应验证测试', () => {
     });
 
     test('趋势打分应该为数值类型', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -56,7 +56,7 @@ describe('API响应验证测试', () => {
     });
 
     test('多因子得分应该为数值类型', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -67,7 +67,7 @@ describe('API响应验证测试', () => {
     });
 
     test('当前价格应该为数值类型且大于0', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -80,7 +80,7 @@ describe('API响应验证测试', () => {
     });
 
     test('VWAP方向一致性应该为布尔类型', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -90,7 +90,7 @@ describe('API响应验证测试', () => {
     });
 
     test('趋势类型应该为有效值', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -101,7 +101,7 @@ describe('API响应验证测试', () => {
     });
 
     test('市场类型应该为有效值', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -112,7 +112,7 @@ describe('API响应验证测试', () => {
     });
 
     test('信号类型应该为有效值', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -125,7 +125,7 @@ describe('API响应验证测试', () => {
 
   describe('数据正确性验证', () => {
     test('空头趋势的交易对应该有正确的VWAP方向一致性', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -140,7 +140,7 @@ describe('API响应验证测试', () => {
     });
 
     test('多头趋势的交易对应该有正确的VWAP方向一致性', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -155,7 +155,7 @@ describe('API响应验证测试', () => {
     });
 
     test('得分≥3的交易对应该允许入场', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -170,7 +170,7 @@ describe('API响应验证测试', () => {
     });
 
     test('趋势市应该基于1H多因子得分判断', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -183,7 +183,7 @@ describe('API响应验证测试', () => {
     });
 
     test('震荡市应该基于1H边界有效性判断', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -198,7 +198,7 @@ describe('API响应验证测试', () => {
 
   describe('特定交易对验证', () => {
     test('AVAXUSDT应该有正确的数据结构', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -215,7 +215,7 @@ describe('API响应验证测试', () => {
     });
 
     test('LINKUSDT应该有正确的数据结构', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 
@@ -232,7 +232,7 @@ describe('API响应验证测试', () => {
     });
 
     test('SOLUSDT应该有正确的数据结构', async () => {
-      const response = await request(app)
+      const response = await request(baseURL)
         .get('/api/signals')
         .expect(200);
 

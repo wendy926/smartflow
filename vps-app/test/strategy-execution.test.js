@@ -57,7 +57,7 @@ describe('StrategyV3Execution', () => {
         volume: 1,
         signalType: 'long'
       };
-      const score = strategyExecution.calculateFactorScore(factors);
+      const score = strategyExecution.calculateLegacyFactorScore(factors);
       expect(score).toBe(4);
     });
 
@@ -70,7 +70,7 @@ describe('StrategyV3Execution', () => {
         volume: -1,
         signalType: 'short'
       };
-      const score = strategyExecution.calculateFactorScore(factors);
+      const score = strategyExecution.calculateLegacyFactorScore(factors);
       expect(score).toBe(4);
     });
 
@@ -83,7 +83,7 @@ describe('StrategyV3Execution', () => {
         volume: -1,
         signalType: 'long'
       };
-      const score = strategyExecution.calculateFactorScore(factors);
+      const score = strategyExecution.calculateLegacyFactorScore(factors);
       expect(score).toBe(0);
     });
 
@@ -96,7 +96,7 @@ describe('StrategyV3Execution', () => {
         volume: 1, // 正值，+1分
         signalType: 'long'
       };
-      const score = strategyExecution.calculateFactorScore(factors);
+      const score = strategyExecution.calculateLegacyFactorScore(factors);
       expect(score).toBe(4); // VWAP因子+1分，其他因子各+1分，总共4分
     });
 
@@ -109,7 +109,7 @@ describe('StrategyV3Execution', () => {
         volume: 1, // 正值，+1分
         signalType: 'long'
       };
-      const score = strategyExecution.calculateFactorScore(factors);
+      const score = strategyExecution.calculateLegacyFactorScore(factors);
       expect(score).toBe(2); // VWAP因子-1分，其他因子各+1分，总共2分
     });
   });
