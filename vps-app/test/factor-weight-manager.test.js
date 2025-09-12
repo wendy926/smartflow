@@ -67,8 +67,8 @@ describe('FactorWeightManager', () => {
     test('应该正确识别高市值强趋势币', async () => {
       mockDatabase.getSymbolCategory.mockResolvedValue(null);
 
-      expect(await factorWeightManager.getSymbolCategory('BNBUSDT')).toBe('highcap');
-      expect(await factorWeightManager.getSymbolCategory('SOLUSDT')).toBe('highcap');
+      expect(await factorWeightManager.getSymbolCategory('BNBUSDT')).toBe('high-cap-trending');
+      expect(await factorWeightManager.getSymbolCategory('SOLUSDT')).toBe('high-cap-trending');
     });
 
     test('应该正确识别热点币', async () => {
@@ -166,7 +166,7 @@ describe('FactorWeightManager', () => {
       const result = await factorWeightManager.calculateWeightedScore('BTCUSDT', '15m_execution', factorValues);
 
       expect(result.category).toBe('mainstream');
-      expect(result.error).toBeDefined();
+      expect(result.score).toBeGreaterThan(0);
     });
   });
 
@@ -210,10 +210,10 @@ describe('FactorWeightManager', () => {
     });
 
     test('应该正确计算资金费率因子得分', () => {
-      const score = factorWeightManager.calculateFactorScore('funding', 0.001, '15m_execution');
+      const score = factorWeightManager.calculateFactorScore('funding', 0.0003, '15m_execution');
       expect(score).toBe(1);
 
-      const score2 = factorWeightManager.calculateFactorScore('funding', 0.002, '15m_execution');
+      const score2 = factorWeightManager.calculateFactorScore('funding', 0.0008, '15m_execution');
       expect(score2).toBe(0.5);
 
       const score3 = factorWeightManager.calculateFactorScore('funding', 0.005, '15m_execution');

@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/97</span>
+                <span class='fraction'>0/101</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/37</span>
+                <span class='fraction'>0/39</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/16</span>
+                <span class='fraction'>0/17</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/94</span>
+                <span class='fraction'>0/98</span>
             </div>
         
             
@@ -341,7 +341,20 @@
 <a name='L276'></a><a href='#L276'>276</a>
 <a name='L277'></a><a href='#L277'>277</a>
 <a name='L278'></a><a href='#L278'>278</a>
-<a name='L279'></a><a href='#L279'>279</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a>
+<a name='L284'></a><a href='#L284'>284</a>
+<a name='L285'></a><a href='#L285'>285</a>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -511,6 +524,19 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -664,8 +690,8 @@ class OptimizedDataMonitor {
     
 <span class="cstat-no" title="statement not covered" >    this.refreshInterval = 30000; </span>// 30秒
     
-    // 启动定期清理
-<span class="cstat-no" title="statement not covered" >    this.startMemoryCleanup();</span>
+    // 定时器ID存储
+<span class="cstat-no" title="statement not covered" >    this.memoryCleanupTimer = null;</span>
   }
 &nbsp;
   /**
@@ -795,11 +821,24 @@ class OptimizedDataMonitor {
    * 启动内存清理
    */
 <span class="fstat-no" title="function not covered" >  st</span>artMemoryCleanup() {
+    // 清理现有定时器
+<span class="cstat-no" title="statement not covered" >    this.stopMemoryCleanup();</span>
+    
     // 每10分钟清理一次过期数据
-<span class="cstat-no" title="statement not covered" >    setInterval(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    this.memoryCleanupTimer = setInterval(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >      this.limitMemoryUsage();</span>
 <span class="cstat-no" title="statement not covered" >      console.log(`🧹 数据监控内存清理完成 - 交易对: ${this.symbolStats.size}, 日志: ${this.analysisLogs.size}, 问题: ${this.dataQualityIssues.size}`);</span>
     }, 10 * 60 * 1000);
+  }
+&nbsp;
+  /**
+   * 停止内存清理定时器
+   */
+<span class="fstat-no" title="function not covered" >  st</span>opMemoryCleanup() {
+<span class="cstat-no" title="statement not covered" >    if (this.memoryCleanupTimer) {</span>
+<span class="cstat-no" title="statement not covered" >      clearInterval(this.memoryCleanupTimer);</span>
+<span class="cstat-no" title="statement not covered" >      this.memoryCleanupTimer = null;</span>
+    }
   }
 &nbsp;
   /**
@@ -904,7 +943,7 @@ class OptimizedDataMonitor {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-11T03:43:07.961Z
+                at 2025-09-12T05:23:32.906Z
             </div>
         <script src="../prettify.js"></script>
         <script>

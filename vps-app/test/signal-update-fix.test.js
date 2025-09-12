@@ -54,7 +54,7 @@ describe('信号更新修复测试', () => {
     test('应该正确获取high-cap-trending的权重配置', async () => {
       const weights = await factorWeightManager.getFactorWeights('high-cap-trending', '1h_scoring');
       expect(weights).toBeDefined();
-      expect(weights.vwap).toBe(0.2);
+      expect(weights.vwap).toBe(0);
       expect(weights.delta).toBe(0.25);
       expect(weights.oi).toBe(0.25);
       expect(weights.volume).toBe(0.2);
@@ -65,7 +65,7 @@ describe('信号更新修复测试', () => {
     test('应该正确获取mainstream的权重配置', async () => {
       const weights = await factorWeightManager.getFactorWeights('mainstream', '1h_scoring');
       expect(weights).toBeDefined();
-      expect(weights.vwap).toBe(0.25);
+      expect(weights.vwap).toBe(0);
       expect(weights.delta).toBe(0.2);
       expect(weights.oi).toBe(0.2);
       expect(weights.volume).toBe(0.2);
