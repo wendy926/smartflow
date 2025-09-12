@@ -398,7 +398,9 @@ class StrategyV3Core {
       console.log(`✅ VWAP方向一致 [${symbol}]: 开始计算其他因子`);
 
       // 收集因子数据
-      const factorValues = {};
+      const factorValues = {
+        vwap: true  // VWAP方向一致，添加VWAP因子
+      };
 
       // 2. 突破确认（4H关键位突破）
       const klines4h = await BinanceAPI.getKlines(symbol, '4h', 20);

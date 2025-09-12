@@ -17,7 +17,7 @@ class DataRefreshManager {
     try {
       const response = await fetch('/api/data-refresh-status');
       const data = await response.json();
-      
+
       if (data.success) {
         this.refreshStats = data.refreshStats;
         this.staleData = data.staleData;
@@ -40,10 +40,10 @@ class DataRefreshManager {
     if (!tbody || !this.refreshStats) return;
 
     tbody.innerHTML = '';
-    
+
     this.refreshStats.forEach(stat => {
       const row = document.createElement('tr');
-      
+
       const dataTypeNames = {
         'trend_analysis': '4H趋势判断',
         'trend_scoring': '1H多因子打分',
@@ -52,7 +52,7 @@ class DataRefreshManager {
         'range_boundary': '震荡市1H边界判断',
         'range_entry': '震荡市15分钟入场判断'
       };
-      
+
       const refreshIntervals = {
         'trend_analysis': '60分钟',
         'trend_scoring': '5分钟',
@@ -61,7 +61,7 @@ class DataRefreshManager {
         'range_boundary': '5分钟',
         'range_entry': '2分钟'
       };
-      
+
       row.innerHTML = `
         <td>${dataTypeNames[stat.data_type] || stat.data_type}</td>
         <td>${stat.total_symbols}</td>
@@ -72,7 +72,7 @@ class DataRefreshManager {
         <td>${stat.min_freshness ? stat.min_freshness.toFixed(1) : '0.0'}%</td>
         <td>${stat.max_freshness ? stat.max_freshness.toFixed(1) : '0.0'}%</td>
       `;
-      
+
       tbody.appendChild(row);
     });
   }
@@ -83,15 +83,15 @@ class DataRefreshManager {
     if (!tbody) return;
 
     tbody.innerHTML = '';
-    
+
     if (this.staleData.length === 0) {
       tbody.innerHTML = '<tr><td colspan="3" class="text-center">暂无过期数据</td></tr>';
       return;
     }
-    
+
     this.staleData.forEach(item => {
       const row = document.createElement('tr');
-      
+
       const dataTypeNames = {
         'trend_analysis': '4H趋势判断',
         'trend_scoring': '1H多因子打分',
@@ -100,10 +100,10 @@ class DataRefreshManager {
         'range_boundary': '震荡市1H边界判断',
         'range_entry': '震荡市15分钟入场判断'
       };
-      
+
       // 修复字段名问题：使用 data_type 而不是 dataType
       const dataType = item.data_type || item.dataType;
-      
+
       row.innerHTML = `
         <td>${item.symbol}</td>
         <td>${dataTypeNames[dataType] || dataType}</td>
@@ -113,7 +113,7 @@ class DataRefreshManager {
           </button>
         </td>
       `;
-      
+
       tbody.appendChild(row);
     });
   }
@@ -135,9 +135,9 @@ class DataRefreshManager {
         },
         body: JSON.stringify({ symbol, dataType })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         alert(data.message);
         await this.loadRefreshStatus();
@@ -170,9 +170,9 @@ class DataRefreshManager {
           'Content-Type': 'application/json'
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         alert(`批量刷新完成！\n总计: ${data.total} 个\n成功: ${data.successCount} 个\n失败: ${data.failCount} 个`);
         await this.loadRefreshStatus();

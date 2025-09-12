@@ -82,7 +82,7 @@ class SmartFlowStrategyV3 {
       if (options.dataRefreshManager) {
         // 根据市场类型更新不同的数据类型
         await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_analysis');
-        
+
         if (marketType === '趋势市') {
           await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_scoring');
           await options.dataRefreshManager.updateRefreshTime(symbol, 'trend_strength');
