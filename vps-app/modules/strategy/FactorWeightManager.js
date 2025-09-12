@@ -266,17 +266,17 @@ class FactorWeightManager {
           // 震荡市1H边界判断：成交量低 → 震荡区间有效
           return value <= 1.0 ? 1 : (value <= 1.2 ? 0.5 : 0);
         } else {
-          // 趋势市1H多因子打分：成交量高 → 趋势确认（大幅降低阈值）
-          return value >= 0.5 ? 1 : (value >= 0.3 ? 0.5 : 0);
+          // 趋势市1H多因子打分：成交量高 → 趋势确认（极低阈值）
+          return value >= 0.2 ? 1 : (value >= 0.1 ? 0.5 : 0);
         }
 
       case 'oi':
-        // OI变化确认（大幅降低阈值）
-        return Math.abs(value) >= 0.002 ? 1 : (Math.abs(value) >= 0.001 ? 0.5 : 0);
+        // OI变化确认（极低阈值）
+        return Math.abs(value) >= 0.001 ? 1 : (Math.abs(value) >= 0.0005 ? 0.5 : 0);
 
       case 'delta':
-        // Delta不平衡（大幅降低阈值）
-        return Math.abs(value) >= 0.01 ? 1 : (Math.abs(value) >= 0.005 ? 0.5 : 0);
+        // Delta不平衡（极低阈值）
+        return Math.abs(value) >= 0.001 ? 1 : (Math.abs(value) >= 0.0005 ? 0.5 : 0);
 
       case 'funding':
         // 资金费率 - 放宽阈值，更符合实际市场情况
