@@ -28,9 +28,9 @@ class StrategyV3Core {
         ORDER BY open_time DESC 
         LIMIT ?
       `;
-      
+
       const results = await this.database.runQuery(sql, [symbol, interval, limit]);
-      
+
       if (!results || results.length === 0) {
         return null;
       }
@@ -67,7 +67,7 @@ class StrategyV3Core {
         INSERT INTO data_quality_issues (symbol, issue_type, severity, message, details)
         VALUES (?, ?, ?, ?, ?)
       `;
-      
+
       await this.database.runQuery(sql, [
         symbol,
         issueType,
@@ -209,12 +209,12 @@ class StrategyV3Core {
     try {
       // 从数据库获取4H K线数据
       const klines4h = await this.getKlineDataFromDB(symbol, '4h', 250);
-      
+
       if (!klines4h || klines4h.length < 200) {
         // 记录数据质量告警
-        await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT', 
+        await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT',
           `4H K线数据不足: ${klines4h ? klines4h.length : 0}条，需要至少200条`);
-        
+
         if (this.dataMonitor) {
           this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
             error: '数据不足',
@@ -372,11 +372,11 @@ class StrategyV3Core {
       };
     } catch (error) {
       console.error(`4H趋势分析失败 [${symbol}]:`, error);
-      
+
       // 记录错误告警
-      await this.recordDataQualityAlert(symbol, 'TREND_ANALYSIS_ERROR', 
+      await this.recordDataQualityAlert(symbol, 'TREND_ANALYSIS_ERROR',
         `4H趋势分析失败: ${error.message}`);
-      
+
       return { trend4h: '震荡市', marketType: '震荡市', error: error.message };
     }
   }
@@ -390,11 +390,11 @@ class StrategyV3Core {
 
       // 从数据库获取1H K线数据
       const klines1h = await this.getKlineDataFromDB(symbol, '1h', 50);
-      
+
       if (!klines1h || klines1h.length < 20) {
-        await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT', 
+        await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT',
           `1H K线数据不足: ${klines1h ? klines1h.length : 0}条，需要至少20条`);
-        
+
         return { score: 0, error: '1H K线数据不足' };
       }
 
@@ -510,10 +510,16 @@ class StrategyV3Core {
         }, Date.now());
       }
 
+      // 判断是否允许入场：VWAP方向一致且得分≥3
+      const allowEntry = vwapDirectionConsistent && score >= 3;
+      
+      console.log(`🔍 VWAP方向一致性检查 [${symbol}]: 当前价格=${currentPrice}, VWAP=${lastVWAP}, 趋势=${trend4h}, 方向一致=${vwapDirectionConsistent}, 得分=${score}, 允许入场=${allowEntry}`);
+
       return {
         score,
         factorScores,
         vwapDirectionConsistent,
+        allowEntry,
         currentPrice,
         lastVWAP,
         delta,
@@ -524,9 +530,9 @@ class StrategyV3Core {
 
     } catch (error) {
       console.error(`1H多因子打分失败 [${symbol}]:`, error);
-      await this.recordDataQualityAlert(symbol, 'SCORING_ANALYSIS_ERROR', 
+      await this.recordDataQualityAlert(symbol, 'SCORING_ANALYSIS_ERROR',
         `1H多因子打分失败: ${error.message}`);
-      
+
       return { score: 0, error: error.message };
     }
   }
@@ -616,11 +622,11 @@ class StrategyV3Core {
 
       // 从数据库获取1H K线数据
       const klines1h = await this.getKlineDataFromDB(symbol, '1h', 50);
-      
+
       if (!klines1h || klines1h.length < 20) {
-        await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT', 
+        await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT',
           `1H K线数据不足: ${klines1h ? klines1h.length : 0}条，需要至少20条`);
-        
+
         return { error: '1H K线数据不足' };
       }
 
@@ -725,9 +731,9 @@ class StrategyV3Core {
 
     } catch (error) {
       console.error(`震荡市1H边界判断失败 [${symbol}]:`, error);
-      await this.recordDataQualityAlert(symbol, 'RANGE_BOUNDARY_ANALYSIS_ERROR', 
+      await this.recordDataQualityAlert(symbol, 'RANGE_BOUNDARY_ANALYSIS_ERROR',
         `震荡市1H边界判断失败: ${error.message}`);
-      
+
       return { error: error.message };
     }
   }

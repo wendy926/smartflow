@@ -665,7 +665,7 @@ class SmartFlowServer {
       }
     });
 
-    
+
     // 获取监控中心数据
     this.app.get('/api/monitoring-dashboard', async (req, res) => {
       try {
