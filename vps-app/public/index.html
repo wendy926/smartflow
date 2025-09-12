@@ -670,30 +670,176 @@
   <script src="js/data/DataManager.js?v=20250111-16"></script>
   <script src="js/main.js?v=20250111-16"></script>
 
-  <!-- 添加颜色样式 -->
+  <!-- 优化表格样式 -->
   <style>
+    /* 表格整体样式 */
+    .table-responsive {
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table {
+      margin-bottom: 0;
+      font-size: 14px;
+      table-layout: fixed;
+      width: 100%;
+    }
+    
+    .table th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-weight: 600;
+      text-align: center;
+      padding: 12px 8px;
+      border: none;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .table td {
+      padding: 10px 8px;
+      text-align: center;
+      vertical-align: middle;
+      border: 1px solid #e9ecef;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .table tbody tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+    
+    .table tbody tr:hover {
+      background-color: #e3f2fd;
+      transform: scale(1.01);
+      transition: all 0.2s ease;
+    }
+    
+    /* 列宽度设置 */
+    .table th:nth-child(1), .table td:nth-child(1) { width: 8%; }  /* 详情 */
+    .table th:nth-child(2), .table td:nth-child(2) { width: 12%; } /* 交易对 */
+    .table th:nth-child(3), .table td:nth-child(3) { width: 10%; } /* 分类 */
+    .table th:nth-child(4), .table td:nth-child(4) { width: 8%; }  /* 趋势打分 */
+    .table th:nth-child(5), .table td:nth-child(5) { width: 10%; } /* 4H趋势 */
+    .table th:nth-child(6), .table td:nth-child(6) { width: 10%; } /* 多因子得分 */
+    .table th:nth-child(7), .table td:nth-child(7) { width: 10%; } /* 1H加强趋势 */
+    .table th:nth-child(8), .table td:nth-child(8) { width: 10%; } /* 15min信号 */
+    .table th:nth-child(9), .table td:nth-child(9) { width: 12%; } /* 当前价格 */
+    .table th:nth-child(10), .table td:nth-child(10) { width: 10%; } /* 数据采集率 */
+    
+    /* 颜色样式 */
     .score-strong {
-      background-color: #ffa500 !important;
+      background: linear-gradient(135deg, #ffa500, #ff8c00) !important;
       color: #000 !important;
       font-weight: bold !important;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(255, 165, 0, 0.3);
     }
     .score-none {
-      background-color: #6c757d !important;
+      background: linear-gradient(135deg, #6c757d, #5a6268) !important;
       color: #fff !important;
+      border-radius: 4px;
     }
     .trend-bull {
-      background-color: #28a745 !important;
+      background: linear-gradient(135deg, #28a745, #20c997) !important;
       color: #fff !important;
       font-weight: bold !important;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
     }
     .trend-bear {
-      background-color: #dc3545 !important;
+      background: linear-gradient(135deg, #dc3545, #e74c3c) !important;
       color: #fff !important;
       font-weight: bold !important;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
     }
     .trend-none {
-      background-color: #6c757d !important;
+      background: linear-gradient(135deg, #6c757d, #5a6268) !important;
       color: #fff !important;
+      border-radius: 4px;
+    }
+    
+    /* 按钮样式 */
+    .expand-btn {
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+    }
+    
+    .expand-btn:hover {
+      background: linear-gradient(135deg, #0056b3, #004085);
+      transform: scale(1.1);
+      box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
+    }
+    
+    /* 价格样式 */
+    .price-cell {
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    
+    /* 分类样式 */
+    .category-mainstream { color: #007bff; font-weight: 600; }
+    .category-highcap { color: #28a745; font-weight: 600; }
+    .category-trending { color: #ffc107; font-weight: 600; }
+    .category-smallcap { color: #6c757d; font-weight: 600; }
+    .category-unknown { color: #dc3545; font-weight: 600; }
+    
+    /* Badge样式 */
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
+      vertical-align: baseline;
+      border-radius: 4px;
+    }
+    
+    .badge-success {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .badge-warning {
+      background-color: #ffc107;
+      color: #212529;
+    }
+    
+    .badge-danger {
+      background-color: #dc3545;
+      color: white;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 1200px) {
+      .table { font-size: 12px; }
+      .table th, .table td { padding: 8px 4px; }
+    }
+    
+    @media (max-width: 768px) {
+      .table-responsive { overflow-x: auto; }
+      .table { min-width: 800px; }
     }
   </style>
 
@@ -773,15 +919,15 @@
 
             row.innerHTML = `
               <td><button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button></td>
-              <td>${signal.symbol}</td>
-              <td>${categoryDisplay}</td>
+              <td><strong>${signal.symbol}</strong></td>
+              <td class="category-${category}">${categoryDisplay}</td>
               <td class="${trendScoreClass}">${trendScore}</td>
               <td class="${trendClass}">${trendDisplay}</td>
               <td class="${multifactorClass}">${multifactorDisplay}</td>
               <td>--</td>
               <td>--</td>
-              <td>${currentPrice.toFixed(4)}</td>
-              <td>100%</td>
+              <td class="price-cell">${currentPrice.toFixed(4)}</td>
+              <td><span class="badge badge-success">100%</span></td>
             `;
             tbody.appendChild(row);
           });
@@ -797,10 +943,10 @@
 
     // 延迟执行强制加载
     setTimeout(forceLoadData, 1000);
-    
+
     // 再次延迟执行，确保DOM完全加载
     setTimeout(forceLoadData, 3000);
-    
+
     // 每5秒强制刷新一次，确保数据始终显示
     setInterval(forceLoadData, 5000);
   </script>

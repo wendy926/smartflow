@@ -488,8 +488,8 @@ class SmartFlowApp {
                 <td>
                     <button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button>
                 </td>
-                <td>${signal.symbol}</td>
-                <td class="${categoryClass}" title="交易对分类: ${categoryDisplay}">
+                <td><strong>${signal.symbol}</strong></td>
+                <td class="category-${category}" title="交易对分类: ${categoryDisplay}">
                     ${categoryDisplay}
                 </td>
                 <td class="${trendScoreClass}" title="${trendScoreTitle}">
@@ -507,9 +507,9 @@ class SmartFlowApp {
                 <td class="${dataManager.getExecutionClass(signal.execution)}" title="15分钟信号">
                     ${executionDisplay}
                 </td>
-                <td>${priceDisplay}</td>
+                <td class="price-cell">${priceDisplay}</td>
                 <td class="${dataCollectionClass}" title="数据采集成功率: ${dataCollectionRate.toFixed(2)}%">
-                    ${dataCollectionRate.toFixed(2)}%
+                    <span class="badge ${dataCollectionRate >= 95 ? 'badge-success' : dataCollectionRate >= 80 ? 'badge-warning' : 'badge-danger'}">${dataCollectionRate.toFixed(2)}%</span>
                 </td>
             `;
 
