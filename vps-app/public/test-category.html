@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分类测试</title>
+</head>
+
+<body>
+  <h1>分类显示测试</h1>
+  <div id="test-results"></div>
+
+  <script>
+    // 复制getCategoryDisplay函数
+    function getCategoryDisplay(category) {
+      const categoryMap = {
+        'mainstream': '主流币',
+        'high-cap-trending': '高市值趋势币',
+        'highcap': '高市值', // 保持向后兼容
+        'trending': '热点币',
+        'smallcap': '小币'
+      };
+      return categoryMap[category] || '未知';
+    }
+
+    // 测试分类
+    const testCategories = ['mainstream', 'high-cap-trending', 'trending', 'smallcap', 'unknown'];
+    const results = testCategories.map(cat => `${cat} -> ${getCategoryDisplay(cat)}`);
+
+    document.getElementById('test-results').innerHTML = results.join('<br>');
+  </script>
+</body>
+
+</html>

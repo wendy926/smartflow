@@ -403,6 +403,39 @@ class SmartFlowApp {
         }
       }
 
+      // 构建多因子得分列显示（趋势市 vs 震荡市）
+      let multifactorDisplay = '--';
+      let multifactorClass = 'score-none';
+      let multifactorTitle = '';
+      
+      if (strategyVersion === 'V3') {
+        if (marketType === '趋势市') {
+          // 趋势市：显示1H趋势加强多因子打分得分
+          const trendScore = signal.score1h || 0;
+          multifactorDisplay = `${trendScore}/6`;
+          multifactorClass = trendScore >= 4 ? 'score-strong' : 
+                            trendScore >= 3 ? 'score-moderate' : 
+                            trendScore >= 2 ? 'score-weak' : 'score-none';
+          multifactorTitle = `趋势市1H趋势加强多因子打分: ${trendScore}/6`;
+        } else if (marketType === '震荡市') {
+          // 震荡市：显示1H边界有效性判断多因子打分得分
+          const lowerValid = signal.rangeLowerBoundaryValid === true ? 1 : 0;
+          const upperValid = signal.rangeUpperBoundaryValid === true ? 1 : 0;
+          const boundaryScore = lowerValid + upperValid;
+          multifactorDisplay = `${boundaryScore}/2`;
+          multifactorClass = boundaryScore === 2 ? 'score-strong' : 
+                            boundaryScore === 1 ? 'score-moderate' : 'score-none';
+          multifactorTitle = `震荡市1H边界有效性判断: 下边界${lowerValid ? '✓' : '✗'} 上边界${upperValid ? '✓' : '✗'}`;
+        }
+      } else {
+        // V2策略：保持原有逻辑
+        multifactorDisplay = hourlyScore > 0 ? hourlyScore.toString() : '--';
+        multifactorClass = hourlyScore >= 3 ? 'score-strong' : 
+                          hourlyScore >= 2 ? 'score-moderate' : 
+                          hourlyScore >= 1 ? 'score-weak' : 'score-none';
+        multifactorTitle = `1H多因子得分: ${hourlyScore}/6`;
+      }
+
       // 构建15分钟信号列显示
       let executionDisplay = signal.execution || '--';
       if (strategyVersion === 'V3') {
@@ -431,8 +464,10 @@ class SmartFlowApp {
 
       // 获取交易对分类
       const category = signal.category || 'mainstream';
+      console.log(`处理交易对 ${signal.symbol}: 原始分类=${category}`);
       const categoryDisplay = app.getCategoryDisplay(category);
       const categoryClass = app.getCategoryClass(category);
+      console.log(`处理交易对 ${signal.symbol}: 显示分类=${categoryDisplay}, 样式类=${categoryClass}`);
 
       row.innerHTML = `
                 <td>
@@ -445,8 +480,8 @@ class SmartFlowApp {
                 <td class="${dataManager.getTrendClass(trend4h)}" title="4H趋势: ${trend4h} | 市场类型: ${marketType}">
                     ${trendDisplay}
                 </td>
-                <td class="${marketType === '震荡市' ? 'score-none' : (hourlyScore >= 3 ? 'score-strong' : hourlyScore >= 2 ? 'score-moderate' : 'score-weak')}" title="${marketType === '震荡市' ? '震荡市不需要1H多因子打分' : `1H多因子得分: ${hourlyScore}/6`}">
-                    ${marketType === '震荡市' ? '--' : hourlyScore}
+                <td class="${multifactorClass}" title="${multifactorTitle}">
+                    ${multifactorDisplay}
                 </td>
                 <td class="${dataManager.getSignalClass(signal.signal)}" title="1H加强趋势">
                     ${signalDisplay}
@@ -776,7 +811,9 @@ class SmartFlowApp {
       'trending': '热点币',
       'smallcap': '小币'
     };
-    return categoryMap[category] || '未知';
+    const result = categoryMap[category] || '未知';
+    console.log(`分类映射调试: ${category} -> ${result}`);
+    return result;
   }
 
   // 获取交易对分类样式类

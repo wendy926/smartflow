@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多因子得分显示测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .score-strong { color: #28a745; font-weight: bold; }
+        .score-moderate { color: #ffc107; font-weight: bold; }
+        .score-weak { color: #fd7e14; font-weight: bold; }
+        .score-none { color: #6c757d; }
+    </style>
+</head>
+<body>
+    <h1>多因子得分显示逻辑测试</h1>
+    <div id="results"></div>
+
+    <script>
+        // 模拟前端逻辑
+        function getMultifactorDisplay(signal) {
+            let multifactorDisplay = '--';
+            let multifactorClass = 'score-none';
+            let multifactorTitle = '';
+            
+            if (signal.strategyVersion === 'V3') {
+                if (signal.marketType === '趋势市') {
+                    // 趋势市：显示1H趋势加强多因子打分得分
+                    const trendScore = signal.score1h || 0;
+                    multifactorDisplay = `${trendScore}/6`;
+                    multifactorClass = trendScore >= 4 ? 'score-strong' : 
+                                      trendScore >= 3 ? 'score-moderate' : 
+                                      trendScore >= 2 ? 'score-weak' : 'score-none';
+                    multifactorTitle = `趋势市1H趋势加强多因子打分: ${trendScore}/6`;
+                } else if (signal.marketType === '震荡市') {
+                    // 震荡市：显示1H边界有效性判断多因子打分得分
+                    const lowerValid = signal.rangeLowerBoundaryValid === true ? 1 : 0;
+                    const upperValid = signal.rangeUpperBoundaryValid === true ? 1 : 0;
+                    const boundaryScore = lowerValid + upperValid;
+                    multifactorDisplay = `${boundaryScore}/2`;
+                    multifactorClass = boundaryScore === 2 ? 'score-strong' : 
+                                      boundaryScore === 1 ? 'score-moderate' : 'score-none';
+                    multifactorTitle = `震荡市1H边界有效性判断: 下边界${lowerValid ? '✓' : '✗'} 上边界${upperValid ? '✓' : '✗'}`;
+                }
+            }
+            
+            return { multifactorDisplay, multifactorClass, multifactorTitle };
+        }
+
+        // 测试API调用
+        async function testMultifactorDisplay() {
+            try {
+                const response = await fetch('/api/signals');
+                const data = await response.json();
+                
+                let html = '<table><tr><th>交易对</th><th>市场类型</th><th>多因子得分</th><th>说明</th></tr>';
+                
+                data.forEach(signal => {
+                    const { multifactorDisplay, multifactorClass, multifactorTitle } = getMultifactorDisplay(signal);
+                    html += `<tr>
+                        <td>${signal.symbol}</td>
+                        <td>${signal.marketType}</td>
+                        <td class="${multifactorClass}" title="${multifactorTitle}">${multifactorDisplay}</td>
+                        <td>${multifactorTitle}</td>
+                    </tr>`;
+                });
+                
+                html += '</table>';
+                document.getElementById('results').innerHTML = html;
+            } catch (error) {
+                document.getElementById('results').innerHTML = `<p>错误: ${error.message}</p>`;
+            }
+        }
+
+        // 页面加载时执行测试
+        testMultifactorDisplay();
+    </script>
+</body>
+</html>

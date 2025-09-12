@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分类调试</title>
+</head>
+
+<body>
+  <h1>分类显示调试</h1>
+  <div id="results"></div>
+
+  <script>
+    // 测试分类显示函数
+    function getCategoryDisplay(category) {
+      const categoryMap = {
+        'mainstream': '主流币',
+        'high-cap-trending': '高市值趋势币',
+        'highcap': '高市值',
+        'trending': '热点币',
+        'smallcap': '小币'
+      };
+      const result = categoryMap[category] || '未知';
+      console.log(`分类映射调试: ${category} -> ${result}`);
+      return result;
+    }
+
+    // 测试API调用
+    async function testAPI() {
+      try {
+        const response = await fetch('/api/signals');
+        const data = await response.json();
+
+        const solusdt = data.find(item => item.symbol === 'SOLUSDT');
+        if (solusdt) {
+          const display = getCategoryDisplay(solusdt.category);
+          document.getElementById('results').innerHTML = `
+                        <p>SOLUSDT 原始分类: ${solusdt.category}</p>
+                        <p>SOLUSDT 显示分类: ${display}</p>
+                        <p>测试时间: ${new Date().toLocaleString()}</p>
+                    `;
+        } else {
+          document.getElementById('results').innerHTML = '<p>未找到SOLUSDT</p>';
+        }
+      } catch (error) {
+        document.getElementById('results').innerHTML = `<p>错误: ${error.message}</p>`;
+      }
+    }
+
+    // 页面加载时执行测试
+    testAPI();
+  </script>
+</body>
+
+</html>
