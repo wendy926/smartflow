@@ -156,6 +156,8 @@ class SmartFlowStrategyV3 {
       let trendStrength = '观望';
       let signalStrength = '弱';
       
+      console.log(`🔍 1H加强趋势判断 [${symbol}]: vwapDirectionConsistent=${scoringResult.vwapDirectionConsistent}, score=${scoringResult.score}, trend4h=${trend4hResult.trend4h}`);
+      
       if (scoringResult.vwapDirectionConsistent) {
         if (scoringResult.score >= 4) {
           trendStrength = trend4hResult.trend4h === '多头趋势' ? '做多' : '做空';
@@ -171,6 +173,8 @@ class SmartFlowStrategyV3 {
         trendStrength = '观望';
         signalStrength = '弱';
       }
+      
+      console.log(`🔍 1H加强趋势结果 [${symbol}]: trendStrength=${trendStrength}, signalStrength=${signalStrength}`);
 
       // 3. 检查是否允许入场
       console.log(`🔍 趋势市入场检查 [${symbol}]: allowEntry=${scoringResult.allowEntry}, score=${scoringResult.score}, vwapDirectionConsistent=${scoringResult.vwapDirectionConsistent}`);
