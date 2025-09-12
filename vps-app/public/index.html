@@ -17,7 +17,7 @@
       background: #fff;
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .weight-table th {
@@ -177,7 +177,7 @@
             <li><strong>震荡市15分钟入场：</strong> VWAP作为核心因子之一，权重随交易对分类调整</li>
             <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
           </ul>
-          
+
           <h4>📈 交易对分类策略：</h4>
           <ul>
             <li><strong>主流币（BTC/ETH）：</strong> 重视突破确认和OI变化，适合稳定趋势</li>
@@ -234,12 +234,21 @@
 
             <h4>多因子打分系统（0-6分）- 分类权重优化版：</h4>
             <ul>
-              <li><strong>VWAP方向（必须满足）：</strong> 收盘价 > VWAP（多头趋势）或 收盘价 < VWAP（空头趋势）</li>
-              <li><strong>突破确认（1分）：</strong> 收盘价突破最近20根4H K线高点（多头）或低点（空头）</li>
-              <li><strong>成交量双确认（1分）：</strong> 15m成交量 ≥ 1.5×20期均量 且 1h成交量 ≥ 1.2×20期均量</li>
-              <li><strong>OI变化（1分）：</strong> 多头：6h OI ≥ +2%，空头：6h OI ≤ -3%</li>
-              <li><strong>资金费率（1分）：</strong> -0.05% ≤ 资金费率 ≤ +0.05%</li>
-              <li><strong>Delta不平衡（1分）：</strong> 多头：主动买盘 ≥ 卖盘×1.2，空头：主动卖盘 ≥ 买盘×1.2</li>
+              <li><strong>VWAP方向（必须满足）：</strong> 收盘价 > VWAP（多头趋势）或 收盘价 < VWAP（空头趋势），必须满足否则直接返回0分</li>
+              <li><strong>突破确认：</strong> 收盘价突破最近20根4H K线高点（多头）或低点（空头），根据交易对分类应用不同权重</li>
+              <li><strong>成交量双确认：</strong> 15m成交量 ≥ 1.5×20期均量 且 1h成交量 ≥ 1.2×20期均量，根据交易对分类应用不同权重</li>
+              <li><strong>OI变化：</strong> 多头：6h OI ≥ +2%，空头：6h OI ≤ -3%，根据交易对分类应用不同权重</li>
+              <li><strong>资金费率：</strong> -0.05% ≤ 资金费率 ≤ +0.05%，所有交易对权重统一为10%</li>
+              <li><strong>Delta不平衡：</strong> 多头：主动买盘 ≥ 卖盘×1.2，空头：主动卖盘 ≥ 买盘×1.2，根据交易对分类应用不同权重</li>
+            </ul>
+
+            <h4>权重计算逻辑：</h4>
+            <ul>
+              <li><strong>因子得分：</strong> 每个因子根据条件满足情况得0-1分</li>
+              <li><strong>权重应用：</strong> 根据交易对分类（主流币/高市值强趋势币/热点币/小币）应用不同权重</li>
+              <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
+              <li><strong>VWAP特殊处理：</strong> 必须满足条件，权重为0但计入总分，确保方向一致性</li>
+              <li><strong>入场条件：</strong> 总分 ≥ 3分且VWAP方向一致时允许入场</li>
             </ul>
 
             <h4>趋势市1H多因子打分权重分布：</h4>
@@ -331,14 +340,23 @@
             <h4>边界有效性判断（优化版 - 多因子打分系统）：</h4>
             <ul>
               <li><strong>布林带计算：</strong> 20期布林带，K=2，带宽 = (上轨-下轨)/中轨</li>
-              <li><strong>多因子打分系统：</strong> 基于6个因子进行量化打分，总分0-6分</li>
-              <li><strong>连续触碰因子：</strong> 最近6根1H K线触碰次数，最高2分</li>
+              <li><strong>多因子打分系统：</strong> 基于6个因子进行量化打分，总分0-6分，根据交易对分类应用不同权重</li>
+              <li><strong>连续触碰因子：</strong> 最近6根1H K线触碰次数，最高2分，主流币和高市值趋势币权重30%</li>
               <li><strong>触碰判断：</strong> 下轨：close ≤ lower×(1+0.015)，上轨：close ≥ upper×(1-0.015)</li>
-              <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.7×20期均量，1分</li>
-              <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡），1分</li>
-              <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%，1分</li>
-              <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分</li>
-              <li><strong>VWAP因子：</strong> 价格接近1H VWAP（1%以内），1分</li>
+              <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.7×20期均量，1分，热点币和小币权重30%</li>
+              <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡），1分，热点币和小币权重25%</li>
+              <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%，1分，所有交易对权重统一为10%</li>
+              <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分，仅主流币权重5%</li>
+              <li><strong>VWAP因子：</strong> 价格接近1H VWAP（1%以内），1分，主流币和高市值趋势币权重20%</li>
+            </ul>
+
+            <h4>震荡市1H边界权重计算逻辑：</h4>
+            <ul>
+              <li><strong>因子得分：</strong> 每个因子根据条件满足情况得0-1分（触碰因子最高2分）</li>
+              <li><strong>权重应用：</strong> 根据交易对分类应用不同权重，优化边界判断准确性</li>
+              <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
+              <li><strong>边界有效：</strong> 总分 ≥ 3分时判断边界有效，允许15分钟假突破入场</li>
+              <li><strong>灵活判断：</strong> 允许部分条件轻微不符合仍可判定有效</li>
             </ul>
 
             <h4>震荡市1H区间边界确认权重分布：</h4>
@@ -498,6 +516,15 @@
               <li><strong>止盈价格：</strong> 固定1:2风险回报比</li>
             </ul>
 
+            <h4>震荡市15分钟入场权重计算逻辑：</h4>
+            <ul>
+              <li><strong>因子得分：</strong> 每个因子根据条件满足情况得-1到+1分</li>
+              <li><strong>权重应用：</strong> 根据交易对分类应用不同权重，优化入场判断准确性</li>
+              <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
+              <li><strong>入场条件：</strong> 总分 ≥ 2分且假突破验证通过时允许入场</li>
+              <li><strong>权重策略：</strong> 主流币重视VWAP+Delta，热点币重视Volume+Delta，小币重视Volume+OI</li>
+            </ul>
+
             <h4>判断逻辑：</h4>
             <ul>
               <li><strong>趋势市前提：</strong> 4H趋势明确 + 1H VWAP方向一致（必须满足）且1H得分 ≥ 3分</li>
@@ -533,40 +560,37 @@
             <p>其中：典型价 = (最高价 + 最低价 + 收盘价) / 3</p>
             <p>用于判断价格与成交量加权平均的关系</p>
 
-            <h4>多因子打分系统：</h4>
-            <p>基于6个因子进行打分，每个因子1分，总分0-6分：</p>
+            <h4>趋势市1H多因子打分系统：</h4>
+            <p>基于6个因子进行打分，每个因子0-1分，总分0-6分，根据交易对分类应用不同权重：</p>
             <ul>
-              <li>VWAP方向：收盘价与VWAP的关系</li>
-              <li>突破结构：是否突破最近20根K线的高低点</li>
-              <li>成交量确认：当前成交量是否放大1.5倍以上</li>
-              <li>OI确认：持仓量6小时变化是否达到±2%</li>
-              <li>资金费率：是否在合理范围内（≤0.15%）</li>
-              <li>Delta确认：收盘价与开盘价的关系</li>
+              <li><strong>VWAP方向：</strong> 收盘价与VWAP的关系，必须满足否则直接返回0分，权重为0但计入总分</li>
+              <li><strong>突破确认：</strong> 是否突破最近20根4H K线的高低点，根据交易对分类应用不同权重</li>
+              <li><strong>成交量确认：</strong> 15m成交量≥1.5×20期均量且1h成交量≥1.2×20期均量，根据交易对分类应用不同权重</li>
+              <li><strong>OI变化：</strong> 多头6h OI≥+2%，空头6h OI≤-3%，根据交易对分类应用不同权重</li>
+              <li><strong>资金费率：</strong> -0.05%≤资金费率≤+0.05%，所有交易对权重统一为10%</li>
+              <li><strong>Delta不平衡：</strong> 多头主动买盘≥卖盘×1.2，空头主动卖盘≥买盘×1.2，根据交易对分类应用不同权重</li>
             </ul>
 
-            <h4>震荡市多因子打分系统（优化版）：</h4>
-            <p>基于4个因子进行量化打分，用于震荡市入场确认和止损判断：</p>
+            <h4>震荡市1H边界多因子打分系统：</h4>
+            <p>基于6个因子进行量化打分，用于1H边界有效性判断，根据交易对分类应用不同权重：</p>
             <ul>
-              <li><strong>VWAP因子：</strong> 当前价 > VWAP → +1，否则 -1</li>
-              <li><strong>Delta因子：</strong> Delta正值 → +1，负值 → -1</li>
-              <li><strong>OI因子：</strong> OI上涨 → +1，下降 → -1</li>
-              <li><strong>Volume因子：</strong> 成交量增量 → +1，减量 → -1</li>
-              <li><strong>得分范围：</strong> -4 到 +4</li>
-              <li><strong>入场条件：</strong> 得分 ≥ 2 时允许入场</li>
-              <li><strong>止损条件：</strong> 得分 ≤ -2 时触发多因子止损</li>
+              <li><strong>连续触碰因子：</strong> 最近6根1H K线触碰次数，最高2分，主流币和高市值趋势币权重30%</li>
+              <li><strong>成交量因子：</strong> 最新1H成交量≤1.7×20期均量，1分，热点币和小币权重30%</li>
+              <li><strong>Delta因子：</strong> |Delta|≤0.02（买卖盘平衡），1分，热点币和小币权重25%</li>
+              <li><strong>OI因子：</strong> |6h OI变化|≤2%，1分，所有交易对权重统一为10%</li>
+              <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分，仅主流币权重5%</li>
+              <li><strong>VWAP因子：</strong> 价格接近1H VWAP（1%以内），1分，主流币和高市值趋势币权重20%</li>
+              <li><strong>得分范围：</strong> 0到6分，边界有效：得分≥3时判断边界有效</li>
             </ul>
 
-            <h4>1H边界多因子打分系统（新增）：</h4>
-            <p>基于6个因子进行量化打分，用于1H边界有效性判断：</p>
+            <h4>震荡市15分钟入场多因子打分系统：</h4>
+            <p>基于4个因子进行量化打分，用于震荡市入场确认和止损判断，根据交易对分类应用不同权重：</p>
             <ul>
-              <li><strong>连续触碰因子：</strong> 最近6根1H K线触碰次数，最高2分</li>
-              <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.7×20期均量，1分</li>
-              <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡），1分</li>
-              <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%，1分</li>
-              <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分</li>
-              <li><strong>VWAP因子：</strong> 价格接近布林带中轨（1%以内），1分</li>
-              <li><strong>得分范围：</strong> 0 到 6</li>
-              <li><strong>边界有效：</strong> 得分 ≥ 3 时判断边界有效</li>
+              <li><strong>VWAP因子：</strong> 当前价>VWAP→+1，否则-1，主流币权重30%，小币权重10%</li>
+              <li><strong>Delta因子：</strong> Delta正值→+1，负值→-1，主流币和高市值趋势币权重30%</li>
+              <li><strong>OI因子：</strong> OI上涨→+1，下降→-1，高市值趋势币权重30%</li>
+              <li><strong>Volume因子：</strong> 成交量增量→+1，减量→-1，热点币权重40%，小币权重50%</li>
+              <li><strong>得分范围：</strong> -4到+4，入场条件：得分≥2时允许入场，止损条件：得分≤-2时触发多因子止损</li>
             </ul>
 
             <h4>入场模式：</h4>
