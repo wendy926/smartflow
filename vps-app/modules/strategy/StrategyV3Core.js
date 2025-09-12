@@ -248,16 +248,17 @@ class StrategyV3Core {
       const strengthLong = adxLong && bbwExpanding;
       const strengthShort = adxShort && bbwExpanding;
 
-      // 确保总是返回有效的趋势类型，不返回空值
+      // 根据文档要求：4H方向+1H趋势加强同时判断
+      // 首先确定4H趋势方向
       let trend4h = '震荡市';
       let marketType = '震荡市';
 
       if (isLongMA && strengthLong && trendConfirmed) {
         trend4h = '多头趋势';
-        marketType = '趋势市';
+        // 注意：这里不直接设为趋势市，需要结合1H打分结果
       } else if (isShortMA && strengthShort && trendConfirmed) {
         trend4h = '空头趋势';
-        marketType = '趋势市';
+        // 注意：这里不直接设为趋势市，需要结合1H打分结果
       } else {
         trend4h = '震荡市';
         marketType = '震荡市';
