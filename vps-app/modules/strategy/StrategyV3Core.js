@@ -170,15 +170,14 @@ class StrategyV3Core {
   }
 
   /**
-   * 4H趋势过滤 - 核心判断逻辑
+   * 4H趋势过滤 - 按照strategy-v3.md文档的5分打分机制
    */
   async analyze4HTrend(symbol) {
     try {
       const klines4h = await BinanceAPI.getKlines(symbol, '4h', 250);
       if (!klines4h || klines4h.length < 200) {
-        // 记录4H MA指标失败
         if (this.dataMonitor) {
-          this.dataMonitor.recordIndicator(symbol, '4H MA指标', {
+          this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
             error: '数据不足',
             trend4h: '震荡市',
             marketType: '震荡市'
@@ -195,86 +194,134 @@ class StrategyV3Core {
         volume: parseFloat(k[5])
       }));
 
+      const closes = candles.map(c => c.close);
+      const highs = candles.map(c => c.high);
+      const lows = candles.map(c => c.low);
+
+      // 计算MA指标
       const ma20 = this.calculateMA(candles, 20);
       const ma50 = this.calculateMA(candles, 50);
       const ma200 = this.calculateMA(candles, 200);
-      const close4h = candles[candles.length - 1].close;
+      const lastClose = closes[closes.length - 1];
 
-      // 检查MA排列
-      const isLongMA = ma20[ma20.length - 1] > ma50[ma50.length - 1] &&
-        ma50[ma50.length - 1] > ma200[ma200.length - 1] &&
-        close4h > ma20[ma20.length - 1];
-
-      const isShortMA = ma20[ma20.length - 1] < ma50[ma50.length - 1] &&
-        ma50[ma50.length - 1] < ma200[ma200.length - 1] &&
-        close4h < ma20[ma20.length - 1];
-
-      // 计算ADX和布林带带宽
+      // 计算ADX指标
       const { ADX, DIplus, DIminus } = this.calculateADX(candles, 14);
+
+      // 计算布林带宽度
       const bb = this.calculateBollingerBands(candles, 20, 2);
       const bbw = bb[bb.length - 1]?.bandwidth || 0;
 
-      // 检查连续确认机制（至少2根4H K线满足条件）
-      let trendConfirmed = false;
-      if (candles.length >= 2) {
-        const last2Candles = candles.slice(-2);
-        const last2MA20 = ma20.slice(-2);
-        const last2MA50 = ma50.slice(-2);
-        const last2MA200 = ma200.slice(-2);
-
-        if (isLongMA) {
-          trendConfirmed = last2Candles.every((c, i) =>
-            c.close > last2MA20[i] &&
-            last2MA20[i] > last2MA50[i] &&
-            last2MA50[i] > last2MA200[i]
-          );
-        } else if (isShortMA) {
-          trendConfirmed = last2Candles.every((c, i) =>
-            c.close < last2MA20[i] &&
-            last2MA20[i] < last2MA50[i] &&
-            last2MA50[i] < last2MA200[i]
-          );
-        }
-      }
-
-      // 判断趋势强度 - 严格按照文档：ADX(14) > 20 且布林带带宽扩张
-      const adxLong = ADX > 20 && DIplus > DIminus;
-      const adxShort = ADX > 20 && DIminus > DIplus;
-
-      // 布林带带宽扩张检查 - 严格按照文档要求
-      const bbwExpanding = this.isBBWExpanding(candles, 20, 2);
-
-      // 趋势强度确认：ADX条件 AND 布林带带宽扩张
-      const strengthLong = adxLong && bbwExpanding;
-      const strengthShort = adxShort && bbwExpanding;
-
-      // 根据文档要求：4H方向+1H趋势加强同时判断
-      // 首先确定4H趋势方向
+      // 按照文档的5分打分机制
+      let score = 0;
+      let direction = null;
       let trend4h = '震荡市';
       let marketType = '震荡市';
 
-      if (isLongMA && strengthLong && trendConfirmed) {
-        trend4h = '多头趋势';
-        // 注意：这里不直接设为趋势市，需要结合1H打分结果
-      } else if (isShortMA && strengthShort && trendConfirmed) {
-        trend4h = '空头趋势';
-        // 注意：这里不直接设为趋势市，需要结合1H打分结果
+      // 1. 趋势方向（必选）- 1分
+      if (lastClose > ma20[ma20.length - 1] && 
+          ma20[ma20.length - 1] > ma50[ma50.length - 1] && 
+          ma50[ma50.length - 1] > ma200[ma200.length - 1]) {
+        direction = "BULL";
+        score++;
+      } else if (lastClose < ma20[ma20.length - 1] && 
+                 ma20[ma20.length - 1] < ma50[ma50.length - 1] && 
+                 ma50[ma50.length - 1] < ma200[ma200.length - 1]) {
+        direction = "BEAR";
+        score++;
       } else {
-        trend4h = '震荡市';
-        marketType = '震荡市';
-      }
-
-      // 记录4H MA指标计算成功
-      if (this.dataMonitor) {
-        this.dataMonitor.recordIndicator(symbol, '4H MA指标', {
+        // 趋势方向不成立，直接返回震荡市
+        if (this.dataMonitor) {
+          this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
+            trend4h: '震荡市',
+            marketType: '震荡市',
+            score: 0,
+            reason: '趋势方向不成立'
+          }, Date.now());
+        }
+        return { 
+          trend4h: '震荡市', 
+          marketType: '震荡市',
           ma20: ma20[ma20.length - 1],
           ma50: ma50[ma50.length - 1],
           ma200: ma200[ma200.length - 1],
+          adx14: ADX,
+          bbw: bbw,
+          score: 0
+        };
+      }
+
+      // 2. 趋势稳定性 - 1分（连续≥2根4H K线满足趋势方向）
+      const last2 = closes.slice(-2);
+      const last2MA20 = ma20.slice(-2);
+      const last2MA50 = ma50.slice(-2);
+      const last2MA200 = ma200.slice(-2);
+      
+      let trendStability = false;
+      if (direction === "BULL") {
+        trendStability = last2.every((c, i) => 
+          c > last2MA20[i] && 
+          last2MA20[i] > last2MA50[i] && 
+          last2MA50[i] > last2MA200[i]
+        );
+      } else if (direction === "BEAR") {
+        trendStability = last2.every((c, i) => 
+          c < last2MA20[i] && 
+          last2MA20[i] < last2MA50[i] && 
+          last2MA50[i] < last2MA200[i]
+        );
+      }
+      
+      if (trendStability) {
+        score++;
+      }
+
+      // 3. 趋势强度 - 1分（ADX(14) > 20 且 DI方向正确）
+      if (ADX > 20 && 
+          ((direction === "BULL" && DIplus > DIminus) || 
+           (direction === "BEAR" && DIminus > DIplus))) {
+        score++;
+      }
+
+      // 4. 布林带扩张 - 1分（最近10根K线，后5根BBW均值 > 前5根均值 × 1.05）
+      const bbwExpanding = this.isBBWExpanding(candles, 20, 2);
+      if (bbwExpanding) {
+        score++;
+      }
+
+      // 5. 动量确认 - 1分（当前K线收盘价离MA20距离 ≥ 0.5%）
+      const momentumDistance = Math.abs((lastClose - ma20[ma20.length - 1]) / ma20[ma20.length - 1]);
+      if (momentumDistance >= 0.005) {
+        score++;
+      }
+
+      // 最终判断：得分≥3分才保留趋势
+      if (score >= 3) {
+        if (direction === "BULL") {
+          trend4h = '多头趋势';
+          marketType = '趋势市';
+        } else if (direction === "BEAR") {
+          trend4h = '空头趋势';
+          marketType = '趋势市';
+        }
+      }
+
+      // 记录4H趋势分析结果
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
           trend4h,
           marketType,
-          adx14: ADX,
+          score,
+          direction,
+          ma20: ma20[ma20.length - 1],
+          ma50: ma50[ma50.length - 1],
+          ma200: ma200[ma200.length - 1],
+          close4h: lastClose,
+          ADX,
+          DIplus,
+          DIminus,
           bbw,
-          trendConfirmed
+          bbwExpanding,
+          momentumDistance
         }, Date.now());
       }
 
@@ -284,37 +331,22 @@ class StrategyV3Core {
         ma20: ma20[ma20.length - 1],
         ma50: ma50[ma50.length - 1],
         ma200: ma200[ma200.length - 1],
-        closePrice: close4h,
         adx14: ADX,
-        bbw,
-        trendConfirmed,
-        diplus: DIplus,
-        diminus: DIminus
+        bbw: bbw,
+        score,
+        direction
       };
 
     } catch (error) {
       console.error(`4H趋势分析失败 [${symbol}]:`, error);
-
-      // 根据错误类型提供更详细的错误信息
-      let errorMessage = error.message;
-      if (error.message.includes('地理位置限制')) {
-        errorMessage = `交易对 ${symbol} 在VPS位置无法访问，建议移除该交易对`;
-      } else if (error.message.includes('不存在或已下架')) {
-        errorMessage = `交易对 ${symbol} 不存在或已下架，建议移除该交易对`;
-      } else if (error.message.includes('网络连接失败')) {
-        errorMessage = `网络连接失败，无法获取 ${symbol} 数据`;
-      }
-
-      // 记录4H MA指标失败
       if (this.dataMonitor) {
-        this.dataMonitor.recordIndicator(symbol, '4H MA指标', {
-          error: errorMessage,
+        this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
+          error: error.message,
           trend4h: '震荡市',
           marketType: '震荡市'
         }, Date.now());
       }
-
-      return { trend4h: '震荡市', marketType: '震荡市', error: errorMessage };
+      return { trend4h: '震荡市', marketType: '震荡市', error: error.message };
     }
   }
 

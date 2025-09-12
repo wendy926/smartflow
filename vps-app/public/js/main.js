@@ -407,7 +407,7 @@ class SmartFlowApp {
       let multifactorDisplay = '--';
       let multifactorClass = 'score-none';
       let multifactorTitle = '';
-      
+
       if (strategyVersion === 'V3') {
         // 优化：根据4H趋势类型决定显示哪种得分
         if (trend4h === '多头趋势' || trend4h === '空头趋势') {
