@@ -634,7 +634,7 @@
 
             <h4>表格列说明：</h4>
             <ul>
-              <li><strong>趋势打分列：</strong> 4H趋势判断得分（0-5分），≥3分绿色，<3分灰色</li>
+              <li><strong>趋势打分列：</strong> 4H趋势判断得分（0-5分），≥3分绿色，<3分灰色< /li>
               <li><strong>4H趋势列：</strong> 4H级别趋势判断结果（多头趋势/空头趋势/震荡市/无趋势）</li>
               <li><strong>多因子得分列：</strong> 根据市场类型显示不同得分
                 <ul>
@@ -688,7 +688,7 @@
         if (tbody && data.length > 0) {
           console.log('🔄 直接更新表格...');
           tbody.innerHTML = '';
-          
+
           data.forEach(signal => {
             const row = document.createElement('tr');
             const trendScore = signal.score || 0;
@@ -697,7 +697,7 @@
             const marketType = signal.marketType || '--';
             const category = signal.category || 'mainstream';
             const currentPrice = signal.currentPrice || 0;
-            
+
             // 简化的分类显示
             const categoryMap = {
               'mainstream': '主流币',
@@ -706,14 +706,38 @@
               'smallcap': '小币'
             };
             const categoryDisplay = categoryMap[category] || '未知';
-            
+
+            // 构建多因子得分显示
+            let multifactorDisplay = '--';
+            if (trend4h === '多头趋势' || trend4h === '空头趋势') {
+              // 趋势市：显示1H趋势加强多因子打分得分
+              const trendScore1h = signal.score1h || 0;
+              multifactorDisplay = trendScore1h.toString();
+            } else if (trend4h === '震荡市') {
+              // 震荡市：显示1H边界有效性判断多因子打分得分
+              const lowerValid = signal.rangeLowerBoundaryValid === true ? 1 : 0;
+              const upperValid = signal.rangeUpperBoundaryValid === true ? 1 : 0;
+              const boundaryScore = lowerValid + upperValid;
+              multifactorDisplay = boundaryScore.toString();
+            }
+
+            // 构建4H趋势显示（只显示趋势，不显示市场类型）
+            let trendDisplay = trend4h;
+            if (trend4h === '震荡市') {
+              trendDisplay = '震荡市';
+            } else if (trend4h === '多头趋势') {
+              trendDisplay = '多头趋势';
+            } else if (trend4h === '空头趋势') {
+              trendDisplay = '空头趋势';
+            }
+
             row.innerHTML = `
               <td><button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button></td>
               <td>${signal.symbol}</td>
               <td>${categoryDisplay}</td>
-              <td>${trendScore}/5</td>
-              <td>${trend4h}<br><small style="color: #666;">${marketType}</small></td>
-              <td>--</td>
+              <td>${trendScore}</td>
+              <td>${trendDisplay}</td>
+              <td>${multifactorDisplay}</td>
               <td>--</td>
               <td>--</td>
               <td>${currentPrice.toFixed(4)}</td>
@@ -721,7 +745,7 @@
             `;
             tbody.appendChild(row);
           });
-          
+
           console.log('✅ 表格直接更新完成');
         } else {
           console.error('❌ 表格元素不存在或数据为空');
@@ -733,7 +757,7 @@
 
     // 延迟执行强制加载
     setTimeout(forceLoadData, 1000);
-    
+
     // 再次延迟执行，确保DOM完全加载
     setTimeout(forceLoadData, 3000);
   </script>

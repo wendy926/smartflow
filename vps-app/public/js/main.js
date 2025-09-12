@@ -473,10 +473,10 @@ class SmartFlowApp {
       const categoryClass = app.getCategoryClass(category);
       console.log(`处理交易对 ${signal.symbol}: 显示分类=${categoryDisplay}, 样式类=${categoryClass}`);
 
-      // 构建趋势打分列显示
+      // 构建趋势打分列显示（只显示分子）
       const trendScore = signal.score || 0;
       const trendDirection = signal.direction || null;
-      let trendScoreDisplay = `${trendScore}/5`;
+      let trendScoreDisplay = trendScore.toString();
       let trendScoreClass = 'score-none';
       let trendScoreTitle = '';
 
@@ -2388,10 +2388,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // 强制初始化应用，不依赖API客户端
   console.log('🔄 强制初始化应用...');
   window.app = new SmartFlowApp();
-  
+
   // 测试分类映射函数
   testCategoryMapping();
-  
+
   // 延迟强制加载数据
   setTimeout(() => {
     if (window.app && window.app.loadInitialData) {
