@@ -38,7 +38,7 @@ class DeltaManager {
   async startSymbolDelta(symbol) {
     try {
       const symbolLower = symbol.toLowerCase();
-      
+
       // 初始化Delta数据
       this.deltaData.set(symbol, {
         deltaBuy: 0,
@@ -49,7 +49,7 @@ class DeltaManager {
 
       // 连接aggTrade WebSocket
       const tradeWs = new WebSocket(`wss://fstream.binance.com/ws/${symbolLower}@aggTrade`);
-      
+
       tradeWs.on('open', () => {
         console.log(`📊 Delta WebSocket已连接: ${symbol}`);
       });
@@ -125,10 +125,10 @@ class DeltaManager {
       lastUpdate: 0,
       imbalance: 0
     };
-    
+
     // 计算Delta不平衡值
     const delta = data.deltaSell > 0 ? data.deltaBuy / data.deltaSell : 0;
-    
+
     return {
       ...data,
       delta: delta,
@@ -174,13 +174,13 @@ class DeltaManager {
    */
   stop() {
     this.isRunning = false;
-    
+
     for (const [symbol, ws] of this.connections) {
       if (ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
     }
-    
+
     this.connections.clear();
     console.log('🛑 Delta数据收集已停止');
   }
