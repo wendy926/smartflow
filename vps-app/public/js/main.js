@@ -2416,14 +2416,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 测试分类映射函数
   testCategoryMapping();
-
-  // 延迟强制加载数据
-  setTimeout(() => {
-    if (window.app && window.app.loadInitialData) {
-      console.log('🔄 延迟强制加载数据...');
-      window.app.loadInitialData();
-    }
-  }, 2000);
 });
 
 // 测试分类映射函数
