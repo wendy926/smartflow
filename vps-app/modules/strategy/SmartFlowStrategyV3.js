@@ -59,6 +59,7 @@ class SmartFlowStrategyV3 {
         // 根据文档：如果1H打分>0，则为趋势市；否则为震荡市
         if (scoringResult.score > 0) {
           finalMarketType = '趋势市';
+          console.log(`🔍 调用analyzeTrendMarket [${symbol}]: trend4hResult=`, JSON.stringify(trend4hResult));
           analysisResult = await this.analyzeTrendMarket(symbol, { ...trend4hResult, marketType: '趋势市' }, scoringResult);
         } else {
           finalMarketType = '震荡市';
