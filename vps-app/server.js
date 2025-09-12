@@ -1322,10 +1322,16 @@ class SmartFlowServer {
 
   startPeriodicAnalysis() {
     // 清理现有定时器
-    this.clearAllTimers();
+    if (this.timers) {
+      for (const timerId of this.timers) {
+        clearInterval(timerId);
+        clearTimeout(timerId);
+      }
+      this.timers.clear();
+    }
 
     // 4H级别趋势：每1小时更新一次（按照strategy-v2.md要求）
-    this.trendInterval = this.createSafeInterval(async () => {
+    this.trendInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`📈 开始更新4H级别趋势数据 ${symbols.length} 个交易对...`);
@@ -1345,7 +1351,7 @@ class SmartFlowServer {
     }, 60 * 60 * 1000); // 1小时
 
     // 1H打分：每5分钟更新一次（按照strategy-v2.md要求）
-    this.signalInterval = this.createSafeInterval(async () => {
+    this.signalInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`📊 开始更新1H打分数据 ${symbols.length} 个交易对...`);
@@ -1365,7 +1371,7 @@ class SmartFlowServer {
     }, 5 * 60 * 1000); // 5分钟
 
     // 15分钟入场判断：每2分钟更新一次（按照strategy-v2.md要求）
-    this.executionInterval = this.createSafeInterval(async () => {
+    this.executionInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`⚡ 开始更新15分钟入场判断数据 ${symbols.length} 个交易对...`);
@@ -1385,7 +1391,7 @@ class SmartFlowServer {
     }, 2 * 60 * 1000); // 2分钟
 
     // 模拟交易状态监控：每5分钟检查一次
-    this.simulationInterval = this.createSafeInterval(async () => {
+    this.simulationInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`🔍 开始监控模拟交易状态 ${symbols.length} 个交易对...`);
@@ -1433,7 +1439,7 @@ class SmartFlowServer {
     }, 5 * 60 * 1000); // 5分钟
 
     // Delta数据重置：每10分钟重置一次，避免无限累积
-    this.deltaResetInterval = this.createSafeInterval(async () => {
+    this.deltaResetInterval = setInterval(async () => {
       try {
         if (this.deltaManager) {
           this.deltaManager.resetAllDeltaData();
