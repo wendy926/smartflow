@@ -479,7 +479,7 @@ class SmartFlowApp {
       let trendScoreDisplay = `${trendScore}/5`;
       let trendScoreClass = 'score-none';
       let trendScoreTitle = '';
-      
+
       // 根据得分设置颜色：≥3分绿色，<3分灰色
       trendScoreClass = trendScore >= 3 ? 'score-strong' : 'score-none';
       trendScoreTitle = `4H趋势打分: ${trendScore}/5 (${trendDirection || '无方向'})`;
@@ -2385,32 +2385,20 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('window.apiClient状态:', window.apiClient);
   console.log('window.apiClient类型:', typeof window.apiClient);
 
-  if (window.apiClient) {
-    console.log('API客户端方法列表:', Object.getOwnPropertyNames(window.apiClient));
-    console.log('getUpdateTimes方法:', typeof window.apiClient.getUpdateTimes);
-  } else {
-    console.error('❌ API客户端未初始化，等待初始化...');
-    // 等待API客户端初始化
-    setTimeout(() => {
-      if (window.apiClient) {
-        console.log('✅ API客户端延迟初始化成功');
-        window.app = new SmartFlowApp();
-        // 测试分类映射函数
-        testCategoryMapping();
-      } else {
-        console.error('❌ API客户端初始化失败');
-        // 即使API客户端失败，也创建应用实例
-        window.app = new SmartFlowApp();
-        // 测试分类映射函数
-        testCategoryMapping();
-      }
-    }, 100);
-    return;
-  }
-
+  // 强制初始化应用，不依赖API客户端
+  console.log('🔄 强制初始化应用...');
   window.app = new SmartFlowApp();
+  
   // 测试分类映射函数
   testCategoryMapping();
+  
+  // 延迟强制加载数据
+  setTimeout(() => {
+    if (window.app && window.app.loadInitialData) {
+      console.log('🔄 延迟强制加载数据...');
+      window.app.loadInitialData();
+    }
+  }, 2000);
 });
 
 // 测试分类映射函数

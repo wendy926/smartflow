@@ -634,7 +634,14 @@
 
             <h4>表格列说明：</h4>
             <ul>
+              <li><strong>趋势打分列：</strong> 4H趋势判断得分（0-5分），≥3分绿色，<3分灰色</li>
               <li><strong>4H趋势列：</strong> 4H级别趋势判断结果（多头趋势/空头趋势/震荡市/无趋势）</li>
+              <li><strong>多因子得分列：</strong> 根据市场类型显示不同得分
+                <ul>
+                  <li>趋势市：1H趋势加强多因子打分（0-6分），≥3分绿色</li>
+                  <li>震荡市：1H边界有效性判断（0-2分），≥1分绿色</li>
+                </ul>
+              </li>
               <li><strong>1H加强趋势列：</strong> 1H级别多因子打分结果（0-6分）和信号强度（做多/做空/观望/不做）</li>
               <li><strong>15min信号列：</strong> 15分钟级别入场判断结果（趋势市：多头回踩突破/空头反抽破位；震荡市：区间多头/区间空头/假突破反手）</li>
               <li><strong>当前价格列：</strong> 当前价格和入场价格（如有）</li>
@@ -663,55 +670,37 @@
   <script src="js/data/DataManager.js?v=20250111-16"></script>
   <script src="js/main.js?v=20250111-16"></script>
 
-  <!-- 临时测试代码 -->
+  <!-- 强制数据加载测试代码 -->
   <script>
-    console.log('临时测试代码开始执行');
+    console.log('🚀 强制数据加载测试开始');
 
-    // 测试分类映射
-    function testCategoryDisplay(category) {
-      const categoryMap = {
-        'mainstream': '主流币',
-        'high-cap-trending': '高市值趋势币',
-        'trending': '热点币',
-        'smallcap': '小币'
-      };
-      return categoryMap[category] || '未知';
-    }
-
-    // 测试API调用
-    setTimeout(async () => {
+    // 强制加载数据
+    async function forceLoadData() {
       try {
-        console.log('开始测试API调用');
+        console.log('🔄 强制加载数据...');
         const response = await fetch('/api/signals');
         const data = await response.json();
-        console.log('API调用成功，数据长度:', data.length);
+        console.log('✅ API调用成功，数据长度:', data.length);
+        console.log('📊 前3个交易对数据:', data.slice(0, 3));
 
-        const solusdt = data.find(item => item.symbol === 'SOLUSDT');
-        if (solusdt) {
-          const display = testCategoryDisplay(solusdt.category);
-          console.log('SOLUSDT测试结果:', {
-            symbol: solusdt.symbol,
-            category: solusdt.category,
-            display: display
-          });
-
-          // 在页面上显示结果
-          const testDiv = document.createElement('div');
-          testDiv.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #fff; border: 2px solid #000; padding: 10px; z-index: 9999;';
-          testDiv.innerHTML = `
-            <h3>SOLUSDT测试结果</h3>
-            <p>原始分类: ${solusdt.category}</p>
-            <p>显示分类: ${display}</p>
-            <p>时间: ${new Date().toLocaleString()}</p>
-          `;
-          document.body.appendChild(testDiv);
+        // 强制更新表格
+        if (window.app && window.app.updateSignalsTable) {
+          console.log('🔄 强制更新表格...');
+          window.app.updateSignalsTable(data);
+          console.log('✅ 表格更新完成');
         } else {
-          console.log('未找到SOLUSDT');
+          console.error('❌ app对象或updateSignalsTable方法不存在');
         }
       } catch (error) {
-        console.error('API调用失败:', error);
+        console.error('❌ 强制加载数据失败:', error);
       }
-    }, 2000);
+    }
+
+    // 延迟执行强制加载
+    setTimeout(forceLoadData, 1000);
+    
+    // 再次延迟执行，确保DOM完全加载
+    setTimeout(forceLoadData, 3000);
   </script>
 </body>
 
