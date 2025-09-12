@@ -179,7 +179,7 @@ class SmartFlowStrategyV3 {
 
       // 3. 检查是否允许入场
       console.log(`🔍 趋势市入场检查 [${symbol}]: allowEntry=${scoringResult.allowEntry}, score=${scoringResult.score}, vwapDirectionConsistent=${scoringResult.vwapDirectionConsistent}`);
-      
+
       // 无论是否允许入场，都要执行15分钟入场执行判断
 
       // 3. 15分钟入场执行
@@ -238,7 +238,7 @@ class SmartFlowStrategyV3 {
       const finalExecution = scoringResult.allowEntry ? (executionResult.signal === 'NONE' ? null : this.formatExecution(executionResult)) : null;
       const finalExecutionMode = scoringResult.allowEntry ? (executionResult.mode || 'NONE') : 'NONE';
       const finalReason = scoringResult.allowEntry ? executionResult.reason : `1H打分不足: ${scoringResult.score}/3`;
-      
+
       return {
         marketType: '趋势市',
         score1h: scoringResult.score,

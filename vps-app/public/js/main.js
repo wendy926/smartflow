@@ -457,7 +457,7 @@ class SmartFlowApp {
         // V3策略：显示执行模式和执行结果
         const mode = signal.executionMode || 'NONE';
         const execution = signal.execution;
-        
+
         if (execution && execution !== 'null') {
           // 有执行结果
           executionDisplay = `${execution}<br><small style="color: #666;">${mode}</small>`;

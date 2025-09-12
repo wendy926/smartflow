@@ -44,8 +44,14 @@ class SmartFlowServer {
     this.cacheMiddleware = null;
     this.performanceMonitor = new PerformanceMonitor();
 
+    // 内存管理
+    this.timers = new Set();
+    this.connections = new Set();
+    this.cleanupInterval = null;
+
     this.setupMiddleware();
     this.setupRoutes();
+    this.setupGracefulShutdown();
   }
 
   setupMiddleware() {
@@ -1316,8 +1322,11 @@ class SmartFlowServer {
   }
 
   startPeriodicAnalysis() {
+    // 清理现有定时器
+    this.clearAllTimers();
+    
     // 4H级别趋势：每1小时更新一次（按照strategy-v2.md要求）
-    this.trendInterval = setInterval(async () => {
+    this.trendInterval = this.createSafeInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`📈 开始更新4H级别趋势数据 ${symbols.length} 个交易对...`);
@@ -1337,7 +1346,7 @@ class SmartFlowServer {
     }, 60 * 60 * 1000); // 1小时
 
     // 1H打分：每5分钟更新一次（按照strategy-v2.md要求）
-    this.signalInterval = setInterval(async () => {
+    this.signalInterval = this.createSafeInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`📊 开始更新1H打分数据 ${symbols.length} 个交易对...`);
@@ -1357,7 +1366,7 @@ class SmartFlowServer {
     }, 5 * 60 * 1000); // 5分钟
 
     // 15分钟入场判断：每2分钟更新一次（按照strategy-v2.md要求）
-    this.executionInterval = setInterval(async () => {
+    this.executionInterval = this.createSafeInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`⚡ 开始更新15分钟入场判断数据 ${symbols.length} 个交易对...`);
@@ -1377,7 +1386,7 @@ class SmartFlowServer {
     }, 2 * 60 * 1000); // 2分钟
 
     // 模拟交易状态监控：每5分钟检查一次
-    this.simulationInterval = setInterval(async () => {
+    this.simulationInterval = this.createSafeInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`🔍 开始监控模拟交易状态 ${symbols.length} 个交易对...`);
@@ -1425,7 +1434,7 @@ class SmartFlowServer {
     }, 5 * 60 * 1000); // 5分钟
 
     // Delta数据重置：每10分钟重置一次，避免无限累积
-    this.deltaResetInterval = setInterval(async () => {
+    this.deltaResetInterval = this.createSafeInterval(async () => {
       try {
         if (this.deltaManager) {
           this.deltaManager.resetAllDeltaData();
@@ -1436,6 +1445,9 @@ class SmartFlowServer {
       }
     }, 10 * 60 * 1000); // 10分钟
 
+    // 启动内存监控
+    this.startMemoryMonitoring();
+    
     // 立即执行一次完整分析
     this.performInitialAnalysis();
   }
@@ -2313,6 +2325,147 @@ class SymbolCategoryManager {
       console.error('获取Binance合约失败:', error);
       return [];
     }
+  }
+
+  // ==================== 内存管理方法 ====================
+  
+  /**
+   * 创建安全的定时器
+   */
+  createSafeInterval(callback, interval) {
+    const timerId = setInterval(callback, interval);
+    this.timers.add(timerId);
+    return timerId;
+  }
+
+  createSafeTimeout(callback, delay) {
+    const timerId = setTimeout(() => {
+      this.timers.delete(timerId);
+      callback();
+    }, delay);
+    this.timers.add(timerId);
+    return timerId;
+  }
+
+  /**
+   * 清理所有定时器
+   */
+  clearAllTimers() {
+    console.log(`🧹 清理 ${this.timers.size} 个定时器`);
+    for (const timerId of this.timers) {
+      clearInterval(timerId);
+      clearTimeout(timerId);
+    }
+    this.timers.clear();
+  }
+
+  /**
+   * 创建安全的WebSocket连接
+   */
+  createSafeWebSocket(url, options = {}) {
+    const WebSocket = require('ws');
+    const ws = new WebSocket(url, options);
+    this.connections.add(ws);
+    
+    ws.on('close', () => {
+      this.connections.delete(ws);
+    });
+    
+    return ws;
+  }
+
+  /**
+   * 关闭所有连接
+   */
+  closeAllConnections() {
+    console.log(`🔌 关闭 ${this.connections.size} 个WebSocket连接`);
+    for (const ws of this.connections) {
+      if (ws.readyState === 1) { // OPEN
+        ws.close(1000, 'Server shutdown');
+      }
+    }
+    this.connections.clear();
+  }
+
+  /**
+   * 启动内存监控
+   */
+  startMemoryMonitoring() {
+    this.cleanupInterval = setInterval(() => {
+      this.performMemoryCleanup();
+    }, 60000); // 每分钟检查一次
+
+    // 监控内存使用
+    setInterval(() => {
+      const memUsage = process.memoryUsage();
+      const memMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+      const memTotal = Math.round(memUsage.heapTotal / 1024 / 1024);
+      
+      if (memMB > 200) { // 超过200MB时警告
+        console.warn(`⚠️ 内存使用过高: ${memMB}MB / ${memTotal}MB`);
+        this.performMemoryCleanup();
+      }
+    }, 30000); // 每30秒检查一次
+  }
+
+  /**
+   * 执行内存清理
+   */
+  performMemoryCleanup() {
+    console.log('🧹 执行内存清理...');
+    
+    // 强制垃圾回收
+    if (global.gc) {
+      global.gc();
+    }
+    
+    // 清理定时器
+    this.clearAllTimers();
+    
+    // 清理连接
+    this.closeAllConnections();
+    
+    console.log('✅ 内存清理完成');
+  }
+
+  /**
+   * 设置优雅关闭
+   */
+  setupGracefulShutdown() {
+    const shutdown = () => {
+      console.log('🛑 开始优雅关闭服务...');
+      
+      // 停止接受新连接
+      if (this.server) {
+        this.server.close(() => {
+          console.log('✅ HTTP服务器已关闭');
+        });
+      }
+      
+      // 清理资源
+      this.clearAllTimers();
+      this.closeAllConnections();
+      
+      if (this.cleanupInterval) {
+        clearInterval(this.cleanupInterval);
+      }
+      
+      // 关闭数据库连接
+      if (this.db && this.db.close) {
+        this.db.close();
+      }
+      
+      // 强制退出
+      setTimeout(() => {
+        console.log('🔚 强制退出进程');
+        process.exit(0);
+      }, 5000);
+    };
+
+    // 监听退出信号
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
+    process.on('SIGUSR2', shutdown); // PM2重启信号
   }
 }
 
