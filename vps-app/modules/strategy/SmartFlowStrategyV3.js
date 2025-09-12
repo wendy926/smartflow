@@ -47,9 +47,11 @@ class SmartFlowStrategyV3 {
       let analysisResult;
       let finalMarketType = '震荡市';
 
+      // 无论4H趋势如何，都需要进行1H多因子打分
+      let scoringResult;
       if (trend4h === '多头趋势' || trend4h === '空头趋势') {
-        // 4H有趋势方向，需要1H多因子打分确认
-        const scoringResult = await this.core.analyze1HScoring(symbol, trend4h, this.deltaManager);
+        // 4H有趋势方向，进行1H多因子打分
+        scoringResult = await this.core.analyze1HScoring(symbol, trend4h, this.deltaManager);
         if (scoringResult.error) {
           return this.createErrorResult(symbol, '1H打分分析失败', scoringResult.error);
         }
@@ -60,12 +62,17 @@ class SmartFlowStrategyV3 {
           analysisResult = await this.analyzeTrendMarket(symbol, { ...trend4hResult, marketType: '趋势市' }, scoringResult);
         } else {
           finalMarketType = '震荡市';
-          analysisResult = await this.analyzeRangeMarket(symbol, { ...trend4hResult, marketType: '震荡市' });
+          analysisResult = await this.analyzeRangeMarket(symbol, { ...trend4hResult, marketType: '震荡市' }, scoringResult);
         }
       } else {
-        // 4H无趋势方向，直接为震荡市
+        // 4H无趋势方向，直接为震荡市，但仍需1H打分
+        scoringResult = await this.core.analyze1HScoring(symbol, '震荡市', this.deltaManager);
+        if (scoringResult.error) {
+          return this.createErrorResult(symbol, '1H打分分析失败', scoringResult.error);
+        }
+        
         finalMarketType = '震荡市';
-        analysisResult = await this.analyzeRangeMarket(symbol, { ...trend4hResult, marketType: '震荡市' });
+        analysisResult = await this.analyzeRangeMarket(symbol, { ...trend4hResult, marketType: '震荡市' }, scoringResult);
       }
 
       // 4. 获取当前价格
@@ -118,7 +125,7 @@ class SmartFlowStrategyV3 {
 
     } catch (error) {
       console.error(`❌ V3策略分析失败 [${symbol}]:`, error);
-      
+
       // 即使分析失败，也要更新数据刷新时间
       if (options && options.dataRefreshManager) {
         try {
@@ -127,7 +134,7 @@ class SmartFlowStrategyV3 {
           console.warn(`更新数据刷新时间失败 [${symbol}]:`, refreshError.message);
         }
       }
-      
+
       return this.createErrorResult(symbol, '策略分析异常', error.message);
     }
   }
@@ -256,7 +263,7 @@ class SmartFlowStrategyV3 {
   /**
    * 震荡市分析
    */
-  static async analyzeRangeMarket(symbol, trend4hResult) {
+  static async analyzeRangeMarket(symbol, trend4hResult, scoringResult = null) {
     try {
       // 1. 1H边界判断
       const rangeResult = await this.core.analyzeRangeBoundary(symbol, this.deltaManager);
@@ -321,10 +328,10 @@ class SmartFlowStrategyV3 {
       // 5. 合并结果
       return {
         marketType: '震荡市',
-        // 震荡市不需要1H多因子打分，但为了前端兼容性添加默认值
-        score1h: 0,
-        vwapDirectionConsistent: false,
-        factors: {},
+        // 使用传入的1H多因子打分结果
+        score1h: scoringResult ? scoringResult.score : 0,
+        vwapDirectionConsistent: scoringResult ? scoringResult.vwapDirectionConsistent : false,
+        factors: scoringResult ? scoringResult.factors : {},
         vwap: rangeResult.vwap,
         vol15mRatio: 0,
         vol1hRatio: 0,

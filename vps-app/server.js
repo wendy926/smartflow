@@ -180,8 +180,20 @@ class SmartFlowServer {
             });
 
 
+            // 获取交易对分类
+            let category = 'smallcap'; // 默认分类
+            try {
+              const categoryResult = await this.db.getSymbolCategory(symbol);
+              if (categoryResult && categoryResult.category) {
+                category = categoryResult.category;
+              }
+            } catch (error) {
+              console.warn(`获取 ${symbol} 分类失败:`, error.message);
+            }
+
             signals.push({
               symbol,
+              category, // 添加分类信息
               // V3策略分析结果结构
               trend4h: analysis.trend4h,
               marketType: analysis.marketType,
