@@ -363,8 +363,8 @@ class StrategyV3Execution {
 
       // 使用分类权重计算加权得分
       const weightedResult = await this.factorWeightManager.calculateWeightedScore(
-        symbol, 
-        '15m_execution', 
+        symbol,
+        '15m_execution',
         factorValues
       );
 

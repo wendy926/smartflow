@@ -410,7 +410,9 @@ class StrategyV3Core {
       let currentPrice = null;
       try {
         const ticker = await BinanceAPI.getTicker(symbol);
+        console.log(`🔍 获取当前价格 [${symbol}]: ticker=`, JSON.stringify(ticker));
         currentPrice = parseFloat(ticker.price);
+        console.log(`🔍 解析当前价格 [${symbol}]: currentPrice=${currentPrice}`);
       } catch (error) {
         console.warn(`获取 ${symbol} 当前价格失败:`, error.message);
         currentPrice = candles[candles.length - 1].close;
