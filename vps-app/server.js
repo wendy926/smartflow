@@ -1450,12 +1450,6 @@ class SmartFlowServer {
       }
     }, 10 * 60 * 1000); // 10分钟
 
-    // 设置优雅关闭
-    this.setupGracefulShutdown();
-    
-    // 启动内存监控
-    this.startMemoryMonitoring();
-    
     // 立即执行一次完整分析
     this.performInitialAnalysis();
   }
