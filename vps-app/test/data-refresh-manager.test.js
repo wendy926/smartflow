@@ -26,7 +26,7 @@ describe('DataRefreshManager', () => {
       const result = await dataRefreshManager.shouldRefresh('BTCUSDT', '4h_trend');
 
       expect(result).toBe(true);
-      expect(mockDb.get).toHaveBeenCalledWith(
+      expect(mockDb.runQuery).toHaveBeenCalledWith(
         expect.stringContaining('SELECT last_update, next_update FROM data_refresh_log'),
         ['BTCUSDT', '4h_trend']
       );
@@ -34,10 +34,10 @@ describe('DataRefreshManager', () => {
 
     test('未到刷新时间应该返回false', async () => {
       const futureTime = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30分钟后
-      mockDb.get.mockResolvedValue({
+      mockDb.runQuery.mockResolvedValue([{
         last_update: new Date().toISOString(),
         next_update: futureTime
-      });
+      }]);
 
       const result = await dataRefreshManager.shouldRefresh('BTCUSDT', '4h_trend');
 
@@ -46,10 +46,10 @@ describe('DataRefreshManager', () => {
 
     test('已到刷新时间应该返回true', async () => {
       const pastTime = new Date(Date.now() - 30 * 60 * 1000).toISOString(); // 30分钟前
-      mockDb.get.mockResolvedValue({
+      mockDb.runQuery.mockResolvedValue([{
         last_update: pastTime,
         next_update: pastTime
-      });
+      }]);
 
       const result = await dataRefreshManager.shouldRefresh('BTCUSDT', '4h_trend');
 
@@ -63,7 +63,7 @@ describe('DataRefreshManager', () => {
     });
 
     test('数据库错误时应该返回true', async () => {
-      mockDb.get.mockRejectedValue(new Error('Database error'));
+      mockDb.runQuery.mockRejectedValue(new Error('Database error'));
 
       const result = await dataRefreshManager.shouldRefresh('BTCUSDT', '4h_trend');
 
@@ -135,16 +135,16 @@ describe('DataRefreshManager', () => {
 
   describe('getStaleData', () => {
     test('应该返回需要刷新的数据列表', async () => {
-      mockDb.all.mockResolvedValue([{ symbol: 'BTCUSDT' }, { symbol: 'ETHUSDT' }]);
-      mockDb.get
-        .mockResolvedValueOnce(null) // BTCUSDT 4h_trend - 需要刷新
-        .mockResolvedValueOnce({ last_update: new Date().toISOString(), next_update: new Date(Date.now() + 30 * 60 * 1000).toISOString() }) // BTCUSDT 1h_scoring - 不需要刷新
-        .mockResolvedValueOnce(null) // BTCUSDT 15m_entry - 需要刷新
-        .mockResolvedValueOnce(null) // BTCUSDT delta - 需要刷新
-        .mockResolvedValueOnce(null) // ETHUSDT 4h_trend - 需要刷新
-        .mockResolvedValueOnce({ last_update: new Date().toISOString(), next_update: new Date(Date.now() + 30 * 60 * 1000).toISOString() }) // ETHUSDT 1h_scoring - 不需要刷新
-        .mockResolvedValueOnce(null) // ETHUSDT 15m_entry - 需要刷新
-        .mockResolvedValueOnce(null); // ETHUSDT delta - 需要刷新
+      mockDb.runQuery
+        .mockResolvedValueOnce([{ symbol: 'BTCUSDT' }, { symbol: 'ETHUSDT' }]) // getStaleData中的symbols查询
+        .mockResolvedValueOnce([]) // BTCUSDT 4h_trend - 需要刷新
+        .mockResolvedValueOnce([{ last_update: new Date().toISOString(), next_update: new Date(Date.now() + 30 * 60 * 1000).toISOString() }]) // BTCUSDT 1h_scoring - 不需要刷新
+        .mockResolvedValueOnce([]) // BTCUSDT 15m_entry - 需要刷新
+        .mockResolvedValueOnce([]) // BTCUSDT delta - 需要刷新
+        .mockResolvedValueOnce([]) // ETHUSDT 4h_trend - 需要刷新
+        .mockResolvedValueOnce([{ last_update: new Date().toISOString(), next_update: new Date(Date.now() + 30 * 60 * 1000).toISOString() }]) // ETHUSDT 1h_scoring - 不需要刷新
+        .mockResolvedValueOnce([]) // ETHUSDT 15m_entry - 需要刷新
+        .mockResolvedValueOnce([]); // ETHUSDT delta - 需要刷新
 
       const staleData = await dataRefreshManager.getStaleData();
 
@@ -160,7 +160,7 @@ describe('DataRefreshManager', () => {
     });
 
     test('数据库错误时应该返回空数组', async () => {
-      mockDb.all.mockRejectedValue(new Error('Database error'));
+      mockDb.runQuery.mockRejectedValue(new Error('Database error'));
 
       const staleData = await dataRefreshManager.getStaleData();
 
@@ -187,18 +187,18 @@ describe('DataRefreshManager', () => {
         }
       ];
 
-      mockDb.all.mockResolvedValue(mockStats);
+      mockDb.runQuery.mockResolvedValue(mockStats);
 
       const stats = await dataRefreshManager.getRefreshStats();
 
       expect(stats).toEqual(mockStats);
-      expect(mockDb.all).toHaveBeenCalledWith(
+      expect(mockDb.runQuery).toHaveBeenCalledWith(
         expect.stringContaining('SELECT data_type, COUNT(*) as total_symbols')
       );
     });
 
     test('数据库错误时应该返回空数组', async () => {
-      mockDb.all.mockRejectedValue(new Error('Database error'));
+      mockDb.runQuery.mockRejectedValue(new Error('Database error'));
 
       const stats = await dataRefreshManager.getRefreshStats();
 
