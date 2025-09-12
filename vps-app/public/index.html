@@ -1025,14 +1025,23 @@
       }
     }
 
+    // 立即执行一次
+    forceLoadData();
+    
     // 延迟执行强制加载
     setTimeout(forceLoadData, 1000);
-
+    
     // 再次延迟执行，确保DOM完全加载
     setTimeout(forceLoadData, 3000);
-
+    
     // 每5秒强制刷新一次，确保数据始终显示
     setInterval(forceLoadData, 5000);
+    
+    // 页面加载完成后再次执行
+    window.addEventListener('load', forceLoadData);
+    
+    // DOM内容加载完成后执行
+    document.addEventListener('DOMContentLoaded', forceLoadData);
   </script>
 </body>
 
