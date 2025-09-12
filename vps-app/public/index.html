@@ -1042,6 +1042,15 @@
     
     // DOM内容加载完成后执行
     document.addEventListener('DOMContentLoaded', forceLoadData);
+    
+    // 强制替换表格内容
+    setTimeout(() => {
+      const tbody = document.getElementById('signalsTableBody');
+      if (tbody && tbody.innerHTML.includes('系统将自动刷新分析数据')) {
+        console.log('🔄 检测到默认内容，强制替换...');
+        forceLoadData();
+      }
+    }, 2000);
   </script>
 </body>
 
