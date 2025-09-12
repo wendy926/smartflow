@@ -48,6 +48,8 @@ vps-app/
     "symbol": "BTCUSDT",
     "trend4h": "多头趋势|空头趋势|震荡市",
     "marketType": "趋势市|震荡市",
+    "score": 0-5,
+    "direction": "BULL|BEAR|null",
     "score1h": 0-6,
     "vwapDirectionConsistent": true|false,
     "factors": {
@@ -80,6 +82,8 @@ vps-app/
 **字段说明**:
 - `trend4h`: 4小时趋势判断结果
 - `marketType`: 市场类型（趋势市/震荡市）
+- `score`: 4H趋势打分（0-5分）
+- `direction`: 趋势方向（BULL/BEAR/null）
 - `score1h`: 1小时多因子得分（0-6分）
 - `vwapDirectionConsistent`: VWAP方向一致性（必须满足）
 - `factors`: 多因子打分详情
