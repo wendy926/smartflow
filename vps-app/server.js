@@ -1151,13 +1151,25 @@ class SmartFlowServer {
             if (analysis) {
               // 检查是否有15min信号变化
               const hasExecution = analysis.execution && analysis.execution !== 'null' && analysis.execution.includes('EXECUTE');
-              const lastUpdate = new Date(analysis.updated_at || analysis.created_at);
-              const now = new Date();
-              const timeDiff = (now - lastUpdate) / 1000 / 60; // 分钟
+              
+              // 安全处理时间
+              let lastUpdate, timeDiff = 0;
+              try {
+                const updateTime = analysis.updated_at || analysis.created_at;
+                if (updateTime) {
+                  lastUpdate = new Date(updateTime);
+                  if (!isNaN(lastUpdate.getTime())) {
+                    const now = new Date();
+                    timeDiff = (now - lastUpdate) / 1000 / 60; // 分钟
+                  }
+                }
+              } catch (timeError) {
+                console.warn(`时间处理失败 [${symbol}]:`, timeError);
+              }
               
               changeStatus[symbol] = {
                 hasExecution,
-                lastUpdate: lastUpdate.toISOString(),
+                lastUpdate: lastUpdate ? lastUpdate.toISOString() : null,
                 timeDiffMinutes: Math.round(timeDiff),
                 execution: analysis.execution,
                 signal: analysis.signal
