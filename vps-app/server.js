@@ -678,16 +678,16 @@ class SmartFlowServer {
         for (const symbol of symbols) {
           // 获取数据收集状态 - 检查4H和1H数据
           const klineCount4h = await new Promise((resolve, reject) => {
-            this.db.get('SELECT COUNT(*) as count FROM kline_data WHERE symbol = ? AND interval = ?', [symbol, '4h'], (err, row) => {
+            this.db.runQuery('SELECT COUNT(*) as count FROM kline_data WHERE symbol = ? AND interval = ?', [symbol, '4h'], (err, rows) => {
               if (err) reject(err);
-              else resolve(row.count);
+              else resolve(rows[0]?.count || 0);
             });
           });
           
           const klineCount1h = await new Promise((resolve, reject) => {
-            this.db.get('SELECT COUNT(*) as count FROM kline_data WHERE symbol = ? AND interval = ?', [symbol, '1h'], (err, row) => {
+            this.db.runQuery('SELECT COUNT(*) as count FROM kline_data WHERE symbol = ? AND interval = ?', [symbol, '1h'], (err, rows) => {
               if (err) reject(err);
-              else resolve(row.count);
+              else resolve(rows[0]?.count || 0);
             });
           });
 
@@ -696,9 +696,9 @@ class SmartFlowServer {
 
           // 获取信号分析状态 - 检查是否有策略分析结果
           const analysisCount = await new Promise((resolve, reject) => {
-            this.db.get('SELECT COUNT(*) as count FROM strategy_analysis WHERE symbol = ?', [symbol], (err, row) => {
+            this.db.runQuery('SELECT COUNT(*) as count FROM strategy_analysis WHERE symbol = ?', [symbol], (err, rows) => {
               if (err) reject(err);
-              else resolve(row.count);
+              else resolve(rows[0]?.count || 0);
             });
           });
 
@@ -707,9 +707,9 @@ class SmartFlowServer {
 
           // 获取告警数量
           const alertCount = await new Promise((resolve, reject) => {
-            this.db.get('SELECT COUNT(*) as count FROM alert_history WHERE symbol = ?', [symbol], (err, row) => {
+            this.db.runQuery('SELECT COUNT(*) as count FROM alert_history WHERE symbol = ?', [symbol], (err, rows) => {
               if (err) reject(err);
-              else resolve(row.count);
+              else resolve(rows[0]?.count || 0);
             });
           });
 
