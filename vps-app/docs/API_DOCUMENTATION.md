@@ -902,6 +902,60 @@ vps-app/
 }
 ```
 
+### 1.13 Telegram通知API
+
+#### GET /api/telegram-config
+- **功能**: 获取Telegram配置状态
+- **实现文件**: `server.js` (第1238-1247行)
+- **入参**: 无
+- **出参**:
+```json
+{
+  "enabled": true,
+  "initialized": true,
+  "hasBotToken": true,
+  "hasChatId": true,
+  "configured": true
+}
+```
+
+#### POST /api/telegram-config
+- **功能**: 设置Telegram配置
+- **实现文件**: `server.js` (第1249-1270行)
+- **入参**: 
+```json
+{
+  "botToken": "1234567890:ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  "chatId": "-1001234567890"
+}
+```
+- **出参**:
+```json
+{
+  "success": true,
+  "message": "Telegram配置已保存",
+  "status": {
+    "enabled": true,
+    "initialized": true,
+    "hasBotToken": true,
+    "hasChatId": true,
+    "configured": true
+  }
+}
+```
+
+#### POST /api/telegram-test
+- **功能**: 测试Telegram通知
+- **实现文件**: `server.js` (第1272-1281行)
+- **入参**: 无
+- **出参**:
+```json
+{
+  "success": true,
+  "message": "测试通知发送成功"
+}
+```
+
 ## 2. 前端API客户端
 
 ### 2.1 实现文件
@@ -1010,11 +1064,23 @@ class APIClient {
     });
   }
 
-  // 测试功能
-  async testTelegramNotification() {
-    return await this.request('/api/test-telegram', { method: 'POST' });
+  // Telegram通知管理
+  async getTelegramConfig() {
+    return await this.request('/api/telegram-config');
   }
 
+  async setTelegramConfig(botToken, chatId) {
+    return await this.request('/api/telegram-config', {
+      method: 'POST',
+      body: JSON.stringify({ botToken, chatId })
+    });
+  }
+
+  async testTelegramNotification() {
+    return await this.request('/api/telegram-test', { method: 'POST' });
+  }
+
+  // 测试功能
   async testDataQualityAlert() {
     return await this.request('/api/test-data-quality-alert', { method: 'POST' });
   }
@@ -1449,7 +1515,7 @@ CREATE TABLE validation_results (
 * **过滤功能：** 支持按类型过滤告警记录
 
 *最后更新: 2025-09-13*
-*版本: V3.14*
+*版本: V3.15*
 
 ## 12. 更新日志
 
@@ -1554,3 +1620,16 @@ CREATE TABLE validation_results (
 - **增强单元测试覆盖** - 新增leverage-default-value-fix.test.js，包含14个测试用例覆盖所有逻辑
 - **优化杠杆计算性能** - 智能检测避免不必要的计算，只在需要时重新计算
 - **数据变更检测集成** - 集成DataChangeDetector确保数据变化时正确更新缓存
+
+### V3.15 (2025-09-13)
+- **新增Telegram通知功能** - 实现模拟交易开启和结束的实时通知
+- **Telegram通知模块** - 创建TelegramNotifier类，支持HTML格式的消息发送
+- **模拟交易开启通知** - 包含交易对、方向、入场价格、止损止盈、杠杆倍数、保证金等详细信息
+- **模拟交易结束通知** - 包含出场时间、出场价格、出场原因、盈亏金额、收益率、结果等完整信息
+- **Telegram配置管理** - 新增`/api/telegram-config` API支持Bot Token和Chat ID的配置管理
+- **通知测试功能** - 新增`/api/telegram-test` API支持通知功能测试
+- **智能通知集成** - 在`/api/simulation/start`和`autoStartSimulation`中集成开启通知
+- **结束通知集成** - 在`SimulationManager.updateSimulationStatus`中集成结束通知
+- **错误处理机制** - 通知发送失败不影响模拟交易正常执行
+- **单元测试覆盖** - 新增telegram-notification.test.js和telegram-integration.test.js测试文件
+- **配置持久化** - Telegram配置保存到数据库，服务重启后自动加载

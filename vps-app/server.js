@@ -8,7 +8,7 @@ const cors = require('cors');
 const DatabaseManager = require('./modules/database/DatabaseManager');
 const SimulationManager = require('./modules/database/SimulationManager');
 const BinanceAPI = require('./modules/api/BinanceAPI');
-const TelegramNotifier = require('./modules/notifications/TelegramNotifier');
+const TelegramNotifier = require('./modules/notification/TelegramNotifier');
 const { SmartFlowStrategy } = require('./modules/strategy/SmartFlowStrategy');
 const SmartFlowStrategyV3 = require('./modules/strategy/SmartFlowStrategyV3');
 const StrategyV3Migration = require('./modules/database/StrategyV3Migration');
@@ -497,6 +497,24 @@ class SmartFlowServer {
         // 记录到数据监控
         if (this.dataMonitor) {
           this.dataMonitor.recordSimulation(symbol, 'START', simulation, true);
+        }
+
+        // 发送Telegram通知
+        try {
+          await this.telegramNotifier.sendSimulationStartNotification({
+            symbol,
+            direction: direction || 'LONG',
+            entryPrice,
+            stopLoss,
+            takeProfit,
+            maxLeverage: finalMaxLeverage,
+            minMargin: finalMinMargin,
+            triggerReason: `SIGNAL_${executionMode}`,
+            executionMode,
+            marketType: '趋势市'
+          });
+        } catch (notificationError) {
+          console.warn('⚠️ 发送模拟交易开启通知失败:', notificationError.message);
         }
 
         res.json({ success: true, simulation });
@@ -1238,10 +1256,44 @@ class SmartFlowServer {
     // 获取Telegram配置状态
     this.app.get('/api/telegram-config', async (req, res) => {
       try {
-        const configured = !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
-        res.json({ configured });
+        const status = this.telegramNotifier.getStatus();
+        res.json(status);
       } catch (error) {
         console.error('获取Telegram配置失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 设置Telegram配置
+    this.app.post('/api/telegram-config', async (req, res) => {
+      try {
+        const { botToken, chatId } = req.body;
+        
+        if (!botToken || !chatId) {
+          return res.status(400).json({ error: 'botToken和chatId不能为空' });
+        }
+
+        this.telegramNotifier.init(botToken, chatId);
+        
+        // 保存配置到数据库
+        await this.db.setUserSetting('telegramBotToken', botToken);
+        await this.db.setUserSetting('telegramChatId', chatId);
+        
+        const status = this.telegramNotifier.getStatus();
+        res.json({ success: true, message: 'Telegram配置已保存', status });
+      } catch (error) {
+        console.error('设置Telegram配置失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 测试Telegram通知
+    this.app.post('/api/telegram-test', async (req, res) => {
+      try {
+        const result = await this.telegramNotifier.sendTestNotification();
+        res.json({ success: result, message: result ? '测试通知发送成功' : '测试通知发送失败' });
+      } catch (error) {
+        console.error('测试Telegram通知失败:', error);
         res.status(500).json({ error: error.message });
       }
     });
@@ -1344,8 +1396,27 @@ class SmartFlowServer {
       console.log('✅ 模拟交易管理器启动');
 
       // 初始化Telegram通知
-      this.telegramNotifier = new TelegramNotifier(this.db);
+      this.telegramNotifier = new TelegramNotifier();
+      
+      // 从数据库加载Telegram配置
+      try {
+        const botToken = await this.db.getUserSetting('telegramBotToken', '');
+        const chatId = await this.db.getUserSetting('telegramChatId', '');
+        
+        if (botToken && chatId) {
+          this.telegramNotifier.init(botToken, chatId);
+          console.log('✅ Telegram通知器配置已加载');
+        } else {
+          console.log('⚠️ Telegram通知器未配置，请通过API设置');
+        }
+      } catch (error) {
+        console.warn('⚠️ 加载Telegram配置失败:', error.message);
+      }
+      
       console.log('✅ Telegram通知器初始化完成');
+
+      // 将TelegramNotifier设置到SimulationManager
+      this.simulationManager.setTelegramNotifier(this.telegramNotifier);
 
       // 初始化数据监控
       this.dataMonitor = new DataMonitor(this.db);
@@ -2275,6 +2346,24 @@ class SmartFlowServer {
         setupCandleHigh || null,
         setupCandleLow || null
       );
+
+      // 发送Telegram通知
+      try {
+        await this.telegramNotifier.sendSimulationStartNotification({
+          symbol,
+          direction: direction || 'LONG',
+          entryPrice: entrySignal,
+          stopLoss,
+          takeProfit,
+          maxLeverage: finalMaxLeverage,
+          minMargin: finalMinMargin,
+          triggerReason,
+          executionMode: executionMode || mode,
+          marketType: marketType || '震荡市'
+        });
+      } catch (notificationError) {
+        console.warn('⚠️ 发送自动模拟交易开启通知失败:', notificationError.message);
+      }
 
       // 记录到数据监控
       if (this.dataMonitor) {

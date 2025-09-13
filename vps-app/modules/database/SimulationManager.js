@@ -2,14 +2,22 @@
 // 模拟交易管理模块
 
 const BinanceAPI = require('../api/BinanceAPI');
-const TelegramNotifier = require('../notifications/TelegramNotifier');
+const TelegramNotifier = require('../notification/TelegramNotifier');
 
 class SimulationManager {
   constructor(db) {
     this.db = db;
     // 移除activeSimulations Map，直接从数据库查询，避免重复存储
     this.priceCheckInterval = null;
-    this.telegramNotifier = new TelegramNotifier(db);
+    this.telegramNotifier = null; // 将从外部设置
+  }
+
+  /**
+   * 设置Telegram通知器
+   * @param {TelegramNotifier} telegramNotifier - Telegram通知器实例
+   */
+  setTelegramNotifier(telegramNotifier) {
+    this.telegramNotifier = telegramNotifier;
   }
 
   startPriceMonitoring() {
@@ -667,6 +675,30 @@ class SimulationManager {
                   profit_loss = ?
               WHERE id = ?
             `, [exitResult.exitPrice, exitResult.reason, false, 0, sim.id]);
+          }
+
+          // 发送Telegram通知
+          try {
+            if (this.telegramNotifier) {
+              await this.telegramNotifier.sendSimulationEndNotification({
+                symbol: sim.symbol,
+                direction: sim.direction,
+                exitPrice: exitResult.exitPrice,
+                exitReason: exitResult.reason,
+                profitLoss,
+                isWin,
+                entryPrice: sim.entry_price,
+                stopLoss: sim.stop_loss_price,
+                takeProfit: sim.take_profit_price,
+                maxLeverage: sim.max_leverage,
+                minMargin: sim.min_margin,
+                timeInPosition: sim.time_in_position || 0,
+                maxTimeInPosition: sim.max_time_in_position || 48,
+                triggerReason: sim.trigger_reason
+              });
+            }
+          } catch (notificationError) {
+            console.warn('⚠️ 发送模拟交易结束通知失败:', notificationError.message);
           }
 
           // 更新胜率统计
