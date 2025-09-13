@@ -176,7 +176,7 @@ class SmartFlowStrategyV3 {
       if (!scoringResult) {
         scoringResult = await this.core.analyze1HScoring(symbol, trend4hResult.trend4h, this.deltaManager);
         if (scoringResult.error) {
-          return this.createNoSignalResult(symbol, '1H打分分析失败: ' + scoringResult.error);
+          return SmartFlowStrategyV3.createNoSignalResult(symbol, '1H打分分析失败: ' + scoringResult.error);
         }
       }
 
@@ -245,7 +245,7 @@ class SmartFlowStrategyV3 {
       let leverageData;
       try {
         leverageData = executionResult.signal !== 'NONE' ?
-          await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
+          await SmartFlowStrategyV3.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction, this.database) :
           { maxLeverage: null, minMargin: null, stopLossDistance: null, atrValue: executionResult.atr14 };
       } catch (error) {
         console.error(`杠杆数据计算失败 [${symbol}]:`, error);
@@ -262,7 +262,7 @@ class SmartFlowStrategyV3 {
       // 5. 合并结果
       // 根据allowEntry决定最终信号
       const finalSignal = scoringResult.allowEntry ? executionResult.signal : 'NONE';
-      const finalExecution = scoringResult.allowEntry ? (executionResult.signal === 'NONE' ? null : this.formatExecution(executionResult)) : null;
+      const finalExecution = scoringResult.allowEntry ? (executionResult.signal === 'NONE' ? null : SmartFlowStrategyV3.formatExecution(executionResult)) : null;
       const finalExecutionMode = scoringResult.allowEntry ? (executionResult.mode || 'NONE') : 'NONE';
       const finalReason = scoringResult.allowEntry ? executionResult.reason : `1H打分不足: ${scoringResult.score}/3`;
 
@@ -297,7 +297,7 @@ class SmartFlowStrategyV3 {
 
     } catch (error) {
       console.error(`趋势市分析失败 [${symbol}]:`, error);
-      return this.createNoSignalResult(symbol, '趋势市分析异常: ' + error.message);
+      return SmartFlowStrategyV3.createNoSignalResult(symbol, '趋势市分析异常: ' + error.message);
     }
   }
 
@@ -309,12 +309,12 @@ class SmartFlowStrategyV3 {
       // 1. 1H边界判断
       const rangeResult = await StrategyV3Core.prototype.analyzeRangeBoundary.call(this.core, symbol, this.deltaManager);
       if (rangeResult.error) {
-        return this.createNoSignalResult(symbol, '1H边界分析失败: ' + rangeResult.error);
+        return SmartFlowStrategyV3.createNoSignalResult(symbol, '1H边界分析失败: ' + rangeResult.error);
       }
 
       // 2. 检查边界有效性
       if (!rangeResult.lowerBoundaryValid && !rangeResult.upperBoundaryValid) {
-        return this.createNoSignalResult(symbol, '1H边界无效');
+        return SmartFlowStrategyV3.createNoSignalResult(symbol, '1H边界无效');
       }
 
       // 3. 15分钟入场执行
@@ -352,7 +352,7 @@ class SmartFlowStrategyV3 {
       let leverageData;
       try {
         leverageData = executionResult.signal !== 'NONE' ?
-          await this.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction) :
+          await SmartFlowStrategyV3.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction, this.database) :
           { maxLeverage: null, minMargin: null, stopLossDistance: null, atrValue: executionResult.atr14 };
       } catch (error) {
         console.error(`杠杆数据计算失败 [${symbol}]:`, error);
@@ -395,7 +395,7 @@ class SmartFlowStrategyV3 {
         volFactor: rangeResult.volFactor,
         lastBreakout: rangeResult.lastBreakout,
         signal: executionResult.signal,
-        execution: executionResult.signal === 'NONE' ? null : this.formatExecution(executionResult),
+        execution: executionResult.signal === 'NONE' ? null : SmartFlowStrategyV3.formatExecution(executionResult),
         executionMode: executionResult.mode || 'NONE',
         entrySignal: executionResult.entry,
         stopLoss: executionResult.stopLoss,
@@ -412,7 +412,7 @@ class SmartFlowStrategyV3 {
 
     } catch (error) {
       console.error(`震荡市分析失败 [${symbol}]:`, error);
-      return this.createNoSignalResult(symbol, '震荡市分析异常: ' + error.message);
+      return SmartFlowStrategyV3.createNoSignalResult(symbol, '震荡市分析异常: ' + error.message);
     }
   }
 
