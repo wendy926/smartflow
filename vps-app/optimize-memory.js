@@ -11,20 +11,20 @@ class MemoryOptimizer {
 
   async optimize() {
     console.log('🚀 开始内存优化...');
-    
+
     try {
       // 1. 清理系统缓存
       await this.clearSystemCache();
-      
+
       // 2. 清理临时文件
       await this.clearTempFiles();
-      
+
       // 3. 重启服务
       await this.restartServices();
-      
+
       // 4. 监控内存使用
       await this.monitorMemory();
-      
+
       console.log('✅ 内存优化完成');
     } catch (error) {
       console.error('❌ 内存优化失败:', error);
@@ -33,7 +33,7 @@ class MemoryOptimizer {
 
   async clearSystemCache() {
     console.log('🧹 清理系统缓存...');
-    
+
     return new Promise((resolve, reject) => {
       exec('sync && echo 3 > /proc/sys/vm/drop_caches', (error, stdout, stderr) => {
         if (error) {
@@ -48,7 +48,7 @@ class MemoryOptimizer {
 
   async clearTempFiles() {
     console.log('🗑️ 清理临时文件...');
-    
+
     const tempDirs = [
       '/tmp',
       '/var/tmp',
@@ -60,18 +60,18 @@ class MemoryOptimizer {
         if (fs.existsSync(dir)) {
           const files = fs.readdirSync(dir);
           let cleaned = 0;
-          
+
           for (const file of files) {
             const filePath = `${dir}/${file}`;
             const stats = fs.statSync(filePath);
-            
+
             // 删除超过1小时的文件
             if (Date.now() - stats.mtime.getTime() > 3600000) {
               fs.unlinkSync(filePath);
               cleaned++;
             }
           }
-          
+
           console.log(`✅ 清理 ${dir}: 删除 ${cleaned} 个文件`);
         }
       } catch (error) {
@@ -82,7 +82,7 @@ class MemoryOptimizer {
 
   async restartServices() {
     console.log('🔄 重启服务...');
-    
+
     return new Promise((resolve, reject) => {
       exec('pm2 restart smartflow-app', (error, stdout, stderr) => {
         if (error) {
@@ -99,7 +99,7 @@ class MemoryOptimizer {
 
   async monitorMemory() {
     console.log('📊 监控内存使用...');
-    
+
     return new Promise((resolve) => {
       setTimeout(() => {
         exec('free -h', (error, stdout, stderr) => {
@@ -132,7 +132,7 @@ class MemoryOptimizer {
 // 如果直接运行此脚本
 if (require.main === module) {
   const optimizer = new MemoryOptimizer();
-  
+
   // 显示当前状态
   optimizer.getMemoryStats().then(() => {
     // 执行优化

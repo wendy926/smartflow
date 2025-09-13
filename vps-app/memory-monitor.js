@@ -30,7 +30,7 @@ class MemoryMonitor {
   checkMemoryUsage() {
     const memInfo = this.getMemoryInfo();
     const usagePercent = memInfo.used / memInfo.total;
-    
+
     const logEntry = {
       timestamp: new Date().toISOString(),
       total: memInfo.total,
@@ -56,7 +56,7 @@ class MemoryMonitor {
     const total = os.totalmem();
     const free = os.freemem();
     const used = total - free;
-    
+
     return {
       total: Math.round(total / 1024 / 1024), // MB
       used: Math.round(used / 1024 / 1024),   // MB
@@ -71,7 +71,7 @@ class MemoryMonitor {
 
   handleHighMemoryUsage(entry) {
     console.error('🚨 内存使用率过高，建议重启服务');
-    
+
     // 可以在这里添加自动重启逻辑
     // 例如：发送信号给PM2重启服务
     // require('child_process').exec('pm2 restart smartflow-app');
@@ -80,7 +80,7 @@ class MemoryMonitor {
   getMemoryStats() {
     const memInfo = this.getMemoryInfo();
     const processMem = process.memoryUsage();
-    
+
     return {
       system: memInfo,
       process: {
@@ -96,7 +96,7 @@ class MemoryMonitor {
 // 如果直接运行此脚本
 if (require.main === module) {
   const monitor = new MemoryMonitor();
-  
+
   // 处理退出信号
   process.on('SIGINT', () => {
     console.log('\n🛑 收到退出信号，停止内存监控...');
@@ -112,7 +112,7 @@ if (require.main === module) {
 
   // 启动监控
   monitor.start();
-  
+
   // 显示当前内存状态
   console.log('📊 当前内存状态:', monitor.getMemoryStats());
 }

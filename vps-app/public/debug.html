@@ -4,52 +4,82 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>分类调试</title>
+  <title>调试页面</title>
 </head>
 
 <body>
-  <h1>分类显示调试</h1>
-  <div id="results"></div>
+  <h1>调试页面</h1>
+  <div id="debug-info"></div>
 
   <script>
-    // 测试分类显示函数
-    function getCategoryDisplay(category) {
-      const categoryMap = {
-        'mainstream': '主流币',
-        'high-cap-trending': '高市值趋势币',
-        'highcap': '高市值',
-        'trending': '热点币',
-        'smallcap': '小币'
-      };
-      const result = categoryMap[category] || '未知';
-      console.log(`分类映射调试: ${category} -> ${result}`);
-      return result;
-    }
-
-    // 测试API调用
-    async function testAPI() {
+    async function debugAPI() {
       try {
         const response = await fetch('/api/signals');
         const data = await response.json();
 
-        const solusdt = data.find(item => item.symbol === 'SOLUSDT');
-        if (solusdt) {
-          const display = getCategoryDisplay(solusdt.category);
-          document.getElementById('results').innerHTML = `
-                        <p>SOLUSDT 原始分类: ${solusdt.category}</p>
-                        <p>SOLUSDT 显示分类: ${display}</p>
-                        <p>测试时间: ${new Date().toLocaleString()}</p>
+        const debugInfo = document.getElementById('debug-info');
+        debugInfo.innerHTML = '<h2>API数据调试</h2>';
+
+        data.slice(0, 3).forEach((signal, index) => {
+          const div = document.createElement('div');
+          div.innerHTML = `
+                        <h3>${signal.symbol}</h3>
+                        <p>marketType: ${signal.marketType}</p>
+                        <p>trendStrength: ${signal.trendStrength}</p>
+                        <p>signalStrength: ${signal.signalStrength}</p>
+                        <p>rangeLowerBoundaryValid: ${signal.rangeLowerBoundaryValid}</p>
+                        <p>rangeUpperBoundaryValid: ${signal.rangeUpperBoundaryValid}</p>
+                        <p>strategyVersion: ${signal.strategyVersion}</p>
+                        <p>executionMode: ${signal.executionMode}</p>
+                        <p>execution: ${signal.execution}</p>
+                        <hr>
                     `;
-        } else {
-          document.getElementById('results').innerHTML = '<p>未找到SOLUSDT</p>';
-        }
+          debugInfo.appendChild(div);
+        });
+
+        // 测试前端逻辑
+        data.slice(0, 3).forEach((signal, index) => {
+          const trend4h = signal.trend4h || signal.trend || '--';
+          const marketType = signal.marketType || '--';
+          const strategyVersion = signal.strategyVersion || 'V2';
+
+          console.log(`${signal.symbol} 调试信息:`, {
+            trend4h,
+            marketType,
+            strategyVersion,
+            trendStrength: signal.trendStrength,
+            signalStrength: signal.signalStrength,
+            rangeLowerBoundaryValid: signal.rangeLowerBoundaryValid,
+            rangeUpperBoundaryValid: signal.rangeUpperBoundaryValid
+          });
+
+          // 测试1H判断逻辑
+          let signalDisplay = '--';
+          if (strategyVersion === 'V3') {
+            if (marketType === '趋势市' && signal.trendStrength) {
+              console.log(`${signal.symbol} 趋势市分支`);
+              signalDisplay = `${signal.trendStrength}<br><small>${signal.signalStrength}</small>`;
+            } else if (marketType === '震荡市') {
+              console.log(`${signal.symbol} 震荡市分支`);
+              const rangeLowerValid = signal.rangeLowerBoundaryValid || false;
+              const rangeUpperValid = signal.rangeUpperBoundaryValid || false;
+              const boundaryCount = (rangeLowerValid ? 1 : 0) + (rangeUpperValid ? 1 : 0);
+              const boundaryStatus = boundaryCount >= 1 ? '边界有效' : '边界无效';
+              signalDisplay = `${boundaryStatus}<br><small>${boundaryCount}/2分</small>`;
+            } else {
+              console.log(`${signal.symbol} 其他分支`);
+            }
+          }
+
+          console.log(`${signal.symbol} 1H判断显示:`, signalDisplay);
+        });
+
       } catch (error) {
-        document.getElementById('results').innerHTML = `<p>错误: ${error.message}</p>`;
+        console.error('调试失败:', error);
       }
     }
 
-    // 页面加载时执行测试
-    testAPI();
+    debugAPI();
   </script>
 </body>
 

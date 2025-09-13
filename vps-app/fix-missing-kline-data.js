@@ -7,10 +7,10 @@ class MissingKlineDataFixer {
   constructor() {
     this.dbPath = path.join(__dirname, 'smartflow.db');
     this.db = null;
-    
+
     // 需要修复的交易对
     this.symbols = ['HYPEUSDT', 'PUMPUSDT', 'LINEAUSDT'];
-    
+
     // 数据收集配置
     this.intervals = {
       '4h': { limit: 250, required: 200 },
@@ -38,7 +38,7 @@ class MissingKlineDataFixer {
     try {
       const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
       console.log(`📡 获取 ${symbol} ${interval} K线数据: ${url}`);
-      
+
       const response = await fetch(url);
       const data = await response.json();
 
@@ -119,7 +119,7 @@ class MissingKlineDataFixer {
         FROM kline_data 
         WHERE symbol = ? AND interval = ?
       `;
-      
+
       this.db.get(sql, [symbol, interval], (err, row) => {
         if (err) {
           reject(err);
@@ -135,7 +135,7 @@ class MissingKlineDataFixer {
    */
   async fixSymbolData(symbol) {
     console.log(`\n🔧 修复 ${symbol} 的K线数据...`);
-    
+
     const results = {
       symbol,
       intervals: {},
@@ -145,29 +145,29 @@ class MissingKlineDataFixer {
 
     for (const [interval, config] of Object.entries(this.intervals)) {
       console.log(`\n📊 处理 ${symbol} ${interval} 数据...`);
-      
+
       // 检查现有数据
       const existingCount = await this.checkExistingData(symbol, interval);
       console.log(`📋 现有数据: ${existingCount} 条`);
-      
+
       // 如果数据不足，则收集新数据
       if (existingCount < config.required) {
         console.log(`⚠️  数据不足，需要收集更多数据...`);
-        
+
         const klineData = await this.getKlineData(symbol, interval, config.limit);
         if (klineData && klineData.length > 0) {
           const storeResult = await this.storeKlineData(symbol, interval, klineData);
-          
+
           results.intervals[interval] = {
             collected: klineData.length,
             stored: storeResult.success,
             errors: storeResult.error,
             existing: existingCount
           };
-          
+
           results.totalCollected += klineData.length;
           results.totalStored += storeResult.success;
-          
+
           // 添加延迟避免API限制
           await new Promise(resolve => setTimeout(resolve, 200));
         } else {
@@ -189,7 +189,7 @@ class MissingKlineDataFixer {
         };
       }
     }
-    
+
     return results;
   }
 
@@ -198,10 +198,10 @@ class MissingKlineDataFixer {
    */
   async verifyFix() {
     console.log('\n🔍 验证修复结果...');
-    
+
     for (const symbol of this.symbols) {
       console.log(`\n📋 ${symbol} 数据验证:`);
-      
+
       for (const [interval, config] of Object.entries(this.intervals)) {
         const count = await this.checkExistingData(symbol, interval);
         const status = count >= config.required ? '✅' : '❌';
@@ -215,15 +215,15 @@ class MissingKlineDataFixer {
    */
   async cleanupDataQualityIssues() {
     console.log('\n🧹 清理数据质量问题记录...');
-    
+
     return new Promise((resolve, reject) => {
       const sql = `
         DELETE FROM data_quality_issues 
         WHERE issue_type = 'KLINE_DATA_INSUFFICIENT' 
         AND symbol IN (?, ?, ?)
       `;
-      
-      this.db.run(sql, this.symbols, function(err) {
+
+      this.db.run(sql, this.symbols, function (err) {
         if (err) {
           reject(err);
         } else {
@@ -240,41 +240,41 @@ class MissingKlineDataFixer {
   async fix() {
     try {
       await this.init();
-      
+
       console.log('🚀 开始修复K线数据...');
       console.log(`📋 目标交易对: ${this.symbols.join(', ')}`);
-      
+
       const results = [];
-      
+
       for (const symbol of this.symbols) {
         const result = await this.fixSymbolData(symbol);
         results.push(result);
       }
-      
+
       // 验证修复结果
       await this.verifyFix();
-      
+
       // 清理数据质量问题记录
       await this.cleanupDataQualityIssues();
-      
+
       // 输出总结
       console.log('\n📊 修复总结:');
       let totalCollected = 0;
       let totalStored = 0;
-      
+
       results.forEach(result => {
         console.log(`\n${result.symbol}:`);
         totalCollected += result.totalCollected;
         totalStored += result.totalStored;
-        
+
         Object.entries(result.intervals).forEach(([interval, data]) => {
           console.log(`  ${interval}: 收集${data.collected}条, 存储${data.stored}条, 错误${data.errors}条`);
         });
       });
-      
+
       console.log(`\n🎯 总计: 收集${totalCollected}条, 存储${totalStored}条`);
       console.log('✅ K线数据修复完成!');
-      
+
     } catch (error) {
       console.error('❌ 修复过程中出现错误:', error);
     } finally {

@@ -44,11 +44,11 @@ class DataManager {
   // 获取所有信号数据
   async getAllSignals(forceRefresh = false) {
     const cacheKey = 'allSignals';
-    
+
     if (forceRefresh) {
       this.cache.delete(cacheKey);
     }
-    
+
     let data = this.getCache(cacheKey);
 
     if (!data) {

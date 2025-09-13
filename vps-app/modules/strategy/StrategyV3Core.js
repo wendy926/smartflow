@@ -9,12 +9,40 @@ class StrategyV3Core {
     this.deltaData = new Map(); // 存储Delta数据
     this.dataMonitor = null; // 将在外部设置
     this.factorWeightManager = new FactorWeightManager(database);
+    this.isDestroyed = false; // 标记是否已销毁
+  }
+
+  /**
+   * 销毁实例，清理资源
+   */
+  destroy() {
+    if (this.isDestroyed) return;
+    
+    this.isDestroyed = true;
+    
+    // 清理Delta数据
+    if (this.deltaData) {
+      this.deltaData.clear();
+      this.deltaData = null;
+    }
+    
+    // 清理因子权重管理器
+    if (this.factorWeightManager) {
+      this.factorWeightManager = null;
+    }
+    
+    // 注意：不在这里关闭database，因为它可能被其他地方使用
+    console.log('🔒 StrategyV3Core 实例已销毁');
   }
 
   /**
    * 从数据库获取K线数据
    */
   async getKlineDataFromDB(symbol, interval, limit = 250) {
+    if (this.isDestroyed) {
+      throw new Error('StrategyV3Core 实例已销毁');
+    }
+    
     if (!this.database) {
       throw new Error('数据库连接未初始化');
     }
@@ -30,6 +58,13 @@ class StrategyV3Core {
       `;
 
       const results = await this.database.runQuery(sql, [symbol, interval, limit]);
+      
+      // 添加调试日志
+      console.log(`🔍 获取K线数据 [${symbol}][${interval}]: ${results ? results.length : 0} 条`);
+      if (results && results.length > 0) {
+        const latestTime = new Date(results[0].open_time);
+        console.log(`📅 最新数据时间: ${latestTime.toISOString()}, 收盘价: ${results[0].close_price}`);
+      }
 
       if (!results || results.length === 0) {
         return null;
@@ -213,7 +248,7 @@ class StrategyV3Core {
       // 调整数据要求：至少50条K线数据，但推荐200条以上
       const minRequired = 50;
       const recommended = 200;
-      
+
       if (!klines4h || klines4h.length < minRequired) {
         // 记录数据质量告警
         await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT',
@@ -228,7 +263,7 @@ class StrategyV3Core {
         }
         return { trend4h: '震荡市', marketType: '震荡市', error: '数据严重不足' };
       }
-      
+
       // 如果数据不足推荐数量，记录警告但继续分析
       if (klines4h.length < recommended) {
         await this.recordDataQualityAlert(symbol, 'KLINE_DATA_LIMITED',
@@ -252,7 +287,7 @@ class StrategyV3Core {
       const ma20Period = Math.min(20, Math.floor(availableData * 0.8)); // 最多使用80%的数据
       const ma50Period = Math.min(50, Math.floor(availableData * 0.6)); // 最多使用60%的数据
       const ma200Period = Math.min(200, Math.floor(availableData * 0.4)); // 最多使用40%的数据
-      
+
       const ma20 = this.calculateMA(candles, ma20Period);
       const ma50 = this.calculateMA(candles, ma50Period);
       const ma200 = this.calculateMA(candles, ma200Period);

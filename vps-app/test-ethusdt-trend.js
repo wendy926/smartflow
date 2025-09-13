@@ -288,3 +288,4 @@ async function testETHUSDTTrend() {
 }
 
 testETHUSDTTrend();
+

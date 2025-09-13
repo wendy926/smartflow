@@ -45,11 +45,11 @@ class MemoryLeakFixer {
   createSafeWebSocket(url, options = {}) {
     const ws = new (require('ws'))(url, options);
     this.connections.add(ws);
-    
+
     ws.on('close', () => {
       this.connections.delete(ws);
     });
-    
+
     return ws;
   }
 
@@ -76,7 +76,7 @@ class MemoryLeakFixer {
       const memUsage = process.memoryUsage();
       const memMB = Math.round(memUsage.heapUsed / 1024 / 1024);
       const memTotal = Math.round(memUsage.heapTotal / 1024 / 1024);
-      
+
       if (memMB > 200) { // 超过200MB时警告
         console.warn(`⚠️ 内存使用过高: ${memMB}MB / ${memTotal}MB`);
         this.performMemoryCleanup();
@@ -86,18 +86,18 @@ class MemoryLeakFixer {
 
   performMemoryCleanup() {
     console.log('🧹 执行内存清理...');
-    
+
     // 强制垃圾回收
     if (global.gc) {
       global.gc();
     }
-    
+
     // 清理定时器
     this.clearAllTimers();
-    
+
     // 清理连接
     this.closeAllConnections();
-    
+
     console.log('✅ 内存清理完成');
   }
 
@@ -107,20 +107,20 @@ class MemoryLeakFixer {
   setupGracefulShutdown(server) {
     const shutdown = () => {
       console.log('🛑 开始优雅关闭服务...');
-      
+
       // 停止接受新连接
       server.close(() => {
         console.log('✅ HTTP服务器已关闭');
       });
-      
+
       // 清理资源
       this.clearAllTimers();
       this.closeAllConnections();
-      
+
       if (this.cleanupInterval) {
         clearInterval(this.cleanupInterval);
       }
-      
+
       // 强制退出
       setTimeout(() => {
         console.log('🔚 强制退出进程');
@@ -140,10 +140,10 @@ class MemoryLeakFixer {
   createSafeDatabaseManager() {
     const DatabaseManager = require('./modules/database/DatabaseManager');
     const dbManager = new DatabaseManager();
-    
+
     // 添加连接池管理
     dbManager.connectionPool = new Set();
-    
+
     const originalRunQuery = dbManager.runQuery.bind(dbManager);
     dbManager.runQuery = async (sql, params = []) => {
       try {
@@ -154,7 +154,7 @@ class MemoryLeakFixer {
         throw error;
       }
     };
-    
+
     // 添加连接清理方法
     dbManager.cleanupConnections = () => {
       if (dbManager.db) {
@@ -162,7 +162,7 @@ class MemoryLeakFixer {
         console.log('✅ 数据库连接已关闭');
       }
     };
-    
+
     return dbManager;
   }
 }
