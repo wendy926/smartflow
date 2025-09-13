@@ -21,6 +21,7 @@ const DataRefreshManager = require('./modules/data/DataRefreshManager');
 const DatabaseOptimization = require('./modules/database/DatabaseOptimization');
 const CacheManager = require('./modules/cache/CacheManager');
 const CacheMiddleware = require('./modules/middleware/CacheMiddleware');
+const DataChangeDetector = require('./modules/cache/DataChangeDetector');
 const PerformanceMonitor = require('./modules/monitoring/PerformanceMonitor');
 
 class SmartFlowServer {
@@ -42,6 +43,7 @@ class SmartFlowServer {
     this.databaseOptimization = null;
     this.cacheManager = null;
     this.cacheMiddleware = null;
+    this.dataChangeDetector = null;
     this.performanceMonitor = new PerformanceMonitor();
 
     // 内存管理
@@ -864,6 +866,30 @@ class SmartFlowServer {
       }
     });
 
+    // 数据变更统计API
+    this.app.get('/api/data-change/stats', async (req, res) => {
+      try {
+        if (!this.dataChangeDetector) {
+          res.json({ error: '数据变更检测器未初始化' });
+          return;
+        }
+        
+        const stats = this.dataChangeDetector.getHashStats();
+        res.json({
+          success: true,
+          data: {
+            totalKeys: stats.totalKeys,
+            listeners: stats.listeners,
+            keys: stats.keys.slice(0, 10), // 只返回前10个key
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error('获取数据变更统计失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // 数据库性能统计API
     this.app.get('/api/database/stats', async (req, res) => {
       try {
@@ -1319,6 +1345,14 @@ class SmartFlowServer {
       await this.cacheManager.initialize();
       this.cacheMiddleware = CacheMiddleware.create(this.cacheManager);
 
+      // 初始化数据变更检测器
+      this.dataChangeDetector = new DataChangeDetector(this.db, this.cacheManager);
+      
+      // 添加数据变更监听器
+      this.dataChangeDetector.addChangeListener(async (symbol, dataType, newData) => {
+        await this.handleDataChange(symbol, dataType, newData);
+      });
+
       // 启动定期清理任务
       this.cacheManager.startPeriodicCleanup();
 
@@ -1549,19 +1583,25 @@ class SmartFlowServer {
         dataRefreshManager: this.dataRefreshManager
       });
 
-      // 存储策略分析结果到数据库
-      try {
-        await this.db.recordStrategyAnalysis(analysis);
-      } catch (dbError) {
-        console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
-      }
+      // 检测数据是否发生变化
+      const hasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'trend', analysis);
+      
+      if (hasChanged) {
+        // 存储策略分析结果到数据库
+        try {
+          await this.db.recordStrategyAnalysis(analysis);
+          console.log(`📈 趋势更新完成 [${symbol}]: ${analysis.trend} (数据已变化)`);
+        } catch (dbError) {
+          console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
+        }
 
-      console.log(`📈 趋势更新完成 [${symbol}]: ${analysis.trend}`);
-
-      // 检查是否有入场执行信号，如果有则立即触发模拟交易
-      if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
-        console.log(`🚀 趋势更新检测到入场执行信号: ${symbol} - ${analysis.execution} (已禁用自动触发)`);
-        // await this.triggerSimulationWithRetry(symbol, analysis); // 已禁用自动触发
+        // 检查是否有入场执行信号，如果有则立即触发模拟交易
+        if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
+          console.log(`🚀 趋势更新检测到入场执行信号: ${symbol} - ${analysis.execution} (已禁用自动触发)`);
+          // await this.triggerSimulationWithRetry(symbol, analysis); // 已禁用自动触发
+        }
+      } else {
+        console.log(`📊 趋势数据无变化 [${symbol}]: ${analysis.trend}`);
       }
     } catch (error) {
       console.error(`趋势更新失败 [${symbol}]:`, error);
@@ -1579,19 +1619,25 @@ class SmartFlowServer {
         dataRefreshManager: this.dataRefreshManager
       });
 
-      // 存储策略分析结果到数据库
-      try {
-        await this.db.recordStrategyAnalysis(analysis);
-      } catch (dbError) {
-        console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
-      }
+      // 检测数据是否发生变化
+      const hasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'signal', analysis);
+      
+      if (hasChanged) {
+        // 存储策略分析结果到数据库
+        try {
+          await this.db.recordStrategyAnalysis(analysis);
+          console.log(`📊 信号更新完成 [${symbol}]: 得分=${analysis.hourlyScore}, 信号=${analysis.signal} (数据已变化)`);
+        } catch (dbError) {
+          console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
+        }
 
-      console.log(`📊 信号更新完成 [${symbol}]: 得分=${analysis.hourlyScore}, 信号=${analysis.signal}`);
-
-      // 检查是否有入场执行信号，如果有则立即触发模拟交易
-      if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
-        console.log(`🚀 信号更新检测到入场执行信号: ${symbol} - ${analysis.execution} (已禁用自动触发)`);
-        // await this.triggerSimulationWithRetry(symbol, analysis); // 已禁用自动触发
+        // 检查是否有入场执行信号，如果有则立即触发模拟交易
+        if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
+          console.log(`🚀 信号更新检测到入场执行信号: ${symbol} - ${analysis.execution} (已禁用自动触发)`);
+          // await this.triggerSimulationWithRetry(symbol, analysis); // 已禁用自动触发
+        }
+      } else {
+        console.log(`📊 信号数据无变化 [${symbol}]: 得分=${analysis.hourlyScore}, 信号=${analysis.signal}`);
       }
     } catch (error) {
       console.error(`信号更新失败 [${symbol}]:`, error);
@@ -1609,30 +1655,110 @@ class SmartFlowServer {
         dataRefreshManager: this.dataRefreshManager
       });
 
-      // 存储策略分析结果到数据库
-      try {
-        await this.db.recordStrategyAnalysis(analysis);
-      } catch (dbError) {
-        console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
-      }
-
-      console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode || 'NONE'}`);
-
-      // 检查是否有入场执行信号，如果有则检查条件后触发模拟交易
-      if (analysis.execution && analysis.execution.trim() !== '' && analysis.execution !== 'NONE' && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
-        console.log(`🚀 检测到入场执行信号: ${symbol} - ${analysis.execution}`);
-
-        // 检查是否满足触发条件：该交易对没有进行中的模拟交易
-        const canTrigger = await this.checkSimulationTriggerConditions(symbol, analysis);
-        if (canTrigger) {
-          console.log(`✅ 满足触发条件，开始模拟交易: ${symbol}`);
-          await this.triggerSimulationWithRetry(symbol, analysis);
-        } else {
-          console.log(`⏭️ 跳过模拟交易触发: ${symbol} - 不满足触发条件`);
+      // 检测数据是否发生变化
+      const hasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'execution', analysis);
+      
+      if (hasChanged) {
+        // 存储策略分析结果到数据库
+        try {
+          await this.db.recordStrategyAnalysis(analysis);
+          console.log(`⚡ 执行更新完成 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode || 'NONE'} (数据已变化)`);
+        } catch (dbError) {
+          console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
         }
+
+        // 检查是否有入场执行信号，如果有则检查条件后触发模拟交易
+        if (analysis.execution && analysis.execution.trim() !== '' && analysis.execution !== 'NONE' && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
+          console.log(`🚀 检测到入场执行信号: ${symbol} - ${analysis.execution}`);
+
+          // 检查是否满足触发条件：该交易对没有进行中的模拟交易
+          const canTrigger = await this.checkSimulationTriggerConditions(symbol, analysis);
+          if (canTrigger) {
+            console.log(`✅ 满足触发条件，开始模拟交易: ${symbol}`);
+            await this.triggerSimulationWithRetry(symbol, analysis);
+          } else {
+            console.log(`⏭️ 跳过模拟交易触发: ${symbol} - 不满足触发条件`);
+          }
+        }
+      } else {
+        console.log(`📊 执行数据无变化 [${symbol}]: 执行=${analysis.execution}, 模式=${analysis.executionMode || 'NONE'}`);
       }
     } catch (error) {
       console.error(`执行更新失败 [${symbol}]:`, error);
+    }
+  }
+
+  // 处理数据变更事件
+  async handleDataChange(symbol, dataType, newData) {
+    try {
+      console.log(`🔄 处理数据变更事件 [${symbol}][${dataType}]`);
+      
+      // 更新相关缓存
+      await this.updateRelatedCaches(symbol, dataType, newData);
+      
+      // 可以在这里添加其他数据变更后的处理逻辑
+      // 比如通知前端、更新统计等
+      
+      console.log(`✅ 数据变更处理完成 [${symbol}][${dataType}]`);
+    } catch (error) {
+      console.error(`处理数据变更失败 [${symbol}][${dataType}]:`, error);
+    }
+  }
+
+  // 更新相关缓存
+  async updateRelatedCaches(symbol, dataType, newData) {
+    try {
+      if (!this.cacheManager) {
+        console.warn('缓存管理器未初始化，跳过缓存更新');
+        return;
+      }
+
+      // 根据数据类型更新不同的缓存
+      const cacheUpdates = {
+        'trend': [
+          `strategy_analysis:${symbol}`,
+          `trend:${symbol}`,
+          'api:signals',
+          'api:stats'
+        ],
+        'signal': [
+          `strategy_analysis:${symbol}`,
+          `signals:${symbol}`,
+          'api:signals',
+          'api:stats'
+        ],
+        'execution': [
+          `strategy_analysis:${symbol}`,
+          `execution:${symbol}`,
+          'api:signals',
+          'api:stats'
+        ]
+      };
+
+      const keysToUpdate = cacheUpdates[dataType] || [];
+      
+      for (const cacheKey of keysToUpdate) {
+        try {
+          await this.cacheManager.del('strategy', cacheKey);
+          console.log(`🗑️ 清除缓存: ${cacheKey}`);
+        } catch (error) {
+          console.warn(`清除缓存失败 ${cacheKey}:`, error.message);
+        }
+      }
+
+      // 清除全局API缓存
+      try {
+        await this.cacheManager.del('api', 'signals');
+        await this.cacheManager.del('api', 'stats');
+        await this.cacheManager.del('api', 'update-times');
+        console.log('🗑️ 清除全局API缓存');
+      } catch (error) {
+        console.warn('清除全局API缓存失败:', error.message);
+      }
+
+      console.log(`✅ 相关缓存更新完成 [${symbol}][${dataType}]`);
+    } catch (error) {
+      console.error('更新相关缓存失败:', error);
     }
   }
 
