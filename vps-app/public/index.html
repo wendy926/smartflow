@@ -234,7 +234,7 @@
         <p>4H级趋势判断（4H） → 1H级多因子打分（1H） → 15分钟级别入场判断（15m）</p>
         <p><strong>依赖关系：</strong> 1H打分依赖4H趋势结果，15m入场判断依赖4H趋势和1H打分结果</p>
         <p><strong>更新频率：</strong> 4H趋势每1小时更新，1H打分每5分钟更新，15m入场每2分钟更新</p>
-        <p><strong>最新优化：</strong> 修复监控页面JavaScript错误，优化静态方法调用，增强单元测试覆盖，提升系统稳定性</p>
+        <p><strong>最新优化：</strong> 彻底修复模拟交易默认杠杆和保证金问题，实现智能默认值检测和自动重新计算，确保数据一致性，提升系统可靠性</p>
       </div>
 
       <div class="strategy-overview">
@@ -699,7 +699,11 @@
               <li><strong>震荡市止损：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
               <li><strong>趋势市止盈：</strong> 2R风险回报比</li>
               <li><strong>震荡市止盈：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
-              <li><strong>单笔风险：</strong> 根据全局最大损失设置</li>
+              <li><strong>单笔风险：</strong> 根据全局最大损失设置（10/20/50/100 USDT）</li>
+              <li><strong>杠杆计算：</strong> 智能检测默认值，自动重新计算杠杆和保证金</li>
+              <li><strong>止损距离：</strong> 多头(入场价-止损价)/入场价，空头(止损价-入场价)/入场价</li>
+              <li><strong>最大杠杆：</strong> floor(1/(止损距离% + 0.5%))，确保强平价距离止损点3倍以上</li>
+              <li><strong>最小保证金：</strong> ceil(最大损失金额/(杠杆数 × 止损距离%))，数值向上取整</li>
               <li><strong>最大持仓：</strong> 同一交易对最多1笔活跃交易</li>
               <li><strong>时间限制：</strong> 趋势市最长12小时，震荡市最长3小时</li>
             </ul>
