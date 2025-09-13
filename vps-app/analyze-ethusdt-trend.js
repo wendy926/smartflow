@@ -1,4 +1,4 @@
-const axios = require('axios');
+const https = require('https');
 
 // 计算移动平均线
 function calculateMA(prices, period) {
@@ -68,20 +68,28 @@ function calculateBollingerBands(prices, period = 20, multiplier = 2) {
     };
 }
 
+function makeRequest(url) {
+    return new Promise((resolve, reject) => {
+        https.get(url, (res) => {
+            let data = '';
+            res.on('data', (chunk) => data += chunk);
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(data));
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        }).on('error', reject);
+    });
+}
+
 async function analyzeETHUSDTTrend() {
     try {
         console.log('🔍 开始分析ETHUSDT 4H趋势判断逻辑...\n');
         
         // 获取4H K线数据
-        const response = await axios.get('https://fapi.binance.com/fapi/v1/klines', {
-            params: {
-                symbol: 'ETHUSDT',
-                interval: '4h',
-                limit: 200
-            }
-        });
-        
-        const klines = response.data;
+        const klines = await makeRequest('https://fapi.binance.com/fapi/v1/klines?symbol=ETHUSDT&interval=4h&limit=200');
         console.log(`📊 获取到 ${klines.length} 条4H K线数据`);
         
         // 提取价格数据
