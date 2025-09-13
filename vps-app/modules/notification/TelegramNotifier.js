@@ -7,20 +7,27 @@ const https = require('https');
 
 class TelegramNotifier {
     constructor() {
+        // 15min信号通知机器人配置
         this.botToken = null;
         this.chatId = null;
         this.enabled = false;
         this.initialized = false;
+        
+        // 模拟交易执行通知机器人配置
+        this.simulationBotToken = null;
+        this.simulationChatId = null;
+        this.simulationEnabled = false;
+        this.simulationInitialized = false;
     }
 
     /**
-     * 初始化Telegram配置
+     * 初始化15min信号通知Telegram配置
      * @param {string} botToken - Telegram Bot Token
      * @param {string} chatId - Telegram Chat ID
      */
     init(botToken, chatId) {
         if (!botToken || !chatId) {
-            console.warn('⚠️ Telegram通知未配置: botToken或chatId为空');
+            console.warn('⚠️ 15min信号Telegram通知未配置: botToken或chatId为空');
             this.enabled = false;
             return;
         }
@@ -29,24 +36,59 @@ class TelegramNotifier {
         this.chatId = chatId;
         this.enabled = true;
         this.initialized = true;
-        
-        console.log('✅ Telegram通知已启用');
+
+        console.log('✅ 15min信号Telegram通知已启用');
+    }
+
+    /**
+     * 初始化模拟交易通知Telegram配置
+     * @param {string} botToken - Telegram Bot Token
+     * @param {string} chatId - Telegram Chat ID
+     */
+    initSimulation(botToken, chatId) {
+        if (!botToken || !chatId) {
+            console.warn('⚠️ 模拟交易Telegram通知未配置: botToken或chatId为空');
+            this.simulationEnabled = false;
+            return;
+        }
+
+        this.simulationBotToken = botToken;
+        this.simulationChatId = chatId;
+        this.simulationEnabled = true;
+        this.simulationInitialized = true;
+
+        console.log('✅ 模拟交易Telegram通知已启用');
     }
 
     /**
      * 发送Telegram消息
      * @param {string} message - 要发送的消息
+     * @param {string} type - 消息类型：'signal'（15min信号）或'simulation'（模拟交易）
      * @returns {Promise<boolean>} - 发送是否成功
      */
-    async sendMessage(message) {
-        if (!this.enabled || !this.initialized) {
-            console.warn('⚠️ Telegram通知未启用，跳过发送消息');
+    async sendMessage(message, type = 'signal') {
+        let botToken, chatId, enabled, initialized;
+        
+        if (type === 'simulation') {
+            botToken = this.simulationBotToken;
+            chatId = this.simulationChatId;
+            enabled = this.simulationEnabled;
+            initialized = this.simulationInitialized;
+        } else {
+            botToken = this.botToken;
+            chatId = this.chatId;
+            enabled = this.enabled;
+            initialized = this.initialized;
+        }
+
+        if (!enabled || !initialized) {
+            console.warn(`⚠️ ${type === 'simulation' ? '模拟交易' : '15min信号'}Telegram通知未启用，跳过发送消息`);
             return false;
         }
 
-        const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
         const data = JSON.stringify({
-            chat_id: this.chatId,
+            chat_id: chatId,
             text: message,
             parse_mode: 'HTML'
         });
@@ -63,7 +105,7 @@ class TelegramNotifier {
 
             const req = https.request(url, options, (res) => {
                 let responseData = '';
-                
+
                 res.on('data', (chunk) => {
                     responseData += chunk;
                 });
@@ -116,7 +158,7 @@ class TelegramNotifier {
 
         const directionText = direction === 'LONG' ? '做多' : '做空';
         const directionEmoji = direction === 'LONG' ? '📈' : '📉';
-        
+
         const message = `
 🚀 <b>模拟交易开启</b> ${directionEmoji}
 
@@ -134,7 +176,7 @@ class TelegramNotifier {
 ⏰ <b>开启时间:</b> ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
         `.trim();
 
-        return await this.sendMessage(message);
+        return await this.sendMessage(message, 'simulation');
     }
 
     /**
@@ -165,11 +207,11 @@ class TelegramNotifier {
         const resultEmoji = isWin ? '✅' : '❌';
         const resultText = isWin ? '盈利' : '亏损';
         const profitEmoji = profitLoss >= 0 ? '💰' : '💸';
-        
+
         // 计算收益率
         const entryMargin = minMargin;
         const returnRate = ((profitLoss / entryMargin) * 100).toFixed(2);
-        
+
         const message = `
 ${resultEmoji} <b>模拟交易结束</b> ${directionEmoji}
 
@@ -193,7 +235,7 @@ ${resultEmoji} <b>结果:</b> ${resultText}
 ⏰ <b>结束时间:</b> ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
         `.trim();
 
-        return await this.sendMessage(message);
+        return await this.sendMessage(message, 'simulation');
     }
 
     /**
@@ -218,10 +260,10 @@ ${resultEmoji} <b>结果:</b> ${resultText}
 
         // 格式化价格显示
         const formatPrice = (price) => price ? price.toFixed(4) : '--';
-        
+
         // 确定信号方向
         const direction = signal === 'BUY' ? '📈 多头' : signal === 'SELL' ? '📉 空头' : '⏸️ 观望';
-        
+
         // 确定市场类型
         const marketType = trend4h === '多头趋势' || trend4h === '空头趋势' ? '趋势市' : '震荡市';
 
@@ -248,7 +290,7 @@ ${direction}
 🤖 SmartFlow V3策略系统
         `.trim();
 
-        return await this.sendMessage(message);
+        return await this.sendMessage(message, 'signal');
     }
 
     /**
@@ -265,7 +307,7 @@ ${direction}
 📱 SmartFlow V3策略系统
         `.trim();
 
-        return await this.sendMessage(message);
+        return await this.sendMessage(message, 'signal');
     }
 
     /**
@@ -274,11 +316,20 @@ ${direction}
      */
     getStatus() {
         return {
-            enabled: this.enabled,
-            initialized: this.initialized,
-            hasBotToken: !!this.botToken,
-            hasChatId: !!this.chatId,
-            configured: this.enabled && this.initialized
+            signal: {
+                enabled: this.enabled,
+                initialized: this.initialized,
+                hasBotToken: !!this.botToken,
+                hasChatId: !!this.chatId,
+                configured: this.enabled && this.initialized
+            },
+            simulation: {
+                enabled: this.simulationEnabled,
+                initialized: this.simulationInitialized,
+                hasBotToken: !!this.simulationBotToken,
+                hasChatId: !!this.simulationChatId,
+                configured: this.simulationEnabled && this.simulationInitialized
+            }
         };
     }
 }

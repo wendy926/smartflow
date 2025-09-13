@@ -1293,7 +1293,7 @@ class SmartFlowServer {
       }
     });
 
-    // 设置Telegram配置
+    // 设置15min信号Telegram配置
     this.app.post('/api/telegram-config', async (req, res) => {
       try {
         const { botToken, chatId } = req.body;
@@ -1309,20 +1309,73 @@ class SmartFlowServer {
         await this.db.setUserSetting('telegramChatId', chatId);
 
         const status = this.telegramNotifier.getStatus();
-        res.json({ success: true, message: 'Telegram配置已保存', status });
+        res.json({ success: true, message: '15min信号Telegram配置已保存', status });
       } catch (error) {
-        console.error('设置Telegram配置失败:', error);
+        console.error('设置15min信号Telegram配置失败:', error);
         res.status(500).json({ error: error.message });
       }
     });
 
-    // 测试Telegram通知
+    // 设置模拟交易Telegram配置
+    this.app.post('/api/telegram-simulation-config', async (req, res) => {
+      try {
+        const { botToken, chatId } = req.body;
+
+        if (!botToken || !chatId) {
+          return res.status(400).json({ error: 'botToken和chatId不能为空' });
+        }
+
+        this.telegramNotifier.initSimulation(botToken, chatId);
+
+        // 保存配置到数据库
+        await this.db.setUserSetting('telegramSimulationBotToken', botToken);
+        await this.db.setUserSetting('telegramSimulationChatId', chatId);
+
+        const status = this.telegramNotifier.getStatus();
+        res.json({ success: true, message: '模拟交易Telegram配置已保存', status });
+      } catch (error) {
+        console.error('设置模拟交易Telegram配置失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 测试15min信号Telegram通知
     this.app.post('/api/telegram-test', async (req, res) => {
       try {
         const result = await this.telegramNotifier.sendTestNotification();
-        res.json({ success: result, message: result ? '测试通知发送成功' : '测试通知发送失败' });
+        res.json({ success: result, message: result ? '15min信号测试通知发送成功' : '15min信号测试通知发送失败' });
       } catch (error) {
-        console.error('测试Telegram通知失败:', error);
+        console.error('测试15min信号Telegram通知失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 测试模拟交易Telegram通知
+    this.app.post('/api/telegram-simulation-test', async (req, res) => {
+      try {
+        // 发送模拟交易测试通知
+        const testData = {
+          symbol: 'BTCUSDT',
+          direction: 'LONG',
+          entryPrice: 50000.1234,
+          stopLoss: 49500.5678,
+          takeProfit: 51000.9012,
+          maxLeverage: 10,
+          minMargin: 100,
+          triggerReason: '测试通知',
+          executionMode: '多头回踩突破',
+          marketType: '趋势市'
+        };
+
+        const result = await this.telegramNotifier.sendSimulationStartNotification(testData);
+
+        if (result) {
+          res.json({ success: true, message: '模拟交易Telegram通知发送成功' });
+        } else {
+          res.json({ success: false, message: '模拟交易Telegram通知发送失败' });
+        }
+      } catch (error) {
+        console.error('测试模拟交易Telegram通知失败:', error);
         res.status(500).json({ error: error.message });
       }
     });
@@ -1427,19 +1480,34 @@ class SmartFlowServer {
       // 初始化Telegram通知
       this.telegramNotifier = new TelegramNotifier();
 
-      // 从数据库加载Telegram配置
+      // 从数据库加载15min信号通知配置
       try {
         const botToken = await this.db.getUserSetting('telegramBotToken', '');
         const chatId = await this.db.getUserSetting('telegramChatId', '');
 
         if (botToken && chatId) {
           this.telegramNotifier.init(botToken, chatId);
-          console.log('✅ Telegram通知器配置已加载');
+          console.log('✅ 15min信号Telegram通知器配置已加载');
         } else {
-          console.log('⚠️ Telegram通知器未配置，请通过API设置');
+          console.log('⚠️ 15min信号Telegram通知器未配置，请通过API设置');
         }
       } catch (error) {
-        console.warn('⚠️ 加载Telegram配置失败:', error.message);
+        console.warn('⚠️ 加载15min信号Telegram配置失败:', error.message);
+      }
+
+      // 从数据库加载模拟交易通知配置
+      try {
+        const simulationBotToken = await this.db.getUserSetting('telegramSimulationBotToken', '1111111');
+        const simulationChatId = await this.db.getUserSetting('telegramSimulationChatId', chatId || '');
+
+        if (simulationBotToken && simulationChatId) {
+          this.telegramNotifier.initSimulation(simulationBotToken, simulationChatId);
+          console.log('✅ 模拟交易Telegram通知器配置已加载');
+        } else {
+          console.log('⚠️ 模拟交易Telegram通知器未配置，使用默认配置');
+        }
+      } catch (error) {
+        console.warn('⚠️ 加载模拟交易Telegram配置失败:', error.message);
       }
 
       console.log('✅ Telegram通知器初始化完成');

@@ -271,7 +271,7 @@ class SmartFlowStrategyV3 {
         try {
           const TelegramNotifier = require('../notification/TelegramNotifier');
           const telegramNotifier = new TelegramNotifier();
-          
+
           // 从数据库获取Telegram配置
           if (this.database) {
             const botToken = await this.database.getUserSetting('telegramBotToken');
@@ -280,7 +280,7 @@ class SmartFlowStrategyV3 {
               telegramNotifier.init(botToken, chatId);
             }
           }
-          
+
           // 发送15min信号通知
           await telegramNotifier.send15minSignalNotification({
             symbol: symbol,
@@ -405,7 +405,7 @@ class SmartFlowStrategyV3 {
         try {
           const TelegramNotifier = require('../notification/TelegramNotifier');
           const telegramNotifier = new TelegramNotifier();
-          
+
           // 从数据库获取Telegram配置
           if (this.database) {
             const botToken = await this.database.getUserSetting('telegramBotToken');
@@ -414,7 +414,7 @@ class SmartFlowStrategyV3 {
               telegramNotifier.init(botToken, chatId);
             }
           }
-          
+
           // 发送15min信号通知
           await telegramNotifier.send15minSignalNotification({
             symbol: symbol,

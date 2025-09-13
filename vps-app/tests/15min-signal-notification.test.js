@@ -43,7 +43,7 @@ describe('15min信号通知功能', () => {
 
       expect(result).toBe(true);
       expect(sendMessageSpy).toHaveBeenCalledTimes(1);
-      
+
       const sentMessage = sendMessageSpy.mock.calls[0][0];
       expect(sentMessage).toContain('🎯 <b>15分钟信号检测</b>');
       expect(sentMessage).toContain('📊 <b>交易对:</b> BTCUSDT');
@@ -81,7 +81,7 @@ describe('15min信号通知功能', () => {
 
       expect(result).toBe(true);
       expect(sendMessageSpy).toHaveBeenCalledTimes(1);
-      
+
       const sentMessage = sendMessageSpy.mock.calls[0][0];
       expect(sentMessage).toContain('📉 空头');
       expect(sentMessage).toContain('🔄 <b>执行模式:</b> 空头反抽破位');
@@ -110,7 +110,7 @@ describe('15min信号通知功能', () => {
 
       expect(result).toBe(true);
       expect(sendMessageSpy).toHaveBeenCalledTimes(1);
-      
+
       const sentMessage = sendMessageSpy.mock.calls[0][0];
       expect(sentMessage).toContain('🏷️ <b>市场类型:</b> 震荡市');
       expect(sentMessage).toContain('🔄 <b>执行模式:</b> 区间多头');
@@ -138,7 +138,7 @@ describe('15min信号通知功能', () => {
 
       expect(result).toBe(true);
       expect(sendMessageSpy).toHaveBeenCalledTimes(1);
-      
+
       const sentMessage = sendMessageSpy.mock.calls[0][0];
       expect(sentMessage).toContain('• 当前价格: 15.1234');
       expect(sentMessage).toContain('• 入场价格: --');
@@ -173,7 +173,7 @@ describe('15min信号通知功能', () => {
 
     test('应该正确处理未配置的情况', async () => {
       const unconfiguredNotifier = new TelegramNotifier();
-      
+
       const mockData = {
         symbol: 'BTCUSDT',
         executionMode: '多头回踩突破',
@@ -218,9 +218,9 @@ describe('15min信号通知功能', () => {
         .mockResolvedValue(true);
 
       await telegramNotifier.send15minSignalNotification(mockData);
-      
+
       const sentMessage = sendMessageSpy.mock.calls[0][0];
-      
+
       // 验证消息包含所有必要字段
       expect(sentMessage).toContain('🎯 <b>15分钟信号检测</b>');
       expect(sentMessage).toContain('📊 <b>交易对:</b>');
@@ -253,9 +253,9 @@ describe('15min信号通知功能', () => {
         .mockResolvedValue(true);
 
       await telegramNotifier.send15minSignalNotification(mockData);
-      
+
       const sentMessage = sendMessageSpy.mock.calls[0][0];
-      
+
       // 验证时间格式（应该是中国时间）
       expect(sentMessage).toMatch(/⏰ <b>检测时间:<\/b> \d{4}\/\d{1,2}\/\d{1,2} \d{1,2}:\d{2}:\d{2}/);
     });
