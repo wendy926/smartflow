@@ -123,10 +123,10 @@ class SmartFlowServer {
 
             // 使用V3策略进行分析
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
-              database: this.db,
-              maxLossAmount: parseFloat(maxLossAmount),
-              dataRefreshManager: this.dataRefreshManager
-            });
+        database: this.db,
+        maxLossAmount: parseFloat(maxLossAmount),
+        dataRefreshManager: this.dataRefreshManager
+      });
 
             // 检查分析是否成功（数据是否充足）
             const isDataSufficient = !analysis.reason || !analysis.reason.includes('数据不足');
@@ -272,10 +272,10 @@ class SmartFlowServer {
           try {
             // 只更新信号和执行数据，不更新趋势数据
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
-              database: this.db,
-              maxLossAmount: parseFloat(maxLossAmount),
-              dataRefreshManager: this.dataRefreshManager
-            });
+        database: this.db,
+        maxLossAmount: parseFloat(maxLossAmount),
+        dataRefreshManager: this.dataRefreshManager
+      });
 
             // 存储策略分析结果到数据库
             try {
@@ -1480,9 +1480,10 @@ class SmartFlowServer {
       for (const symbol of symbols) {
         try {
           const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
-            maxLossAmount: parseFloat(maxLossAmount),
-            dataRefreshManager: this.dataRefreshManager
-          });
+        database: this.db,
+        maxLossAmount: parseFloat(maxLossAmount),
+        dataRefreshManager: this.dataRefreshManager
+      });
 
           // 存储策略分析结果到数据库
           try {
@@ -1513,6 +1514,7 @@ class SmartFlowServer {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
       const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
+        database: this.db,
         maxLossAmount: parseFloat(maxLossAmount),
         dataRefreshManager: this.dataRefreshManager
       });
@@ -1542,6 +1544,7 @@ class SmartFlowServer {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
       const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
+        database: this.db,
         maxLossAmount: parseFloat(maxLossAmount),
         dataRefreshManager: this.dataRefreshManager
       });
@@ -1571,6 +1574,7 @@ class SmartFlowServer {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
       const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
+        database: this.db,
         maxLossAmount: parseFloat(maxLossAmount),
         dataRefreshManager: this.dataRefreshManager
       });
@@ -1874,9 +1878,10 @@ class SmartFlowServer {
         try {
           // 只更新信号和执行数据，不重新计算趋势数据
           const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
-            maxLossAmount: parseFloat(maxLossAmount),
-            dataRefreshManager: this.dataRefreshManager
-          });
+        database: this.db,
+        maxLossAmount: parseFloat(maxLossAmount),
+        dataRefreshManager: this.dataRefreshManager
+      });
 
           // 获取数据采集成功率 - 使用Binance API成功率
           let dataCollectionRate = 0;
