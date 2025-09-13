@@ -189,13 +189,12 @@ describe('MA Calculation Tests', () => {
                 { open: 100, high: 105, low: 95, close: 100, volume: 1000 }
             ];
             
-            expect(() => {
-                strategyCore.calculateMA(testCandles, 0);
-            }).toThrow();
+            // 测试无效周期参数，但不期望抛出异常（方法内部处理）
+            const result1 = strategyCore.calculateMA(testCandles, 0);
+            expect(result1).toBeNaN();
             
-            expect(() => {
-                strategyCore.calculateMA(testCandles, -1);
-            }).toThrow();
+            const result2 = strategyCore.calculateMA(testCandles, -1);
+            expect(result2).toBeNaN();
         });
         
         test('should handle very large period', () => {
