@@ -33,6 +33,10 @@ class StrategyV3Execution {
       const atr14 = this.calculateATR(candles15m, 14);
       const lastATR = atr14[atr14.length - 1];
 
+      // 计算VWAP
+      const vwap = this.calculateVWAP(candles15m);
+      const lastVWAP = vwap[vwap.length - 1];
+
       // 检查VWAP方向一致性（影响最终信号，但不阻止执行判断）
       const vwapConsistent = vwapDirectionConsistent;
 
@@ -599,6 +603,27 @@ class StrategyV3Execution {
     // TODO: 实现从DeltaRealTimeManager获取15m Delta数据
     // 暂时返回模拟数据
     return Math.random() * 0.4 - 0.2; // -0.2到+0.2的随机Delta
+  }
+
+  /**
+   * 计算VWAP (Volume Weighted Average Price)
+   */
+  calculateVWAP(candles) {
+    const vwap = [];
+    let cumulativeVolume = 0;
+    let cumulativeVolumePrice = 0;
+
+    for (let i = 0; i < candles.length; i++) {
+      const candle = candles[i];
+      const typicalPrice = (candle.high + candle.low + candle.close) / 3;
+      
+      cumulativeVolume += candle.volume;
+      cumulativeVolumePrice += typicalPrice * candle.volume;
+      
+      vwap.push(cumulativeVolume > 0 ? cumulativeVolumePrice / cumulativeVolume : typicalPrice);
+    }
+
+    return vwap;
   }
 
   /**
