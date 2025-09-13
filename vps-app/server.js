@@ -794,31 +794,59 @@ class SmartFlowServer {
           alertMap.set(stat.symbol, stat.count);
         });
 
+        // 获取模拟交易统计数据
+        const simulationStats = await this.db.runQuery(`
+          SELECT 
+            symbol,
+            COUNT(*) as total_simulations,
+            SUM(CASE WHEN status = 'CLOSED' THEN 1 ELSE 0 END) as completed_simulations
+          FROM simulations 
+          WHERE symbol IN (${symbols.map(() => '?').join(',')})
+          GROUP BY symbol
+        `, symbols);
+
+        // 构建模拟交易统计映射表
+        const simulationMap = new Map();
+        simulationStats.forEach(stat => {
+          simulationMap.set(stat.symbol, {
+            total: stat.total_simulations,
+            completed: stat.completed_simulations
+          });
+        });
+
         // 生成详细统计
         const detailedStats = [];
         let dataCollectionSuccess = 0;
         let signalAnalysisSuccess = 0;
         let totalAlerts = 0;
+        let totalSimulations = 0;
+        let completedSimulations = 0;
 
         for (const symbol of symbols) {
           const kline4hCount = klineMap.get(`${symbol}_4h`) || 0;
           const kline1hCount = klineMap.get(`${symbol}_1h`) || 0;
           const analysisCount = analysisMap.get(symbol) || 0;
           const alertCount = alertMap.get(symbol) || 0;
+          const simStats = simulationMap.get(symbol) || { total: 0, completed: 0 };
 
           const hasData = kline4hCount > 0 && kline1hCount > 0;
           const hasAnalysis = analysisCount > 0;
+          const simulationCompletionRate = simStats.total > 0 ? (simStats.completed / simStats.total) * 100 : 0;
 
           if (hasData) dataCollectionSuccess++;
           if (hasAnalysis) signalAnalysisSuccess++;
           totalAlerts += alertCount;
+          totalSimulations += simStats.total;
+          completedSimulations += simStats.completed;
 
           detailedStats.push({
             symbol,
             dataCollectionRate: hasData ? 100 : 0,
             signalAnalysisRate: hasAnalysis ? 100 : 0,
-            simulationCompletionRate: 0,
-            simulationProgressRate: 0,
+            simulationCompletionRate: simulationCompletionRate,
+            simulationProgressRate: simulationCompletionRate, // 使用相同的完成率
+            simulationTriggers: simStats.total,
+            simulationCompletions: simStats.completed,
             refreshFrequency: '5分钟',
             overallStatus: hasData && hasAnalysis ? 'healthy' : (hasData ? 'warning' : 'error'),
             alertCount
@@ -827,6 +855,7 @@ class SmartFlowServer {
 
         const dataCollectionRate = symbols.length > 0 ? (dataCollectionSuccess / symbols.length) * 100 : 0;
         const signalAnalysisRate = symbols.length > 0 ? (signalAnalysisSuccess / symbols.length) * 100 : 0;
+        const simulationTradingRate = totalSimulations > 0 ? (completedSimulations / totalSimulations) * 100 : 0;
 
         res.json({
           summary: {
@@ -838,7 +867,7 @@ class SmartFlowServer {
             completionRates: {
               dataCollection: dataCollectionRate,
               signalAnalysis: signalAnalysisRate,
-              simulationTrading: 0
+              simulationTrading: simulationTradingRate
             }
           },
           detailedStats

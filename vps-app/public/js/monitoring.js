@@ -198,11 +198,9 @@ function updateSystemOverview(data) {
   let totalCompletions = 0;
   if (data.detailedStats) {
     data.detailedStats.forEach(symbol => {
-      // 使用新的数据结构
-      totalTriggers += 1; // 每个交易对算作一个触发器
-      if (symbol.simulationCompletionRate > 0) {
-        totalCompletions += 1;
-      }
+      // 使用实际的数据统计
+      totalTriggers += symbol.simulationTriggers || 0;
+      totalCompletions += symbol.simulationCompletions || 0;
     });
   }
   document.getElementById('simulationCompletionDetails').textContent = `${totalCompletions}/${totalTriggers}`;
