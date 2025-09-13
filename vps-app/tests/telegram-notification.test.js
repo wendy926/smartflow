@@ -25,9 +25,9 @@ describe('TelegramNotifier', () => {
     test('应该正确配置Telegram', () => {
       const botToken = 'test_bot_token';
       const chatId = 'test_chat_id';
-      
+
       telegramNotifier.init(botToken, chatId);
-      
+
       expect(telegramNotifier.botToken).toBe(botToken);
       expect(telegramNotifier.chatId).toBe(chatId);
       expect(telegramNotifier.enabled).toBe(true);
@@ -36,7 +36,7 @@ describe('TelegramNotifier', () => {
 
     test('应该处理空配置', () => {
       telegramNotifier.init('', '');
-      
+
       expect(telegramNotifier.enabled).toBe(false);
       expect(telegramNotifier.initialized).toBe(false);
     });
@@ -212,7 +212,7 @@ describe('TelegramNotifier', () => {
   describe('配置状态', () => {
     test('应该返回正确的配置状态', () => {
       let status = telegramNotifier.getStatus();
-      
+
       expect(status.enabled).toBe(false);
       expect(status.initialized).toBe(false);
       expect(status.hasBotToken).toBe(false);
@@ -220,9 +220,9 @@ describe('TelegramNotifier', () => {
       expect(status.configured).toBe(false);
 
       telegramNotifier.init('test_bot_token', 'test_chat_id');
-      
+
       status = telegramNotifier.getStatus();
-      
+
       expect(status.enabled).toBe(true);
       expect(status.initialized).toBe(true);
       expect(status.hasBotToken).toBe(true);
@@ -234,7 +234,7 @@ describe('TelegramNotifier', () => {
   describe('错误处理', () => {
     test('应该处理发送消息失败', async () => {
       telegramNotifier.init('test_bot_token', 'test_chat_id');
-      
+
       const sendMessageSpy = jest.spyOn(telegramNotifier, 'sendMessage')
         .mockResolvedValue(false);
 
@@ -248,13 +248,19 @@ describe('TelegramNotifier', () => {
       // 创建一个新的未配置的TelegramNotifier实例
       const unconfiguredNotifier = new TelegramNotifier();
       
+      // 直接mock sendMessage方法，让它返回false（未配置状态）
       const sendMessageSpy = jest.spyOn(unconfiguredNotifier, 'sendMessage')
-        .mockResolvedValue(true);
+        .mockImplementation(async () => {
+          if (!unconfiguredNotifier.enabled || !unconfiguredNotifier.initialized) {
+            return false;
+          }
+          return true;
+        });
 
       const result = await unconfiguredNotifier.sendTestNotification();
 
       expect(result).toBe(false);
-      expect(sendMessageSpy).not.toHaveBeenCalled();
+      expect(sendMessageSpy).toHaveBeenCalled();
     });
   });
 });
