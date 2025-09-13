@@ -186,6 +186,7 @@ describe('趋势市15分钟多因子打分系统', () => {
       const score1h = 4;
       const vwapDirectionConsistent = true;
       
+      // 构造满足基础条件的测试数据
       const candles15m = Array.from({ length: 50 }, (_, i) => ({
         open: 100000 + i * 10,
         high: 100500 + i * 10,
@@ -193,6 +194,16 @@ describe('趋势市15分钟多因子打分系统', () => {
         close: 100200 + i * 10,
         volume: 1500 // 1.5倍成交量
       }));
+      
+      // 确保最后一个蜡烛满足EMA支撑条件（收盘价 > EMA20/50）
+      const lastCandle = candles15m[candles15m.length - 1];
+      lastCandle.close = 105000; // 高于EMA
+      lastCandle.high = 105500;
+      
+      // 确保前一个蜡烛作为setup candle
+      const prevCandle = candles15m[candles15m.length - 2];
+      prevCandle.high = 104000; // setup candle高点
+      prevCandle.low = 103000;  // setup candle低点
       
       const candles1h = Array.from({ length: 50 }, (_, i) => ({
         open: 100000 + i * 50,
@@ -203,7 +214,8 @@ describe('趋势市15分钟多因子打分系统', () => {
       }));
 
       // Mock calculateTrend15mFactorScore 返回高分
-      jest.spyOn(execution, 'calculateTrend15mFactorScore').mockReturnValue({
+      const mockFactorScore = jest.spyOn(execution, 'calculateTrend15mFactorScore');
+      mockFactorScore.mockReturnValue({
         score: 3,
         factorScores: { vwap: 1, breakout: 1, volume: 1, oi: 0, delta: 0 },
         vwapDirection: true
@@ -217,6 +229,9 @@ describe('趋势市15分钟多因子打分系统', () => {
       expect(result.mode).toBe('多头回踩突破');
       expect(result.factorScore15m).toBe(3);
       expect(result.reason).toContain('多因子得分: 3');
+      
+      // 清理mock
+      mockFactorScore.mockRestore();
     });
 
     test('多头趋势执行 - 多因子得分<2不触发入场', () => {
@@ -225,6 +240,7 @@ describe('趋势市15分钟多因子打分系统', () => {
       const score1h = 4;
       const vwapDirectionConsistent = true;
       
+      // 构造满足基础条件的测试数据
       const candles15m = Array.from({ length: 50 }, (_, i) => ({
         open: 100000 + i * 10,
         high: 100500 + i * 10,
@@ -232,6 +248,16 @@ describe('趋势市15分钟多因子打分系统', () => {
         close: 100200 + i * 10,
         volume: 1500
       }));
+      
+      // 确保最后一个蜡烛满足EMA支撑条件
+      const lastCandle = candles15m[candles15m.length - 1];
+      lastCandle.close = 105000;
+      lastCandle.high = 105500;
+      
+      // 确保前一个蜡烛作为setup candle
+      const prevCandle = candles15m[candles15m.length - 2];
+      prevCandle.high = 104000;
+      prevCandle.low = 103000;
       
       const candles1h = Array.from({ length: 50 }, (_, i) => ({
         open: 100000 + i * 50,
@@ -242,7 +268,8 @@ describe('趋势市15分钟多因子打分系统', () => {
       }));
 
       // Mock calculateTrend15mFactorScore 返回低分
-      jest.spyOn(execution, 'calculateTrend15mFactorScore').mockReturnValue({
+      const mockFactorScore = jest.spyOn(execution, 'calculateTrend15mFactorScore');
+      mockFactorScore.mockReturnValue({
         score: 1,
         factorScores: { vwap: 1, breakout: 0, volume: 0, oi: 0, delta: 0 },
         vwapDirection: true
@@ -254,6 +281,9 @@ describe('趋势市15分钟多因子打分系统', () => {
 
       expect(result.signal).toBe('NONE');
       expect(result.mode).toBe('NONE');
+      
+      // 清理mock
+      mockFactorScore.mockRestore();
     });
 
     test('空头趋势执行 - 多因子得分≥2触发入场', () => {
@@ -262,6 +292,7 @@ describe('趋势市15分钟多因子打分系统', () => {
       const score1h = 4;
       const vwapDirectionConsistent = true;
       
+      // 构造满足基础条件的测试数据
       const candles15m = Array.from({ length: 50 }, (_, i) => ({
         open: 100000 - i * 10,
         high: 100500 - i * 10,
@@ -269,6 +300,16 @@ describe('趋势市15分钟多因子打分系统', () => {
         close: 99800 - i * 10,
         volume: 1500
       }));
+      
+      // 确保最后一个蜡烛满足EMA阻力条件（收盘价 < EMA20/50）
+      const lastCandle = candles15m[candles15m.length - 1];
+      lastCandle.close = 95000; // 低于EMA
+      lastCandle.low = 94000;
+      
+      // 确保前一个蜡烛作为setup candle
+      const prevCandle = candles15m[candles15m.length - 2];
+      prevCandle.high = 97000; // setup candle高点
+      prevCandle.low = 96000;  // setup candle低点
       
       const candles1h = Array.from({ length: 50 }, (_, i) => ({
         open: 100000 - i * 50,
@@ -279,7 +320,8 @@ describe('趋势市15分钟多因子打分系统', () => {
       }));
 
       // Mock calculateTrend15mFactorScore 返回高分
-      jest.spyOn(execution, 'calculateTrend15mFactorScore').mockReturnValue({
+      const mockFactorScore = jest.spyOn(execution, 'calculateTrend15mFactorScore');
+      mockFactorScore.mockReturnValue({
         score: 3,
         factorScores: { vwap: 1, breakout: 1, volume: 1, oi: 0, delta: 0 },
         vwapDirection: true
@@ -293,6 +335,9 @@ describe('趋势市15分钟多因子打分系统', () => {
       expect(result.mode).toBe('空头反抽破位');
       expect(result.factorScore15m).toBe(3);
       expect(result.reason).toContain('多因子得分: 3');
+      
+      // 清理mock
+      mockFactorScore.mockRestore();
     });
   });
 
