@@ -685,7 +685,7 @@ class SmartFlowApp {
     this.updateStatusDisplay();
   }
 
-  // 启动监控数据自动刷新（5分钟一次，不产生弹框）
+  // 启动监控数据自动刷新（2分钟一次，匹配15min信号更新频率）
   startMonitoringRefresh() {
     this.monitoringInterval = setInterval(async () => {
       try {
@@ -704,13 +704,63 @@ class SmartFlowApp {
       } catch (error) {
         console.error('❌ 监控数据刷新失败:', error);
       }
-    }, 300000); // 5分钟 = 300000毫秒
+    }, 120000); // 2分钟 = 120000毫秒，匹配15min信号更新频率
+
+    // 启动15min信号变化检测（每30秒检查一次）
+    this.signalChangeInterval = setInterval(async () => {
+      try {
+        await this.checkSignalChanges();
+      } catch (error) {
+        console.error('❌ 信号变化检测失败:', error);
+      }
+    }, 30000); // 30秒检查一次
   }
 
   stopMonitoringRefresh() {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
+    }
+    if (this.signalChangeInterval) {
+      clearInterval(this.signalChangeInterval);
+      this.signalChangeInterval = null;
+    }
+  }
+
+  // 检查15min信号变化
+  async checkSignalChanges() {
+    try {
+      // 使用新的数据变化状态API
+      const response = await fetch('/api/data-change-status');
+      const result = await response.json();
+      
+      if (result.success) {
+        const changeStatus = result.data;
+        let hasChanges = false;
+        
+        // 检查是否有新的15min信号
+        for (const [symbol, status] of Object.entries(changeStatus)) {
+          if (status.hasExecution && status.timeDiffMinutes <= 3) { // 3分钟内的新信号
+            console.log(`🚀 检测到新的15min信号 [${symbol}]: ${status.execution}`);
+            hasChanges = true;
+          }
+        }
+
+        if (hasChanges) {
+          console.log('🚀 检测到新的15min信号，立即刷新数据...');
+          // 立即刷新数据
+          const [signals, stats] = await Promise.all([
+            dataManager.getAllSignals(true), // 强制刷新
+            dataManager.getWinRateStats()
+          ]);
+          
+          this.updateStatsDisplay(signals, stats);
+          this.updateSignalsTable(signals);
+          console.log('✅ 15min信号变化检测刷新完成');
+        }
+      }
+    } catch (error) {
+      console.error('信号变化检测失败:', error);
     }
   }
 

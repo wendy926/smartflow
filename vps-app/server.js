@@ -1138,6 +1138,51 @@ class SmartFlowServer {
       }
     });
 
+    // 检查数据变化状态
+    this.app.get('/api/data-change-status', async (req, res) => {
+      try {
+        const symbols = await this.db.getCustomSymbols();
+        const changeStatus = {};
+        
+        for (const symbol of symbols) {
+          try {
+            // 获取最新的策略分析结果
+            const analysis = await this.db.getLatestStrategyAnalysis(symbol);
+            if (analysis) {
+              // 检查是否有15min信号变化
+              const hasExecution = analysis.execution && analysis.execution !== 'null' && analysis.execution.includes('EXECUTE');
+              const lastUpdate = new Date(analysis.updated_at || analysis.created_at);
+              const now = new Date();
+              const timeDiff = (now - lastUpdate) / 1000 / 60; // 分钟
+              
+              changeStatus[symbol] = {
+                hasExecution,
+                lastUpdate: lastUpdate.toISOString(),
+                timeDiffMinutes: Math.round(timeDiff),
+                execution: analysis.execution,
+                signal: analysis.signal
+              };
+            }
+          } catch (error) {
+            console.error(`检查 ${symbol} 数据变化状态失败:`, error);
+            changeStatus[symbol] = { error: error.message };
+          }
+        }
+
+        res.json({
+          success: true,
+          data: changeStatus,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('检查数据变化状态失败:', error);
+        res.status(500).json({
+          success: false,
+          error: '检查数据变化状态失败'
+        });
+      }
+    });
+
     // 获取特定交易对的分类和权重信息
     this.app.get('/api/symbol-info/:symbol', async (req, res) => {
       try {
