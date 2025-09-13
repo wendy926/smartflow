@@ -180,24 +180,24 @@ describe('Telegram通知集成测试', () => {
     test('应该正确设置和获取Telegram配置', () => {
       // 初始状态
       let status = telegramNotifier.getStatus();
-      expect(status.configured).toBe(false);
+      expect(status.signal.configured).toBe(false);
 
       // 设置配置
       telegramNotifier.init('test_bot_token', 'test_chat_id');
 
       status = telegramNotifier.getStatus();
-      expect(status.configured).toBe(true);
-      expect(status.enabled).toBe(true);
-      expect(status.hasBotToken).toBe(true);
-      expect(status.hasChatId).toBe(true);
+      expect(status.signal.configured).toBe(true);
+      expect(status.signal.enabled).toBe(true);
+      expect(status.signal.hasBotToken).toBe(true);
+      expect(status.signal.hasChatId).toBe(true);
     });
 
     test('应该正确处理无效配置', () => {
       telegramNotifier.init('', '');
 
       const status = telegramNotifier.getStatus();
-      expect(status.configured).toBe(false);
-      expect(status.enabled).toBe(false);
+      expect(status.signal.configured).toBe(false);
+      expect(status.signal.enabled).toBe(false);
     });
   });
 
@@ -222,7 +222,7 @@ describe('Telegram通知集成测试', () => {
 
       let capturedMessage = '';
       const sendMessageSpy = jest.spyOn(telegramNotifier, 'sendMessage')
-        .mockImplementation(async (message) => {
+        .mockImplementation(async (message, type) => {
           capturedMessage = message;
           return true;
         });
@@ -260,7 +260,7 @@ describe('Telegram通知集成测试', () => {
 
       let capturedMessage = '';
       const sendMessageSpy = jest.spyOn(telegramNotifier, 'sendMessage')
-        .mockImplementation(async (message) => {
+        .mockImplementation(async (message, type) => {
           capturedMessage = message;
           return true;
         });

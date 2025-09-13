@@ -68,19 +68,24 @@ describe('TelegramNotifier', () => {
       await telegramNotifier.sendSimulationStartNotification(simulationData);
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('🚀 <b>模拟交易开启</b>')
+        expect.stringContaining('🚀 <b>模拟交易开启</b>'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('BTCUSDT')
+        expect.stringContaining('BTCUSDT'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('做多')
+        expect.stringContaining('做多'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('50000.0000 USDT')
+        expect.stringContaining('50000.0000 USDT'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('20x')
+        expect.stringContaining('20x'),
+        'simulation'
       );
     });
 
@@ -104,10 +109,12 @@ describe('TelegramNotifier', () => {
       await telegramNotifier.sendSimulationStartNotification(simulationData);
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('做空')
+        expect.stringContaining('做空'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('3000.0000 USDT')
+        expect.stringContaining('3000.0000 USDT'),
+        'simulation'
       );
     });
   });
@@ -141,16 +148,20 @@ describe('TelegramNotifier', () => {
       await telegramNotifier.sendSimulationEndNotification(simulationData);
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('✅ <b>模拟交易结束</b>')
+        expect.stringContaining('✅ <b>模拟交易结束</b>'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('盈利')
+        expect.stringContaining('盈利'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('+200.0000 USDT')
+        expect.stringContaining('+200.0000 USDT'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('200.00%')
+        expect.stringContaining('200.00%'),
+        'simulation'
       );
     });
 
@@ -178,16 +189,20 @@ describe('TelegramNotifier', () => {
       await telegramNotifier.sendSimulationEndNotification(simulationData);
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('❌ <b>模拟交易结束</b>')
+        expect.stringContaining('❌ <b>模拟交易结束</b>'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('亏损')
+        expect.stringContaining('亏损'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('-50.0000 USDT')
+        expect.stringContaining('-50.0000 USDT'),
+        'simulation'
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('-33.33%')
+        expect.stringContaining('-33.33%'),
+        'simulation'
       );
     });
   });
@@ -204,7 +219,8 @@ describe('TelegramNotifier', () => {
       await telegramNotifier.sendTestNotification();
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('🧪 <b>Telegram通知测试</b>')
+        expect.stringContaining('🧪 <b>Telegram通知测试</b>'),
+        'signal'
       );
     });
   });
@@ -213,21 +229,21 @@ describe('TelegramNotifier', () => {
     test('应该返回正确的配置状态', () => {
       let status = telegramNotifier.getStatus();
 
-      expect(status.enabled).toBe(false);
-      expect(status.initialized).toBe(false);
-      expect(status.hasBotToken).toBe(false);
-      expect(status.hasChatId).toBe(false);
-      expect(status.configured).toBe(false);
+      expect(status.signal.enabled).toBe(false);
+      expect(status.signal.initialized).toBe(false);
+      expect(status.signal.hasBotToken).toBe(false);
+      expect(status.signal.hasChatId).toBe(false);
+      expect(status.signal.configured).toBe(false);
 
       telegramNotifier.init('test_bot_token', 'test_chat_id');
 
       status = telegramNotifier.getStatus();
 
-      expect(status.enabled).toBe(true);
-      expect(status.initialized).toBe(true);
-      expect(status.hasBotToken).toBe(true);
-      expect(status.hasChatId).toBe(true);
-      expect(status.configured).toBe(true);
+      expect(status.signal.enabled).toBe(true);
+      expect(status.signal.initialized).toBe(true);
+      expect(status.signal.hasBotToken).toBe(true);
+      expect(status.signal.hasChatId).toBe(true);
+      expect(status.signal.configured).toBe(true);
     });
   });
 
