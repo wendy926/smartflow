@@ -81,6 +81,14 @@ class StrategyV3Execution {
             };
           } else {
             console.log(`多头回踩突破条件满足但多因子得分不足 [${symbol}]: 得分=${factorResult.score} < 2`);
+            // 多因子得分不足，不触发入场
+            return {
+              signal: 'NONE',
+              mode: 'NONE',
+              reason: `多头回踩突破条件满足但多因子得分不足 (得分: ${factorResult.score} < 2)`,
+              factorScore15m: factorResult.score,
+              factorScores: factorResult.factorScores
+            };
           }
         }
       }
@@ -126,6 +134,14 @@ class StrategyV3Execution {
             };
           } else {
             console.log(`空头反抽破位条件满足但多因子得分不足 [${symbol}]: 得分=${factorResult.score} < 2`);
+            // 多因子得分不足，不触发入场
+            return {
+              signal: 'NONE',
+              mode: 'NONE',
+              reason: `空头反抽破位条件满足但多因子得分不足 (得分: ${factorResult.score} < 2)`,
+              factorScore15m: factorResult.score,
+              factorScores: factorResult.factorScores
+            };
           }
         }
       }
