@@ -1515,7 +1515,7 @@ CREATE TABLE validation_results (
 * **过滤功能：** 支持按类型过滤告警记录
 
 *最后更新: 2025-09-13*
-*版本: V3.15*
+*版本: V3.16*
 
 ## 12. 更新日志
 
@@ -1633,3 +1633,15 @@ CREATE TABLE validation_results (
 - **错误处理机制** - 通知发送失败不影响模拟交易正常执行
 - **单元测试覆盖** - 新增telegram-notification.test.js和telegram-integration.test.js测试文件
 - **配置持久化** - Telegram配置保存到数据库，服务重启后自动加载
+
+### V3.16 (2025-09-13)
+- **价格显示格式优化** - 所有价格字段精确显示到小数点后4位
+- **双机器人Telegram通知** - 实现15min信号通知和模拟交易通知的分离管理
+- **15min信号通知** - 使用当前机器人配置发送信号检测通知
+- **模拟交易通知** - 使用新机器人配置（bot token: 1111111）发送交易执行通知
+- **价格格式化统一** - 使用DataManager.formatPrice()方法统一处理所有价格显示
+- **滚仓计算器优化** - 添加formatPrice()方法支持4位小数价格显示
+- **测试覆盖完善** - 修复所有Telegram通知测试以适配双机器人配置
+- **API接口扩展** - 新增`/api/telegram-simulation-config`和`/api/telegram-simulation-test`接口
+- **配置状态查询** - getStatus()方法返回两个机器人的独立配置状态
+- **错误隔离机制** - 一个机器人故障不影响另一个机器人的正常使用
