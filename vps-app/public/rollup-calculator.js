@@ -78,152 +78,119 @@ class RollupCalculator {
     }
   }
 
-  // 模拟滚仓策略
-  simulateRollup({ principal, initLeverage, entryPrice, targetPrice, leverageStrategy, maxDrawdownRatio = 0.8 }) {
+  // 动态杠杆滚仓策略模拟器
+  simulateDynamicPyramid({
+    principal,
+    initialLeverage,
+    priceStart,
+    priceTarget,
+    triggerRatio = 1.0,
+    leverageDecay = 0.5,
+    profitLockRatio = 0.5,
+    minLeverage = 5
+  }) {
     try {
-      let positions = [];
-      const initialPositionValue = principal * initLeverage;
-      const initialQty = initialPositionValue / entryPrice;
+      let equity = principal; // 当前总净值
+      let lockedProfit = 0;   // 已落袋利润
+      let floatingProfit = 0; // 当前浮盈
+      let leverage = initialLeverage;
+      let position = principal * leverage; // 仓位价值
+      let price = priceStart;
+      const totalPriceIncrease = priceTarget - priceStart;
+      const priceStep = totalPriceIncrease / 100; // 模拟100步上涨
+      const history = [];
+      const rollupSteps = [];
 
-      positions.push({
-        id: 1,
-        entry: entryPrice,
-        margin: principal,
-        leverage: initLeverage,
-        positionValue: initialPositionValue,
-        qty: initialQty,
-        source: 'principal'
+      // 初始仓位记录
+      history.push({
+        step: 0,
+        price: this.round2(price),
+        position: this.round2(position),
+        floatingProfit: 0,
+        lockedProfit: 0,
+        equity: this.round2(equity),
+        leverage: leverage,
+        operation: '初始开仓',
+        margin: this.round2(principal),
+        qty: this.round2(position / price)
       });
 
-      const start = entryPrice;
-      const end = targetPrice;
-      const range = end - start;
-      let trough = start;
+      for (let i = 1; i <= 100; i++) {
+        price += priceStep;
+        floatingProfit = position * (price - priceStart) / priceStart;
 
-      const peaks = this.fibonacciLevels.map(r => {
-        const H = start + r * range;
-        const R = H - 0.618 * (H - trough);
-        return { ratio: r, H: H, R: R, troughBefore: trough };
-      });
+        // 判断是否触发滚仓
+        if (floatingProfit >= principal * triggerRatio) {
+          // 抽回本金
+          equity += principal;
+          floatingProfit -= principal;
 
-      let allocSequence = [];
-      let cumulativeRealizedProfit = 0;
+          // 落袋部分利润
+          const locked = floatingProfit * profitLockRatio;
+          lockedProfit += locked;
+          floatingProfit -= locked;
 
-      for (let i = 0; i < peaks.length; i++) {
-        const p = peaks[i];
-        const priceAt = p.R;
+          // 滚仓
+          leverage = Math.max(minLeverage, leverage * leverageDecay);
+          position = floatingProfit * leverage;
 
-        let unrealizedProfit = positions.reduce((acc, pos) => {
-          return acc + (priceAt - pos.entry) * pos.qty;
-        }, 0);
+          // 记录滚仓步骤
+          rollupSteps.push({
+            step: rollupSteps.length + 1,
+            triggerPrice: this.round2(price),
+            floatingProfit: this.round2(floatingProfit + locked),
+            entryPrice: this.round2(price),
+            marginUsed: this.round2(floatingProfit),
+            leverage: leverage,
+            positionValue: this.round2(position),
+            qty: this.round2(position / price),
+            lockedProfit: this.round2(locked)
+          });
 
-        let availableProfit = Math.max(0, unrealizedProfit - cumulativeRealizedProfit);
-
-        if (availableProfit <= 0) continue;
-
-        const maxSafeMargin = availableProfit * 0.95;
-        const desiredMargin = availableProfit / 10;
-
-        let chosenLeverage, marginToUse;
-
-        if (leverageStrategy === 'fixed' && i < this.fixedLeverageSequence.length) {
-          chosenLeverage = this.fixedLeverageSequence[i];
-          // 固定序列策略：基于杠杆计算保证金
-          const requiredMargin = (availableProfit * 0.1) / chosenLeverage;
-          marginToUse = Math.min(requiredMargin, maxSafeMargin);
-        } else {
-          chosenLeverage = this.calculateDynamicLeverage({ availableProfit, stepIndex: i });
-          // 动态计算策略：基于可用利润的10%计算保证金
-          marginToUse = Math.min(desiredMargin, maxSafeMargin);
+          // 重置开仓价
+          priceStart = price;
         }
 
-        if (chosenLeverage <= 0 || marginToUse <= 0) continue;
-
-        // 确保杠杆不超过可用利润的限制
-        const maxLeverageByProfit = Math.floor(availableProfit / marginToUse);
-        const actualLeverage = Math.min(chosenLeverage, maxLeverageByProfit);
-        if (actualLeverage <= 0) continue;
-
-        const newPositionValue = marginToUse * actualLeverage;
-        const newQty = newPositionValue / priceAt;
-
-        positions.push({
-          id: positions.length + 1,
-          entry: priceAt,
-          margin: marginToUse,
-          leverage: actualLeverage,
-          positionValue: newPositionValue,
-          qty: newQty,
-          source: 'profit'
-        });
-
-        cumulativeRealizedProfit += marginToUse;
-
-        const stopLossPrice = this.calculateStopLossPrice({
-          principal,
-          currentPrice: priceAt,
-          totalQty: this.calculateTotalQty(positions),
-          maxDrawdownRatio
-        });
-
-        allocSequence.push({
-          step: i + 1,
-          peak_H: this.round2(p.H),
-          retrace_R: this.round2(p.R),
-          new_entry_price: this.round2(priceAt),
-          margin_used: this.round2(marginToUse),
-          leverage: actualLeverage,
-          position_value: this.round2(newPositionValue),
-          qty: this.round2(newQty),
-          stop_loss_price: this.round2(stopLossPrice)
+        // 保存历史记录
+        history.push({
+          step: i,
+          price: this.round2(price),
+          position: this.round2(position),
+          floatingProfit: this.round2(floatingProfit),
+          lockedProfit: this.round2(lockedProfit),
+          equity: this.round2(equity + floatingProfit + lockedProfit),
+          leverage: this.round2(leverage),
+          operation: i === 1 ? '初始开仓' : `第${rollupSteps.length}次滚仓`,
+          margin: i === 1 ? this.round2(principal) : this.round2(floatingProfit),
+          qty: this.round2(position / price)
         });
       }
 
-      const finalDetails = positions.map((pos, index) => {
-        const profit = (targetPrice - pos.entry) * pos.qty;
-        const stopLossPrice = this.calculateStopLossPrice({
-          principal,
-          currentPrice: pos.entry,
-          totalQty: pos.qty,
-          maxDrawdownRatio
-        });
-
-        return {
-          id: pos.id,
-          entry: this.round2(pos.entry),
-          margin: this.round2(pos.margin),
-          leverage: pos.leverage,
-          qty: this.round2(pos.qty),
-          position_value: this.round2(pos.positionValue),
-          stop_loss_price: this.round2(stopLossPrice),
-          profit: this.round2(profit),
-          source: pos.source
-        };
-      });
-
-      const totalProfit = finalDetails.reduce((sum, pos) => sum + pos.profit, 0);
-      const finalAccount = principal + totalProfit;
+      // 计算最终结果
+      const totalProfit = lockedProfit + floatingProfit;
+      const finalAccount = equity + totalProfit;
       const returnRate = (totalProfit / principal) * 100;
 
-      const principalProtection = this.calculatePrincipalProtection(principal, finalDetails, targetPrice);
+      // 计算本金保护
+      const principalProtection = this.calculatePrincipalProtection(principal, history, priceTarget);
 
       return {
-        inputs: { principal, initLeverage, entryPrice, targetPrice, leverageStrategy, maxDrawdownRatio },
-        positions: finalDetails,
-        addSteps: allocSequence,
+        inputs: { principal, initialLeverage, priceStart, priceTarget, triggerRatio, leverageDecay, profitLockRatio, minLeverage },
+        positions: history,
+        rollupSteps: rollupSteps,
         principalProtection,
         summary: {
           totalProfit: this.round2(totalProfit),
           finalAccount: this.round2(finalAccount),
           returnRate: this.round2(returnRate),
-          positionsCount: finalDetails.length,
-          rollupCount: allocSequence.length,
+          positionsCount: history.length,
+          rollupCount: rollupSteps.length,
           principalProtected: principalProtection.isProtected,
           maxDrawdown: principalProtection.maxDrawdown
         }
       };
     } catch (error) {
-      throw new Error(`计算错误: ${error.message}`);
+      throw new Error(`动态杠杆滚仓计算错误: ${error.message}`);
     }
   }
 
@@ -290,7 +257,6 @@ class RollupCalculator {
 document.addEventListener('DOMContentLoaded', function () {
   const form = document.getElementById('rollupForm');
   const calculateInitialBtn = document.getElementById('calculateInitial');
-  const compareStrategiesBtn = document.getElementById('compareStrategies');
   const calculateRollupBtn = document.getElementById('calculateRollup');
 
   const calculator = new RollupCalculator();
@@ -396,36 +362,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // 对比策略
-  compareStrategiesBtn.addEventListener('click', function () {
-    try {
-      if (!window.calculatedPrincipal || !window.calculatedLeverage) {
-        throw new Error('请先点击"初单计算"按钮');
-      }
 
-      const targetPrice = parseFloat(document.getElementById('targetPrice').value);
-      if (isNaN(targetPrice) || targetPrice <= 0) {
-        throw new Error('请输入有效的目标价格');
-      }
-
-      if (targetPrice <= window.calculatedCurrentPrice) {
-        throw new Error('目标价格必须大于当前价格');
-      }
-
-      compareStrategies(calculator, {
-        suggestedMargin: window.calculatedPrincipal,
-        maxLeverage: window.calculatedLeverage,
-        stopLossPrice: window.calculatedStopLoss,
-        stopLossDistance: window.calculatedStopLossDistance,
-        entryPrice: window.calculatedCurrentPrice
-      }, targetPrice);
-
-    } catch (err) {
-      displayError(err.message);
-    }
-  });
-
-  // 计算滚仓路径
+  // 计算动态杠杆滚仓
   calculateRollupBtn.addEventListener('click', function () {
     try {
       if (!window.calculatedPrincipal || !window.calculatedLeverage) {
@@ -433,7 +371,10 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       const targetPrice = parseFloat(document.getElementById('targetPrice').value);
-      const leverageStrategy = document.getElementById('leverageStrategy').value;
+      const triggerRatio = parseFloat(document.getElementById('triggerRatio').value);
+      const leverageDecay = parseFloat(document.getElementById('leverageDecay').value);
+      const profitLockRatio = parseFloat(document.getElementById('profitLockRatio').value);
+      const minLeverage = parseInt(document.getElementById('minLeverage').value);
 
       if (isNaN(targetPrice) || targetPrice <= 0) {
         throw new Error('请输入有效的目标价格');
@@ -443,13 +384,15 @@ document.addEventListener('DOMContentLoaded', function () {
         throw new Error('目标价格必须大于当前价格');
       }
 
-      const result = calculator.simulateRollup({
+      const result = calculator.simulateDynamicPyramid({
         principal: window.calculatedPrincipal,
-        initLeverage: window.calculatedLeverage,
-        entryPrice: window.calculatedCurrentPrice,
-        targetPrice: targetPrice,
-        leverageStrategy: leverageStrategy,
-        maxDrawdownRatio: 0.8
+        initialLeverage: window.calculatedLeverage,
+        priceStart: window.calculatedCurrentPrice,
+        priceTarget: targetPrice,
+        triggerRatio: triggerRatio,
+        leverageDecay: leverageDecay,
+        profitLockRatio: profitLockRatio,
+        minLeverage: minLeverage
       });
 
       displayResults(result);
@@ -486,71 +429,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('initialCalculation').classList.remove('hidden');
     document.getElementById('error').classList.add('hidden');
     document.getElementById('results').classList.add('hidden');
-    document.getElementById('strategyComparison').classList.add('hidden');
   }
 
-  // 对比策略
-  function compareStrategies(calculator, leverageData, targetPrice) {
-    try {
-      const dynamicResult = calculator.simulateRollup({
-        principal: leverageData.suggestedMargin,
-        initLeverage: leverageData.maxLeverage,
-        entryPrice: leverageData.entryPrice,
-        targetPrice: targetPrice,
-        leverageStrategy: 'dynamic',
-        maxDrawdownRatio: 0.8
-      });
-
-      const fixedResult = calculator.simulateRollup({
-        principal: leverageData.suggestedMargin,
-        initLeverage: leverageData.maxLeverage,
-        entryPrice: leverageData.entryPrice,
-        targetPrice: targetPrice,
-        leverageStrategy: 'fixed',
-        maxDrawdownRatio: 0.8
-      });
-
-      // 显示策略对比结果
-      document.getElementById('dynamicProfit').textContent = calculator.formatNumber(dynamicResult.summary?.totalProfit || 0) + ' U';
-      document.getElementById('dynamicReturnRate').textContent = calculator.formatNumber(dynamicResult.summary?.returnRate || 0) + '%';
-      document.getElementById('dynamicRollupCount').textContent = dynamicResult.summary?.rollupCount || 0;
-      document.getElementById('dynamicRiskLevel').textContent = (dynamicResult.summary?.maxDrawdown || 0) > 50 ? '较高' : (dynamicResult.summary?.maxDrawdown || 0) > 20 ? '中等' : '较低';
-
-      document.getElementById('fixedProfit').textContent = calculator.formatNumber(fixedResult.summary?.totalProfit || 0) + ' U';
-      document.getElementById('fixedReturnRate').textContent = calculator.formatNumber(fixedResult.summary?.returnRate || 0) + '%';
-      document.getElementById('fixedRollupCount').textContent = fixedResult.summary?.rollupCount || 0;
-      document.getElementById('fixedRiskLevel').textContent = (fixedResult.summary?.maxDrawdown || 0) > 50 ? '较高' : (fixedResult.summary?.maxDrawdown || 0) > 20 ? '中等' : '较低';
-
-      // 生成推荐
-      const dynamicProfit = dynamicResult.summary?.totalProfit || 0;
-      const fixedProfit = fixedResult.summary?.totalProfit || 0;
-      const dynamicRisk = dynamicResult.summary?.maxDrawdown || 0;
-      const fixedRisk = fixedResult.summary?.maxDrawdown || 0;
-
-      let recommendation = '';
-      if (dynamicProfit > fixedProfit && dynamicRisk <= fixedRisk) {
-        recommendation = '🔄 推荐使用动态计算策略：收益更高且风险更低';
-      } else if (fixedProfit > dynamicProfit && fixedRisk <= dynamicRisk) {
-        recommendation = '📋 推荐使用固定序列策略：收益更高且风险更低';
-      } else if (dynamicProfit > fixedProfit) {
-        recommendation = '🔄 推荐使用动态计算策略：收益更高（但风险也较高）';
-      } else if (fixedProfit > dynamicProfit) {
-        recommendation = '📋 推荐使用固定序列策略：收益更高（但风险也较高）';
-      } else {
-        recommendation = '⚖️ 两种策略收益相近，可根据风险偏好选择';
-      }
-
-      document.getElementById('recommendation').textContent = recommendation;
-
-      document.getElementById('strategyComparison').classList.remove('hidden');
-      document.getElementById('error').classList.add('hidden');
-      document.getElementById('results').classList.add('hidden');
-      document.getElementById('initialCalculation').classList.add('hidden');
-
-    } catch (error) {
-      displayError('策略对比时出错: ' + error.message);
-    }
-  }
 
   // 显示计算结果
   function displayResults(result) {
@@ -586,54 +466,58 @@ document.addEventListener('DOMContentLoaded', function () {
     const positionsTableBody = document.getElementById('positionsTableBody');
     positionsTableBody.innerHTML = '';
 
-    let cumulativeAccount = result.inputs.principal;
+    // 只显示关键步骤的仓位信息
+    const keyPositions = result.positions.filter((pos, index) =>
+      index === 0 || pos.operation.includes('滚仓') || index === result.positions.length - 1
+    );
 
-    result.positions.forEach((pos, index) => {
+    keyPositions.forEach((pos, index) => {
       const row = document.createElement('tr');
-      cumulativeAccount += pos.profit;
+      const floatingProfit = pos.floatingProfit || 0;
+      const lockedProfit = pos.lockedProfit || 0;
 
       row.innerHTML = `
-                <td>${String.fromCharCode(9311 + index)}</td>
-                <td>${calculator.getOperationType(index, pos.source)}</td>
-                <td>${calculator.formatNumber(pos.entry)}</td>
-                <td>${calculator.formatNumber(pos.margin)}${pos.source === 'principal' ? '（本金）' : '（利润）'}</td>
+                <td>${index + 1}</td>
+                <td>${pos.operation}</td>
+                <td>${calculator.formatNumber(pos.price)}</td>
+                <td>${calculator.formatNumber(pos.margin)}</td>
                 <td>${pos.leverage}x</td>
-                <td>${calculator.formatNumber(pos.position_value)}</td>
+                <td>${calculator.formatNumber(pos.position)}</td>
                 <td>≈ ${calculator.formatNumber(pos.qty)}</td>
-                <td>${calculator.formatPrice(pos.stop_loss_price || 0)}</td>
-                <td>${calculator.formatNumber(pos.profit)}</td>
-                <td>${calculator.formatNumber(cumulativeAccount)}</td>
+                <td>${calculator.formatNumber(floatingProfit)}</td>
+                <td>${calculator.formatNumber(lockedProfit)}</td>
+                <td>${calculator.formatNumber(pos.equity)}</td>
             `;
       positionsTableBody.appendChild(row);
     });
 
-    // 填充加仓步骤表格
+    // 填充滚仓步骤表格
     const addStepsTableBody = document.getElementById('addStepsTableBody');
     addStepsTableBody.innerHTML = '';
 
-    if (result.addSteps.length > 0) {
-      result.addSteps.forEach((step, index) => {
+    if (result.rollupSteps && result.rollupSteps.length > 0) {
+      result.rollupSteps.forEach((step, index) => {
         const row = document.createElement('tr');
-        row.id = `addStepRow_${step.step}`;
+        row.id = `rollupStepRow_${step.step}`;
         row.innerHTML = `
                     <td>
                         <input type="checkbox" class="step-checkbox" data-step="${step.step}" onchange="toggleStepCompletion(this)">
                     </td>
-                    <td>${step.step}</td>
-                    <td>${calculator.formatNumber(step.peak_H)}</td>
-                    <td>${calculator.formatNumber(step.retrace_R)}</td>
-                    <td>${calculator.formatPrice(step.new_entry_price)}</td>
-                    <td>${calculator.formatNumber(step.margin_used)}</td>
+                    <td>第${step.step}次滚仓</td>
+                    <td>${calculator.formatNumber(step.triggerPrice)}</td>
+                    <td>${calculator.formatNumber(step.floatingProfit)}</td>
+                    <td>${calculator.formatNumber(step.entryPrice)}</td>
+                    <td>${calculator.formatNumber(step.marginUsed)}</td>
                     <td>${step.leverage}x</td>
-                    <td>${calculator.formatNumber(step.position_value)}</td>
+                    <td>${calculator.formatNumber(step.positionValue)}</td>
                     <td>≈ ${calculator.formatNumber(step.qty)}</td>
-                    <td>${calculator.formatPrice(step.stop_loss_price || 0)}</td>
+                    <td>${calculator.formatNumber(step.lockedProfit)}</td>
                 `;
         addStepsTableBody.appendChild(row);
       });
     } else {
       const row = document.createElement('tr');
-      row.innerHTML = '<td colspan="10" style="text-align: center; color: #6c757d;">无加仓操作</td>';
+      row.innerHTML = '<td colspan="10" style="text-align: center; color: #6c757d;">无滚仓操作</td>';
       addStepsTableBody.appendChild(row);
     }
 
@@ -641,7 +525,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('results').classList.remove('hidden');
     document.getElementById('error').classList.add('hidden');
     document.getElementById('initialCalculation').classList.add('hidden');
-    document.getElementById('strategyComparison').classList.add('hidden');
   }
 
   // 显示错误信息
@@ -650,7 +533,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('error').classList.remove('hidden');
     document.getElementById('results').classList.add('hidden');
     document.getElementById('initialCalculation').classList.add('hidden');
-    document.getElementById('strategyComparison').classList.add('hidden');
   }
 });
 

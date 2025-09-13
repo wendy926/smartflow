@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">5.02% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>11/219</span>
+                <span class='fraction'>0/219</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">5.18% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>11/212</span>
+                <span class='fraction'>0/212</span>
             </div>
         
             
@@ -779,18 +779,18 @@
 <a name='L714'></a><a href='#L714'>714</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1487,23 +1487,23 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// modules/strategy/SmartFlowStrategyV3.js
 // SmartFlow 交易策略V3核心模块 - 基于strategy-v3.md实现
 &nbsp;
-const BinanceAPI = require('../api/BinanceAPI');
-const StrategyV3Core = require('./StrategyV3Core');
-const StrategyV3Execution = require('./StrategyV3Execution');
-const { DataMonitor } = require('../monitoring/DataMonitor');
-const DeltaRealTimeManager = require('../data/DeltaRealTimeManager');
+const BinanceAPI = <span class="cstat-no" title="statement not covered" >require('../api/BinanceAPI');</span>
+const StrategyV3Core = <span class="cstat-no" title="statement not covered" >require('./StrategyV3Core');</span>
+const StrategyV3Execution = <span class="cstat-no" title="statement not covered" >require('./StrategyV3Execution');</span>
+const { DataMonitor } = <span class="cstat-no" title="statement not covered" >require('../monitoring/DataMonitor');</span>
+const DeltaRealTimeManager = <span class="cstat-no" title="statement not covered" >require('../data/DeltaRealTimeManager');</span>
 &nbsp;
 class SmartFlowStrategyV3 {
-  static dataMonitor = new DataMonitor();
-  static dataManager = null; // 将在初始化时设置
-  static deltaManager = null; // 将在初始化时设置
-  static core = new StrategyV3Core();
-  static execution = null; // 将在初始化时设置
+  static dataMonitor = <span class="cstat-no" title="statement not covered" >new DataMonitor();</span>
+  static dataManager = <span class="cstat-no" title="statement not covered" >null;</span> // 将在初始化时设置
+  static deltaManager = <span class="cstat-no" title="statement not covered" >null;</span> // 将在初始化时设置
+  static core = <span class="cstat-no" title="statement not covered" >new StrategyV3Core();</span>
+  static execution = <span class="cstat-no" title="statement not covered" >null;</span> // 将在初始化时设置
 &nbsp;
 <span class="fstat-no" title="function not covered" >  co</span>nstructor(database = <span class="branch-0 cbranch-no" title="branch not covered" >null)</span> {
 <span class="cstat-no" title="statement not covered" >    this.database = database;</span>
@@ -2200,7 +2200,7 @@ class SmartFlowStrategyV3 {
   }
 }
 &nbsp;
-module.exports = SmartFlowStrategyV3;
+<span class="cstat-no" title="statement not covered" >module.exports = SmartFlowStrategyV3;</span>
 &nbsp;
 &nbsp;</pre></td></tr></table></pre>
 
@@ -2209,7 +2209,7 @@ module.exports = SmartFlowStrategyV3;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T13:16:39.210Z
+                at 2025-09-13T14:34:35.354Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
