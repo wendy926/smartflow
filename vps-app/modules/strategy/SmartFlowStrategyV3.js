@@ -70,10 +70,10 @@ class SmartFlowStrategyV3 {
         if (scoringResult.score > 0) {
           finalMarketType = '趋势市';
           console.log(`🔍 调用analyzeTrendMarket [${symbol}]: trend4hResult=`, JSON.stringify(trend4hResult));
-          analysisResult = await strategy.analyzeTrendMarket(symbol, { ...trend4hResult, marketType: '趋势市' }, scoringResult);
+          analysisResult = await strategy.analyzeTrendMarket(symbol, { ...trend4hResult, marketType: '趋势市' }, scoringResult, options.maxLossAmount);
         } else {
           finalMarketType = '震荡市';
-          analysisResult = await strategy.analyzeRangeMarket(symbol, { ...trend4hResult, marketType: '震荡市' }, scoringResult);
+          analysisResult = await strategy.analyzeRangeMarket(symbol, { ...trend4hResult, marketType: '震荡市' }, scoringResult, options.maxLossAmount);
         }
       } else {
         // 4H无趋势方向，直接为震荡市，但仍需1H打分
@@ -83,7 +83,7 @@ class SmartFlowStrategyV3 {
         }
 
         finalMarketType = '震荡市';
-        analysisResult = await strategy.analyzeRangeMarket(symbol, { ...trend4hResult, marketType: '震荡市' }, scoringResult);
+        analysisResult = await strategy.analyzeRangeMarket(symbol, { ...trend4hResult, marketType: '震荡市' }, scoringResult, options.maxLossAmount);
       }
 
       // 4. 获取当前价格
@@ -170,7 +170,7 @@ class SmartFlowStrategyV3 {
   /**
    * 趋势市分析
    */
-  async analyzeTrendMarket(symbol, trend4hResult, scoringResult = null) {
+  async analyzeTrendMarket(symbol, trend4hResult, scoringResult = null, maxLossAmount = 100) {
     try {
       // 1. 1H多因子打分（如果未传入则重新计算）
       if (!scoringResult) {
@@ -245,7 +245,7 @@ class SmartFlowStrategyV3 {
       let leverageData;
       try {
         leverageData = executionResult.signal !== 'NONE' ?
-          await SmartFlowStrategyV3.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction, this.database) :
+          await SmartFlowStrategyV3.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction, this.database, maxLossAmount) :
           { maxLeverage: null, minMargin: null, stopLossDistance: null, atrValue: executionResult.atr14 };
       } catch (error) {
         console.error(`杠杆数据计算失败 [${symbol}]:`, error);
@@ -304,7 +304,7 @@ class SmartFlowStrategyV3 {
   /**
    * 震荡市分析
    */
-  async analyzeRangeMarket(symbol, trend4hResult, scoringResult = null) {
+  async analyzeRangeMarket(symbol, trend4hResult, scoringResult = null, maxLossAmount = 100) {
     try {
       // 1. 1H边界判断
       const rangeResult = await StrategyV3Core.prototype.analyzeRangeBoundary.call(this.core, symbol, this.deltaManager);
@@ -352,7 +352,7 @@ class SmartFlowStrategyV3 {
       let leverageData;
       try {
         leverageData = executionResult.signal !== 'NONE' ?
-          await SmartFlowStrategyV3.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction, this.database) :
+          await SmartFlowStrategyV3.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction, this.database, maxLossAmount) :
           { maxLeverage: null, minMargin: null, stopLossDistance: null, atrValue: executionResult.atr14 };
       } catch (error) {
         console.error(`杠杆数据计算失败 [${symbol}]:`, error);
@@ -462,6 +462,7 @@ class SmartFlowStrategyV3 {
       }
 
       // 最小保证金：最大损失金额/(杠杆数 × 止损距离%) 数值向上取整
+      // 注意：stopLossDistance是小数形式，需要转换为百分比
       if (maxLeverage > 0 && stopLossDistance > 0) {
         minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
       }

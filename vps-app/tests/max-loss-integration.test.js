@@ -37,7 +37,7 @@ describe('最大损失金额集成测试', () => {
       for (const maxLoss of testCases) {
         // 保存设置
         await db.setUserSetting('maxLossAmount', maxLoss.toString());
-        
+
         // 获取设置
         const savedValue = await db.getUserSetting('maxLossAmount', 100);
         expect(parseFloat(savedValue)).toBe(maxLoss);
@@ -85,7 +85,7 @@ describe('最大损失金额集成测试', () => {
   describe('StrategyV3Execution.calculateLeverageData', () => {
     test('应该使用用户设置的最大损失金额计算杠杆', async () => {
       const execution = new StrategyV3Execution(db);
-      
+
       // 设置最大损失为150 USDT
       await db.setUserSetting('maxLossAmount', '150');
 
