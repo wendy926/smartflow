@@ -12,7 +12,7 @@ class StrategyV3Execution {
   }
 
   /**
-   * 趋势市15分钟入场执行
+   * 趋势市15分钟入场执行 - 优化版多因子打分机制
    */
   analyzeTrendExecution(symbol, trend4h, score1h, vwapDirectionConsistent, candles15m, candles1h) {
     try {
@@ -36,73 +36,93 @@ class StrategyV3Execution {
       // 检查VWAP方向一致性（影响最终信号，但不阻止执行判断）
       const vwapConsistent = vwapDirectionConsistent;
 
-      // 多头模式：多头回踩突破
+      // 多头模式：多头回踩突破 - 优化版多因子打分机制
       if (trend4h === '多头趋势' && score1h >= 3) {
-        // 检查价格回踩EMA支撑
+        // 1. 基础条件检查（EMA支撑 + setup candle突破）
         const priceAtSupport = last15m.close >= lastEMA20 && last15m.close >= lastEMA50;
-
-        // 检查突破setup candle高点（按照strategy-v3.md：收盘价突破setup candle高点）
         const setupBreakout = last15m.close > prev15m.high;
 
-        // 检查成交量确认
-        const avgVol = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
-        const volConfirm = last15m.volume >= avgVol * 1.0;
+        if (priceAtSupport && setupBreakout) {
+          // 2. 计算15m多因子打分
+          const factorResult = this.calculateTrend15mFactorScore(
+            symbol, 
+            last15m, 
+            candles15m, 
+            'long', 
+            lastVWAP
+          );
 
-        if (priceAtSupport && setupBreakout && volConfirm) {
-          const entry = Math.max(last15m.close, prev15m.high);
-          // 严格按照strategy-v3.md: 止损 = min(setup candle 低点, 收盘价 - 1.2 × ATR(14))
-          const stopLoss = Math.min(prev15m.low, last15m.close - 1.2 * lastATR);
-          const takeProfit = entry + 2 * (entry - stopLoss);
+          console.log(`🔍 多头15分钟多因子打分 [${symbol}]: 得分=${factorResult.score}, 因子详情=`, factorResult.factorScores);
 
-          console.log(`多头回踩突破: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, atr14=${lastATR}`);
+          // 3. 多因子得分≥2分才允许入场
+          if (factorResult.score >= 2) {
+            const entry = Math.max(last15m.close, prev15m.high);
+            const stopLoss = Math.min(prev15m.low, last15m.close - 1.2 * lastATR);
+            const takeProfit = entry + 2 * (entry - stopLoss);
 
-          return {
-            signal: vwapConsistent ? 'BUY' : 'NONE',
-            mode: '多头回踩突破',
-            entry,
-            stopLoss,
-            takeProfit,
-            setupCandleHigh: prev15m.high,
-            setupCandleLow: prev15m.low,
-            atr14: lastATR,
-            reason: vwapConsistent ? '趋势市多头回踩突破触发' : '多头回踩突破条件满足但VWAP方向不一致'
-          };
+            console.log(`多头回踩突破触发: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, 多因子得分=${factorResult.score}`);
+
+            return {
+              signal: vwapConsistent ? 'BUY' : 'NONE',
+              mode: '多头回踩突破',
+              entry,
+              stopLoss,
+              takeProfit,
+              setupCandleHigh: prev15m.high,
+              setupCandleLow: prev15m.low,
+              atr14: lastATR,
+              factorScore15m: factorResult.score,
+              factorScores: factorResult.factorScores,
+              reason: vwapConsistent ? `趋势市多头回踩突破触发 (多因子得分: ${factorResult.score})` : '多头回踩突破条件满足但VWAP方向不一致'
+            };
+          } else {
+            console.log(`多头回踩突破条件满足但多因子得分不足 [${symbol}]: 得分=${factorResult.score} < 2`);
+          }
         }
       }
 
-      // 空头模式：空头反抽破位
+      // 空头模式：空头反抽破位 - 优化版多因子打分机制
       if (trend4h === '空头趋势' && score1h >= 3) {
-        // 检查价格反抽EMA阻力
+        // 1. 基础条件检查（EMA阻力 + setup candle跌破）
         const priceAtResistance = last15m.close <= lastEMA20 && last15m.close <= lastEMA50;
-
-        // 检查跌破setup candle低点（按照strategy-v3.md：收盘价跌破setup candle低点）
         const setupBreakdown = last15m.close < prev15m.low;
 
-        // 检查成交量确认
-        const avgVol = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
-        const volConfirm = last15m.volume >= avgVol * 1.0;
+        if (priceAtResistance && setupBreakdown) {
+          // 2. 计算15m多因子打分
+          const factorResult = this.calculateTrend15mFactorScore(
+            symbol, 
+            last15m, 
+            candles15m, 
+            'short', 
+            lastVWAP
+          );
 
-        console.log(`🔍 空头15分钟入场检查 [${symbol}]: 价格=${last15m.close}, EMA20=${lastEMA20}, EMA50=${lastEMA50}, 价格反抽阻力=${priceAtResistance}, 跌破setup=${setupBreakdown}, 成交量确认=${volConfirm}, 当前成交量=${last15m.volume}, 平均成交量=${avgVol}`);
+          console.log(`🔍 空头15分钟多因子打分 [${symbol}]: 得分=${factorResult.score}, 因子详情=`, factorResult.factorScores);
 
-        if (priceAtResistance && setupBreakdown && volConfirm) {
-          const entry = Math.min(last15m.close, prev15m.low);
-          // 严格按照strategy-v3.md: 止损 = max(setup candle 高点, 收盘价 + 1.2 × ATR(14))
-          const stopLoss = Math.max(prev15m.high, last15m.close + 1.2 * lastATR);
-          const takeProfit = entry - 2 * (stopLoss - entry);
+          // 3. 多因子得分≥2分才允许入场
+          if (factorResult.score >= 2) {
+            const entry = Math.min(last15m.close, prev15m.low);
+            const stopLoss = Math.max(prev15m.high, last15m.close + 1.2 * lastATR);
+            const takeProfit = entry - 2 * (stopLoss - entry);
 
-          console.log(`空头反抽破位: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, atr14=${lastATR}`);
+            console.log(`空头反抽破位触发: entry=${entry}, stopLoss=${stopLoss}, takeProfit=${takeProfit}, 多因子得分=${factorResult.score}`);
 
-          return {
-            signal: vwapConsistent ? 'SELL' : 'NONE',
-            mode: '空头反抽破位',
-            entry,
-            stopLoss,
-            takeProfit,
-            setupCandleHigh: prev15m.high,
-            setupCandleLow: prev15m.low,
-            atr14: lastATR,
-            reason: vwapConsistent ? '趋势市空头反抽破位触发' : '空头反抽破位条件满足但VWAP方向不一致'
-          };
+            return {
+              signal: vwapConsistent ? 'SELL' : 'NONE',
+              mode: '空头反抽破位',
+              entry,
+              stopLoss,
+              takeProfit,
+              setupCandleHigh: prev15m.high,
+              setupCandleLow: prev15m.low,
+              atr14: lastATR,
+              factorScore15m: factorResult.score,
+              factorScores: factorResult.factorScores,
+              reason: vwapConsistent ? `趋势市空头反抽破位触发 (多因子得分: ${factorResult.score})` : '空头反抽破位条件满足但VWAP方向不一致'
+            };
+          } else {
+            console.log(`空头反抽破位条件满足但多因子得分不足 [${symbol}]: 得分=${factorResult.score} < 2`);
+          }
         }
       }
 
@@ -476,6 +496,109 @@ class StrategyV3Execution {
       console.warn(`⚠️ [StrategyV3Execution] 使用默认值: 杠杆=${safeResult.leverage}x, 保证金=${safeResult.margin}`);
       return safeResult;
     }
+  }
+
+  /**
+   * 趋势市15分钟多因子打分系统 - 按照strategy-v3.md实现
+   */
+  calculateTrend15mFactorScore(symbol, last15m, candles15m, signalType, vwap) {
+    try {
+      let score = 0;
+      const factorScores = {
+        vwap: 0,
+        breakout: 0,
+        volume: 0,
+        oi: 0,
+        delta: 0
+      };
+
+      const currentPrice = last15m.close;
+
+      // 1. VWAP方向（必需，不计分但必须满足）
+      const vwapDirection = signalType === 'long' ? currentPrice > vwap : currentPrice < vwap;
+      factorScores.vwap = vwapDirection ? 1 : 0;
+
+      // 2. 突破确认（±1分）
+      const recent20Highs = candles15m.slice(-20).map(c => c.high);
+      const recent20Lows = candles15m.slice(-20).map(c => c.low);
+      const maxHigh = Math.max(...recent20Highs);
+      const minLow = Math.min(...recent20Lows);
+
+      if (signalType === 'long') {
+        // 多头：收盘突破最近20根高点
+        const breakoutUp = currentPrice > maxHigh;
+        factorScores.breakout = breakoutUp ? 1 : 0;
+        score += breakoutUp ? 1 : 0;
+      } else {
+        // 空头：收盘跌破最近20根低点
+        const breakoutDown = currentPrice < minLow;
+        factorScores.breakout = breakoutDown ? 1 : 0;
+        score += breakoutDown ? 1 : 0;
+      }
+
+      // 3. 成交量确认（±1分）
+      const avgVol = candles15m.slice(-20).reduce((a, c) => a + c.volume, 0) / 20;
+      const volRatio = last15m.volume / avgVol;
+      const volumeConfirm = volRatio >= 1.5; // 15m成交量≥1.5×20期均量
+      factorScores.volume = volumeConfirm ? 1 : 0;
+      score += volumeConfirm ? 1 : 0;
+
+      // 4. OI变化（±1分）
+      // 注意：这里需要6h OI数据，暂时使用模拟数据
+      // 实际实现中需要从数据库获取6h OI变化数据
+      const oiChange = this.getOIChange6h(symbol); // 需要实现这个方法
+      const oiConfirm = signalType === 'long' ? oiChange >= 0.02 : oiChange <= -0.02;
+      factorScores.oi = oiConfirm ? 1 : 0;
+      score += oiConfirm ? 1 : 0;
+
+      // 5. Delta买卖盘不平衡（±1分）
+      // 注意：这里需要15m Delta数据，暂时使用模拟数据
+      const delta = this.getDelta15m(symbol); // 需要实现这个方法
+      const deltaConfirm = signalType === 'long' ? 
+        delta >= 0.2 : // 多头：主动买盘≥卖盘×1.2
+        delta <= -0.2; // 空头：主动卖盘≥买盘×1.2
+      factorScores.delta = deltaConfirm ? 1 : 0;
+      score += deltaConfirm ? 1 : 0;
+
+      console.log(`📊 趋势市15m多因子打分 [${symbol}]: 总分=${score}, 因子得分=`, factorScores);
+
+      return {
+        score,
+        factorScores,
+        vwapDirection,
+        details: {
+          currentPrice,
+          vwap,
+          maxHigh,
+          minLow,
+          volRatio,
+          oiChange,
+          delta
+        }
+      };
+
+    } catch (error) {
+      console.error(`趋势市15m多因子打分失败 [${symbol}]:`, error);
+      return { score: 0, factorScores: {}, error: error.message };
+    }
+  }
+
+  /**
+   * 获取6小时OI变化数据
+   */
+  getOIChange6h(symbol) {
+    // TODO: 实现从数据库获取6h OI变化数据
+    // 暂时返回模拟数据
+    return Math.random() * 0.1 - 0.05; // -5%到+5%的随机变化
+  }
+
+  /**
+   * 获取15分钟Delta数据
+   */
+  getDelta15m(symbol) {
+    // TODO: 实现从DeltaRealTimeManager获取15m Delta数据
+    // 暂时返回模拟数据
+    return Math.random() * 0.4 - 0.2; // -0.2到+0.2的随机Delta
   }
 
   /**

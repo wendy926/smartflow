@@ -638,10 +638,20 @@
               <li><strong>ATR14：</strong> ATR(14) = EMA(真实波幅, 14)，真实波幅 = max(最高价-最低价, |最高价-前收盘价|, |最低价-前收盘价|)</li>
             </ul>
 
-            <h4>趋势市入场模式：</h4>
+            <h4>趋势市入场模式（V3优化版 - 15m多因子打分）：</h4>
             <ul>
-              <li><strong>多头回踩突破：</strong> 价格回踩EMA20/50支撑 + 突破setup candle高点 + 成交量确认</li>
-              <li><strong>空头反抽破位：</strong> 价格反抽EMA20/50阻力 + 跌破setup candle低点 + 成交量确认</li>
+              <li><strong>多头回踩突破：</strong> 价格回踩EMA20/50支撑 + 突破setup candle高点 + 15m多因子得分≥2分</li>
+              <li><strong>空头反抽破位：</strong> 价格反抽EMA20/50阻力 + 跌破setup candle低点 + 15m多因子得分≥2分</li>
+            </ul>
+
+            <h4>15m多因子打分机制：</h4>
+            <ul>
+              <li><strong>VWAP方向（必需）：</strong> 多头收盘价>VWAP，空头收盘价<VWAP</li>
+              <li><strong>突破确认（±1分）：</strong> 多头突破最近20根高点，空头跌破最近20根低点</li>
+              <li><strong>成交量确认（±1分）：</strong> 15m成交量≥1.5×20期均量</li>
+              <li><strong>OI变化（±1分）：</strong> 多头6h OI≥+2%，空头6h OI≤-2%</li>
+              <li><strong>Delta不平衡（±1分）：</strong> 多头主动买盘≥卖盘×1.2，空头主动卖盘≥买盘×1.2</li>
+              <li><strong>入场条件：</strong> 多因子得分≥2分才允许入场</li>
             </ul>
 
             <h4>震荡市入场模式（V3优化版 - 多因子确认）：</h4>
