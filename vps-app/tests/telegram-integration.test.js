@@ -21,7 +21,7 @@ describe('Telegram通知集成测试', () => {
     telegramNotifier = new TelegramNotifier();
     simulationManager = new SimulationManager(mockDatabase);
     simulationManager.setTelegramNotifier(telegramNotifier);
-    
+
     jest.clearAllMocks();
   });
 
@@ -29,7 +29,7 @@ describe('Telegram通知集成测试', () => {
     test('应该在模拟交易创建时发送通知', async () => {
       // 配置Telegram
       telegramNotifier.init('test_bot_token', 'test_chat_id');
-      
+
       // 模拟sendMessage方法
       const sendStartNotificationSpy = jest.spyOn(telegramNotifier, 'sendSimulationStartNotification')
         .mockResolvedValue(true);
@@ -184,7 +184,7 @@ describe('Telegram通知集成测试', () => {
 
       // 设置配置
       telegramNotifier.init('test_bot_token', 'test_chat_id');
-      
+
       status = telegramNotifier.getStatus();
       expect(status.configured).toBe(true);
       expect(status.enabled).toBe(true);
@@ -194,7 +194,7 @@ describe('Telegram通知集成测试', () => {
 
     test('应该正确处理无效配置', () => {
       telegramNotifier.init('', '');
-      
+
       const status = telegramNotifier.getStatus();
       expect(status.configured).toBe(false);
       expect(status.enabled).toBe(false);

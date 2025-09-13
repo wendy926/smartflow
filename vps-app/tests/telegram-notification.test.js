@@ -247,7 +247,7 @@ describe('TelegramNotifier', () => {
     test('应该处理未配置时的通知', async () => {
       // 创建一个新的未配置的TelegramNotifier实例
       const unconfiguredNotifier = new TelegramNotifier();
-      
+
       // 直接mock sendMessage方法，让它返回false（未配置状态）
       const sendMessageSpy = jest.spyOn(unconfiguredNotifier, 'sendMessage')
         .mockImplementation(async () => {
