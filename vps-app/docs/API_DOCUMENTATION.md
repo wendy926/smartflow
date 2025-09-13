@@ -1448,8 +1448,8 @@ CREATE TABLE validation_results (
 * **告警内容：** 具体的错误信息和详细信息
 * **过滤功能：** 支持按类型过滤告警记录
 
-*最后更新: 2025-01-12*
-*版本: V3.12*
+*最后更新: 2025-01-13*
+*版本: V3.13*
 
 ## 12. 更新日志
 
@@ -1532,3 +1532,10 @@ CREATE TABLE validation_results (
 - **API响应字段扩展** - 新增bullScore和bearScore字段到API响应中
 - **单元测试完善** - 新增4H趋势判断逻辑的专门测试用例
 - **文档更新** - 更新API文档和详细产品设计文档，反映新的趋势判断逻辑
+
+### V3.13 (2025-01-13)
+- **修复监控页面JavaScript错误** - 解决`TypeError: Cannot read properties of undefined (reading 'rate')`错误
+- **修复静态方法调用错误** - 修复SmartFlowStrategyV3中`calculateLeverageData`、`formatExecution`、`createNoSignalResult`方法调用问题
+- **修复server.js语法错误** - 移除多余的字符导致的SyntaxError
+- **增强单元测试覆盖** - 新增静态方法调用测试，确保代码健壮性
+- **优化监控API性能** - 修复监控API超时问题，提升响应速度
