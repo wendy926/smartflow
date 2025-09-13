@@ -123,6 +123,7 @@ class SmartFlowServer {
 
             // 使用V3策略进行分析
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
+              database: this.db,
               maxLossAmount: parseFloat(maxLossAmount),
               dataRefreshManager: this.dataRefreshManager
             });
@@ -271,6 +272,7 @@ class SmartFlowServer {
           try {
             // 只更新信号和执行数据，不更新趋势数据
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
+              database: this.db,
               maxLossAmount: parseFloat(maxLossAmount),
               dataRefreshManager: this.dataRefreshManager
             });
