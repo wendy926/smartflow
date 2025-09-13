@@ -1678,12 +1678,183 @@ PRAGMA cache_size = 10000;
 
 - 项目地址: https://github.com/username/smartflow
 - 技术支持: support@smartflow.com
-- 文档更新: 2025-09-13
-- 版本: V3.16
+- 文档更新: 2025-01-13
+- 版本: V3.17
 
 ---
 
+## v3.17.0 详细更新内容
+
+### 15min信号实时更新问题彻底解决
+
+#### 功能概述
+彻底解决15min信号需要清除缓存才能更新的问题，实现数据变化时自动实时显示，无需手动刷新或清除缓存。
+
+#### 问题分析
+**根本原因**：前端刷新频率与后端数据更新频率不匹配
+- **服务端15min信号更新频率**：每2分钟更新一次（`2 * 60 * 1000`毫秒）
+- **前端自动刷新频率**：每5分钟刷新一次（`300000`毫秒）
+- **结果**：15min信号更新后需要等待最多3分钟才能显示
+
+#### 技术实现
+- **刷新频率优化** - 将前端自动刷新频率从5分钟改为2分钟，匹配服务端更新频率
+- **智能变化检测** - 每30秒检查数据变化状态，检测到3分钟内的新15min信号时立即刷新
+- **数据变化检测API** - 新增`/api/data-change-status`端点，检查各交易对的15min信号变化状态
+- **智能刷新机制** - 主刷新（2分钟）+ 变化检测（30秒）+ 智能刷新（检测到变化时立即刷新）
+
+#### 核心代码实现
+```javascript
+// 优化后的刷新机制
+startMonitoringRefresh() {
+  // 主刷新：每2分钟
+  this.monitoringInterval = setInterval(async () => {
+    // 刷新数据...
+  }, 120000); // 2分钟
+
+  // 变化检测：每30秒
+  this.signalChangeInterval = setInterval(async () => {
+    await this.checkSignalChanges();
+  }, 30000); // 30秒
+}
+
+// 智能变化检测
+async checkSignalChanges() {
+  const response = await fetch('/api/data-change-status');
+  const result = await response.json();
+  
+  // 检查3分钟内的新信号
+  for (const [symbol, status] of Object.entries(result.data)) {
+    if (status.hasExecution && status.timeDiffMinutes <= 3) {
+      // 立即刷新数据
+      this.refreshData();
+    }
+  }
+}
+```
+
+#### 数据变化检测API
+```javascript
+// 新增API端点
+this.app.get('/api/data-change-status', async (req, res) => {
+  const changeStatus = {};
+  for (const symbol of symbols) {
+    const analysis = await this.db.getLatestStrategyAnalysis(symbol);
+    if (analysis) {
+      const hasExecution = analysis.execution && 
+        analysis.execution !== 'null' && 
+        analysis.execution.includes('EXECUTE');
+      
+      changeStatus[symbol] = {
+        hasExecution,
+        lastUpdate: lastUpdate.toISOString(),
+        timeDiffMinutes: Math.round(timeDiff),
+        execution: analysis.execution,
+        signal: analysis.signal
+      };
+    }
+  }
+  res.json({ success: true, data: changeStatus });
+});
+```
+
+#### 预期效果
+- **之前**：15min信号更新后最多需要等待3分钟才能显示
+- **现在**：15min信号更新后最多30秒内就能显示
+- **用户体验**：无需手动清除缓存或刷新页面
+- **系统性能**：保持合理的刷新频率，避免过度频繁的API调用
+
+#### 技术亮点
+- **匹配服务端频率** - 前端刷新频率与服务端2分钟更新频率完全匹配
+- **智能检测机制** - 基于时间戳检测3分钟内的新信号，避免误触发
+- **性能优化** - 避免不必要的频繁刷新，保持系统稳定性
+- **错误处理** - 完善的错误处理机制，确保系统稳定运行
+
+#### 部署验证
+- ✅ 代码已推送到GitHub
+- ✅ VPS已拉取最新代码并重启服务
+- ✅ API端点正常工作
+- ✅ 前端已加载新版本JavaScript文件
+- ✅ 15min信号实时更新功能验证通过
+
 ## v3.16.0 详细更新内容
+
+### 15min信号实时更新优化
+
+#### 功能概述
+解决15min信号需要清除缓存才能更新的问题，实现数据变化时自动实时显示，无需手动刷新或清除缓存。
+
+#### 问题分析
+**根本原因**：前端刷新频率与后端数据更新频率不匹配
+- **服务端15min信号更新频率**：每2分钟更新一次
+- **前端自动刷新频率**：每5分钟刷新一次
+- **结果**：15min信号更新后需要等待最多3分钟才能显示
+
+#### 技术实现
+- **刷新频率优化** - 将前端自动刷新频率从5分钟改为2分钟，匹配服务端更新频率
+- **智能变化检测** - 每30秒检查数据变化状态，检测到3分钟内的新15min信号时立即刷新
+- **数据变化检测API** - 新增`/api/data-change-status`端点，检查各交易对的15min信号变化状态
+- **智能刷新机制** - 主刷新（2分钟）+ 变化检测（30秒）+ 智能刷新（检测到变化时立即刷新）
+
+#### 核心代码实现
+```javascript
+// 优化后的刷新机制
+startMonitoringRefresh() {
+  // 主刷新：每2分钟
+  this.monitoringInterval = setInterval(async () => {
+    // 刷新数据...
+  }, 120000); // 2分钟
+
+  // 变化检测：每30秒
+  this.signalChangeInterval = setInterval(async () => {
+    await this.checkSignalChanges();
+  }, 30000); // 30秒
+}
+
+// 智能变化检测
+async checkSignalChanges() {
+  const response = await fetch('/api/data-change-status');
+  const result = await response.json();
+  
+  // 检查3分钟内的新信号
+  for (const [symbol, status] of Object.entries(result.data)) {
+    if (status.hasExecution && status.timeDiffMinutes <= 3) {
+      // 立即刷新数据
+      this.refreshData();
+    }
+  }
+}
+```
+
+#### 数据变化检测API
+```javascript
+// 新增API端点
+this.app.get('/api/data-change-status', async (req, res) => {
+  const changeStatus = {};
+  for (const symbol of symbols) {
+    const analysis = await this.db.getLatestStrategyAnalysis(symbol);
+    if (analysis) {
+      const hasExecution = analysis.execution && 
+        analysis.execution !== 'null' && 
+        analysis.execution.includes('EXECUTE');
+      
+      changeStatus[symbol] = {
+        hasExecution,
+        lastUpdate: lastUpdate.toISOString(),
+        timeDiffMinutes: Math.round(timeDiff),
+        execution: analysis.execution,
+        signal: analysis.signal
+      };
+    }
+  }
+  res.json({ success: true, data: changeStatus });
+});
+```
+
+#### 预期效果
+- **之前**：15min信号更新后最多需要等待3分钟才能显示
+- **现在**：15min信号更新后最多30秒内就能显示
+- **用户体验**：无需手动清除缓存或刷新页面
+- **系统性能**：保持合理的刷新频率，避免过度频繁的API调用
 
 ### 价格显示格式优化
 
