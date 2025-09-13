@@ -17,20 +17,20 @@ class StrategyV3Core {
    */
   destroy() {
     if (this.isDestroyed) return;
-    
+
     this.isDestroyed = true;
-    
+
     // 清理Delta数据
     if (this.deltaData) {
       this.deltaData.clear();
       this.deltaData = null;
     }
-    
+
     // 清理因子权重管理器
     if (this.factorWeightManager) {
       this.factorWeightManager = null;
     }
-    
+
     // 注意：不在这里关闭database，因为它可能被其他地方使用
     console.log('🔒 StrategyV3Core 实例已销毁');
   }
@@ -42,7 +42,7 @@ class StrategyV3Core {
     if (this.isDestroyed) {
       throw new Error('StrategyV3Core 实例已销毁');
     }
-    
+
     if (!this.database) {
       throw new Error('数据库连接未初始化');
     }
@@ -58,7 +58,7 @@ class StrategyV3Core {
       `;
 
       const results = await this.database.runQuery(sql, [symbol, interval, limit]);
-      
+
       // 添加调试日志
       console.log(`🔍 获取K线数据 [${symbol}][${interval}]: ${results ? results.length : 0} 条`);
       if (results && results.length > 0) {
@@ -282,24 +282,17 @@ class StrategyV3Core {
       const highs = candles.map(c => c.high);
       const lows = candles.map(c => c.low);
 
-      // 计算MA指标 - 根据可用数据调整周期
-      const availableData = candles.length;
-      const ma20Period = Math.min(20, Math.floor(availableData * 0.8)); // 最多使用80%的数据
-      const ma50Period = Math.min(50, Math.floor(availableData * 0.6)); // 最多使用60%的数据
-      const ma200Period = Math.min(200, Math.floor(availableData * 0.4)); // 最多使用40%的数据
-
-      const ma20 = this.calculateMA(candles, ma20Period);
-      const ma50 = this.calculateMA(candles, ma50Period);
-      const ma200 = this.calculateMA(candles, ma200Period);
+      // 计算MA指标 - 使用固定周期，确保计算准确性
+      const ma20 = this.calculateMA(candles, 20);
+      const ma50 = this.calculateMA(candles, 50);
+      const ma200 = this.calculateMA(candles, 200);
       const lastClose = closes[closes.length - 1];
 
-      // 计算ADX指标 - 根据可用数据调整周期
-      const adxPeriod = Math.min(14, Math.floor(availableData * 0.2)); // 最多使用20%的数据
-      const { ADX, DIplus, DIminus } = this.calculateADX(candles, adxPeriod);
+      // 计算ADX指标 - 使用固定周期
+      const { ADX, DIplus, DIminus } = this.calculateADX(candles, 14);
 
-      // 计算布林带宽度 - 根据可用数据调整周期
-      const bbPeriod = Math.min(20, Math.floor(availableData * 0.3)); // 最多使用30%的数据
-      const bb = this.calculateBollingerBands(candles, bbPeriod, 2);
+      // 计算布林带宽度 - 使用固定周期
+      const bb = this.calculateBollingerBands(candles, 20, 2);
       const bbw = bb[bb.length - 1]?.bandwidth || 0;
 
       // 按照文档的10分打分机制
