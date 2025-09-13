@@ -8,19 +8,154 @@
 
 # **2. 策略逻辑分层**
 
-**🔹 2.1 4H 趋势过滤**
+**🔹 2.1 4H 趋势判断**
+**1. 数据输入（4H）**
 
-- 多头趋势条件：
-    - MA20 > MA50 > MA200
-    - 收盘价 > MA20
-- 空头趋势条件：
-    - MA20 < MA50 < MA200
-    - 收盘价 < MA20
-- 额外过滤：ADX(14) > 20 且布林带带宽扩张（趋势强度确认）。
-- 连续确认机制：
-    - 至少 2 根 4H K 线（≈8 小时）满足趋势市条件 → 判定趋势市成立。
-    - 否则判定为震荡市。
-- 输出：trend4h = "多头趋势" | "空头趋势" | "震荡市"
+- 来源：/fapi/v1/klines?interval=4h
+- 指标：MA20、MA50、MA200、ADX(14)、BBW（布林带宽度）
+
+**2. 打分因子（满分 10 分）**
+
+- 趋势方向（必选 每个方向至少需要2分）
+    - 收盘价 > MA20 → 多头方向得 1 分
+    - MA20 > MA50 → 多头方向得 1 分
+    - MA50 > MA200 → 多头方向得 1 分
+    - 收盘价 < MA20 → 空头方向得 1 分
+    - MA20 < MA50 → 空头方向得 1 分
+    - MA50 < MA200 → 空头方向得 1 分 
+    - 每个方向都没有到2分则 = 震荡（直接返回）
+- 趋势稳定性
+    - 连续 ≥2 根 4H K线满足趋势方向 → 1 分
+- 趋势强度
+    - ADX(14) > 20 且 DI 方向正确 → 1 分
+- 布林带扩张
+    - 最近 10 根 K 线，后 5 根 BBW 均值 > 前 5 根均值 × 1.05 → 1 分
+- 动量确认
+    - 当前 K 线收盘价离 MA20 距离 ≥ 0.5% → 1 分
+
+**3. 判断逻辑**
+
+- 得分 ≥ 4 分 → 保留趋势
+    - 多头条件成立 → 输出 BULL
+    - 空头条件成立 → 输出 BEAR
+- 得分 < 4 分 → 输出 RANGE
+
+趋势判断的流程图
+```mermaid
+flowchart TD
+    A[4H K线数据] --> B[计算 MA20/50/200, ADX, BBW]
+    B --> C{趋势方向成立?}
+    C -- 否 --> Z[输出 RANGE]
+    C -- 是 --> D[计算打分]
+    D --> E{得分 ≥ 3?}
+    E -- 是 --> F[输出 BULL/BEAR]
+    E -- 否 --> Z
+```
+
+
+趋势判断实现示例：
+```jsx
+async function checkTrend(symbol) {
+  const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=4h&limit=250`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  const closes = data.map(d => parseFloat(d[4]));
+  const highs = data.map(d => parseFloat(d[2]));
+  const lows = data.map(d => parseFloat(d[3]));
+
+  // SMA
+  const sma = (arr, period, idx) =>
+    arr.slice(idx - period + 1, idx + 1).reduce((a, b) => a + b, 0) / period;
+
+  // 计算 MA
+  const ma20 = sma(closes, 20, closes.length - 1);
+  const ma50 = sma(closes, 50, closes.length - 1);
+  const ma200 = sma(closes, 200, closes.length - 1);
+  const lastClose = closes[closes.length - 1];
+
+  // 简化版 ADX
+  function calcADX(highs, lows, closes, period = 14) {
+    let trList = [], dmPlusList = [], dmMinusList = [];
+    for (let i = 1; i < highs.length; i++) {
+      const highDiff = highs[i] - highs[i - 1];
+      const lowDiff = lows[i - 1] - lows[i];
+      const tr = Math.max(
+        highs[i] - lows[i],
+        Math.abs(highs[i] - closes[i - 1]),
+        Math.abs(lows[i] - closes[i - 1])
+      );
+      trList.push(tr);
+      dmPlusList.push(highDiff > lowDiff && highDiff > 0 ? highDiff : 0);
+      dmMinusList.push(lowDiff > highDiff && lowDiff > 0 ? lowDiff : 0);
+    }
+    const tr14 = trList.slice(-period).reduce((a, b) => a + b, 0);
+    const dmPlus14 = dmPlusList.slice(-period).reduce((a, b) => a + b, 0);
+    const dmMinus14 = dmMinusList.slice(-period).reduce((a, b) => a + b, 0);
+    const diPlus = 100 * (dmPlus14 / tr14);
+    const diMinus = 100 * (dmMinus14 / tr14);
+    const dx = Math.abs(diPlus - diMinus) / (diPlus + diMinus) * 100;
+    return { adx: dx, diPlus, diMinus };
+  }
+
+  const { adx, diPlus, diMinus } = calcADX(highs, lows, closes);
+
+  // 布林带宽度
+  const mean = sma(closes, 20, closes.length - 1);
+  const variance = closes.slice(-20).reduce((a, c) => a + Math.pow(c - mean, 2), 0) / 20;
+  const std = Math.sqrt(variance);
+  const upper = mean + 2 * std;
+  const lower = mean - 2 * std;
+  const bbw = (upper - lower) / mean;
+
+  // 布林带扩张判断
+  const bbws = [];
+  for (let i = 20; i < closes.length; i++) {
+    const m = sma(closes, 20, i);
+    const v = closes.slice(i - 20, i).reduce((a, c) => a + Math.pow(c - m, 2), 0) / 20;
+    const s = Math.sqrt(v);
+    const u = m + 2 * s, l = m - 2 * s;
+    bbws.push((u - l) / m);
+  }
+  const firstHalf = bbws.slice(-10, -5).reduce((a, b) => a + b, 0) / 5;
+  const secondHalf = bbws.slice(-5).reduce((a, b) => a + b, 0) / 5;
+  const expanding = secondHalf > firstHalf * 1.05;
+
+  // 打分
+  let score = 0;
+  let direction = null;
+
+  if (lastClose > ma20 && ma20 > ma50 && ma50 > ma200) {
+    direction = "BULL";
+    score++;
+  } else if (lastClose < ma20 && ma20 < ma50 && ma50 < ma200) {
+    direction = "BEAR";
+    score++;
+  } else {
+    return "RANGE";
+  }
+
+  // 连续确认
+  const last2 = closes.slice(-2);
+  if (
+    (direction === "BULL" && last2.every(c => c > ma20)) ||
+    (direction === "BEAR" && last2.every(c => c < ma20))
+  ) score++;
+
+  // 趋势强度
+  if (adx > 20 && ((direction === "BULL" && diPlus > diMinus) || (direction === "BEAR" && diMinus > diPlus)))
+    score++;
+
+  // 布林带扩张
+  if (expanding) score++;
+
+  // 动量确认
+  if (Math.abs((lastClose - ma20) / ma20) > 0.005) score++;
+
+  return score >= 3 ? direction : "RANGE";
+}
+```
+
 
 **🔹 2.2 多头趋势｜空头趋势 统称为趋势市，还需要1H多因子打分确认和15分钟入场执行确认止盈止损后才会开始交易。**
 

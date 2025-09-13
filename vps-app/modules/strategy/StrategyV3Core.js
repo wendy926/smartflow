@@ -2,6 +2,7 @@
 
 const BinanceAPI = require('../api/BinanceAPI');
 const FactorWeightManager = require('./FactorWeightManager');
+const EnhancedDataQualityMonitor = require('../monitoring/EnhancedDataQualityMonitor');
 
 class StrategyV3Core {
   constructor(database = null) {
@@ -10,6 +11,7 @@ class StrategyV3Core {
     this.dataMonitor = null; // 将在外部设置
     this.factorWeightManager = new FactorWeightManager(database);
     this.isDestroyed = false; // 标记是否已销毁
+    this.qualityMonitor = new EnhancedDataQualityMonitor(database); // 增强数据质量监控
   }
 
   /**
@@ -288,6 +290,21 @@ class StrategyV3Core {
       const ma200 = this.calculateMA(candles, 200);
       const lastClose = closes[closes.length - 1];
 
+      // 检查MA数据质量
+      const currentMA20 = ma20[ma20.length - 1];
+      const currentMA50 = ma50[ma50.length - 1];
+      const currentMA200 = ma200[ma200.length - 1];
+
+      if (currentMA20 && currentMA50 && currentMA200) {
+        const maQualityCheck = await this.qualityMonitor.checkMACalculationQuality(
+          symbol, currentMA20, currentMA50, currentMA200, lastClose
+        );
+
+        if (!maQualityCheck.isValid) {
+          console.warn(`⚠️ MA数据质量问题 [${symbol}]: ${maQualityCheck.issues.join(', ')}`);
+        }
+      }
+
       // 计算ADX指标 - 使用固定周期
       const { ADX, DIplus, DIminus } = this.calculateADX(candles, 14);
 
@@ -304,9 +321,6 @@ class StrategyV3Core {
       let marketType = '震荡市';
 
       // 1. 趋势方向（必选）- 每个方向至少需要2分
-      const currentMA20 = ma20[ma20.length - 1];
-      const currentMA50 = ma50[ma50.length - 1];
-      const currentMA200 = ma200[ma200.length - 1];
 
       // 多头方向得分
       if (lastClose > currentMA20) bullScore++;
@@ -408,24 +422,8 @@ class StrategyV3Core {
         marketType = "震荡市";
       }
 
-      // 记录分析结果
-      if (this.dataMonitor) {
-        this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
-          trend4h,
-          marketType,
-          score: totalScore,
-          direction,
-          bullScore,
-          bearScore,
-          ma20: currentMA20,
-          ma50: currentMA50,
-          ma200: currentMA200,
-          adx14: ADX,
-          bbw: bbw
-        }, Date.now());
-      }
-
-      return {
+      // 构建趋势分析结果
+      const trendResult = {
         trend4h,
         marketType,
         ma20: currentMA20,
@@ -438,6 +436,22 @@ class StrategyV3Core {
         bullScore,
         bearScore
       };
+
+      // 检查趋势判断质量
+      const trendQualityCheck = await this.qualityMonitor.checkTrendCalculationQuality(symbol, trendResult);
+      if (!trendQualityCheck.isValid) {
+        console.warn(`⚠️ 趋势判断质量问题 [${symbol}]: ${trendQualityCheck.issues.join(', ')}`);
+      }
+
+      // 记录分析结果
+      if (this.dataMonitor) {
+        this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
+          ...trendResult,
+          qualityCheck: trendQualityCheck
+        }, Date.now());
+      }
+
+      return trendResult;
     } catch (error) {
       console.error(`4H趋势分析失败 [${symbol}]:`, error);
 

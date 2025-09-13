@@ -27,12 +27,12 @@ class SafeDatabaseManager {
       await this.database.init();
       this.isConnected = true;
       this.connectionCount = 1;
-      
+
       console.log('✅ 安全数据库连接已建立');
-      
+
       // 设置连接超时
       this.setupConnectionTimeout();
-      
+
     } catch (error) {
       this.isConnected = false;
       this.database = null;
@@ -47,7 +47,7 @@ class SafeDatabaseManager {
     if (this.timeoutId) {
       clearTimeout(this.timeoutId);
     }
-    
+
     this.timeoutId = setTimeout(() => {
       console.log('⚠️ 数据库连接超时，自动关闭');
       this.forceClose();
@@ -78,7 +78,7 @@ class SafeDatabaseManager {
     if (!this.isConnected) return;
 
     this.connectionCount--;
-    
+
     if (this.connectionCount <= 0) {
       await this.close();
     }
@@ -94,18 +94,18 @@ class SafeDatabaseManager {
       if (this.database) {
         await this.database.close();
       }
-      
+
       this.isConnected = false;
       this.database = null;
       this.connectionCount = 0;
-      
+
       if (this.timeoutId) {
         clearTimeout(this.timeoutId);
         this.timeoutId = null;
       }
-      
+
       console.log('🔒 安全数据库连接已关闭');
-      
+
     } catch (error) {
       console.error('❌ 关闭数据库连接失败:', error.message);
     }
@@ -118,7 +118,7 @@ class SafeDatabaseManager {
     this.isConnected = false;
     this.database = null;
     this.connectionCount = 0;
-    
+
     if (this.timeoutId) {
       clearTimeout(this.timeoutId);
       this.timeoutId = null;
@@ -142,14 +142,14 @@ class SafeDatabaseManager {
   async createStrategyInstance(StrategyClass) {
     await this.init();
     const instance = new StrategyClass(this.database);
-    
+
     // 绑定清理方法
-    const originalDestroy = instance.destroy || (() => {});
+    const originalDestroy = instance.destroy || (() => { });
     instance.destroy = async () => {
       await originalDestroy.call(instance);
       await this.release();
     };
-    
+
     return instance;
   }
 }
