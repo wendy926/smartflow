@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">7.65% </span>
+                <span class="strong">0.95% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>16/209</span>
+                <span class='fraction'>2/209</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">3.33% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/30</span>
+                <span class='fraction'>0/30</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">8.08% </span>
+                <span class="strong">1.01% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>16/198</span>
+                <span class='fraction'>2/198</span>
             </div>
         
             
@@ -579,7 +579,7 @@
 <a name='L514'></a><a href='#L514'>514</a>
 <a name='L515'></a><a href='#L515'>515</a>
 <a name='L516'></a><a href='#L516'>516</a>
-<a name='L517'></a><a href='#L517'>517</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L517'></a><a href='#L517'>517</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -587,28 +587,28 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1094,7 +1094,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const WebSocket = require('ws');
 &nbsp;
 /**
@@ -1102,29 +1102,29 @@
  * 按照strategy-v3.md实现不同时间级别的Delta平滑处理
  */
 class DeltaRealTimeManager {
-  constructor() {
-    this.deltaData = new Map(); // 存储各交易对的Delta数据
-    this.connections = new Map(); // 存储WebSocket连接
-    this.trades = new Map(); // 存储原始交易数据
-    this.isRunning = false;
+<span class="fstat-no" title="function not covered" >  co</span>nstructor() {
+<span class="cstat-no" title="statement not covered" >    this.deltaData = new Map(); </span>// 存储各交易对的Delta数据
+<span class="cstat-no" title="statement not covered" >    this.connections = new Map(); </span>// 存储WebSocket连接
+<span class="cstat-no" title="statement not covered" >    this.trades = new Map(); </span>// 存储原始交易数据
+<span class="cstat-no" title="statement not covered" >    this.isRunning = false;</span>
 &nbsp;
     // 15分钟Delta平滑配置
-    this.delta15m = new Map(); // 15分钟Delta数据
-    this.ema15mPeriod = 3; // EMA(3)平滑
+<span class="cstat-no" title="statement not covered" >    this.delta15m = new Map(); </span>// 15分钟Delta数据
+<span class="cstat-no" title="statement not covered" >    this.ema15mPeriod = 3; </span>// EMA(3)平滑
 &nbsp;
     // 1小时Delta平滑配置
-    this.delta1h = new Map(); // 1小时Delta数据
-    this.ema1hPeriod = 6; // EMA(6)平滑
+<span class="cstat-no" title="statement not covered" >    this.delta1h = new Map(); </span>// 1小时Delta数据
+<span class="cstat-no" title="statement not covered" >    this.ema1hPeriod = 6; </span>// EMA(6)平滑
 &nbsp;
     // 定时器ID存储
-    this.timer15m = null;
-    this.timer1h = null;
-    this.cleanupInterval = null; // 内存清理定时器
-    this.reconnectTimeouts = new Map(); // 重连定时器存储
+<span class="cstat-no" title="statement not covered" >    this.timer15m = null;</span>
+<span class="cstat-no" title="statement not covered" >    this.timer1h = null;</span>
+<span class="cstat-no" title="statement not covered" >    this.cleanupInterval = null; </span>// 内存清理定时器
+<span class="cstat-no" title="statement not covered" >    this.reconnectTimeouts = new Map(); </span>// 重连定时器存储
 &nbsp;
     // 内存管理配置
-    this.maxTradesPerSymbol = 1000; // 每个交易对最多保留1000条交易记录
-    this.maxHistoryPeriods = 20; // 最多保留20个历史周期
+<span class="cstat-no" title="statement not covered" >    this.maxTradesPerSymbol = 1000; </span>// 每个交易对最多保留1000条交易记录
+<span class="cstat-no" title="statement not covered" >    this.maxHistoryPeriods = 20; </span>// 最多保留20个历史周期
   }
 &nbsp;
   /**
@@ -1618,7 +1618,7 @@ module.exports = DeltaRealTimeManager;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T10:14:45.276Z
+                at 2025-09-13T13:16:38.872Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

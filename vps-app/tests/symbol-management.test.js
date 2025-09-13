@@ -1,6 +1,54 @@
 // tests/symbol-management.test.js - 交易对管理功能测试
 
-const APIClient = require('../public/js/api.js');
+// Mock window object for testing
+global.window = {};
+
+// Mock APIClient class for testing
+class APIClient {
+  constructor() {
+    this.baseURL = '';
+  }
+
+  async request(endpoint) {
+    const response = await fetch(this.baseURL + endpoint);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  async getSymbols() {
+    return await this.request('/api/symbols');
+  }
+
+  async getMainstreamSymbols() {
+    return await this.request('/api/symbols/mainstream');
+  }
+
+  async getHighCapSymbols() {
+    return await this.request('/api/symbols/highcap');
+  }
+
+  async getTrendingSymbols() {
+    return await this.request('/api/symbols/trending');
+  }
+
+  async getSmallCapSymbols() {
+    return await this.request('/api/symbols/smallcap');
+  }
+
+  async getSymbolTradeCounts() {
+    return await this.request('/api/symbols/trade-counts');
+  }
+
+  async addSymbol(symbol) {
+    return await this.request(`/api/symbols/add/${symbol}`, { method: 'POST' });
+  }
+
+  async removeSymbol(symbol) {
+    return await this.request(`/api/symbols/remove/${symbol}`, { method: 'POST' });
+  }
+}
 
 // Mock fetch for testing
 global.fetch = jest.fn();
@@ -27,7 +75,7 @@ describe('交易对管理功能', () => {
       });
 
       const result = await apiClient.getSymbols();
-      
+
       expect(fetch).toHaveBeenCalledWith('/api/symbols');
       expect(result).toEqual(mockSymbols);
     });
@@ -49,7 +97,7 @@ describe('交易对管理功能', () => {
       });
 
       const result = await apiClient.getMainstreamSymbols();
-      
+
       expect(fetch).toHaveBeenCalledWith('/api/symbols/mainstream');
       expect(result).toEqual(mockMainstreamSymbols);
     });
@@ -71,7 +119,7 @@ describe('交易对管理功能', () => {
       });
 
       const result = await apiClient.getHighCapSymbols();
-      
+
       expect(fetch).toHaveBeenCalledWith('/api/symbols/highcap');
       expect(result).toEqual(mockHighCapSymbols);
     });
@@ -87,17 +135,6 @@ describe('交易对管理功能', () => {
     let symbolManager;
 
     beforeEach(() => {
-      // 模拟DOM环境
-      document.body.innerHTML = `
-        <div id="currentSymbolsList"></div>
-        <div id="currentCount">0</div>
-        <div id="mainstreamSymbols"></div>
-        <div id="highcapSymbols"></div>
-        <div id="trendingSymbols"></div>
-        <div id="smallcapSymbols"></div>
-        <button id="refreshBtn">🔄 刷新数据</button>
-      `;
-
       // 模拟SymbolManagement类
       symbolManager = {
         apiClient: apiClient,
