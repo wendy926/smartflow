@@ -781,7 +781,7 @@ class SmartFlowServer {
         console.error('获取监控数据失败:', error);
         res.status(500).json({ error: error.message });
       }
-    });（只保留最近3天数据）
+    });
     this.app.get('/api/alert-history', async (req, res) => {
       try {
         const { limit = 100, type } = req.query;
