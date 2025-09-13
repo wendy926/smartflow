@@ -1216,15 +1216,15 @@ async function loadExecutionDetails(contentDiv, symbol, signalData) {
         <div class="execution-grid">
           <div class="execution-item">
             <span class="label">入场价格:</span>
-            <span class="value">${signalData.entrySignal ? dataManager.formatNumber(signalData.entrySignal) : '--'}</span>
+            <span class="value">${signalData.entrySignal ? dataManager.formatPrice(signalData.entrySignal) : '--'}</span>
           </div>
           <div class="execution-item">
             <span class="label">止损价格:</span>
-            <span class="value">${signalData.stopLoss ? dataManager.formatNumber(signalData.stopLoss) : '--'}</span>
+            <span class="value">${signalData.stopLoss ? dataManager.formatPrice(signalData.stopLoss) : '--'}</span>
           </div>
           <div class="execution-item">
             <span class="label">止盈价格:</span>
-            <span class="value">${signalData.takeProfit ? dataManager.formatNumber(signalData.takeProfit) : '--'}</span>
+            <span class="value">${signalData.takeProfit ? dataManager.formatPrice(signalData.takeProfit) : '--'}</span>
           </div>
           <div class="execution-item">
             <span class="label">最大杠杆数:</span>
