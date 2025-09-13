@@ -257,7 +257,7 @@ describe('15min信号通知功能', () => {
       const sentMessage = sendMessageSpy.mock.calls[0][0];
       
       // 验证时间格式（应该是中国时间）
-      expect(sentMessage).toMatch(/⏰ <b>检测时间:</b> \d{4}\/\d{1,2}\/\d{1,2} \d{1,2}:\d{2}:\d{2}/);
+      expect(sentMessage).toMatch(/⏰ <b>检测时间:<\/b> \d{4}\/\d{1,2}\/\d{1,2} \d{1,2}:\d{2}:\d{2}/);
     });
   });
 });
