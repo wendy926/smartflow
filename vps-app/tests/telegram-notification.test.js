@@ -68,7 +68,7 @@ describe('TelegramNotifier', () => {
       await telegramNotifier.sendSimulationStartNotification(simulationData);
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('🚀 模拟交易开启')
+        expect.stringContaining('🚀 <b>模拟交易开启</b>')
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
         expect.stringContaining('BTCUSDT')
@@ -141,7 +141,7 @@ describe('TelegramNotifier', () => {
       await telegramNotifier.sendSimulationEndNotification(simulationData);
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('✅ 模拟交易结束')
+        expect.stringContaining('✅ <b>模拟交易结束</b>')
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
         expect.stringContaining('盈利')
@@ -178,7 +178,7 @@ describe('TelegramNotifier', () => {
       await telegramNotifier.sendSimulationEndNotification(simulationData);
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('❌ 模拟交易结束')
+        expect.stringContaining('❌ <b>模拟交易结束</b>')
       );
       expect(sendMessageSpy).toHaveBeenCalledWith(
         expect.stringContaining('亏损')
@@ -204,7 +204,7 @@ describe('TelegramNotifier', () => {
       await telegramNotifier.sendTestNotification();
 
       expect(sendMessageSpy).toHaveBeenCalledWith(
-        expect.stringContaining('🧪 Telegram通知测试')
+        expect.stringContaining('🧪 <b>Telegram通知测试</b>')
       );
     });
   });
@@ -245,6 +245,10 @@ describe('TelegramNotifier', () => {
     });
 
     test('应该处理未配置时的通知', async () => {
+      // 确保TelegramNotifier未配置
+      telegramNotifier.enabled = false;
+      telegramNotifier.initialized = false;
+      
       const sendMessageSpy = jest.spyOn(telegramNotifier, 'sendMessage')
         .mockResolvedValue(true);
 

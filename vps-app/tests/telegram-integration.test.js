@@ -229,7 +229,7 @@ describe('Telegram通知集成测试', () => {
 
       await telegramNotifier.sendSimulationStartNotification(simulationData);
 
-      expect(capturedMessage).toContain('🚀 模拟交易开启');
+      expect(capturedMessage).toContain('🚀 <b>模拟交易开启</b>');
       expect(capturedMessage).toContain('BTCUSDT');
       expect(capturedMessage).toContain('做多');
       expect(capturedMessage).toContain('50000.0000 USDT');
@@ -267,7 +267,7 @@ describe('Telegram通知集成测试', () => {
 
       await telegramNotifier.sendSimulationEndNotification(simulationData);
 
-      expect(capturedMessage).toContain('❌ 模拟交易结束');
+      expect(capturedMessage).toContain('❌ <b>模拟交易结束</b>');
       expect(capturedMessage).toContain('ETHUSDT');
       expect(capturedMessage).toContain('做空');
       expect(capturedMessage).toContain('3100.0000 USDT');
