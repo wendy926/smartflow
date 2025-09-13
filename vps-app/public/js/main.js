@@ -38,9 +38,9 @@ class SmartFlowApp {
       this.loadInitialData();
       sessionStorage.setItem('smartflow_initialized', 'true');
     } else if (fromCache) {
-      // 从其他页面返回：优先使用缓存数据
-      console.log('📦 从其他页面返回，使用缓存数据');
-      await this.loadDataFromCache();
+      // 从其他页面返回：只使用缓存数据，不刷新
+      console.log('📦 从其他页面返回，只使用缓存数据，不刷新');
+      await this.loadDataFromCacheOnly();
     } else {
       // 默认情况：尝试缓存，失败则从数据库加载
       console.log('🔄 默认加载，尝试缓存数据');
@@ -211,6 +211,46 @@ class SmartFlowApp {
       } else {
         throw error;
       }
+    }
+  }
+
+  // 只从缓存加载数据，不刷新（用于从其他页面返回）
+  async loadDataFromCacheOnly() {
+    try {
+      const cachedData = localStorage.getItem('smartflow_cached_data');
+      if (cachedData) {
+        const { signals, stats, updateTimes, timestamp } = JSON.parse(cachedData);
+        const now = Date.now();
+        const cacheAge = now - timestamp;
+
+        console.log('📦 使用缓存数据（不刷新），缓存时间:', new Date(timestamp).toLocaleTimeString(), '缓存年龄:', Math.round(cacheAge / 1000 / 60), '分钟');
+
+        // 恢复更新时间信息
+        if (updateTimes) {
+          this.updateTimes = updateTimes;
+          console.log('📦 恢复更新时间:', updateTimes);
+        }
+
+        this.updateStatsDisplay(signals, stats);
+        this.updateSignalsTable(signals);
+        this.updateStatusDisplay();
+
+        // 显示缓存状态
+        this.showCacheStatus(true, Math.round(cacheAge / 1000 / 60));
+        return;
+      } else {
+        console.log('📦 没有找到缓存数据，显示空状态');
+        // 显示空状态，不触发数据加载
+        this.updateStatsDisplay([], {});
+        this.updateSignalsTable([]);
+        this.updateStatusDisplay();
+      }
+    } catch (error) {
+      console.error('从缓存加载数据失败:', error);
+      // 显示空状态，不触发数据加载
+      this.updateStatsDisplay([], {});
+      this.updateSignalsTable([]);
+      this.updateStatusDisplay();
     }
   }
 
