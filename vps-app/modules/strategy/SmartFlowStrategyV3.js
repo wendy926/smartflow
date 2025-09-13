@@ -14,6 +14,13 @@ class SmartFlowStrategyV3 {
   static core = new StrategyV3Core();
   static execution = null; // 将在初始化时设置
 
+  constructor(database = null) {
+    this.database = database;
+    this.core = new StrategyV3Core(database);
+    this.execution = new StrategyV3Execution(database);
+    this.deltaManager = new DeltaRealTimeManager();
+  }
+
   /**
    * 完整的V3策略分析 - 主入口（支持数据刷新频率管理）
    * @param {string} symbol - 交易对
