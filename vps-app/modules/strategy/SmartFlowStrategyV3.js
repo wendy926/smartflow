@@ -486,8 +486,8 @@ class SmartFlowStrategyV3 {
       console.error('参数详情:', { entryPrice, stopLossPrice, atr14, direction, maxLossAmount });
 
       // 记录数据验证告警
-      if (this.dataMonitor) {
-        this.dataMonitor.recordDataValidationError(
+      if (SmartFlowStrategyV3.dataMonitor) {
+        SmartFlowStrategyV3.dataMonitor.recordDataValidationError(
           'LEVERAGE_CALCULATION_FAILED',
           `杠杆计算失败: ${error.message}`,
           { entryPrice, stopLossPrice, atr14, direction, maxLossAmount, error: error.message }
