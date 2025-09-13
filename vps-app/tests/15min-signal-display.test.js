@@ -183,7 +183,7 @@ describe('15min信号显示逻辑', () => {
       // 验证显示结果
       expect(executionDisplay).toBe('--<br><small style="color: #999;">多头回踩突破</small>');
       expect(priceDisplay).toBe('50,000');
-      
+
       // 这种显示是合理的：
       // - 显示了识别到的执行模式
       // - 但没有显示入场价格（因为还没有触发）

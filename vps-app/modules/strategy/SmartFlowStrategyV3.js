@@ -266,6 +266,31 @@ class SmartFlowStrategyV3 {
       const finalExecutionMode = scoringResult.allowEntry ? (executionResult.mode || 'NONE') : 'NONE';
       const finalReason = scoringResult.allowEntry ? executionResult.reason : `1H打分不足: ${scoringResult.score}/3`;
 
+      // 6. 发送15min信号通知（当有执行模式时）
+      if (finalExecutionMode && finalExecutionMode !== 'NONE') {
+        try {
+          const TelegramNotifier = require('../notification/TelegramNotifier');
+          const telegramNotifier = new TelegramNotifier();
+          
+          // 发送15min信号通知
+          await telegramNotifier.send15minSignalNotification({
+            symbol: symbol,
+            executionMode: finalExecutionMode,
+            signal: finalSignal,
+            entryPrice: executionResult.entry,
+            stopLoss: executionResult.stopLoss,
+            takeProfit: executionResult.takeProfit,
+            currentPrice: candles15m[candles15m.length - 1].close,
+            trend4h: trend4hResult.trend4h,
+            score1h: scoringResult.score,
+            reason: finalReason,
+            timestamp: new Date().toISOString()
+          });
+        } catch (notificationError) {
+          console.error(`发送15min信号通知失败 [${symbol}]:`, notificationError);
+        }
+      }
+
       return {
         marketType: '趋势市',
         score1h: scoringResult.score,
@@ -366,7 +391,32 @@ class SmartFlowStrategyV3 {
       }
 
 
-      // 5. 合并结果
+      // 5. 发送15min信号通知（当有执行模式时）
+      if (executionResult.mode && executionResult.mode !== 'NONE') {
+        try {
+          const TelegramNotifier = require('../notification/TelegramNotifier');
+          const telegramNotifier = new TelegramNotifier();
+          
+          // 发送15min信号通知
+          await telegramNotifier.send15minSignalNotification({
+            symbol: symbol,
+            executionMode: executionResult.mode,
+            signal: executionResult.signal,
+            entryPrice: executionResult.entry,
+            stopLoss: executionResult.stopLoss,
+            takeProfit: executionResult.takeProfit,
+            currentPrice: candles15m[candles15m.length - 1].close,
+            trend4h: trend4hResult.trend4h,
+            score1h: scoringResult ? scoringResult.score : 0,
+            reason: executionResult.reason,
+            timestamp: new Date().toISOString()
+          });
+        } catch (notificationError) {
+          console.error(`发送15min信号通知失败 [${symbol}]:`, notificationError);
+        }
+      }
+
+      // 6. 合并结果
       return {
         marketType: '震荡市',
         // 使用传入的1H多因子打分结果

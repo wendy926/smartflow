@@ -197,6 +197,61 @@ ${resultEmoji} <b>结果:</b> ${resultText}
     }
 
     /**
+     * 发送15min信号通知
+     * @param {Object} data - 信号数据
+     * @returns {Promise<boolean>} - 发送是否成功
+     */
+    async send15minSignalNotification(data) {
+        const {
+            symbol,
+            executionMode,
+            signal,
+            entryPrice,
+            stopLoss,
+            takeProfit,
+            currentPrice,
+            trend4h,
+            score1h,
+            reason,
+            timestamp
+        } = data;
+
+        // 格式化价格显示
+        const formatPrice = (price) => price ? price.toFixed(4) : '--';
+        
+        // 确定信号方向
+        const direction = signal === 'BUY' ? '📈 多头' : signal === 'SELL' ? '📉 空头' : '⏸️ 观望';
+        
+        // 确定市场类型
+        const marketType = trend4h === '多头趋势' || trend4h === '空头趋势' ? '趋势市' : '震荡市';
+
+        const message = `
+🎯 <b>15分钟信号检测</b>
+
+📊 <b>交易对:</b> ${symbol}
+🔄 <b>执行模式:</b> ${executionMode}
+${direction}
+📈 <b>4H趋势:</b> ${trend4h}
+📊 <b>1H得分:</b> ${score1h}/6
+🏷️ <b>市场类型:</b> ${marketType}
+
+💰 <b>价格信息:</b>
+• 当前价格: ${formatPrice(currentPrice)}
+• 入场价格: ${formatPrice(entryPrice)}
+• 止损价格: ${formatPrice(stopLoss)}
+• 止盈价格: ${formatPrice(takeProfit)}
+
+📝 <b>触发原因:</b> ${reason}
+
+⏰ <b>检测时间:</b> ${new Date(timestamp).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
+
+🤖 SmartFlow V3策略系统
+        `.trim();
+
+        return await this.sendMessage(message);
+    }
+
+    /**
      * 发送测试通知
      * @returns {Promise<boolean>} - 发送是否成功
      */

@@ -23,7 +23,7 @@ describe('监控页面模拟交易统计数据', () => {
       // 模拟前端计算逻辑
       let totalTriggers = 0;
       let totalCompletions = 0;
-      
+
       if (mockData.detailedStats) {
         mockData.detailedStats.forEach(symbol => {
           totalTriggers += symbol.simulationTriggers || 0;
@@ -42,7 +42,7 @@ describe('监控页面模拟交易统计数据', () => {
 
       let totalTriggers = 0;
       let totalCompletions = 0;
-      
+
       if (mockData.detailedStats) {
         mockData.detailedStats.forEach(symbol => {
           totalTriggers += symbol.simulationTriggers || 0;

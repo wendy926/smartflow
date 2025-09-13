@@ -1297,17 +1297,17 @@ class SmartFlowServer {
     this.app.post('/api/telegram-config', async (req, res) => {
       try {
         const { botToken, chatId } = req.body;
-        
+
         if (!botToken || !chatId) {
           return res.status(400).json({ error: 'botToken和chatId不能为空' });
         }
 
         this.telegramNotifier.init(botToken, chatId);
-        
+
         // 保存配置到数据库
         await this.db.setUserSetting('telegramBotToken', botToken);
         await this.db.setUserSetting('telegramChatId', chatId);
-        
+
         const status = this.telegramNotifier.getStatus();
         res.json({ success: true, message: 'Telegram配置已保存', status });
       } catch (error) {
@@ -1426,12 +1426,12 @@ class SmartFlowServer {
 
       // 初始化Telegram通知
       this.telegramNotifier = new TelegramNotifier();
-      
+
       // 从数据库加载Telegram配置
       try {
         const botToken = await this.db.getUserSetting('telegramBotToken', '');
         const chatId = await this.db.getUserSetting('telegramChatId', '');
-        
+
         if (botToken && chatId) {
           this.telegramNotifier.init(botToken, chatId);
           console.log('✅ Telegram通知器配置已加载');
@@ -1441,7 +1441,7 @@ class SmartFlowServer {
       } catch (error) {
         console.warn('⚠️ 加载Telegram配置失败:', error.message);
       }
-      
+
       console.log('✅ Telegram通知器初始化完成');
 
       // 将TelegramNotifier设置到SimulationManager
