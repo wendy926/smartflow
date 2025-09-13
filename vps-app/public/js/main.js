@@ -1844,28 +1844,28 @@ function updateSummaryTable(monitoringData, realtimeData) {
           ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
         </td>
         <td>
-          <div class="metric-rate">${symbol.dataCollection.rate.toFixed(2)}%</div>
-          <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
+          <div class="metric-rate">${symbol.dataCollectionRate.toFixed(2)}%</div>
+          <div class="metric-details">${symbol.dataCollectionSuccesses || 0}/${symbol.dataCollectionAttempts || 0}</div>
           ${realtimeStat ? `<div class="metric-details" style="color: #666; font-size: 0.8em;">API: ${binanceSuccessRate.toFixed(2)}%</div>` : ''}
         </td>
         <td>
-          <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(2)}%</div>
-          <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
+          <div class="metric-rate">${symbol.signalAnalysisRate.toFixed(2)}%</div>
+          <div class="metric-details">${symbol.signalAnalysisSuccesses || 0}/${symbol.signalAnalysisAttempts || 0}</div>
         </td>
         <td>
-          <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(2)}%</div>
-          <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
+          <div class="metric-rate">${symbol.simulationCompletionRate.toFixed(2)}%</div>
+          <div class="metric-details">${symbol.simulationCompletions || 0}/${symbol.simulationTriggers || 0}</div>
         </td>
         <td>
-          <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(2)}%</div>
-          <div class="metric-details">${symbol.simulationProgress.inProgress}/${symbol.simulationProgress.triggers}</div>
+          <div class="metric-rate">${symbol.simulationProgressRate.toFixed(2)}%</div>
+          <div class="metric-details">${symbol.simulationInProgress || 0}/${symbol.simulationTriggers || 0}</div>
         </td>
         <td>
           <div class="metric-time">${symbol.refreshFrequency}秒</div>
         </td>
         <td>
-          <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
-            ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(2)}%
+          <span class="status-indicator ${symbol.overallStatus.toLowerCase()}">
+            ${symbol.overallStatus === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overallRate.toFixed(2)}%
           </span>
         </td>
       `;
@@ -1910,24 +1910,24 @@ function updateDetailedTable(monitoringData, realtimeData) {
         </td>
         <td>
           <div class="metric-detail">
-            <div class="metric-rate">${symbol.dataCollection.rate.toFixed(2)}%</div>
-            <div class="metric-info">成功: ${symbol.dataCollection.successes} | 尝试: ${symbol.dataCollection.attempts}</div>
-            <div class="metric-time">最后: ${formatTime(symbol.dataCollection.lastTime)}</div>
+            <div class="metric-rate">${symbol.dataCollectionRate.toFixed(2)}%</div>
+            <div class="metric-info">成功: ${symbol.dataCollectionSuccesses || 0} | 尝试: ${symbol.dataCollectionAttempts || 0}</div>
+            <div class="metric-time">最后: ${formatTime(symbol.dataCollectionLastTime)}</div>
           </div>
         </td>
         <td>
           <div class="metric-detail">
-            <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(2)}%</div>
-            <div class="metric-info">成功: ${symbol.signalAnalysis.successes} | 尝试: ${symbol.signalAnalysis.attempts}</div>
-            <div class="metric-time">最后: ${formatTime(symbol.signalAnalysis.lastTime)}</div>
+            <div class="metric-rate">${symbol.signalAnalysisRate.toFixed(2)}%</div>
+            <div class="metric-info">成功: ${symbol.signalAnalysisSuccesses || 0} | 尝试: ${symbol.signalAnalysisAttempts || 0}</div>
+            <div class="metric-time">最后: ${formatTime(symbol.signalAnalysisLastTime)}</div>
           </div>
         </td>
         <td>
           <div class="metric-detail">
-            <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(2)}%</div>
-            <div class="metric-info">完成: ${symbol.simulationCompletion.completions} | 触发: ${symbol.simulationCompletion.triggers}</div>
-            <div class="metric-rate">进行: ${symbol.simulationProgress.rate.toFixed(2)}%</div>
-            <div class="metric-info">进行中: ${symbol.simulationProgress.inProgress} | 触发: ${symbol.simulationProgress.triggers}</div>
+            <div class="metric-rate">${symbol.simulationCompletionRate.toFixed(2)}%</div>
+            <div class="metric-info">完成: ${symbol.simulationCompletions || 0} | 触发: ${symbol.simulationTriggers || 0}</div>
+            <div class="metric-rate">进行: ${symbol.simulationProgressRate.toFixed(2)}%</div>
+            <div class="metric-info">进行中: ${symbol.simulationInProgress || 0} | 触发: ${symbol.simulationTriggers || 0}</div>
           </div>
         </td>
         <td>
@@ -1953,15 +1953,15 @@ function updateDetailedTable(monitoringData, realtimeData) {
         </td>
         <td>
           <div class="last-update">
-            <div>数据收集: ${formatTime(symbol.dataCollection.lastTime)}</div>
-            <div>信号分析: ${formatTime(symbol.signalAnalysis.lastTime)}</div>
+            <div>数据收集: ${formatTime(symbol.dataCollectionLastTime)}</div>
+            <div>信号分析: ${formatTime(symbol.signalAnalysisLastTime)}</div>
             <div>刷新频率: ${symbol.refreshFrequency}秒</div>
           </div>
         </td>
         <td>
           <div class="health-status">
-            <span class="status-indicator ${symbol.overall.status.toLowerCase()}">
-              ${symbol.overall.status === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overall.rate.toFixed(2)}%
+            <span class="status-indicator ${symbol.overallStatus.toLowerCase()}">
+              ${symbol.overallStatus === 'HEALTHY' ? '✅' : '⚠️'} ${symbol.overallRate.toFixed(2)}%
             </span>
             <div class="health-details">
               <div>优先级: ${symbol.priorityScore}</div>
