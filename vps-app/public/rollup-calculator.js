@@ -23,6 +23,14 @@ class RollupCalculator {
     });
   }
 
+  // 格式化价格显示（保留4位小数）
+  formatPrice(price) {
+    if (price === null || price === undefined || isNaN(price)) {
+      return '0.0000';
+    }
+    return price.toFixed(4);
+  }
+
   // 计算止损距离
   calculateStopLossDistance({ currentPrice, stopLossPrice }) {
     const stopLossDistance = (Math.abs(currentPrice - stopLossPrice) / currentPrice) * 100;
@@ -472,7 +480,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     principalElement.textContent = calculator.formatNumber(data.suggestedMargin) + ' U';
     leverageElement.textContent = data.maxLeverage;
-    stopLossElement.textContent = calculator.formatNumber(data.stopLossPrice) + ' U';
+    stopLossElement.textContent = calculator.formatPrice(data.stopLossPrice) + ' U';
     distanceElement.textContent = calculator.formatNumber(data.stopLossDistance) + '%';
 
     document.getElementById('initialCalculation').classList.remove('hidden');
@@ -592,7 +600,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${pos.leverage}x</td>
                 <td>${calculator.formatNumber(pos.position_value)}</td>
                 <td>≈ ${calculator.formatNumber(pos.qty)}</td>
-                <td>${calculator.formatNumber(pos.stop_loss_price || 0)}</td>
+                <td>${calculator.formatPrice(pos.stop_loss_price || 0)}</td>
                 <td>${calculator.formatNumber(pos.profit)}</td>
                 <td>${calculator.formatNumber(cumulativeAccount)}</td>
             `;
@@ -614,12 +622,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td>${step.step}</td>
                     <td>${calculator.formatNumber(step.peak_H)}</td>
                     <td>${calculator.formatNumber(step.retrace_R)}</td>
-                    <td>${calculator.formatNumber(step.new_entry_price)}</td>
+                    <td>${calculator.formatPrice(step.new_entry_price)}</td>
                     <td>${calculator.formatNumber(step.margin_used)}</td>
                     <td>${step.leverage}x</td>
                     <td>${calculator.formatNumber(step.position_value)}</td>
                     <td>≈ ${calculator.formatNumber(step.qty)}</td>
-                    <td>${calculator.formatNumber(step.stop_loss_price || 0)}</td>
+                    <td>${calculator.formatPrice(step.stop_loss_price || 0)}</td>
                 `;
         addStepsTableBody.appendChild(row);
       });

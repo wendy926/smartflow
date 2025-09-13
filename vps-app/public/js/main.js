@@ -562,9 +562,9 @@ class SmartFlowApp {
       }
 
       // 构建当前价格列内容（包含入场价格）
-      let priceDisplay = dataManager.formatNumber(signal.currentPrice || 0);
+      let priceDisplay = dataManager.formatPrice(signal.currentPrice || 0);
       if (signal.entrySignal) {
-        priceDisplay += `<br><small style="color: #666;">入场: ${dataManager.formatNumber(signal.entrySignal)}</small>`;
+        priceDisplay += `<br><small style="color: #666;">入场: ${dataManager.formatPrice(signal.entrySignal)}</small>`;
       }
 
       // 获取交易对分类
@@ -1049,9 +1049,9 @@ async function viewTradeHistory(symbol) {
       second: '2-digit'
     })}</td>
                   <td>${trade.direction === 'LONG' ? '做多' : trade.direction === 'SHORT' ? '做空' : '--'}</td>
-                  <td>${dataManager.formatNumber(trade.entryPrice)}</td>
-                  <td>${dataManager.formatNumber(trade.stopLoss)}</td>
-                  <td>${dataManager.formatNumber(trade.takeProfit)}</td>
+                  <td>${dataManager.formatPrice(trade.entryPrice)}</td>
+                  <td>${dataManager.formatPrice(trade.stopLoss)}</td>
+                  <td>${dataManager.formatPrice(trade.takeProfit)}</td>
                   <td>${trade.status || '进行中'}</td>
                 </tr>
               `).join('')}
@@ -1368,15 +1368,15 @@ async function showSignalDetails(symbol) {
           <div class="execution-grid">
             <div class="execution-item">
               <span class="label">当前价格:</span>
-              <span class="value">${dataManager.formatNumber(signalData.currentPrice)}</span>
+              <span class="value">${dataManager.formatPrice(signalData.currentPrice)}</span>
             </div>
             <div class="execution-item">
               <span class="label">止损价格:</span>
-              <span class="value">${signalData.stopLoss ? dataManager.formatNumber(signalData.stopLoss) : '--'}</span>
+              <span class="value">${signalData.stopLoss ? dataManager.formatPrice(signalData.stopLoss) : '--'}</span>
             </div>
             <div class="execution-item">
               <span class="label">止盈价格:</span>
-              <span class="value">${signalData.targetPrice ? dataManager.formatNumber(signalData.targetPrice) : '--'}</span>
+              <span class="value">${signalData.targetPrice ? dataManager.formatPrice(signalData.targetPrice) : '--'}</span>
             </div>
             <div class="execution-item">
               <span class="label">风险回报比:</span>
@@ -1388,7 +1388,7 @@ async function showSignalDetails(symbol) {
             </div>
             <div class="execution-item">
               <span class="label">最小保证金:</span>
-              <span class="value">${signalData.minMargin ? dataManager.formatNumber(signalData.minMargin) : '--'}</span>
+              <span class="value">${signalData.minMargin ? dataManager.formatPrice(signalData.minMargin) : '--'}</span>
             </div>
             <div class="execution-item">
               <span class="label">人工确认:</span>

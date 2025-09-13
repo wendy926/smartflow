@@ -12,7 +12,7 @@ class TelegramNotifier {
         this.chatId = null;
         this.enabled = false;
         this.initialized = false;
-        
+
         // 模拟交易执行通知机器人配置
         this.simulationBotToken = null;
         this.simulationChatId = null;
@@ -68,7 +68,7 @@ class TelegramNotifier {
      */
     async sendMessage(message, type = 'signal') {
         let botToken, chatId, enabled, initialized;
-        
+
         if (type === 'simulation') {
             botToken = this.simulationBotToken;
             chatId = this.simulationChatId;
