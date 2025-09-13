@@ -282,7 +282,7 @@ class SimulationManager {
       };
 
       // 异步发送通知，不阻塞主流程
-      this.telegramNotifier.notifySimulationStart(simulationData).catch(error => {
+      this.telegramNotifier.sendSimulationStartNotification(simulationData).catch(error => {
         console.error(`❌ 模拟交易开始通知发送失败: ${symbol}`, error);
       });
 
