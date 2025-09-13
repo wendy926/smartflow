@@ -2006,16 +2006,49 @@ class SmartFlowServer {
       }
       const triggerReason = `SIGNAL_${mode}`;
 
+      // 如果杠杆或保证金数据缺失，尝试重新计算
+      let finalMaxLeverage = maxLeverage;
+      let finalMinMargin = minMargin;
+      let finalStopLossDistance = stopLossDistance;
+
+      if (!maxLeverage || !minMargin || maxLeverage === 10 || minMargin === 100) {
+        console.log(`🔧 [${symbol}] 检测到默认值，重新计算杠杆和保证金数据...`);
+        try {
+          const direction = isLong ? 'LONG' : 'SHORT';
+          const leverageData = await SmartFlowStrategyV3.calculateLeverageData(
+            entrySignal, 
+            stopLoss, 
+            atr14, 
+            direction, 
+            this.db,
+            100 // 使用默认最大损失金额
+          );
+
+          if (!leverageData.error) {
+            finalMaxLeverage = leverageData.maxLeverage;
+            finalMinMargin = leverageData.minMargin;
+            finalStopLossDistance = leverageData.stopLossDistance;
+            console.log(`✅ [${symbol}] 重新计算成功: 杠杆=${finalMaxLeverage}x, 保证金=${finalMinMargin}`);
+          } else {
+            console.warn(`⚠️ [${symbol}] 重新计算失败，使用默认值: ${leverageData.error}`);
+          }
+        } catch (calcError) {
+          console.error(`❌ [${symbol}] 重新计算异常:`, calcError.message);
+          finalMaxLeverage = finalMaxLeverage || 10;
+          finalMinMargin = finalMinMargin || 100;
+        }
+      }
+
       // 创建模拟交易
       const simulationId = await this.simulationManager.createSimulation(
         symbol,
         entrySignal,
         stopLoss,
         takeProfit,
-        maxLeverage || 10,
-        minMargin || 100,
+        finalMaxLeverage,
+        finalMinMargin,
         triggerReason,
-        stopLossDistance || null,
+        finalStopLossDistance,
         atrValue || null,
         atr14 || null,
         executionMode || mode,

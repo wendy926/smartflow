@@ -382,6 +382,103 @@ class StrategyV3Execution {
   }
 
   /**
+   * 计算杠杆和保证金数据
+   * 参考strategy-v3.md文档：
+   * - 止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
+   * - 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
+   * - 保证金Z：M/(Y*X%) 数值向上取整（M为最大损失金额）
+   */
+  async calculateLeverageData(entryPrice, stopLossPrice, takeProfitPrice, direction = 'SHORT') {
+    try {
+      console.log(`🧮 [StrategyV3Execution] 开始计算杠杆数据 [${direction}]: 入场价=${entryPrice}, 止损价=${stopLossPrice}`);
+
+      // 验证输入参数
+      if (!entryPrice || !stopLossPrice || entryPrice <= 0 || stopLossPrice <= 0) {
+        throw new Error(`无效的价格参数: entryPrice=${entryPrice}, stopLossPrice=${stopLossPrice}`);
+      }
+
+      // 获取全局最大损失设置
+      let maxLossAmount = 100; // 默认值
+      if (this.database) {
+        try {
+          const globalMaxLoss = await this.database.getUserSetting('maxLossAmount', 100);
+          maxLossAmount = parseFloat(globalMaxLoss);
+        } catch (dbError) {
+          console.warn('获取最大损失设置失败，使用默认值:', dbError.message);
+        }
+      } else {
+        console.warn('数据库连接未初始化，使用默认最大损失金额');
+      }
+
+      let maxLeverage = 0;
+      let minMargin = 0;
+      let stopLossDistance = 0;
+
+      // 根据方向计算止损距离百分比
+      if (direction === 'LONG') {
+        // 多头：止损价低于入场价
+        stopLossDistance = (entryPrice - stopLossPrice) / entryPrice;
+      } else {
+        // 空头：止损价高于入场价
+        stopLossDistance = (stopLossPrice - entryPrice) / entryPrice;
+      }
+
+      // 确保止损距离为正数
+      stopLossDistance = Math.abs(stopLossDistance);
+
+      // 验证止损距离的合理性（应该在0.1%到50%之间）
+      if (stopLossDistance < 0.001 || stopLossDistance > 0.5) {
+        throw new Error(`止损距离不合理: ${(stopLossDistance * 100).toFixed(4)}%`);
+      }
+
+      // 最大杠杆数：1/(止损距离% + 0.5%) 数值向下取整
+      if (stopLossDistance > 0) {
+        maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+      }
+
+      // 最小保证金：最大损失金额/(杠杆数 × 止损距离%) 数值向上取整
+      if (maxLeverage > 0 && stopLossDistance > 0) {
+        minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
+      }
+
+      // 验证计算结果
+      if (maxLeverage <= 0 || minMargin <= 0) {
+        throw new Error(`计算结果无效: maxLeverage=${maxLeverage}, minMargin=${minMargin}`);
+      }
+
+      const result = {
+        leverage: Math.max(1, maxLeverage),
+        margin: minMargin,
+        riskAmount: maxLossAmount,
+        rewardAmount: takeProfitPrice ? Math.abs(takeProfitPrice - entryPrice) / entryPrice * minMargin * maxLeverage : 0,
+        riskRewardRatio: takeProfitPrice ? Math.abs(takeProfitPrice - entryPrice) / Math.abs(stopLossPrice - entryPrice) : 0,
+        stopLossDistance: stopLossDistance * 100 // 转换为百分比
+      };
+
+      console.log(`✅ [StrategyV3Execution] 杠杆计算成功: 杠杆=${result.leverage}x, 保证金=${result.margin}, 止损距离=${result.stopLossDistance.toFixed(4)}%`);
+      return result;
+
+    } catch (error) {
+      console.error(`❌ [StrategyV3Execution] 计算杠杆数据失败:`, error.message);
+      console.error('参数详情:', { entryPrice, stopLossPrice, takeProfitPrice, direction });
+
+      // 返回安全的默认值，但记录错误
+      const safeResult = {
+        leverage: 10,
+        margin: 100,
+        riskAmount: 100,
+        rewardAmount: 0,
+        riskRewardRatio: 0,
+        stopLossDistance: 0,
+        error: error.message
+      };
+
+      console.warn(`⚠️ [StrategyV3Execution] 使用默认值: 杠杆=${safeResult.leverage}x, 保证金=${safeResult.margin}`);
+      return safeResult;
+    }
+  }
+
+  /**
    * 多因子打分系统 - 使用分类权重优化实现
    */
   async calculateFactorScore(symbol, { currentPrice, vwap, delta, oi, volume, signalType }) {

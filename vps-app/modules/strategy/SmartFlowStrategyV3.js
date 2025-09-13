@@ -418,80 +418,93 @@ class SmartFlowStrategyV3 {
 
   /**
    * 计算杠杆和保证金数据
-   * 参考strategy-v2.md文档：
+   * 参考strategy-v3.md文档：
    * - 止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
    * - 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
    * - 保证金Z：M/(Y*X%) 数值向上取整（M为最大损失金额）
    */
-  static async calculateLeverageData(entryPrice, stopLossPrice, atr14, direction = 'SHORT') {
+  static async calculateLeverageData(entryPrice, stopLossPrice, atr14, direction = 'SHORT', database = null, maxLossAmount = 100) {
     try {
-      // 获取全局最大损失设置
-      const DatabaseManager = require('../database/DatabaseManager');
-      const dbManager = new DatabaseManager();
-      await dbManager.init();
+      console.log(`🧮 开始计算杠杆数据 [${direction}]: 入场价=${entryPrice}, 止损价=${stopLossPrice}, ATR=${atr14}`);
 
-      const globalMaxLoss = await dbManager.getUserSetting('maxLossAmount', 100);
-      const maxLossAmount = parseFloat(globalMaxLoss);
+      // 验证输入参数
+      if (!entryPrice || !stopLossPrice || entryPrice <= 0 || stopLossPrice <= 0) {
+        throw new Error(`无效的价格参数: entryPrice=${entryPrice}, stopLossPrice=${stopLossPrice}`);
+      }
+
+      // 如果ATR值为null，使用默认值（入场价的1%）
+      const effectiveATR = atr14 && atr14 > 0 ? atr14 : entryPrice * 0.01;
 
       let maxLeverage = 0;
       let minMargin = 0;
       let stopLossDistance = 0;
 
-      // 如果ATR值为null，使用默认值（入场价的1%）
-      const effectiveATR = atr14 && atr14 > 0 ? atr14 : entryPrice * 0.01;
-
-
-      if (entryPrice && stopLossPrice && entryPrice > 0) {
-        // 根据方向计算止损距离百分比
-        if (direction === 'LONG') {
-          // 多头：止损价低于入场价
-          stopLossDistance = (entryPrice - stopLossPrice) / entryPrice;
-        } else {
-          // 空头：止损价高于入场价
-          stopLossDistance = (stopLossPrice - entryPrice) / entryPrice;
-        }
-
-        // 确保止损距离为正数
-        stopLossDistance = Math.abs(stopLossDistance);
-
-        // 最大杠杆数：1/(止损距离% + 0.5%) 数值向下取整
-        if (stopLossDistance > 0) {
-          maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
-        }
-
-        // 最小保证金：最大损失金额/(杠杆数 × 止损距离%) 数值向上取整
-        if (maxLeverage > 0 && stopLossDistance > 0) {
-          minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
-        }
+      // 根据方向计算止损距离百分比
+      if (direction === 'LONG') {
+        // 多头：止损价低于入场价
+        stopLossDistance = (entryPrice - stopLossPrice) / entryPrice;
+      } else {
+        // 空头：止损价高于入场价
+        stopLossDistance = (stopLossPrice - entryPrice) / entryPrice;
       }
 
-      await dbManager.close();
+      // 确保止损距离为正数
+      stopLossDistance = Math.abs(stopLossDistance);
 
-      return {
+      // 验证止损距离的合理性（应该在0.1%到50%之间）
+      if (stopLossDistance < 0.001 || stopLossDistance > 0.5) {
+        throw new Error(`止损距离不合理: ${(stopLossDistance * 100).toFixed(4)}%`);
+      }
+
+      // 最大杠杆数：1/(止损距离% + 0.5%) 数值向下取整
+      if (stopLossDistance > 0) {
+        maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+      }
+
+      // 最小保证金：最大损失金额/(杠杆数 × 止损距离%) 数值向上取整
+      if (maxLeverage > 0 && stopLossDistance > 0) {
+        minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
+      }
+
+      // 验证计算结果
+      if (maxLeverage <= 0 || minMargin <= 0) {
+        throw new Error(`计算结果无效: maxLeverage=${maxLeverage}, minMargin=${minMargin}`);
+      }
+
+      const result = {
         maxLeverage: Math.max(1, maxLeverage),
-        minMargin: minMargin, // 按照文档计算的最小保证金，数值向上取整
+        minMargin: minMargin,
         stopLossDistance: stopLossDistance * 100, // 转换为百分比
         atrValue: effectiveATR
       };
-    } catch (error) {
-      console.error('计算杠杆数据失败:', error);
-      console.error('参数详情:', { entryPrice, stopLossPrice, atr14, direction });
 
-      // 记录ATR计算失败的数据验证告警
+      console.log(`✅ 杠杆计算成功: 杠杆=${result.maxLeverage}x, 保证金=${result.minMargin}, 止损距离=${result.stopLossDistance.toFixed(4)}%`);
+      return result;
+
+    } catch (error) {
+      console.error(`❌ 计算杠杆数据失败:`, error.message);
+      console.error('参数详情:', { entryPrice, stopLossPrice, atr14, direction, maxLossAmount });
+
+      // 记录数据验证告警
       if (this.dataMonitor) {
         this.dataMonitor.recordDataValidationError(
-          'ATR_CALCULATION_FAILED',
-          `ATR计算失败: ${error.message}`,
-          { entryPrice, stopLossPrice, atr14, direction, error: error.message }
+          'LEVERAGE_CALCULATION_FAILED',
+          `杠杆计算失败: ${error.message}`,
+          { entryPrice, stopLossPrice, atr14, direction, maxLossAmount, error: error.message }
         );
       }
 
-      return {
+      // 返回安全的默认值，但记录错误
+      const safeResult = {
         maxLeverage: 10,
         minMargin: 100,
         stopLossDistance: 0,
-        atrValue: effectiveATR
+        atrValue: atr14 && atr14 > 0 ? atr14 : (entryPrice ? entryPrice * 0.01 : 0.01),
+        error: error.message
       };
+
+      console.warn(`⚠️ 使用默认值: 杠杆=${safeResult.maxLeverage}x, 保证金=${safeResult.minMargin}`);
+      return safeResult;
     }
   }
 
