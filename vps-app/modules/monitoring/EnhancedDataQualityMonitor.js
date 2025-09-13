@@ -213,7 +213,7 @@ class EnhancedDataQualityMonitor {
       results.klineFreshness['15m'] = await this.checkKlineDataFreshness(symbol, '15m');
 
       // 2. 检查是否有数据质量问题
-      const staleData = Object.values(results.klineFreshness).filter(r => !r.isFresh);
+      const staleData = Object.values(results.klineFreshness).filter(r => r && !r.isFresh);
       if (staleData.length > 0) {
         results.overallStatus = 'WARNING';
 
@@ -306,20 +306,25 @@ class EnhancedDataQualityMonitor {
    */
   async getDataQualityReport(symbol = null) {
     try {
+      if (!this.database) {
+        console.warn('数据库连接未初始化，无法获取数据质量报告');
+        return null;
+      }
+
       let sql = `
         SELECT symbol, issue_type, message, created_at, details
         FROM data_quality_issues
         WHERE created_at > datetime('now', '-24 hours')
       `;
-
+      
       const params = [];
       if (symbol) {
         sql += ' AND symbol = ?';
         params.push(symbol);
       }
-
+      
       sql += ' ORDER BY created_at DESC LIMIT 100';
-
+      
       const issues = await this.database.runQuery(sql, params);
 
       // 按问题类型分组
