@@ -175,9 +175,8 @@ function updateSystemOverview(data) {
   document.getElementById('warningSymbols').textContent = data.summary.warningSymbols || '--';
   document.getElementById('errorSymbols').textContent = data.summary.errorSymbols || '0';
 
-  // 告警总数（从数据验证和数据质量错误计算）
-  const totalAlerts = (data.summary.dataValidation?.errorCount || 0) + (data.summary.dataQuality?.issueCount || 0);
-  document.getElementById('totalAlerts').textContent = totalAlerts;
+  // 告警总数
+  document.getElementById('totalAlerts').textContent = data.summary.totalAlerts || '0';
 
   // 指标维度数据
   const completionRates = data.summary.completionRates || {};
@@ -185,9 +184,8 @@ function updateSystemOverview(data) {
   document.getElementById('dataCollectionRate').textContent = `${completionRates.dataCollection || 0}%`;
 
   // 数据验证状态
-  const dataValidation = data.summary.dataValidation || {};
-  const validationStatus = dataValidation.hasErrors ? '❌ 异常' : '✅ 正常';
-  const validationDetails = dataValidation.hasErrors ? `(${dataValidation.errorCount}个错误)` : '';
+  const validationStatus = data.summary.totalAlerts > 0 ? '❌ 异常' : '✅ 正常';
+  const validationDetails = data.summary.totalAlerts > 0 ? `(${data.summary.totalAlerts}个告警)` : '';
   document.getElementById('dataValidationStatus').textContent = validationStatus;
   document.getElementById('dataValidationIndicator').textContent = validationDetails;
 
@@ -200,8 +198,11 @@ function updateSystemOverview(data) {
   let totalCompletions = 0;
   if (data.detailedStats) {
     data.detailedStats.forEach(symbol => {
-      totalTriggers += symbol.simulationCompletion?.triggers || 0;
-      totalCompletions += symbol.simulationCompletion?.completions || 0;
+      // 使用新的数据结构
+      totalTriggers += 1; // 每个交易对算作一个触发器
+      if (symbol.simulationCompletionRate > 0) {
+        totalCompletions += 1;
+      }
     });
   }
   document.getElementById('simulationCompletionDetails').textContent = `${totalCompletions}/${totalTriggers}`;
@@ -326,37 +327,36 @@ function updateSummaryTable(data) {
     data.detailedStats.forEach((symbol, index) => {
       console.log(`📊 处理交易对 ${index + 1}:`, symbol.symbol, symbol);
       const row = document.createElement('tr');
-      row.className = `symbol-row ${symbol.hasExecution ? 'has-execution' : symbol.hasSignal ? 'has-signal' : symbol.hasTrend ? 'has-trend' : 'no-signals'}`;
+      row.className = `symbol-row ${symbol.overallStatus || 'unknown'}`;
 
       row.innerHTML = `
                 <td class="symbol-name">
                     ${symbol.symbol}
-                    ${symbol.hasExecution ? '<span class="signal-indicator execution">🚀</span>' : ''}
-                    ${symbol.hasSignal ? '<span class="signal-indicator signal">🎯</span>' : ''}
-                    ${symbol.hasTrend ? '<span class="signal-indicator trend">📈</span>' : ''}
-                    ${!symbol.hasExecution && !symbol.hasSignal && !symbol.hasTrend ? '<span class="signal-indicator none">⚪</span>' : ''}
+                    ${symbol.overallStatus === 'healthy' ? '<span class="status-indicator healthy">✅</span>' : ''}
+                    ${symbol.overallStatus === 'warning' ? '<span class="status-indicator warning">⚠️</span>' : ''}
+                    ${symbol.overallStatus === 'error' ? '<span class="status-indicator error">❌</span>' : ''}
                 </td>
                 <td>
-                    <div class="metric-rate">${symbol.dataCollection.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.dataCollection.successes}/${symbol.dataCollection.attempts}</div>
+                    <div class="metric-rate">${(symbol.dataCollectionRate || 0).toFixed(1)}%</div>
+                    <div class="metric-details">数据收集</div>
                 </td>
                 <td>
-                    <div class="metric-rate">${symbol.signalAnalysis.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.signalAnalysis.successes}/${symbol.signalAnalysis.attempts}</div>
+                    <div class="metric-rate">${(symbol.signalAnalysisRate || 0).toFixed(1)}%</div>
+                    <div class="metric-details">信号分析</div>
                 </td>
                 <td>
-                    <div class="metric-rate">${symbol.simulationCompletion.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.simulationCompletion.completions}/${symbol.simulationCompletion.triggers}</div>
+                    <div class="metric-rate">${(symbol.simulationCompletionRate || 0).toFixed(1)}%</div>
+                    <div class="metric-details">模拟交易</div>
                 </td>
                 <td>
-                    <div class="metric-rate">${symbol.simulationProgress.rate.toFixed(1)}%</div>
-                    <div class="metric-details">${symbol.simulationProgress.inProgress}/${symbol.simulationProgress.triggers}</div>
+                    <div class="metric-rate">${(symbol.simulationProgressRate || 0).toFixed(1)}%</div>
+                    <div class="metric-details">进行中</div>
                 </td>
                 <td>
                     <div class="refresh-frequency">${symbol.refreshFrequency}</div>
                 </td>
                 <td>
-                    <div class="health-status ${symbol.overall.status.toLowerCase()}">${symbol.overall.status}</div>
+                    <div class="health-status ${(symbol.overallStatus || 'unknown').toLowerCase()}">${symbol.overallStatus || 'unknown'}</div>
                 </td>
             `;
       tbody.appendChild(row);
