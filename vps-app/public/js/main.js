@@ -25,11 +25,11 @@ class SmartFlowApp {
     const fromCache = urlParams.get('cache') === '1';
     const isFirstLoad = !sessionStorage.getItem('smartflow_initialized');
 
-    console.log('🔍 页面加载类型检测:', { 
-      forceRefresh, 
-      fromCache, 
-      isFirstLoad, 
-      urlParams: Object.fromEntries(urlParams) 
+    console.log('🔍 页面加载类型检测:', {
+      forceRefresh,
+      fromCache,
+      isFirstLoad,
+      urlParams: Object.fromEntries(urlParams)
     });
 
     if (forceRefresh || isFirstLoad) {
@@ -194,7 +194,7 @@ class SmartFlowApp {
       this.saveDataToCache(signals, stats);
 
       this.updateStatusDisplay();
-      
+
       // 显示数据更新状态
       this.showCacheStatus(false, 0);
     } catch (error) {
@@ -236,7 +236,7 @@ class SmartFlowApp {
           this.updateStatsDisplay(signals, stats);
           this.updateSignalsTable(signals);
           this.updateStatusDisplay();
-          
+
           // 显示缓存状态
           this.showCacheStatus(true, Math.round(cacheAge / 1000 / 60));
           return;
@@ -268,7 +268,7 @@ class SmartFlowApp {
       };
       localStorage.setItem('smartflow_cached_data', JSON.stringify(cacheData));
       console.log('💾 数据已保存到缓存');
-      
+
       // 显示缓存状态
       this.showCacheStatus(false, 0);
     } catch (error) {
@@ -296,7 +296,7 @@ class SmartFlowApp {
         </div>
       `;
       statusElement.style.display = 'block';
-      
+
       // 3秒后隐藏
       setTimeout(() => {
         statusElement.style.display = 'none';
@@ -310,13 +310,13 @@ class SmartFlowApp {
       console.log('🗑️ 清除缓存并刷新数据...');
       localStorage.removeItem('smartflow_cached_data');
       dataManager.clearCache();
-      
+
       // 显示加载状态
       this.showLoading(true);
-      
+
       // 重新加载数据
       await this.loadAllData();
-      
+
       console.log('✅ 缓存已清除，数据已刷新');
     } catch (error) {
       console.error('清除缓存失败:', error);
@@ -2519,10 +2519,10 @@ async function refreshData() {
     } catch (error) {
       console.error('清除localStorage缓存失败:', error);
     }
-    
+
     // 显示加载状态
     app.showLoading(true);
-    
+
     // 重新加载数据
     await app.loadAllData();
     console.log('✅ 手动数据刷新完成');
