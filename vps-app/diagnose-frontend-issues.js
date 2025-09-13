@@ -62,8 +62,9 @@ async function diagnoseFrontendIssues() {
             
             // 测试完整的策略分析
             try {
-                const strategy = new SmartFlowStrategyV3(safeDB.database);
-                const analysis = await strategy.analyzeSymbol(symbol);
+                const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
+                    database: safeDB.database
+                });
                 
                 console.log(`  ✅ 策略分析成功:`, {
                     currentPrice: analysis.currentPrice,

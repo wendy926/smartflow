@@ -542,16 +542,7 @@ class SmartFlowServer {
       }
     });
 
-    // 获取监控仪表板数据
-    this.app.get('/api/monitoring-dashboard', async (req, res) => {
-      try {
-        const data = await this.dataMonitor.getMonitoringDashboard();
-        res.json(data);
-      } catch (error) {
-        console.error('获取监控数据失败:', error);
-        res.status(500).json({ error: error.message });
-      }
-    });
+    // 获取监控仪表板数据（已合并到下面的路由中）
 
     // 获取健康检查数据
     this.app.get('/api/health-check', async (req, res) => {
@@ -680,19 +671,37 @@ class SmartFlowServer {
         const detailedStats = [];
         let totalAlerts = 0;
         let dataCollectionSuccess = 0;
-        let dataValidationSuccess = 0;
+        let signalAnalysisSuccess = 0;
 
         for (const symbol of symbols) {
-          // 获取数据收集状态
-          const klineCount = await new Promise((resolve, reject) => {
-            this.db.get('SELECT COUNT(*) as count FROM kline_data WHERE symbol = ?', [symbol], (err, row) => {
+          // 获取数据收集状态 - 检查4H和1H数据
+          const klineCount4h = await new Promise((resolve, reject) => {
+            this.db.get('SELECT COUNT(*) as count FROM kline_data WHERE symbol = ? AND interval = ?', [symbol, '4h'], (err, row) => {
+              if (err) reject(err);
+              else resolve(row.count);
+            });
+          });
+          
+          const klineCount1h = await new Promise((resolve, reject) => {
+            this.db.get('SELECT COUNT(*) as count FROM kline_data WHERE symbol = ? AND interval = ?', [symbol, '1h'], (err, row) => {
               if (err) reject(err);
               else resolve(row.count);
             });
           });
 
-          const hasData = klineCount > 0;
+          const hasData = klineCount4h > 0 && klineCount1h > 0;
           if (hasData) dataCollectionSuccess++;
+
+          // 获取信号分析状态 - 检查是否有策略分析结果
+          const analysisCount = await new Promise((resolve, reject) => {
+            this.db.get('SELECT COUNT(*) as count FROM strategy_analysis WHERE symbol = ?', [symbol], (err, row) => {
+              if (err) reject(err);
+              else resolve(row.count);
+            });
+          });
+
+          const hasAnalysis = analysisCount > 0;
+          if (hasAnalysis) signalAnalysisSuccess++;
 
           // 获取告警数量
           const alertCount = await new Promise((resolve, reject) => {
@@ -707,27 +716,28 @@ class SmartFlowServer {
           detailedStats.push({
             symbol,
             dataCollectionRate: hasData ? 100 : 0,
-            signalAnalysisRate: hasData ? 100 : 0,
+            signalAnalysisRate: hasAnalysis ? 100 : 0,
             simulationCompletionRate: 0,
             simulationProgressRate: 0,
             refreshFrequency: '5分钟',
-            overallStatus: hasData ? 'healthy' : 'error',
+            overallStatus: hasData && hasAnalysis ? 'healthy' : (hasData ? 'warning' : 'error'),
             alertCount
           });
         }
 
         const dataCollectionRate = symbols.length > 0 ? (dataCollectionSuccess / symbols.length) * 100 : 0;
+        const signalAnalysisRate = symbols.length > 0 ? (signalAnalysisSuccess / symbols.length) * 100 : 0;
 
         res.json({
           summary: {
             totalSymbols: symbols.length,
             healthySymbols: dataCollectionSuccess,
-            warningSymbols: 0,
+            warningSymbols: signalAnalysisSuccess - dataCollectionSuccess,
             errorSymbols: symbols.length - dataCollectionSuccess,
             totalAlerts: totalAlerts,
             completionRates: {
               dataCollection: dataCollectionRate,
-              dataValidation: 100,
+              signalAnalysis: signalAnalysisRate,
               simulationTrading: 0
             }
           },

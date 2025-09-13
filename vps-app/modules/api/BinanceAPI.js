@@ -86,12 +86,19 @@ class BinanceAPI {
       symbol: symbol.toUpperCase()
     });
 
-    return await this.rateLimiter.cachedCall(
-      `ticker_${symbol}`,
+    const result = await this.rateLimiter.cachedCall(
+      `ticker24h_${symbol}`,
       () => this.callBinanceAPI(symbol, `${endpoint}?${params}`),
-      'ticker',
+      'ticker24h',
       symbol
     );
+    
+    // 统一字段名称，将price字段映射为lastPrice以保持兼容性
+    if (result && result.price && !result.lastPrice) {
+      result.lastPrice = result.price;
+    }
+    
+    return result;
   }
 
   static async getOpenInterestHist(symbol, period = '1h', limit = 24) {

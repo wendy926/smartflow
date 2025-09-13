@@ -80,9 +80,26 @@ class SmartFlowStrategyV3 {
       let currentPrice = null;
       try {
         const ticker = await BinanceAPI.getTicker(symbol);
-        currentPrice = parseFloat(ticker.price);
+        if (ticker && ticker.price) {
+          currentPrice = parseFloat(ticker.price);
+        }
       } catch (error) {
         console.warn(`获取 ${symbol} 当前价格失败:`, error.message);
+      }
+      
+      // 备用方案：如果getTicker失败，尝试从K线数据获取最新价格
+      if (!currentPrice && analysisResult && analysisResult.candles) {
+        const lastCandle = analysisResult.candles[analysisResult.candles.length - 1];
+        if (lastCandle && lastCandle.close) {
+          currentPrice = parseFloat(lastCandle.close);
+          console.log(`使用K线数据作为 ${symbol} 的当前价格: ${currentPrice}`);
+        }
+      }
+      
+      // 如果还是没有价格，设置为0
+      if (!currentPrice) {
+        currentPrice = 0;
+        console.warn(`${symbol} 无法获取当前价格，设置为0`);
       }
 
       // 5. 合并结果
