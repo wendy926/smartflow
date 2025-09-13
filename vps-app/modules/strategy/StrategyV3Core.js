@@ -70,8 +70,8 @@ class StrategyV3Core {
         return null;
       }
 
-      // 转换为策略需要的格式
-      return results.map(row => [
+      // 转换为策略需要的格式，并反转顺序（从最旧到最新）
+      return results.reverse().map(row => [
         row.open_time,           // 0: openTime
         row.open_price,          // 1: open
         row.high_price,          // 2: high
