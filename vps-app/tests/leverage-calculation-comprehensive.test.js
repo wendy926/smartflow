@@ -129,7 +129,7 @@ describe('杠杆计算全面测试', () => {
   describe('StrategyV3Execution.calculateLeverageData', () => {
     test('应该按照strategy-v3.md文档正确计算杠杆和保证金', async () => {
       const execution = new StrategyV3Execution(db);
-      
+
       const testCases = [
         {
           description: '2%止损，100 USDT最大损失',
@@ -215,7 +215,7 @@ describe('杠杆计算全面测试', () => {
         for (const stopLossPercent of stopLossPercents) {
           const entryPrice = 50000;
           const stopLossPrice = entryPrice * (1 - stopLossPercent);
-          
+
           const result = await SmartFlowStrategyV3.calculateLeverageData(
             entryPrice,
             stopLossPrice,
@@ -226,7 +226,7 @@ describe('杠杆计算全面测试', () => {
           );
 
           const actualMaxLoss = result.minMargin * result.maxLeverage * (result.stopLossDistance / 100);
-          
+
           // 实际最大损失应该接近但不大于设定值
           expect(actualMaxLoss).toBeLessThanOrEqual(maxLoss + 1); // 允许1 USDT的误差
           expect(actualMaxLoss).toBeGreaterThan(maxLoss * 0.95); // 至少达到设定值的95%

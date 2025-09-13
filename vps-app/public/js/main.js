@@ -19,15 +19,31 @@ class SmartFlowApp {
     this.setupEventListeners();
     await this.loadUserSettings();
 
-    // 检查是否是首次加载还是从其他页面返回
+    // 检查页面加载类型
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceRefresh = urlParams.get('force') === '1' || urlParams.get('cleared') === '1' || urlParams.get('reset') === '1';
+    const fromCache = urlParams.get('cache') === '1';
     const isFirstLoad = !sessionStorage.getItem('smartflow_initialized');
-    if (isFirstLoad) {
-      // 首次加载时才加载数据
+
+    console.log('🔍 页面加载类型检测:', { 
+      forceRefresh, 
+      fromCache, 
+      isFirstLoad, 
+      urlParams: Object.fromEntries(urlParams) 
+    });
+
+    if (forceRefresh || isFirstLoad) {
+      // 强制刷新或首次加载：清除缓存，从数据库加载
+      console.log('🔄 强制刷新/首次加载，从数据库加载数据');
       this.loadInitialData();
       sessionStorage.setItem('smartflow_initialized', 'true');
+    } else if (fromCache) {
+      // 从其他页面返回：优先使用缓存数据
+      console.log('📦 从其他页面返回，使用缓存数据');
+      await this.loadDataFromCache();
     } else {
-      // 从其他页面返回时，先尝试从缓存加载数据，再更新状态显示
-      console.log('🔄 从其他页面返回，尝试从缓存加载数据');
+      // 默认情况：尝试缓存，失败则从数据库加载
+      console.log('🔄 默认加载，尝试缓存数据');
       await this.loadDataFromCache();
     }
 
@@ -178,6 +194,9 @@ class SmartFlowApp {
       this.saveDataToCache(signals, stats);
 
       this.updateStatusDisplay();
+      
+      // 显示数据更新状态
+      this.showCacheStatus(false, 0);
     } catch (error) {
       console.error('加载数据失败:', error);
       // 如果API调用失败，使用默认值继续
@@ -204,9 +223,9 @@ class SmartFlowApp {
         const now = Date.now();
         const cacheAge = now - timestamp;
 
-        // 如果缓存数据不超过10分钟，使用缓存数据
-        if (cacheAge < 10 * 60 * 1000) {
-          console.log('📦 使用缓存数据，缓存时间:', new Date(timestamp).toLocaleTimeString());
+        // 检查缓存是否有效（30分钟内）
+        if (cacheAge < 30 * 60 * 1000) {
+          console.log('📦 使用缓存数据，缓存时间:', new Date(timestamp).toLocaleTimeString(), '缓存年龄:', Math.round(cacheAge / 1000 / 60), '分钟');
 
           // 恢复更新时间信息
           if (updateTimes) {
@@ -217,14 +236,19 @@ class SmartFlowApp {
           this.updateStatsDisplay(signals, stats);
           this.updateSignalsTable(signals);
           this.updateStatusDisplay();
+          
+          // 显示缓存状态
+          this.showCacheStatus(true, Math.round(cacheAge / 1000 / 60));
           return;
         } else {
-          console.log('📦 缓存数据过期，重新加载');
+          console.log('📦 缓存数据过期（超过30分钟），重新加载');
         }
+      } else {
+        console.log('📦 没有找到缓存数据，重新加载');
       }
 
       // 如果没有缓存或缓存过期，重新加载数据
-      console.log('📦 缓存过期，重新加载数据...');
+      console.log('📦 从数据库重新加载数据...');
       await this.loadAllData();
     } catch (error) {
       console.error('从缓存加载数据失败:', error);
@@ -244,8 +268,61 @@ class SmartFlowApp {
       };
       localStorage.setItem('smartflow_cached_data', JSON.stringify(cacheData));
       console.log('💾 数据已保存到缓存');
+      
+      // 显示缓存状态
+      this.showCacheStatus(false, 0);
     } catch (error) {
       console.error('保存数据到缓存失败:', error);
+    }
+  }
+
+  // 显示缓存状态
+  showCacheStatus(isFromCache, cacheAgeMinutes) {
+    const statusElement = document.getElementById('cacheStatus');
+    if (!statusElement) return;
+
+    if (isFromCache) {
+      statusElement.innerHTML = `
+        <div class="cache-status cached">
+          📦 使用缓存数据 (${cacheAgeMinutes}分钟前)
+          <button onclick="app.clearCacheAndRefresh()" class="cache-clear-btn">清除缓存</button>
+        </div>
+      `;
+      statusElement.style.display = 'block';
+    } else {
+      statusElement.innerHTML = `
+        <div class="cache-status fresh">
+          🔄 数据已更新
+        </div>
+      `;
+      statusElement.style.display = 'block';
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        statusElement.style.display = 'none';
+      }, 3000);
+    }
+  }
+
+  // 清除缓存并刷新
+  async clearCacheAndRefresh() {
+    try {
+      console.log('🗑️ 清除缓存并刷新数据...');
+      localStorage.removeItem('smartflow_cached_data');
+      dataManager.clearCache();
+      
+      // 显示加载状态
+      this.showLoading(true);
+      
+      // 重新加载数据
+      await this.loadAllData();
+      
+      console.log('✅ 缓存已清除，数据已刷新');
+    } catch (error) {
+      console.error('清除缓存失败:', error);
+      modal.showMessage('清除缓存失败: ' + error.message, 'error');
+    } finally {
+      this.showLoading(false);
     }
   }
 
@@ -2442,11 +2519,17 @@ async function refreshData() {
     } catch (error) {
       console.error('清除localStorage缓存失败:', error);
     }
+    
+    // 显示加载状态
+    app.showLoading(true);
+    
     // 重新加载数据
     await app.loadAllData();
     console.log('✅ 手动数据刷新完成');
   } catch (error) {
     console.error('❌ 刷新数据失败:', error);
     modal.showMessage('刷新数据失败: ' + error.message, 'error');
+  } finally {
+    app.showLoading(false);
   }
 }

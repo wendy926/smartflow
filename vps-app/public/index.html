@@ -44,6 +44,50 @@
       background-color: #e3f2fd;
     }
 
+    /* 缓存状态样式 */
+    .cache-status-container {
+      margin: 10px 0;
+      padding: 0;
+    }
+
+    .cache-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      margin: 5px 0;
+    }
+
+    .cache-status.cached {
+      background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+
+    .cache-status.fresh {
+      background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .cache-clear-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    .cache-clear-btn:hover {
+      background: #c82333;
+    }
+
     .weight-table td:first-child {
       font-weight: 600;
       text-align: left;
@@ -128,6 +172,9 @@
         <button class="btn primary" onclick="refreshData()" title="立即刷新所有数据">🔄 刷新数据</button>
       </div>
     </div>
+    
+    <!-- 缓存状态显示 -->
+    <div id="cacheStatus" class="cache-status-container" style="display: none;"></div>
 
     <!-- 信号表格 -->
     <div class="table-container">
