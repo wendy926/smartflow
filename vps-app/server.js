@@ -666,53 +666,85 @@ class SmartFlowServer {
     });
 
 
-    // 获取监控中心数据
+    
+    // 获取监控中心数据 - 优化版本
     this.app.get('/api/monitoring-dashboard', async (req, res) => {
       try {
         const symbols = await this.db.getCustomSymbols();
+        
+        // 使用批量查询替代循环查询，大幅提升性能
+        const [klineStats, analysisStats, alertStats] = await Promise.all([
+          // 批量获取K线数据统计
+          this.db.runQuery(`
+            SELECT 
+              symbol,
+              interval,
+              COUNT(*) as count
+            FROM kline_data 
+            WHERE symbol IN (${symbols.map(() => '?').join(',')})
+            AND interval IN ('4h', '1h')
+            GROUP BY symbol, interval
+          `, symbols),
+          
+          // 批量获取策略分析统计
+          this.db.runQuery(`
+            SELECT 
+              symbol,
+              COUNT(*) as count
+            FROM strategy_analysis 
+            WHERE symbol IN (${symbols.map(() => '?').join(',')})
+            GROUP BY symbol
+          `, symbols),
+          
+          // 批量获取告警统计
+          this.db.runQuery(`
+            SELECT 
+              symbol,
+              COUNT(*) as count
+            FROM alert_history 
+            WHERE symbol IN (${symbols.map(() => '?').join(',')})
+            GROUP BY symbol
+          `, symbols)
+        ]);
+
+        // 构建统计映射表
+        const klineMap = new Map();
+        const analysisMap = new Map();
+        const alertMap = new Map();
+
+        // 处理K线数据统计
+        klineStats.forEach(stat => {
+          const key = `${stat.symbol}_${stat.interval}`;
+          klineMap.set(key, stat.count);
+        });
+
+        // 处理策略分析统计
+        analysisStats.forEach(stat => {
+          analysisMap.set(stat.symbol, stat.count);
+        });
+
+        // 处理告警统计
+        alertStats.forEach(stat => {
+          alertMap.set(stat.symbol, stat.count);
+        });
+
+        // 生成详细统计
         const detailedStats = [];
-        let totalAlerts = 0;
         let dataCollectionSuccess = 0;
         let signalAnalysisSuccess = 0;
+        let totalAlerts = 0;
 
         for (const symbol of symbols) {
-          // 获取数据收集状态 - 检查4H和1H数据
-          const klineCount4h = await new Promise((resolve, reject) => {
-            this.db.runQuery('SELECT COUNT(*) as count FROM kline_data WHERE symbol = ? AND interval = ?', [symbol, '4h'], (err, rows) => {
-              if (err) reject(err);
-              else resolve(rows[0]?.count || 0);
-            });
-          });
-          
-          const klineCount1h = await new Promise((resolve, reject) => {
-            this.db.runQuery('SELECT COUNT(*) as count FROM kline_data WHERE symbol = ? AND interval = ?', [symbol, '1h'], (err, rows) => {
-              if (err) reject(err);
-              else resolve(rows[0]?.count || 0);
-            });
-          });
+          const kline4hCount = klineMap.get(`${symbol}_4h`) || 0;
+          const kline1hCount = klineMap.get(`${symbol}_1h`) || 0;
+          const analysisCount = analysisMap.get(symbol) || 0;
+          const alertCount = alertMap.get(symbol) || 0;
 
-          const hasData = klineCount4h > 0 && klineCount1h > 0;
-          if (hasData) dataCollectionSuccess++;
-
-          // 获取信号分析状态 - 检查是否有策略分析结果
-          const analysisCount = await new Promise((resolve, reject) => {
-            this.db.runQuery('SELECT COUNT(*) as count FROM strategy_analysis WHERE symbol = ?', [symbol], (err, rows) => {
-              if (err) reject(err);
-              else resolve(rows[0]?.count || 0);
-            });
-          });
-
+          const hasData = kline4hCount > 0 && kline1hCount > 0;
           const hasAnalysis = analysisCount > 0;
+
+          if (hasData) dataCollectionSuccess++;
           if (hasAnalysis) signalAnalysisSuccess++;
-
-          // 获取告警数量
-          const alertCount = await new Promise((resolve, reject) => {
-            this.db.runQuery('SELECT COUNT(*) as count FROM alert_history WHERE symbol = ?', [symbol], (err, rows) => {
-              if (err) reject(err);
-              else resolve(rows[0]?.count || 0);
-            });
-          });
-
           totalAlerts += alertCount;
 
           detailedStats.push({
@@ -749,9 +781,7 @@ class SmartFlowServer {
         console.error('获取监控数据失败:', error);
         res.status(500).json({ error: error.message });
       }
-    });
-
-    // 获取告警历史（只保留最近3天数据）
+    });（只保留最近3天数据）
     this.app.get('/api/alert-history', async (req, res) => {
       try {
         const { limit = 100, type } = req.query;
