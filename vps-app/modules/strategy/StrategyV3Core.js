@@ -210,19 +210,29 @@ class StrategyV3Core {
       // 从数据库获取4H K线数据
       const klines4h = await this.getKlineDataFromDB(symbol, '4h', 250);
 
-      if (!klines4h || klines4h.length < 200) {
+      // 调整数据要求：至少50条K线数据，但推荐200条以上
+      const minRequired = 50;
+      const recommended = 200;
+      
+      if (!klines4h || klines4h.length < minRequired) {
         // 记录数据质量告警
         await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT',
-          `4H K线数据不足: ${klines4h ? klines4h.length : 0}条，需要至少200条`);
+          `4H K线数据严重不足: ${klines4h ? klines4h.length : 0}条，需要至少${minRequired}条`);
 
         if (this.dataMonitor) {
           this.dataMonitor.recordIndicator(symbol, '4H趋势分析', {
-            error: '数据不足',
+            error: '数据严重不足',
             trend4h: '震荡市',
             marketType: '震荡市'
           }, Date.now());
         }
-        return { trend4h: '震荡市', marketType: '震荡市', error: '数据不足' };
+        return { trend4h: '震荡市', marketType: '震荡市', error: '数据严重不足' };
+      }
+      
+      // 如果数据不足推荐数量，记录警告但继续分析
+      if (klines4h.length < recommended) {
+        await this.recordDataQualityAlert(symbol, 'KLINE_DATA_LIMITED',
+          `4H K线数据有限: ${klines4h.length}条，推荐${recommended}条以上，分析结果可能不够准确`);
       }
 
       const candles = klines4h.map(k => ({
@@ -237,17 +247,24 @@ class StrategyV3Core {
       const highs = candles.map(c => c.high);
       const lows = candles.map(c => c.low);
 
-      // 计算MA指标
-      const ma20 = this.calculateMA(candles, 20);
-      const ma50 = this.calculateMA(candles, 50);
-      const ma200 = this.calculateMA(candles, 200);
+      // 计算MA指标 - 根据可用数据调整周期
+      const availableData = candles.length;
+      const ma20Period = Math.min(20, Math.floor(availableData * 0.8)); // 最多使用80%的数据
+      const ma50Period = Math.min(50, Math.floor(availableData * 0.6)); // 最多使用60%的数据
+      const ma200Period = Math.min(200, Math.floor(availableData * 0.4)); // 最多使用40%的数据
+      
+      const ma20 = this.calculateMA(candles, ma20Period);
+      const ma50 = this.calculateMA(candles, ma50Period);
+      const ma200 = this.calculateMA(candles, ma200Period);
       const lastClose = closes[closes.length - 1];
 
-      // 计算ADX指标
-      const { ADX, DIplus, DIminus } = this.calculateADX(candles, 14);
+      // 计算ADX指标 - 根据可用数据调整周期
+      const adxPeriod = Math.min(14, Math.floor(availableData * 0.2)); // 最多使用20%的数据
+      const { ADX, DIplus, DIminus } = this.calculateADX(candles, adxPeriod);
 
-      // 计算布林带宽度
-      const bb = this.calculateBollingerBands(candles, 20, 2);
+      // 计算布林带宽度 - 根据可用数据调整周期
+      const bbPeriod = Math.min(20, Math.floor(availableData * 0.3)); // 最多使用30%的数据
+      const bb = this.calculateBollingerBands(candles, bbPeriod, 2);
       const bbw = bb[bb.length - 1]?.bandwidth || 0;
 
       // 按照文档的10分打分机制
