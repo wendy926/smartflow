@@ -1535,6 +1535,8 @@ CREATE TABLE validation_results (
 
 ### V3.13 (2025-01-13)
 - **修复监控页面JavaScript错误** - 解决`TypeError: Cannot read properties of undefined (reading 'rate')`错误
+- **修复前端数据结构访问错误** - 修复main.js中监控数据嵌套对象访问问题，适配扁平化API响应结构
+- **修复浏览器缓存问题** - 更新monitoring.js缓存版本号，强制浏览器重新加载修复后的JavaScript文件
 - **修复静态方法调用错误** - 修复SmartFlowStrategyV3中`calculateLeverageData`、`formatExecution`、`createNoSignalResult`方法调用问题
 - **修复server.js语法错误** - 移除多余的字符导致的SyntaxError
 - **增强单元测试覆盖** - 新增静态方法调用测试，确保代码健壮性
