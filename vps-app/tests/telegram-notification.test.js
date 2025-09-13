@@ -245,14 +245,13 @@ describe('TelegramNotifier', () => {
     });
 
     test('应该处理未配置时的通知', async () => {
-      // 确保TelegramNotifier未配置
-      telegramNotifier.enabled = false;
-      telegramNotifier.initialized = false;
+      // 创建一个新的未配置的TelegramNotifier实例
+      const unconfiguredNotifier = new TelegramNotifier();
       
-      const sendMessageSpy = jest.spyOn(telegramNotifier, 'sendMessage')
+      const sendMessageSpy = jest.spyOn(unconfiguredNotifier, 'sendMessage')
         .mockResolvedValue(true);
 
-      const result = await telegramNotifier.sendTestNotification();
+      const result = await unconfiguredNotifier.sendTestNotification();
 
       expect(result).toBe(false);
       expect(sendMessageSpy).not.toHaveBeenCalled();
