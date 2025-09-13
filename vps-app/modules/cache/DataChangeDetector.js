@@ -43,7 +43,7 @@ class DataChangeDetector {
         // 数据发生变化
         this.dataHashes.set(key, newHash);
         console.log(`🔄 检测到数据变化 [${symbol}][${dataType}]: ${oldHash} -> ${newHash}`);
-        
+
         // 触发变更事件
         await this.triggerDataChange(symbol, dataType, newData);
         return true;
@@ -64,7 +64,7 @@ class DataChangeDetector {
     try {
       // 更新缓存
       await this.updateCache(symbol, dataType, newData);
-      
+
       // 通知所有监听器
       for (const listener of this.changeListeners) {
         try {
@@ -153,7 +153,7 @@ class DataChangeDetector {
     // 清理超过24小时的记录
     const now = Date.now();
     const maxAge = 24 * 60 * 60 * 1000; // 24小时
-    
+
     // 这里可以添加时间戳记录来清理过期数据
     // 目前简化处理，只清理数量限制
     if (this.dataHashes.size > 1000) {

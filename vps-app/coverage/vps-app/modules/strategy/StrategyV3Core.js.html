@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">2.51% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>10/397</span>
+                <span class='fraction'>0/397</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0.4% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>1/248</span>
+                <span class='fraction'>0/248</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">2% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/50</span>
+                <span class='fraction'>0/50</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">2.9% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>10/344</span>
+                <span class='fraction'>0/344</span>
             </div>
         
             
@@ -932,18 +932,18 @@
 <a name='L867'></a><a href='#L867'>867</a>
 <a name='L868'></a><a href='#L868'>868</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1797,20 +1797,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span></td><td class="text"><pre class="prettyprint lang-js">// StrategyV3Core.js - 策略V3核心实现模块
+<span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// StrategyV3Core.js - 策略V3核心实现模块
 &nbsp;
-const BinanceAPI = require('../api/BinanceAPI');
-const FactorWeightManager = require('./FactorWeightManager');
-const EnhancedDataQualityMonitor = require('../monitoring/EnhancedDataQualityMonitor');
+const BinanceAPI = <span class="cstat-no" title="statement not covered" >require('../api/BinanceAPI');</span>
+const FactorWeightManager = <span class="cstat-no" title="statement not covered" >require('./FactorWeightManager');</span>
+const EnhancedDataQualityMonitor = <span class="cstat-no" title="statement not covered" >require('../monitoring/EnhancedDataQualityMonitor');</span>
 &nbsp;
 class StrategyV3Core {
-  constructor(database = null) {
-    this.database = database;
-    this.deltaData = new Map(); // 存储Delta数据
-    this.dataMonitor = null; // 将在外部设置
-    this.factorWeightManager = new FactorWeightManager(database);
-    this.isDestroyed = false; // 标记是否已销毁
-    this.qualityMonitor = new EnhancedDataQualityMonitor(database); // 增强数据质量监控
+<span class="fstat-no" title="function not covered" >  co</span>nstructor(database = <span class="branch-0 cbranch-no" title="branch not covered" >null)</span> {
+<span class="cstat-no" title="statement not covered" >    this.database = database;</span>
+<span class="cstat-no" title="statement not covered" >    this.deltaData = new Map(); </span>// 存储Delta数据
+<span class="cstat-no" title="statement not covered" >    this.dataMonitor = null; </span>// 将在外部设置
+<span class="cstat-no" title="statement not covered" >    this.factorWeightManager = new FactorWeightManager(database);</span>
+<span class="cstat-no" title="statement not covered" >    this.isDestroyed = false; </span>// 标记是否已销毁
+<span class="cstat-no" title="statement not covered" >    this.qualityMonitor = new EnhancedDataQualityMonitor(database); </span>// 增强数据质量监控
   }
 &nbsp;
   /**
@@ -2664,14 +2664,14 @@ class StrategyV3Core {
   }
 }
 &nbsp;
-module.exports = StrategyV3Core;</pre></td></tr></table></pre>
+<span class="cstat-no" title="statement not covered" >module.exports = StrategyV3Core;</span></pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
             </div><!-- /wrapper -->
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T09:02:26.059Z
+                at 2025-09-13T10:03:09.280Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

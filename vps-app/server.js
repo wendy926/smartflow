@@ -873,7 +873,7 @@ class SmartFlowServer {
           res.json({ error: '数据变更检测器未初始化' });
           return;
         }
-        
+
         const stats = this.dataChangeDetector.getHashStats();
         res.json({
           success: true,
@@ -1347,7 +1347,7 @@ class SmartFlowServer {
 
       // 初始化数据变更检测器
       this.dataChangeDetector = new DataChangeDetector(this.db, this.cacheManager);
-      
+
       // 添加数据变更监听器
       this.dataChangeDetector.addChangeListener(async (symbol, dataType, newData) => {
         await this.handleDataChange(symbol, dataType, newData);
@@ -1585,7 +1585,7 @@ class SmartFlowServer {
 
       // 检测数据是否发生变化
       const hasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'trend', analysis);
-      
+
       if (hasChanged) {
         // 存储策略分析结果到数据库
         try {
@@ -1621,7 +1621,7 @@ class SmartFlowServer {
 
       // 检测数据是否发生变化
       const hasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'signal', analysis);
-      
+
       if (hasChanged) {
         // 存储策略分析结果到数据库
         try {
@@ -1657,7 +1657,7 @@ class SmartFlowServer {
 
       // 检测数据是否发生变化
       const hasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'execution', analysis);
-      
+
       if (hasChanged) {
         // 存储策略分析结果到数据库
         try {
@@ -1692,13 +1692,13 @@ class SmartFlowServer {
   async handleDataChange(symbol, dataType, newData) {
     try {
       console.log(`🔄 处理数据变更事件 [${symbol}][${dataType}]`);
-      
+
       // 更新相关缓存
       await this.updateRelatedCaches(symbol, dataType, newData);
-      
+
       // 可以在这里添加其他数据变更后的处理逻辑
       // 比如通知前端、更新统计等
-      
+
       console.log(`✅ 数据变更处理完成 [${symbol}][${dataType}]`);
     } catch (error) {
       console.error(`处理数据变更失败 [${symbol}][${dataType}]:`, error);
@@ -1736,7 +1736,7 @@ class SmartFlowServer {
       };
 
       const keysToUpdate = cacheUpdates[dataType] || [];
-      
+
       for (const cacheKey of keysToUpdate) {
         try {
           await this.cacheManager.del('strategy', cacheKey);

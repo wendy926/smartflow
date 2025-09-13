@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for vps-app/modules/api/BinanceContractChecker.js</title>
+    <title>Code coverage report for vps-app/modules/cache/DataChangeDetector.js</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../../prettify.css" />
     <link rel="stylesheet" href="../../../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../index.html">All files</a> / <a href="index.html">vps-app/modules/api</a> BinanceContractChecker.js</h1>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">vps-app/modules/cache</a> DataChangeDetector.js</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">96.82% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/56</span>
+                <span class='fraction'>61/63</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/14</span>
+                <span class='fraction'>5/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">96.72% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/54</span>
+                <span class='fraction'>59/61</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -207,294 +207,366 @@
 <a name='L142'></a><a href='#L142'>142</a>
 <a name='L143'></a><a href='#L143'>143</a>
 <a name='L144'></a><a href='#L144'>144</a>
-<a name='L145'></a><a href='#L145'>145</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">55x</span>
+<span class="cline-any cline-yes">55x</span>
+<span class="cline-any cline-yes">55x</span>
+<span class="cline-any cline-yes">55x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">78x</span>
+<span class="cline-any cline-yes">76x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">76x</span>
+<span class="cline-any cline-yes">76x</span>
+<span class="cline-any cline-yes">3529x</span>
+<span class="cline-any cline-yes">3529x</span>
+<span class="cline-any cline-yes">3529x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">76x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">71x</span>
+<span class="cline-any cline-yes">71x</span>
+<span class="cline-any cline-yes">71x</span>
+<span class="cline-any cline-yes">69x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">69x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">64x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">64x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">64x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">67x</span>
+<span class="cline-any cline-yes">67x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">65x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">65x</span>
+<span class="cline-any cline-yes">260x</span>
+<span class="cline-any cline-yes">260x</span>
+<span class="cline-any cline-yes">243x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">65x</span>
+<span class="cline-any cline-yes">65x</span>
+<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-yes">61x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">65x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1400x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// modules/api/BinanceContractChecker.js
-// Binance合约可用性检查模块
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// DataChangeDetector.js - 数据变更检测器
+// 检测数据是否真正发生变化，并触发缓存更新
 &nbsp;
-const BinanceAPI = <span class="cstat-no" title="statement not covered" >require('./BinanceAPI');</span>
-&nbsp;
-class BinanceContractChecker {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor() {
-<span class="cstat-no" title="statement not covered" >    this.contractCache = new Map();</span>
-<span class="cstat-no" title="statement not covered" >    this.cacheExpiry = 24 * 60 * 60 * 1000; </span>// 24小时缓存
-<span class="cstat-no" title="statement not covered" >    this.lastUpdate = 0;</span>
+class DataChangeDetector {
+  constructor(database, cacheManager) {
+    this.db = database;
+    this.cacheManager = cacheManager;
+    this.dataHashes = new Map(); // 存储数据哈希值
+    this.changeListeners = new Set(); // 变更监听器
   }
 &nbsp;
   /**
-   * 获取所有可用的Binance期货合约
+   * 计算数据哈希值
    */
-<span class="fstat-no" title="function not covered" >  as</span>ync getAllAvailableContracts() {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      // 检查缓存是否有效
-      const now = <span class="cstat-no" title="statement not covered" >Date.now();</span>
-<span class="cstat-no" title="statement not covered" >      if (this.contractCache.size &gt; 0 &amp;&amp; (now - this.lastUpdate) &lt; this.cacheExpiry) {</span>
-<span class="cstat-no" title="statement not covered" >        console.log('📋 使用缓存的Binance合约列表');</span>
-<span class="cstat-no" title="statement not covered" >        return Array.from(this.contractCache.keys());</span>
+  calculateDataHash(data) {
+    const dataString = JSON.stringify(data, Object.keys(data).sort());
+    return this.simpleHash(dataString);
+  }
+&nbsp;
+  /**
+   * 简单哈希函数
+   */
+  simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i &lt; str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash &lt;&lt; 5) - hash) + char;
+      hash = hash &amp; hash; // 转换为32位整数
+    }
+    return hash.toString();
+  }
+&nbsp;
+  /**
+   * 检测数据是否发生变化
+   */
+  async detectDataChange(symbol, dataType, newData) {
+    try {
+      const key = `${symbol}_${dataType}`;
+      const newHash = this.calculateDataHash(newData);
+      const oldHash = this.dataHashes.get(key);
+&nbsp;
+      if (oldHash !== newHash) {
+        // 数据发生变化
+        this.dataHashes.set(key, newHash);
+        console.log(`🔄 检测到数据变化 [${symbol}][${dataType}]: ${oldHash} -&gt; ${newHash}`);
+&nbsp;
+        // 触发变更事件
+        await this.triggerDataChange(symbol, dataType, newData);
+        return true;
+      } else {
+        console.log(`📊 数据无变化 [${symbol}][${dataType}]: ${newHash}`);
+        return false;
       }
+    } catch (error) {
+      console.error(`数据变更检测失败 [${symbol}][${dataType}]:`, error);
+      return false;
+    }
+  }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      console.log('🔄 从Binance API获取最新合约列表...');</span>
-&nbsp;
-      // 调用Binance exchangeInfo API
-      const { default: fetch } = <span class="cstat-no" title="statement not covered" >await import('node-fetch');</span>
-      const response = <span class="cstat-no" title="statement not covered" >await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (!response.ok) {</span>
-<span class="cstat-no" title="statement not covered" >        throw new Error(`Binance exchangeInfo API错误: ${response.status} ${response.statusText}`);</span>
-      }
-&nbsp;
-      const data = <span class="cstat-no" title="statement not covered" >await response.json();</span>
-&nbsp;
-      // 过滤出可用的USDT合约
-      const availableContracts = <span class="cstat-no" title="statement not covered" >data.symbols</span>
-        .filter(<span class="fstat-no" title="function not covered" >sy</span>mbol =&gt;
-<span class="cstat-no" title="statement not covered" >          symbol.status === 'TRADING' &amp;&amp;</span>
-          symbol.symbol.endsWith('USDT') &amp;&amp;
-          (!symbol.permissions || !symbol.permissions.includes('SPOT')) // 排除现货合约，处理permissions为undefined的情况
-        )
-        .map(<span class="fstat-no" title="function not covered" >sy</span>mbol =&gt; <span class="cstat-no" title="statement not covered" >symbol.symbol)</span>;
-&nbsp;
+  /**
+   * 触发数据变更事件
+   */
+  async triggerDataChange(symbol, dataType, newData) {
+    try {
       // 更新缓存
-<span class="cstat-no" title="statement not covered" >      this.contractCache.clear();</span>
-<span class="cstat-no" title="statement not covered" >      availableContracts.forEach(<span class="fstat-no" title="function not covered" >co</span>ntract =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >        this.contractCache.set(contract, true);</span>
-      });
-<span class="cstat-no" title="statement not covered" >      this.lastUpdate = now;</span>
+      await this.updateCache(symbol, dataType, newData);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      console.log(`✅ 获取到 ${availableContracts.length} 个可用的Binance期货合约`);</span>
-<span class="cstat-no" title="statement not covered" >      return availableContracts;</span>
-&nbsp;
+      // 通知所有监听器
+      for (const listener of this.changeListeners) {
+        try {
+          await listener(symbol, dataType, newData);
+        } catch (error) {
+          console.error('变更监听器执行失败:', error);
+        }
+      }
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error('❌ 获取Binance合约列表失败:', error);</span>
-&nbsp;
-      // 如果API调用失败，返回空数组
-<span class="cstat-no" title="statement not covered" >      return [];</span>
+<span class="cstat-no" title="statement not covered" >      console.error('触发数据变更失败:', error);</span>
     }
   }
 &nbsp;
   /**
-   * 检查单个交易对是否在Binance期货中可用
+   * 更新缓存
    */
-<span class="fstat-no" title="function not covered" >  as</span>ync isContractAvailable(symbol) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const availableContracts = <span class="cstat-no" title="statement not covered" >await this.getAllAvailableContracts();</span>
-<span class="cstat-no" title="statement not covered" >      return availableContracts.includes(symbol.toUpperCase());</span>
-    } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error(`检查合约 ${symbol} 可用性失败:`, error);</span>
-<span class="cstat-no" title="statement not covered" >      return false;</span>
-    }
-  }
-&nbsp;
-  /**
-   * 批量检查多个交易对的可用性
-   */
-<span class="fstat-no" title="function not covered" >  as</span>ync checkMultipleContracts(symbols) {
-    const results = <span class="cstat-no" title="statement not covered" >{};</span>
-    const availableContracts = <span class="cstat-no" title="statement not covered" >await this.getAllAvailableContracts();</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >    for (const symbol of symbols) {</span>
-<span class="cstat-no" title="statement not covered" >      results[symbol] = availableContracts.includes(symbol.toUpperCase());</span>
-    }
-&nbsp;
-<span class="cstat-no" title="statement not covered" >    return results;</span>
-  }
-&nbsp;
-  /**
-   * 过滤出可用的交易对
-   */
-<span class="fstat-no" title="function not covered" >  as</span>ync filterAvailableContracts(symbols) {
-    const availableContracts = <span class="cstat-no" title="statement not covered" >await this.getAllAvailableContracts();</span>
-<span class="cstat-no" title="statement not covered" >    return symbols.filter(<span class="fstat-no" title="function not covered" >sy</span>mbol =&gt; <span class="cstat-no" title="statement not covered" >availableContracts.includes(symbol.toUpperCase()))</span>;</span>
-  }
-&nbsp;
-  /**
-   * 获取合约详细信息
-   */
-<span class="fstat-no" title="function not covered" >  as</span>ync getContractInfo(symbol) {
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const { default: fetch } = <span class="cstat-no" title="statement not covered" >await import('node-fetch');</span>
-      const response = <span class="cstat-no" title="statement not covered" >await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (!response.ok) {</span>
-<span class="cstat-no" title="statement not covered" >        throw new Error(`Binance exchangeInfo API错误: ${response.status} ${response.statusText}`);</span>
+  async updateCache(symbol, dataType, newData) {
+    try {
+      if (!this.cacheManager) {
+        console.warn('缓存管理器未初始化，跳过缓存更新');
+        return;
       }
 &nbsp;
-      const data = <span class="cstat-no" title="statement not covered" >await response.json();</span>
-      const contract = <span class="cstat-no" title="statement not covered" >data.symbols.find(<span class="fstat-no" title="function not covered" >s </span>=&gt; <span class="cstat-no" title="statement not covered" >s.symbol === symbol.toUpperCase())</span>;</span>
+      // 更新相关缓存
+      const cacheKeys = [
+        `strategy_analysis:${symbol}`,
+        `signals:${symbol}`,
+        `trend:${symbol}`,
+        `execution:${symbol}`
+      ];
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (!contract) {</span>
-<span class="cstat-no" title="statement not covered" >        return null;</span>
+      for (const cacheKey of cacheKeys) {
+        try {
+          await this.cacheManager.del('strategy', cacheKey);
+          console.log(`🗑️ 清除缓存: ${cacheKey}`);
+        } catch (error) {
+          console.warn(`清除缓存失败 ${cacheKey}:`, error.message);
+        }
       }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      return {</span>
-        symbol: contract.symbol,
-        status: contract.status,
-        baseAsset: contract.baseAsset,
-        quoteAsset: contract.quoteAsset,
-        permissions: contract.permissions,
-        isSpotTradingAllowed: contract.permissions.includes('SPOT'),
-        isMarginTradingAllowed: contract.permissions.includes('MARGIN'),
-        filters: contract.filters
-      };
+      // 清除全局信号缓存
+      try {
+        await this.cacheManager.del('api', 'signals');
+        await this.cacheManager.del('api', 'stats');
+        await this.cacheManager.del('api', 'update-times');
+        console.log('🗑️ 清除全局API缓存');
+      } catch (error) {
+        console.warn('清除全局API缓存失败:', error.message);
+      }
+&nbsp;
+      console.log(`✅ 缓存更新完成 [${symbol}][${dataType}]`);
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error(`获取合约 ${symbol} 信息失败:`, error);</span>
-<span class="cstat-no" title="statement not covered" >      return null;</span>
+<span class="cstat-no" title="statement not covered" >      console.error('更新缓存失败:', error);</span>
     }
   }
 &nbsp;
   /**
-   * 清除缓存
+   * 添加变更监听器
    */
-<span class="fstat-no" title="function not covered" >  cl</span>earCache() {
-<span class="cstat-no" title="statement not covered" >    this.contractCache.clear();</span>
-<span class="cstat-no" title="statement not covered" >    this.lastUpdate = 0;</span>
-<span class="cstat-no" title="statement not covered" >    console.log('🗑️ Binance合约缓存已清除');</span>
+  addChangeListener(listener) {
+    this.changeListeners.add(listener);
+  }
+&nbsp;
+  /**
+   * 移除变更监听器
+   */
+  removeChangeListener(listener) {
+    this.changeListeners.delete(listener);
+  }
+&nbsp;
+  /**
+   * 获取数据哈希统计
+   */
+  getHashStats() {
+    return {
+      totalKeys: this.dataHashes.size,
+      keys: Array.from(this.dataHashes.keys()),
+      listeners: this.changeListeners.size
+    };
+  }
+&nbsp;
+  /**
+   * 清理过期的哈希记录
+   */
+  cleanup() {
+    // 清理超过24小时的记录
+    const now = Date.now();
+    const maxAge = 24 * 60 * 60 * 1000; // 24小时
+&nbsp;
+    // 这里可以添加时间戳记录来清理过期数据
+    // 目前简化处理，只清理数量限制
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (this.dataHashes.size &gt; 1000) {
+      const keys = Array.from(this.dataHashes.keys());
+      const toDelete = keys.slice(0, keys.length - 500); // 保留最新的500条
+      toDelete.forEach(key =&gt; this.dataHashes.delete(key));
+      console.log(`🧹 清理了 ${toDelete.length} 条过期哈希记录`);
+    }
   }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = BinanceContractChecker;</span>
+module.exports = DataChangeDetector;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
