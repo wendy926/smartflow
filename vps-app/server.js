@@ -435,15 +435,61 @@ class SmartFlowServer {
           return res.status(400).json({ error: '缺少必要参数' });
         }
 
+        // 如果提供了maxLeverage和minMargin，使用提供的值；否则重新计算
+        let finalMaxLeverage = maxLeverage;
+        let finalMinMargin = minMargin;
+        let finalStopLossDistance = stopLossDistance;
+
+        if (!maxLeverage || !minMargin || maxLeverage === 10 || minMargin === 100) {
+          console.log(`🔧 [${symbol}] API调用检测到默认值，重新计算杠杆和保证金数据...`);
+          try {
+            // 获取用户设置的最大损失金额
+            let userMaxLossAmount = 100; // 默认值
+            if (this.db) {
+              try {
+                const globalMaxLoss = await this.db.getUserSetting('maxLossAmount', 100);
+                userMaxLossAmount = parseFloat(globalMaxLoss);
+                console.log(`💰 [${symbol}] 使用用户设置的最大损失金额: ${userMaxLossAmount} USDT`);
+              } catch (dbError) {
+                console.warn(`⚠️ [${symbol}] 获取最大损失设置失败，使用默认值:`, dbError.message);
+              }
+            }
+
+            const leverageData = await SmartFlowStrategyV3.calculateLeverageData(
+              entryPrice,
+              stopLoss,
+              atr14 || atrValue,
+              direction || 'SHORT',
+              this.db,
+              userMaxLossAmount
+            );
+
+            if (!leverageData.error) {
+              finalMaxLeverage = leverageData.maxLeverage;
+              finalMinMargin = leverageData.minMargin;
+              finalStopLossDistance = leverageData.stopLossDistance;
+              console.log(`✅ [${symbol}] 重新计算成功: 杠杆=${finalMaxLeverage}x, 保证金=${finalMinMargin}`);
+            } else {
+              console.warn(`⚠️ [${symbol}] 重新计算失败，使用默认值: ${leverageData.error}`);
+              finalMaxLeverage = finalMaxLeverage || 10;
+              finalMinMargin = finalMinMargin || 100;
+            }
+          } catch (calcError) {
+            console.error(`❌ [${symbol}] 重新计算异常:`, calcError.message);
+            finalMaxLeverage = finalMaxLeverage || 10;
+            finalMinMargin = finalMinMargin || 100;
+          }
+        }
+
         const simulation = await this.simulationManager.createSimulation(
           symbol,
           entryPrice,
           stopLoss,
           takeProfit,
-          maxLeverage || 10,
-          minMargin || 100,
+          finalMaxLeverage,
+          finalMinMargin,
           `SIGNAL_${executionMode}`,
-          stopLossDistance || null,
+          finalStopLossDistance,
           atrValue || null,
           atr14 || null
         );

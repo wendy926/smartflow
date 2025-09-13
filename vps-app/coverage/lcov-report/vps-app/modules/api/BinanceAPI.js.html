@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">16.66% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/72</span>
+                <span class='fraction'>12/72</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">2.94% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/34</span>
+                <span class='fraction'>1/34</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">17.64% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/17</span>
+                <span class='fraction'>3/17</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">16.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/72</span>
+                <span class='fraction'>12/72</span>
             </div>
         
             
@@ -267,17 +267,17 @@
 <a name='L202'></a><a href='#L202'>202</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -288,16 +288,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -384,9 +384,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -464,21 +464,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// modules/api/BinanceAPI.js
 // Binance API 接口模块
 &nbsp;
-const { SmartAPIRateLimiter } = <span class="cstat-no" title="statement not covered" >require('./RateLimiter');</span>
-const RealTimeDataMonitor = <span class="cstat-no" title="statement not covered" >require('../monitoring/RealTimeDataMonitor');</span>
+const { SmartAPIRateLimiter } = require('./RateLimiter');
+const RealTimeDataMonitor = require('../monitoring/RealTimeDataMonitor');
 &nbsp;
 class BinanceAPI {
-  static BASE_URL = <span class="cstat-no" title="statement not covered" >'https://fapi.binance.com';</span>
-  static rateLimiter = <span class="cstat-no" title="statement not covered" >new SmartAPIRateLimiter();</span>
-  static realTimeMonitor = <span class="cstat-no" title="statement not covered" >new RealTimeDataMonitor();</span>
+  static BASE_URL = 'https://fapi.binance.com';
+  static rateLimiter = new SmartAPIRateLimiter();
+  static realTimeMonitor = new RealTimeDataMonitor();
   
   // 启动RateLimiter的清理机制（仅在非测试环境）
   static {
-<span class="cstat-no" title="statement not covered" >    if (process.env.NODE_ENV !== 'test') {</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (process.env.NODE_ENV !== 'test') {
 <span class="cstat-no" title="statement not covered" >      this.rateLimiter.startCleanup();</span>
     }
   }
@@ -488,17 +488,17 @@ class BinanceAPI {
 <span class="cstat-no" title="statement not covered" >    this.rateLimiter.stopCleanup();</span>
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  st</span>atic async getKlines(symbol, interval, limit = <span class="branch-0 cbranch-no" title="branch not covered" >500)</span> {
-    const endpoint = <span class="cstat-no" title="statement not covered" >'/fapi/v1/klines';</span>
-    const params = <span class="cstat-no" title="statement not covered" >new URLSearchParams({</span>
+  static async getKlines(symbol, interval, limit = <span class="branch-0 cbranch-no" title="branch not covered" >500)</span> {
+    const endpoint = '/fapi/v1/klines';
+    const params = new URLSearchParams({
       symbol: symbol.toUpperCase(),
       interval,
       limit: limit.toString()
     });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    return await this.rateLimiter.cachedCall(</span>
+    return await this.rateLimiter.cachedCall(
       `klines_${symbol}_${interval}_${limit}`,
-<span class="fstat-no" title="function not covered" >      ()</span> =&gt; <span class="cstat-no" title="statement not covered" >this.callBinanceAPI(symbol, `${endpoint}?${params}`),</span>
+      () =&gt; this.callBinanceAPI(symbol, `${endpoint}?${params}`),
       'klines',
       symbol
     );
@@ -584,8 +584,8 @@ class BinanceAPI {
     );
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  st</span>atic async callBinanceAPI(symbol, endpoint) {
-    const { default: fetch } = <span class="cstat-no" title="statement not covered" >await import('node-fetch');</span>
+  static async callBinanceAPI(symbol, endpoint) {
+    const { default: fetch } = await import('node-fetch');
     const url = <span class="cstat-no" title="statement not covered" >`${this.BASE_URL}${endpoint}`;</span>
     const dataType = <span class="cstat-no" title="statement not covered" >this.getDataTypeFromEndpoint(endpoint);</span>
 &nbsp;
@@ -665,7 +665,7 @@ class BinanceAPI {
   }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = BinanceAPI;</span>
+module.exports = BinanceAPI;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -673,7 +673,7 @@ class BinanceAPI {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T10:03:09.088Z
+                at 2025-09-13T10:14:45.276Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
