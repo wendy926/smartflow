@@ -123,10 +123,10 @@ class SmartFlowServer {
 
             // 使用V3策略进行分析
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
-        database: this.db,
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager
-      });
+              database: this.db,
+              maxLossAmount: parseFloat(maxLossAmount),
+              dataRefreshManager: this.dataRefreshManager
+            });
 
             // 检查分析是否成功（数据是否充足）
             const isDataSufficient = !analysis.reason || !analysis.reason.includes('数据不足');
@@ -272,10 +272,10 @@ class SmartFlowServer {
           try {
             // 只更新信号和执行数据，不更新趋势数据
             const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
-        database: this.db,
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager
-      });
+              database: this.db,
+              maxLossAmount: parseFloat(maxLossAmount),
+              dataRefreshManager: this.dataRefreshManager
+            });
 
             // 存储策略分析结果到数据库
             try {
@@ -666,12 +666,12 @@ class SmartFlowServer {
     });
 
 
-    
+
     // 获取监控中心数据 - 优化版本
     this.app.get('/api/monitoring-dashboard', async (req, res) => {
       try {
         const symbols = await this.db.getCustomSymbols();
-        
+
         // 使用批量查询替代循环查询，大幅提升性能
         const [klineStats, analysisStats, alertStats] = await Promise.all([
           // 批量获取K线数据统计
@@ -685,7 +685,7 @@ class SmartFlowServer {
             AND interval IN ('4h', '1h')
             GROUP BY symbol, interval
           `, symbols),
-          
+
           // 批量获取策略分析统计
           this.db.runQuery(`
             SELECT 
@@ -695,7 +695,7 @@ class SmartFlowServer {
             WHERE symbol IN (${symbols.map(() => '?').join(',')})
             GROUP BY symbol
           `, symbols),
-          
+
           // 批量获取告警统计
           this.db.runQuery(`
             SELECT 
@@ -1510,10 +1510,10 @@ class SmartFlowServer {
       for (const symbol of symbols) {
         try {
           const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
-        database: this.db,
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager
-      });
+            database: this.db,
+            maxLossAmount: parseFloat(maxLossAmount),
+            dataRefreshManager: this.dataRefreshManager
+          });
 
           // 存储策略分析结果到数据库
           try {
@@ -1908,10 +1908,10 @@ class SmartFlowServer {
         try {
           // 只更新信号和执行数据，不重新计算趋势数据
           const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
-        database: this.db,
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager
-      });
+            database: this.db,
+            maxLossAmount: parseFloat(maxLossAmount),
+            dataRefreshManager: this.dataRefreshManager
+          });
 
           // 获取数据采集成功率 - 使用Binance API成功率
           let dataCollectionRate = 0;
@@ -2049,14 +2049,26 @@ class SmartFlowServer {
       if (!maxLeverage || !minMargin || maxLeverage === 10 || minMargin === 100) {
         console.log(`🔧 [${symbol}] 检测到默认值，重新计算杠杆和保证金数据...`);
         try {
+          // 获取用户设置的最大损失金额
+          let userMaxLossAmount = 100; // 默认值
+          if (this.db) {
+            try {
+              const globalMaxLoss = await this.db.getUserSetting('maxLossAmount', 100);
+              userMaxLossAmount = parseFloat(globalMaxLoss);
+              console.log(`💰 [${symbol}] 使用用户设置的最大损失金额: ${userMaxLossAmount} USDT`);
+            } catch (dbError) {
+              console.warn(`⚠️ [${symbol}] 获取最大损失设置失败，使用默认值:`, dbError.message);
+            }
+          }
+
           const direction = isLong ? 'LONG' : 'SHORT';
           const leverageData = await SmartFlowStrategyV3.calculateLeverageData(
-            entrySignal, 
-            stopLoss, 
-            atr14, 
-            direction, 
+            entrySignal,
+            stopLoss,
+            atr14,
+            direction,
             this.db,
-            100 // 使用默认最大损失金额
+            userMaxLossAmount // 使用用户设置的最大损失金额
           );
 
           if (!leverageData.error) {

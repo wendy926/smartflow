@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/1112</span>
+                <span class='fraction'>0/1119</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/328</span>
+                <span class='fraction'>0/330</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/1101</span>
+                <span class='fraction'>0/1108</span>
             </div>
         
             
@@ -2620,7 +2620,19 @@
 <a name='L2555'></a><a href='#L2555'>2555</a>
 <a name='L2556'></a><a href='#L2556'>2556</a>
 <a name='L2557'></a><a href='#L2557'>2557</a>
-<a name='L2558'></a><a href='#L2558'>2558</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L2558'></a><a href='#L2558'>2558</a>
+<a name='L2559'></a><a href='#L2559'>2559</a>
+<a name='L2560'></a><a href='#L2560'>2560</a>
+<a name='L2561'></a><a href='#L2561'>2561</a>
+<a name='L2562'></a><a href='#L2562'>2562</a>
+<a name='L2563'></a><a href='#L2563'>2563</a>
+<a name='L2564'></a><a href='#L2564'>2564</a>
+<a name='L2565'></a><a href='#L2565'>2565</a>
+<a name='L2566'></a><a href='#L2566'>2566</a>
+<a name='L2567'></a><a href='#L2567'>2567</a>
+<a name='L2568'></a><a href='#L2568'>2568</a>
+<a name='L2569'></a><a href='#L2569'>2569</a>
+<a name='L2570'></a><a href='#L2570'>2570</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -4671,6 +4683,18 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -5302,10 +5326,10 @@ class SmartFlowServer {
 &nbsp;
             // 使用V3策略进行分析
             const analysis = <span class="cstat-no" title="statement not covered" >await SmartFlowStrategyV3.analyzeSymbol(symbol, {</span>
-        database: this.db,
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager
-      });
+              database: this.db,
+              maxLossAmount: parseFloat(maxLossAmount),
+              dataRefreshManager: this.dataRefreshManager
+            });
 &nbsp;
             // 检查分析是否成功（数据是否充足）
             const isDataSufficient = <span class="cstat-no" title="statement not covered" >!analysis.reason || !analysis.reason.includes('数据不足');</span>
@@ -5451,10 +5475,10 @@ class SmartFlowServer {
 <span class="cstat-no" title="statement not covered" >          try {</span>
             // 只更新信号和执行数据，不更新趋势数据
             const analysis = <span class="cstat-no" title="statement not covered" >await SmartFlowStrategyV3.analyzeSymbol(symbol, {</span>
-        database: this.db,
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager
-      });
+              database: this.db,
+              maxLossAmount: parseFloat(maxLossAmount),
+              dataRefreshManager: this.dataRefreshManager
+            });
 &nbsp;
             // 存储策略分析结果到数据库
 <span class="cstat-no" title="statement not covered" >            try {</span>
@@ -5845,12 +5869,12 @@ class SmartFlowServer {
     });
 &nbsp;
 &nbsp;
-    
+&nbsp;
     // 获取监控中心数据 - 优化版本
 <span class="cstat-no" title="statement not covered" >    this.app.get('/api/monitoring-dashboard', <span class="fstat-no" title="function not covered" >as</span>ync (req, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >      try {</span>
         const symbols = <span class="cstat-no" title="statement not covered" >await this.db.getCustomSymbols();</span>
-        
+&nbsp;
         // 使用批量查询替代循环查询，大幅提升性能
         const [klineStats, analysisStats, alertStats] = <span class="cstat-no" title="statement not covered" >await Promise.all([</span>
           // 批量获取K线数据统计
@@ -5864,7 +5888,7 @@ class SmartFlowServer {
             AND interval IN ('4h', '1h')
             GROUP BY symbol, interval
           `, symbols),
-          
+&nbsp;
           // 批量获取策略分析统计
           this.db.runQuery(`
             SELECT 
@@ -5874,7 +5898,7 @@ class SmartFlowServer {
             WHERE symbol IN (${symbols.map(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >'?')</span>.join(',')})
             GROUP BY symbol
           `, symbols),
-          
+&nbsp;
           // 批量获取告警统计
           this.db.runQuery(`
             SELECT 
@@ -6689,10 +6713,10 @@ class SmartFlowServer {
 <span class="cstat-no" title="statement not covered" >      for (const symbol of symbols) {</span>
 <span class="cstat-no" title="statement not covered" >        try {</span>
           const analysis = <span class="cstat-no" title="statement not covered" >await SmartFlowStrategyV3.analyzeSymbol(symbol, {</span>
-        database: this.db,
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager
-      });
+            database: this.db,
+            maxLossAmount: parseFloat(maxLossAmount),
+            dataRefreshManager: this.dataRefreshManager
+          });
 &nbsp;
           // 存储策略分析结果到数据库
 <span class="cstat-no" title="statement not covered" >          try {</span>
@@ -7087,10 +7111,10 @@ class SmartFlowServer {
 <span class="cstat-no" title="statement not covered" >        try {</span>
           // 只更新信号和执行数据，不重新计算趋势数据
           const analysis = <span class="cstat-no" title="statement not covered" >await SmartFlowStrategyV3.analyzeSymbol(symbol, {</span>
-        database: this.db,
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager
-      });
+            database: this.db,
+            maxLossAmount: parseFloat(maxLossAmount),
+            dataRefreshManager: this.dataRefreshManager
+          });
 &nbsp;
           // 获取数据采集成功率 - 使用Binance API成功率
           let dataCollectionRate = <span class="cstat-no" title="statement not covered" >0;</span>
@@ -7228,14 +7252,26 @@ class SmartFlowServer {
 <span class="cstat-no" title="statement not covered" >      if (!maxLeverage || !minMargin || maxLeverage === 10 || minMargin === 100) {</span>
 <span class="cstat-no" title="statement not covered" >        console.log(`🔧 [${symbol}] 检测到默认值，重新计算杠杆和保证金数据...`);</span>
 <span class="cstat-no" title="statement not covered" >        try {</span>
+          // 获取用户设置的最大损失金额
+          let userMaxLossAmount = <span class="cstat-no" title="statement not covered" >100;</span> // 默认值
+<span class="cstat-no" title="statement not covered" >          if (this.db) {</span>
+<span class="cstat-no" title="statement not covered" >            try {</span>
+              const globalMaxLoss = <span class="cstat-no" title="statement not covered" >await this.db.getUserSetting('maxLossAmount', 100);</span>
+<span class="cstat-no" title="statement not covered" >              userMaxLossAmount = parseFloat(globalMaxLoss);</span>
+<span class="cstat-no" title="statement not covered" >              console.log(`💰 [${symbol}] 使用用户设置的最大损失金额: ${userMaxLossAmount} USDT`);</span>
+            } catch (dbError) {
+<span class="cstat-no" title="statement not covered" >              console.warn(`⚠️ [${symbol}] 获取最大损失设置失败，使用默认值:`, dbError.message);</span>
+            }
+          }
+&nbsp;
           const direction = <span class="cstat-no" title="statement not covered" >isLong ? 'LONG' : 'SHORT';</span>
           const leverageData = <span class="cstat-no" title="statement not covered" >await SmartFlowStrategyV3.calculateLeverageData(</span>
-            entrySignal, 
-            stopLoss, 
-            atr14, 
-            direction, 
+            entrySignal,
+            stopLoss,
+            atr14,
+            direction,
             this.db,
-            100 // 使用默认最大损失金额
+            userMaxLossAmount // 使用用户设置的最大损失金额
           );
 &nbsp;
 <span class="cstat-no" title="statement not covered" >          if (!leverageData.error) {</span>
@@ -7741,7 +7777,7 @@ class SymbolCategoryManager {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T07:11:34.847Z
+                at 2025-09-13T08:40:10.622Z
             </div>
         <script src="../prettify.js"></script>
         <script>
