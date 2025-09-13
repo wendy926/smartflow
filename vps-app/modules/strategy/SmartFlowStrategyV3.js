@@ -170,7 +170,7 @@ class SmartFlowStrategyV3 {
   /**
    * 趋势市分析
    */
-  static async analyzeTrendMarket(symbol, trend4hResult, scoringResult = null) {
+  async analyzeTrendMarket(symbol, trend4hResult, scoringResult = null) {
     try {
       // 1. 1H多因子打分（如果未传入则重新计算）
       if (!scoringResult) {
@@ -304,7 +304,7 @@ class SmartFlowStrategyV3 {
   /**
    * 震荡市分析
    */
-  static async analyzeRangeMarket(symbol, trend4hResult, scoringResult = null) {
+  async analyzeRangeMarket(symbol, trend4hResult, scoringResult = null) {
     try {
       // 1. 1H边界判断
       const rangeResult = await StrategyV3Core.prototype.analyzeRangeBoundary.call(this.core, symbol, this.deltaManager);
