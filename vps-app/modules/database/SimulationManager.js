@@ -125,7 +125,7 @@ class SimulationManager {
       };
 
       // 异步发送通知，不阻塞主流程
-      this.telegramNotifier.notifySimulationEnd(simulationData).catch(error => {
+      this.telegramNotifier.sendSimulationEndNotification(simulationData).catch(error => {
         console.error(`❌ 模拟交易结束通知发送失败: ${sim.symbol}`, error);
       });
     } catch (error) {
