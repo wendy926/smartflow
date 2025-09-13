@@ -230,10 +230,34 @@
 
       <div class="strategy-overview">
         <h3>🎯 系统结构（3层共振）</h3>
-        <p>4H级趋势判断（4H） → 1H级多因子打分（1H） → 15分钟级别入场判断（15m）</p>
-        <p><strong>依赖关系：</strong> 1H打分依赖4H趋势结果，15m入场判断依赖4H趋势和1H打分结果</p>
-        <p><strong>更新频率：</strong> 4H趋势每1小时更新，1H打分每5分钟更新，15m入场每2分钟更新</p>
-        <p><strong>最新优化：</strong> 彻底修复模拟交易默认杠杆和保证金问题，实现智能默认值检测和自动重新计算，确保数据一致性，提升系统可靠性</p>
+        <div class="system-flow">
+          <div class="flow-step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>4H级趋势判断</h4>
+              <p>10分打分机制，≥4分保留趋势</p>
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>1H级多因子打分</h4>
+              <p>趋势市：6分制，≥3分入场<br>震荡市：边界确认，≥3分有效</p>
+            </div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>15分钟入场判断</h4>
+              <p>趋势市：回踩突破<br>震荡市：假突破反手</p>
+            </div>
+          </div>
+        </div>
+        <div class="update-frequency">
+          <p><strong>更新频率：</strong> 4H趋势每1小时 | 1H打分每5分钟 | 15m入场每2分钟</p>
+        </div>
       </div>
 
       <div class="strategy-overview">
@@ -261,69 +285,165 @@
         <div class="strategy-phase">
           <h3>📈 1. 4H级趋势判断（4H）- 10分打分机制</h3>
           <div class="phase-content">
-            <h4>数据来源：</h4>
-            <ul>
-              <li><strong>K线数据：</strong> Binance Futures API `/fapi/v1/klines?symbol={symbol}&interval=4h&limit=250`
-              </li>
-            </ul>
+            <div class="scoring-system">
+              <h4>📊 总分计算：10分制</h4>
+              <div class="score-breakdown">
+                <div class="score-category">
+                  <h5>🎯 趋势方向（必选，3分）</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">收盘价 > MA20（多头）或 收盘价 < MA20（空头）</span>
+                    </div>
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">MA20 > MA50（多头）或 MA20 < MA50（空头）</span>
+                    </div>
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">MA50 > MA200（多头）或 MA50 < MA200（空头）</span>
+                    </div>
+                  </div>
+                </div>
 
-            <h4>指标计算：</h4>
-            <ul>
-              <li><strong>MA20：</strong> SMA(收盘价, 20) = Σ(收盘价[i-19:i]) / 20</li>
-              <li><strong>MA50：</strong> SMA(收盘价, 50) = Σ(收盘价[i-49:i]) / 50</li>
-              <li><strong>MA200：</strong> SMA(收盘价, 200) = Σ(收盘价[i-199:i]) / 200</li>
-              <li><strong>ADX：</strong> 平均方向指数，使用Wilder平滑法计算，周期14</li>
-              <li><strong>BBW（布林带带宽）：</strong> (上轨 - 下轨) / 中轨，其中中轨 = MA20，上下轨 = 中轨 ± 2×标准差</li>
-            </ul>
+                <div class="score-category">
+                  <h5>🔒 趋势稳定性（1分）</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">连续≥2根4H K线满足趋势方向</span>
+                    </div>
+                  </div>
+                </div>
 
-            <h4>10分打分机制（严格按照strategy-v3.md）：</h4>
-            <ul>
-              <li><strong>趋势方向（必选）</strong>：每个方向至少需要2分
-                <ul>
-                  <li>多头方向：收盘价 > MA20（1分）+ MA20 > MA50（1分）+ MA50 > MA200（1分）</li>
-                  <li>空头方向：收盘价 < MA20（1分）+ MA20 < MA50（1分）+ MA50 < MA200（1分）</li>
-                </ul>
-              </li>
-              <li><strong>趋势稳定性（1分）</strong>：连续≥2根4H K线满足趋势方向，确保趋势稳定性</li>
-              <li><strong>趋势强度（1分）</strong>：ADX(14) > 20 且 DI方向正确</li>
-              <li><strong>布林带扩张（1分）</strong>：最近10根K线，后5根BBW均值 > 前5根均值 × 1.05</li>
-              <li><strong>动量确认（1分）</strong>：当前K线收盘价离MA20距离 ≥ 0.5%</li>
-              <li><strong>最终判断</strong>：得分≥4分才保留趋势，否则 = 震荡市</li>
-            </ul>
+                <div class="score-category">
+                  <h5>💪 趋势强度（1分）</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">ADX(14) > 20 且 DI方向正确</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="score-category">
+                  <h5>📈 布林带扩张（1分）</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">最近10根K线，后5根BBW均值 > 前5根均值 × 1.05</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="score-category">
+                  <h5>⚡ 动量确认（1分）</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">当前K线收盘价离MA20距离 ≥ 0.5%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="final-judgment">
+                <h5>🎯 最终判断</h5>
+                <div class="judgment-rule">
+                  <span class="threshold">≥4分</span>
+                  <span class="result">保留趋势</span>
+                </div>
+                <div class="judgment-rule">
+                  <span class="threshold">
+                    <4分< /span>
+                      <span class="result">震荡市</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="strategy-phase">
           <h3>⏰ 2. 1H级多因子打分（1H）- 趋势市专用</h3>
           <div class="phase-content">
-            <h4>数据来源：</h4>
-            <ul>
-              <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50`</li>
-              <li><strong>15分钟K线：</strong> `/fapi/v1/klines?symbol={symbol}&interval=15m&limit=50`</li>
-              <li><strong>4小时K线：</strong> `/fapi/v1/klines?symbol={symbol}&interval=4h&limit=20`</li>
-              <li><strong>资金费率：</strong> `/fapi/v1/fundingRate?symbol={symbol}&limit=1`</li>
-              <li><strong>持仓量历史：</strong> `/futures/data/openInterestHist?symbol={symbol}&period=1h&limit=6`</li>
-              <li><strong>Delta数据：</strong> WebSocket实时数据，计算买卖盘不平衡</li>
-            </ul>
+            <div class="scoring-system">
+              <h4>📊 总分计算：6分制（趋势市）</h4>
+              <div class="score-breakdown">
+                <div class="score-category prerequisite">
+                  <h5>🚨 VWAP方向（必须满足，0分）</h5>
+                  <div class="score-items">
+                    <div class="score-item prerequisite">
+                      <span class="score-point">必须</span>
+                      <span class="score-desc">收盘价 > VWAP（多头）或 收盘价 < VWAP（空头）</span>
+                    </div>
+                  </div>
+                  <p class="prerequisite-note">⚠️ 不满足直接返回0分，不进入后续打分</p>
+                </div>
 
-            <h4>多因子打分系统（0-6分）- 分类权重优化版：</h4>
-            <ul>
-              <li><strong>VWAP方向（必须满足）：</strong> 收盘价 > VWAP（多头趋势）或 收盘价 < VWAP（空头趋势），必须满足否则直接返回0分</li>
-              <li><strong>突破确认：</strong> 收盘价突破最近20根4H K线高点（多头）或低点（空头），根据交易对分类应用不同权重</li>
-              <li><strong>成交量双确认：</strong> 15m成交量 ≥ 1.5×20期均量 且 1h成交量 ≥ 1.2×20期均量，根据交易对分类应用不同权重</li>
-              <li><strong>OI变化：</strong> 多头：6h OI ≥ +2%，空头：6h OI ≤ -3%，根据交易对分类应用不同权重</li>
-              <li><strong>资金费率：</strong> -0.05% ≤ 资金费率 ≤ +0.05%，所有交易对权重统一为10%</li>
-              <li><strong>Delta不平衡：</strong> 多头：主动买盘 ≥ 卖盘×1.2，空头：主动卖盘 ≥ 买盘×1.2，根据交易对分类应用不同权重</li>
-            </ul>
+                <div class="score-category">
+                  <h5>🎯 突破确认（1分）</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">收盘价突破最近20根4H K线高点（多头）或低点（空头）</span>
+                    </div>
+                  </div>
+                </div>
 
-            <h4>权重计算逻辑：</h4>
-            <ul>
-              <li><strong>因子得分：</strong> 每个因子根据条件满足情况得0-1分</li>
-              <li><strong>权重应用：</strong> 根据交易对分类（主流币/高市值强趋势币/热点币/小币）应用不同权重</li>
-              <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
-              <li><strong>VWAP特殊处理：</strong> 必须满足条件，权重为0但计入总分，确保方向一致性</li>
-              <li><strong>入场条件：</strong> 总分 ≥ 3分且VWAP方向一致时允许入场</li>
-            </ul>
+                <div class="score-category">
+                  <h5>📊 成交量双确认（1分）</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">15m成交量 ≥ 1.5×20期均量 且 1h成交量 ≥ 1.2×20期均量</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="score-category">
+                  <h5>💼 OI变化（1分）</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">多头：6h OI ≥ +2% | 空头：6h OI ≤ -3%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="score-category">
+                  <h5>💰 资金费率（1分）</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">-0.05% ≤ 资金费率 ≤ +0.05%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="score-category">
+                  <h5>⚖️ Delta不平衡（1分）</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">1分</span>
+                      <span class="score-desc">多头：主动买盘 ≥ 卖盘×1.2 | 空头：主动卖盘 ≥ 买盘×1.2</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="final-judgment">
+                <h5>🎯 入场条件</h5>
+                <div class="judgment-rule">
+                  <span class="threshold">≥3分 + VWAP方向一致</span>
+                  <span class="result">允许入场</span>
+                </div>
+                <div class="judgment-rule">
+                  <span class="threshold">
+                    <3分 或 VWAP方向不一致</span>
+                      <span class="result">无信号</span>
+                </div>
+              </div>
+            </div>
 
             <h4>趋势市1H多因子打分权重分布：</h4>
             <table class="weight-table">
@@ -772,8 +892,9 @@
       font-weight: 600;
       text-align: center;
       padding: 12px 8px;
-      border: none;
+      border: 1px solid #000000;
       font-size: 13px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -783,8 +904,9 @@
       padding: 10px 8px;
       text-align: center;
       vertical-align: middle;
-      border: 1px solid #e9ecef;
+      border: 1px solid #000000;
       font-size: 13px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -798,6 +920,12 @@
       background-color: #e3f2fd;
       transform: scale(1.01);
       transition: all 0.2s ease;
+    }
+
+    /* 确保所有表格单元格边框为黑色 */
+    .table td,
+    .table th {
+      border: 1px solid #000000 !important;
     }
 
     /* 列宽度设置 */
@@ -891,40 +1019,42 @@
 
     /* 数据采集率 */
 
-    /* 颜色样式 */
+    /* 颜色样式 - 统一亮度明度 */
     .score-strong {
-      background: linear-gradient(135deg, #ffa500, #ff8c00) !important;
+      background: #ffa500 !important;
       color: #000 !important;
       font-weight: bold !important;
+      border: 1px solid #000000 !important;
       border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(255, 165, 0, 0.3);
     }
 
     .score-none {
-      background: linear-gradient(135deg, #6c757d, #5a6268) !important;
+      background: #808080 !important;
       color: #fff !important;
+      border: 1px solid #000000 !important;
       border-radius: 4px;
     }
 
     .trend-bull {
-      background: linear-gradient(135deg, #28a745, #20c997) !important;
+      background: #32cd32 !important;
       color: #fff !important;
       font-weight: bold !important;
+      border: 1px solid #000000 !important;
       border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
     }
 
     .trend-bear {
-      background: linear-gradient(135deg, #dc3545, #e74c3c) !important;
+      background: #ff4500 !important;
       color: #fff !important;
       font-weight: bold !important;
+      border: 1px solid #000000 !important;
       border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
     }
 
     .trend-none {
-      background: linear-gradient(135deg, #6c757d, #5a6268) !important;
+      background: #808080 !important;
       color: #fff !important;
+      border: 1px solid #000000 !important;
       border-radius: 4px;
     }
 
@@ -952,50 +1082,57 @@
       box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
     }
 
-    /* 价格样式 */
+    /* 价格样式 - 统一字体 */
     .price-cell {
-      font-family: 'Courier New', monospace;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       font-weight: 600;
       color: #2c3e50;
+      font-size: 13px;
     }
 
-    /* 分类样式 */
+    /* 分类样式 - 统一字体大小 */
     .category-mainstream {
       color: #007bff;
       font-weight: 600;
+      font-size: 13px;
     }
 
     .category-highcap {
       color: #28a745;
       font-weight: 600;
+      font-size: 13px;
     }
 
     .category-trending {
       color: #ffc107;
       font-weight: 600;
+      font-size: 13px;
     }
 
     .category-smallcap {
       color: #6c757d;
       font-weight: 600;
+      font-size: 13px;
     }
 
     .category-unknown {
       color: #dc3545;
       font-weight: 600;
+      font-size: 13px;
     }
 
-    /* Badge样式 */
+    /* Badge样式 - 统一字体大小 */
     .badge {
       display: inline-block;
       padding: 4px 8px;
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 600;
       line-height: 1;
       text-align: center;
       white-space: nowrap;
       vertical-align: baseline;
       border-radius: 4px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     .badge-success {

@@ -263,6 +263,9 @@ class SimulationDataManager {
     const pageData = this.filteredSimulations.slice(start, end);
 
     this.updateSimulationHistoryTable(pageData);
+
+    // 确保分页信息是最新的
+    this.updatePaginationForFilteredData();
     this.updatePaginationControls();
   }
 
@@ -368,6 +371,11 @@ class SimulationDataManager {
     const currentPage = this.pagination.currentPage;
     const totalPages = this.pagination.totalPages;
 
+    // 如果没有数据，不显示页码
+    if (totalPages === 0) {
+      return;
+    }
+
     // 显示页码逻辑：当前页前后各2页
     const startPage = Math.max(1, currentPage - 2);
     const endPage = Math.min(totalPages, currentPage + 2);
@@ -376,15 +384,26 @@ class SimulationDataManager {
       const pageBtn = document.createElement('button');
       pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
       pageBtn.textContent = i;
-      pageBtn.addEventListener('click', () => this.goToPage(i));
+      pageBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.goToPage(i);
+      });
       container.appendChild(pageBtn);
     }
   }
 
   // 跳转到指定页面
   goToPage(page) {
+    console.log(`跳转到第 ${page} 页`);
     this.currentPage = page;
+
+    // 更新分页信息
+    this.updatePaginationForFilteredData();
+
+    // 显示当前页数据
     this.displayCurrentPage();
+
+    console.log(`当前页: ${this.currentPage}, 总页数: ${this.pagination.totalPages}`);
   }
 
   setupEventListeners() {
@@ -515,7 +534,7 @@ class SimulationDataManager {
     // 如果交易没有结束，不显示盈亏金额
     const profitLoss = sim.status === 'ACTIVE' ? null : (sim.profit_loss || 0);
     const profitLossClass = profitLoss === null ? 'neutral' : (profitLoss > 0 ? 'positive' : profitLoss < 0 ? 'negative' : 'neutral');
-    
+
     // 根据状态和is_win字段判断结果
     let resultClass, resultText;
     if (sim.status === 'ACTIVE') {
