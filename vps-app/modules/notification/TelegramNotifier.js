@@ -311,6 +311,136 @@ ${direction}
     }
 
     /**
+     * 发送数据新鲜度告警通知
+     * @param {Object} alertData - 告警数据
+     * @returns {Promise<boolean>} - 发送是否成功
+     */
+    async sendDataFreshnessAlert(alertData) {
+        const {
+            dataType,
+            symbol,
+            freshness,
+            threshold,
+            lastUpdate,
+            interval,
+            severity
+        } = alertData;
+
+        const dataTypeNames = {
+            'trend_analysis': '4H趋势判断',
+            'trend_scoring': '1H多因子打分',
+            'trend_strength': '1H加强趋势判断',
+            'trend_entry': '趋势市15分钟入场判断',
+            'range_boundary': '震荡市1H边界判断',
+            'range_entry': '震荡市15分钟入场判断',
+            'trend_score': '4H趋势打分'
+        };
+
+        const severityEmoji = {
+            'critical': '🔴',
+            'warning': '🟡',
+            'info': '🔵'
+        };
+
+        const severityText = {
+            'critical': '严重',
+            'warning': '警告',
+            'info': '提示'
+        };
+
+        const freshnessStatus = freshness >= 50 ? '✅ 正常' : freshness >= 30 ? '⚠️ 需关注' : '❌ 过期';
+
+        const message = `
+${severityEmoji[severity] || '🔴'} <b>数据新鲜度告警</b> - ${severityText[severity] || '严重'}
+
+📊 <b>数据类型:</b> ${dataTypeNames[dataType] || dataType}
+📈 <b>交易对:</b> ${symbol}
+📊 <b>当前新鲜度:</b> ${freshness.toFixed(1)}%
+⚠️ <b>告警阈值:</b> ${threshold}%
+📅 <b>最后更新:</b> ${new Date(lastUpdate).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
+⏰ <b>刷新间隔:</b> ${interval}分钟
+📊 <b>状态:</b> ${freshnessStatus}
+
+⏰ <b>告警时间:</b> ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
+
+🤖 SmartFlow 数据监控系统
+        `.trim();
+
+        return await this.sendMessage(message, 'signal');
+    }
+
+    /**
+     * 发送批量数据新鲜度告警通知
+     * @param {Array} alertList - 告警列表
+     * @returns {Promise<boolean>} - 发送是否成功
+     */
+    async sendBatchDataFreshnessAlert(alertList) {
+        if (!alertList || alertList.length === 0) return true;
+
+        const criticalAlerts = alertList.filter(alert => alert.severity === 'critical');
+        const warningAlerts = alertList.filter(alert => alert.severity === 'warning');
+        const infoAlerts = alertList.filter(alert => alert.severity === 'info');
+
+        let message = `🔴 <b>数据新鲜度批量告警</b>\n\n`;
+
+        if (criticalAlerts.length > 0) {
+            message += `🔴 <b>严重告警 (${criticalAlerts.length}个):</b>\n`;
+            criticalAlerts.forEach(alert => {
+                const dataTypeNames = {
+                    'trend_analysis': '4H趋势判断',
+                    'trend_scoring': '1H多因子打分',
+                    'trend_strength': '1H加强趋势判断',
+                    'trend_entry': '趋势市15分钟入场判断',
+                    'range_boundary': '震荡市1H边界判断',
+                    'range_entry': '震荡市15分钟入场判断',
+                    'trend_score': '4H趋势打分'
+                };
+                message += `• ${dataTypeNames[alert.dataType] || alert.dataType} - ${alert.symbol}: ${alert.freshness.toFixed(1)}%\n`;
+            });
+            message += '\n';
+        }
+
+        if (warningAlerts.length > 0) {
+            message += `🟡 <b>警告告警 (${warningAlerts.length}个):</b>\n`;
+            warningAlerts.forEach(alert => {
+                const dataTypeNames = {
+                    'trend_analysis': '4H趋势判断',
+                    'trend_scoring': '1H多因子打分',
+                    'trend_strength': '1H加强趋势判断',
+                    'trend_entry': '趋势市15分钟入场判断',
+                    'range_boundary': '震荡市1H边界判断',
+                    'range_entry': '震荡市15分钟入场判断',
+                    'trend_score': '4H趋势打分'
+                };
+                message += `• ${dataTypeNames[alert.dataType] || alert.dataType} - ${alert.symbol}: ${alert.freshness.toFixed(1)}%\n`;
+            });
+            message += '\n';
+        }
+
+        if (infoAlerts.length > 0) {
+            message += `🔵 <b>提示告警 (${infoAlerts.length}个):</b>\n`;
+            infoAlerts.forEach(alert => {
+                const dataTypeNames = {
+                    'trend_analysis': '4H趋势判断',
+                    'trend_scoring': '1H多因子打分',
+                    'trend_strength': '1H加强趋势判断',
+                    'trend_entry': '趋势市15分钟入场判断',
+                    'range_boundary': '震荡市1H边界判断',
+                    'range_entry': '震荡市15分钟入场判断',
+                    'trend_score': '4H趋势打分'
+                };
+                message += `• ${dataTypeNames[alert.dataType] || alert.dataType} - ${alert.symbol}: ${alert.freshness.toFixed(1)}%\n`;
+            });
+            message += '\n';
+        }
+
+        message += `⏰ <b>告警时间:</b> ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\n`;
+        message += `🤖 SmartFlow 数据监控系统`;
+
+        return await this.sendMessage(message, 'signal');
+    }
+
+    /**
      * 检查Telegram配置状态
      * @returns {Object} - 配置状态
      */

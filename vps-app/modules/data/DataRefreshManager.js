@@ -12,6 +12,20 @@ class DataRefreshManager {
       'range_boundary': 480,       // 4H边界判断：每8小时
       'range_entry': 120           // 1H入场判断：每2小时
     };
+    
+    // 新鲜度告警阈值配置
+    this.freshnessThresholds = {
+      'trend_analysis': { critical: 30, warning: 50, info: 70 },
+      'trend_scoring': { critical: 30, warning: 50, info: 70 },
+      'trend_strength': { critical: 30, warning: 50, info: 70 },
+      'trend_entry': { critical: 20, warning: 40, info: 60 },
+      'range_boundary': { critical: 30, warning: 50, info: 70 },
+      'range_entry': { critical: 20, warning: 40, info: 60 }
+    };
+    
+    // 告警冷却时间（分钟）
+    this.alertCooldown = 30;
+    this.lastAlertTime = new Map();
   }
 
   /**
@@ -220,6 +234,160 @@ class DataRefreshManager {
         error: error.message
       };
     }
+  }
+
+  /**
+   * 检查数据新鲜度并生成告警
+   * @param {Object} telegramNotifier - Telegram通知器实例
+   * @returns {Array} 告警列表
+   */
+  async checkFreshnessAndAlert(telegramNotifier = null) {
+    try {
+      const alerts = [];
+      const allData = await this.db.runQuery(`
+        SELECT symbol, data_type, last_update, data_freshness_score
+        FROM data_refresh_log
+        ORDER BY data_type, symbol
+      `);
+
+      for (const data of allData) {
+        const { symbol, data_type, last_update, data_freshness_score } = data;
+        const freshness = data_freshness_score || 0;
+        const thresholds = this.freshnessThresholds[data_type];
+        
+        if (!thresholds) continue;
+
+        // 确定告警级别
+        let severity = null;
+        let threshold = null;
+        
+        if (freshness <= thresholds.critical) {
+          severity = 'critical';
+          threshold = thresholds.critical;
+        } else if (freshness <= thresholds.warning) {
+          severity = 'warning';
+          threshold = thresholds.warning;
+        } else if (freshness <= thresholds.info) {
+          severity = 'info';
+          threshold = thresholds.info;
+        }
+
+        if (severity) {
+          const alertKey = `${symbol}_${data_type}_${severity}`;
+          const now = Date.now();
+          const lastAlert = this.lastAlertTime.get(alertKey) || 0;
+          
+          // 检查冷却时间
+          if (now - lastAlert > this.alertCooldown * 60 * 1000) {
+            const alert = {
+              dataType: data_type,
+              symbol,
+              freshness,
+              threshold,
+              lastUpdate: last_update,
+              interval: this.refreshIntervals[data_type],
+              severity,
+              timestamp: now
+            };
+            
+            alerts.push(alert);
+            this.lastAlertTime.set(alertKey, now);
+            
+            // 发送单个告警
+            if (telegramNotifier) {
+              await telegramNotifier.sendDataFreshnessAlert(alert);
+            }
+          }
+        }
+      }
+
+      // 发送批量告警（如果有多个告警）
+      if (alerts.length > 1 && telegramNotifier) {
+        await telegramNotifier.sendBatchDataFreshnessAlert(alerts);
+      }
+
+      return alerts;
+    } catch (error) {
+      console.error('检查新鲜度告警失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取新鲜度告警状态
+   * @returns {Object} 告警状态统计
+   */
+  async getFreshnessAlertStatus() {
+    try {
+      const allData = await this.db.runQuery(`
+        SELECT data_type, data_freshness_score
+        FROM data_refresh_log
+      `);
+
+      const status = {
+        total: allData.length,
+        critical: 0,
+        warning: 0,
+        info: 0,
+        normal: 0,
+        byDataType: {}
+      };
+
+      for (const data of allData) {
+        const { data_type, data_freshness_score } = data;
+        const freshness = data_freshness_score || 0;
+        const thresholds = this.freshnessThresholds[data_type];
+        
+        if (!thresholds) continue;
+
+        if (!status.byDataType[data_type]) {
+          status.byDataType[data_type] = { total: 0, critical: 0, warning: 0, info: 0, normal: 0 };
+        }
+
+        status.byDataType[data_type].total++;
+        status.total++;
+
+        if (freshness <= thresholds.critical) {
+          status.critical++;
+          status.byDataType[data_type].critical++;
+        } else if (freshness <= thresholds.warning) {
+          status.warning++;
+          status.byDataType[data_type].warning++;
+        } else if (freshness <= thresholds.info) {
+          status.info++;
+          status.byDataType[data_type].info++;
+        } else {
+          status.normal++;
+          status.byDataType[data_type].normal++;
+        }
+      }
+
+      return status;
+    } catch (error) {
+      console.error('获取新鲜度告警状态失败:', error);
+      return { total: 0, critical: 0, warning: 0, info: 0, normal: 0, byDataType: {} };
+    }
+  }
+
+  /**
+   * 设置新鲜度告警阈值
+   * @param {string} dataType - 数据类型
+   * @param {Object} thresholds - 阈值配置 {critical, warning, info}
+   */
+  setFreshnessThresholds(dataType, thresholds) {
+    if (this.freshnessThresholds[dataType]) {
+      this.freshnessThresholds[dataType] = { ...this.freshnessThresholds[dataType], ...thresholds };
+      console.log(`✅ 更新新鲜度告警阈值 [${dataType}]:`, thresholds);
+    }
+  }
+
+  /**
+   * 设置告警冷却时间
+   * @param {number} minutes - 冷却时间（分钟）
+   */
+  setAlertCooldown(minutes) {
+    this.alertCooldown = minutes;
+    console.log(`✅ 设置告警冷却时间: ${minutes}分钟`);
   }
 
   /**

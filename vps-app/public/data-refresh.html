@@ -62,6 +62,132 @@
             color: #dc3545;
         }
 
+        /* 新鲜度告警级别样式 */
+        .alert-critical {
+            background-color: #f8d7da !important;
+            border-left: 4px solid #dc3545 !important;
+            font-weight: bold;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd !important;
+            border-left: 4px solid #ffc107 !important;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1 !important;
+            border-left: 4px solid #17a2b8 !important;
+        }
+
+        .freshness-score {
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            min-width: 80px;
+        }
+
+        /* 新鲜度告警状态样式 */
+        .alert-summary {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .alert-item.critical {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-item.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .alert-item.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-item.normal {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-count {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .alert-details {
+            margin-top: 15px;
+        }
+
+        .alert-details h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .data-type-alerts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+        }
+
+        .data-type-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+
+        .data-type-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .data-type-stats {
+            display: flex;
+            gap: 15px;
+        }
+
+        .data-type-stats .stat {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .data-type-stats .stat.critical {
+            color: #dc3545;
+        }
+
+        .data-type-stats .stat.warning {
+            color: #ffc107;
+        }
+
+        .data-type-stats .stat.info {
+            color: #17a2b8;
+        }
+
+        .data-type-stats .stat.normal {
+            color: #28a745;
+        }
+
         .btn {
             padding: 6px 12px;
             border: none;
@@ -118,6 +244,14 @@
         <!-- 刷新摘要 -->
         <div class="refresh-summary" id="refresh-summary">
             <!-- 动态生成 -->
+        </div>
+
+        <!-- 新鲜度告警状态 -->
+        <div class="stats-card" id="freshness-alert-status" style="display: none;">
+            <div class="card-title">🔔 新鲜度告警状态</div>
+            <div id="alert-status-content">
+                <!-- 动态生成 -->
+            </div>
         </div>
 
         <!-- 刷新统计表格 -->

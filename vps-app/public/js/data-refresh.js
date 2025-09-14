@@ -32,6 +32,7 @@ class DataRefreshManager {
   updateUI() {
     this.updateRefreshStatsTable();
     this.updateStaleDataTable();
+    this.updateFreshnessAlertStatus();
   }
 
   // 更新刷新统计表格
@@ -63,15 +64,24 @@ class DataRefreshManager {
         'range_entry': '2分钟'
       };
 
+      // 计算告警级别
+      const avgAlertLevel = this.getFreshnessAlertLevel(stat.avg_freshness || 0, stat.data_type);
+      const minAlertLevel = this.getFreshnessAlertLevel(stat.min_freshness || 0, stat.data_type);
+      const maxAlertLevel = this.getFreshnessAlertLevel(stat.max_freshness || 0, stat.data_type);
+
       row.innerHTML = `
         <td>${dataTypeNames[stat.data_type] || stat.data_type}</td>
         <td>${stat.total_symbols}</td>
         <td>${refreshIntervals[stat.data_type] || '未知'}</td>
-        <td class="freshness-score ${this.getFreshnessClass(stat.avg_freshness)}">
-          ${stat.avg_freshness ? stat.avg_freshness.toFixed(1) : '0.0'}%
+        <td class="freshness-score ${this.getFreshnessClass(stat.avg_freshness)} ${this.getAlertLevelClass(avgAlertLevel)}">
+          ${this.getAlertLevelIcon(avgAlertLevel)} ${stat.avg_freshness ? stat.avg_freshness.toFixed(1) : '0.0'}%
         </td>
-        <td>${stat.min_freshness ? stat.min_freshness.toFixed(1) : '0.0'}%</td>
-        <td>${stat.max_freshness ? stat.max_freshness.toFixed(1) : '0.0'}%</td>
+        <td class="freshness-score ${this.getFreshnessClass(stat.min_freshness)} ${this.getAlertLevelClass(minAlertLevel)}">
+          ${this.getAlertLevelIcon(minAlertLevel)} ${stat.min_freshness ? stat.min_freshness.toFixed(1) : '0.0'}%
+        </td>
+        <td class="freshness-score ${this.getFreshnessClass(stat.max_freshness)} ${this.getAlertLevelClass(maxAlertLevel)}">
+          ${this.getAlertLevelIcon(maxAlertLevel)} ${stat.max_freshness ? stat.max_freshness.toFixed(1) : '0.0'}%
+        </td>
       `;
 
       tbody.appendChild(row);
@@ -125,6 +135,134 @@ class DataRefreshManager {
     if (score >= 90) return 'text-success';
     if (score >= 70) return 'text-warning';
     return 'text-danger';
+  }
+
+  // 获取新鲜度告警级别
+  getFreshnessAlertLevel(freshness, dataType) {
+    const thresholds = {
+      'trend_analysis': { critical: 30, warning: 50, info: 70 },
+      'trend_scoring': { critical: 30, warning: 50, info: 70 },
+      'trend_strength': { critical: 30, warning: 50, info: 70 },
+      'trend_entry': { critical: 20, warning: 40, info: 60 },
+      'range_boundary': { critical: 30, warning: 50, info: 70 },
+      'range_entry': { critical: 20, warning: 40, info: 60 }
+    };
+
+    const threshold = thresholds[dataType] || { critical: 30, warning: 50, info: 70 };
+    
+    if (freshness <= threshold.critical) return 'critical';
+    if (freshness <= threshold.warning) return 'warning';
+    if (freshness <= threshold.info) return 'info';
+    return 'normal';
+  }
+
+  // 获取告警级别样式
+  getAlertLevelClass(level) {
+    switch (level) {
+      case 'critical': return 'alert-critical';
+      case 'warning': return 'alert-warning';
+      case 'info': return 'alert-info';
+      default: return '';
+    }
+  }
+
+  // 获取告警级别图标
+  getAlertLevelIcon(level) {
+    switch (level) {
+      case 'critical': return '🔴';
+      case 'warning': return '🟡';
+      case 'info': return '🔵';
+      default: return '';
+    }
+  }
+
+  // 更新新鲜度告警状态
+  async updateFreshnessAlertStatus() {
+    try {
+      const response = await fetch('/api/freshness-alert-status');
+      const data = await response.json();
+
+      if (data.success) {
+        this.displayFreshnessAlertStatus(data.status);
+      }
+    } catch (error) {
+      console.error('获取新鲜度告警状态失败:', error);
+    }
+  }
+
+  // 显示新鲜度告警状态
+  displayFreshnessAlertStatus(status) {
+    const alertStatusCard = document.getElementById('freshness-alert-status');
+    const alertStatusContent = document.getElementById('alert-status-content');
+
+    if (!alertStatusCard || !alertStatusContent) return;
+
+    // 检查是否有告警
+    const hasAlerts = status.critical > 0 || status.warning > 0 || status.info > 0;
+
+    if (!hasAlerts) {
+      alertStatusCard.style.display = 'none';
+      return;
+    }
+
+    alertStatusCard.style.display = 'block';
+
+    const alertStatusHtml = `
+      <div class="alert-summary">
+        <div class="alert-item critical">
+          <span class="alert-icon">🔴</span>
+          <span class="alert-count">${status.critical}</span>
+          <span class="alert-label">严重告警</span>
+        </div>
+        <div class="alert-item warning">
+          <span class="alert-icon">🟡</span>
+          <span class="alert-count">${status.warning}</span>
+          <span class="alert-label">警告告警</span>
+        </div>
+        <div class="alert-item info">
+          <span class="alert-icon">🔵</span>
+          <span class="alert-count">${status.info}</span>
+          <span class="alert-label">提示告警</span>
+        </div>
+        <div class="alert-item normal">
+          <span class="alert-icon">✅</span>
+          <span class="alert-count">${status.normal}</span>
+          <span class="alert-label">正常</span>
+        </div>
+      </div>
+      <div class="alert-details">
+        <h4>按数据类型统计:</h4>
+        <div class="data-type-alerts">
+          ${Object.entries(status.byDataType).map(([dataType, stats]) => `
+            <div class="data-type-item">
+              <span class="data-type-name">${this.getDataTypeDisplayName(dataType)}</span>
+              <div class="data-type-stats">
+                <span class="stat critical">🔴 ${stats.critical}</span>
+                <span class="stat warning">🟡 ${stats.warning}</span>
+                <span class="stat info">🔵 ${stats.info}</span>
+                <span class="stat normal">✅ ${stats.normal}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    alertStatusContent.innerHTML = alertStatusHtml;
+  }
+
+  // 获取数据类型显示名称
+  getDataTypeDisplayName(dataType) {
+    const dataTypeNames = {
+      'trend_analysis': '4H趋势判断',
+      'trend_scoring': '1H多因子打分',
+      'trend_strength': '1H加强趋势判断',
+      'trend_entry': '趋势市15分钟入场判断',
+      'range_boundary': '震荡市1H边界判断',
+      'range_entry': '震荡市15分钟入场判断',
+      'trend_score': '4H趋势打分'
+    };
+    return dataTypeNames[dataType] || dataType;
   }
 
   // 强制刷新数据

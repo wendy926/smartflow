@@ -738,6 +738,61 @@ class SmartFlowServer {
       }
     });
 
+    // 检查数据新鲜度并发送告警
+    this.app.post('/api/check-freshness-alerts', async (req, res) => {
+      try {
+        const alerts = await this.dataRefreshManager.checkFreshnessAndAlert(this.telegramNotifier);
+        
+        res.json({
+          success: true,
+          message: `检查完成，发现 ${alerts.length} 个告警`,
+          alertCount: alerts.length,
+          alerts: alerts
+        });
+      } catch (error) {
+        console.error('检查新鲜度告警失败:', error);
+        res.status(500).json({ error: '检查新鲜度告警失败' });
+      }
+    });
+
+    // 获取数据新鲜度告警状态
+    this.app.get('/api/freshness-alert-status', async (req, res) => {
+      try {
+        const status = await this.dataRefreshManager.getFreshnessAlertStatus();
+        
+        res.json({
+          success: true,
+          status: status
+        });
+      } catch (error) {
+        console.error('获取新鲜度告警状态失败:', error);
+        res.status(500).json({ error: '获取新鲜度告警状态失败' });
+      }
+    });
+
+    // 设置数据新鲜度告警阈值
+    this.app.post('/api/set-freshness-thresholds', async (req, res) => {
+      try {
+        const { dataType, thresholds } = req.body;
+
+        if (!dataType || !thresholds) {
+          return res.status(400).json({ error: '缺少必要参数' });
+        }
+
+        this.dataRefreshManager.setFreshnessThresholds(dataType, thresholds);
+        
+        res.json({
+          success: true,
+          message: `已更新 ${dataType} 的告警阈值`,
+          dataType: dataType,
+          thresholds: thresholds
+        });
+      } catch (error) {
+        console.error('设置新鲜度告警阈值失败:', error);
+        res.status(500).json({ error: '设置新鲜度告警阈值失败' });
+      }
+    });
+
 
 
     // 获取监控中心数据 - 优化版本
@@ -1598,6 +1653,16 @@ class SmartFlowServer {
       // 初始化数据刷新管理器
       this.dataRefreshManager = new DataRefreshManager(this.db);
       console.log('✅ 数据刷新管理器初始化完成');
+
+      // 初始化综合健康监控器
+      const ComprehensiveHealthMonitor = require('./modules/monitoring/ComprehensiveHealthMonitor');
+      this.healthMonitor = new ComprehensiveHealthMonitor(this.db);
+      await this.healthMonitor.init();
+      console.log('✅ 综合健康监控器初始化完成');
+
+      // 启动定期新鲜度检查
+      this.healthMonitor.startPeriodicFreshnessCheck();
+      console.log('✅ 数据新鲜度告警监控已启动');
 
       // 初始化数据库优化（暂时跳过，避免启动失败）
       this.databaseOptimization = new DatabaseOptimization(this.db);

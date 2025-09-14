@@ -5,6 +5,8 @@ const StrategyV3Core = require('../strategy/StrategyV3Core');
 const SmartFlowStrategyV3 = require('../strategy/SmartFlowStrategyV3');
 const BinanceAPI = require('../api/BinanceAPI');
 const MemoryMonitor = require('./MemoryMonitor');
+const DataRefreshManager = require('../data/DataRefreshManager');
+const TelegramNotifier = require('../notification/TelegramNotifier');
 const os = require('os');
 
 class ComprehensiveHealthMonitor {
@@ -12,15 +14,32 @@ class ComprehensiveHealthMonitor {
     this.database = database;
     this.qualityMonitor = null;
     this.memoryMonitor = new MemoryMonitor();
+    this.dataRefreshManager = new DataRefreshManager(database);
+    this.telegramNotifier = new TelegramNotifier();
     this.lastCheckTime = new Map();
     this.checkInterval = 5 * 60 * 1000; // 5分钟检查间隔
     this.memoryThreshold = 0.8; // 80%内存使用率阈值
+    this.freshnessCheckInterval = 10 * 60 * 1000; // 10分钟新鲜度检查间隔
   }
 
   async init() {
     if (this.database) {
       const EnhancedDataQualityMonitor = require('./EnhancedDataQualityMonitor');
       this.qualityMonitor = new EnhancedDataQualityMonitor(this.database);
+      
+      // 初始化Telegram通知器
+      try {
+        const botToken = await this.database.getUserSetting('telegramBotToken', '');
+        const chatId = await this.database.getUserSetting('telegramChatId', '');
+        if (botToken && chatId) {
+          this.telegramNotifier.init(botToken, chatId);
+          console.log('✅ 新鲜度告警Telegram通知已启用');
+        } else {
+          console.warn('⚠️ Telegram通知未配置，新鲜度告警将不会发送');
+        }
+      } catch (error) {
+        console.error('初始化Telegram通知失败:', error);
+      }
     }
   }
 
@@ -404,6 +423,89 @@ class ComprehensiveHealthMonitor {
     }
 
     return result;
+  }
+
+  /**
+   * 检查数据新鲜度并发送告警
+   */
+  async checkDataFreshnessAndAlert() {
+    try {
+      console.log('🔍 检查数据新鲜度告警...');
+      const alerts = await this.dataRefreshManager.checkFreshnessAndAlert(this.telegramNotifier);
+      
+      if (alerts.length > 0) {
+        console.log(`⚠️ 发现 ${alerts.length} 个新鲜度告警`);
+        alerts.forEach(alert => {
+          console.log(`  - ${alert.dataType} (${alert.symbol}): ${alert.freshness.toFixed(1)}% [${alert.severity}]`);
+        });
+      } else {
+        console.log('✅ 数据新鲜度正常');
+      }
+      
+      return {
+        success: true,
+        alertCount: alerts.length,
+        alerts: alerts
+      };
+    } catch (error) {
+      console.error('检查数据新鲜度告警失败:', error);
+      return {
+        success: false,
+        error: error.message,
+        alertCount: 0,
+        alerts: []
+      };
+    }
+  }
+
+  /**
+   * 获取数据新鲜度告警状态
+   */
+  async getDataFreshnessAlertStatus() {
+    try {
+      const status = await this.dataRefreshManager.getFreshnessAlertStatus();
+      return {
+        success: true,
+        status: status
+      };
+    } catch (error) {
+      console.error('获取数据新鲜度告警状态失败:', error);
+      return {
+        success: false,
+        error: error.message,
+        status: { total: 0, critical: 0, warning: 0, info: 0, normal: 0, byDataType: {} }
+      };
+    }
+  }
+
+  /**
+   * 启动定期新鲜度检查
+   */
+  startPeriodicFreshnessCheck() {
+    if (this.freshnessCheckTimer) {
+      clearInterval(this.freshnessCheckTimer);
+    }
+    
+    this.freshnessCheckTimer = setInterval(async () => {
+      try {
+        await this.checkDataFreshnessAndAlert();
+      } catch (error) {
+        console.error('定期新鲜度检查失败:', error);
+      }
+    }, this.freshnessCheckInterval);
+    
+    console.log(`✅ 已启动定期新鲜度检查，间隔: ${this.freshnessCheckInterval / 1000 / 60}分钟`);
+  }
+
+  /**
+   * 停止定期新鲜度检查
+   */
+  stopPeriodicFreshnessCheck() {
+    if (this.freshnessCheckTimer) {
+      clearInterval(this.freshnessCheckTimer);
+      this.freshnessCheckTimer = null;
+      console.log('✅ 已停止定期新鲜度检查');
+    }
   }
 
   /**
