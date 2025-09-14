@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">8.82% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/102</span>
+                <span class='fraction'>9/102</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">4% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/25</span>
+                <span class='fraction'>1/25</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">9.18% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/98</span>
+                <span class='fraction'>9/98</span>
             </div>
         
             
@@ -294,11 +294,11 @@
 <a name='L229'></a><a href='#L229'>229</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -306,12 +306,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -518,15 +518,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// modules/api/RateLimiter.js
 // API 限流管理模块
 &nbsp;
-const { DataCache } = <span class="cstat-no" title="statement not covered" >require('../utils/DataCache');</span>
+const { DataCache } = require('../utils/DataCache');
 &nbsp;
 class SmartAPIRateLimiter {
-<span class="fstat-no" title="function not covered" >  co</span>nstructor() {
-<span class="cstat-no" title="statement not covered" >    this.rateLimits = {</span>
+  constructor() {
+    this.rateLimits = {
       klines: { weight: 1, limit: 1200, window: 60000 }, // 1分钟1200次
       ticker: { weight: 1, limit: 1200, window: 60000 },
       fundingRate: { weight: 1, limit: 1200, window: 60000 },
@@ -534,12 +534,12 @@ class SmartAPIRateLimiter {
       openInterestHist: { weight: 1, limit: 1200, window: 60000 }
     };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    this.usage = new Map();</span>
-<span class="cstat-no" title="statement not covered" >    this.symbolPriorities = new Map();</span>
-<span class="cstat-no" title="statement not covered" >    this.cache = new DataCache();</span>
-<span class="cstat-no" title="statement not covered" >    this.queue = [];</span>
-<span class="cstat-no" title="statement not covered" >    this.processing = false;</span>
-<span class="cstat-no" title="statement not covered" >    this.cleanupTimer = null; </span>// 存储定时器ID
+    this.usage = new Map();
+    this.symbolPriorities = new Map();
+    this.cache = new DataCache();
+    this.queue = [];
+    this.processing = false;
+    this.cleanupTimer = null; // 存储定时器ID
   }
 &nbsp;
 <span class="fstat-no" title="function not covered" >  se</span>tSymbolPriority(symbol, priority = <span class="branch-0 cbranch-no" title="branch not covered" >1)</span> {
@@ -746,7 +746,7 @@ class SmartAPIRateLimiter {
   }
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >module.exports = { SmartAPIRateLimiter };</span>
+module.exports = { SmartAPIRateLimiter };
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -754,7 +754,7 @@ class SmartAPIRateLimiter {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-09-13T14:34:35.159Z
+                at 2025-09-14T05:11:10.354Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
