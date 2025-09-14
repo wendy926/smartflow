@@ -184,10 +184,75 @@ class DataRefreshManager {
 
       if (data.success) {
         this.displayFreshnessAlertStatus(data.status);
+        // 同时获取详细的告警日志
+        await this.updateFreshnessAlertLogs();
       }
     } catch (error) {
       console.error('获取新鲜度告警状态失败:', error);
     }
+  }
+
+  /**
+   * 更新新鲜度告警日志
+   */
+  async updateFreshnessAlertLogs() {
+    try {
+      const response = await fetch('/api/freshness-alert-logs?severity=critical&limit=20');
+      const data = await response.json();
+      
+      if (data.success) {
+        this.displayFreshnessAlertLogs(data.logs);
+      }
+    } catch (error) {
+      console.error('获取新鲜度告警日志失败:', error);
+    }
+  }
+
+  // 显示新鲜度告警日志
+  displayFreshnessAlertLogs(logs) {
+    let alertLogsContainer = document.getElementById('freshness-alert-logs');
+    
+    if (!alertLogsContainer) {
+      // 创建告警日志容器
+      alertLogsContainer = document.createElement('div');
+      alertLogsContainer.id = 'freshness-alert-logs';
+      alertLogsContainer.style.display = 'none';
+      alertLogsContainer.innerHTML = `
+        <div class="alert-logs-header">
+          <h3>🔴 严重告警详情</h3>
+          <button onclick="this.parentElement.parentElement.style.display='none'" class="close-btn">×</button>
+        </div>
+        <div class="alert-logs-content"></div>
+      `;
+      
+      // 添加到页面
+      const alertStatusCard = document.getElementById('freshness-alert-status');
+      if (alertStatusCard) {
+        alertStatusCard.appendChild(alertLogsContainer);
+      }
+    }
+    
+    if (logs.length === 0) {
+      alertLogsContainer.style.display = 'none';
+      return;
+    }
+    
+    const logsContent = alertLogsContainer.querySelector('.alert-logs-content');
+    logsContent.innerHTML = `
+      <div class="alert-logs-list">
+        ${logs.map(log => `
+          <div class="alert-log-item ${log.severity}">
+            <div class="log-symbol">${log.symbol}</div>
+            <div class="log-type">${this.getDataTypeDisplayName(log.data_type)}</div>
+            <div class="log-freshness">${log.data_freshness_score.toFixed(1)}%</div>
+            <div class="log-time">${new Date(log.last_update).toLocaleString()}</div>
+            <div class="log-interval">${log.refresh_interval}分钟</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    
+    alertLogsContainer.style.display = 'block';
   }
 
   // 显示新鲜度告警状态
@@ -246,9 +311,30 @@ class DataRefreshManager {
           `).join('')}
         </div>
       </div>
+      <div class="alert-actions">
+        <button onclick="dataRefreshUI.toggleAlertLogs()" class="btn btn-primary">
+          ${status.critical > 0 ? `查看 ${status.critical} 个严重告警详情` : '查看告警详情'}
+        </button>
+      </div>
     `;
 
     alertStatusContent.innerHTML = alertStatusHtml;
+  }
+
+  // 切换告警日志显示
+  toggleAlertLogs() {
+    const alertLogsContainer = document.getElementById('freshness-alert-logs');
+    if (alertLogsContainer) {
+      if (alertLogsContainer.style.display === 'none' || alertLogsContainer.style.display === '') {
+        alertLogsContainer.style.display = 'block';
+        // 如果还没有加载日志，则加载
+        if (!alertLogsContainer.querySelector('.alert-logs-list')) {
+          this.updateFreshnessAlertLogs();
+        }
+      } else {
+        alertLogsContainer.style.display = 'none';
+      }
+    }
   }
 
   // 获取数据类型显示名称

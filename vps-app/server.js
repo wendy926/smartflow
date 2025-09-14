@@ -793,6 +793,68 @@ class SmartFlowServer {
       }
     });
 
+    // 获取详细的新鲜度告警日志
+    this.app.get('/api/freshness-alert-logs', async (req, res) => {
+      try {
+        const { severity, dataType, limit = 50 } = req.query;
+        
+        let whereConditions = [];
+        let params = [];
+        
+        if (severity) {
+          // 根据严重程度确定阈值
+          const thresholds = {
+            'critical': 30,
+            'warning': 50,
+            'info': 70
+          };
+          
+          if (thresholds[severity]) {
+            whereConditions.push(`data_freshness_score <= ?`);
+            params.push(thresholds[severity]);
+          }
+        }
+        
+        if (dataType) {
+          whereConditions.push(`data_type = ?`);
+          params.push(dataType);
+        }
+        
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        
+        const logs = await this.db.runQuery(`
+          SELECT 
+            symbol,
+            data_type,
+            data_freshness_score,
+            last_update,
+            refresh_interval,
+            CASE 
+              WHEN data_freshness_score <= 30 THEN 'critical'
+              WHEN data_freshness_score <= 50 THEN 'warning'
+              WHEN data_freshness_score <= 70 THEN 'info'
+              ELSE 'normal'
+            END as severity
+          FROM data_refresh_log 
+          ${whereClause}
+          ORDER BY data_freshness_score ASC, last_update DESC
+          LIMIT ?
+        `, [...params, parseInt(limit)]);
+        
+        res.json({ 
+          success: true, 
+          logs,
+          total: logs.length
+        });
+      } catch (error) {
+        console.error('获取新鲜度告警日志失败:', error);
+        res.status(500).json({ 
+          success: false, 
+          error: error.message 
+        });
+      }
+    });
+
 
 
     // 获取监控中心数据 - 优化版本

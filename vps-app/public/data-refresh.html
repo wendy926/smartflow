@@ -188,6 +188,124 @@
             color: #28a745;
         }
 
+        /* 告警日志样式 */
+        .alert-actions {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .alert-actions .btn {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .alert-actions .btn:hover {
+            background: #0056b3;
+        }
+
+        #freshness-alert-logs {
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .alert-logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #dc3545;
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .alert-logs-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .alert-logs-content {
+            padding: 15px;
+        }
+
+        .alert-logs-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .alert-log-item {
+            display: grid;
+            grid-template-columns: 80px 120px 60px 140px 60px;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            align-items: center;
+        }
+
+        .alert-log-item.critical {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+
+        .alert-log-item.warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .alert-log-item.info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .log-symbol {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .log-type {
+            color: #666;
+        }
+
+        .log-freshness {
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .log-freshness.critical {
+            color: #dc3545;
+        }
+
+        .log-time {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .log-interval {
+            color: #666;
+            text-align: center;
+        }
+
         .btn {
             padding: 6px 12px;
             border: none;
