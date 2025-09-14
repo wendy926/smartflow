@@ -244,9 +244,30 @@ class SmartFlowStrategyV3 {
       const direction = executionResult.signal === 'BUY' ? 'LONG' : 'SHORT';
       let leverageData;
       try {
-        leverageData = executionResult.signal !== 'NONE' ?
-          await SmartFlowStrategyV3.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction, this.database, maxLossAmount) :
-          { maxLeverage: null, minMargin: null, stopLossDistance: null, atrValue: executionResult.atr14 };
+        if (executionResult.signal !== 'NONE' && executionResult.entry && executionResult.stopLoss) {
+          leverageData = await SmartFlowStrategyV3.calculateLeverageData(
+            executionResult.entry, 
+            executionResult.stopLoss, 
+            executionResult.atr14, 
+            direction, 
+            this.database, 
+            maxLossAmount
+          );
+        } else {
+          // 无信号时提供合理的默认值
+          const defaultATR = executionResult.atr14 || 1.0;
+          const defaultEntry = rangeResult?.currentPrice || 100;
+          const defaultStopLoss = direction === 'LONG' ? defaultEntry * 0.95 : defaultEntry * 1.05;
+          
+          leverageData = await SmartFlowStrategyV3.calculateLeverageData(
+            defaultEntry,
+            defaultStopLoss,
+            defaultATR,
+            direction,
+            this.database,
+            maxLossAmount
+          );
+        }
       } catch (error) {
         console.error(`杠杆数据计算失败 [${symbol}]:`, error);
         // 使用默认值作为备选
@@ -305,12 +326,12 @@ class SmartFlowStrategyV3 {
         score1h: scoringResult.score,
         vwapDirectionConsistent: scoringResult.vwapDirectionConsistent,
         factors: scoringResult.factors,
-        vwap: scoringResult.vwap,
-        vol15mRatio: scoringResult.vol15mRatio,
-        vol1hRatio: scoringResult.vol1hRatio,
-        oiChange6h: scoringResult.oiChange6h,
+        vwap: scoringResult.vwap || scoringResult.lastVWAP,
+        vol15mRatio: scoringResult.vol15mRatio || scoringResult.volumeRatio,
+        vol1hRatio: scoringResult.vol1hRatio || scoringResult.volumeRatio,
+        oiChange6h: scoringResult.oiChange6h || scoringResult.oiChange,
         fundingRate: scoringResult.fundingRate,
-        deltaImbalance: scoringResult.deltaImbalance,
+        deltaImbalance: scoringResult.deltaImbalance || scoringResult.delta,
         trendStrength: trendStrength,
         signalStrength: signalStrength,
         signal: finalSignal,
@@ -397,9 +418,30 @@ class SmartFlowStrategyV3 {
       const direction = executionResult.signal === 'BUY' ? 'LONG' : 'SHORT';
       let leverageData;
       try {
-        leverageData = executionResult.signal !== 'NONE' ?
-          await SmartFlowStrategyV3.calculateLeverageData(executionResult.entry, executionResult.stopLoss, executionResult.atr14, direction, this.database, maxLossAmount) :
-          { maxLeverage: null, minMargin: null, stopLossDistance: null, atrValue: executionResult.atr14 };
+        if (executionResult.signal !== 'NONE' && executionResult.entry && executionResult.stopLoss) {
+          leverageData = await SmartFlowStrategyV3.calculateLeverageData(
+            executionResult.entry, 
+            executionResult.stopLoss, 
+            executionResult.atr14, 
+            direction, 
+            this.database, 
+            maxLossAmount
+          );
+        } else {
+          // 无信号时提供合理的默认值
+          const defaultATR = executionResult.atr14 || 1.0;
+          const defaultEntry = rangeResult?.currentPrice || 100;
+          const defaultStopLoss = direction === 'LONG' ? defaultEntry * 0.95 : defaultEntry * 1.05;
+          
+          leverageData = await SmartFlowStrategyV3.calculateLeverageData(
+            defaultEntry,
+            defaultStopLoss,
+            defaultATR,
+            direction,
+            this.database,
+            maxLossAmount
+          );
+        }
       } catch (error) {
         console.error(`杠杆数据计算失败 [${symbol}]:`, error);
         // 使用默认值作为备选
@@ -500,12 +542,12 @@ class SmartFlowStrategyV3 {
         vol1h: executionResult.vol1h,
         bullScore: rangeResult.bullScore,
         bearScore: rangeResult.bearScore,
-        vwap: scoringResult.vwap,
-        vol15mRatio: scoringResult.vol15mRatio,
-        vol1hRatio: scoringResult.vol1hRatio,
-        oiChange6h: scoringResult.oiChange6h,
-        fundingRate: scoringResult.fundingRate,
-        deltaImbalance: scoringResult.deltaImbalance
+        vwap: scoringResult?.vwap || scoringResult?.lastVWAP,
+        vol15mRatio: scoringResult?.vol15mRatio || scoringResult?.volumeRatio,
+        vol1hRatio: scoringResult?.vol1hRatio || scoringResult?.volumeRatio,
+        oiChange6h: scoringResult?.oiChange6h || scoringResult?.oiChange,
+        fundingRate: scoringResult?.fundingRate,
+        deltaImbalance: scoringResult?.deltaImbalance || scoringResult?.delta
       };
 
     } catch (error) {
