@@ -100,10 +100,10 @@ class StrategyV3Core {
     try {
       // 1. 首先尝试从数据库获取数据
       let dbData = await this.getKlineDataFromDB(symbol, interval, limit);
-      
+
       // 2. 检查数据新鲜度
       const isDataFresh = this.checkDataFreshness(dbData, interval);
-      
+
       if (isDataFresh && dbData) {
         console.log(`✅ 使用数据库数据 [${symbol}][${interval}]: 数据新鲜`);
         return dbData;
@@ -111,17 +111,17 @@ class StrategyV3Core {
 
       // 3. 数据过期或不存在，尝试从API获取实时数据
       console.log(`⚠️ 数据库数据过期或不存在 [${symbol}][${interval}]，尝试获取实时数据...`);
-      
+
       try {
         const BinanceAPI = require('../api/BinanceAPI');
         const realtimeData = await BinanceAPI.getKlines(symbol, interval, limit);
-        
+
         if (realtimeData && realtimeData.length > 0) {
           console.log(`✅ 获取到实时数据 [${symbol}][${interval}]: ${realtimeData.length} 条`);
-          
+
           // 4. 异步更新数据库（不阻塞策略分析）
           this.updateDatabaseAsync(symbol, interval, realtimeData);
-          
+
           return realtimeData;
         }
       } catch (apiError) {
@@ -155,9 +155,9 @@ class StrategyV3Core {
     // 获取最新K线的时间
     const latestKline = klineData[klineData.length - 1];
     const latestTime = latestKline[0]; // open_time
-    
+
     const ageMs = Date.now() - latestTime;
-    
+
     // 设置新鲜度阈值
     const thresholds = {
       '4h': 8 * 60 * 60 * 1000,    // 4H数据：8小时过期
@@ -185,7 +185,7 @@ class StrategyV3Core {
       setImmediate(async () => {
         try {
           console.log(`🔄 异步更新数据库 [${symbol}][${interval}]: ${klineData.length} 条数据`);
-          
+
           for (const kline of klineData) {
             await this.database.runQuery(
               `INSERT OR REPLACE INTO kline_data 
@@ -209,7 +209,7 @@ class StrategyV3Core {
               ]
             );
           }
-          
+
           console.log(`✅ 数据库更新完成 [${symbol}][${interval}]`);
         } catch (error) {
           console.error(`异步数据库更新失败 [${symbol}][${interval}]:`, error);
@@ -245,14 +245,94 @@ class StrategyV3Core {
   }
 
   /**
-   * 计算移动平均线
+   * 计算移动平均线 - 增强版本，包含数据验证
    */
   calculateMA(candles, period = 20) {
-    return candles.map((c, i) => {
-      if (i < period - 1) return null;
-      const sum = candles.slice(i - period + 1, i + 1).reduce((acc, x) => acc + x.close, 0);
-      return sum / period;
+    if (!candles || candles.length === 0) {
+      console.warn('⚠️ K线数据为空，无法计算MA');
+      return [];
+    }
+
+    // 数据清理和验证
+    const validCandles = candles.filter(candle => {
+      if (!candle) return false;
+
+      // 处理数组格式的K线数据 [timestamp, open, high, low, close, volume]
+      if (Array.isArray(candle)) {
+        if (candle.length < 6) return false;
+        const close = parseFloat(candle[4]);
+        const volume = parseFloat(candle[5]);
+        return !isNaN(close) && close > 0 && !isNaN(volume) && volume >= 0;
+      }
+
+      // 处理对象格式的K线数据 {close, volume, ...}
+      if (typeof candle === 'object') {
+        const close = parseFloat(candle.close);
+        const volume = parseFloat(candle.volume || 0);
+        return !isNaN(close) && close > 0 && !isNaN(volume) && volume >= 0;
+      }
+
+      return false;
     });
+
+    if (validCandles.length < period) {
+      console.warn(`⚠️ 有效数据不足: ${validCandles.length}/${period}`);
+      return [];
+    }
+
+    console.log(`📊 使用 ${validCandles.length} 条有效数据进行MA${period}计算`);
+
+    const ma = [];
+    for (let i = period - 1; i < validCandles.length; i++) {
+      let sum = 0;
+      for (let j = i - period + 1; j <= i; j++) {
+        const candle = validCandles[j];
+        const close = Array.isArray(candle) ? parseFloat(candle[4]) : parseFloat(candle.close);
+        sum += close;
+      }
+      const avg = sum / period;
+      ma.push(avg);
+    }
+
+    return ma;
+  }
+
+  /**
+   * 验证K线数据质量
+   */
+  validateKlineData(klines, symbol) {
+    if (!klines || klines.length === 0) {
+      console.warn(`⚠️ [${symbol}] K线数据为空`);
+      return false;
+    }
+
+    const invalidCount = klines.filter(kline => {
+      if (!kline) return true;
+
+      if (Array.isArray(kline)) {
+        if (kline.length < 6) return true;
+        const close = parseFloat(kline[4]);
+        const volume = parseFloat(kline[5]);
+        return isNaN(close) || close <= 0 || isNaN(volume) || volume < 0;
+      }
+
+      if (typeof kline === 'object') {
+        const close = parseFloat(kline.close);
+        const volume = parseFloat(kline.volume || 0);
+        return isNaN(close) || close <= 0 || isNaN(volume) || volume < 0;
+      }
+
+      return true;
+    }).length;
+
+    const validCount = klines.length - invalidCount;
+    console.log(`📊 [${symbol}] 数据验证完成: ${validCount}/${klines.length} 条有效`);
+
+    if (invalidCount > 0) {
+      console.warn(`⚠️ [${symbol}] 发现 ${invalidCount} 条无效数据`);
+    }
+
+    return validCount > 0;
   }
 
   /**
