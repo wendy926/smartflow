@@ -256,7 +256,7 @@ class SmartFlowStrategyV3 {
         } else {
           // 无信号时提供合理的默认值
           const defaultATR = executionResult.atr14 || 1.0;
-          const defaultEntry = rangeResult?.currentPrice || 100;
+          const defaultEntry = trend4hResult?.currentPrice || 100;
           const defaultStopLoss = direction === 'LONG' ? defaultEntry * 0.95 : defaultEntry * 1.05;
           
           leverageData = await SmartFlowStrategyV3.calculateLeverageData(
