@@ -58,7 +58,7 @@ class DataRefreshManager {
 
       // 如果没有传入新鲜度得分，则计算当前新鲜度
       if (dataFreshnessScore === null) {
-        dataFreshnessScore = this.calculateDataFreshnessScore(symbol, dataType, now.toISOString());
+        dataFreshnessScore = await this.calculateDataFreshnessScore(symbol, dataType, now.toISOString());
       }
 
       await this.db.run(`
@@ -74,17 +74,52 @@ class DataRefreshManager {
   }
 
   /**
-   * 获取数据新鲜度得分
+   * 获取数据新鲜度得分 - 基于实际K线数据时间
    */
-  calculateDataFreshnessScore(symbol, dataType, lastUpdate) {
-    const interval = this.refreshIntervals[dataType];
-    const now = new Date();
-    const lastUpdateTime = new Date(lastUpdate);
-    const timeDiff = (now - lastUpdateTime) / (1000 * 60); // 分钟
+  async calculateDataFreshnessScore(symbol, dataType, lastUpdate) {
+    try {
+      // 获取该交易对最新的K线数据时间
+      const klineData = await this.db.runQuery(`
+        SELECT close_time 
+        FROM kline_data 
+        WHERE symbol = ? AND interval = ?
+        ORDER BY close_time DESC 
+        LIMIT 1
+      `, [symbol, this.getIntervalForDataType(dataType)]);
 
-    // 计算新鲜度得分：0-100分
-    const freshnessScore = Math.max(0, 100 - (timeDiff / interval) * 100);
-    return Math.round(freshnessScore * 100) / 100;
+      if (!klineData || klineData.length === 0) {
+        return 0; // 没有数据，新鲜度为0
+      }
+
+      const lastKlineTime = klineData[0].close_time;
+      const now = Date.now();
+      const timeDiff = (now - lastKlineTime) / (1000 * 60); // 分钟
+
+      // 根据数据类型确定刷新间隔
+      const interval = this.refreshIntervals[dataType];
+      
+      // 计算新鲜度得分：0-100分
+      const freshnessScore = Math.max(0, 100 - (timeDiff / interval) * 100);
+      return Math.round(freshnessScore * 100) / 100;
+    } catch (error) {
+      console.error(`计算数据新鲜度失败 [${symbol}][${dataType}]:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * 根据数据类型获取对应的时间间隔
+   */
+  getIntervalForDataType(dataType) {
+    const intervalMap = {
+      'trend_analysis': '4h',
+      'trend_scoring': '1h', 
+      'trend_entry': '15m',
+      'trend_strength': '4h',
+      'range_boundary': '4h',
+      'range_entry': '1h'
+    };
+    return intervalMap[dataType] || '4h';
   }
 
   /**
