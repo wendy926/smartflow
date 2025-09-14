@@ -326,7 +326,19 @@ class SmartFlowStrategyV3 {
         minMargin: leverageData.minMargin,
         stopLossDistance: leverageData.stopLossDistance,
         atrValue: leverageData.atrValue,
-        reason: finalReason
+        reason: finalReason,
+        // 添加基础技术指标
+        ma20: trend4hResult.ma20,
+        ma50: trend4hResult.ma50,
+        ma200: trend4hResult.ma200,
+        ema20: executionResult.ema20,
+        ema50: executionResult.ema50,
+        adx14: trend4hResult.adx14,
+        bbw: trend4hResult.bbw,
+        vol15m: executionResult.vol15m,
+        vol1h: executionResult.vol1h,
+        bullScore: trend4hResult.bullScore,
+        bearScore: trend4hResult.bearScore
       };
 
     } catch (error) {
@@ -475,7 +487,25 @@ class SmartFlowStrategyV3 {
         stopLossDistance: leverageData.stopLossDistance,
         atrValue: leverageData.atrValue,
         atr14: executionResult.atr14,
-        reason: executionResult.reason
+        reason: executionResult.reason,
+        // 添加基础技术指标
+        ma20: rangeResult.ma20,
+        ma50: rangeResult.ma50,
+        ma200: rangeResult.ma200,
+        ema20: executionResult.ema20,
+        ema50: executionResult.ema50,
+        adx14: rangeResult.adx14,
+        bbw: rangeResult.bbw,
+        vol15m: executionResult.vol15m,
+        vol1h: executionResult.vol1h,
+        bullScore: rangeResult.bullScore,
+        bearScore: rangeResult.bearScore,
+        vwap: scoringResult.vwap,
+        vol15mRatio: scoringResult.vol15mRatio,
+        vol1hRatio: scoringResult.vol1hRatio,
+        oiChange6h: scoringResult.oiChange6h,
+        fundingRate: scoringResult.fundingRate,
+        deltaImbalance: scoringResult.deltaImbalance
       };
 
     } catch (error) {

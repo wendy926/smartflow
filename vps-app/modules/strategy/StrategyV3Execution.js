@@ -77,7 +77,13 @@ class StrategyV3Execution {
               atr14: lastATR,
               factorScore15m: factorResult.score,
               factorScores: factorResult.factorScores,
-              reason: vwapConsistent ? `趋势市多头回踩突破触发 (多因子得分: ${factorResult.score})` : '多头回踩突破条件满足但VWAP方向不一致'
+              reason: vwapConsistent ? `趋势市多头回踩突破触发 (多因子得分: ${factorResult.score})` : '多头回踩突破条件满足但VWAP方向不一致',
+              // 添加技术指标
+              ema20: lastEMA20,
+              ema50: lastEMA50,
+              vwap: lastVWAP,
+              vol15m: this.calculateVolume(candles15m, 15),
+              vol1h: this.calculateVolume(candles1h, 60)
             };
           } else {
             console.log(`多头回踩突破条件满足但多因子得分不足 [${symbol}]: 得分=${factorResult.score} < 2`);
@@ -130,7 +136,13 @@ class StrategyV3Execution {
               atr14: lastATR,
               factorScore15m: factorResult.score,
               factorScores: factorResult.factorScores,
-              reason: vwapConsistent ? `趋势市空头反抽破位触发 (多因子得分: ${factorResult.score})` : '空头反抽破位条件满足但VWAP方向不一致'
+              reason: vwapConsistent ? `趋势市空头反抽破位触发 (多因子得分: ${factorResult.score})` : '空头反抽破位条件满足但VWAP方向不一致',
+              // 添加技术指标
+              ema20: lastEMA20,
+              ema50: lastEMA50,
+              vwap: lastVWAP,
+              vol15m: this.calculateVolume(candles15m, 15),
+              vol1h: this.calculateVolume(candles1h, 60)
             };
           } else {
             console.log(`空头反抽破位条件满足但多因子得分不足 [${symbol}]: 得分=${factorResult.score} < 2`);
@@ -178,7 +190,13 @@ class StrategyV3Execution {
         reason: reason,
         atr14: lastATR,
         setupCandleHigh: candles15m.length >= 2 ? candles15m[candles15m.length - 2].high : null,
-        setupCandleLow: candles15m.length >= 2 ? candles15m[candles15m.length - 2].low : null
+        setupCandleLow: candles15m.length >= 2 ? candles15m[candles15m.length - 2].low : null,
+        // 添加技术指标
+        ema20: lastEMA20,
+        ema50: lastEMA50,
+        vwap: lastVWAP,
+        vol15m: this.calculateVolume(candles15m, 15),
+        vol1h: this.calculateVolume(candles1h, 60)
       };
 
     } catch (error) {
@@ -345,7 +363,13 @@ class StrategyV3Execution {
           atr14: lastATR,
           bbWidth: bbWidth,
           setupCandleHigh: candles15m.length >= 2 ? candles15m[candles15m.length - 2].high : null,
-          setupCandleLow: candles15m.length >= 2 ? candles15m[candles15m.length - 2].low : null
+          setupCandleLow: candles15m.length >= 2 ? candles15m[candles15m.length - 2].low : null,
+          // 添加技术指标
+          ema20: multiFactorData.ema20,
+          ema50: multiFactorData.ema50,
+          vwap: multiFactorData.vwap,
+          vol15m: this.calculateVolume(candles15m, 15),
+          vol1h: this.calculateVolume(candles1h, 60)
         };
       }
 
@@ -387,7 +411,13 @@ class StrategyV3Execution {
         margin: leverageData.margin,
         riskAmount: leverageData.riskAmount,
         rewardAmount: leverageData.rewardAmount,
-        riskRewardRatio: leverageData.riskRewardRatio
+        riskRewardRatio: leverageData.riskRewardRatio,
+        // 添加技术指标
+        ema20: multiFactorData.ema20,
+        ema50: multiFactorData.ema50,
+        vwap: multiFactorData.vwap,
+        vol15m: this.calculateVolume(candles15m, 15),
+        vol1h: this.calculateVolume(candles1h, 60)
       };
     } catch (error) {
       console.error(`震荡市15m执行分析失败 [${symbol}]:`, error);
@@ -1042,6 +1072,21 @@ class StrategyV3Execution {
 
     console.log(`ATR计算完成: TR数组长度=${tr.length}, ATR数组长度=${atr.length}, 最新ATR=${atr[atr.length - 1]}`);
     return atr;
+  }
+
+  /**
+   * 计算成交量
+   */
+  calculateVolume(candles, period) {
+    if (!candles || candles.length === 0) return 0;
+    
+    // 计算最近period分钟的成交量总和
+    const recentCandles = candles.slice(-period);
+    const totalVolume = recentCandles.reduce((sum, candle) => {
+      return sum + (candle.volume || 0);
+    }, 0);
+    
+    return totalVolume;
   }
 }
 
