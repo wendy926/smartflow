@@ -60,8 +60,14 @@ class SmartFlowServer {
     this.app.use(express.json());
 
     // 静态文件服务，禁用缓存
-    this.app.use(express.static(path.join(__dirname, 'public'), {
-      setHeaders: (res, path) => {
+    const staticPath = path.join(__dirname, '../web/public');
+    console.log('📁 静态文件路径:', staticPath);
+    console.log('📁 静态文件路径解析:', path.resolve(staticPath));
+    console.log('📁 静态文件目录存在:', require('fs').existsSync(staticPath));
+    console.log('📁 index.html存在:', require('fs').existsSync(path.join(staticPath, 'index.html')));
+    
+    this.app.use(express.static(staticPath, {
+      setHeaders: (res, filePath) => {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
@@ -88,7 +94,7 @@ class SmartFlowServer {
   setupRoutes() {
     // 主页路由
     this.app.get('/', (req, res) => {
-      res.sendFile(path.join(__dirname, 'public', 'index.html'));
+      res.sendFile(path.join(__dirname, '../web/public', 'index.html'));
     });
 
     // API路由

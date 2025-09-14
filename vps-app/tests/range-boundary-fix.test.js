@@ -81,7 +81,7 @@ describe('震荡市边界判断修复测试', () => {
       const bb = strategyCore.calculateBollingerBands(testCandles, 20, 2);
       const lastBB = bb[bb.length - 1];
       
-      expect(bb).toHaveLength(30);
+      expect(bb).toHaveLength(11); // 布林带从第20根K线开始，所以只有11个有效值
       expect(lastBB).toHaveProperty('upper');
       expect(lastBB).toHaveProperty('middle');
       expect(lastBB).toHaveProperty('lower');
