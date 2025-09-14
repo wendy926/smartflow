@@ -742,7 +742,7 @@ class SmartFlowServer {
     this.app.post('/api/check-freshness-alerts', async (req, res) => {
       try {
         const alerts = await this.dataRefreshManager.checkFreshnessAndAlert(this.telegramNotifier);
-        
+
         res.json({
           success: true,
           message: `检查完成，发现 ${alerts.length} 个告警`,
@@ -759,7 +759,7 @@ class SmartFlowServer {
     this.app.get('/api/freshness-alert-status', async (req, res) => {
       try {
         const status = await this.dataRefreshManager.getFreshnessAlertStatus();
-        
+
         res.json({
           success: true,
           status: status
@@ -780,7 +780,7 @@ class SmartFlowServer {
         }
 
         this.dataRefreshManager.setFreshnessThresholds(dataType, thresholds);
-        
+
         res.json({
           success: true,
           message: `已更新 ${dataType} 的告警阈值`,

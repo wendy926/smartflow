@@ -113,6 +113,10 @@ class DataRefreshManager {
       const interval = this.refreshIntervals[dataType];
       
       // 计算新鲜度得分：0-100分
+      // 如果K线数据是未来时间，新鲜度设为100%
+      if (timeDiff < 0) {
+        return 100;
+      }
       const freshnessScore = Math.max(0, 100 - (timeDiff / interval) * 100);
       return Math.round(freshnessScore * 100) / 100;
     } catch (error) {
