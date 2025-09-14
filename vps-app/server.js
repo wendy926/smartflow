@@ -455,24 +455,31 @@ class SmartFlowServer {
               }
             }
 
-            const leverageData = await SmartFlowStrategyV3.calculateLeverageData(
-              entryPrice,
-              stopLoss,
-              atr14 || atrValue,
-              direction || 'SHORT',
-              this.db,
-              userMaxLossAmount
-            );
-
-            if (!leverageData.error) {
-              finalMaxLeverage = leverageData.maxLeverage;
-              finalMinMargin = leverageData.minMargin;
-              finalStopLossDistance = leverageData.stopLossDistance;
-              console.log(`✅ [${symbol}] 重新计算成功: 杠杆=${finalMaxLeverage}x, 保证金=${finalMinMargin}`);
-            } else {
-              console.warn(`⚠️ [${symbol}] 重新计算失败，使用默认值: ${leverageData.error}`);
+            // 验证必要参数
+            if (!entryPrice || !stopLoss || entryPrice <= 0 || stopLoss <= 0) {
+              console.warn(`⚠️ [${symbol}] 参数无效，跳过杠杆计算: entryPrice=${entryPrice}, stopLoss=${stopLoss}`);
               finalMaxLeverage = finalMaxLeverage || 10;
               finalMinMargin = finalMinMargin || 100;
+            } else {
+              const leverageData = await SmartFlowStrategyV3.calculateLeverageData(
+                entryPrice,
+                stopLoss,
+                atr14 || atrValue,
+                direction || 'SHORT',
+                this.db,
+                userMaxLossAmount
+              );
+
+              if (!leverageData.error) {
+                finalMaxLeverage = leverageData.maxLeverage;
+                finalMinMargin = leverageData.minMargin;
+                finalStopLossDistance = leverageData.stopLossDistance;
+                console.log(`✅ [${symbol}] 重新计算成功: 杠杆=${finalMaxLeverage}x, 保证金=${finalMinMargin}`);
+              } else {
+                console.warn(`⚠️ [${symbol}] 重新计算失败，使用默认值: ${leverageData.error}`);
+                finalMaxLeverage = finalMaxLeverage || 10;
+                finalMinMargin = finalMinMargin || 100;
+              }
             }
           } catch (calcError) {
             console.error(`❌ [${symbol}] 重新计算异常:`, calcError.message);
@@ -1143,7 +1150,7 @@ class SmartFlowServer {
       try {
         const symbols = await this.db.getCustomSymbols();
         const changeStatus = {};
-        
+
         for (const symbol of symbols) {
           try {
             // 获取最新的策略分析结果
@@ -1151,7 +1158,7 @@ class SmartFlowServer {
             if (analysis) {
               // 检查是否有15min信号变化
               const hasExecution = analysis.execution && analysis.execution !== 'null' && analysis.execution.includes('EXECUTE');
-              
+
               // 安全处理时间
               let lastUpdate, timeDiff = 0;
               try {
@@ -1166,7 +1173,7 @@ class SmartFlowServer {
               } catch (timeError) {
                 console.warn(`时间处理失败 [${symbol}]:`, timeError);
               }
-              
+
               changeStatus[symbol] = {
                 hasExecution,
                 lastUpdate: lastUpdate ? lastUpdate.toISOString() : null,
@@ -1868,14 +1875,14 @@ class SmartFlowServer {
     try {
       const BinanceAPI = require('./modules/api/BinanceAPI');
       const intervals = ['4h', '1h', '15m'];
-      
+
       for (const interval of intervals) {
         try {
           console.log(`📊 更新 ${symbol} ${interval} K线数据...`);
-          
+
           // 从Binance API获取最新数据
           const klines = await BinanceAPI.getKlines(symbol, interval, 250);
-          
+
           if (klines && klines.length > 0) {
             // 存储到数据库
             for (const kline of klines) {
@@ -1901,20 +1908,20 @@ class SmartFlowServer {
                 ]
               );
             }
-            
+
             console.log(`✅ ${symbol} ${interval}: 更新 ${klines.length} 条数据`);
           } else {
             console.log(`⚠️ ${symbol} ${interval}: 无数据`);
           }
-          
+
           // 添加延迟避免API限制
           await new Promise(resolve => setTimeout(resolve, 100));
-          
+
         } catch (error) {
           console.error(`更新 ${symbol} ${interval} K线数据失败:`, error);
         }
       }
-      
+
     } catch (error) {
       console.error(`更新 ${symbol} K线数据失败:`, error);
     }
@@ -2536,22 +2543,32 @@ class SmartFlowServer {
           }
 
           const direction = isLong ? 'LONG' : 'SHORT';
-          const leverageData = await SmartFlowStrategyV3.calculateLeverageData(
-            entrySignal,
-            stopLoss,
-            atr14,
-            direction,
-            this.db,
-            userMaxLossAmount // 使用用户设置的最大损失金额
-          );
 
-          if (!leverageData.error) {
-            finalMaxLeverage = leverageData.maxLeverage;
-            finalMinMargin = leverageData.minMargin;
-            finalStopLossDistance = leverageData.stopLossDistance;
-            console.log(`✅ [${symbol}] 重新计算成功: 杠杆=${finalMaxLeverage}x, 保证金=${finalMinMargin}`);
+          // 验证必要参数
+          if (!entrySignal || !stopLoss || entrySignal <= 0 || stopLoss <= 0) {
+            console.warn(`⚠️ [${symbol}] 参数无效，跳过杠杆计算: entrySignal=${entrySignal}, stopLoss=${stopLoss}`);
+            finalMaxLeverage = finalMaxLeverage || 10;
+            finalMinMargin = finalMinMargin || 100;
           } else {
-            console.warn(`⚠️ [${symbol}] 重新计算失败，使用默认值: ${leverageData.error}`);
+            const leverageData = await SmartFlowStrategyV3.calculateLeverageData(
+              entrySignal,
+              stopLoss,
+              atr14,
+              direction,
+              this.db,
+              userMaxLossAmount // 使用用户设置的最大损失金额
+            );
+
+            if (!leverageData.error) {
+              finalMaxLeverage = leverageData.maxLeverage;
+              finalMinMargin = leverageData.minMargin;
+              finalStopLossDistance = leverageData.stopLossDistance;
+              console.log(`✅ [${symbol}] 重新计算成功: 杠杆=${finalMaxLeverage}x, 保证金=${finalMinMargin}`);
+            } else {
+              console.warn(`⚠️ [${symbol}] 重新计算失败，使用默认值: ${leverageData.error}`);
+              finalMaxLeverage = finalMaxLeverage || 10;
+              finalMinMargin = finalMinMargin || 100;
+            }
           }
         } catch (calcError) {
           console.error(`❌ [${symbol}] 重新计算异常:`, calcError.message);
