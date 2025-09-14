@@ -53,13 +53,13 @@ async function checkKlineTimestamps() {
       const openTime = new Date(kline.open_time);
       const closeTime = new Date(kline.close_time);
       const now = new Date();
-      
+
       const openTimeStr = openTime.toISOString();
       const closeTimeStr = closeTime.toISOString();
       const timeDiff = (now - closeTime) / (1000 * 60 * 60); // 小时差
 
-      console.log(`${index + 1}. 开盘时间: ${openTimeStr} (${openTime.toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})})`);
-      console.log(`   收盘时间: ${closeTimeStr} (${closeTime.toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})})`);
+      console.log(`${index + 1}. 开盘时间: ${openTimeStr} (${openTime.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })})`);
+      console.log(`   收盘时间: ${closeTimeStr} (${closeTime.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })})`);
       console.log(`   收盘价: ${kline.close_price}`);
       console.log(`   数据年龄: ${timeDiff.toFixed(2)} 小时前`);
       console.log('');
@@ -120,7 +120,7 @@ async function checkKlineTimestamps() {
       const latestTime = new Date(symbol.latest_close_time);
       const ageHours = (now - latestTime) / (1000 * 60 * 60);
       const status = ageHours > 8 ? '❌' : ageHours > 4 ? '⚠️' : '✅';
-      
+
       console.log(`${index + 1}. ${symbol.symbol}: ${ageHours.toFixed(2)}小时前 ${status}`);
     });
 

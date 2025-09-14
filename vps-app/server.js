@@ -1679,6 +1679,26 @@ class SmartFlowServer {
       this.timers.clear();
     }
 
+    // K线数据自动更新：每30分钟更新一次
+    this.klineUpdateInterval = setInterval(async () => {
+      try {
+        const symbols = await this.db.getCustomSymbols();
+        console.log(`📊 开始更新K线数据 ${symbols.length} 个交易对...`);
+
+        for (const symbol of symbols) {
+          try {
+            await this.updateKlineData(symbol);
+          } catch (error) {
+            console.error(`K线数据更新 ${symbol} 失败:`, error);
+          }
+        }
+
+        console.log('✅ K线数据更新完成');
+      } catch (error) {
+        console.error('K线数据更新失败:', error);
+      }
+    }, 30 * 60 * 1000); // 30分钟
+
     // 4H级别趋势：每1小时更新一次（按照strategy-v2.md要求）
     this.trendInterval = setInterval(async () => {
       try {
@@ -1840,6 +1860,63 @@ class SmartFlowServer {
       console.log('✅ 初始分析完成');
     } catch (error) {
       console.error('初始分析失败:', error);
+    }
+  }
+
+  // 更新K线数据
+  async updateKlineData(symbol) {
+    try {
+      const BinanceAPI = require('./modules/api/BinanceAPI');
+      const intervals = ['4h', '1h', '15m'];
+      
+      for (const interval of intervals) {
+        try {
+          console.log(`📊 更新 ${symbol} ${interval} K线数据...`);
+          
+          // 从Binance API获取最新数据
+          const klines = await BinanceAPI.getKlines(symbol, interval, 250);
+          
+          if (klines && klines.length > 0) {
+            // 存储到数据库
+            for (const kline of klines) {
+              await this.db.runQuery(
+                `INSERT OR REPLACE INTO kline_data 
+                (symbol, interval, open_time, close_time, open_price, high_price, low_price, close_price, 
+                 volume, quote_volume, trades_count, taker_buy_volume, taker_buy_quote_volume)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  symbol,
+                  interval,
+                  parseInt(kline[0]),    // open_time
+                  parseInt(kline[6]),    // close_time
+                  parseFloat(kline[1]),  // open_price
+                  parseFloat(kline[2]),  // high_price
+                  parseFloat(kline[3]),  // low_price
+                  parseFloat(kline[4]),  // close_price
+                  parseFloat(kline[5]),  // volume
+                  parseFloat(kline[7]),  // quote_volume
+                  parseInt(kline[8]),    // trades_count
+                  parseFloat(kline[9]),  // taker_buy_volume
+                  parseFloat(kline[10])  // taker_buy_quote_volume
+                ]
+              );
+            }
+            
+            console.log(`✅ ${symbol} ${interval}: 更新 ${klines.length} 条数据`);
+          } else {
+            console.log(`⚠️ ${symbol} ${interval}: 无数据`);
+          }
+          
+          // 添加延迟避免API限制
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+        } catch (error) {
+          console.error(`更新 ${symbol} ${interval} K线数据失败:`, error);
+        }
+      }
+      
+    } catch (error) {
+      console.error(`更新 ${symbol} K线数据失败:`, error);
     }
   }
 

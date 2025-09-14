@@ -94,6 +94,133 @@ class StrategyV3Core {
   }
 
   /**
+   * 获取K线数据（增强版：优先使用实时数据）
+   */
+  async getKlineData(symbol, interval, limit = 250) {
+    try {
+      // 1. 首先尝试从数据库获取数据
+      let dbData = await this.getKlineDataFromDB(symbol, interval, limit);
+      
+      // 2. 检查数据新鲜度
+      const isDataFresh = this.checkDataFreshness(dbData, interval);
+      
+      if (isDataFresh && dbData) {
+        console.log(`✅ 使用数据库数据 [${symbol}][${interval}]: 数据新鲜`);
+        return dbData;
+      }
+
+      // 3. 数据过期或不存在，尝试从API获取实时数据
+      console.log(`⚠️ 数据库数据过期或不存在 [${symbol}][${interval}]，尝试获取实时数据...`);
+      
+      try {
+        const BinanceAPI = require('../api/BinanceAPI');
+        const realtimeData = await BinanceAPI.getKlines(symbol, interval, limit);
+        
+        if (realtimeData && realtimeData.length > 0) {
+          console.log(`✅ 获取到实时数据 [${symbol}][${interval}]: ${realtimeData.length} 条`);
+          
+          // 4. 异步更新数据库（不阻塞策略分析）
+          this.updateDatabaseAsync(symbol, interval, realtimeData);
+          
+          return realtimeData;
+        }
+      } catch (apiError) {
+        console.warn(`API获取实时数据失败 [${symbol}][${interval}]:`, apiError.message);
+      }
+
+      // 5. 如果API也失败，但有数据库数据，则使用数据库数据并警告
+      if (dbData) {
+        console.warn(`⚠️ 使用过期数据库数据 [${symbol}][${interval}]，数据可能不准确`);
+        return dbData;
+      }
+
+      // 6. 完全没有数据
+      console.error(`❌ 无法获取K线数据 [${symbol}][${interval}]`);
+      return null;
+
+    } catch (error) {
+      console.error(`获取K线数据失败 [${symbol} ${interval}]:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * 检查数据新鲜度
+   */
+  checkDataFreshness(klineData, interval) {
+    if (!klineData || klineData.length === 0) {
+      return false;
+    }
+
+    // 获取最新K线的时间
+    const latestKline = klineData[klineData.length - 1];
+    const latestTime = latestKline[0]; // open_time
+    
+    const ageMs = Date.now() - latestTime;
+    
+    // 设置新鲜度阈值
+    const thresholds = {
+      '4h': 8 * 60 * 60 * 1000,    // 4H数据：8小时过期
+      '1h': 2 * 60 * 60 * 1000,    // 1H数据：2小时过期
+      '15m': 30 * 60 * 1000        // 15m数据：30分钟过期
+    };
+
+    const threshold = thresholds[interval] || thresholds['4h'];
+    const isFresh = ageMs <= threshold;
+
+    if (!isFresh) {
+      const ageHours = ageMs / (1000 * 60 * 60);
+      console.log(`📅 数据年龄检查 [${interval}]: ${ageHours.toFixed(1)}小时前 (阈值: ${threshold / (1000 * 60 * 60)}小时)`);
+    }
+
+    return isFresh;
+  }
+
+  /**
+   * 异步更新数据库
+   */
+  async updateDatabaseAsync(symbol, interval, klineData) {
+    try {
+      // 在后台更新数据库，不阻塞策略分析
+      setImmediate(async () => {
+        try {
+          console.log(`🔄 异步更新数据库 [${symbol}][${interval}]: ${klineData.length} 条数据`);
+          
+          for (const kline of klineData) {
+            await this.database.runQuery(
+              `INSERT OR REPLACE INTO kline_data 
+              (symbol, interval, open_time, close_time, open_price, high_price, low_price, close_price, 
+               volume, quote_volume, trades_count, taker_buy_volume, taker_buy_quote_volume)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                symbol,
+                interval,
+                parseInt(kline[0]),    // open_time
+                parseInt(kline[6]),    // close_time
+                parseFloat(kline[1]),  // open_price
+                parseFloat(kline[2]),  // high_price
+                parseFloat(kline[3]),  // low_price
+                parseFloat(kline[4]),  // close_price
+                parseFloat(kline[5]),  // volume
+                parseFloat(kline[7]),  // quote_volume
+                parseInt(kline[8]),    // trades_count
+                parseFloat(kline[9]),  // taker_buy_volume
+                parseFloat(kline[10])  // taker_buy_quote_volume
+              ]
+            );
+          }
+          
+          console.log(`✅ 数据库更新完成 [${symbol}][${interval}]`);
+        } catch (error) {
+          console.error(`异步数据库更新失败 [${symbol}][${interval}]:`, error);
+        }
+      });
+    } catch (error) {
+      console.error(`启动异步数据库更新失败 [${symbol}][${interval}]:`, error);
+    }
+  }
+
+  /**
    * 记录数据质量告警
    */
   async recordDataQualityAlert(symbol, issueType, message, details = null) {
@@ -244,8 +371,8 @@ class StrategyV3Core {
    */
   async analyze4HTrend(symbol) {
     try {
-      // 从数据库获取4H K线数据
-      const klines4h = await this.getKlineDataFromDB(symbol, '4h', 250);
+      // 获取4H K线数据（优先使用实时数据）
+      const klines4h = await this.getKlineData(symbol, '4h', 250);
 
       // 调整数据要求：至少50条K线数据，但推荐200条以上
       const minRequired = 50;
@@ -470,8 +597,8 @@ class StrategyV3Core {
     try {
       console.log(`🔍 开始1H多因子打分 [${symbol}] 趋势: ${trend4h}`);
 
-      // 从数据库获取1H K线数据
-      const klines1h = await this.getKlineDataFromDB(symbol, '1h', 50);
+      // 获取1H K线数据（优先使用实时数据）
+      const klines1h = await this.getKlineData(symbol, '1h', 50);
 
       if (!klines1h || klines1h.length < 20) {
         await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT',
@@ -706,8 +833,8 @@ class StrategyV3Core {
     try {
       console.log(`🔍 开始震荡市1H边界判断 [${symbol}]`);
 
-      // 从数据库获取1H K线数据
-      const klines1h = await this.getKlineDataFromDB(symbol, '1h', 50);
+      // 获取1H K线数据（优先使用实时数据）
+      const klines1h = await this.getKlineData(symbol, '1h', 50);
 
       if (!klines1h || klines1h.length < 20) {
         await this.recordDataQualityAlert(symbol, 'KLINE_DATA_INSUFFICIENT',
