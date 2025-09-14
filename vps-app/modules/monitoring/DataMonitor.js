@@ -50,7 +50,7 @@ class DataMonitor {
     this.lastRefreshTime = new Map();
     this.lastAlertTime = new Map();
 
-    console.log('🔄 DataMonitor 数据已重置');
+    // console.log('🔄 DataMonitor 数据已重置'); // 注释掉以避免测试环境中的问题
   }
 
   startAnalysis(symbol) {
