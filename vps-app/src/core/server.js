@@ -60,6 +60,7 @@ class SmartFlowServer {
     this.app.use(express.json());
 
     // 静态文件服务，禁用缓存
+    console.log('📁 当前__dirname:', __dirname);
     const staticPath = path.join(__dirname, '../web/public');
     console.log('📁 静态文件路径:', staticPath);
     console.log('📁 静态文件路径解析:', path.resolve(staticPath));
