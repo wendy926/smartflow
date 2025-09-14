@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS indicator_monitoring (
     error_message TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(symbol, indicator_name, DATE(timestamp))
+    UNIQUE(symbol, indicator_name, timestamp)
 );
 
 -- 2. 指标历史表：存储指标变化历史
