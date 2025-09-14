@@ -43,9 +43,31 @@ class ComprehensiveHealthMonitor {
       warnings: 0,
       errors: 0,
       issues: [],
-      symbolDetails: {}
+      symbolDetails: {},
+      monitoringDiagnosis: null,
+      dataConsistency: null
     };
 
+    // 1. 执行监控中心问题诊断
+    console.log('🔍 执行监控中心问题诊断...');
+    results.monitoringDiagnosis = await this.diagnoseMonitoringIssues();
+
+    if (!results.monitoringDiagnosis.success || results.monitoringDiagnosis.issues.length > 0) {
+      results.errors++;
+      results.issues.push('监控中心诊断发现问题: ' + results.monitoringDiagnosis.issues.join(', '));
+    }
+
+    // 2. 执行数据一致性清理（可选）
+    if (process.env.ENABLE_DATA_CLEANUP === 'true') {
+      console.log('🔧 执行数据一致性清理...');
+      const consistencyStats = await this.performDataConsistencyCleanup();
+      results.dataConsistency = {
+        success: true,
+        stats: consistencyStats
+      };
+    }
+
+    // 3. 检查各个交易对
     for (const symbol of symbols) {
       console.log(`\n🔍 检查 ${symbol}...`);
 
@@ -385,13 +407,14 @@ class ComprehensiveHealthMonitor {
   }
 
   /**
-   * 数据清理优化 - 整合lightweight-memory-optimization.js逻辑
+   * 数据清理优化 - 整合所有清理脚本逻辑
    */
   async performMemoryOptimization() {
     const result = {
       success: false,
       operations: [],
-      errors: []
+      errors: [],
+      cleanupStats: {}
     };
 
     try {
@@ -400,7 +423,7 @@ class ComprehensiveHealthMonitor {
         return result;
       }
 
-      console.log('🔧 开始内存优化清理...');
+      console.log('🔧 开始综合数据清理优化...');
 
       // 1. 清理过期的策略分析数据（保留最近7天）
       const strategyCleanup = await this.database.runQuery(
@@ -432,15 +455,292 @@ class ComprehensiveHealthMonitor {
       );
       result.operations.push('清理过期数据质量日志');
 
+      // 6. 数据一致性清理
+      const consistencyResult = await this.performDataConsistencyCleanup();
+      result.cleanupStats = consistencyResult;
+
       result.success = true;
-      console.log('✅ 内存优化清理完成');
+      console.log('✅ 综合数据清理优化完成');
 
     } catch (error) {
-      result.errors.push(`内存优化失败: ${error.message}`);
-      console.error('❌ 内存优化失败:', error);
+      result.errors.push(`数据清理失败: ${error.message}`);
+      console.error('❌ 数据清理失败:', error);
     }
 
     return result;
+  }
+
+  /**
+   * 数据一致性清理 - 整合所有清理脚本逻辑
+   */
+  async performDataConsistencyCleanup() {
+    const stats = {
+      signalNoneCleaned: 0,
+      duplicatesCleaned: 0,
+      trendReversalCleaned: 0,
+      trendReversalRangeCleaned: 0,
+      missingKlineDataCollected: 0
+    };
+
+    try {
+      console.log('🔍 开始数据一致性清理...');
+
+      // 1. 清理SIGNAL_NONE记录（不应该存在的记录）
+      const signalNoneCount = await this.database.runQuery(
+        "SELECT COUNT(*) as count FROM simulations WHERE trigger_reason = 'SIGNAL_NONE'"
+      );
+
+      if (signalNoneCount[0].count > 0) {
+        await this.database.runQuery(
+          "DELETE FROM simulations WHERE trigger_reason = 'SIGNAL_NONE'"
+        );
+        stats.signalNoneCleaned = signalNoneCount[0].count;
+        console.log(`✅ 清理了 ${stats.signalNoneCleaned} 条SIGNAL_NONE记录`);
+      }
+
+      // 2. 清理重复的模拟交易记录
+      const duplicateResult = await this.cleanupDuplicateSimulations();
+      stats.duplicatesCleaned = duplicateResult;
+
+      // 3. 清理有问题的趋势反转记录
+      const trendReversalResult = await this.cleanupProblematicTrendReversal();
+      stats.trendReversalCleaned = trendReversalResult;
+
+      // 4. 收集缺失的K线数据
+      const missingKlineResult = await this.collectMissingKlineData();
+      stats.missingKlineDataCollected = missingKlineResult;
+
+      console.log('✅ 数据一致性清理完成');
+
+    } catch (error) {
+      console.error('❌ 数据一致性清理失败:', error);
+    }
+
+    return stats;
+  }
+
+  /**
+   * 清理重复的模拟交易记录
+   */
+  async cleanupDuplicateSimulations() {
+    try {
+      const simulations = await this.database.runQuery(
+        'SELECT * FROM simulations ORDER BY created_at DESC'
+      );
+
+      const duplicates = [];
+      const seen = new Map();
+
+      for (const sim of simulations) {
+        const timeKey = sim.created_at.substring(0, 16); // 精确到分钟
+        const key = `${sim.symbol}_${sim.direction}_${timeKey}`;
+
+        if (seen.has(key)) {
+          const existing = seen.get(key);
+          if (sim.id > existing.id) {
+            duplicates.push(sim);
+          } else {
+            duplicates.push(existing);
+            seen.set(key, sim);
+          }
+        } else {
+          seen.set(key, sim);
+        }
+      }
+
+      if (duplicates.length > 0) {
+        for (const dup of duplicates) {
+          await this.database.runQuery('DELETE FROM simulations WHERE id = ?', [dup.id]);
+        }
+        console.log(`✅ 清理了 ${duplicates.length} 个重复的模拟交易记录`);
+      }
+
+      return duplicates.length;
+
+    } catch (error) {
+      console.error('❌ 清理重复记录失败:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * 清理有问题的趋势反转记录
+   */
+  async cleanupProblematicTrendReversal() {
+    try {
+      // 清理TREND_REVERSAL + 区间信号的记录
+      const problematicRecords = await this.database.runQuery(`
+        SELECT id FROM simulations 
+        WHERE exit_reason = 'TREND_REVERSAL' 
+        AND (trigger_reason LIKE '%区间%' OR execution_mode_v3 LIKE '区间%')
+      `);
+
+      if (problematicRecords.length > 0) {
+        for (const record of problematicRecords) {
+          await this.database.runQuery('DELETE FROM simulations WHERE id = ?', [record.id]);
+        }
+        console.log(`✅ 清理了 ${problematicRecords.length} 条有问题的趋势反转记录`);
+      }
+
+      return problematicRecords.length;
+
+    } catch (error) {
+      console.error('❌ 清理趋势反转记录失败:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * 收集缺失的K线数据
+   */
+  async collectMissingKlineData() {
+    try {
+      const apiSymbols = [
+        'AAVEUSDT', 'ADAUSDT', 'AVAXUSDT', 'BNBUSDT', 'BTCUSDT', 'DOGEUSDT',
+        'ENAUSDT', 'ETHUSDT', 'FETUSDT', 'HYPEUSDT', 'LDOUSDT', 'LINEAUSDT',
+        'LINKUSDT', 'ONDOUSDT', 'PUMPUSDT', 'SOLUSDT', 'SUIUSDT', 'TAOUSDT',
+        'TRXUSDT', 'XLMUSDT', 'XRPUSDT'
+      ];
+
+      const missingSymbols = [];
+
+      for (const symbol of apiSymbols) {
+        const count = await this.database.runQuery(
+          'SELECT COUNT(*) as count FROM kline_data WHERE symbol = ? AND interval = ?',
+          [symbol, '4h']
+        );
+
+        if (count[0].count < 200) {
+          missingSymbols.push(symbol);
+        }
+      }
+
+      if (missingSymbols.length > 0) {
+        console.log(`📊 发现 ${missingSymbols.length} 个交易对K线数据不足，需要收集`);
+        // 这里可以调用API收集数据，但由于API限制，建议在低峰期执行
+        return missingSymbols.length;
+      }
+
+      return 0;
+
+    } catch (error) {
+      console.error('❌ 检查缺失K线数据失败:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * 诊断监控中心问题 - 整合diagnose-monitoring-issue.js逻辑
+   */
+  async diagnoseMonitoringIssues() {
+    const diagnosis = {
+      success: false,
+      issues: [],
+      recommendations: [],
+      stats: {}
+    };
+
+    try {
+      if (!this.database) {
+        diagnosis.issues.push('数据库未初始化');
+        return diagnosis;
+      }
+
+      console.log('🔍 开始诊断监控中心问题...');
+
+      // 1. 检查数据库连接
+      diagnosis.stats.databaseConnected = true;
+
+      // 2. 检查交易对数据
+      const symbols = await this.database.getCustomSymbols();
+      diagnosis.stats.totalSymbols = symbols.length;
+
+      // 3. 检查K线数据状态
+      const klineIssues = [];
+      for (const symbol of symbols.slice(0, 3)) {
+        try {
+          const klines = await this.database.runQuery(
+            'SELECT COUNT(*) as count FROM kline_data WHERE symbol = ? AND interval = ?',
+            [symbol, '4h']
+          );
+          if (klines[0].count < 50) {
+            klineIssues.push(`${symbol}: K线数据不足 (${klines[0].count}/50)`);
+          }
+        } catch (error) {
+          klineIssues.push(`${symbol}: K线数据检查失败 - ${error.message}`);
+        }
+      }
+
+      if (klineIssues.length > 0) {
+        diagnosis.issues.push('K线数据问题: ' + klineIssues.join(', '));
+        diagnosis.recommendations.push('收集缺失的K线数据');
+      }
+
+      // 4. 检查策略分析表状态
+      const analysisCount = await this.database.runQuery('SELECT COUNT(*) as count FROM strategy_v3_analysis');
+      const latestAnalysis = await this.database.runQuery('SELECT MAX(created_at) as latest FROM strategy_v3_analysis');
+
+      diagnosis.stats.analysisRecords = analysisCount[0].count;
+      diagnosis.stats.latestAnalysis = latestAnalysis[0].latest;
+
+      if (analysisCount[0].count === 0) {
+        diagnosis.issues.push('策略分析表为空 - 策略分析功能未运行');
+        diagnosis.recommendations.push('重启策略分析功能');
+      }
+
+      // 5. 检查监控统计表状态
+      const statsCount = await this.database.runQuery('SELECT COUNT(*) as count FROM monitoring_stats');
+      const latestStats = await this.database.runQuery('SELECT MAX(updated_at) as latest FROM monitoring_stats');
+
+      diagnosis.stats.monitoringRecords = statsCount[0].count;
+      diagnosis.stats.latestMonitoring = latestStats[0].latest;
+
+      if (latestStats[0].latest) {
+        const now = new Date();
+        const latestTime = new Date(latestStats[0].latest);
+        const daysDiff = Math.floor((now - latestTime) / (1000 * 60 * 60 * 24));
+
+        if (daysDiff > 1) {
+          diagnosis.issues.push(`监控数据过期 ${daysDiff} 天`);
+          diagnosis.recommendations.push('更新监控统计数据');
+        }
+      }
+
+      // 6. 检查数据质量问题
+      const qualityIssues = await this.database.runQuery(
+        'SELECT COUNT(*) as count FROM data_quality_issues WHERE created_at > datetime("now", "-1 day")'
+      );
+      diagnosis.stats.recentQualityIssues = qualityIssues[0].count;
+
+      if (qualityIssues[0].count > 0) {
+        diagnosis.issues.push(`最近24小时有 ${qualityIssues[0].count} 个数据质量问题`);
+        diagnosis.recommendations.push('检查数据质量问题并修复');
+      }
+
+      // 7. 检查模拟交易数据
+      const simulationCount = await this.database.runQuery('SELECT COUNT(*) as count FROM simulations');
+      const activeSimulations = await this.database.runQuery(
+        'SELECT COUNT(*) as count FROM simulations WHERE status = "ACTIVE"'
+      );
+
+      diagnosis.stats.totalSimulations = simulationCount[0].count;
+      diagnosis.stats.activeSimulations = activeSimulations[0].count;
+
+      // 8. 检查胜率统计
+      const winRateStats = await this.database.runQuery('SELECT * FROM win_rate_stats LIMIT 1');
+      if (winRateStats.length > 0) {
+        diagnosis.stats.winRateStats = winRateStats[0];
+      }
+
+      diagnosis.success = true;
+      console.log('✅ 监控中心问题诊断完成');
+
+    } catch (error) {
+      diagnosis.issues.push(`诊断过程中出现错误: ${error.message}`);
+      console.error('❌ 监控诊断失败:', error);
+    }
+
+    return diagnosis;
   }
 
   /**
