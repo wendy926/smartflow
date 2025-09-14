@@ -2,7 +2,7 @@
 
 class SmartFlowApp {
   constructor() {
-    this.allSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT'];
+    this.allSymbols = []; // 动态加载交易对，不再硬编码
     this.isLoading = false;
     this.userSettings = {
       maxLossAmount: '100' // 默认100 USDT
@@ -18,6 +18,9 @@ class SmartFlowApp {
   async init() {
     this.setupEventListeners();
     await this.loadUserSettings();
+    
+    // 动态加载交易对列表
+    await this.loadSymbolsList();
 
     // 检查页面加载类型
     const urlParams = new URLSearchParams(window.location.search);
@@ -29,7 +32,8 @@ class SmartFlowApp {
       forceRefresh,
       fromCache,
       isFirstLoad,
-      urlParams: Object.fromEntries(urlParams)
+      urlParams: Object.fromEntries(urlParams),
+      symbolsCount: this.allSymbols.length
     });
 
     if (forceRefresh || isFirstLoad) {
@@ -69,6 +73,19 @@ class SmartFlowApp {
       }
     } catch (error) {
       console.error('❌ 加载用户设置失败:', error);
+    }
+  }
+
+  // 动态加载交易对列表
+  async loadSymbolsList() {
+    try {
+      const symbols = await window.apiClient.getSymbols();
+      this.allSymbols = symbols.map(s => s.symbol);
+      console.log('✅ 交易对列表加载完成:', this.allSymbols);
+    } catch (error) {
+      console.warn('加载交易对列表失败，使用默认值:', error.message);
+      // 如果加载失败，使用默认的交易对
+      this.allSymbols = ['BTCUSDT', 'ETHUSDT', 'LINKUSDT', 'LDOUSDT'];
     }
   }
 
