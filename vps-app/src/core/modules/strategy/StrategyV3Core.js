@@ -979,11 +979,11 @@ class StrategyV3Core {
       const vwapScore = vwapDistance <= 0.01 ? 1 : (vwapDistance <= 0.02 ? 0.5 : 0);
 
       // 计算总分（加权平均）
-      const totalScore = (touchScore * 0.4 + volumeScore * 0.3 + deltaScore * 0.2 + oiScore * 0.1);
+      const totalScore = (touchScore * 0.3 + volumeScore * 0.25 + deltaScore * 0.15 + oiScore * 0.1 + vwapScore * 0.2);
 
       // 判断边界有效性（降低阈值）
-      const lowerBoundaryValid = totalScore >= 0.6 ? 1 : 0;
-      const upperBoundaryValid = totalScore >= 0.6 ? 1 : 0;
+      const lowerBoundaryValid = totalScore >= 0.4 ? 1 : 0;
+      const upperBoundaryValid = totalScore >= 0.4 ? 1 : 0;
 
       console.log(`📊 震荡市1H边界判断结果 [${symbol}]: 总分=${totalScore}, 下边界=${lowerBoundaryValid}, 上边界=${upperBoundaryValid}`);
 
