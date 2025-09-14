@@ -12,8 +12,8 @@ console.log('🔧 开始全面修复技术指标计算问题...');
 const strategyPath = './modules/strategy/StrategyV3Core.js';
 
 if (!fs.existsSync(strategyPath)) {
-    console.error('❌ StrategyV3Core.js文件不存在');
-    process.exit(1);
+  console.error('❌ StrategyV3Core.js文件不存在');
+  process.exit(1);
 }
 
 let content = fs.readFileSync(strategyPath, 'utf8');
