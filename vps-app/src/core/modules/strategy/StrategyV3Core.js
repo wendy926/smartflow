@@ -978,12 +978,12 @@ class StrategyV3Core {
       const vwapDistance = Math.abs(currentPrice - lastVWAP) / lastVWAP;
       const vwapScore = vwapDistance <= 0.01 ? 1 : (vwapDistance <= 0.02 ? 0.5 : 0);
 
-      // 计算总分
-      const totalScore = touchScore + volumeScore + deltaScore + oiScore + noBreakoutScore + vwapScore;
+      // 计算总分（加权平均）
+      const totalScore = (touchScore * 0.4 + volumeScore * 0.3 + deltaScore * 0.2 + oiScore * 0.1);
 
-      // 判断边界有效性
-      const lowerBoundaryValid = totalScore >= 3;
-      const upperBoundaryValid = totalScore >= 3;
+      // 判断边界有效性（降低阈值）
+      const lowerBoundaryValid = totalScore >= 0.6 ? 1 : 0;
+      const upperBoundaryValid = totalScore >= 0.6 ? 1 : 0;
 
       console.log(`📊 震荡市1H边界判断结果 [${symbol}]: 总分=${totalScore}, 下边界=${lowerBoundaryValid}, 上边界=${upperBoundaryValid}`);
 
@@ -1035,19 +1035,25 @@ class StrategyV3Core {
    * 计算触碰得分
    */
   calculateTouchScore(candles, bb) {
-    if (candles.length < 6) return 0;
+    if (candles.length < 20) return 0;
 
-    const recent6 = candles.slice(-6);
-    let touchCount = 0;
-
-    for (const candle of recent6) {
-      // 检查是否触碰上轨或下轨
-      if (candle.high >= bb.upper * 0.99 || candle.low <= bb.lower * 1.01) {
-        touchCount++;
+    let lowerTouches = 0;
+    let upperTouches = 0;
+    
+    // 检查最近20根K线的触碰情况
+    const recent20 = candles.slice(-20);
+    
+    for (const candle of recent20) {
+      if (candle.low <= bb.lower * 1.001) {
+        lowerTouches++;
+      }
+      if (candle.high >= bb.upper * 0.999) {
+        upperTouches++;
       }
     }
-
-    return touchCount >= 3 ? 1 : (touchCount >= 2 ? 0.5 : 0);
+    
+    const totalTouches = lowerTouches + upperTouches;
+    return totalTouches >= 4 ? 1 : (totalTouches >= 2 ? 0.5 : 0);
   }
 
   /**
