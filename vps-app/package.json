@@ -2,14 +2,21 @@
   "name": "smartflow-trading-dashboard",
   "version": "1.0.0",
   "description": "基于多周期共振的高胜率高盈亏比加密货币交易策略仪表板",
-  "main": "server.js",
+  "main": "start.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "legacy": "node server-old.js",
+    "start": "node start.js",
+    "dev": "nodemon start.js",
+    "server": "node src/core/server.js",
     "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "test:e2e": "jest tests/e2e",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:debug": "jest --detectOpenHandles",
+    "build": "echo 'No build step required for Node.js project'",
+    "clean": "rm -rf coverage/ data/logs/*.log",
+    "setup": "node tools/database/init-database.js"
   },
   "keywords": [
     "trading",

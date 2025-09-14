@@ -7,12 +7,14 @@ module.exports = {
     '**/tests/**/*.test.js'
   ],
 
+  // 测试目录结构
+  testDirectory: 'tests',
+
   // 覆盖率收集配置
   collectCoverage: true,
   collectCoverageFrom: [
-    'modules/**/*.js',
-    'server.js',
-    '!modules/**/*.test.js',
+    'src/**/*.js',
+    '!src/**/*.test.js',
     '!**/node_modules/**',
     '!**/coverage/**'
   ],
