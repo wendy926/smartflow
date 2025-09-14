@@ -1006,8 +1006,11 @@ class StrategyV3Core {
       // 判断边界有效性（1H边界判断：总分6分，权重加和≥3边界有效）
       const lowerBoundaryValid = totalScore >= 3 ? 1 : 0;
       const upperBoundaryValid = totalScore >= 3 ? 1 : 0;
+      
+      const lowerBoundaryText = lowerBoundaryValid ? "边界有效" : "边界无效";
+      const upperBoundaryText = upperBoundaryValid ? "边界有效" : "边界无效";
 
-      console.log(`📊 震荡市1H边界判断结果 [${symbol}]: 加权得分=${totalScore.toFixed(3)}, 原始总分=${weightedResult.totalScore.toFixed(3)}/6, 下边界=${lowerBoundaryValid}, 上边界=${upperBoundaryValid}`);
+      console.log(`📊 震荡市1H边界判断结果 [${symbol}]: 加权得分=${totalScore.toFixed(3)}, 原始总分=${weightedResult.totalScore.toFixed(3)}/6, 下边界=${lowerBoundaryText}, 上边界=${upperBoundaryText}`);
       console.log(`  📋 因子得分: 触碰=${touchScore}, 成交量=${volumeScore}, Delta=${deltaScore}, OI=${oiScore}, VWAP=${vwapScore}, 无突破=${noBreakoutScore}`);
       console.log(`  📊 币种类型: ${symbolType}, 权重: 触碰=${weights?.touch || 0}, 成交量=${weights?.volume || 0}, Delta=${weights?.delta || 0}, OI=${weights?.oi || 0}, VWAP=${weights?.vwap || 0}, 无突破=${weights?.no_breakout || 0}`);
       console.log(`  🔍 加权详情:`, weightedResult.factorScores);
