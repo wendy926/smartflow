@@ -978,14 +978,39 @@ class StrategyV3Core {
       const vwapDistance = Math.abs(currentPrice - lastVWAP) / lastVWAP;
       const vwapScore = vwapDistance <= 0.01 ? 1 : (vwapDistance <= 0.02 ? 0.5 : 0);
 
-      // 计算总分（加权平均）
-      const totalScore = (touchScore * 0.3 + volumeScore * 0.25 + deltaScore * 0.15 + oiScore * 0.1 + vwapScore * 0.2);
+      // 使用FactorWeightManager获取权重配置
+      const FactorWeightManager = require('./FactorWeightManager');
+      const weightManager = new FactorWeightManager(this.database);
+      
+      // 准备因子数据用于权重计算
+      const factorValues = {
+        vwap: vwapScore,
+        touch: touchScore,
+        volume: volumeRatio, // 使用成交量比率
+        delta: Math.abs(delta),
+        oi: Math.abs(oiChange),
+        no_breakout: noBreakoutScore
+      };
+      
+      // 计算加权得分
+      const weightedResult = await weightManager.calculateWeightedScore(
+        symbol,
+        '1h_boundary',
+        factorValues
+      );
+      
+      const totalScore = weightedResult.score;
+      const weights = weightedResult.weights;
+      const symbolType = weightedResult.category;
 
       // 判断边界有效性（降低阈值）
       const lowerBoundaryValid = totalScore >= 0.4 ? 1 : 0;
       const upperBoundaryValid = totalScore >= 0.4 ? 1 : 0;
 
-      console.log(`📊 震荡市1H边界判断结果 [${symbol}]: 总分=${totalScore}, 下边界=${lowerBoundaryValid}, 上边界=${upperBoundaryValid}`);
+      console.log(`📊 震荡市1H边界判断结果 [${symbol}]: 总分=${totalScore.toFixed(3)}, 下边界=${lowerBoundaryValid}, 上边界=${upperBoundaryValid}`);
+      console.log(`  📋 因子得分: 触碰=${touchScore}, 成交量=${volumeScore}, Delta=${deltaScore}, OI=${oiScore}, VWAP=${vwapScore}, 无突破=${noBreakoutScore}`);
+      console.log(`  📊 币种类型: ${symbolType}, 权重: 触碰=${weights?.touch || 0}, 成交量=${weights?.volume || 0}, Delta=${weights?.delta || 0}, OI=${weights?.oi || 0}, VWAP=${weights?.vwap || 0}, 无突破=${weights?.no_breakout || 0}`);
+      console.log(`  🔍 加权详情:`, weightedResult.factorScores);
 
       // 记录分析结果
       if (this.dataMonitor) {
@@ -1076,6 +1101,7 @@ class StrategyV3Core {
 
     return !hasNewHigh && !hasNewLow ? 1 : 0;
   }
+
 }
 
 module.exports = StrategyV3Core;
