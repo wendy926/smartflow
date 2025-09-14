@@ -4,7 +4,7 @@
 const StrategyV3Core = require('../strategy/StrategyV3Core');
 const SmartFlowStrategyV3 = require('../strategy/SmartFlowStrategyV3');
 const BinanceAPI = require('../api/BinanceAPI');
-const MemoryMonitor = require('./MemoryMonitor');
+const { MemoryMonitor } = require('./MemoryMonitor');
 const DataRefreshManager = require('../data/DataRefreshManager');
 const TelegramNotifier = require('../notification/TelegramNotifier');
 const os = require('os');
