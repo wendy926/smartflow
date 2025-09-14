@@ -5,12 +5,12 @@ class DataRefreshManager {
   constructor(database) {
     this.db = database;
     this.refreshIntervals = {
-      'trend_analysis': 60,        // 4H趋势判断：每1小时
-      'trend_scoring': 5,          // 1H多因子打分：每5分钟
-      'trend_strength': 5,         // 1H加强趋势判断：每5分钟
-      'trend_entry': 2,            // 趋势市15分钟入场判断：每2分钟
-      'range_boundary': 5,         // 震荡市1H边界判断：每5分钟
-      'range_entry': 2             // 震荡市15分钟入场判断：每2分钟
+      'trend_analysis': 480,       // 4H趋势判断：每8小时
+      'trend_scoring': 120,        // 1H多因子打分：每2小时
+      'trend_strength': 480,       // 4H加强趋势判断：每8小时
+      'trend_entry': 60,           // 15分钟入场判断：每1小时
+      'range_boundary': 480,       // 4H边界判断：每8小时
+      'range_entry': 120           // 1H入场判断：每2小时
     };
   }
 
