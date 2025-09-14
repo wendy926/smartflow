@@ -215,9 +215,9 @@ class FactorWeightManager {
       let weightedScore = 0; // 加权得分
       const factorScores = {};
 
-      // 计算各因子得分
+      // 计算各因子得分（factorValues已经是0-1的得分）
       for (const [factor, value] of Object.entries(factorValues)) {
-        const factorScore = this.calculateFactorScore(factor, value, analysisType);
+        const factorScore = value; // 直接使用传入的得分
         totalScore += factorScore; // 累加原始得分
 
         if (weights[factor] && weights[factor] > 0) {

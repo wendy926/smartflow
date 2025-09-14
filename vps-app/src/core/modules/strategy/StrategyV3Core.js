@@ -935,7 +935,7 @@ class StrategyV3Core {
       const bb = this.calculateBollingerBands(candles, 20, 2);
       const lastBB = bb[bb.length - 1];
 
-      // 计算连续触碰因子
+      // 计算各个因子得分（每个因子0-1分）
       const touchScore = this.calculateTouchScore(candles, lastBB);
 
       // 计算成交量因子
@@ -982,13 +982,13 @@ class StrategyV3Core {
       const FactorWeightManager = require('./FactorWeightManager');
       const weightManager = new FactorWeightManager(this.database);
       
-      // 准备因子数据用于权重计算
+      // 准备因子数据用于权重计算（1H边界判断：总分6分）
       const factorValues = {
         vwap: vwapScore,
         touch: touchScore,
-        volume: volumeRatio, // 使用成交量比率
-        delta: Math.abs(delta),
-        oi: Math.abs(oiChange),
+        volume: volumeScore,
+        delta: deltaScore,
+        oi: oiScore,
         no_breakout: noBreakoutScore
       };
       
@@ -1003,11 +1003,11 @@ class StrategyV3Core {
       const weights = weightedResult.weights;
       const symbolType = weightedResult.category;
 
-      // 判断边界有效性（降低阈值）
-      const lowerBoundaryValid = totalScore >= 0.4 ? 1 : 0;
-      const upperBoundaryValid = totalScore >= 0.4 ? 1 : 0;
+      // 判断边界有效性（1H边界判断：总分6分，权重加和≥3边界有效）
+      const lowerBoundaryValid = totalScore >= 3 ? 1 : 0;
+      const upperBoundaryValid = totalScore >= 3 ? 1 : 0;
 
-      console.log(`📊 震荡市1H边界判断结果 [${symbol}]: 总分=${totalScore.toFixed(3)}, 下边界=${lowerBoundaryValid}, 上边界=${upperBoundaryValid}`);
+      console.log(`📊 震荡市1H边界判断结果 [${symbol}]: 加权得分=${totalScore.toFixed(3)}, 原始总分=${weightedResult.totalScore.toFixed(3)}/6, 下边界=${lowerBoundaryValid}, 上边界=${upperBoundaryValid}`);
       console.log(`  📋 因子得分: 触碰=${touchScore}, 成交量=${volumeScore}, Delta=${deltaScore}, OI=${oiScore}, VWAP=${vwapScore}, 无突破=${noBreakoutScore}`);
       console.log(`  📊 币种类型: ${symbolType}, 权重: 触碰=${weights?.touch || 0}, 成交量=${weights?.volume || 0}, Delta=${weights?.delta || 0}, OI=${weights?.oi || 0}, VWAP=${weights?.vwap || 0}, 无突破=${weights?.no_breakout || 0}`);
       console.log(`  🔍 加权详情:`, weightedResult.factorScores);

@@ -332,7 +332,7 @@ class StrategyV3Execution {
           signalType: 'short'
         });
 
-        if (shortFactorScoreResult.score >= 2) { // 多因子得分≥2才入场
+        if (shortFactorScoreResult.score >= 2) { // 15分钟入场执行：总分4分，权重加和≥2入场有效
           signal = 'SHORT';
           mode = '假突破反手';
           entry = lastClose;
@@ -344,7 +344,7 @@ class StrategyV3Execution {
 
       // 6c. 多头假突破：突破下沿后快速回撤 + 多因子确认
       if (prevClose < rangeLow && lastClose > rangeLow && lowerBoundaryValid) {
-        if (factorScore15mResult.score >= 2) { // 多因子得分≥2才入场
+        if (factorScore15mResult.score >= 2) { // 15分钟入场执行：总分4分，权重加和≥2入场有效
           signal = 'BUY';
           mode = '假突破反手';
           entry = lastClose;
@@ -358,6 +358,8 @@ class StrategyV3Execution {
       if (signal === 'NONE') {
         console.log(`🔍 震荡市15分钟执行 [${symbol}]: 未满足假突破条件 - 上边界有效=${upperBoundaryValid}, 下边界有效=${lowerBoundaryValid}, 布林带收窄=${narrowBB}, 在区间内=${inRange}`);
         console.log(`  📊 价格信息: 前收盘=${prevClose}, 当前收盘=${lastClose}, 区间上沿=${rangeHigh}, 区间下沿=${rangeLow}`);
+        console.log(`  📋 多因子得分: 多头得分=${factorScore15mResult.score.toFixed(3)}/4 (需要≥2), 币种类型=${factorScore15mResult.category}`);
+        console.log(`  🔍 多头因子详情:`, factorScore15mResult.rawScores);
         return {
           signal: 'NONE',
           mode: '区间震荡',
@@ -675,16 +677,33 @@ class StrategyV3Execution {
   }
 
   /**
-   * 多因子打分系统 - 使用分类权重优化实现
+   * 15分钟入场执行多因子打分系统 - 总分4分，权重加和≥2入场有效
    */
   async calculateFactorScore(symbol, { currentPrice, vwap, delta, oi, volume, signalType }) {
     try {
-      // 准备因子数据
+      // 计算各个因子得分（每个因子0-1分，总分4分）
+      const vwapScore = signalType === 'long' ? 
+        (currentPrice > vwap ? 1 : 0) : 
+        (currentPrice < vwap ? 1 : 0);
+      
+      const deltaScore = signalType === 'long' ? 
+        (delta > 0 ? 1 : 0) : 
+        (delta < 0 ? 1 : 0);
+      
+      const oiScore = signalType === 'long' ? 
+        (oi > 0 ? 1 : 0) : 
+        (oi < 0 ? 1 : 0);
+      
+      const volumeScore = signalType === 'long' ? 
+        (volume > 0 ? 1 : 0) : 
+        (volume < 0 ? 1 : 0);
+
+      // 准备因子数据用于权重计算
       const factorValues = {
-        vwap: currentPrice > vwap,
-        delta: signalType === 'long' ? delta > 0 : delta < 0,
-        oi: signalType === 'long' ? oi > 0 : oi < 0,
-        volume: signalType === 'long' ? volume > 0 : volume < 0
+        vwap: vwapScore,
+        delta: deltaScore,
+        oi: oiScore,
+        volume: volumeScore
       };
 
       // 使用分类权重计算加权得分
@@ -694,21 +713,23 @@ class StrategyV3Execution {
         factorValues
       );
 
-      // 根据信号类型调整得分
-      let finalScore = weightedResult.score;
-      if (signalType === "short") {
-        // 空头信号：得分取反
-        finalScore = -finalScore;
-      }
+      // 15分钟入场执行：总分4分，权重加和≥2入场有效
+      const finalScore = weightedResult.score;
 
       return {
         score: Math.round(finalScore * 100) / 100,
         category: weightedResult.category,
         factorScores: weightedResult.factorScores,
-        weights: weightedResult.weights
+        weights: weightedResult.weights,
+        rawScores: {
+          vwap: vwapScore,
+          delta: deltaScore,
+          oi: oiScore,
+          volume: volumeScore
+        }
       };
     } catch (error) {
-      console.error(`计算多因子得分失败 [${symbol}]:`, error);
+      console.error(`计算15分钟多因子得分失败 [${symbol}]:`, error);
       // 降级到传统计算
       return this.calculateLegacyFactorScore({ currentPrice, vwap, delta, oi, volume, signalType });
     }
