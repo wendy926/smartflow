@@ -27,6 +27,9 @@ class DataMonitor {
    * 重置所有监控数据
    */
   reset() {
+    // 先停止所有定时器
+    this.stopMemoryCleanup();
+    
     // 只保留必要的实时数据在内存中，其他数据存储到数据库
     this.completionRates = {
       dataCollection: 0,
@@ -45,7 +48,18 @@ class DataMonitor {
       simulationTrading: 90 // 降低阈值，90%以上认为正常
     };
 
-    // 清空内存数据
+    // 完全清空内存数据，避免内存泄漏
+    if (this.symbolStats) {
+      this.symbolStats.clear();
+    }
+    if (this.lastRefreshTime) {
+      this.lastRefreshTime.clear();
+    }
+    if (this.lastAlertTime) {
+      this.lastAlertTime.clear();
+    }
+    
+    // 重新创建Map对象，确保完全清理
     this.symbolStats = new Map();
     this.lastRefreshTime = new Map();
     this.lastAlertTime = new Map();
@@ -1023,6 +1037,22 @@ class DataMonitor {
     if (this.memoryCleanupTimer) {
       clearInterval(this.memoryCleanupTimer);
       this.memoryCleanupTimer = null;
+    }
+    
+    // 清理所有Map对象，防止内存泄漏
+    if (this.symbolStats) {
+      this.symbolStats.clear();
+    }
+    if (this.lastRefreshTime) {
+      this.lastRefreshTime.clear();
+    }
+    if (this.lastAlertTime) {
+      this.lastAlertTime.clear();
+    }
+    
+    // 清理数据库引用，防止循环引用
+    if (this.validationSystem) {
+      this.validationSystem.database = null;
     }
   }
 

@@ -58,6 +58,14 @@ describe('V3策略指标监控测试', () => {
       dataMonitor.reset();
     }
     
+    // 清理循环引用
+    if (strategyCore) {
+      strategyCore.dataMonitor = null;
+    }
+    if (strategyExecution) {
+      strategyExecution.dataMonitor = null;
+    }
+    
     // 清理BinanceAPI的定时器
     try {
       const BinanceAPI = require('../modules/api/BinanceAPI');

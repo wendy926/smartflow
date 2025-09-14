@@ -17,6 +17,7 @@ describe('定时器清理机制测试', () => {
     // 清理所有定时器
     if (dataMonitor) {
       dataMonitor.stopMemoryCleanup();
+      dataMonitor.reset();
     }
     if (memoryManager) {
       memoryManager.stopMemoryCleanup();
@@ -24,6 +25,11 @@ describe('定时器清理机制测试', () => {
     if (optimizedMonitor) {
       optimizedMonitor.stopMemoryCleanup();
     }
+    
+    // 清理对象引用
+    dataMonitor = null;
+    memoryManager = null;
+    optimizedMonitor = null;
   });
 
   describe('DataMonitor定时器清理', () => {
