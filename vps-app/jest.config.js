@@ -44,7 +44,8 @@ module.exports = {
 
   // 模块路径映射
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1'
+    '^@/(.*)$': '<rootDir>/$1',
+    '^../modules/(.*)$': '<rootDir>/src/core/modules/$1'
   },
 
   // 忽略模式
