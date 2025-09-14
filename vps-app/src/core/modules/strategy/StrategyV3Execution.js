@@ -356,6 +356,8 @@ class StrategyV3Execution {
 
       // 7. 如果没有假突破信号，返回无信号
       if (signal === 'NONE') {
+        console.log(`🔍 震荡市15分钟执行 [${symbol}]: 未满足假突破条件 - 上边界有效=${upperBoundaryValid}, 下边界有效=${lowerBoundaryValid}, 布林带收窄=${narrowBB}, 在区间内=${inRange}`);
+        console.log(`  📊 价格信息: 前收盘=${prevClose}, 当前收盘=${lastClose}, 区间上沿=${rangeHigh}, 区间下沿=${rangeLow}`);
         return {
           signal: 'NONE',
           mode: '区间震荡',
