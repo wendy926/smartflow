@@ -364,10 +364,10 @@ class DatabaseManager {
         // 震荡市边界判断字段
         analysisData.rangeLowerBoundaryValid || 0,
         analysisData.rangeUpperBoundaryValid || 0,
-        analysisData.bbUpper || null,
-        analysisData.bbMiddle || null,
-        analysisData.bbLower || null,
-        analysisData.boundaryScore1h || analysisData.totalScore || 0
+        analysisData.bb_upper || null,
+        analysisData.bb_middle || null,
+        analysisData.bb_lower || null,
+        analysisData.boundary_score_1h || analysisData.totalScore || 0
       ];
 
       return await this.run(sql, params);
