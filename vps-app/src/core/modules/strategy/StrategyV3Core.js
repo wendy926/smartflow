@@ -934,6 +934,7 @@ class StrategyV3Core {
       // 计算布林带
       const bb = this.calculateBollingerBands(candles, 20, 2);
       console.log(`🔍 布林带计算 [${symbol}]: bb数组长度=${bb.length}, candles长度=${candles.length}`);
+      console.log(`🔍 布林带数组 [${symbol}]:`, bb.slice(-3)); // 显示最后3个元素
       const lastBB = bb[bb.length - 1];
       console.log(`🔍 最后布林带数据 [${symbol}]:`, lastBB);
 
