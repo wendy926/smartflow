@@ -1,11 +1,11 @@
 // modules/strategy/SmartFlowStrategyV3.js
 // SmartFlow 交易策略V3核心模块 - 基于strategy-v3.md实现
 
-const BinanceAPI = require('../api/BinanceAPI');
+const BinanceAPI = require('../../api/BinanceAPI');
 const StrategyV3Core = require('./StrategyV3Core');
 const StrategyV3Execution = require('./StrategyV3Execution');
-const { DataMonitor } = require('../monitoring/DataMonitor');
-const DeltaRealTimeManager = require('../data/DeltaRealTimeManager');
+const { DataMonitor } = require('../../monitoring/DataMonitor');
+const DeltaRealTimeManager = require('../../data/DeltaRealTimeManager');
 
 class SmartFlowStrategyV3 {
   static dataMonitor = new DataMonitor();

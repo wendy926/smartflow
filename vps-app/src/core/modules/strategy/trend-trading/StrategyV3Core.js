@@ -1,8 +1,8 @@
 // StrategyV3Core.js - 策略V3核心实现模块
 
-const BinanceAPI = require('../api/BinanceAPI');
-const FactorWeightManager = require('./FactorWeightManager');
-const EnhancedDataQualityMonitor = require('../monitoring/EnhancedDataQualityMonitor');
+const BinanceAPI = require('../../api/BinanceAPI');
+const FactorWeightManager = require('../FactorWeightManager');
+const EnhancedDataQualityMonitor = require('../../monitoring/EnhancedDataQualityMonitor');
 
 class StrategyV3Core {
   constructor(database = null) {
@@ -113,7 +113,7 @@ class StrategyV3Core {
       console.log(`⚠️ 数据库数据过期或不存在 [${symbol}][${interval}]，尝试获取实时数据...`);
 
       try {
-        const BinanceAPI = require('../api/BinanceAPI');
+        const BinanceAPI = require('../../api/BinanceAPI');
         const realtimeData = await BinanceAPI.getKlines(symbol, interval, limit);
 
         if (realtimeData && realtimeData.length > 0) {
@@ -994,7 +994,7 @@ class StrategyV3Core {
       const vwapScore = vwapDistance <= 0.01 ? 1 : (vwapDistance <= 0.02 ? 0.5 : 0);
 
       // 使用FactorWeightManager获取权重配置
-      const FactorWeightManager = require('./FactorWeightManager');
+      const FactorWeightManager = require('../FactorWeightManager');
       const weightManager = new FactorWeightManager(this.database);
       
       // 准备因子数据用于权重计算（1H边界判断：总分6分）

@@ -243,7 +243,7 @@ class ICTMigration {
 
       // 检查表是否存在
       for (const table of requiredTables) {
-        const result = await this.db.get(
+        const result = await new Promise((resolve, reject) => { this.db.get(
           "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
           [table]
         );
@@ -254,7 +254,7 @@ class ICTMigration {
 
       // 检查视图是否存在
       for (const view of requiredViews) {
-        const result = await this.db.get(
+        const result = await new Promise((resolve, reject) => { this.db.get(
           "SELECT name FROM sqlite_master WHERE type='view' AND name=?",
           [view]
         );
@@ -300,25 +300,25 @@ class ICTMigration {
       const stats = {};
 
       // 策略分析统计
-      const analysisStats = await this.db.get(
+      const analysisStats = await new Promise((resolve, reject) => { this.db.get(
         'SELECT COUNT(*) as total, MAX(timestamp) as latest FROM ict_strategy_analysis'
       );
       stats.analysis = analysisStats;
 
       // 模拟交易统计
-      const simulationStats = await this.db.get(
+      const simulationStats = await new Promise((resolve, reject) => { this.db.get(
         'SELECT COUNT(*) as total, SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active FROM ict_simulations'
       );
       stats.simulations = simulationStats;
 
       // 信号类型统计
-      const signalStats = await this.db.all(
+      const signalStats = await new Promise((resolve, reject) => { this.db.all(
         'SELECT signal_type, COUNT(*) as count FROM ict_strategy_analysis GROUP BY signal_type'
       );
       stats.signals = signalStats;
 
       // 执行模式统计
-      const executionStats = await this.db.all(
+      const executionStats = await new Promise((resolve, reject) => { this.db.all(
         'SELECT execution_mode, COUNT(*) as count FROM ict_strategy_analysis GROUP BY execution_mode'
       );
       stats.executions = executionStats;

@@ -1,8 +1,8 @@
 // ComprehensiveHealthMonitor.js - 综合健康监控模块
 // 整合所有check_X.js的核心逻辑
 
-const StrategyV3Core = require('../strategy/StrategyV3Core');
-const SmartFlowStrategyV3 = require('../strategy/SmartFlowStrategyV3');
+const StrategyV3Core = require('../strategy/trend-trading/StrategyV3Core');
+const SmartFlowStrategyV3 = require('../strategy/trend-trading/SmartFlowStrategyV3');
 const BinanceAPI = require('../api/BinanceAPI');
 const { MemoryMonitor } = require('./MemoryMonitor');
 const DataRefreshManager = require('../data/DataRefreshManager');

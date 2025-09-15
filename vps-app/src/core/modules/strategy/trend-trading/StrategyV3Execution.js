@@ -1,7 +1,7 @@
 // StrategyV3Execution.js - 策略V3执行逻辑模块
 
-const BinanceAPI = require('../api/BinanceAPI');
-const FactorWeightManager = require('./FactorWeightManager');
+const BinanceAPI = require('../../api/BinanceAPI');
+const FactorWeightManager = require('../FactorWeightManager');
 
 class StrategyV3Execution {
   constructor(database = null) {
