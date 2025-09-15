@@ -66,7 +66,7 @@ class SmartFlowServer {
     console.log('📁 静态文件路径解析:', path.resolve(staticPath));
     console.log('📁 静态文件目录存在:', require('fs').existsSync(staticPath));
     console.log('📁 index.html存在:', require('fs').existsSync(path.join(staticPath, 'index.html')));
-    
+
     this.app.use(express.static(staticPath, {
       setHeaders: (res, filePath) => {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -804,10 +804,10 @@ class SmartFlowServer {
     this.app.get('/api/freshness-alert-logs', async (req, res) => {
       try {
         const { severity, dataType, limit = 50 } = req.query;
-        
+
         let whereConditions = [];
         let params = [];
-        
+
         if (severity) {
           // 根据严重程度确定阈值
           const thresholds = {
@@ -815,20 +815,20 @@ class SmartFlowServer {
             'warning': 50,
             'info': 70
           };
-          
+
           if (thresholds[severity]) {
             whereConditions.push(`data_freshness_score <= ?`);
             params.push(thresholds[severity]);
           }
         }
-        
+
         if (dataType) {
           whereConditions.push(`data_type = ?`);
           params.push(dataType);
         }
-        
+
         const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-        
+
         const logs = await this.db.runQuery(`
           SELECT 
             symbol,
@@ -847,17 +847,17 @@ class SmartFlowServer {
           ORDER BY data_freshness_score ASC, last_update DESC
           LIMIT ?
         `, [...params, parseInt(limit)]);
-        
-        res.json({ 
-          success: true, 
+
+        res.json({
+          success: true,
           logs,
           total: logs.length
         });
       } catch (error) {
         console.error('获取新鲜度告警日志失败:', error);
-        res.status(500).json({ 
-          success: false, 
-          error: error.message 
+        res.status(500).json({
+          success: false,
+          error: error.message
         });
       }
     });
@@ -1799,10 +1799,23 @@ class SmartFlowServer {
       this.syncSimulationStats();
 
       // 启动服务器
-      this.app.listen(this.port, () => {
+      const server = this.app.listen(this.port, () => {
         console.log(`🌐 服务器运行在 http://localhost:${this.port}`);
         console.log(`📊 访问 http://localhost:${this.port} 查看仪表板`);
+        console.log('✅ 服务器启动成功');
       });
+
+      // 添加错误处理
+      server.on('error', (error) => {
+        console.error('❌ 服务器启动错误:', error);
+        if (error.code === 'EADDRINUSE') {
+          console.error(`❌ 端口 ${this.port} 已被占用`);
+        }
+        process.exit(1);
+      });
+
+      // 存储服务器实例用于优雅关闭
+      this.httpServer = server;
 
     } catch (error) {
       console.error('❌ 服务器启动失败:', error);
@@ -1820,17 +1833,27 @@ class SmartFlowServer {
       this.timers.clear();
     }
 
-    // K线数据自动更新：每30分钟更新一次
+    // K线数据自动更新：每45分钟更新一次（优化：减少频率）
     this.klineUpdateInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`📊 开始更新K线数据 ${symbols.length} 个交易对...`);
 
-        for (const symbol of symbols) {
-          try {
-            await this.updateKlineData(symbol);
-          } catch (error) {
-            console.error(`K线数据更新 ${symbol} 失败:`, error);
+        // 限制并发更新数量，避免资源消耗过大
+        const maxConcurrent = 3;
+        for (let i = 0; i < symbols.length; i += maxConcurrent) {
+          const batch = symbols.slice(i, i + maxConcurrent);
+          await Promise.all(batch.map(async (symbol) => {
+            try {
+              await this.updateKlineData(symbol);
+            } catch (error) {
+              console.error(`K线数据更新 ${symbol} 失败:`, error);
+            }
+          }));
+
+          // 批次间延迟，避免API限制
+          if (i + maxConcurrent < symbols.length) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
 
@@ -1838,19 +1861,29 @@ class SmartFlowServer {
       } catch (error) {
         console.error('K线数据更新失败:', error);
       }
-    }, 30 * 60 * 1000); // 30分钟
+    }, 45 * 60 * 1000); // 45分钟（优化：从30分钟增加到45分钟）
 
-    // 4H级别趋势：每1小时更新一次（按照strategy-v2.md要求）
+    // 4H级别趋势：每90分钟更新一次（优化：减少频率）
     this.trendInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`📈 开始更新4H级别趋势数据 ${symbols.length} 个交易对...`);
 
-        for (const symbol of symbols) {
-          try {
-            await this.updateTrendData(symbol);
-          } catch (error) {
-            console.error(`4H趋势更新 ${symbol} 失败:`, error);
+        // 限制并发更新数量
+        const maxConcurrent = 2;
+        for (let i = 0; i < symbols.length; i += maxConcurrent) {
+          const batch = symbols.slice(i, i + maxConcurrent);
+          await Promise.all(batch.map(async (symbol) => {
+            try {
+              await this.updateTrendData(symbol);
+            } catch (error) {
+              console.error(`4H趋势更新 ${symbol} 失败:`, error);
+            }
+          }));
+
+          // 批次间延迟
+          if (i + maxConcurrent < symbols.length) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
         }
 
@@ -1858,19 +1891,29 @@ class SmartFlowServer {
       } catch (error) {
         console.error('4H级别趋势数据更新失败:', error);
       }
-    }, 60 * 60 * 1000); // 1小时
+    }, 90 * 60 * 1000); // 90分钟（优化：从60分钟增加到90分钟）
 
-    // 1H打分：每5分钟更新一次（按照strategy-v2.md要求）
+    // 1H打分：每10分钟更新一次（优化：减少频率）
     this.signalInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`📊 开始更新1H打分数据 ${symbols.length} 个交易对...`);
 
-        for (const symbol of symbols) {
-          try {
-            await this.updateSignalData(symbol);
-          } catch (error) {
-            console.error(`1H打分更新 ${symbol} 失败:`, error);
+        // 限制并发更新数量
+        const maxConcurrent = 3;
+        for (let i = 0; i < symbols.length; i += maxConcurrent) {
+          const batch = symbols.slice(i, i + maxConcurrent);
+          await Promise.all(batch.map(async (symbol) => {
+            try {
+              await this.updateSignalData(symbol);
+            } catch (error) {
+              console.error(`1H打分更新 ${symbol} 失败:`, error);
+            }
+          }));
+
+          // 批次间延迟
+          if (i + maxConcurrent < symbols.length) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
           }
         }
 
@@ -1878,19 +1921,29 @@ class SmartFlowServer {
       } catch (error) {
         console.error('1H打分数据更新失败:', error);
       }
-    }, 5 * 60 * 1000); // 5分钟
+    }, 10 * 60 * 1000); // 10分钟（优化：从5分钟增加到10分钟）
 
-    // 15分钟入场判断：每2分钟更新一次（按照strategy-v2.md要求）
+    // 15分钟入场判断：每5分钟更新一次（优化：减少频率）
     this.executionInterval = setInterval(async () => {
       try {
         const symbols = await this.db.getCustomSymbols();
         console.log(`⚡ 开始更新15分钟入场判断数据 ${symbols.length} 个交易对...`);
 
-        for (const symbol of symbols) {
-          try {
-            await this.updateExecutionData(symbol);
-          } catch (error) {
-            console.error(`15分钟入场判断更新 ${symbol} 失败:`, error);
+        // 限制并发更新数量，这是最消耗资源的操作
+        const maxConcurrent = 2;
+        for (let i = 0; i < symbols.length; i += maxConcurrent) {
+          const batch = symbols.slice(i, i + maxConcurrent);
+          await Promise.all(batch.map(async (symbol) => {
+            try {
+              await this.updateExecutionData(symbol);
+            } catch (error) {
+              console.error(`15分钟入场判断更新 ${symbol} 失败:`, error);
+            }
+          }));
+
+          // 批次间延迟，给系统喘息时间
+          if (i + maxConcurrent < symbols.length) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
           }
         }
 
@@ -1898,7 +1951,7 @@ class SmartFlowServer {
       } catch (error) {
         console.error('15分钟入场判断数据更新失败:', error);
       }
-    }, 2 * 60 * 1000); // 2分钟
+    }, 5 * 60 * 1000); // 5分钟（优化：从2分钟增加到5分钟）
 
     // 模拟交易状态监控：每5分钟检查一次
     this.simulationInterval = setInterval(async () => {
@@ -1946,9 +1999,9 @@ class SmartFlowServer {
       } catch (error) {
         console.error('模拟交易状态监控失败:', error);
       }
-    }, 5 * 60 * 1000); // 5分钟
+    }, 15 * 60 * 1000); // 15分钟（优化：从5分钟增加到15分钟）
 
-    // Delta数据重置：每10分钟重置一次，避免无限累积
+    // Delta数据重置：每20分钟重置一次，避免无限累积（优化：减少频率）
     this.deltaResetInterval = setInterval(async () => {
       try {
         if (this.deltaManager) {
@@ -1958,7 +2011,7 @@ class SmartFlowServer {
       } catch (error) {
         console.error('Delta数据重置失败:', error);
       }
-    }, 10 * 60 * 1000); // 10分钟
+    }, 20 * 60 * 1000); // 20分钟（优化：从10分钟增加到20分钟）
 
     // 立即执行一次完整分析
     this.performInitialAnalysis();
@@ -2857,29 +2910,29 @@ class SmartFlowServer {
   }
 }
 
-// 创建并启动服务器
-const server = new SmartFlowServer();
+// 创建服务器实例
+const smartFlowServer = new SmartFlowServer();
 
 // 优雅关闭
 process.on('SIGINT', async () => {
   console.log('\n🛑 收到 SIGINT 信号，正在关闭服务器...');
-  await server.shutdown();
+  await smartFlowServer.shutdown();
 });
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 收到 SIGTERM 信号，正在关闭服务器...');
-  await server.shutdown();
+  await smartFlowServer.shutdown();
 });
 
 // 处理未捕获的异常
 process.on('uncaughtException', async (error) => {
   console.error('❌ 未捕获的异常:', error);
-  await server.shutdown();
+  await smartFlowServer.shutdown();
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
   console.error('❌ 未处理的 Promise 拒绝:', reason);
-  await server.shutdown();
+  await smartFlowServer.shutdown();
 });
 
 // 添加交易对分类获取方法
@@ -3208,5 +3261,5 @@ class SymbolCategoryManager {
   }
 }
 
-// 启动服务器
-server.initialize();
+// 启动服务器实例
+smartFlowServer.initialize();

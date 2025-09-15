@@ -1040,6 +1040,12 @@ class StrategyV3Core {
         lowerBoundaryValid,
         upperBoundaryValid,
         bb1h: lastBB,
+        vwap: lastVWAP,
+        delta: delta,
+        touchesLower: touchScore,
+        touchesUpper: touchScore,
+        volFactor: volumeRatio,
+        lastBreakout: noBreakoutScore === 0,
         factorScores: {
           touch: touchScore,
           volume: volumeScore,

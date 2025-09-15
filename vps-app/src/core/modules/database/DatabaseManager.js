@@ -322,8 +322,9 @@ class DatabaseManager {
           execution, execution_mode, mode_a, mode_b, entry_signal, stop_loss, take_profit,
           current_price, data_collection_rate, full_analysis_data, data_valid, error_message,
           market_type, vwap_direction_consistent, factors, vol15m_ratio, vol1h_ratio,
-          delta_imbalance, strategy_version
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          delta_imbalance, strategy_version, range_lower_boundary_valid, range_upper_boundary_valid,
+          bb_upper, bb_middle, bb_lower, boundary_score_1h
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const params = [
@@ -359,7 +360,14 @@ class DatabaseManager {
         analysisData.vol15mRatio,
         analysisData.vol1hRatio,
         analysisData.deltaImbalance,
-        analysisData.strategyVersion
+        analysisData.strategyVersion,
+        // 震荡市边界判断字段
+        analysisData.rangeLowerBoundaryValid,
+        analysisData.rangeUpperBoundaryValid,
+        analysisData.bbUpper,
+        analysisData.bbMiddle,
+        analysisData.bbLower,
+        analysisData.boundaryScore1h || analysisData.totalScore
       ];
 
       return await this.run(sql, params);
