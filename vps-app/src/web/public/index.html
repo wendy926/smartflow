@@ -227,23 +227,23 @@
 
     <!-- 策略规则说明 -->
     <div class="rules-section" id="rulesSection">
-      <h2>📋 SmartFlow 交易策略规则说明</h2>
+      <h2>📋 SmartFlow V3 交易策略规则说明</h2>
 
       <div class="strategy-overview">
-        <h3>🎯 系统结构（3层共振）</h3>
+        <h3>🎯 系统架构（3层共振分析）</h3>
         <div class="system-flow">
           <div class="flow-step">
             <div class="step-number">1</div>
             <div class="step-content">
-              <h4>4H级趋势判断</h4>
-              <p>10分打分机制，≥4分保留趋势</p>
+              <h4>4H趋势判断</h4>
+              <p>10分打分机制<br>≥4分保留趋势</p>
             </div>
           </div>
           <div class="flow-arrow">→</div>
           <div class="flow-step">
             <div class="step-number">2</div>
             <div class="step-content">
-              <h4>1H级多因子打分</h4>
+              <h4>1H多因子打分</h4>
               <p>趋势市：6分制，≥3分入场<br>震荡市：边界确认，≥3分有效</p>
             </div>
           </div>
@@ -251,13 +251,13 @@
           <div class="flow-step">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h4>15分钟入场判断</h4>
+              <h4>15分钟入场执行</h4>
               <p>趋势市：回踩突破<br>震荡市：假突破反手</p>
             </div>
           </div>
         </div>
         <div class="update-frequency">
-          <p><strong>更新频率：</strong> 4H趋势每1小时 | 1H打分每5分钟 | 15m入场每2分钟</p>
+          <p><strong>数据更新频率：</strong> 4H趋势每1小时 | 1H打分每5分钟 | 15m入场每2分钟</p>
         </div>
       </div>
 
@@ -284,12 +284,12 @@
 
       <div class="strategy-details">
         <div class="strategy-phase">
-          <h3>📈 1. 4H级趋势判断（4H）- 10分打分机制</h3>
+          <h3>📈 1. 4H趋势判断逻辑</h3>
           <div class="phase-content">
             <div class="scoring-system">
               <h4>📊 总分计算：10分制</h4>
               <div class="score-breakdown">
-                <div class="score-category">
+                <div class="score-category prerequisite">
                   <h5>🎯 趋势方向（必选，3分）</h5>
                   <div class="score-items">
                     <div class="score-item">
@@ -305,6 +305,7 @@
                       <span class="score-desc">MA50 > MA200（多头）或 MA50 < MA200（空头）</span>
                     </div>
                   </div>
+                  <p class="prerequisite-note">⚠️ 每个方向至少需要2分才能进入后续打分</p>
                 </div>
 
                 <div class="score-category">
@@ -355,9 +356,8 @@
                   <span class="result">保留趋势</span>
                 </div>
                 <div class="judgment-rule">
-                  <span class="threshold">
-                    <4分< /span>
-                      <span class="result">震荡市</span>
+                  <span class="threshold"><4分</span>
+                  <span class="result">震荡市</span>
                 </div>
               </div>
             </div>
@@ -365,7 +365,7 @@
         </div>
 
         <div class="strategy-phase">
-          <h3>⏰ 2. 1H级多因子打分（1H）- 趋势市专用</h3>
+          <h3>⏰ 2. 趋势市1H趋势加强逻辑</h3>
           <div class="phase-content">
             <div class="scoring-system">
               <h4>📊 总分计算：6分制（趋势市）</h4>
@@ -523,7 +523,7 @@
         </div>
 
         <div class="strategy-phase">
-          <h3>🔄 2.5. 震荡市1H边界判断</h3>
+          <h3>🔄 3. 震荡市1H边界判断逻辑</h3>
           <div class="phase-content">
             <h4>数据来源：</h4>
             <ul>
@@ -622,7 +622,7 @@
         </div>
 
         <div class="strategy-phase">
-          <h3>⚡ 3. 15分钟级别入场判断（15m）</h3>
+          <h3>⚡ 4. 15分钟入场信号判断</h3>
           <div class="phase-content">
             <h4>数据来源：</h4>
             <ul>
@@ -753,7 +753,75 @@
         </div>
 
         <div class="strategy-phase">
-          <h3>📊 4. 核心指标说明</h3>
+          <h3>💰 5. 止盈止损逻辑</h3>
+          <div class="phase-content">
+            <div class="scoring-system">
+              <h4>📊 风险控制机制</h4>
+              <div class="score-breakdown">
+                <div class="score-category">
+                  <h5>🎯 趋势市止盈止损</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">止损</span>
+                      <span class="score-desc">Setup candle另一端 或 1.2×ATR(14)，取更远者</span>
+                    </div>
+                    <div class="score-item">
+                      <span class="score-point">止盈</span>
+                      <span class="score-desc">风险回报比1:2，多头止盈=入场+2×(入场-止损)</span>
+                    </div>
+                    <div class="score-item">
+                      <span class="score-point">空头止盈</span>
+                      <span class="score-desc">空头止盈=入场-2×(止损-入场)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="score-category">
+                  <h5>🔄 震荡市止盈止损</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">结构性止损</span>
+                      <span class="score-desc">多头跌破下轨-ATR，空头突破上轨+ATR</span>
+                    </div>
+                    <div class="score-item">
+                      <span class="score-point">多因子止损</span>
+                      <span class="score-desc">VWAP、Delta、OI、Volume因子得分≤-2时触发</span>
+                    </div>
+                    <div class="score-item">
+                      <span class="score-point">时间止盈</span>
+                      <span class="score-desc">持仓超过3小时自动止盈</span>
+                    </div>
+                    <div class="score-item">
+                      <span class="score-point">固定RR目标</span>
+                      <span class="score-desc">风险回报比1:2，确保风险可控</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="score-category">
+                  <h5>⚙️ 杠杆计算逻辑</h5>
+                  <div class="score-items">
+                    <div class="score-item">
+                      <span class="score-point">止损距离</span>
+                      <span class="score-desc">X% = |入场价-止损价|/入场价</span>
+                    </div>
+                    <div class="score-item">
+                      <span class="score-point">最大杠杆</span>
+                      <span class="score-desc">Y = floor(1/(X%+0.5%))</span>
+                    </div>
+                    <div class="score-item">
+                      <span class="score-point">最小保证金</span>
+                      <span class="score-desc">Z = ceil(最大损失金额/(Y×X%))</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="strategy-phase">
+          <h3>📊 6. 核心指标说明</h3>
           <div class="phase-content">
             <h4>BBW（布林带带宽）：</h4>
             <p>BBW = (上轨 - 下轨) / 中轨</p>
