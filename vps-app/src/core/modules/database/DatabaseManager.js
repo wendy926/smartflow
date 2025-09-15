@@ -362,12 +362,12 @@ class DatabaseManager {
         analysisData.deltaImbalance,
         analysisData.strategyVersion,
         // 震荡市边界判断字段
-        analysisData.rangeLowerBoundaryValid,
-        analysisData.rangeUpperBoundaryValid,
-        analysisData.bbUpper,
-        analysisData.bbMiddle,
-        analysisData.bbLower,
-        analysisData.boundaryScore1h || analysisData.totalScore
+        analysisData.rangeLowerBoundaryValid || 0,
+        analysisData.rangeUpperBoundaryValid || 0,
+        analysisData.bbUpper || null,
+        analysisData.bbMiddle || null,
+        analysisData.bbLower || null,
+        analysisData.boundaryScore1h || analysisData.totalScore || 0
       ];
 
       return await this.run(sql, params);
