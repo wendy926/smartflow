@@ -20,7 +20,7 @@ class SmartFlowApp {
   async init() {
     this.setupEventListeners();
     await this.loadUserSettings();
-
+    
     // 动态加载交易对列表
     await this.loadSymbolsList();
 
@@ -115,15 +115,15 @@ class SmartFlowApp {
     const maxLossAmountElement = document.getElementById('maxLossAmount');
     if (maxLossAmountElement) {
       maxLossAmountElement.addEventListener('change', async (e) => {
-        const value = e.target.value;
-        await this.saveUserSetting('maxLossAmount', value);
-        console.log('💰 最大损失金额已更新为:', value, 'USDT');
+      const value = e.target.value;
+      await this.saveUserSetting('maxLossAmount', value);
+      console.log('💰 最大损失金额已更新为:', value, 'USDT');
 
-        // 广播全局设置变化事件
-        window.dispatchEvent(new CustomEvent('globalSettingsChanged', {
-          detail: { maxLossAmount: value }
-        }));
-      });
+      // 广播全局设置变化事件
+      window.dispatchEvent(new CustomEvent('globalSettingsChanged', {
+        detail: { maxLossAmount: value }
+      }));
+    });
     }
 
     // 最大损失金额变化 - ICT策略
@@ -834,11 +834,11 @@ class SmartFlowApp {
       // 使用新的数据变化状态API
       const response = await fetch('/api/data-change-status');
       const result = await response.json();
-
+      
       if (result.success) {
         const changeStatus = result.data;
         let hasChanges = false;
-
+        
         // 检查是否有新的15min信号
         for (const [symbol, status] of Object.entries(changeStatus)) {
           if (status.hasExecution && status.timeDiffMinutes <= 3) { // 3分钟内的新信号
@@ -854,7 +854,7 @@ class SmartFlowApp {
             dataManager.getAllSignals(true), // 强制刷新
             dataManager.getWinRateStats()
           ]);
-
+          
           this.updateStatsDisplay(signals, stats);
           this.updateSignalsTable(signals);
           console.log('✅ 15min信号变化检测刷新完成');

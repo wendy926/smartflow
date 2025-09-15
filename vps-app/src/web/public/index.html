@@ -103,843 +103,944 @@
     <header class="header">
       <h1>🚀 SmartFlow 交易策略仪表板</h1>
       <p>基于多周期共振的高胜率高盈亏比加密货币交易策略</p>
+
+      <!-- 策略切换选项卡 -->
+      <div class="strategy-tabs">
+        <button class="strategy-tab active" data-strategy="trend">
+          📈 趋势指标交易系统 (Trend Trading)
+        </button>
+        <button class="strategy-tab" data-strategy="ict">
+          🎯 ICT交易策略 (ICT Trading)
+        </button>
+      </div>
     </header>
 
-    <!-- 控制面板 -->
-    <div class="controls">
-      <div class="control-group">
-      </div>
-
-      <div class="control-group">
-        <div class="update-status">
-          <span class="status-label">📈 趋势更新：</span>
-          <span id="trendUpdateTime" class="status-time">--</span>
+    <!-- 趋势策略内容 -->
+    <div id="trend-content" class="strategy-content active">
+      <!-- 控制面板 -->
+      <div class="controls">
+        <div class="control-group">
         </div>
-        <div class="update-status">
-          <span class="status-label">📊 信号更新：</span>
-          <span id="signalUpdateTime" class="status-time">--</span>
+
+        <div class="control-group">
+          <div class="update-status">
+            <span class="status-label">📈 趋势更新：</span>
+            <span id="trendUpdateTime" class="status-time">--</span>
+          </div>
+          <div class="update-status">
+            <span class="status-label">📊 信号更新：</span>
+            <span id="signalUpdateTime" class="status-time">--</span>
+          </div>
+          <div class="update-status">
+            <span class="status-label">⚡ 执行更新：</span>
+            <span id="executionUpdateTime" class="status-time">--</span>
+          </div>
         </div>
-        <div class="update-status">
-          <span class="status-label">⚡ 执行更新：</span>
-          <span id="executionUpdateTime" class="status-time">--</span>
+
+        <div class="control-group">
+          <label for="maxLossAmount">💰 单次交易最大损失：</label>
+          <select id="maxLossAmount">
+            <option value="10">10 USDT</option>
+            <option value="20">20 USDT</option>
+            <option value="50">50 USDT</option>
+            <option value="100" selected>100 USDT</option>
+          </select>
         </div>
       </div>
 
-      <div class="control-group">
-        <label for="maxLossAmount">💰 单次交易最大损失：</label>
-        <select id="maxLossAmount">
-          <option value="10">10 USDT</option>
-          <option value="20">20 USDT</option>
-          <option value="50">50 USDT</option>
-          <option value="100" selected>100 USDT</option>
-        </select>
+      <!-- 统计概览 -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <h3 id="totalSignals">0</h3>
+          <p>总信号数</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="longSignals">0</h3>
+          <p>多头15min信号</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="shortSignals">0</h3>
+          <p>空头15min信号</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="lastUpdate">--</h3>
+          <p>最后更新</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="winRate">0%</h3>
+          <p>策略胜率</p>
+          <small id="winRateDetails">0/0</small>
+        </div>
       </div>
-    </div>
 
-    <!-- 统计概览 -->
-    <div class="stats-grid" id="statsGrid">
-      <div class="stat-card">
-        <h3 id="totalSignals">0</h3>
-        <p>总信号数</p>
+      <!-- 功能按钮区域 -->
+      <div class="function-buttons">
+        <button class="btn secondary" onclick="runSystemTests()">🧪 系统测试</button>
+        <a href="monitoring.html" class="btn secondary">📊 监控中心</a>
+        <a href="simulation-data.html" class="btn secondary" target="_blank">📈 模拟交易</a>
+        <a href="rollup-calculator.html" class="btn calculator-btn" target="_blank">📊 滚仓计算器</a>
+        <a href="symbol-management.html" class="btn symbols-list-btn">📋 交易对管理</a>
+        <div class="btn-group">
+          <a href="data-refresh.html" class="btn info">📊 数据刷新状态</a>
+        </div>
       </div>
-      <div class="stat-card">
-        <h3 id="longSignals">0</h3>
-        <p>多头15min信号</p>
-      </div>
-      <div class="stat-card">
-        <h3 id="shortSignals">0</h3>
-        <p>空头15min信号</p>
-      </div>
-      <div class="stat-card">
-        <h3 id="lastUpdate">--</h3>
-        <p>最后更新</p>
-      </div>
-      <div class="stat-card">
-        <h3 id="winRate">0%</h3>
-        <p>策略胜率</p>
-        <small id="winRateDetails">0/0</small>
-      </div>
-    </div>
 
-    <!-- 功能按钮区域 -->
-    <div class="function-buttons">
-      <button class="btn secondary" onclick="runSystemTests()">🧪 系统测试</button>
-      <a href="monitoring.html" class="btn secondary">📊 监控中心</a>
-      <a href="simulation-data.html" class="btn secondary" target="_blank">📈 模拟交易</a>
-      <a href="rollup-calculator.html" class="btn calculator-btn" target="_blank">📊 滚仓计算器</a>
-      <a href="symbol-management.html" class="btn symbols-list-btn">📋 交易对管理</a>
-      <div class="btn-group">
-        <a href="data-refresh.html" class="btn info">📊 数据刷新状态</a>
+      <!-- 缓存状态显示 -->
+      <div id="cacheStatus" class="cache-status-container" style="display: none;"></div>
+
+      <!-- 信号表格 -->
+      <div class="table-container">
+        <h3>📊 交易信号</h3>
+        <div class="table-wrapper">
+          <table id="signalsTable">
+            <thead>
+              <tr>
+                <th>详情</th>
+                <th>交易对</th>
+                <th>分类</th>
+                <th>趋势打分</th>
+                <th>4H趋势</th>
+                <th>多因子得分</th>
+                <th>1H判断</th>
+                <th>15min信号</th>
+                <th>当前价格</th>
+                <th>数据采集率</th>
+              </tr>
+            </thead>
+            <tbody id="signalsTableBody">
+              <tr>
+                <td><button class="expand-btn" onclick="toggleHistory('BTCUSDT')" title="查看详细信息">+</button></td>
+                <td><strong>BTCUSDT</strong></td>
+                <td class="category-mainstream">主流币</td>
+                <td class="score-none">0</td>
+                <td class="trend-none">震荡市</td>
+                <td class="score-none">0</td>
+                <td>--</td>
+                <td>--</td>
+                <td class="price-cell">43250.1234</td>
+                <td><span class="badge badge-success">98.5%</span></td>
+              </tr>
+              <tr>
+                <td><button class="expand-btn" onclick="toggleHistory('SOLUSDT')" title="查看详细信息">+</button></td>
+                <td><strong>SOLUSDT</strong></td>
+                <td class="category-highcap">高市值趋势币</td>
+                <td class="score-none">0</td>
+                <td class="trend-bull">多头趋势</td>
+                <td class="score-none">0</td>
+                <td>--</td>
+                <td>--</td>
+                <td class="price-cell">238.02</td>
+                <td><span class="badge badge-success">99.2%</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
 
-    <!-- 缓存状态显示 -->
-    <div id="cacheStatus" class="cache-status-container" style="display: none;"></div>
+      <!-- 策略规则说明 -->
+      <div class="rules-section" id="rulesSection">
+        <h2>📋 SmartFlow V3 交易策略规则说明</h2>
 
-    <!-- 信号表格 -->
-    <div class="table-container">
-      <h3>📊 交易信号</h3>
-      <div class="table-wrapper">
-        <table id="signalsTable">
+        <div class="strategy-overview">
+          <h3>🎯 系统架构（3层共振分析）</h3>
+          <div class="system-flow">
+            <div class="flow-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h4>4H趋势判断</h4>
+                <p>10分打分机制<br>≥4分保留趋势</p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h4>1H多因子打分</h4>
+                <p>趋势市：6分制，≥3分入场<br>震荡市：边界确认，≥3分有效</p>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h4>15分钟入场执行</h4>
+                <p>趋势市：回踩突破<br>震荡市：假突破反手</p>
+              </div>
+            </div>
+          </div>
+          <div class="update-frequency">
+            <p><strong>数据更新频率：</strong> 4H趋势每1小时 | 1H打分每5分钟 | 15m入场每2分钟</p>
+          </div>
+        </div>
+
+        <div class="strategy-overview">
+          <h3>📊 多因子打分权重逻辑总结</h3>
+          <div class="weight-summary">
+            <h4>🎯 核心原则：</h4>
+            <ul>
+              <li><strong>趋势市1H多因子打分：</strong> VWAP方向一致是必须满足的条件，不计入权重但计入总分（满分6分）</li>
+              <li><strong>震荡市1H边界确认：</strong> VWAP作为加分因子，根据交易对分类应用不同权重</li>
+              <li><strong>震荡市15分钟入场：</strong> VWAP作为核心因子之一，权重随交易对分类调整</li>
+              <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
+            </ul>
+
+            <h4>📈 交易对分类策略：</h4>
+            <ul>
+              <li><strong>主流币（BTC/ETH）：</strong> 重视突破确认和OI变化，适合稳定趋势</li>
+              <li><strong>高市值趋势币（SOL/BNB）：</strong> 平衡各因子权重，适合中等波动</li>
+              <li><strong>热点币（PEPE/WLD）：</strong> 重视成交量和Delta，适合高波动</li>
+              <li><strong>小币（其他）：</strong> 重点关注成交量和Delta，适合短线操作</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="strategy-details">
+          <div class="strategy-phase">
+            <h3>📈 1. 4H趋势判断逻辑</h3>
+            <div class="phase-content">
+              <div class="scoring-system">
+                <h4>📊 总分计算：10分制</h4>
+                <div class="score-breakdown">
+                  <div class="score-category prerequisite">
+                    <h5>🎯 趋势方向（必选，3分）</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">收盘价 > MA20（多头）或 收盘价 < MA20（空头）</span>
+                      </div>
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">MA20 > MA50（多头）或 MA20 < MA50（空头）</span>
+                      </div>
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">MA50 > MA200（多头）或 MA50 < MA200（空头）</span>
+                      </div>
+                    </div>
+                    <p class="prerequisite-note">⚠️ 每个方向至少需要2分才能进入后续打分</p>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>🔒 趋势稳定性（1分）</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">连续≥2根4H K线满足趋势方向</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>💪 趋势强度（1分）</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">ADX(14) > 20 且 DI方向正确</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>📈 布林带扩张（1分）</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">最近10根K线，后5根BBW均值 > 前5根均值 × 1.05</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>⚡ 动量确认（1分）</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">当前K线收盘价离MA20距离 ≥ 0.5%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="final-judgment">
+                  <h5>🎯 最终判断</h5>
+                  <div class="judgment-rule">
+                    <span class="threshold">≥4分</span>
+                    <span class="result">保留趋势</span>
+                  </div>
+                  <div class="judgment-rule">
+                    <span class="threshold">
+                      <4分< /span>
+                        <span class="result">震荡市</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="strategy-phase">
+            <h3>⏰ 2. 趋势市1H趋势加强逻辑</h3>
+            <div class="phase-content">
+              <div class="scoring-system">
+                <h4>📊 总分计算：6分制（趋势市）</h4>
+                <div class="score-breakdown">
+                  <div class="score-category prerequisite">
+                    <h5>🚨 VWAP方向（必须满足，0分）</h5>
+                    <div class="score-items">
+                      <div class="score-item prerequisite">
+                        <span class="score-point">必须</span>
+                        <span class="score-desc">收盘价 > VWAP（多头）或 收盘价 < VWAP（空头）</span>
+                      </div>
+                    </div>
+                    <p class="prerequisite-note">⚠️ 不满足直接返回0分，不进入后续打分</p>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>🎯 突破确认（1分）</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">收盘价突破最近20根4H K线高点（多头）或低点（空头）</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>📊 成交量双确认（1分）</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">15m成交量 ≥ 1.5×20期均量 且 1h成交量 ≥ 1.2×20期均量</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>💼 OI变化（1分）</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">多头：6h OI ≥ +2% | 空头：6h OI ≤ -3%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>💰 资金费率（1分）</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">-0.05% ≤ 资金费率 ≤ +0.05%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>⚖️ Delta不平衡（1分）</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">1分</span>
+                        <span class="score-desc">多头：主动买盘 ≥ 卖盘×1.2 | 空头：主动卖盘 ≥ 买盘×1.2</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="final-judgment">
+                  <h5>🎯 入场条件</h5>
+                  <div class="judgment-rule">
+                    <span class="threshold">≥3分 + VWAP方向一致</span>
+                    <span class="result">允许入场</span>
+                  </div>
+                  <div class="judgment-rule">
+                    <span class="threshold">
+                      <3分 或 VWAP方向不一致</span>
+                        <span class="result">无信号</span>
+                  </div>
+                </div>
+              </div>
+
+              <h4>趋势市1H多因子打分权重分布：</h4>
+              <table class="weight-table">
+                <thead>
+                  <tr>
+                    <th>因子</th>
+                    <th>主流币</th>
+                    <th>高市值强趋势币</th>
+                    <th>热点币</th>
+                    <th>小币</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>VWAP方向</strong></td>
+                    <td>必须满足（不计分）</td>
+                    <td>必须满足（不计分）</td>
+                    <td>必须满足（不计分）</td>
+                    <td>必须满足（不计分）</td>
+                  </tr>
+                  <tr>
+                    <td><strong>突破确认</strong></td>
+                    <td>30%</td>
+                    <td>25%</td>
+                    <td>15%</td>
+                    <td>15%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>成交量确认</strong></td>
+                    <td>20%</td>
+                    <td>25%</td>
+                    <td>30%</td>
+                    <td>30%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>OI变化</strong></td>
+                    <td>25%</td>
+                    <td>20%</td>
+                    <td>15%</td>
+                    <td>15%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Delta不平衡</strong></td>
+                    <td>15%</td>
+                    <td>20%</td>
+                    <td>30%</td>
+                    <td>30%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>资金费率</strong></td>
+                    <td>10%</td>
+                    <td>10%</td>
+                    <td>10%</td>
+                    <td>10%</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <h4>判断逻辑：</h4>
+              <ul>
+                <li><strong>VWAP方向必须满足，否则得分=0</strong></li>
+                <li><strong>权重计算：</strong> 根据交易对分类应用不同权重，优化打分准确性</li>
+                <li><strong>得分 ≥ 3分：</strong> 允许入场（仅趋势市）</li>
+                <li><strong>得分 < 3分：</strong> 无信号（NONE）</li>
+                <li><strong>最终action：</strong> 得分 ≥ 3分时，多头趋势→做多，空头趋势→做空</li>
+              </ul>
+
+              <h4>VWAP时间级别使用说明：</h4>
+              <ul>
+                <li><strong>趋势市1H多因子打分：</strong> 使用1H VWAP，方向一致性必须满足，否则直接返回0分</li>
+                <li><strong>震荡市1H边界判断：</strong> 使用1H VWAP，作为加分因子（价格接近VWAP时加分）</li>
+                <li><strong>震荡市15分钟执行：</strong> 使用15m VWAP，作为多因子打分的一部分</li>
+                <li><strong>VWAP计算：</strong> 基于典型价格（(H+L+C)/3）和成交量的加权平均，使用最近20根K线</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="strategy-phase">
+            <h3>🔄 3. 震荡市1H边界判断逻辑</h3>
+            <div class="phase-content">
+              <h4>数据来源：</h4>
+              <ul>
+                <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50`</li>
+                <li><strong>Delta数据：</strong> WebSocket实时数据 (1h EMA6平滑)</li>
+                <li><strong>持仓量历史：</strong> `/futures/data/openInterestHist?symbol={symbol}&period=1h&limit=6`</li>
+              </ul>
+
+              <h4>边界有效性判断（优化版 - 多因子打分系统）：</h4>
+              <ul>
+                <li><strong>布林带计算：</strong> 20期布林带，K=2，带宽 = (上轨-下轨)/中轨</li>
+                <li><strong>多因子打分系统：</strong> 基于6个因子进行量化打分，总分0-6分，根据交易对分类应用不同权重</li>
+                <li><strong>连续触碰因子：</strong> 最近6根1H K线触碰次数，最高2分，主流币和高市值趋势币权重30%</li>
+                <li><strong>触碰判断：</strong> 下轨：close ≤ lower×(1+0.015)，上轨：close ≥ upper×(1-0.015)</li>
+                <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.7×20期均量，1分，热点币和小币权重30%</li>
+                <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡），1分，热点币和小币权重25%</li>
+                <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%，1分，所有交易对权重统一为10%</li>
+                <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分，仅主流币权重5%</li>
+                <li><strong>VWAP因子：</strong> 价格接近1H VWAP（1%以内），1分，主流币和高市值趋势币权重20%</li>
+              </ul>
+
+              <h4>震荡市1H边界权重计算逻辑：</h4>
+              <ul>
+                <li><strong>因子得分：</strong> 每个因子根据条件满足情况得0-1分（触碰因子最高2分）</li>
+                <li><strong>权重应用：</strong> 根据交易对分类应用不同权重，优化边界判断准确性</li>
+                <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
+                <li><strong>边界有效：</strong> 总分 ≥ 3分时判断边界有效，允许15分钟假突破入场</li>
+                <li><strong>灵活判断：</strong> 允许部分条件轻微不符合仍可判定有效</li>
+              </ul>
+
+              <h4>震荡市1H区间边界确认权重分布：</h4>
+              <table class="weight-table">
+                <thead>
+                  <tr>
+                    <th>因子</th>
+                    <th>主流币</th>
+                    <th>高市值趋势币</th>
+                    <th>热点币</th>
+                    <th>小币</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>VWAP因子</strong></td>
+                    <td>20%</td>
+                    <td>20%</td>
+                    <td>10%</td>
+                    <td>10%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>触碰因子</strong></td>
+                    <td>30%</td>
+                    <td>30%</td>
+                    <td>25%</td>
+                    <td>25%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>成交量因子</strong></td>
+                    <td>20%</td>
+                    <td>25%</td>
+                    <td>30%</td>
+                    <td>30%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Delta因子</strong></td>
+                    <td>15%</td>
+                    <td>15%</td>
+                    <td>25%</td>
+                    <td>25%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>OI因子</strong></td>
+                    <td>10%</td>
+                    <td>10%</td>
+                    <td>10%</td>
+                    <td>10%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>无突破因子</strong></td>
+                    <td>5%</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <h4>判断逻辑（V3优化版）：</h4>
+              <ul>
+                <li><strong>边界有效性：</strong> 多因子得分 ≥ 3分时判断边界有效</li>
+                <li><strong>灵活判断：</strong> 允许部分条件轻微不符合仍可判定有效</li>
+                <li><strong>最终action：</strong> 边界有效时允许15m假突破入场</li>
+                <li><strong>数据刷新：</strong> 1H边界判断每5分钟更新一次，确保数据实时性</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="strategy-phase">
+            <h3>⚡ 4. 15分钟入场信号判断</h3>
+            <div class="phase-content">
+              <h4>数据来源：</h4>
+              <ul>
+                <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=15m&limit=50`</li>
+                <li><strong>1小时K线：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50`</li>
+                <li><strong>Delta数据：</strong> WebSocket实时数据 (15m EMA3平滑)</li>
+              </ul>
+
+              <h4>指标计算：</h4>
+              <ul>
+                <li><strong>EMA20：</strong> EMA(收盘价, 20) = 收盘价 × (2/21) + 前EMA × (19/21)</li>
+                <li><strong>EMA50：</strong> EMA(收盘价, 50) = 收盘价 × (2/51) + 前EMA × (49/51)</li>
+                <li><strong>ATR14：</strong> ATR(14) = EMA(真实波幅, 14)，真实波幅 = max(最高价-最低价, |最高价-前收盘价|, |最低价-前收盘价|)</li>
+              </ul>
+
+              <h4>趋势市入场模式（V3优化版 - 15m多因子打分）：</h4>
+              <ul>
+                <li><strong>多头回踩突破：</strong> 价格回踩EMA20/50支撑 + 突破setup candle高点 + 15m多因子得分≥2分</li>
+                <li><strong>空头反抽破位：</strong> 价格反抽EMA20/50阻力 + 跌破setup candle低点 + 15m多因子得分≥2分</li>
+              </ul>
+
+              <h4>15m多因子打分机制：</h4>
+              <ul>
+                <li><strong>VWAP方向（必需）：</strong> 多头收盘价>VWAP，空头收盘价<VWAP< /li>
+                <li><strong>突破确认（±1分）：</strong> 多头突破最近20根高点，空头跌破最近20根低点</li>
+                <li><strong>成交量确认（±1分）：</strong> 15m成交量≥1.5×20期均量</li>
+                <li><strong>OI变化（±1分）：</strong> 多头6h OI≥+2%，空头6h OI≤-2%</li>
+                <li><strong>Delta不平衡（±1分）：</strong> 多头主动买盘≥卖盘×1.2，空头主动卖盘≥买盘×1.2</li>
+                <li><strong>入场条件：</strong> 多因子得分≥2分才允许入场</li>
+              </ul>
+
+              <h4>震荡市入场模式（V3优化版 - 多因子确认）：</h4>
+              <ul>
+                <li><strong>假突破入场：</strong> 15分钟布林带宽收窄 + 假突破验证 + 15分钟多因子确认</li>
+                <li><strong>多头假突破：</strong> 突破下沿后快速回撤 + 下轨边界有效 + 多因子得分≥2</li>
+                <li><strong>空头假突破：</strong> 突破上沿后快速回撤 + 上轨边界有效 + 多因子得分≥2</li>
+                <li><strong>Delta实时计算：</strong> WebSocket实时获取aggTrade数据，15分钟EMA(3)平滑处理</li>
+                <li><strong>数据刷新：</strong> 15m入场判断每2分钟更新一次，确保信号及时性</li>
+              </ul>
+
+              <h4>震荡市15分钟入场执行权重分布：</h4>
+              <table class="weight-table">
+                <thead>
+                  <tr>
+                    <th>因子</th>
+                    <th>主流币</th>
+                    <th>高市值趋势币</th>
+                    <th>热点币</th>
+                    <th>小币</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>VWAP因子</strong></td>
+                    <td>30%</td>
+                    <td>20%</td>
+                    <td>20%</td>
+                    <td>10%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Delta因子</strong></td>
+                    <td>30%</td>
+                    <td>30%</td>
+                    <td>20%</td>
+                    <td>20%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>OI因子</strong></td>
+                    <td>20%</td>
+                    <td>30%</td>
+                    <td>20%</td>
+                    <td>20%</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Volume因子</strong></td>
+                    <td>20%</td>
+                    <td>20%</td>
+                    <td>40%</td>
+                    <td>50%</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <h4>震荡市具体执行逻辑（V3优化版）：</h4>
+              <ul>
+                <li><strong>布林带宽收窄：</strong> 15分钟BB宽度 < 0.05（5%）</li>
+                <li><strong>假突破验证：</strong> 前一根突破边界 + 当前收回区间内</li>
+                <li><strong>多因子确认：</strong> 15m VWAP、Delta、OI、Volume四因子得分≥2分</li>
+                <li><strong>实时监控：</strong> 每2分钟检查一次假突破机会，确保不错过信号</li>
+                <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose> rangeLow 且 lowerBoundaryValid</li>
+                <li><strong>空头假突破：</strong> prevClose > rangeHigh 且 lastClose < rangeHigh 且 upperBoundaryValid</li>
+                <li><strong>15分钟多因子打分：</strong> 15m VWAP、Delta、OI、Volume四个因子量化打分，得分范围-4到+4，根据交易对分类应用不同权重</li>
+                <li><strong>入场条件：</strong> 多因子得分 ≥ 2分才允许入场</li>
+                <li><strong>入场价格：</strong> 假突破回撤后的收盘价</li>
+                <li><strong>止损价格：</strong> 突破的边界价格（下轨/上轨）</li>
+                <li><strong>止盈价格：</strong> 固定1:2风险回报比</li>
+              </ul>
+
+              <h4>震荡市15分钟入场权重计算逻辑：</h4>
+              <ul>
+                <li><strong>因子得分：</strong> 每个因子根据条件满足情况得-1到+1分</li>
+                <li><strong>权重应用：</strong> 根据交易对分类应用不同权重，优化入场判断准确性</li>
+                <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
+                <li><strong>入场条件：</strong> 总分 ≥ 2分且假突破验证通过时允许入场</li>
+                <li><strong>权重策略：</strong> 主流币重视VWAP+Delta，热点币重视Volume+Delta，小币重视Volume+OI</li>
+              </ul>
+
+              <h4>判断逻辑：</h4>
+              <ul>
+                <li><strong>趋势市前提：</strong> 4H趋势明确 + 1H VWAP方向一致（必须满足）且1H得分 ≥ 3分</li>
+                <li><strong>震荡市前提：</strong> 4H震荡市 + 1H边界有效（下轨或上轨）+ 15分钟布林带宽收窄</li>
+                <li><strong>VWAP方向一致性：</strong> 趋势市中价格与1H VWAP方向必须一致，震荡市中VWAP作为加分因子</li>
+                <li><strong>趋势市止损：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
+                <li><strong>震荡市止损：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
+                <li><strong>趋势市止盈：</strong> 多头2R，空头2R</li>
+                <li><strong>震荡市止盈：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
+              </ul>
+
+              <h4>震荡市止盈止损详细逻辑：</h4>
+              <ul>
+                <li><strong>结构性止损：</strong> 多头跌破下轨-ATR，空头突破上轨+ATR</li>
+                <li><strong>多因子止损：</strong> VWAP、Delta、OI、Volume因子得分≤-2时触发</li>
+                <li><strong>时间止盈：</strong> 持仓超过3小时自动止盈</li>
+                <li><strong>固定RR目标：</strong> 风险回报比1:2，多头止盈=入场+2×(入场-止损)</li>
+                <li><strong>空头止盈：</strong> 空头止盈=入场-2×(止损-入场)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="strategy-phase">
+            <h3>💰 5. 止盈止损逻辑</h3>
+            <div class="phase-content">
+              <div class="scoring-system">
+                <h4>📊 风险控制机制</h4>
+                <div class="score-breakdown">
+                  <div class="score-category">
+                    <h5>🎯 趋势市止盈止损</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">止损</span>
+                        <span class="score-desc">Setup candle另一端 或 1.2×ATR(14)，取更远者</span>
+                      </div>
+                      <div class="score-item">
+                        <span class="score-point">止盈</span>
+                        <span class="score-desc">风险回报比1:2，多头止盈=入场+2×(入场-止损)</span>
+                      </div>
+                      <div class="score-item">
+                        <span class="score-point">空头止盈</span>
+                        <span class="score-desc">空头止盈=入场-2×(止损-入场)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>🔄 震荡市止盈止损</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">结构性止损</span>
+                        <span class="score-desc">多头跌破下轨-ATR，空头突破上轨+ATR</span>
+                      </div>
+                      <div class="score-item">
+                        <span class="score-point">多因子止损</span>
+                        <span class="score-desc">VWAP、Delta、OI、Volume因子得分≤-2时触发</span>
+                      </div>
+                      <div class="score-item">
+                        <span class="score-point">时间止盈</span>
+                        <span class="score-desc">持仓超过3小时自动止盈</span>
+                      </div>
+                      <div class="score-item">
+                        <span class="score-point">固定RR目标</span>
+                        <span class="score-desc">风险回报比1:2，确保风险可控</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="score-category">
+                    <h5>⚙️ 杠杆计算逻辑</h5>
+                    <div class="score-items">
+                      <div class="score-item">
+                        <span class="score-point">止损距离</span>
+                        <span class="score-desc">X% = |入场价-止损价|/入场价</span>
+                      </div>
+                      <div class="score-item">
+                        <span class="score-point">最大杠杆</span>
+                        <span class="score-desc">Y = floor(1/(X%+0.5%))</span>
+                      </div>
+                      <div class="score-item">
+                        <span class="score-point">最小保证金</span>
+                        <span class="score-desc">Z = ceil(最大损失金额/(Y×X%))</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="strategy-phase">
+            <h3>📊 6. 核心指标说明</h3>
+            <div class="phase-content">
+              <h4>BBW（布林带带宽）：</h4>
+              <p>BBW = (上轨 - 下轨) / 中轨</p>
+              <p>其中：中轨 = MA20，上轨 = 中轨 + 2×标准差，下轨 = 中轨 - 2×标准差</p>
+              <p>BBW扩张：最新BBW > 前一个BBW，表示波动率增加，趋势可能加强</p>
+
+              <h4>VWAP（成交量加权平均价格）：</h4>
+              <p>VWAP = Σ(典型价 × 成交量) / Σ(成交量)</p>
+              <p>其中：典型价 = (最高价 + 最低价 + 收盘价) / 3</p>
+              <p>用于判断价格与成交量加权平均的关系</p>
+
+              <h4>趋势市1H多因子打分系统：</h4>
+              <p>基于6个因子进行打分，每个因子0-1分，总分0-6分，根据交易对分类应用不同权重：</p>
+              <ul>
+                <li><strong>VWAP方向：</strong> 收盘价与VWAP的关系，必须满足否则直接返回0分，权重为0但计入总分</li>
+                <li><strong>突破确认：</strong> 是否突破最近20根4H K线的高低点，根据交易对分类应用不同权重</li>
+                <li><strong>成交量确认：</strong> 15m成交量≥1.5×20期均量且1h成交量≥1.2×20期均量，根据交易对分类应用不同权重</li>
+                <li><strong>OI变化：</strong> 多头6h OI≥+2%，空头6h OI≤-3%，根据交易对分类应用不同权重</li>
+                <li><strong>资金费率：</strong> -0.05%≤资金费率≤+0.05%，所有交易对权重统一为10%</li>
+                <li><strong>Delta不平衡：</strong> 多头主动买盘≥卖盘×1.2，空头主动卖盘≥买盘×1.2，根据交易对分类应用不同权重</li>
+              </ul>
+
+              <h4>震荡市1H边界多因子打分系统：</h4>
+              <p>基于6个因子进行量化打分，用于1H边界有效性判断，根据交易对分类应用不同权重：</p>
+              <ul>
+                <li><strong>连续触碰因子：</strong> 最近6根1H K线触碰次数，最高2分，主流币和高市值趋势币权重30%</li>
+                <li><strong>成交量因子：</strong> 最新1H成交量≤1.7×20期均量，1分，热点币和小币权重30%</li>
+                <li><strong>Delta因子：</strong> |Delta|≤0.02（买卖盘平衡），1分，热点币和小币权重25%</li>
+                <li><strong>OI因子：</strong> |6h OI变化|≤2%，1分，所有交易对权重统一为10%</li>
+                <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分，仅主流币权重5%</li>
+                <li><strong>VWAP因子：</strong> 价格接近1H VWAP（1%以内），1分，主流币和高市值趋势币权重20%</li>
+                <li><strong>得分范围：</strong> 0到6分，边界有效：得分≥3时判断边界有效</li>
+              </ul>
+
+              <h4>震荡市15分钟入场多因子打分系统：</h4>
+              <p>基于4个因子进行量化打分，用于震荡市入场确认和止损判断，根据交易对分类应用不同权重：</p>
+              <ul>
+                <li><strong>VWAP因子：</strong> 当前价>VWAP→+1，否则-1，主流币权重30%，小币权重10%</li>
+                <li><strong>Delta因子：</strong> Delta正值→+1，负值→-1，主流币和高市值趋势币权重30%</li>
+                <li><strong>OI因子：</strong> OI上涨→+1，下降→-1，高市值趋势币权重30%</li>
+                <li><strong>Volume因子：</strong> 成交量增量→+1，减量→-1，热点币权重40%，小币权重50%</li>
+                <li><strong>得分范围：</strong> -4到+4，入场条件：得分≥2时允许入场，止损条件：得分≤-2时触发多因子止损</li>
+              </ul>
+
+              <h4>入场模式：</h4>
+              <p><strong>模式A（回踩确认）：</strong> 高胜率模式，价格回踩支撑位后突破</p>
+              <p><strong>模式B（动能突破）：</strong> 高机会模式，放量突破setup candle</p>
+            </div>
+          </div>
+
+          <div class="strategy-phase">
+            <h3>⚠️ 5. 风险控制与执行规则</h3>
+            <div class="phase-content">
+              <h4>入场条件：</h4>
+              <ul>
+                <li><strong>趋势市：</strong> 4H趋势明确 + 1H VWAP方向一致 + 1H得分≥3分 + 15m入场模式</li>
+                <li><strong>震荡市：</strong> 4H震荡市 + 1H边界有效 + 15m区间交易或假突破反手</li>
+              </ul>
+
+              <h4>出场条件（6种）：</h4>
+              <ul>
+                <li><strong>1. 止损触发：</strong> 价格触及止损位（趋势市：setup candle另一端或1.2×ATR14；震荡市：区间边界失效）</li>
+                <li><strong>2. 止盈触发：</strong> 价格触及止盈位（趋势市2R，震荡市1:2 RR目标）</li>
+                <li><strong>3. 趋势反转：</strong> 4H趋势改变或1H得分<3分（趋势市专用）< /li>
+                <li><strong>4. 多因子止损：</strong> 多因子得分≤-2（震荡市专用）</li>
+                <li><strong>5. 支撑阻力突破：</strong> 价格跌破EMA20/50或关键支撑/阻力位（趋势市专用）</li>
+                <li><strong>6. 时间止损：</strong> 持仓时间超过3小时（震荡市）或12小时（趋势市）</li>
+              </ul>
+
+              <h4>风控规则：</h4>
+              <ul>
+                <li><strong>趋势市止损：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
+                <li><strong>震荡市止损：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
+                <li><strong>趋势市止盈：</strong> 2R风险回报比</li>
+                <li><strong>震荡市止盈：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
+                <li><strong>单笔风险：</strong> 根据全局最大损失设置（10/20/50/100 USDT）</li>
+                <li><strong>杠杆计算：</strong> 智能检测默认值，自动重新计算杠杆和保证金</li>
+                <li><strong>止损距离：</strong> 多头(入场价-止损价)/入场价，空头(止损价-入场价)/入场价</li>
+                <li><strong>最大杠杆：</strong> floor(1/(止损距离% + 0.5%))，确保强平价距离止损点3倍以上</li>
+                <li><strong>最小保证金：</strong> ceil(最大损失金额/(杠杆数 × 止损距离%))，数值向上取整</li>
+                <li><strong>最大持仓：</strong> 同一交易对最多1笔活跃交易</li>
+                <li><strong>时间限制：</strong> 趋势市最长12小时，震荡市最长3小时</li>
+              </ul>
+
+              <h4>表格列说明：</h4>
+              <ul>
+                <li><strong>趋势打分列：</strong> 4H趋势判断得分（0-5分），≥3分绿色，<3分灰色< /li>
+                <li><strong>4H趋势列：</strong> 4H级别趋势判断结果（多头趋势/空头趋势/震荡市/无趋势）</li>
+                <li><strong>多因子得分列：</strong> 根据市场类型显示不同得分
+                  <ul>
+                    <li>趋势市：1H趋势加强多因子打分（0-6分），≥3分绿色</li>
+                    <li>震荡市：1H边界有效性判断（0-2分），≥1分绿色</li>
+                  </ul>
+                </li>
+                <li><strong>1H判断列：</strong> 根据市场类型显示不同判断结果
+                  <ul>
+                    <li>趋势市：1H趋势加强多因子打分结果（做多/做空/观望）和信号强度（强/中/弱）</li>
+                    <li>震荡市：1H边界有效性判断（边界有效/边界无效）和得分（0-2分）</li>
+                  </ul>
+                </li>
+                <li><strong>15min信号列：</strong> 15分钟级别入场判断结果（趋势市：多头回踩突破/空头反抽破位；震荡市：区间多头/区间空头/假突破反手）</li>
+                <li><strong>当前价格列：</strong> 当前价格和入场价格（如有）</li>
+                <li><strong>数据采集率列：</strong> Binance API实时成功率（100%表示API调用正常）</li>
+                <li><strong>实时监控：</strong> 每30秒更新一次，显示当前API调用状态</li>
+                <li><strong>失败分析：</strong> 如有API调用失败，会记录具体失败原因</li>
+              </ul>
+
+              <h4>震荡市模式说明：</h4>
+              <ul>
+                <li><strong>假突破入场：</strong> 15分钟布林带宽收窄 + 假突破验证 + 多因子确认</li>
+                <li><strong>多头假突破：</strong> 突破下沿后快速回撤 + 下轨边界有效</li>
+                <li><strong>空头假突破：</strong> 突破上沿后快速回撤 + 上轨边界有效</li>
+                <li><strong>止损设置：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
+                <li><strong>止盈目标：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div> <!-- 趋势策略内容结束 -->
+
+    <!-- ICT策略内容 -->
+    <div id="ict-content" class="strategy-content">
+      <!-- ICT控制面板 -->
+      <div class="controls">
+        <div class="control-group">
+          <div class="update-status">
+            <span class="status-label">🎯 ICT策略更新：</span>
+            <span id="ictUpdateTime" class="status-time">--</span>
+          </div>
+          <div class="update-status">
+            <span class="status-label">📊 高时间框架：</span>
+            <span id="htfUpdateTime" class="status-time">--</span>
+          </div>
+          <div class="update-status">
+            <span class="status-label">⚡ 低时间框架：</span>
+            <span id="ltfUpdateTime" class="status-time">--</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="ictMaxLossAmount">💰 单次交易最大损失：</label>
+          <select id="ictMaxLossAmount">
+            <option value="10">10 USDT</option>
+            <option value="20">20 USDT</option>
+            <option value="50">50 USDT</option>
+            <option value="100" selected>100 USDT</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ICT统计概览 -->
+      <div class="stats-grid" id="ictStatsGrid">
+        <div class="stat-card">
+          <h3 id="ictTotalSignals">0</h3>
+          <p>ICT总信号数</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="ictLongSignals">0</h3>
+          <p>ICT多头信号</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="ictShortSignals">0</h3>
+          <p>ICT空头信号</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="ictLastUpdate">--</h3>
+          <p>最后更新</p>
+        </div>
+      </div>
+
+      <!-- ICT操作按钮 -->
+      <div class="actions">
+        <button id="ictRefreshBtn" class="btn-primary">🔄 刷新ICT信号</button>
+        <button id="ictClearCacheBtn" class="btn-secondary">🗑️ 清除缓存</button>
+        <a href="simulation-data.html?strategy=ict" class="btn-secondary">📊 ICT模拟交易数据</a>
+        <a href="symbol-management.html" class="btn-secondary">⚙️ 交易对管理</a>
+      </div>
+
+      <!-- ICT交易信号表格 -->
+      <div class="table-responsive">
+        <table class="table" id="ictSignalsTable">
           <thead>
             <tr>
-              <th>详情</th>
               <th>交易对</th>
               <th>分类</th>
-              <th>趋势打分</th>
-              <th>4H趋势</th>
-              <th>多因子得分</th>
-              <th>1H判断</th>
-              <th>15min信号</th>
-              <th>当前价格</th>
+              <th>1D趋势</th>
+              <th>信号类型</th>
+              <th>信号强度</th>
+              <th>执行模式</th>
+              <th>OB检测</th>
+              <th>FVG检测</th>
+              <th>吞没形态</th>
+              <th>Sweep确认</th>
+              <th>入场价格</th>
+              <th>止损</th>
+              <th>止盈</th>
+              <th>风险回报比</th>
               <th>数据采集率</th>
+              <th>操作</th>
             </tr>
           </thead>
-          <tbody id="signalsTableBody">
-            <tr>
-              <td><button class="expand-btn" onclick="toggleHistory('BTCUSDT')" title="查看详细信息">+</button></td>
-              <td><strong>BTCUSDT</strong></td>
-              <td class="category-mainstream">主流币</td>
-              <td class="score-none">0</td>
-              <td class="trend-none">震荡市</td>
-              <td class="score-none">0</td>
-              <td>--</td>
-              <td>--</td>
-              <td class="price-cell">43250.1234</td>
-              <td><span class="badge badge-success">98.5%</span></td>
-            </tr>
-            <tr>
-              <td><button class="expand-btn" onclick="toggleHistory('SOLUSDT')" title="查看详细信息">+</button></td>
-              <td><strong>SOLUSDT</strong></td>
-              <td class="category-highcap">高市值趋势币</td>
-              <td class="score-none">0</td>
-              <td class="trend-bull">多头趋势</td>
-              <td class="score-none">0</td>
-              <td>--</td>
-              <td>--</td>
-              <td class="price-cell">238.02</td>
-              <td><span class="badge badge-success">99.2%</span></td>
-            </tr>
+          <tbody id="ictSignalsTableBody">
+            <!-- ICT信号数据将动态加载 -->
           </tbody>
         </table>
-      </div>
-    </div>
-
-    <!-- 策略规则说明 -->
-    <div class="rules-section" id="rulesSection">
-      <h2>📋 SmartFlow V3 交易策略规则说明</h2>
-
-      <div class="strategy-overview">
-        <h3>🎯 系统架构（3层共振分析）</h3>
-        <div class="system-flow">
-          <div class="flow-step">
-            <div class="step-number">1</div>
-            <div class="step-content">
-              <h4>4H趋势判断</h4>
-              <p>10分打分机制<br>≥4分保留趋势</p>
-            </div>
-          </div>
-          <div class="flow-arrow">→</div>
-          <div class="flow-step">
-            <div class="step-number">2</div>
-            <div class="step-content">
-              <h4>1H多因子打分</h4>
-              <p>趋势市：6分制，≥3分入场<br>震荡市：边界确认，≥3分有效</p>
-            </div>
-          </div>
-          <div class="flow-arrow">→</div>
-          <div class="flow-step">
-            <div class="step-number">3</div>
-            <div class="step-content">
-              <h4>15分钟入场执行</h4>
-              <p>趋势市：回踩突破<br>震荡市：假突破反手</p>
-            </div>
-          </div>
-        </div>
-        <div class="update-frequency">
-          <p><strong>数据更新频率：</strong> 4H趋势每1小时 | 1H打分每5分钟 | 15m入场每2分钟</p>
-        </div>
-      </div>
-
-      <div class="strategy-overview">
-        <h3>📊 多因子打分权重逻辑总结</h3>
-        <div class="weight-summary">
-          <h4>🎯 核心原则：</h4>
-          <ul>
-            <li><strong>趋势市1H多因子打分：</strong> VWAP方向一致是必须满足的条件，不计入权重但计入总分（满分6分）</li>
-            <li><strong>震荡市1H边界确认：</strong> VWAP作为加分因子，根据交易对分类应用不同权重</li>
-            <li><strong>震荡市15分钟入场：</strong> VWAP作为核心因子之一，权重随交易对分类调整</li>
-            <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
-          </ul>
-
-          <h4>📈 交易对分类策略：</h4>
-          <ul>
-            <li><strong>主流币（BTC/ETH）：</strong> 重视突破确认和OI变化，适合稳定趋势</li>
-            <li><strong>高市值趋势币（SOL/BNB）：</strong> 平衡各因子权重，适合中等波动</li>
-            <li><strong>热点币（PEPE/WLD）：</strong> 重视成交量和Delta，适合高波动</li>
-            <li><strong>小币（其他）：</strong> 重点关注成交量和Delta，适合短线操作</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="strategy-details">
-        <div class="strategy-phase">
-          <h3>📈 1. 4H趋势判断逻辑</h3>
-          <div class="phase-content">
-            <div class="scoring-system">
-              <h4>📊 总分计算：10分制</h4>
-              <div class="score-breakdown">
-                <div class="score-category prerequisite">
-                  <h5>🎯 趋势方向（必选，3分）</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">收盘价 > MA20（多头）或 收盘价 < MA20（空头）</span>
-                    </div>
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">MA20 > MA50（多头）或 MA20 < MA50（空头）</span>
-                    </div>
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">MA50 > MA200（多头）或 MA50 < MA200（空头）</span>
-                    </div>
-                  </div>
-                  <p class="prerequisite-note">⚠️ 每个方向至少需要2分才能进入后续打分</p>
-                </div>
-
-                <div class="score-category">
-                  <h5>🔒 趋势稳定性（1分）</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">连续≥2根4H K线满足趋势方向</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="score-category">
-                  <h5>💪 趋势强度（1分）</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">ADX(14) > 20 且 DI方向正确</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="score-category">
-                  <h5>📈 布林带扩张（1分）</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">最近10根K线，后5根BBW均值 > 前5根均值 × 1.05</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="score-category">
-                  <h5>⚡ 动量确认（1分）</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">当前K线收盘价离MA20距离 ≥ 0.5%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="final-judgment">
-                <h5>🎯 最终判断</h5>
-                <div class="judgment-rule">
-                  <span class="threshold">≥4分</span>
-                  <span class="result">保留趋势</span>
-                </div>
-                <div class="judgment-rule">
-                  <span class="threshold">
-                    <4分< /span>
-                      <span class="result">震荡市</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="strategy-phase">
-          <h3>⏰ 2. 趋势市1H趋势加强逻辑</h3>
-          <div class="phase-content">
-            <div class="scoring-system">
-              <h4>📊 总分计算：6分制（趋势市）</h4>
-              <div class="score-breakdown">
-                <div class="score-category prerequisite">
-                  <h5>🚨 VWAP方向（必须满足，0分）</h5>
-                  <div class="score-items">
-                    <div class="score-item prerequisite">
-                      <span class="score-point">必须</span>
-                      <span class="score-desc">收盘价 > VWAP（多头）或 收盘价 < VWAP（空头）</span>
-                    </div>
-                  </div>
-                  <p class="prerequisite-note">⚠️ 不满足直接返回0分，不进入后续打分</p>
-                </div>
-
-                <div class="score-category">
-                  <h5>🎯 突破确认（1分）</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">收盘价突破最近20根4H K线高点（多头）或低点（空头）</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="score-category">
-                  <h5>📊 成交量双确认（1分）</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">15m成交量 ≥ 1.5×20期均量 且 1h成交量 ≥ 1.2×20期均量</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="score-category">
-                  <h5>💼 OI变化（1分）</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">多头：6h OI ≥ +2% | 空头：6h OI ≤ -3%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="score-category">
-                  <h5>💰 资金费率（1分）</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">-0.05% ≤ 资金费率 ≤ +0.05%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="score-category">
-                  <h5>⚖️ Delta不平衡（1分）</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">1分</span>
-                      <span class="score-desc">多头：主动买盘 ≥ 卖盘×1.2 | 空头：主动卖盘 ≥ 买盘×1.2</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="final-judgment">
-                <h5>🎯 入场条件</h5>
-                <div class="judgment-rule">
-                  <span class="threshold">≥3分 + VWAP方向一致</span>
-                  <span class="result">允许入场</span>
-                </div>
-                <div class="judgment-rule">
-                  <span class="threshold">
-                    <3分 或 VWAP方向不一致</span>
-                      <span class="result">无信号</span>
-                </div>
-              </div>
-            </div>
-
-            <h4>趋势市1H多因子打分权重分布：</h4>
-            <table class="weight-table">
-              <thead>
-                <tr>
-                  <th>因子</th>
-                  <th>主流币</th>
-                  <th>高市值强趋势币</th>
-                  <th>热点币</th>
-                  <th>小币</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>VWAP方向</strong></td>
-                  <td>必须满足（不计分）</td>
-                  <td>必须满足（不计分）</td>
-                  <td>必须满足（不计分）</td>
-                  <td>必须满足（不计分）</td>
-                </tr>
-                <tr>
-                  <td><strong>突破确认</strong></td>
-                  <td>30%</td>
-                  <td>25%</td>
-                  <td>15%</td>
-                  <td>15%</td>
-                </tr>
-                <tr>
-                  <td><strong>成交量确认</strong></td>
-                  <td>20%</td>
-                  <td>25%</td>
-                  <td>30%</td>
-                  <td>30%</td>
-                </tr>
-                <tr>
-                  <td><strong>OI变化</strong></td>
-                  <td>25%</td>
-                  <td>20%</td>
-                  <td>15%</td>
-                  <td>15%</td>
-                </tr>
-                <tr>
-                  <td><strong>Delta不平衡</strong></td>
-                  <td>15%</td>
-                  <td>20%</td>
-                  <td>30%</td>
-                  <td>30%</td>
-                </tr>
-                <tr>
-                  <td><strong>资金费率</strong></td>
-                  <td>10%</td>
-                  <td>10%</td>
-                  <td>10%</td>
-                  <td>10%</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <h4>判断逻辑：</h4>
-            <ul>
-              <li><strong>VWAP方向必须满足，否则得分=0</strong></li>
-              <li><strong>权重计算：</strong> 根据交易对分类应用不同权重，优化打分准确性</li>
-              <li><strong>得分 ≥ 3分：</strong> 允许入场（仅趋势市）</li>
-              <li><strong>得分 < 3分：</strong> 无信号（NONE）</li>
-              <li><strong>最终action：</strong> 得分 ≥ 3分时，多头趋势→做多，空头趋势→做空</li>
-            </ul>
-
-            <h4>VWAP时间级别使用说明：</h4>
-            <ul>
-              <li><strong>趋势市1H多因子打分：</strong> 使用1H VWAP，方向一致性必须满足，否则直接返回0分</li>
-              <li><strong>震荡市1H边界判断：</strong> 使用1H VWAP，作为加分因子（价格接近VWAP时加分）</li>
-              <li><strong>震荡市15分钟执行：</strong> 使用15m VWAP，作为多因子打分的一部分</li>
-              <li><strong>VWAP计算：</strong> 基于典型价格（(H+L+C)/3）和成交量的加权平均，使用最近20根K线</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="strategy-phase">
-          <h3>🔄 3. 震荡市1H边界判断逻辑</h3>
-          <div class="phase-content">
-            <h4>数据来源：</h4>
-            <ul>
-              <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50`</li>
-              <li><strong>Delta数据：</strong> WebSocket实时数据 (1h EMA6平滑)</li>
-              <li><strong>持仓量历史：</strong> `/futures/data/openInterestHist?symbol={symbol}&period=1h&limit=6`</li>
-            </ul>
-
-            <h4>边界有效性判断（优化版 - 多因子打分系统）：</h4>
-            <ul>
-              <li><strong>布林带计算：</strong> 20期布林带，K=2，带宽 = (上轨-下轨)/中轨</li>
-              <li><strong>多因子打分系统：</strong> 基于6个因子进行量化打分，总分0-6分，根据交易对分类应用不同权重</li>
-              <li><strong>连续触碰因子：</strong> 最近6根1H K线触碰次数，最高2分，主流币和高市值趋势币权重30%</li>
-              <li><strong>触碰判断：</strong> 下轨：close ≤ lower×(1+0.015)，上轨：close ≥ upper×(1-0.015)</li>
-              <li><strong>成交量因子：</strong> 最新1H成交量 ≤ 1.7×20期均量，1分，热点币和小币权重30%</li>
-              <li><strong>Delta因子：</strong> |Delta| ≤ 0.02（买卖盘平衡），1分，热点币和小币权重25%</li>
-              <li><strong>OI因子：</strong> |6h OI变化| ≤ 2%，1分，所有交易对权重统一为10%</li>
-              <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分，仅主流币权重5%</li>
-              <li><strong>VWAP因子：</strong> 价格接近1H VWAP（1%以内），1分，主流币和高市值趋势币权重20%</li>
-            </ul>
-
-            <h4>震荡市1H边界权重计算逻辑：</h4>
-            <ul>
-              <li><strong>因子得分：</strong> 每个因子根据条件满足情况得0-1分（触碰因子最高2分）</li>
-              <li><strong>权重应用：</strong> 根据交易对分类应用不同权重，优化边界判断准确性</li>
-              <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
-              <li><strong>边界有效：</strong> 总分 ≥ 3分时判断边界有效，允许15分钟假突破入场</li>
-              <li><strong>灵活判断：</strong> 允许部分条件轻微不符合仍可判定有效</li>
-            </ul>
-
-            <h4>震荡市1H区间边界确认权重分布：</h4>
-            <table class="weight-table">
-              <thead>
-                <tr>
-                  <th>因子</th>
-                  <th>主流币</th>
-                  <th>高市值趋势币</th>
-                  <th>热点币</th>
-                  <th>小币</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>VWAP因子</strong></td>
-                  <td>20%</td>
-                  <td>20%</td>
-                  <td>10%</td>
-                  <td>10%</td>
-                </tr>
-                <tr>
-                  <td><strong>触碰因子</strong></td>
-                  <td>30%</td>
-                  <td>30%</td>
-                  <td>25%</td>
-                  <td>25%</td>
-                </tr>
-                <tr>
-                  <td><strong>成交量因子</strong></td>
-                  <td>20%</td>
-                  <td>25%</td>
-                  <td>30%</td>
-                  <td>30%</td>
-                </tr>
-                <tr>
-                  <td><strong>Delta因子</strong></td>
-                  <td>15%</td>
-                  <td>15%</td>
-                  <td>25%</td>
-                  <td>25%</td>
-                </tr>
-                <tr>
-                  <td><strong>OI因子</strong></td>
-                  <td>10%</td>
-                  <td>10%</td>
-                  <td>10%</td>
-                  <td>10%</td>
-                </tr>
-                <tr>
-                  <td><strong>无突破因子</strong></td>
-                  <td>5%</td>
-                  <td>—</td>
-                  <td>—</td>
-                  <td>—</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <h4>判断逻辑（V3优化版）：</h4>
-            <ul>
-              <li><strong>边界有效性：</strong> 多因子得分 ≥ 3分时判断边界有效</li>
-              <li><strong>灵活判断：</strong> 允许部分条件轻微不符合仍可判定有效</li>
-              <li><strong>最终action：</strong> 边界有效时允许15m假突破入场</li>
-              <li><strong>数据刷新：</strong> 1H边界判断每5分钟更新一次，确保数据实时性</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="strategy-phase">
-          <h3>⚡ 4. 15分钟入场信号判断</h3>
-          <div class="phase-content">
-            <h4>数据来源：</h4>
-            <ul>
-              <li><strong>K线数据：</strong> `/fapi/v1/klines?symbol={symbol}&interval=15m&limit=50`</li>
-              <li><strong>1小时K线：</strong> `/fapi/v1/klines?symbol={symbol}&interval=1h&limit=50`</li>
-              <li><strong>Delta数据：</strong> WebSocket实时数据 (15m EMA3平滑)</li>
-            </ul>
-
-            <h4>指标计算：</h4>
-            <ul>
-              <li><strong>EMA20：</strong> EMA(收盘价, 20) = 收盘价 × (2/21) + 前EMA × (19/21)</li>
-              <li><strong>EMA50：</strong> EMA(收盘价, 50) = 收盘价 × (2/51) + 前EMA × (49/51)</li>
-              <li><strong>ATR14：</strong> ATR(14) = EMA(真实波幅, 14)，真实波幅 = max(最高价-最低价, |最高价-前收盘价|, |最低价-前收盘价|)</li>
-            </ul>
-
-            <h4>趋势市入场模式（V3优化版 - 15m多因子打分）：</h4>
-            <ul>
-              <li><strong>多头回踩突破：</strong> 价格回踩EMA20/50支撑 + 突破setup candle高点 + 15m多因子得分≥2分</li>
-              <li><strong>空头反抽破位：</strong> 价格反抽EMA20/50阻力 + 跌破setup candle低点 + 15m多因子得分≥2分</li>
-            </ul>
-
-            <h4>15m多因子打分机制：</h4>
-            <ul>
-              <li><strong>VWAP方向（必需）：</strong> 多头收盘价>VWAP，空头收盘价<VWAP< /li>
-              <li><strong>突破确认（±1分）：</strong> 多头突破最近20根高点，空头跌破最近20根低点</li>
-              <li><strong>成交量确认（±1分）：</strong> 15m成交量≥1.5×20期均量</li>
-              <li><strong>OI变化（±1分）：</strong> 多头6h OI≥+2%，空头6h OI≤-2%</li>
-              <li><strong>Delta不平衡（±1分）：</strong> 多头主动买盘≥卖盘×1.2，空头主动卖盘≥买盘×1.2</li>
-              <li><strong>入场条件：</strong> 多因子得分≥2分才允许入场</li>
-            </ul>
-
-            <h4>震荡市入场模式（V3优化版 - 多因子确认）：</h4>
-            <ul>
-              <li><strong>假突破入场：</strong> 15分钟布林带宽收窄 + 假突破验证 + 15分钟多因子确认</li>
-              <li><strong>多头假突破：</strong> 突破下沿后快速回撤 + 下轨边界有效 + 多因子得分≥2</li>
-              <li><strong>空头假突破：</strong> 突破上沿后快速回撤 + 上轨边界有效 + 多因子得分≥2</li>
-              <li><strong>Delta实时计算：</strong> WebSocket实时获取aggTrade数据，15分钟EMA(3)平滑处理</li>
-              <li><strong>数据刷新：</strong> 15m入场判断每2分钟更新一次，确保信号及时性</li>
-            </ul>
-
-            <h4>震荡市15分钟入场执行权重分布：</h4>
-            <table class="weight-table">
-              <thead>
-                <tr>
-                  <th>因子</th>
-                  <th>主流币</th>
-                  <th>高市值趋势币</th>
-                  <th>热点币</th>
-                  <th>小币</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>VWAP因子</strong></td>
-                  <td>30%</td>
-                  <td>20%</td>
-                  <td>20%</td>
-                  <td>10%</td>
-                </tr>
-                <tr>
-                  <td><strong>Delta因子</strong></td>
-                  <td>30%</td>
-                  <td>30%</td>
-                  <td>20%</td>
-                  <td>20%</td>
-                </tr>
-                <tr>
-                  <td><strong>OI因子</strong></td>
-                  <td>20%</td>
-                  <td>30%</td>
-                  <td>20%</td>
-                  <td>20%</td>
-                </tr>
-                <tr>
-                  <td><strong>Volume因子</strong></td>
-                  <td>20%</td>
-                  <td>20%</td>
-                  <td>40%</td>
-                  <td>50%</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <h4>震荡市具体执行逻辑（V3优化版）：</h4>
-            <ul>
-              <li><strong>布林带宽收窄：</strong> 15分钟BB宽度 < 0.05（5%）</li>
-              <li><strong>假突破验证：</strong> 前一根突破边界 + 当前收回区间内</li>
-              <li><strong>多因子确认：</strong> 15m VWAP、Delta、OI、Volume四因子得分≥2分</li>
-              <li><strong>实时监控：</strong> 每2分钟检查一次假突破机会，确保不错过信号</li>
-              <li><strong>多头假突破：</strong> prevClose < rangeLow 且 lastClose> rangeLow 且 lowerBoundaryValid</li>
-              <li><strong>空头假突破：</strong> prevClose > rangeHigh 且 lastClose < rangeHigh 且 upperBoundaryValid</li>
-              <li><strong>15分钟多因子打分：</strong> 15m VWAP、Delta、OI、Volume四个因子量化打分，得分范围-4到+4，根据交易对分类应用不同权重</li>
-              <li><strong>入场条件：</strong> 多因子得分 ≥ 2分才允许入场</li>
-              <li><strong>入场价格：</strong> 假突破回撤后的收盘价</li>
-              <li><strong>止损价格：</strong> 突破的边界价格（下轨/上轨）</li>
-              <li><strong>止盈价格：</strong> 固定1:2风险回报比</li>
-            </ul>
-
-            <h4>震荡市15分钟入场权重计算逻辑：</h4>
-            <ul>
-              <li><strong>因子得分：</strong> 每个因子根据条件满足情况得-1到+1分</li>
-              <li><strong>权重应用：</strong> 根据交易对分类应用不同权重，优化入场判断准确性</li>
-              <li><strong>总分计算：</strong> 所有因子得分总和，不依赖权重，确保公平性</li>
-              <li><strong>入场条件：</strong> 总分 ≥ 2分且假突破验证通过时允许入场</li>
-              <li><strong>权重策略：</strong> 主流币重视VWAP+Delta，热点币重视Volume+Delta，小币重视Volume+OI</li>
-            </ul>
-
-            <h4>判断逻辑：</h4>
-            <ul>
-              <li><strong>趋势市前提：</strong> 4H趋势明确 + 1H VWAP方向一致（必须满足）且1H得分 ≥ 3分</li>
-              <li><strong>震荡市前提：</strong> 4H震荡市 + 1H边界有效（下轨或上轨）+ 15分钟布林带宽收窄</li>
-              <li><strong>VWAP方向一致性：</strong> 趋势市中价格与1H VWAP方向必须一致，震荡市中VWAP作为加分因子</li>
-              <li><strong>趋势市止损：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
-              <li><strong>震荡市止损：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
-              <li><strong>趋势市止盈：</strong> 多头2R，空头2R</li>
-              <li><strong>震荡市止盈：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
-            </ul>
-
-            <h4>震荡市止盈止损详细逻辑：</h4>
-            <ul>
-              <li><strong>结构性止损：</strong> 多头跌破下轨-ATR，空头突破上轨+ATR</li>
-              <li><strong>多因子止损：</strong> VWAP、Delta、OI、Volume因子得分≤-2时触发</li>
-              <li><strong>时间止盈：</strong> 持仓超过3小时自动止盈</li>
-              <li><strong>固定RR目标：</strong> 风险回报比1:2，多头止盈=入场+2×(入场-止损)</li>
-              <li><strong>空头止盈：</strong> 空头止盈=入场-2×(止损-入场)</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="strategy-phase">
-          <h3>💰 5. 止盈止损逻辑</h3>
-          <div class="phase-content">
-            <div class="scoring-system">
-              <h4>📊 风险控制机制</h4>
-              <div class="score-breakdown">
-                <div class="score-category">
-                  <h5>🎯 趋势市止盈止损</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">止损</span>
-                      <span class="score-desc">Setup candle另一端 或 1.2×ATR(14)，取更远者</span>
-                    </div>
-                    <div class="score-item">
-                      <span class="score-point">止盈</span>
-                      <span class="score-desc">风险回报比1:2，多头止盈=入场+2×(入场-止损)</span>
-                    </div>
-                    <div class="score-item">
-                      <span class="score-point">空头止盈</span>
-                      <span class="score-desc">空头止盈=入场-2×(止损-入场)</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="score-category">
-                  <h5>🔄 震荡市止盈止损</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">结构性止损</span>
-                      <span class="score-desc">多头跌破下轨-ATR，空头突破上轨+ATR</span>
-                    </div>
-                    <div class="score-item">
-                      <span class="score-point">多因子止损</span>
-                      <span class="score-desc">VWAP、Delta、OI、Volume因子得分≤-2时触发</span>
-                    </div>
-                    <div class="score-item">
-                      <span class="score-point">时间止盈</span>
-                      <span class="score-desc">持仓超过3小时自动止盈</span>
-                    </div>
-                    <div class="score-item">
-                      <span class="score-point">固定RR目标</span>
-                      <span class="score-desc">风险回报比1:2，确保风险可控</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="score-category">
-                  <h5>⚙️ 杠杆计算逻辑</h5>
-                  <div class="score-items">
-                    <div class="score-item">
-                      <span class="score-point">止损距离</span>
-                      <span class="score-desc">X% = |入场价-止损价|/入场价</span>
-                    </div>
-                    <div class="score-item">
-                      <span class="score-point">最大杠杆</span>
-                      <span class="score-desc">Y = floor(1/(X%+0.5%))</span>
-                    </div>
-                    <div class="score-item">
-                      <span class="score-point">最小保证金</span>
-                      <span class="score-desc">Z = ceil(最大损失金额/(Y×X%))</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="strategy-phase">
-          <h3>📊 6. 核心指标说明</h3>
-          <div class="phase-content">
-            <h4>BBW（布林带带宽）：</h4>
-            <p>BBW = (上轨 - 下轨) / 中轨</p>
-            <p>其中：中轨 = MA20，上轨 = 中轨 + 2×标准差，下轨 = 中轨 - 2×标准差</p>
-            <p>BBW扩张：最新BBW > 前一个BBW，表示波动率增加，趋势可能加强</p>
-
-            <h4>VWAP（成交量加权平均价格）：</h4>
-            <p>VWAP = Σ(典型价 × 成交量) / Σ(成交量)</p>
-            <p>其中：典型价 = (最高价 + 最低价 + 收盘价) / 3</p>
-            <p>用于判断价格与成交量加权平均的关系</p>
-
-            <h4>趋势市1H多因子打分系统：</h4>
-            <p>基于6个因子进行打分，每个因子0-1分，总分0-6分，根据交易对分类应用不同权重：</p>
-            <ul>
-              <li><strong>VWAP方向：</strong> 收盘价与VWAP的关系，必须满足否则直接返回0分，权重为0但计入总分</li>
-              <li><strong>突破确认：</strong> 是否突破最近20根4H K线的高低点，根据交易对分类应用不同权重</li>
-              <li><strong>成交量确认：</strong> 15m成交量≥1.5×20期均量且1h成交量≥1.2×20期均量，根据交易对分类应用不同权重</li>
-              <li><strong>OI变化：</strong> 多头6h OI≥+2%，空头6h OI≤-3%，根据交易对分类应用不同权重</li>
-              <li><strong>资金费率：</strong> -0.05%≤资金费率≤+0.05%，所有交易对权重统一为10%</li>
-              <li><strong>Delta不平衡：</strong> 多头主动买盘≥卖盘×1.2，空头主动卖盘≥买盘×1.2，根据交易对分类应用不同权重</li>
-            </ul>
-
-            <h4>震荡市1H边界多因子打分系统：</h4>
-            <p>基于6个因子进行量化打分，用于1H边界有效性判断，根据交易对分类应用不同权重：</p>
-            <ul>
-              <li><strong>连续触碰因子：</strong> 最近6根1H K线触碰次数，最高2分，主流币和高市值趋势币权重30%</li>
-              <li><strong>成交量因子：</strong> 最新1H成交量≤1.7×20期均量，1分，热点币和小币权重30%</li>
-              <li><strong>Delta因子：</strong> |Delta|≤0.02（买卖盘平衡），1分，热点币和小币权重25%</li>
-              <li><strong>OI因子：</strong> |6h OI变化|≤2%，1分，所有交易对权重统一为10%</li>
-              <li><strong>无突破因子：</strong> 最近20根K线内无新高/新低突破，1分，仅主流币权重5%</li>
-              <li><strong>VWAP因子：</strong> 价格接近1H VWAP（1%以内），1分，主流币和高市值趋势币权重20%</li>
-              <li><strong>得分范围：</strong> 0到6分，边界有效：得分≥3时判断边界有效</li>
-            </ul>
-
-            <h4>震荡市15分钟入场多因子打分系统：</h4>
-            <p>基于4个因子进行量化打分，用于震荡市入场确认和止损判断，根据交易对分类应用不同权重：</p>
-            <ul>
-              <li><strong>VWAP因子：</strong> 当前价>VWAP→+1，否则-1，主流币权重30%，小币权重10%</li>
-              <li><strong>Delta因子：</strong> Delta正值→+1，负值→-1，主流币和高市值趋势币权重30%</li>
-              <li><strong>OI因子：</strong> OI上涨→+1，下降→-1，高市值趋势币权重30%</li>
-              <li><strong>Volume因子：</strong> 成交量增量→+1，减量→-1，热点币权重40%，小币权重50%</li>
-              <li><strong>得分范围：</strong> -4到+4，入场条件：得分≥2时允许入场，止损条件：得分≤-2时触发多因子止损</li>
-            </ul>
-
-            <h4>入场模式：</h4>
-            <p><strong>模式A（回踩确认）：</strong> 高胜率模式，价格回踩支撑位后突破</p>
-            <p><strong>模式B（动能突破）：</strong> 高机会模式，放量突破setup candle</p>
-          </div>
-        </div>
-
-        <div class="strategy-phase">
-          <h3>⚠️ 5. 风险控制与执行规则</h3>
-          <div class="phase-content">
-            <h4>入场条件：</h4>
-            <ul>
-              <li><strong>趋势市：</strong> 4H趋势明确 + 1H VWAP方向一致 + 1H得分≥3分 + 15m入场模式</li>
-              <li><strong>震荡市：</strong> 4H震荡市 + 1H边界有效 + 15m区间交易或假突破反手</li>
-            </ul>
-
-            <h4>出场条件（6种）：</h4>
-            <ul>
-              <li><strong>1. 止损触发：</strong> 价格触及止损位（趋势市：setup candle另一端或1.2×ATR14；震荡市：区间边界失效）</li>
-              <li><strong>2. 止盈触发：</strong> 价格触及止盈位（趋势市2R，震荡市1:2 RR目标）</li>
-              <li><strong>3. 趋势反转：</strong> 4H趋势改变或1H得分<3分（趋势市专用）< /li>
-              <li><strong>4. 多因子止损：</strong> 多因子得分≤-2（震荡市专用）</li>
-              <li><strong>5. 支撑阻力突破：</strong> 价格跌破EMA20/50或关键支撑/阻力位（趋势市专用）</li>
-              <li><strong>6. 时间止损：</strong> 持仓时间超过3小时（震荡市）或12小时（趋势市）</li>
-            </ul>
-
-            <h4>风控规则：</h4>
-            <ul>
-              <li><strong>趋势市止损：</strong> setup candle另一端 或 1.2×ATR(14)，取更远者</li>
-              <li><strong>震荡市止损：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
-              <li><strong>趋势市止盈：</strong> 2R风险回报比</li>
-              <li><strong>震荡市止盈：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
-              <li><strong>单笔风险：</strong> 根据全局最大损失设置（10/20/50/100 USDT）</li>
-              <li><strong>杠杆计算：</strong> 智能检测默认值，自动重新计算杠杆和保证金</li>
-              <li><strong>止损距离：</strong> 多头(入场价-止损价)/入场价，空头(止损价-入场价)/入场价</li>
-              <li><strong>最大杠杆：</strong> floor(1/(止损距离% + 0.5%))，确保强平价距离止损点3倍以上</li>
-              <li><strong>最小保证金：</strong> ceil(最大损失金额/(杠杆数 × 止损距离%))，数值向上取整</li>
-              <li><strong>最大持仓：</strong> 同一交易对最多1笔活跃交易</li>
-              <li><strong>时间限制：</strong> 趋势市最长12小时，震荡市最长3小时</li>
-            </ul>
-
-            <h4>表格列说明：</h4>
-            <ul>
-              <li><strong>趋势打分列：</strong> 4H趋势判断得分（0-5分），≥3分绿色，<3分灰色< /li>
-              <li><strong>4H趋势列：</strong> 4H级别趋势判断结果（多头趋势/空头趋势/震荡市/无趋势）</li>
-              <li><strong>多因子得分列：</strong> 根据市场类型显示不同得分
-                <ul>
-                  <li>趋势市：1H趋势加强多因子打分（0-6分），≥3分绿色</li>
-                  <li>震荡市：1H边界有效性判断（0-2分），≥1分绿色</li>
-                </ul>
-              </li>
-              <li><strong>1H判断列：</strong> 根据市场类型显示不同判断结果
-                <ul>
-                  <li>趋势市：1H趋势加强多因子打分结果（做多/做空/观望）和信号强度（强/中/弱）</li>
-                  <li>震荡市：1H边界有效性判断（边界有效/边界无效）和得分（0-2分）</li>
-                </ul>
-              </li>
-              <li><strong>15min信号列：</strong> 15分钟级别入场判断结果（趋势市：多头回踩突破/空头反抽破位；震荡市：区间多头/区间空头/假突破反手）</li>
-              <li><strong>当前价格列：</strong> 当前价格和入场价格（如有）</li>
-              <li><strong>数据采集率列：</strong> Binance API实时成功率（100%表示API调用正常）</li>
-              <li><strong>实时监控：</strong> 每30秒更新一次，显示当前API调用状态</li>
-              <li><strong>失败分析：</strong> 如有API调用失败，会记录具体失败原因</li>
-            </ul>
-
-            <h4>震荡市模式说明：</h4>
-            <ul>
-              <li><strong>假突破入场：</strong> 15分钟布林带宽收窄 + 假突破验证 + 多因子确认</li>
-              <li><strong>多头假突破：</strong> 突破下沿后快速回撤 + 下轨边界有效</li>
-              <li><strong>空头假突破：</strong> 突破上沿后快速回撤 + 上轨边界有效</li>
-              <li><strong>止损设置：</strong> 结构性止损（区间边界失效）+ 多因子止损（得分≤-2）+ 时间止损（3小时）</li>
-              <li><strong>止盈目标：</strong> 固定RR目标（1:2）+ 时间止盈（3小时）</li>
-            </ul>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -948,7 +1049,14 @@
   <script src="js/api.js?v=20250115-01"></script>
   <script src="js/components/Modal.js?v=20250115-01"></script>
   <script src="js/data/DataManager.js?v=20250115-01"></script>
-  <script src="js/main.js?v=20250115-01"></script>
+  <!-- 模块化JavaScript文件 -->
+  <script src="js/core.js?v=20250115-01"></script>
+  <script src="js/simulation.js?v=20250115-01"></script>
+  <script src="js/monitoring.js?v=20250115-01"></script>
+  <script src="js/alerts.js?v=20250115-01"></script>
+  <script src="js/symbols.js?v=20250115-01"></script>
+  <script src="js/utils.js?v=20250115-01"></script>
+  <script src="js/main-new.js?v=20250115-01"></script>
 
   <!-- 优化表格样式 -->
   <style>
@@ -1230,6 +1338,75 @@
       color: white;
     }
 
+    /* 策略切换选项卡样式 */
+    .strategy-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 20px 0;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 10px;
+    }
+
+    .strategy-tab {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border: 2px solid #dee2e6;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #495057;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      outline: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .strategy-tab::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: left 0.5s;
+    }
+
+    .strategy-tab:hover::before {
+      left: 100%;
+    }
+
+    .strategy-tab:hover {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .strategy-tab.active {
+      background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+      color: white;
+      border-color: #007bff;
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .strategy-tab.active:hover {
+      background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    }
+
+    /* 策略内容区域 */
+    .strategy-content {
+      display: none;
+    }
+
+    .strategy-content.active {
+      display: block;
+    }
+
     /* 响应式设计 */
     @media (max-width: 1200px) {
       .table {
@@ -1243,6 +1420,16 @@
     }
 
     @media (max-width: 768px) {
+      .strategy-tabs {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .strategy-tab {
+        font-size: 14px;
+        padding: 10px 20px;
+      }
+
       .table-responsive {
         overflow-x: auto;
       }

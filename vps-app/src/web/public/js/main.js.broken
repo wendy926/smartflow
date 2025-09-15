@@ -2629,9 +2629,191 @@ async function runSystemTests() {
 
   } catch (error) {
     console.error('系统测试失败:', error);
+    modal.showMessage('系统测试失败: ' + error.message, 'error');
   }
 }
 
+
+  /**
+   * 加载ICT策略数据
+   */
+  async loadICTData() {
+  try {
+    this.showLoading('正在加载ICT策略数据...');
+
+    const data = await window.apiClient.fetchICTSignals();
+    console.log('📊 ICT数据加载完成:', data);
+
+    this.renderICTSignals(data);
+    this.updateICTStats(data);
+    this.updateTimes.ict = new Date();
+    this.updateICTTimestamp();
+
+  } catch (error) {
+    console.error('❌ ICT数据加载失败:', error);
+    this.showError('ICT数据加载失败: ' + error.message);
+  } finally {
+    this.hideLoading();
+  }
+}
+
+  /**
+   * 刷新ICT信号
+   */
+  async refreshICTSignals() {
+  try {
+    this.showLoading('正在刷新ICT信号...');
+
+    await window.apiClient.refreshICTSignals();
+    await this.loadICTData();
+
+    this.showSuccess('ICT信号刷新成功');
+  } catch (error) {
+    console.error('❌ ICT信号刷新失败:', error);
+    this.showError('ICT信号刷新失败: ' + error.message);
+  } finally {
+    this.hideLoading();
+  }
+}
+
+  /**
+   * 清除ICT缓存
+   */
+  async clearICTCache() {
+  try {
+    this.showLoading('正在清除ICT缓存...');
+
+    // 清除本地缓存
+    localStorage.removeItem('ict_signals_cache');
+    sessionStorage.removeItem('ict_data_cache');
+
+    this.showSuccess('ICT缓存清除成功');
+
+    // 重新加载数据
+    await this.loadICTData();
+
+  } catch (error) {
+    console.error('❌ 清除ICT缓存失败:', error);
+    this.showError('清除ICT缓存失败: ' + error.message);
+  } finally {
+    this.hideLoading();
+  }
+}
+
+/**
+ * 渲染ICT信号表格
+ */
+renderICTSignals(signals) {
+  const tbody = document.getElementById('ictSignalsTableBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  if (!signals || signals.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="16" class="text-center">暂无ICT信号数据</td></tr>';
+    return;
+  }
+
+  signals.forEach(signal => {
+    const row = this.createICTSignalRow(signal);
+    tbody.appendChild(row);
+  });
+}
+
+/**
+ * 创建ICT信号行
+ */
+createICTSignalRow(signal) {
+  const tr = document.createElement('tr');
+
+  // 根据信号类型设置行样式
+  if (signal.signalType === 'LONG') {
+    tr.classList.add('signal-long');
+  } else if (signal.signalType === 'SHORT') {
+    tr.classList.add('signal-short');
+  }
+
+  tr.innerHTML = `
+      <td class="symbol-cell">${signal.symbol}</td>
+      <td class="category-${signal.category}">${this.getCategoryDisplay(signal.category)}</td>
+      <td class="trend-cell ${signal.dailyTrend}">${signal.dailyTrend || '--'}</td>
+      <td class="signal-${signal.signalType?.toLowerCase()}">${signal.signalType || '--'}</td>
+      <td class="strength-${signal.signalStrength?.toLowerCase()}">${signal.signalStrength || '--'}</td>
+      <td class="execution-mode">${signal.executionMode || '--'}</td>
+      <td class="indicator-${signal.obDetected ? 'yes' : 'no'}">${signal.obDetected ? '✅' : '❌'}</td>
+      <td class="indicator-${signal.fvgDetected ? 'yes' : 'no'}">${signal.fvgDetected ? '✅' : '❌'}</td>
+      <td class="indicator-${signal.engulfingDetected ? 'yes' : 'no'}">${signal.engulfingDetected ? '✅' : '❌'}</td>
+      <td class="indicator-${signal.sweepLTF ? 'yes' : 'no'}">${signal.sweepLTF ? '✅' : '❌'}</td>
+      <td class="price-cell">${signal.entryPrice ? signal.entryPrice.toFixed(4) : '--'}</td>
+      <td class="price-cell">${signal.stopLoss ? signal.stopLoss.toFixed(4) : '--'}</td>
+      <td class="price-cell">${signal.takeProfit ? signal.takeProfit.toFixed(4) : '--'}</td>
+      <td class="rr-cell">${signal.riskRewardRatio ? signal.riskRewardRatio.toFixed(2) : '--'}</td>
+      <td class="rate-cell ${this.getDataRateClass(signal.dataCollectionRate)}">${signal.dataCollectionRate?.toFixed(1) || 0}%</td>
+      <td class="actions-cell">
+        ${signal.signalType !== 'NONE' ?
+      `<button class="btn-trade" onclick="app.createICTSimulation('${signal.symbol}', ${signal.entryPrice}, ${signal.stopLoss}, ${signal.takeProfit}, '${signal.signalType}', '${signal.executionMode}')">📈 模拟交易</button>` :
+      '--'
+    }
+      </td>
+    `;
+
+  return tr;
+}
+
+/**
+ * 更新ICT统计数据
+ */
+updateICTStats(signals) {
+  const totalSignals = signals.length;
+  const longSignals = signals.filter(s => s.signalType === 'LONG').length;
+  const shortSignals = signals.filter(s => s.signalType === 'SHORT').length;
+
+  document.getElementById('ictTotalSignals').textContent = totalSignals;
+  document.getElementById('ictLongSignals').textContent = longSignals;
+  document.getElementById('ictShortSignals').textContent = shortSignals;
+}
+
+/**
+ * 更新ICT时间戳
+ */
+updateICTTimestamp() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('zh-CN');
+
+  document.getElementById('ictLastUpdate').textContent = timeStr;
+  document.getElementById('ictUpdateTime').textContent = timeStr;
+}
+
+
+  /**
+   * 创建ICT模拟交易
+   */
+  async createICTSimulation(symbol, entryPrice, stopLoss, takeProfit, signalType, executionMode) {
+  try {
+    this.showLoading('正在创建ICT模拟交易...');
+
+    const result = await window.apiClient.createICTSimulation({
+      symbol,
+      entryPrice,
+      stopLoss,
+      takeProfit,
+      signalType,
+      executionMode
+    });
+
+    if (result.success) {
+      this.showSuccess(`ICT模拟交易创建成功 [${symbol}]`);
+    } else {
+      this.showError('ICT模拟交易创建失败: ' + result.message);
+    }
+
+  } catch (error) {
+    console.error('❌ 创建ICT模拟交易失败:', error);
+    this.showError('创建ICT模拟交易失败: ' + error.message);
+  } finally {
+    this.hideLoading();
+  }
+}
 
 } // SmartFlowApp类结束
 
@@ -2652,19 +2834,20 @@ document.addEventListener('DOMContentLoaded', () => {
 // 测试分类映射函数
 function testCategoryMapping() {
   if (window.app) {
-    console.log('�� 测试分类映射函数:');
+    console.log('🧪 测试分类映射函数:');
     console.log('high-cap-trending ->', window.app.getCategoryDisplay('high-cap-trending'));
     console.log('mainstream ->', window.app.getCategoryDisplay('mainstream'));
     console.log('unknown ->', window.app.getCategoryDisplay('unknown'));
   }
 }
 
-// 手动刷新数据函数
+// 刷新数据函数
 async function refreshData() {
   try {
-    console.log('🔄 开始手动刷新数据...');
-
-    // 清除缓存
+    console.log('🔄 手动刷新数据开始...');
+    // 清除所有缓存（包括localStorage）
+    dataManager.clearCache();
+    // 清除localStorage中的缓存数据
     try {
       localStorage.removeItem('smartflow_cached_data');
       console.log('🗑️ 已清除localStorage缓存');

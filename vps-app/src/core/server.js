@@ -10,8 +10,11 @@ const SimulationManager = require('./modules/database/SimulationManager');
 const BinanceAPI = require('./modules/api/BinanceAPI');
 const TelegramNotifier = require('./modules/notification/TelegramNotifier');
 const { SmartFlowStrategy } = require('./modules/strategy/SmartFlowStrategy');
-const SmartFlowStrategyV3 = require('./modules/strategy/SmartFlowStrategyV3');
+const SmartFlowStrategyV3 = require('./modules/strategy/trend-trading/SmartFlowStrategyV3');
 const StrategyV3Migration = require('./modules/database/StrategyV3Migration');
+const ICTStrategy = require('./modules/strategy/ict-trading/ICTStrategy');
+const ICTDatabaseManager = require('./modules/database/ICTDatabaseManager');
+const ICTMigration = require('./modules/database/ICTMigration');
 const { DataMonitor } = require('./modules/monitoring/DataMonitor');
 const { dataLayerIntegration } = require('./modules/data/DataLayerIntegration');
 const DeltaManager = require('./modules/data/DeltaManager');
@@ -45,6 +48,10 @@ class SmartFlowServer {
     this.cacheMiddleware = null;
     this.dataChangeDetector = null;
     this.performanceMonitor = new PerformanceMonitor();
+
+    // ICT策略相关
+    this.ictDatabaseManager = null;
+    this.ictSimulationManager = null;
 
     // 内存管理
     this.timers = new Set();
@@ -100,6 +107,7 @@ class SmartFlowServer {
 
     // API路由
     this.setupAPIRoutes();
+    this.setupICTAPIRoutes();
   }
 
   setupAPIRoutes() {
@@ -1645,6 +1653,252 @@ class SmartFlowServer {
     }
   }
 
+  /**
+   * 初始化ICT策略
+   */
+  async initializeICTStrategy() {
+    try {
+      console.log('🔄 开始ICT策略数据库迁移...');
+
+      // 初始化ICT数据库管理器
+      this.ictDatabaseManager = new ICTDatabaseManager(this.db);
+      await this.ictDatabaseManager.initICTTables();
+
+      // 执行ICT数据库迁移
+      const ictMigration = new ICTMigration(this.db);
+      await ictMigration.migrate();
+
+      // 验证ICT数据库结构
+      const isValid = await ictMigration.validateICTStructure();
+      if (!isValid) {
+        throw new Error('ICT数据库结构验证失败');
+      }
+
+      // 初始化ICT策略
+      await ICTStrategy.init(this.db, this.dataLayer, this.deltaManager);
+
+      console.log('✅ ICT策略数据库迁移完成');
+    } catch (error) {
+      console.error('❌ ICT策略初始化失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 设置ICT策略API路由
+   */
+  setupICTAPIRoutes() {
+    // 获取所有ICT信号
+    this.app.get('/api/ict/signals', async (req, res) => {
+      try {
+        const symbols = await this.db.getCustomSymbols();
+        const signals = [];
+
+        // 获取用户设置的最大损失金额
+        const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
+
+        for (const symbol of symbols) {
+          try {
+            // 开始分析监控
+            if (this.dataMonitor) {
+              this.dataMonitor.startAnalysis(symbol);
+            }
+
+            // 使用ICT策略进行分析
+            const analysis = await ICTStrategy.analyzeSymbol(symbol, {
+              database: this.db,
+              maxLossAmount: parseFloat(maxLossAmount),
+              equity: 10000,
+              riskPct: 0.01,
+              RR: 3
+            });
+
+            // 存储ICT分析结果
+            if (this.ictDatabaseManager) {
+              await this.ictDatabaseManager.recordICTAnalysis(analysis);
+            }
+
+            // 获取交易对分类
+            let category = 'smallcap';
+            try {
+              const categoryResult = await this.db.getSymbolCategory(symbol);
+              if (categoryResult && categoryResult.category) {
+                category = categoryResult.category;
+              }
+            } catch (error) {
+              console.warn(`获取 ${symbol} 分类失败:`, error.message);
+            }
+
+            signals.push({
+              symbol,
+              category,
+              // ICT策略分析结果
+              dailyTrend: analysis.dailyTrend,
+              dailyTrendScore: analysis.dailyTrendScore,
+              signalType: analysis.signalType,
+              signalStrength: analysis.signalStrength,
+              executionMode: analysis.executionMode,
+
+              // 中时间框架数据
+              obDetected: analysis.mtfResult?.obDetected || false,
+              fvgDetected: analysis.mtfResult?.fvgDetected || false,
+              sweepHTF: analysis.mtfResult?.sweepHTF || false,
+
+              // 低时间框架数据
+              engulfingDetected: analysis.ltfResult?.engulfing?.detected || false,
+              sweepLTF: analysis.ltfResult?.sweepLTF?.detected || false,
+              volumeConfirm: analysis.ltfResult?.volumeConfirm || false,
+
+              // 风险管理数据
+              entryPrice: analysis.riskManagement?.entry || 0,
+              stopLoss: analysis.riskManagement?.stopLoss || 0,
+              takeProfit: analysis.riskManagement?.takeProfit || 0,
+              riskRewardRatio: analysis.riskManagement?.riskRewardRatio || 0,
+              leverage: analysis.riskManagement?.leverage || 1,
+
+              // 技术指标
+              atr4h: analysis.mtfResult?.atr4h || 0,
+              atr15m: analysis.ltfResult?.atr15 || 0,
+
+              dataCollectionRate: analysis.dataCollectionRate,
+              strategyVersion: 'ICT',
+              timestamp: analysis.timestamp,
+              errorMessage: analysis.errorMessage
+            });
+
+            console.log(`🔍 ICT策略分析完成 [${symbol}]: ${analysis.signalType} - ${analysis.signalStrength}`);
+
+          } catch (error) {
+            console.error(`ICT分析 ${symbol} 失败:`, error);
+          }
+        }
+
+        res.json(signals);
+      } catch (error) {
+        console.error('获取ICT信号失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 刷新ICT信号
+    this.app.post('/api/ict/refresh-all', async (req, res) => {
+      try {
+        const symbols = await this.db.getCustomSymbols();
+        const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
+
+        for (const symbol of symbols) {
+          try {
+            const analysis = await ICTStrategy.analyzeSymbol(symbol, {
+              database: this.db,
+              maxLossAmount: parseFloat(maxLossAmount),
+              equity: 10000,
+              riskPct: 0.01,
+              RR: 3
+            });
+
+            // 存储ICT分析结果
+            if (this.ictDatabaseManager) {
+              await this.ictDatabaseManager.recordICTAnalysis(analysis);
+            }
+          } catch (error) {
+            console.error(`刷新ICT ${symbol} 失败:`, error);
+          }
+        }
+
+        res.json({ success: true, message: 'ICT策略信号已刷新' });
+      } catch (error) {
+        console.error('刷新ICT信号失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 创建ICT模拟交易
+    this.app.post('/api/ict/simulation', async (req, res) => {
+      try {
+        const { symbol, entryPrice, stopLoss, takeProfit, signalType, executionMode } = req.body;
+
+        if (!symbol || !entryPrice || !stopLoss || !takeProfit || !signalType) {
+          return res.status(400).json({ error: '缺少必要参数' });
+        }
+
+        // 创建ICT模拟交易记录
+        const ICTExecution = require('./modules/strategy/ict-trading/ICTExecution');
+        const simulationData = ICTExecution.createSimulationRecord({
+          symbol,
+          entryPrice,
+          stopLoss,
+          takeProfit,
+          signalType,
+          executionMode: executionMode || 'ICT_SIGNAL'
+        }, {
+          maxLossAmount: parseFloat(await this.db.getUserSetting('maxLossAmount', 100))
+        });
+
+        const simulation = await this.ictDatabaseManager.createICTSimulation(simulationData);
+
+        res.json({ success: true, simulation });
+      } catch (error) {
+        console.error('创建ICT模拟交易失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取ICT模拟交易历史
+    this.app.get('/api/ict/simulation/history', async (req, res) => {
+      try {
+        const limit = parseInt(req.query.limit) || 50;
+        const history = await this.ictDatabaseManager.getICTSimulationHistory(limit);
+        res.json(history);
+      } catch (error) {
+        console.error('获取ICT模拟交易历史失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取ICT分析历史
+    this.app.get('/api/ict/analysis/:symbol', async (req, res) => {
+      try {
+        const { symbol } = req.params;
+        const analysis = await this.ictDatabaseManager.getLatestICTAnalysis(symbol);
+
+        if (analysis) {
+          res.json(analysis);
+        } else {
+          res.status(404).json({ error: '未找到ICT分析数据' });
+        }
+      } catch (error) {
+        console.error(`获取ICT分析历史失败 [${req.params.symbol}]:`, error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 获取ICT统计信息
+    this.app.get('/api/ict/stats', async (req, res) => {
+      try {
+        const ictMigration = new ICTMigration(this.db);
+        const stats = await ictMigration.getICTStats();
+        res.json(stats);
+      } catch (error) {
+        console.error('获取ICT统计信息失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // 清理ICT测试数据
+    this.app.post('/api/ict/cleanup-test-data', async (req, res) => {
+      try {
+        const ictMigration = new ICTMigration(this.db);
+        await ictMigration.cleanupTestData();
+        res.json({ success: true, message: 'ICT测试数据清理完成' });
+      } catch (error) {
+        console.error('清理ICT测试数据失败:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    console.log('✅ ICT策略API路由设置完成');
+  }
+
   async initialize() {
     try {
       console.log('🚀 启动 SmartFlow 服务器...');
@@ -1702,6 +1956,9 @@ class SmartFlowServer {
 
       // 将TelegramNotifier设置到SimulationManager
       this.simulationManager.setTelegramNotifier(this.telegramNotifier);
+
+      // 初始化ICT策略
+      await this.initializeICTStrategy();
 
       // 初始化数据监控
       this.dataMonitor = new DataMonitor(this.db);

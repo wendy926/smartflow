@@ -51,6 +51,50 @@ class APIClient {
     return await this.request('/api/symbols/smallcap');
   }
 
+  // ===== ICT策略API =====
+
+  // 获取ICT信号
+  async fetchICTSignals() {
+    return await this.request('/api/ict/signals');
+  }
+
+  // 刷新ICT信号
+  async refreshICTSignals() {
+    return await this.request('/api/ict/refresh-all', {
+      method: 'POST'
+    });
+  }
+
+  // 创建ICT模拟交易
+  async createICTSimulation(data) {
+    return await this.request('/api/ict/simulation', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  // 获取ICT模拟交易历史
+  async getICTSimulationHistory(limit = 50) {
+    return await this.request(`/api/ict/simulation/history?limit=${limit}`);
+  }
+
+  // 获取ICT分析历史
+  async getICTAnalysisHistory(symbol) {
+    return await this.request(`/api/ict/analysis/${symbol}`);
+  }
+
+  // 获取ICT统计信息
+  async getICTStats() {
+    return await this.request('/api/ict/stats');
+  }
+
+  // 清理ICT测试数据
+  async cleanupICTTestData() {
+    return await this.request('/api/ict/cleanup-test-data', {
+      method: 'POST'
+    });
+  }
+
   // 检查Binance合约可用性
   async getBinanceContracts() {
     return await this.request('/api/symbols/binance-contracts');
