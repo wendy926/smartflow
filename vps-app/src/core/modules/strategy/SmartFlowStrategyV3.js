@@ -149,6 +149,19 @@ class SmartFlowStrategyV3 {
       }
 
       console.log(`✅ V3策略分析完成 [${symbol}]: ${finalMarketType} - ${analysisResult.signal || 'NONE'}`);
+      
+      // 调试：打印震荡市边界判断数据
+      if (finalMarketType === '震荡市' && analysisResult) {
+        console.log(`🔍 震荡市边界判断数据 [${symbol}]:`, {
+          bb_upper: analysisResult.bb_upper,
+          bb_middle: analysisResult.bb_middle,
+          bb_lower: analysisResult.bb_lower,
+          boundary_score_1h: analysisResult.boundary_score_1h,
+          rangeLowerBoundaryValid: analysisResult.rangeLowerBoundaryValid,
+          rangeUpperBoundaryValid: analysisResult.rangeUpperBoundaryValid
+        });
+      }
+      
       return finalResult;
 
     } catch (error) {
