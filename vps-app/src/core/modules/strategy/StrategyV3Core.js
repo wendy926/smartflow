@@ -405,7 +405,7 @@ class StrategyV3Core {
   calculateBollingerBands(candles, period = 20, k = 2) {
     const closes = candles.map(c => c.close);
     const ma = this.calculateMA(candles, period);
-    const stdDev = [];
+    const stdDev = new Array(candles.length).fill(0);
 
     for (let i = period - 1; i < candles.length; i++) {
       const slice = closes.slice(i - period + 1, i + 1);
@@ -414,12 +414,22 @@ class StrategyV3Core {
       stdDev[i] = Math.sqrt(variance);
     }
 
-    return ma.map((m, i) => ({
-      middle: m,
-      upper: m + (k * (stdDev[i] || 0)),
-      lower: m - (k * (stdDev[i] || 0)),
-      bandwidth: stdDev[i] ? (4 * stdDev[i] / m) : 0
-    }));
+    return ma.map((m, i) => {
+      if (m === null || m === undefined || isNaN(m)) {
+        return {
+          middle: 0,
+          upper: 0,
+          lower: 0,
+          bandwidth: 0
+        };
+      }
+      return {
+        middle: m,
+        upper: m + (k * (stdDev[i] || 0)),
+        lower: m - (k * (stdDev[i] || 0)),
+        bandwidth: stdDev[i] ? (4 * stdDev[i] / m) : 0
+      };
+    });
   }
 
   /**
