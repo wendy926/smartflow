@@ -392,6 +392,14 @@ class SmartFlowStrategyV3 {
         return SmartFlowStrategyV3.createNoSignalResult(symbol, '1H边界分析失败: ' + rangeResult.error);
       }
 
+      // 调试：打印rangeResult内容
+      console.log(`🔍 rangeResult [${symbol}]:`, {
+        bb1h: rangeResult.bb1h,
+        totalScore: rangeResult.totalScore,
+        lowerBoundaryValid: rangeResult.lowerBoundaryValid,
+        upperBoundaryValid: rangeResult.upperBoundaryValid
+      });
+
       // 2. 检查边界有效性
       if (!rangeResult.lowerBoundaryValid && !rangeResult.upperBoundaryValid) {
         return SmartFlowStrategyV3.createNoSignalResult(symbol, '1H边界无效');
