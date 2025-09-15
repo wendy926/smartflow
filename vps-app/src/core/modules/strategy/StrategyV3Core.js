@@ -933,7 +933,9 @@ class StrategyV3Core {
 
       // 计算布林带
       const bb = this.calculateBollingerBands(candles, 20, 2);
+      console.log(`🔍 布林带计算 [${symbol}]: bb数组长度=${bb.length}, candles长度=${candles.length}`);
       const lastBB = bb[bb.length - 1];
+      console.log(`🔍 最后布林带数据 [${symbol}]:`, lastBB);
 
       // 计算各个因子得分（每个因子0-1分）
       const touchScore = this.calculateTouchScore(candles, lastBB);
