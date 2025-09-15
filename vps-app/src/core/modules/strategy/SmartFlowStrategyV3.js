@@ -401,8 +401,57 @@ class SmartFlowStrategyV3 {
       });
 
       // 2. 检查边界有效性
-      if (!rangeResult.lowerBoundaryValid && !rangeResult.upperBoundaryValid) {
-        return SmartFlowStrategyV3.createNoSignalResult(symbol, '1H边界无效');
+      const isBoundaryValid = rangeResult.lowerBoundaryValid || rangeResult.upperBoundaryValid;
+      if (!isBoundaryValid) {
+        // 即使边界无效，也要返回布林带数据，只是信号为NONE
+        return {
+          marketType: '震荡市',
+          score1h: scoringResult ? scoringResult.score : 0,
+          vwapDirectionConsistent: scoringResult ? scoringResult.vwapDirectionConsistent : false,
+          factors: scoringResult ? scoringResult.factors : {},
+          vwap: rangeResult.vwap,
+          vol15mRatio: 0,
+          vol1hRatio: 0,
+          oiChange6h: 0,
+          fundingRate: 0,
+          deltaImbalance: 0,
+          trendStrength: null,
+          signalStrength: null,
+          rangeLowerBoundaryValid: rangeResult.lowerBoundaryValid,
+          rangeUpperBoundaryValid: rangeResult.upperBoundaryValid,
+          bb_upper: rangeResult.bb1h?.upper,
+          bb_middle: rangeResult.bb1h?.middle,
+          bb_lower: rangeResult.bb1h?.lower,
+          bb_bandwidth: rangeResult.bb1h?.bandwidth,
+          boundary_score_1h: rangeResult.totalScore,
+          rangeVwap: rangeResult.vwap,
+          rangeDelta: rangeResult.delta,
+          touchesLower: rangeResult.touchesLower,
+          touchesUpper: rangeResult.touchesUpper,
+          volFactor: rangeResult.volFactor,
+          lastBreakout: rangeResult.lastBreakout,
+          signal: 'NONE',
+          execution: null,
+          executionMode: 'NONE',
+          entrySignal: null,
+          stopLoss: null,
+          takeProfit: null,
+          setupCandleHigh: null,
+          setupCandleLow: null,
+          maxLeverage: 0,
+          minMargin: 0,
+          stopLossDistance: 0,
+          atrValue: null,
+          atr14: null,
+          reason: '1H边界无效',
+          ma20: rangeResult.ma20,
+          ma50: rangeResult.ma50,
+          adx14: rangeResult.adx14,
+          bbw: rangeResult.bbw,
+          score: 0,
+          bullScore: 0,
+          bearScore: 0
+        };
       }
 
       // 3. 15分钟入场执行
