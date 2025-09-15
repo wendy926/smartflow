@@ -228,9 +228,13 @@ class ICTCore {
 
       // 检查最近3根K线是否有FVG
       for (let i = data4H.length - 3; i < data4H.length - 1; i++) {
+        if (i + 2 >= data4H.length) break;
+
         const prev = data4H[i];
         const curr = data4H[i + 1];
         const next = data4H[i + 2];
+
+        if (!prev || !curr || !next) continue;
 
         const prevHigh = parseFloat(prev[2]);
         const currLow = parseFloat(curr[3]);
@@ -271,7 +275,7 @@ class ICTCore {
   }
 
   /**
-   * Sweep宏观速率检测 (4H)
+   * Sweep宏观速率检测 (4H) - 按照ICT文档实现
    * @param {Array} data4H - 4H K线数据
    * @param {number} atr4h - 4H ATR值
    * @returns {boolean} 是否有效sweep
@@ -280,15 +284,16 @@ class ICTCore {
     try {
       if (data4H.length < 20) return false;
 
-      // 找最近20根K线的最高点
-      const recent20 = data4H.slice(-20);
-      const extreme = Math.max(...recent20.map(b => parseFloat(b[2])));
+      // 找前17根K线的最高点作为极值点（排除最后3根K线）
+      const previous17 = data4H.slice(-20, -3);
+      const extreme = Math.max(...previous17.map(b => parseFloat(b[2])));
 
-      // 检查是否在≤2根4H内被刺破并收回
+      // 检查最近3根4H是否刺破并收回
       const last3 = data4H.slice(-3);
-      let barsToReturn = 0;
       let exceed = 0;
+      let barsToReturn = 0;
 
+      // 找到刺破extreme的K线
       for (let i = 0; i < last3.length; i++) {
         const high = parseFloat(last3[i][2]);
         if (high > extreme) {
@@ -327,9 +332,9 @@ class ICTCore {
     try {
       if (data15M.length < 20) return { detected: false, speed: 0 };
 
-      // 找最近20根K线的最高点
-      const recent20 = data15M.slice(-20);
-      const extreme = Math.max(...recent20.map(b => parseFloat(b[2])));
+      // 找前15根K线的最高点作为极值点（排除最后5根K线）
+      const previous15 = data15M.slice(-20, -5);
+      const extreme = Math.max(...previous15.map(b => parseFloat(b[2])));
 
       // 检查是否在≤3根15m内被刺破并收回
       const last5 = data15M.slice(-5);

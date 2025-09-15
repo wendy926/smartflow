@@ -22,6 +22,11 @@ class ICTExecution {
       } = options;
 
       const entry = ltfResult.entryPrice;
+
+      // 输入验证
+      if (!entry || entry <= 0) {
+        throw new Error('Invalid entry price');
+      }
       const SL = ICTExecution.calculateStopLoss(ltfResult);
       const TP = ICTExecution.calculateTakeProfit(entry, SL, RR);
 
@@ -141,6 +146,11 @@ class ICTExecution {
    */
   static calculateLeverageData(entryPrice, stopLossPrice, takeProfitPrice, direction = 'LONG', maxLossAmount = 100) {
     try {
+      // 输入验证
+      if (!entryPrice || entryPrice <= 0 || !stopLossPrice || stopLossPrice <= 0) {
+        throw new Error('Invalid price parameters');
+      }
+
       // 计算止损距离百分比
       const stopLossDistance = direction === 'LONG'
         ? (entryPrice - stopLossPrice) / entryPrice
@@ -271,6 +281,11 @@ class ICTExecution {
         signal.signalType,
         maxLossAmount
       );
+
+      // 检查杠杆计算是否有错误
+      if (leverageData.error) {
+        throw new Error(leverageData.error);
+      }
 
       return {
         symbol: signal.symbol,

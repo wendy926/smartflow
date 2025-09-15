@@ -453,23 +453,34 @@ class SmartFlowApp {
     const shortSignals = signals.filter(s => s.signalType === 'SHORT').length;
     const executionSignals = signals.filter(s => s.execution && (s.execution.includes('做多_') || s.execution.includes('做空_'))).length;
 
-    document.getElementById('totalSignals').textContent = totalSignals;
-    document.getElementById('longSignals').textContent = longSignals;
-    document.getElementById('shortSignals').textContent = shortSignals;
-    document.getElementById('executionSignals').textContent = executionSignals;
+    // 安全地更新DOM元素
+    const totalSignalsEl = document.getElementById('totalSignals');
+    const longSignalsEl = document.getElementById('longSignals');
+    const shortSignalsEl = document.getElementById('shortSignals');
+    const executionSignalsEl = document.getElementById('executionSignals');
+
+    if (totalSignalsEl) totalSignalsEl.textContent = totalSignals;
+    if (longSignalsEl) longSignalsEl.textContent = longSignals;
+    if (shortSignalsEl) shortSignalsEl.textContent = shortSignals;
+    if (executionSignalsEl) executionSignalsEl.textContent = executionSignals;
 
     // 更新胜率统计
     if (stats) {
-      document.getElementById('winRate').textContent = stats.winRate ? `${stats.winRate.toFixed(1)}%` : '--';
-      document.getElementById('totalTrades').textContent = stats.totalTrades || 0;
-      document.getElementById('winTrades').textContent = stats.winTrades || 0;
-      document.getElementById('lossTrades').textContent = stats.lossTrades || 0;
+      const winRateEl = document.getElementById('winRate');
+      const totalTradesEl = document.getElementById('totalTrades');
+      const winTradesEl = document.getElementById('winTrades');
+      const lossTradesEl = document.getElementById('lossTrades');
+
+      if (winRateEl) winRateEl.textContent = stats.winRate ? `${stats.winRate.toFixed(1)}%` : '--';
+      if (totalTradesEl) totalTradesEl.textContent = stats.totalTrades || 0;
+      if (winTradesEl) winTradesEl.textContent = stats.winTrades || 0;
+      if (lossTradesEl) lossTradesEl.textContent = stats.lossTrades || 0;
     }
   }
 
   // 更新信号表格
   updateSignalsTable(signals) {
-    const tbody = document.querySelector('#signals-table tbody');
+    const tbody = document.querySelector('#signalsTable tbody');
     if (!tbody) return;
 
     tbody.innerHTML = '';
@@ -554,8 +565,11 @@ class SmartFlowApp {
     const now = new Date();
     const timeStr = now.toLocaleTimeString('zh-CN');
 
-    document.getElementById('lastUpdate').textContent = timeStr;
-    document.getElementById('updateTime').textContent = timeStr;
+    const lastUpdateEl = document.getElementById('lastUpdate');
+    const updateTimeEl = document.getElementById('updateTime');
+
+    if (lastUpdateEl) lastUpdateEl.textContent = timeStr;
+    if (updateTimeEl) updateTimeEl.textContent = timeStr;
   }
 
   // 显示加载状态
@@ -663,7 +677,7 @@ class SmartFlowApp {
    * 渲染ICT信号表格
    */
   renderICTSignals(signals) {
-    const tbody = document.querySelector('#ict-signals-table tbody');
+    const tbody = document.querySelector('#ictSignalsTable tbody');
     if (!tbody) return;
 
     tbody.innerHTML = '';
@@ -722,9 +736,13 @@ class SmartFlowApp {
     const longSignals = signals.filter(s => s.signalType === 'LONG').length;
     const shortSignals = signals.filter(s => s.signalType === 'SHORT').length;
 
-    document.getElementById('ictTotalSignals').textContent = totalSignals;
-    document.getElementById('ictLongSignals').textContent = longSignals;
-    document.getElementById('ictShortSignals').textContent = shortSignals;
+    const ictTotalSignalsEl = document.getElementById('ictTotalSignals');
+    const ictLongSignalsEl = document.getElementById('ictLongSignals');
+    const ictShortSignalsEl = document.getElementById('ictShortSignals');
+
+    if (ictTotalSignalsEl) ictTotalSignalsEl.textContent = totalSignals;
+    if (ictLongSignalsEl) ictLongSignalsEl.textContent = longSignals;
+    if (ictShortSignalsEl) ictShortSignalsEl.textContent = shortSignals;
   }
 
   /**
@@ -734,8 +752,11 @@ class SmartFlowApp {
     const now = new Date();
     const timeStr = now.toLocaleTimeString('zh-CN');
 
-    document.getElementById('ictLastUpdate').textContent = timeStr;
-    document.getElementById('ictUpdateTime').textContent = timeStr;
+    const ictLastUpdateEl = document.getElementById('ictLastUpdate');
+    const ictUpdateTimeEl = document.getElementById('ictUpdateTime');
+
+    if (ictLastUpdateEl) ictLastUpdateEl.textContent = timeStr;
+    if (ictUpdateTimeEl) ictUpdateTimeEl.textContent = timeStr;
   }
 
   /**

@@ -393,9 +393,9 @@ describe('ICTExecution 执行逻辑测试', () => {
         maxLossAmount: 100
       };
 
-      expect(() => {
-        ICTExecution.createSimulationRecord(signal, options);
-      }).toThrow();
+      const result = ICTExecution.createSimulationRecord(signal, options);
+      expect(result.error).toBeDefined();
+      expect(result.status).toBe('ERROR');
     });
   });
 });

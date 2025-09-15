@@ -203,6 +203,11 @@ class ICTStrategy {
    */
   static calculateLeverageData(entryPrice, stopLossPrice, takeProfitPrice, direction = 'LONG', maxLossAmount = 100) {
     try {
+      // 输入验证
+      if (!entryPrice || entryPrice <= 0 || !stopLossPrice || stopLossPrice <= 0) {
+        throw new Error('Invalid price parameters');
+      }
+
       const stopLossDistance = direction === 'LONG'
         ? (entryPrice - stopLossPrice) / entryPrice
         : (stopLossPrice - entryPrice) / entryPrice;
