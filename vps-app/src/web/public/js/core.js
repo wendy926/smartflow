@@ -470,7 +470,7 @@ class SmartFlowApp {
   // 更新统计信息显示
   updateStatsDisplay(signals, stats) {
     console.log('🔍 updateStatsDisplay 被调用:', { signalsLength: signals?.length, stats });
-    
+
     // 更新信号统计
     const totalSignals = signals?.length || 0;
     const longSignals = signals?.filter(s => s.signal === 'LONG' || s.signal === '做多' || s.execution?.includes('做多_')).length || 0;
@@ -494,14 +494,14 @@ class SmartFlowApp {
     } else {
       console.error('❌ 找不到totalSignals元素');
     }
-    
+
     if (longSignalsEl) {
       longSignalsEl.textContent = longSignals;
       console.log('✅ 更新多头信号数:', longSignals);
     } else {
       console.error('❌ 找不到longSignals元素');
     }
-    
+
     if (shortSignalsEl) {
       shortSignalsEl.textContent = shortSignals;
       console.log('✅ 更新空头信号数:', shortSignals);
@@ -515,6 +515,20 @@ class SmartFlowApp {
       shortSignals,
       executionSignals
     });
+
+    // 强制更新DOM元素内容
+    if (totalSignalsEl) {
+      totalSignalsEl.textContent = totalSignals.toString();
+      totalSignalsEl.innerHTML = totalSignals.toString();
+    }
+    if (longSignalsEl) {
+      longSignalsEl.textContent = longSignals.toString();
+      longSignalsEl.innerHTML = longSignals.toString();
+    }
+    if (shortSignalsEl) {
+      shortSignalsEl.textContent = shortSignals.toString();
+      shortSignalsEl.innerHTML = shortSignals.toString();
+    }
 
     // 更新胜率统计
     if (stats) {
@@ -532,16 +546,27 @@ class SmartFlowApp {
 
   // 更新信号表格
   updateSignalsTable(signals) {
+    console.log('🔍 updateSignalsTable 被调用:', { signalsLength: signals?.length });
+    
     const tbody = document.querySelector('#signalsTable tbody');
-    if (!tbody) return;
+    console.log('🔍 找到表格tbody元素:', !!tbody);
+    
+    if (!tbody) {
+      console.error('❌ 找不到signalsTable tbody元素');
+      return;
+    }
 
     tbody.innerHTML = '';
+    console.log('✅ 清空表格内容');
 
-    signals.forEach(signal => {
+    signals.forEach((signal, index) => {
+      console.log(`🔍 处理信号 ${index + 1}:`, signal.symbol);
       const row = this.createSignalRow(signal);
       tbody.appendChild(row);
     });
 
+    console.log('✅ 表格更新完成，共添加', signals.length, '行');
+    
     // 检查表格滚动性
     this.checkTableScrollability();
   }
