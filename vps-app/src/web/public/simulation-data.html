@@ -585,6 +585,16 @@
                                 <th>交易对</th>
                                 <th>
                                     <div class="filter-header">
+                                        <span>策略</span>
+                                        <select id="strategyFilter" class="header-filter">
+                                            <option value="">全部</option>
+                                            <option value="V3">V3策略</option>
+                                            <option value="ICT">ICT策略</option>
+                                        </select>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="filter-header">
                                         <span>方向</span>
                                         <select id="directionFilter" class="header-filter">
                                             <option value="">全部</option>
@@ -621,7 +631,7 @@
                                 </th>
                             </tr>
                             <tr class="filter-controls-row">
-                                <td colspan="16">
+                                <td colspan="17">
                                     <div class="filter-controls">
                                         <button id="applyFilters" class="filter-btn">应用筛选</button>
                                         <button id="clearFilters" class="filter-btn clear">清除筛选</button>
@@ -632,7 +642,7 @@
                         </thead>
                         <tbody id="simulationHistoryBody">
                             <tr>
-                                <td colspan="16" class="loading">
+                                <td colspan="17" class="loading">
                                     <div class="loading-dots">
                                         <div></div>
                                         <div></div>

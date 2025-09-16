@@ -453,7 +453,8 @@ class SmartFlowApp {
         maxLeverage: 10, // 默认值
         minMargin: 100,  // 默认值
         atrValue: signalData.atr14 || 0,
-        atr14: signalData.atr14 || 0
+        atr14: signalData.atr14 || 0,
+        strategy: 'V3'
       };
 
       console.log('🤖 自动启动模拟交易:', tradeData);
@@ -843,7 +844,8 @@ class SmartFlowApp {
         stopLoss,
         takeProfit,
         signalType,
-        executionMode
+        executionMode,
+        strategy: 'ICT'
       });
 
       if (result.success) {

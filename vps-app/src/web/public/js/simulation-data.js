@@ -8,6 +8,7 @@ class SimulationDataManager {
     this.allSimulations = []; // 存储所有模拟交易数据
     this.filteredSimulations = []; // 存储筛选后的数据
     this.currentFilters = {
+      strategy: '',
       direction: '',
       exitReason: '',
       result: ''
@@ -188,10 +189,12 @@ class SimulationDataManager {
   // 应用筛选条件
   applyFilters() {
     // 获取筛选条件
+    const strategyFilter = document.getElementById('strategyFilter');
     const directionFilter = document.getElementById('directionFilter');
     const exitReasonFilter = document.getElementById('exitReasonFilter');
     const resultFilter = document.getElementById('resultFilter');
 
+    this.currentFilters.strategy = strategyFilter ? strategyFilter.value : '';
     this.currentFilters.direction = directionFilter ? directionFilter.value : '';
     this.currentFilters.exitReason = exitReasonFilter ? exitReasonFilter.value : '';
     this.currentFilters.result = resultFilter ? resultFilter.value : '';
@@ -200,6 +203,11 @@ class SimulationDataManager {
 
     // 筛选数据
     this.filteredSimulations = this.allSimulations.filter(sim => {
+      // 策略筛选
+      if (this.currentFilters.strategy && sim.strategy !== this.currentFilters.strategy) {
+        return false;
+      }
+
       // 方向筛选
       if (this.currentFilters.direction && sim.direction !== this.currentFilters.direction) {
         return false;
@@ -291,7 +299,7 @@ class SimulationDataManager {
     const tbody = document.getElementById('simulationHistoryBody');
 
     if (!simulations || simulations.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="16" class="loading">暂无数据</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="17" class="loading">暂无数据</td></tr>';
       return;
     }
 
@@ -320,6 +328,7 @@ class SimulationDataManager {
       return `
         <tr>
           <td>${sim.symbol}</td>
+          <td>${sim.strategy || 'V3'}</td>
           <td>${sim.direction === 'LONG' ? '做多' : '做空'}</td>
           <td>${this.formatNumber(sim.entry_price)}</td>
           <td>${this.formatNumber(sim.stop_loss_price)}</td>
@@ -507,11 +516,13 @@ class SimulationDataManager {
 
   // 清除筛选条件
   clearFilters() {
+    document.getElementById('strategyFilter').value = '';
     document.getElementById('directionFilter').value = '';
     document.getElementById('exitReasonFilter').value = '';
     document.getElementById('resultFilter').value = '';
 
     this.currentFilters = {
+      strategy: '',
       direction: '',
       exitReason: '',
       result: ''

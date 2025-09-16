@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0">
   <meta name="cache-buster" content="20250115-01">
   <title>SmartFlow 交易策略仪表板</title>
-  <link rel="stylesheet" href="css/main.css?v=20250115-05">
+  <link rel="stylesheet" href="css/main.css?v=20250115-06">
   <style>
     .weight-table {
       width: 100%;
@@ -104,6 +104,21 @@
       <h1>🚀 SmartFlow 交易策略仪表板</h1>
       <p>基于多周期共振的高胜率高盈亏比加密货币交易策略</p>
 
+      <!-- 工具类按钮区域 -->
+      <div class="toolbar">
+        <div class="toolbar-section">
+          <h3>🔧 系统工具</h3>
+          <div class="toolbar-buttons">
+            <button class="btn secondary" onclick="runSystemTests()">🧪 系统测试</button>
+            <a href="monitoring.html" class="btn secondary">📊 监控中心</a>
+            <a href="simulation-data.html" class="btn secondary" target="_blank">📈 模拟交易</a>
+            <a href="rollup-calculator.html" class="btn calculator-btn" target="_blank">📊 滚仓计算器</a>
+            <a href="symbol-management.html" class="btn symbols-list-btn">📋 交易对管理</a>
+            <a href="data-refresh.html" class="btn info">📊 数据刷新状态</a>
+          </div>
+        </div>
+      </div>
+
       <!-- 策略切换选项卡 -->
       <div class="strategy-tabs">
         <button class="strategy-tab active" data-strategy="trend">
@@ -173,17 +188,6 @@
         </div>
       </div>
 
-      <!-- 功能按钮区域 -->
-      <div class="function-buttons">
-        <button class="btn secondary" onclick="runSystemTests()">🧪 系统测试</button>
-        <a href="monitoring.html" class="btn secondary">📊 监控中心</a>
-        <a href="simulation-data.html" class="btn secondary" target="_blank">📈 模拟交易</a>
-        <a href="rollup-calculator.html" class="btn calculator-btn" target="_blank">📊 滚仓计算器</a>
-        <a href="symbol-management.html" class="btn symbols-list-btn">📋 交易对管理</a>
-        <div class="btn-group">
-          <a href="data-refresh.html" class="btn info">📊 数据刷新状态</a>
-        </div>
-      </div>
 
       <!-- 缓存状态显示 -->
       <div id="cacheStatus" class="cache-status-container" style="display: none;"></div>
@@ -191,8 +195,8 @@
       <!-- 信号表格 -->
       <div class="table-container">
         <h3>📊 交易信号</h3>
-        <div class="table-wrapper">
-          <table id="signalsTable">
+        <div class="table-responsive">
+          <table class="table" id="signalsTable">
             <thead>
               <tr>
                 <th>详情</th>
@@ -1010,8 +1014,6 @@
       <div class="actions">
         <button id="ictRefreshBtn" class="btn-primary">🔄 刷新ICT信号</button>
         <button id="ictClearCacheBtn" class="btn-secondary">🗑️ 清除缓存</button>
-        <a href="simulation-data.html?strategy=ict" class="btn-secondary">📊 ICT模拟交易数据</a>
-        <a href="symbol-management.html" class="btn-secondary">⚙️ 交易对管理</a>
       </div>
 
       <!-- ICT交易信号表格 -->
@@ -1046,17 +1048,17 @@
   </div>
 
   <!-- 加载JavaScript模块 -->
-  <script src="js/api.js?v=20250115-04"></script>
-  <script src="js/components/Modal.js?v=20250115-04"></script>
-  <script src="js/data/DataManager.js?v=20250115-04"></script>
+  <script src="js/api.js?v=20250115-06"></script>
+  <script src="js/components/Modal.js?v=20250115-06"></script>
+  <script src="js/data/DataManager.js?v=20250115-06"></script>
   <!-- 模块化JavaScript文件 -->
-  <script src="js/core.js?v=20250115-04"></script>
-  <script src="js/simulation.js?v=20250115-04"></script>
-  <script src="js/monitoring.js?v=20250115-04"></script>
-  <script src="js/alerts.js?v=20250115-04"></script>
-  <script src="js/symbols.js?v=20250115-04"></script>
-  <script src="js/utils.js?v=20250115-04"></script>
-  <script src="js/main-new.js?v=20250115-04"></script>
+  <script src="js/core.js?v=20250115-06"></script>
+  <script src="js/simulation.js?v=20250115-06"></script>
+  <script src="js/monitoring.js?v=20250115-06"></script>
+  <script src="js/alerts.js?v=20250115-06"></script>
+  <script src="js/symbols.js?v=20250115-06"></script>
+  <script src="js/utils.js?v=20250115-06"></script>
+  <script src="js/main-new.js?v=20250115-06"></script>
 
   <!-- 优化表格样式 -->
   <style>

@@ -2702,6 +2702,43 @@ tr:hover {
   border-color: #bd2130;
 }
 
+/* 工具栏样式 */
+.toolbar {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.toolbar-section h3 {
+  color: white;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.toolbar-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.toolbar-buttons .btn {
+  margin: 0;
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.toolbar-buttons .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
 /* 表格响应式样式 */
 .table-responsive {
   overflow-x: auto;
@@ -2714,7 +2751,8 @@ tr:hover {
   width: 100%;
   margin-bottom: 0;
   border-collapse: collapse;
-  min-width: 1200px; /* 确保表格有足够宽度显示所有列 */
+  min-width: 1200px;
+  /* 确保表格有足够宽度显示所有列 */
 }
 
 .table-responsive .table th,
@@ -2742,11 +2780,14 @@ tr:hover {
   background-color: rgba(0, 0, 0, 0.075);
 }
 
-/* ICT策略表格特定样式 */
+/* 统一表格样式 */
+#signalsTable,
 #ictSignalsTable {
   font-size: 0.8rem;
+  min-width: 1000px;
 }
 
+#signalsTable th,
 #ictSignalsTable th {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -2755,35 +2796,42 @@ tr:hover {
   padding: 8px 4px;
 }
 
+#signalsTable td,
 #ictSignalsTable td {
   text-align: center;
   padding: 6px 4px;
   border-bottom: 1px solid #e9ecef;
 }
 
+#signalsTable .symbol-cell,
 #ictSignalsTable .symbol-cell {
   font-weight: 600;
   text-align: left;
   padding-left: 8px;
 }
 
+#signalsTable .indicator-yes,
 #ictSignalsTable .indicator-yes {
   color: #28a745;
   font-weight: bold;
 }
 
+#signalsTable .indicator-no,
 #ictSignalsTable .indicator-no {
   color: #dc3545;
   font-weight: bold;
 }
 
+#signalsTable .signal-long,
 #ictSignalsTable .signal-long {
   background-color: rgba(40, 167, 69, 0.1);
 }
 
+#signalsTable .signal-short,
 #ictSignalsTable .signal-short {
   background-color: rgba(220, 53, 69, 0.1);
 }
+
 
 @media (max-width: 768px) {
   .alert-header {
