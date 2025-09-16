@@ -46,7 +46,7 @@ body {
 
 /* 容器样式 */
 .container {
-  max-width: 1400px;
+  max-width: 1600px; /* 增加容器宽度以容纳更宽的表格 */
   margin: 0 auto;
   padding: 20px;
 }
@@ -2751,8 +2751,8 @@ tr:hover {
   width: 100%;
   margin-bottom: 0;
   border-collapse: collapse;
-  min-width: 1200px;
-  /* 确保表格有足够宽度显示所有列 */
+  min-width: 1000px;
+  /* 基础最小宽度，具体表格可以覆盖 */
 }
 
 .table-responsive .table th,
@@ -2781,10 +2781,20 @@ tr:hover {
 }
 
 /* 统一表格样式 */
-#signalsTable,
-#ictSignalsTable {
+#signalsTable {
   font-size: 0.8rem;
   min-width: 1000px;
+}
+
+#ictSignalsTable {
+  font-size: 0.8rem;
+  min-width: 1400px !important;
+  /* ICT表格有16列，需要更宽的最小宽度 */
+}
+
+/* 确保ICT表格容器有足够的宽度 */
+.table-responsive:has(#ictSignalsTable) {
+  min-width: 1400px;
 }
 
 #signalsTable th,
