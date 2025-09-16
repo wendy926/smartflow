@@ -7,9 +7,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="cache-buster" content="20250115-08">
+  <meta name="cache-buster" content="20250115-10">
   <title>SmartFlow 交易策略仪表板</title>
-  <link rel="stylesheet" href="css/main.css?v=20250115-08">
+  <link rel="stylesheet" href="css/main.css?v=20250115-10">
   <style>
     .weight-table {
       width: 100%;
@@ -1020,8 +1020,9 @@
       <div class="table-responsive" style="min-width: 1400px; overflow-x: auto;">
         <div style="background: #f0f0f0; padding: 10px; margin-bottom: 10px; border-radius: 5px;">
           <strong>调试信息：</strong>ICT表格应该有16列，如果只显示10列，请按Ctrl+F5强制刷新浏览器缓存
+          <br><strong>表格列数检查：</strong><span id="columnCount">检查中...</span>
         </div>
-        <table class="table" id="ictSignalsTable" style="min-width: 1400px !important;">
+        <table class="table" id="ictSignalsTable" style="min-width: 1400px !important; width: auto !important;">
           <thead>
             <tr>
               <th>交易对</th>
@@ -1051,17 +1052,17 @@
   </div>
 
   <!-- 加载JavaScript模块 -->
-  <script src="js/api.js?v=20250115-06"></script>
-  <script src="js/components/Modal.js?v=20250115-06"></script>
-  <script src="js/data/DataManager.js?v=20250115-06"></script>
+  <script src="js/api.js?v=20250115-10"></script>
+  <script src="js/components/Modal.js?v=20250115-10"></script>
+  <script src="js/data/DataManager.js?v=20250115-10"></script>
   <!-- 模块化JavaScript文件 -->
-  <script src="js/core.js?v=20250115-06"></script>
-  <script src="js/simulation.js?v=20250115-06"></script>
-  <script src="js/monitoring.js?v=20250115-06"></script>
-  <script src="js/alerts.js?v=20250115-06"></script>
-  <script src="js/symbols.js?v=20250115-06"></script>
-  <script src="js/utils.js?v=20250115-06"></script>
-  <script src="js/main-new.js?v=20250115-06"></script>
+  <script src="js/core.js?v=20250115-10"></script>
+  <script src="js/simulation.js?v=20250115-10"></script>
+  <script src="js/monitoring.js?v=20250115-10"></script>
+  <script src="js/alerts.js?v=20250115-10"></script>
+  <script src="js/symbols.js?v=20250115-10"></script>
+  <script src="js/utils.js?v=20250115-10"></script>
+  <script src="js/main-new.js?v=20250115-10"></script>
 
   <!-- 优化表格样式 -->
   <style>

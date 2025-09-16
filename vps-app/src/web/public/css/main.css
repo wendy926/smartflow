@@ -46,7 +46,8 @@ body {
 
 /* 容器样式 */
 .container {
-  max-width: 1600px; /* 增加容器宽度以容纳更宽的表格 */
+  max-width: 1600px;
+  /* 增加容器宽度以容纳更宽的表格 */
   margin: 0 auto;
   padding: 20px;
 }
@@ -2789,6 +2790,8 @@ tr:hover {
 #ictSignalsTable {
   font-size: 0.8rem;
   min-width: 1400px !important;
+  width: auto !important;
+  /* 覆盖通用table的width: 100%设置 */
   /* ICT表格有16列，需要更宽的最小宽度 */
 }
 
