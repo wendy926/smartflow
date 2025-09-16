@@ -532,7 +532,7 @@ class SimulationDataManager {
 
     // 更新策略筛选条件
     this.currentFilters.strategy = strategy === 'all' ? '' : strategy;
-    
+
     // 应用筛选
     this.applyFilters();
   }

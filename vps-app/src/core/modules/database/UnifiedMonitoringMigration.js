@@ -213,7 +213,8 @@ class UnifiedMonitoringMigration {
 
       console.log('✅ 扩展现有表结构完成');
     } catch (error) {
-      console.log('⚠️ 扩展现有表结构时出现错误（可能字段已存在）:', error.message);
+      console.warn('⚠️ 扩展现有表结构时出现错误（可能字段已存在）:', error.message);
+      // 不抛出错误，因为这是可选功能
     }
   }
 
@@ -228,10 +229,17 @@ class UnifiedMonitoringMigration {
       return;
     }
 
-    const alterSQLs = [
-      "ALTER TABLE strategy_analysis ADD COLUMN strategy_type TEXT DEFAULT 'V3'",
-      "ALTER TABLE strategy_analysis ADD COLUMN unified_monitoring_data TEXT"
-    ];
+    // 检查列是否已存在
+    const columns = await this.getTableColumns('strategy_analysis');
+    const alterSQLs = [];
+    
+    if (!columns.includes('strategy_type')) {
+      alterSQLs.push("ALTER TABLE strategy_analysis ADD COLUMN strategy_type TEXT DEFAULT 'V3'");
+    }
+    
+    if (!columns.includes('unified_monitoring_data')) {
+      alterSQLs.push("ALTER TABLE strategy_analysis ADD COLUMN unified_monitoring_data TEXT");
+    }
 
     for (const sql of alterSQLs) {
       try {
@@ -242,9 +250,7 @@ class UnifiedMonitoringMigration {
           });
         });
       } catch (error) {
-        if (!error.message.includes('duplicate column name')) {
-          console.warn(`⚠️ 扩展 strategy_analysis 表失败: ${error.message}`);
-        }
+        console.warn(`⚠️ 扩展 strategy_analysis 表失败: ${error.message}`);
       }
     }
   }
@@ -260,10 +266,17 @@ class UnifiedMonitoringMigration {
       return;
     }
 
-    const alterSQLs = [
-      "ALTER TABLE ict_strategy_analysis ADD COLUMN unified_monitoring_data TEXT",
-      "ALTER TABLE ict_strategy_analysis ADD COLUMN strategy_type TEXT DEFAULT 'ICT'"
-    ];
+    // 检查列是否已存在
+    const columns = await this.getTableColumns('ict_strategy_analysis');
+    const alterSQLs = [];
+    
+    if (!columns.includes('unified_monitoring_data')) {
+      alterSQLs.push("ALTER TABLE ict_strategy_analysis ADD COLUMN unified_monitoring_data TEXT");
+    }
+    
+    if (!columns.includes('strategy_type')) {
+      alterSQLs.push("ALTER TABLE ict_strategy_analysis ADD COLUMN strategy_type TEXT DEFAULT 'ICT'");
+    }
 
     for (const sql of alterSQLs) {
       try {
@@ -274,9 +287,7 @@ class UnifiedMonitoringMigration {
           });
         });
       } catch (error) {
-        if (!error.message.includes('duplicate column name')) {
-          console.warn(`⚠️ 扩展 ict_strategy_analysis 表失败: ${error.message}`);
-        }
+        console.warn(`⚠️ 扩展 ict_strategy_analysis 表失败: ${error.message}`);
       }
     }
   }
@@ -580,10 +591,30 @@ class UnifiedMonitoringMigration {
   }
 
   /**
+   * 获取表的列信息
+   */
+  async getTableColumns(tableName) {
+    try {
+      const result = await this.db.all(`PRAGMA table_info(${tableName})`);
+      return result.map(row => row.name);
+    } catch (error) {
+      console.warn(`⚠️ 获取表 ${tableName} 列信息失败:`, error.message);
+      return [];
+    }
+  }
+
+  /**
    * 获取自定义交易对列表
    */
   async getCustomSymbols() {
     try {
+      // 检查表是否存在
+      const tableExists = await this.checkTableExists('custom_symbols');
+      if (!tableExists) {
+        console.warn('⚠️ custom_symbols表不存在，使用默认列表');
+        return ['BTCUSDT', 'ETHUSDT', 'ADAUSDT', 'SOLUSDT', 'DOTUSDT'];
+      }
+      
       const result = await this.db.all('SELECT symbol FROM custom_symbols ORDER BY symbol');
       return result.map(row => row.symbol);
     } catch (error) {

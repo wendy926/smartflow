@@ -327,13 +327,13 @@ function getQualityClass(quality) {
 // 切换策略选择
 function switchStrategy(strategy, event) {
   event.preventDefault();
-  
+
   // 更新策略标签按钮状态
   document.querySelectorAll('.strategy-tab').forEach(btn => {
     btn.classList.remove('active');
   });
   event.target.classList.add('active');
-  
+
   // 重新加载交易对数据
   loadTradingPairsData(strategy);
 }
@@ -341,13 +341,13 @@ function switchStrategy(strategy, event) {
 // 切换数据刷新策略选择
 function switchRefreshStrategy(strategy, event) {
   event.preventDefault();
-  
+
   // 更新策略标签按钮状态
   document.querySelectorAll('.strategy-tab').forEach(btn => {
     btn.classList.remove('active');
   });
   event.target.classList.add('active');
-  
+
   // 重新加载数据刷新状态
   loadDataRefreshStatus(strategy);
 }
@@ -357,7 +357,7 @@ async function loadDataRefreshStatus(strategy = 'all') {
   try {
     const response = await fetch('/api/data-refresh/status');
     const data = await response.json();
-    
+
     if (data.success) {
       updateDataRefreshUI(data.data, strategy);
     } else {
@@ -374,18 +374,18 @@ function updateDataRefreshUI(refreshData, strategy = 'all') {
   const ictCount = document.getElementById('ictRefreshCount');
   const totalRate = document.getElementById('totalRefreshRate');
   const tableBody = document.getElementById('refreshTableBody');
-  
+
   if (!v3Count || !ictCount || !totalRate || !tableBody) return;
-  
+
   // 计算统计数据
   let v3RefreshCount = 0;
   let ictRefreshCount = 0;
   let totalRefreshCount = 0;
   let totalSuccessCount = 0;
-  
+
   // 构建表格数据
   let tableRows = '';
-  
+
   // 处理V3策略数据
   if (strategy === 'all' || strategy === 'V3') {
     for (const [symbol, dataTypes] of Object.entries(refreshData.v3Strategy || {})) {
@@ -393,7 +393,7 @@ function updateDataRefreshUI(refreshData, strategy = 'all') {
         if (status.shouldRefresh) v3RefreshCount++;
         totalRefreshCount++;
         if (status.lastRefresh) totalSuccessCount++;
-        
+
         tableRows += `
           <tr>
             <td>${symbol}</td>
@@ -408,7 +408,7 @@ function updateDataRefreshUI(refreshData, strategy = 'all') {
       }
     }
   }
-  
+
   // 处理ICT策略数据
   if (strategy === 'all' || strategy === 'ICT') {
     for (const [symbol, dataTypes] of Object.entries(refreshData.ictStrategy || {})) {
@@ -416,7 +416,7 @@ function updateDataRefreshUI(refreshData, strategy = 'all') {
         if (status.shouldRefresh) ictRefreshCount++;
         totalRefreshCount++;
         if (status.lastRefresh) totalSuccessCount++;
-        
+
         tableRows += `
           <tr>
             <td>${symbol}</td>
@@ -431,12 +431,12 @@ function updateDataRefreshUI(refreshData, strategy = 'all') {
       }
     }
   }
-  
+
   // 更新统计信息
   v3Count.textContent = v3RefreshCount;
   ictCount.textContent = ictRefreshCount;
   totalRate.textContent = totalRefreshCount > 0 ? `${Math.round((totalSuccessCount / totalRefreshCount) * 100)}%` : '0%';
-  
+
   // 更新表格
   tableBody.innerHTML = tableRows;
 }
@@ -454,9 +454,9 @@ async function forceRefreshData(symbol, strategyType, dataType) {
         dataType: dataType
       })
     });
-    
+
     const data = await response.json();
-    
+
     if (data.success) {
       alert('数据刷新已触发');
       // 重新加载数据刷新状态
@@ -475,7 +475,7 @@ async function loadTradingPairsData(strategy = 'all') {
   try {
     const response = await fetch('/api/unified-monitoring/dashboard');
     const data = await response.json();
-    
+
     if (data.success) {
       updateTradingPairsUI(data.data, strategy);
     } else {
@@ -490,12 +490,12 @@ async function loadTradingPairsData(strategy = 'all') {
 function updateTradingPairsUI(dashboardData, strategy = 'all') {
   const tableBody = document.querySelector('#trading-pairsView .symbols-table tbody');
   if (!tableBody) return;
-  
+
   let tableRows = '';
-  
+
   for (const symbolData of dashboardData.detailedStats || []) {
     const { symbol, v3Strategy, ictStrategy } = symbolData;
-    
+
     // 根据策略过滤显示
     if (strategy === 'all' || strategy === 'V3') {
       tableRows += `
@@ -511,7 +511,7 @@ function updateTradingPairsUI(dashboardData, strategy = 'all') {
         </tr>
       `;
     }
-    
+
     if (strategy === 'all' || strategy === 'ICT') {
       tableRows += `
         <tr>
@@ -527,7 +527,7 @@ function updateTradingPairsUI(dashboardData, strategy = 'all') {
       `;
     }
   }
-  
+
   tableBody.innerHTML = tableRows;
 }
 
@@ -558,7 +558,7 @@ async function loadAlertsData() {
   try {
     const response = await fetch('/api/monitoring/alerts');
     const data = await response.json();
-    
+
     if (data.success) {
       updateAlertsUI(data.data);
     } else {
@@ -573,9 +573,9 @@ async function loadAlertsData() {
 function updateAlertsUI(alertsData) {
   const alertContainer = document.querySelector('#alertsView .alert-history');
   if (!alertContainer) return;
-  
+
   let alertHtml = '<h3>🚨 数据监控告警明细</h3>';
-  
+
   if (alertsData.alerts && alertsData.alerts.length > 0) {
     for (const alert of alertsData.alerts) {
       alertHtml += `
@@ -595,7 +595,7 @@ function updateAlertsUI(alertsData) {
   } else {
     alertHtml += '<div class="no-alerts">暂无告警</div>';
   }
-  
+
   alertContainer.innerHTML = alertHtml;
 }
 
@@ -605,9 +605,9 @@ async function resolveAlert(alertId) {
     const response = await fetch(`/api/monitoring/alerts/${alertId}/resolve`, {
       method: 'POST'
     });
-    
+
     const data = await response.json();
-    
+
     if (data.success) {
       alert('告警已解决');
       // 重新加载告警数据

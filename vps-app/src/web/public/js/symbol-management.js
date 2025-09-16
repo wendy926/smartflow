@@ -17,7 +17,7 @@ class SymbolManagement {
     try {
       // 加载当前已添加的交易对
       await this.loadCurrentSymbols();
-      
+
       // 并行加载交易次数统计、策略统计和各类交易对数据
       await Promise.all([
         this.loadTradeCounts(),
@@ -96,9 +96,9 @@ class SymbolManagement {
   updateCurrentSymbolsDisplay() {
     const container = document.getElementById('currentSymbolsList');
     const countElement = document.getElementById('currentCount');
-    
+
     countElement.textContent = this.currentSymbols.size;
-    
+
     if (this.currentSymbols.size === 0) {
       container.innerHTML = '<div style="color: #6c757d; text-align: center; padding: 20px;">暂无交易对</div>';
       return;
@@ -114,11 +114,11 @@ class SymbolManagement {
 
   async loadAllCategories() {
     const categories = ['mainstream', 'highcap', 'trending', 'smallcap'];
-    
+
     for (const category of categories) {
       await this.loadCategory(category);
     }
-    
+
     // 确保所有分类加载完成后，重新渲染所有分类以显示交易统计
     this.updateAllCategoryDisplays();
   }
@@ -155,7 +155,7 @@ class SymbolManagement {
 
   renderCategory(category, symbols) {
     const container = document.getElementById(`${category}Symbols`);
-    
+
     if (symbols.length === 0) {
       container.innerHTML = '<div style="color: #6c757d; text-align: center; padding: 20px;">暂无数据</div>';
       return;
@@ -193,11 +193,11 @@ class SymbolManagement {
           </div>
           
           <div class="symbol-actions">
-            ${isAdded ? 
-              `<button class="btn-small btn-added" disabled>已添加</button>
+            ${isAdded ?
+          `<button class="btn-small btn-added" disabled>已添加</button>
                <button class="btn-small btn-remove" onclick="symbolManager.removeSymbol('${symbol.symbol}')">删除</button>` :
-              `<button class="btn-small btn-add" onclick="symbolManager.addSymbol('${symbol.symbol}')">添加</button>`
-            }
+          `<button class="btn-small btn-add" onclick="symbolManager.addSymbol('${symbol.symbol}')">添加</button>`
+        }
           </div>
         </div>
       `;
