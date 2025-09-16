@@ -6,12 +6,19 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('window.apiClient状态:', window.apiClient);
   console.log('window.apiClient类型:', typeof window.apiClient);
 
-  // 强制初始化应用，不依赖API客户端
-  console.log('🔄 强制初始化应用...');
-  window.app = new SmartFlowApp();
+  // 等待API客户端初始化完成
+  const initApp = () => {
+    if (window.apiClient) {
+      console.log('✅ API客户端已就绪，初始化应用...');
+      window.app = new SmartFlowApp();
+      testCategoryMapping();
+    } else {
+      console.log('⏳ 等待API客户端初始化...');
+      setTimeout(initApp, 100);
+    }
+  };
 
-  // 测试分类映射函数
-  testCategoryMapping();
+  initApp();
 });
 
 // 手动刷新数据函数

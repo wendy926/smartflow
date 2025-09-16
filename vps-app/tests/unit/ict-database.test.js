@@ -12,7 +12,8 @@ describe('ICT数据库管理测试', () => {
     mockDatabase = {
       run: jest.fn().mockResolvedValue({ lastID: 1, changes: 1 }),
       get: jest.fn().mockResolvedValue({ id: 1, name: 'test' }),
-      all: jest.fn().mockResolvedValue([])
+      all: jest.fn().mockResolvedValue([]),
+      runQuery: jest.fn().mockResolvedValue([])
     };
 
     ictDatabaseManager = new ICTDatabaseManager(mockDatabase);
@@ -366,10 +367,9 @@ describe('ICT数据库管理测试', () => {
           { execution_mode: 'FVG_SWEEP', count: 1 }
         ];
 
-        mockDatabase.get
-          .mockResolvedValueOnce(mockAnalysisStats)
-          .mockResolvedValueOnce(mockSimulationStats);
-        mockDatabase.all
+        mockDatabase.runQuery
+          .mockResolvedValueOnce([mockAnalysisStats])
+          .mockResolvedValueOnce([mockSimulationStats])
           .mockResolvedValueOnce(mockSignalStats)
           .mockResolvedValueOnce(mockExecutionStats);
 
@@ -382,8 +382,7 @@ describe('ICT数据库管理测试', () => {
       });
 
       test('应该处理查询失败', async () => {
-        mockDatabase.get.mockRejectedValue(new Error('Query error'));
-        mockDatabase.all.mockRejectedValue(new Error('Query error'));
+        mockDatabase.runQuery.mockRejectedValue(new Error('Query error'));
 
         const result = await ictMigration.getICTStats();
 

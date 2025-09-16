@@ -16,9 +16,10 @@ describe('ICTStrategy 主策略测试', () => {
 
   beforeEach(() => {
     mockDatabase = {
-      run: jest.fn(),
-      get: jest.fn(),
-      all: jest.fn()
+      run: jest.fn().mockResolvedValue({ lastID: 1, changes: 1 }),
+      get: jest.fn().mockResolvedValue({ id: 1, name: 'test' }),
+      all: jest.fn().mockResolvedValue([]),
+      runQuery: jest.fn().mockResolvedValue([])
     };
     mockDataManager = {
       getData: jest.fn(),

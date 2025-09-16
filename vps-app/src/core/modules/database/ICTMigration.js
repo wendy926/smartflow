@@ -299,11 +299,11 @@ class ICTMigration {
     try {
       const stats = {};
 
-        // 策略分析统计
-        const analysisStats = await this.db.runQuery(
-          'SELECT COUNT(*) as total, MAX(timestamp) as latest FROM ict_strategy_analysis'
-        );
-        stats.analysis = analysisStats[0] || { total: 0, latest: null };
+      // 策略分析统计
+      const analysisStats = await this.db.runQuery(
+        'SELECT COUNT(*) as total, MAX(timestamp) as latest FROM ict_strategy_analysis'
+      );
+      stats.analysis = analysisStats[0] || { total: 0, latest: null };
 
       // 模拟交易统计
       const simulationStats = await this.db.runQuery(

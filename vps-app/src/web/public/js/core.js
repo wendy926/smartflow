@@ -461,7 +461,7 @@ class SmartFlowApp {
     if (totalSignalsEl) totalSignalsEl.textContent = totalSignals;
     if (longSignalsEl) longSignalsEl.textContent = longSignals;
     if (shortSignalsEl) shortSignalsEl.textContent = shortSignals;
-    
+
     console.log('📊 更新统计信息:', {
       totalSignals,
       longSignals,
