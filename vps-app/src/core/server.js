@@ -1958,7 +1958,7 @@ class SmartFlowServer {
       this.simulationManager.setTelegramNotifier(this.telegramNotifier);
 
       // 初始化ICT策略
-      await this.initializeICTStrategy();
+      // await this.initializeICTStrategy();
 
       // 初始化数据监控
       this.dataMonitor = new DataMonitor(this.db);
