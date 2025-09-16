@@ -459,8 +459,8 @@ class SmartFlowApp {
   updateStatsDisplay(signals, stats) {
     // 更新信号统计
     const totalSignals = signals.length;
-    const longSignals = signals.filter(s => s.signalType === 'LONG').length;
-    const shortSignals = signals.filter(s => s.signalType === 'SHORT').length;
+    const longSignals = signals.filter(s => s.signal === 'LONG' || s.signal === '做多').length;
+    const shortSignals = signals.filter(s => s.signal === 'SHORT' || s.signal === '做空').length;
     const executionSignals = signals.filter(s => s.execution && (s.execution.includes('做多_') || s.execution.includes('做空_'))).length;
 
     // 安全地更新DOM元素
@@ -514,39 +514,23 @@ class SmartFlowApp {
     const tr = document.createElement('tr');
 
     // 根据信号类型添加样式
-    if (signal.signalType === 'LONG') {
+    if (signal.signal === 'LONG' || signal.signal === '做多') {
       tr.classList.add('signal-long');
-    } else if (signal.signalType === 'SHORT') {
+    } else if (signal.signal === 'SHORT' || signal.signal === '做空') {
       tr.classList.add('signal-short');
     }
 
     tr.innerHTML = `
-      <td class="symbol-cell">${signal.symbol}</td>
+      <td><button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button></td>
+      <td><strong>${signal.symbol}</strong></td>
       <td class="category-${signal.category}">${this.getCategoryDisplay(signal.category)}</td>
-      <td class="trend-cell ${signal.trend}">${signal.trend || '--'}</td>
-      <td class="signal-${signal.signalType?.toLowerCase()}">${signal.signalType || '--'}</td>
-      <td class="strength-${signal.signalStrength?.toLowerCase()}">${signal.signalStrength || '--'}</td>
-      <td class="execution-mode">${signal.execution || '--'}</td>
-      <td class="indicator-${signal.smaTrend ? 'yes' : 'no'}">${signal.smaTrend ? '✅' : '❌'}</td>
-      <td class="indicator-${signal.maTrend ? 'yes' : 'no'}">${signal.maTrend ? '✅' : '❌'}</td>
-      <td class="indicator-${signal.vwapTrend ? 'yes' : 'no'}">${signal.vwapTrend ? '✅' : '❌'}</td>
-      <td class="indicator-${signal.adxTrend ? 'yes' : 'no'}">${signal.adxTrend ? '✅' : '❌'}</td>
-      <td class="indicator-${signal.bbwTrend ? 'yes' : 'no'}">${signal.bbwTrend ? '✅' : '❌'}</td>
-      <td class="indicator-${signal.atrTrend ? 'yes' : 'no'}">${signal.atrTrend ? '✅' : '❌'}</td>
-      <td class="indicator-${signal.deltaTrend ? 'yes' : 'no'}">${signal.deltaTrend ? '✅' : '❌'}</td>
-      <td class="indicator-${signal.oiTrend ? 'yes' : 'no'}">${signal.oiTrend ? '✅' : '❌'}</td>
-      <td class="indicator-${signal.fundingTrend ? 'yes' : 'no'}">${signal.fundingTrend ? '✅' : '❌'}</td>
-      <td class="price-cell">${signal.entrySignal ? signal.entrySignal.toFixed(4) : '--'}</td>
-      <td class="price-cell">${signal.stopLoss ? signal.stopLoss.toFixed(4) : '--'}</td>
-      <td class="price-cell">${signal.takeProfit ? signal.takeProfit.toFixed(4) : '--'}</td>
-      <td class="rr-cell">${signal.riskRewardRatio ? signal.riskRewardRatio.toFixed(2) : '--'}</td>
+      <td class="score-${signal.score >= 3 ? 'high' : 'low'}">${signal.score || 0}</td>
+      <td class="trend-${signal.trend4h?.toLowerCase() || 'none'}">${signal.trend4h || '--'}</td>
+      <td class="score-${signal.score1h >= 3 ? 'high' : 'low'}">${signal.score1h || 0}</td>
+      <td class="trend-${signal.trendStrength?.toLowerCase() || 'none'}">${signal.trendStrength || '--'}</td>
+      <td class="signal-${signal.signal?.toLowerCase() || 'none'}">${signal.signal || '--'}</td>
+      <td class="price-cell">${signal.currentPrice ? signal.currentPrice.toFixed(4) : '--'}</td>
       <td class="rate-cell ${this.getDataRateClass(signal.dataCollectionRate)}">${signal.dataCollectionRate?.toFixed(1) || 0}%</td>
-      <td class="action-cell">
-        ${signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_')) ?
-        `<button class="btn-trade" onclick="startSimulation('${signal.symbol}')"> 📈 模拟交易</button>` :
-        '--'
-      }
-      </td>
     `;
 
     return tr;
@@ -555,8 +539,10 @@ class SmartFlowApp {
   // 获取分类显示名称
   getCategoryDisplay(category) {
     const categoryMap = {
-      'high-cap-trending': '高市值热门',
+      'high-cap-trending': '高市值趋势币',
       'mainstream': '主流币',
+      'trending': '热点币',
+      'smallcap': '小币',
       'altcoin': '山寨币',
       'meme': 'Meme币',
       'defi': 'DeFi',
