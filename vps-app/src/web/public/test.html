@@ -4,86 +4,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>测试页面</title>
+  <title>前端测试页面</title>
 </head>
 
 <body>
-  <h1>测试页面</h1>
-  <div id="result"></div>
+  <h1>前端测试页面</h1>
+  <div id="test-results"></div>
+
+  <script src="js/api.js?v=20250115-01"></script>
+  <script src="js/data/DataManager.js?v=20250115-01"></script>
+  <script src="js/core.js?v=20250115-01"></script>
+  <script src="js/main-new.js?v=20250115-01"></script>
 
   <script>
-    // 模拟API数据
-    const testData = [
-      {
-        symbol: "BTCUSDT",
-        marketType: "震荡市",
-        trendStrength: "弱",
-        signalStrength: "弱",
-        rangeLowerBoundaryValid: true,
-        rangeUpperBoundaryValid: true,
-        strategyVersion: "V3",
-        reason: null
-      },
-      {
-        symbol: "ETHUSDT",
-        marketType: "趋势市",
-        trendStrength: "观望",
-        signalStrength: "弱",
-        rangeLowerBoundaryValid: true,
-        rangeUpperBoundaryValid: true,
-        strategyVersion: "V3",
-        reason: null
-      }
-    ];
-
-    function testDisplayLogic(signal) {
-      const trend4h = signal.trend4h || signal.trend || '--';
-      const marketType = signal.marketType || '--';
-      const strategyVersion = signal.strategyVersion || 'V2';
-
-      // 检查是否有数据不足的情况
-      const hasDataIssue = signal.reason && signal.reason.includes('数据不足');
-
-      // 构建1H判断列显示
-      let signalDisplay = '--';
-      if (strategyVersion === 'V3') {
-        if (hasDataIssue) {
-          signalDisplay = '数据不足';
-        } else if (marketType === '趋势市' && signal.trendStrength) {
-          // 趋势市显示1H趋势加强判断结果
-          const strengthClass = signal.signalStrength === '强' ? 'trend-strong' :
-            signal.signalStrength === '中' ? 'trend-medium' : 'trend-weak';
-          signalDisplay = `${signal.trendStrength}<br><small class="${strengthClass}">${signal.signalStrength}</small>`;
-        } else if (marketType === '震荡市') {
-          // 震荡市显示1H边界有效性判断结果
-          const rangeLowerValid = signal.rangeLowerBoundaryValid || false;
-          const rangeUpperValid = signal.rangeUpperBoundaryValid || false;
-          const boundaryCount = (rangeLowerValid ? 1 : 0) + (rangeUpperValid ? 1 : 0);
-          const boundaryClass = boundaryCount >= 1 ? 'score-strong' : 'score-none';
-          const boundaryStatus = boundaryCount >= 1 ? '边界有效' : '边界无效';
-          signalDisplay = `${boundaryStatus}<br><small class="${boundaryClass}">${boundaryCount}/2分</small>`;
-        } else {
-          signalDisplay = '--';
-        }
-      }
-
-      return signalDisplay;
-    }
-
-    const result = document.getElementById('result');
-    testData.forEach(signal => {
-      const div = document.createElement('div');
-      div.innerHTML = `
-                <h3>${signal.symbol}</h3>
-                <p>marketType: ${signal.marketType}</p>
-                <p>trendStrength: ${signal.trendStrength}</p>
-                <p>strategyVersion: ${signal.strategyVersion}</p>
-                <p>hasDataIssue: ${signal.reason && signal.reason.includes('数据不足')}</p>
-                <p>1H判断显示: ${testDisplayLogic(signal)}</p>
-                <hr>
+    // 测试脚本
+    setTimeout(() => {
+      const results = document.getElementById('test-results');
+      results.innerHTML = `
+                <p>API客户端状态: ${window.apiClient ? '已初始化' : '未初始化'}</p>
+                <p>DataManager状态: ${window.dataManager ? '已初始化' : '未初始化'}</p>
+                <p>SmartFlowApp状态: ${window.app ? '已初始化' : '未初始化'}</p>
+                <p>当前时间: ${new Date().toLocaleString()}</p>
             `;
-      result.appendChild(div);
-    });
+    }, 2000);
   </script>
 </body>
 

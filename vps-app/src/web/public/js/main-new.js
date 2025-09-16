@@ -6,19 +6,36 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('window.apiClient状态:', window.apiClient);
   console.log('window.apiClient类型:', typeof window.apiClient);
 
-  // 等待API客户端初始化完成
+  // 等待所有模块加载完成
   const initApp = () => {
-    if (window.apiClient) {
-      console.log('✅ API客户端已就绪，初始化应用...');
+    if (window.apiClient && typeof SmartFlowApp !== 'undefined') {
+      console.log('✅ 所有模块已就绪，初始化应用...');
       window.app = new SmartFlowApp();
-      testCategoryMapping();
+      
+      // 确保DataManager已初始化
+      if (!window.dataManager) {
+        console.log('🔧 初始化DataManager...');
+        window.dataManager = new DataManager();
+      }
+      
+      // 立即开始加载数据
+      console.log('🔄 开始加载数据...');
+      window.app.loadData();
+      
+      if (typeof testCategoryMapping === 'function') {
+        testCategoryMapping();
+      }
     } else {
-      console.log('⏳ 等待API客户端初始化...');
+      console.log('⏳ 等待模块加载...', {
+        apiClient: !!window.apiClient,
+        SmartFlowApp: typeof SmartFlowApp !== 'undefined'
+      });
       setTimeout(initApp, 100);
     }
   };
 
-  initApp();
+  // 延迟初始化，确保所有脚本都加载完成
+  setTimeout(initApp, 500);
 });
 
 // 手动刷新数据函数

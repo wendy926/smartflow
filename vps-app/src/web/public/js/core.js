@@ -304,8 +304,8 @@ class SmartFlowApp {
         console.log('🔄 监控数据自动刷新开始...');
         // 静默刷新监控数据，不显示加载状态和消息
         const [signals, stats] = await Promise.all([
-        window.dataManager.getAllSignals(true), // 强制刷新信号数据
-        window.dataManager.getWinRateStats()
+          window.dataManager.getAllSignals(true), // 强制刷新信号数据
+          window.dataManager.getWinRateStats()
         ]);
 
         this.updateStatsDisplay(signals, stats);
