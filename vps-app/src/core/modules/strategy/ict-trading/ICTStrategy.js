@@ -47,16 +47,41 @@ class ICTStrategy {
 
       // 2. 中时间框架分析 (4H)
       const mtfResult = await ictCore.analyzeMTF(symbol, dailyTrend);
+      
+      // 即使没有4H OB/FVG，也继续分析，但记录状态
       if (!mtfResult.obDetected && !mtfResult.fvgDetected) {
-        return ICTStrategy.createNoSignalResult(symbol, '4H未检测到OB/FVG');
+        console.log(`📈 4H分析 [${symbol}]: 未检测到OB/FVG，但继续分析趋势`);
+        // 设置默认的mtfResult
+        mtfResult.obDetected = false;
+        mtfResult.fvgDetected = false;
+        mtfResult.sweepHTF = false;
+      } else {
+        console.log(`📈 4H分析 [${symbol}]: OB=${mtfResult.obDetected}, FVG=${mtfResult.fvgDetected}`);
       }
-
-      console.log(`📈 4H分析 [${symbol}]: OB=${mtfResult.obDetected}, FVG=${mtfResult.fvgDetected}`);
 
       // 3. 低时间框架分析 (15m)
       const ltfResult = await ictCore.analyzeLTF(symbol, mtfResult);
+      
+      // 即使没有15m入场信号，也返回趋势信息
       if (!ltfResult.entrySignal) {
-        return ICTStrategy.createNoSignalResult(symbol, '15m未检测到入场信号');
+        console.log(`⚡ 15m分析 [${symbol}]: 未检测到入场信号，但保留趋势信息`);
+        // 返回包含趋势信息的结果，而不是完全的空结果
+        return {
+          symbol,
+          dailyTrend: dailyTrend.trend,
+          dailyTrendScore: dailyTrend.score,
+          mtfResult,
+          ltfResult,
+          riskManagement: null,
+          signalType: 'NONE',
+          signalStrength: 'NONE',
+          executionMode: 'NONE',
+          dataCollectionRate: 100,
+          timestamp: new Date().toISOString(),
+          strategyVersion: 'ICT',
+          dataValid: true,
+          errorMessage: '15m未检测到入场信号'
+        };
       }
 
       console.log(`⚡ 15m分析 [${symbol}]: 入场信号=${ltfResult.entrySignal}`);
