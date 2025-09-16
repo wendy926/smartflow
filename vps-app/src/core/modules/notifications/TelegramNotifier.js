@@ -10,6 +10,12 @@ class TelegramNotifier {
     // 移除lastExecutions Map，使用数据库存储状态
   }
 
+  init(botToken, chatId) {
+    this.botToken = botToken;
+    this.chatId = chatId;
+    this.enabled = !!(this.botToken && this.chatId);
+  }
+
   async sendMessage(message) {
     if (!this.enabled) {
       console.log('📱 Telegram 通知未配置');
