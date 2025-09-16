@@ -441,7 +441,7 @@ class SmartFlowApp {
     try {
       const direction = signalData.execution.includes('做多_') ? 'LONG' : 'SHORT';
       const stopLossDistance = signalData.stopLoss ? Math.abs(signalData.entrySignal - signalData.stopLoss) : 0;
-      
+
       const tradeData = {
         symbol: signalData.symbol,
         entryPrice: signalData.entrySignal,

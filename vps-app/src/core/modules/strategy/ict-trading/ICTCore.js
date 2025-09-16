@@ -147,30 +147,71 @@ class ICTCore {
       let trend = 'sideways';
       let score = 0;
 
-      if (lastPrice > first * 1.02) { // 2%以上涨幅
+      // 计算价格变化百分比
+      const priceChange = (lastPrice - first) / first;
+      const priceChangePercent = priceChange * 100;
+
+      // 计算趋势强度 - 统计上涨和下跌天数
+      const upDays = last.filter((price, i) => i > 0 && price > last[i - 1]).length;
+      const downDays = last.filter((price, i) => i > 0 && price < last[i - 1]).length;
+      const totalDays = upDays + downDays;
+
+      // 计算移动平均线趋势
+      const ma5 = this.calculateMA(last, 5);
+      const ma10 = this.calculateMA(last, 10);
+      const ma20 = this.calculateMA(last, 20);
+
+      const currentMA5 = ma5[ma5.length - 1];
+      const currentMA10 = ma10[ma10.length - 1];
+      const currentMA20 = ma20[ma20.length - 1];
+
+      // 趋势判断逻辑 - 更宽松的条件
+      if (priceChangePercent > 1.0) { // 1%以上涨幅
         trend = 'up';
         score = 3;
-      } else if (lastPrice < first * 0.98) { // 2%以上跌幅
+      } else if (priceChangePercent < -1.0) { // 1%以上跌幅
         trend = 'down';
         score = 3;
-      } else {
-        // 计算趋势强度
-        const upDays = last.filter((price, i) => i > 0 && price > last[i - 1]).length;
-        const downDays = last.filter((price, i) => i > 0 && price < last[i - 1]).length;
-
-        if (upDays > downDays * 1.5) {
-          trend = 'up';
-          score = 2;
-        } else if (downDays > upDays * 1.5) {
-          trend = 'down';
-          score = 2;
-        }
+      } else if (upDays > downDays * 1.2) { // 上涨天数 > 下跌天数 × 1.2
+        trend = 'up';
+        score = 2;
+      } else if (downDays > upDays * 1.2) { // 下跌天数 > 上涨天数 × 1.2
+        trend = 'down';
+        score = 2;
+      } else if (currentMA5 > currentMA10 && currentMA10 > currentMA20) { // 均线多头排列
+        trend = 'up';
+        score = 1;
+      } else if (currentMA5 < currentMA10 && currentMA10 < currentMA20) { // 均线空头排列
+        trend = 'down';
+        score = 1;
       }
 
-      return { trend, score, first, last: lastPrice };
+      console.log(`📊 趋势检测 [${data[0] ? data[0][0] : 'unknown'}]: 价格变化=${priceChangePercent.toFixed(2)}%, 上涨天数=${upDays}, 下跌天数=${downDays}, 趋势=${trend}, 得分=${score}`);
+
+      return { trend, score, first, last: lastPrice, priceChangePercent, upDays, downDays };
     } catch (error) {
+      console.error('趋势检测失败:', error);
       return { trend: 'sideways', score: 0, error: error.message };
     }
+  }
+
+  /**
+   * 计算简单移动平均线
+   * @param {Array} data - 价格数据
+   * @param {number} period - 周期
+   * @returns {Array} 移动平均线数据
+   */
+  calculateMA(data, period) {
+    const result = [];
+    for (let i = 0; i < data.length; i++) {
+      if (i < period - 1) {
+        result.push(null);
+      } else {
+        const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
+        result.push(sum / period);
+      }
+    }
+    return result;
   }
 
   /**
