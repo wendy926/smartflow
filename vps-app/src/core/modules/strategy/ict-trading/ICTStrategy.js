@@ -47,7 +47,7 @@ class ICTStrategy {
 
       // 2. 中时间框架分析 (4H)
       const mtfResult = await ictCore.analyzeMTF(symbol, dailyTrend);
-      
+
       // 即使没有4H OB/FVG，也继续分析，但记录状态
       if (!mtfResult.obDetected && !mtfResult.fvgDetected) {
         console.log(`📈 4H分析 [${symbol}]: 未检测到OB/FVG，但继续分析趋势`);
@@ -61,7 +61,7 @@ class ICTStrategy {
 
       // 3. 低时间框架分析 (15m)
       const ltfResult = await ictCore.analyzeLTF(symbol, mtfResult);
-      
+
       // 即使没有15m入场信号，也返回趋势信息
       if (!ltfResult.entrySignal) {
         console.log(`⚡ 15m分析 [${symbol}]: 未检测到入场信号，但保留趋势信息`);

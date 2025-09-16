@@ -2702,6 +2702,89 @@ tr:hover {
   border-color: #bd2130;
 }
 
+/* 表格响应式样式 */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+}
+
+.table-responsive .table {
+  width: 100%;
+  margin-bottom: 0;
+  border-collapse: collapse;
+  min-width: 1200px; /* 确保表格有足够宽度显示所有列 */
+}
+
+.table-responsive .table th,
+.table-responsive .table td {
+  white-space: nowrap;
+  padding: 0.75rem;
+  vertical-align: top;
+  border-top: 1px solid #dee2e6;
+}
+
+.table-responsive .table thead th {
+  vertical-align: bottom;
+  border-bottom: 2px solid #dee2e6;
+  background-color: #f8f9fa;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.table-responsive .table tbody tr:nth-of-type(odd) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.table-responsive .table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.075);
+}
+
+/* ICT策略表格特定样式 */
+#ictSignalsTable {
+  font-size: 0.8rem;
+}
+
+#ictSignalsTable th {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 4px;
+}
+
+#ictSignalsTable td {
+  text-align: center;
+  padding: 6px 4px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+#ictSignalsTable .symbol-cell {
+  font-weight: 600;
+  text-align: left;
+  padding-left: 8px;
+}
+
+#ictSignalsTable .indicator-yes {
+  color: #28a745;
+  font-weight: bold;
+}
+
+#ictSignalsTable .indicator-no {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+#ictSignalsTable .signal-long {
+  background-color: rgba(40, 167, 69, 0.1);
+}
+
+#ictSignalsTable .signal-short {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
 @media (max-width: 768px) {
   .alert-header {
     flex-direction: column;
