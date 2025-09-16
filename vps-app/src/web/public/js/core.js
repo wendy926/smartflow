@@ -455,22 +455,59 @@ class SmartFlowApp {
     }
   }
 
+  // 创建模拟交易
+  async createSimulation(tradeData) {
+    try {
+      const response = await window.apiClient.createSimulation(tradeData);
+      console.log('✅ 模拟交易创建成功:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ 创建模拟交易失败:', error);
+      throw error;
+    }
+  }
+
   // 更新统计信息显示
   updateStatsDisplay(signals, stats) {
+    console.log('🔍 updateStatsDisplay 被调用:', { signalsLength: signals?.length, stats });
+    
     // 更新信号统计
-    const totalSignals = signals.length;
-    const longSignals = signals.filter(s => s.signal === 'LONG' || s.signal === '做多').length;
-    const shortSignals = signals.filter(s => s.signal === 'SHORT' || s.signal === '做空').length;
-    const executionSignals = signals.filter(s => s.execution && (s.execution.includes('做多_') || s.execution.includes('做空_'))).length;
+    const totalSignals = signals?.length || 0;
+    const longSignals = signals?.filter(s => s.signal === 'LONG' || s.signal === '做多' || s.execution?.includes('做多_')).length || 0;
+    const shortSignals = signals?.filter(s => s.signal === 'SHORT' || s.signal === '做空' || s.execution?.includes('做空_')).length || 0;
+    const executionSignals = signals?.filter(s => s.execution && (s.execution.includes('做多_') || s.execution.includes('做空_'))).length || 0;
 
     // 安全地更新DOM元素
     const totalSignalsEl = document.getElementById('totalSignals');
     const longSignalsEl = document.getElementById('longSignals');
     const shortSignalsEl = document.getElementById('shortSignals');
 
-    if (totalSignalsEl) totalSignalsEl.textContent = totalSignals;
-    if (longSignalsEl) longSignalsEl.textContent = longSignals;
-    if (shortSignalsEl) shortSignalsEl.textContent = shortSignals;
+    console.log('🔍 DOM元素查找结果:', {
+      totalSignalsEl: !!totalSignalsEl,
+      longSignalsEl: !!longSignalsEl,
+      shortSignalsEl: !!shortSignalsEl
+    });
+
+    if (totalSignalsEl) {
+      totalSignalsEl.textContent = totalSignals;
+      console.log('✅ 更新总信号数:', totalSignals);
+    } else {
+      console.error('❌ 找不到totalSignals元素');
+    }
+    
+    if (longSignalsEl) {
+      longSignalsEl.textContent = longSignals;
+      console.log('✅ 更新多头信号数:', longSignals);
+    } else {
+      console.error('❌ 找不到longSignals元素');
+    }
+    
+    if (shortSignalsEl) {
+      shortSignalsEl.textContent = shortSignals;
+      console.log('✅ 更新空头信号数:', shortSignals);
+    } else {
+      console.error('❌ 找不到shortSignals元素');
+    }
 
     console.log('📊 更新统计信息:', {
       totalSignals,
