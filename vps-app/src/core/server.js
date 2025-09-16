@@ -2412,31 +2412,54 @@ class SmartFlowServer {
     try {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
-      const analysis = await SmartFlowStrategyV3.analyzeSymbol(symbol, {
-        database: this.db,
-        maxLossAmount: parseFloat(maxLossAmount),
-        dataRefreshManager: this.dataRefreshManager
-      });
+      
+      // 并行执行V3策略和ICT策略分析
+      const [v3Analysis, ictAnalysis] = await Promise.all([
+        SmartFlowStrategyV3.analyzeSymbol(symbol, {
+          database: this.db,
+          maxLossAmount: parseFloat(maxLossAmount),
+          dataRefreshManager: this.dataRefreshManager
+        }),
+        ICTStrategy.analyzeSymbol(symbol, {
+          database: this.db,
+          maxLossAmount: parseFloat(maxLossAmount)
+        })
+      ]);
 
-      // 检测数据是否发生变化
-      const hasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'signal', analysis);
+      // 检测V3策略数据是否发生变化
+      const v3HasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'signal', v3Analysis);
+      
+      // 检测ICT策略数据是否发生变化
+      const ictHasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'ict_signal', ictAnalysis);
 
-      if (hasChanged) {
-        // 存储策略分析结果到数据库
+      if (v3HasChanged) {
+        // 存储V3策略分析结果到数据库
         try {
-          await this.db.recordStrategyAnalysis(analysis);
-          console.log(`📊 信号更新完成 [${symbol}]: 得分=${analysis.hourlyScore}, 信号=${analysis.signal} (数据已变化)`);
+          await this.db.recordStrategyAnalysis(v3Analysis);
+          console.log(`📊 V3信号更新完成 [${symbol}]: 得分=${v3Analysis.hourlyScore}, 信号=${v3Analysis.signal} (数据已变化)`);
         } catch (dbError) {
-          console.error(`存储 ${symbol} 策略分析结果失败:`, dbError);
+          console.error(`存储 ${symbol} V3策略分析结果失败:`, dbError);
         }
 
         // 检查是否有入场执行信号，如果有则立即触发模拟交易
-        if (analysis.execution && (analysis.execution.includes('做多_') || analysis.execution.includes('做空_'))) {
-          console.log(`🚀 信号更新检测到入场执行信号: ${symbol} - ${analysis.execution} (已禁用自动触发)`);
-          // await this.triggerSimulationWithRetry(symbol, analysis); // 已禁用自动触发
+        if (v3Analysis.execution && (v3Analysis.execution.includes('做多_') || v3Analysis.execution.includes('做空_'))) {
+          console.log(`🚀 V3信号更新检测到入场执行信号: ${symbol} - ${v3Analysis.execution} (已禁用自动触发)`);
+          // await this.triggerSimulationWithRetry(symbol, v3Analysis); // 已禁用自动触发
         }
       } else {
-        console.log(`📊 信号数据无变化 [${symbol}]: 得分=${analysis.hourlyScore}, 信号=${analysis.signal}`);
+        console.log(`📊 V3信号数据无变化 [${symbol}]: 得分=${v3Analysis.hourlyScore}, 信号=${v3Analysis.signal}`);
+      }
+
+      if (ictHasChanged) {
+        // 存储ICT策略分析结果到数据库
+        try {
+          await this.ictDatabaseManager.recordICTAnalysis(ictAnalysis);
+          console.log(`📊 ICT信号更新完成 [${symbol}]: 趋势=${ictAnalysis.dailyTrend}, 信号=${ictAnalysis.signalType} (数据已变化)`);
+        } catch (dbError) {
+          console.error(`存储 ${symbol} ICT策略分析结果失败:`, dbError);
+        }
+      } else {
+        console.log(`📊 ICT信号数据无变化 [${symbol}]: 趋势=${ictAnalysis.dailyTrend}, 信号=${ictAnalysis.signalType}`);
       }
     } catch (error) {
       console.error(`信号更新失败 [${symbol}]:`, error);
