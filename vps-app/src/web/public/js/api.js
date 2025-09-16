@@ -215,6 +215,14 @@ class APIClient {
   async getDataQualityDetails() {
     return await this.request('/api/monitoring-dashboard');
   }
+
+  // 创建模拟交易
+  async createSimulation(tradeData) {
+    return await this.request('/api/simulation/start', {
+      method: 'POST',
+      body: JSON.stringify(tradeData)
+    });
+  }
 }
 
 // 创建全局API客户端实例

@@ -439,13 +439,21 @@ class SmartFlowApp {
    */
   async autoStartSimulation(signalData) {
     try {
+      const direction = signalData.execution.includes('做多_') ? 'LONG' : 'SHORT';
+      const stopLossDistance = signalData.stopLoss ? Math.abs(signalData.entrySignal - signalData.stopLoss) : 0;
+      
       const tradeData = {
         symbol: signalData.symbol,
         entryPrice: signalData.entrySignal,
         stopLoss: signalData.stopLoss,
         takeProfit: signalData.takeProfit,
-        signalType: signalData.execution.includes('做多_') ? 'LONG' : 'SHORT',
-        executionMode: signalData.execution
+        direction: direction,
+        executionMode: signalData.execution,
+        stopLossDistance: stopLossDistance,
+        maxLeverage: 10, // 默认值
+        minMargin: 100,  // 默认值
+        atrValue: signalData.atr14 || 0,
+        atr14: signalData.atr14 || 0
       };
 
       console.log('🤖 自动启动模拟交易:', tradeData);
@@ -547,10 +555,10 @@ class SmartFlowApp {
   // 更新信号表格
   updateSignalsTable(signals) {
     console.log('🔍 updateSignalsTable 被调用:', { signalsLength: signals?.length });
-    
+
     const tbody = document.querySelector('#signalsTable tbody');
     console.log('🔍 找到表格tbody元素:', !!tbody);
-    
+
     if (!tbody) {
       console.error('❌ 找不到signalsTable tbody元素');
       return;
@@ -566,7 +574,7 @@ class SmartFlowApp {
     });
 
     console.log('✅ 表格更新完成，共添加', signals.length, '行');
-    
+
     // 检查表格滚动性
     this.checkTableScrollability();
   }
