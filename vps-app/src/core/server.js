@@ -14,7 +14,7 @@ const SmartFlowStrategyV3 = require('./modules/strategy/trend-trading/SmartFlowS
 const StrategyV3Migration = require('./modules/database/StrategyV3Migration');
 const ICTStrategy = require('./modules/strategy/ict-trading/ICTStrategy');
 const ICTDatabaseManager = require('./modules/database/ICTDatabaseManager');
-// const ICTMigration = require('./modules/database/ICTMigration');
+const ICTMigration = require('./modules/database/ICTMigration');
 const { DataMonitor } = require('./modules/monitoring/DataMonitor');
 const { dataLayerIntegration } = require('./modules/data/DataLayerIntegration');
 const DeltaManager = require('./modules/data/DeltaManager');
@@ -1958,7 +1958,7 @@ class SmartFlowServer {
       this.simulationManager.setTelegramNotifier(this.telegramNotifier);
 
       // 初始化ICT策略
-      // await this.initializeICTStrategy();
+      await this.initializeICTStrategy();
 
       // 初始化数据监控
       this.dataMonitor = new DataMonitor(this.db);

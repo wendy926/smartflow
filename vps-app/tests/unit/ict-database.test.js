@@ -320,12 +320,12 @@ describe('ICT数据库管理测试', () => {
 
         // Mock table existence checks
         requiredTables.forEach(table => {
-          mockDatabase.get.mockResolvedValueOnce({ name: table });
+          mockDatabase.runQuery.mockResolvedValueOnce([{ name: table }]);
         });
 
         // Mock view existence checks
         requiredViews.forEach(view => {
-          mockDatabase.get.mockResolvedValueOnce({ name: view });
+          mockDatabase.runQuery.mockResolvedValueOnce([{ name: view }]);
         });
 
         const result = await ictMigration.validateICTStructure();
@@ -334,7 +334,7 @@ describe('ICT数据库管理测试', () => {
       });
 
       test('应该检测到缺少的表', async () => {
-        mockDatabase.get.mockResolvedValue(null); // 表不存在
+        mockDatabase.runQuery.mockResolvedValue([]); // 表不存在
 
         const result = await ictMigration.validateICTStructure();
 
@@ -375,10 +375,12 @@ describe('ICT数据库管理测试', () => {
 
         const result = await ictMigration.getICTStats();
 
-        expect(result.analysis).toEqual(mockAnalysisStats);
-        expect(result.simulations).toEqual(mockSimulationStats);
-        expect(result.signals).toEqual(mockSignalStats);
-        expect(result.executions).toEqual(mockExecutionStats);
+        expect(result.totalAnalysis).toBe(10);
+        expect(result.latestAnalysis).toBe('2023-01-01');
+        expect(result.totalSimulations).toBe(5);
+        expect(result.activeSimulations).toBe(2);
+        expect(result.signalDistribution).toEqual(mockSignalStats);
+        expect(result.executionDistribution).toEqual(mockExecutionStats);
       });
 
       test('应该处理查询失败', async () => {
@@ -386,7 +388,14 @@ describe('ICT数据库管理测试', () => {
 
         const result = await ictMigration.getICTStats();
 
-        expect(result).toEqual({});
+        expect(result).toEqual({
+          totalAnalysis: 0,
+          latestAnalysis: null,
+          totalSimulations: 0,
+          activeSimulations: 0,
+          signalDistribution: [],
+          executionDistribution: []
+        });
       });
     });
   });

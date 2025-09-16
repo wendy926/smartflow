@@ -472,6 +472,82 @@ function setupTestDatabase(db) {
     `CREATE TABLE IF NOT EXISTS symbol_categories (
       symbol TEXT PRIMARY KEY,
       category TEXT
+    )`,
+    // ICT相关表
+    `CREATE TABLE IF NOT EXISTS ict_strategy_analysis (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      symbol TEXT NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      daily_trend TEXT,
+      daily_trend_score INTEGER,
+      mtf_ob_detected BOOLEAN DEFAULT FALSE,
+      mtf_fvg_detected BOOLEAN DEFAULT FALSE,
+      ob_height REAL,
+      ob_age_days REAL,
+      ob_high REAL,
+      ob_low REAL,
+      ob_time DATETIME,
+      fvg_high REAL,
+      fvg_low REAL,
+      fvg_time DATETIME,
+      fvg_type TEXT,
+      sweep_htf_detected BOOLEAN DEFAULT FALSE,
+      sweep_htf_speed REAL,
+      ltf_ob_age_hours REAL,
+      engulfing_detected BOOLEAN DEFAULT FALSE,
+      engulfing_body_ratio REAL,
+      sweep_ltf_detected BOOLEAN DEFAULT FALSE,
+      sweep_ltf_speed REAL,
+      volume_confirmation BOOLEAN DEFAULT FALSE,
+      entry_price REAL,
+      stop_loss REAL,
+      take_profit REAL,
+      risk_reward_ratio REAL,
+      position_size REAL,
+      max_leverage INTEGER,
+      min_margin REAL,
+      stop_distance_percent REAL,
+      atr_4h REAL,
+      atr_15m REAL,
+      signal_type TEXT,
+      signal_strength TEXT,
+      execution_mode TEXT,
+      data_collection_rate REAL,
+      error_message TEXT
+    )`,
+    `CREATE TABLE IF NOT EXISTS ict_simulations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      symbol TEXT NOT NULL,
+      entry_price REAL,
+      stop_loss REAL,
+      take_profit REAL,
+      status TEXT DEFAULT 'ACTIVE',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS ict_data_refresh_status (
+      symbol TEXT NOT NULL,
+      data_type TEXT NOT NULL,
+      last_refresh DATETIME,
+      next_refresh DATETIME,
+      should_refresh BOOLEAN DEFAULT TRUE,
+      refresh_interval INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(symbol, data_type)
+    )`,
+    `CREATE TABLE IF NOT EXISTS ict_signal_types (
+      id INTEGER PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT
+    )`,
+    `CREATE TABLE IF NOT EXISTS ict_execution_modes (
+      id INTEGER PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT
+    )`,
+    `CREATE TABLE IF NOT EXISTS ict_trend_types (
+      id INTEGER PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT
     )`
   ];
 

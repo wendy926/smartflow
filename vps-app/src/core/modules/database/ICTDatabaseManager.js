@@ -4,6 +4,9 @@
 class ICTDatabaseManager {
   constructor(database = null) {
     this.database = database;
+    if (!this.database) {
+      throw new Error('ICTDatabaseManager requires a database instance');
+    }
   }
 
   /**

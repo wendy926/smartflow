@@ -265,7 +265,7 @@ describe('ICT策略集成测试', () => {
         ]);
 
       // Mock 数据库错误
-      mockDatabase.run.mockRejectedValue(new Error('Database Error'));
+      mockDatabase.run = jest.fn().mockRejectedValue(new Error('Database Error'));
 
       const result = await ICTStrategy.analyzeSymbol('BTCUSDT', {
         database: mockDatabase,

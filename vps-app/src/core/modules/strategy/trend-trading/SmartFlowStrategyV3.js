@@ -149,7 +149,7 @@ class SmartFlowStrategyV3 {
       }
 
       console.log(`✅ V3策略分析完成 [${symbol}]: ${finalMarketType} - ${analysisResult.signal || 'NONE'}`);
-      
+
       // 调试：打印震荡市边界判断数据
       if (finalMarketType === '震荡市' && analysisResult) {
         console.log(`🔍 震荡市边界判断数据 [${symbol}]:`, {
@@ -161,7 +161,7 @@ class SmartFlowStrategyV3 {
           rangeUpperBoundaryValid: analysisResult.rangeUpperBoundaryValid
         });
       }
-      
+
       return finalResult;
 
     } catch (error) {
@@ -259,11 +259,11 @@ class SmartFlowStrategyV3 {
       try {
         if (executionResult.signal !== 'NONE' && executionResult.entry && executionResult.stopLoss) {
           leverageData = await SmartFlowStrategyV3.calculateLeverageData(
-            executionResult.entry, 
-            executionResult.stopLoss, 
-            executionResult.atr14, 
-            direction, 
-            this.database, 
+            executionResult.entry,
+            executionResult.stopLoss,
+            executionResult.atr14,
+            direction,
+            this.database,
             maxLossAmount
           );
         } else {
@@ -271,7 +271,7 @@ class SmartFlowStrategyV3 {
           const defaultATR = executionResult.atr14 || 1.0;
           const defaultEntry = trend4hResult?.currentPrice || 100;
           const defaultStopLoss = direction === 'LONG' ? defaultEntry * 0.95 : defaultEntry * 1.05;
-          
+
           leverageData = await SmartFlowStrategyV3.calculateLeverageData(
             defaultEntry,
             defaultStopLoss,
@@ -303,7 +303,7 @@ class SmartFlowStrategyV3 {
       // 6. 发送15min信号通知（当有执行模式时）
       if (finalExecutionMode && finalExecutionMode !== 'NONE') {
         try {
-          const TelegramNotifier = require('../notification/TelegramNotifier');
+          const TelegramNotifier = require('../notifications/TelegramNotifier');
           const telegramNotifier = new TelegramNotifier();
 
           // 从数据库获取Telegram配置
@@ -490,11 +490,11 @@ class SmartFlowStrategyV3 {
       try {
         if (executionResult.signal !== 'NONE' && executionResult.entry && executionResult.stopLoss) {
           leverageData = await SmartFlowStrategyV3.calculateLeverageData(
-            executionResult.entry, 
-            executionResult.stopLoss, 
-            executionResult.atr14, 
-            direction, 
-            this.database, 
+            executionResult.entry,
+            executionResult.stopLoss,
+            executionResult.atr14,
+            direction,
+            this.database,
             maxLossAmount
           );
         } else {
@@ -502,7 +502,7 @@ class SmartFlowStrategyV3 {
           const defaultATR = executionResult.atr14 || 1.0;
           const defaultEntry = rangeResult?.currentPrice || 100;
           const defaultStopLoss = direction === 'LONG' ? defaultEntry * 0.95 : defaultEntry * 1.05;
-          
+
           leverageData = await SmartFlowStrategyV3.calculateLeverageData(
             defaultEntry,
             defaultStopLoss,
@@ -527,7 +527,7 @@ class SmartFlowStrategyV3 {
       // 5. 发送15min信号通知（当有执行模式时）
       if (executionResult.mode && executionResult.mode !== 'NONE') {
         try {
-          const TelegramNotifier = require('../notification/TelegramNotifier');
+          const TelegramNotifier = require('../notifications/TelegramNotifier');
           const telegramNotifier = new TelegramNotifier();
 
           // 从数据库获取Telegram配置

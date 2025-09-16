@@ -303,30 +303,39 @@ class ICTMigration {
       const analysisStats = await this.db.runQuery(
         'SELECT COUNT(*) as total, MAX(timestamp) as latest FROM ict_strategy_analysis'
       );
-      stats.analysis = analysisStats[0] || { total: 0, latest: null };
+      stats.totalAnalysis = analysisStats[0]?.total || 0;
+      stats.latestAnalysis = analysisStats[0]?.latest || null;
 
       // 模拟交易统计
       const simulationStats = await this.db.runQuery(
         'SELECT COUNT(*) as total, SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active FROM ict_simulations'
       );
-      stats.simulations = simulationStats[0] || { total: 0, active: 0 };
+      stats.totalSimulations = simulationStats[0]?.total || 0;
+      stats.activeSimulations = simulationStats[0]?.active || 0;
 
       // 信号类型统计
       const signalStats = await this.db.runQuery(
         'SELECT signal_type, COUNT(*) as count FROM ict_strategy_analysis GROUP BY signal_type'
       );
-      stats.signals = signalStats || [];
+      stats.signalDistribution = signalStats || [];
 
       // 执行模式统计
       const executionStats = await this.db.runQuery(
         'SELECT execution_mode, COUNT(*) as count FROM ict_strategy_analysis GROUP BY execution_mode'
       );
-      stats.executions = executionStats || [];
+      stats.executionDistribution = executionStats || [];
 
       return stats;
     } catch (error) {
       console.error('❌ 获取ICT统计信息失败:', error);
-      return {};
+      return {
+        totalAnalysis: 0,
+        latestAnalysis: null,
+        totalSimulations: 0,
+        activeSimulations: 0,
+        signalDistribution: [],
+        executionDistribution: []
+      };
     }
   }
 }
