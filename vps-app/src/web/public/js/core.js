@@ -135,7 +135,9 @@ class SmartFlowApp {
     try {
       this.showLoading(true);
       // 清除所有缓存，强制刷新数据
-      dataManager.clearCache();
+      if (window.dataManager) {
+        window.dataManager.clearCache();
+      }
       await this.loadAllData();
     } catch (error) {
       console.error('❌ 初始数据加载失败:', error);
@@ -158,10 +160,16 @@ class SmartFlowApp {
         return;
       }
 
+      // 初始化DataManager
+      if (!window.dataManager) {
+        console.log('🔧 初始化DataManager...');
+        window.dataManager = new DataManager();
+      }
+
       // 并行加载所有数据
       const [signals, stats] = await Promise.all([
-        dataManager.getAllSignals(true), // 强制刷新信号数据
-        dataManager.getWinRateStats()
+        window.dataManager.getAllSignals(true), // 强制刷新信号数据
+        window.dataManager.getWinRateStats()
       ]);
 
       console.log('📊 数据加载完成:', {
@@ -271,7 +279,9 @@ class SmartFlowApp {
     try {
       console.log('🗑️ 清除缓存并刷新数据...');
       localStorage.removeItem('smartflow_cached_data');
-      dataManager.clearCache();
+      if (window.dataManager) {
+        window.dataManager.clearCache();
+      }
 
       // 显示加载状态
       this.showLoading(true);
@@ -294,8 +304,8 @@ class SmartFlowApp {
         console.log('🔄 监控数据自动刷新开始...');
         // 静默刷新监控数据，不显示加载状态和消息
         const [signals, stats] = await Promise.all([
-          dataManager.getAllSignals(true), // 强制刷新信号数据
-          dataManager.getWinRateStats()
+        window.dataManager.getAllSignals(true), // 强制刷新信号数据
+        window.dataManager.getWinRateStats()
         ]);
 
         this.updateStatsDisplay(signals, stats);
@@ -375,7 +385,7 @@ class SmartFlowApp {
       console.log('🔍 检查模拟交易触发条件...');
 
       // 获取最新信号数据
-      const signals = await dataManager.getAllSignals();
+      const signals = await window.dataManager.getAllSignals();
 
       // 检查是否有新的入场执行信号
       await this.checkAndAutoTriggerSimulation(signals);
@@ -392,7 +402,7 @@ class SmartFlowApp {
   async checkAndAutoTriggerSimulation(signals) {
     try {
       // 获取当前已触发的模拟交易记录
-      const currentHistory = await dataManager.getSimulationHistory();
+      const currentHistory = await window.dataManager.getSimulationHistory();
 
       // 创建已触发信号的映射，基于交易对+时间窗口（最近10分钟）
       const triggeredSignals = new Map();
