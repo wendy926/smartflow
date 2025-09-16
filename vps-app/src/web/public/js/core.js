@@ -659,7 +659,7 @@ class SmartFlowApp {
 
     // 根据策略加载相应数据
     if (strategy === 'trend') {
-      this.loadData();
+      this.loadAllData();
     } else if (strategy === 'ict') {
       this.loadICTData();
     }

@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // 立即开始加载数据
       console.log('🔄 开始加载数据...');
-      window.app.loadData();
+      window.app.loadAllData();
       
       if (typeof testCategoryMapping === 'function') {
         testCategoryMapping();
