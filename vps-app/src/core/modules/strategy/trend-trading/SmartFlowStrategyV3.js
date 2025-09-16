@@ -303,7 +303,7 @@ class SmartFlowStrategyV3 {
       // 6. 发送15min信号通知（当有执行模式时）
       if (finalExecutionMode && finalExecutionMode !== 'NONE') {
         try {
-          const TelegramNotifier = require('../notifications/TelegramNotifier');
+          const TelegramNotifier = require('../../notifications/TelegramNotifier');
           const telegramNotifier = new TelegramNotifier();
 
           // 从数据库获取Telegram配置
@@ -527,7 +527,7 @@ class SmartFlowStrategyV3 {
       // 5. 发送15min信号通知（当有执行模式时）
       if (executionResult.mode && executionResult.mode !== 'NONE') {
         try {
-          const TelegramNotifier = require('../notifications/TelegramNotifier');
+          const TelegramNotifier = require('../../notifications/TelegramNotifier');
           const telegramNotifier = new TelegramNotifier();
 
           // 从数据库获取Telegram配置
