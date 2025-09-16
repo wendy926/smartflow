@@ -457,12 +457,17 @@ class SmartFlowApp {
     const totalSignalsEl = document.getElementById('totalSignals');
     const longSignalsEl = document.getElementById('longSignals');
     const shortSignalsEl = document.getElementById('shortSignals');
-    const executionSignalsEl = document.getElementById('executionSignals');
 
     if (totalSignalsEl) totalSignalsEl.textContent = totalSignals;
     if (longSignalsEl) longSignalsEl.textContent = longSignals;
     if (shortSignalsEl) shortSignalsEl.textContent = shortSignals;
-    if (executionSignalsEl) executionSignalsEl.textContent = executionSignals;
+    
+    console.log('📊 更新统计信息:', {
+      totalSignals,
+      longSignals,
+      shortSignals,
+      executionSignals
+    });
 
     // 更新胜率统计
     if (stats) {

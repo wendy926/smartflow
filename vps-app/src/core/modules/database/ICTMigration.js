@@ -243,124 +243,92 @@ class ICTMigration {
 
       // 检查表是否存在
       for (const table of requiredTables) {
-        const result = await new Promise((resolve, reject) => {
-          this.db.get(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-            [table], (err, row) => {
-              if (err) reject(err);
-              else resolve(row);
-            });
-        });
-        if (!result) {
+        const result = await this.db.runQuery(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+          [table]
+        );
+        if (!result || result.length === 0) {
           throw new Error(`缺少必需的表: ${table}`);
         }
       }
 
       // 检查视图是否存在
       for (const view of requiredViews) {
-        const result = await new Promise((resolve, reject) => {
-          this.db.get(
-            "SELECT name FROM sqlite_master WHERE type='view' AND name=?",
-            [view], (err, row) => {
-              if (err) reject(err);
-              else resolve(row);
-            });
-        });
-        if (!result) {
+        const result = await this.db.runQuery(
+          "SELECT name FROM sqlite_master WHERE type='view' AND name=?",
+          [view]
+        );
+        if (!result || result.length === 0) {
           throw new Error(`缺少必需的视图: ${view}`);
         }
       }
 
-        console.log('✅ ICT数据库结构验证通过');
-        return true;
-      } catch (error) {
-        console.error('❌ ICT数据库结构验证失败:', error);
-        return false;
-      }
+      console.log('✅ ICT数据库结构验证通过');
+      return true;
+    } catch (error) {
+      console.error('❌ ICT数据库结构验证失败:', error);
+      return false;
     }
+  }
 
   /**
    * 清理ICT测试数据
    */
   async cleanupTestData() {
-      try {
-        const cleanupQueries = [
-          'DELETE FROM ict_strategy_analysis WHERE symbol LIKE "%TEST%"',
-          'DELETE FROM ict_simulations WHERE symbol LIKE "%TEST%"',
-          'DELETE FROM ict_data_refresh_status WHERE symbol LIKE "%TEST%"'
-        ];
+    try {
+      const cleanupQueries = [
+        'DELETE FROM ict_strategy_analysis WHERE symbol LIKE "%TEST%"',
+        'DELETE FROM ict_simulations WHERE symbol LIKE "%TEST%"',
+        'DELETE FROM ict_data_refresh_status WHERE symbol LIKE "%TEST%"'
+      ];
 
-        for (const query of cleanupQueries) {
-          await this.db.run(query);
-        }
-
-        console.log('✅ ICT测试数据清理完成');
-      } catch (error) {
-        console.error('❌ ICT测试数据清理失败:', error);
+      for (const query of cleanupQueries) {
+        await this.db.run(query);
       }
+
+      console.log('✅ ICT测试数据清理完成');
+    } catch (error) {
+      console.error('❌ ICT测试数据清理失败:', error);
     }
+  }
 
   /**
    * 获取ICT数据库统计信息
    */
   async getICTStats() {
-      try {
-        const stats = {};
+    try {
+      const stats = {};
 
         // 策略分析统计
-        const analysisStats = await new Promise((resolve, reject) => {
-          this.db.get(
-            'SELECT COUNT(*) as total, MAX(timestamp) as latest FROM ict_strategy_analysis',
-            (err, row) => {
-              if (err) reject(err);
-              else resolve(row);
-            }
-          );
-        });
-        stats.analysis = analysisStats;
+        const analysisStats = await this.db.runQuery(
+          'SELECT COUNT(*) as total, MAX(timestamp) as latest FROM ict_strategy_analysis'
+        );
+        stats.analysis = analysisStats[0] || { total: 0, latest: null };
 
-          // 模拟交易统计
-          const simulationStats = await new Promise((resolve, reject) => {
-            this.db.get(
-              'SELECT COUNT(*) as total, SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active FROM ict_simulations',
-              (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-              }
-            );
-          });
-          stats.simulations = simulationStats;
+      // 模拟交易统计
+      const simulationStats = await this.db.runQuery(
+        'SELECT COUNT(*) as total, SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active FROM ict_simulations'
+      );
+      stats.simulations = simulationStats[0] || { total: 0, active: 0 };
 
-        // 信号类型统计
-        const signalStats = await new Promise((resolve, reject) => {
-          this.db.all(
-            'SELECT signal_type, COUNT(*) as count FROM ict_strategy_analysis GROUP BY signal_type',
-            (err, rows) => {
-              if (err) reject(err);
-              else resolve(rows);
-            }
-          );
-        });
-        stats.signals = signalStats;
+      // 信号类型统计
+      const signalStats = await this.db.runQuery(
+        'SELECT signal_type, COUNT(*) as count FROM ict_strategy_analysis GROUP BY signal_type'
+      );
+      stats.signals = signalStats || [];
 
-        // 执行模式统计
-        const executionStats = await new Promise((resolve, reject) => {
-          this.db.all(
-            'SELECT execution_mode, COUNT(*) as count FROM ict_strategy_analysis GROUP BY execution_mode',
-            (err, rows) => {
-              if (err) reject(err);
-              else resolve(rows);
-            }
-          );
-        });
-        stats.executions = executionStats;
+      // 执行模式统计
+      const executionStats = await this.db.runQuery(
+        'SELECT execution_mode, COUNT(*) as count FROM ict_strategy_analysis GROUP BY execution_mode'
+      );
+      stats.executions = executionStats || [];
 
-        return stats;
-      } catch (error) {
-                console.error('❌ 获取ICT统计信息失败:', error);
-                return {};
-              }
-            }
+      return stats;
+    } catch (error) {
+      console.error('❌ 获取ICT统计信息失败:', error);
+      return {};
+    }
+  }
 }
 
 module.exports = ICTMigration;
