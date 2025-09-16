@@ -769,16 +769,16 @@ class SmartFlowApp {
   checkTableColumns() {
     const table = document.getElementById('ictSignalsTable');
     const columnCountEl = document.getElementById('columnCount');
-    
+
     if (table && columnCountEl) {
       const headerRow = table.querySelector('thead tr');
       const dataRow = table.querySelector('tbody tr');
-      
+
       const headerCols = headerRow ? headerRow.children.length : 0;
       const dataCols = dataRow ? dataRow.children.length : 0;
-      
+
       columnCountEl.innerHTML = `表头: ${headerCols}列, 数据行: ${dataCols}列`;
-      
+
       console.log('🔍 表格列数检查:', {
         headerCols,
         dataCols,

@@ -421,6 +421,14 @@ class SimulationDataManager {
       this.loadData();
     });
 
+    // 策略筛选按钮
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.switchStrategy(e.target.dataset.strategy);
+      });
+    });
+
     // 筛选按钮
     document.getElementById('applyFilters').addEventListener('click', () => {
       this.applyFilters();
@@ -512,6 +520,21 @@ class SimulationDataManager {
         option.textContent = `${labels[value] || value} (${count})`;
         select.appendChild(option);
       });
+  }
+
+  // 策略切换功能
+  switchStrategy(strategy) {
+    // 更新按钮状态
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelector(`[data-strategy="${strategy}"]`).classList.add('active');
+
+    // 更新策略筛选条件
+    this.currentFilters.strategy = strategy === 'all' ? '' : strategy;
+    
+    // 应用筛选
+    this.applyFilters();
   }
 
   // 清除筛选条件

@@ -39,6 +39,38 @@
             padding: 30px;
         }
 
+        .strategy-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .filter-btn:hover {
+            background: #e9ecef;
+        }
+
+        .filter-btn.active:hover {
+            background: #0056b3;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -493,6 +525,13 @@
 
         <div class="simulation-data-content">
             <button id="refreshBtn" class="refresh-btn">🔄 刷新数据</button>
+
+            <!-- 策略筛选 -->
+            <div class="strategy-filters">
+                <button class="filter-btn active" data-strategy="all">全部策略</button>
+                <button class="filter-btn" data-strategy="v3">V3策略</button>
+                <button class="filter-btn" data-strategy="ict">ICT策略</button>
+            </div>
 
             <!-- 整体统计 -->
             <div class="stats-grid" id="overallStats">

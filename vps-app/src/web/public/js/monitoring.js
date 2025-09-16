@@ -301,10 +301,19 @@ function switchMonitoringTab(tabName) {
   document.querySelector(`[onclick="switchMonitoringTab('${tabName}')"]`).classList.add('active');
 
   // 更新标签内容显示
-  document.querySelectorAll('.tab-content').forEach(content => {
+  document.querySelectorAll('.monitoring-view').forEach(content => {
     content.classList.remove('active');
   });
-  document.getElementById(`${tabName}-tab`).classList.add('active');
+  document.getElementById(`${tabName}View`).classList.add('active');
+
+  // 根据标签页加载相应数据
+  if (tabName === 'data-refresh') {
+    loadDataRefreshStatus();
+  } else if (tabName === 'trading-pairs') {
+    loadTradingPairsData();
+  } else if (tabName === 'alerts') {
+    loadAlertsData();
+  }
 }
 
 // 获取数据质量样式类
@@ -313,6 +322,303 @@ function getQualityClass(quality) {
   if (quality >= 70) return 'good';
   if (quality >= 50) return 'fair';
   return 'poor';
+}
+
+// 切换策略选择
+function switchStrategy(strategy, event) {
+  event.preventDefault();
+  
+  // 更新策略标签按钮状态
+  document.querySelectorAll('.strategy-tab').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  // 重新加载交易对数据
+  loadTradingPairsData(strategy);
+}
+
+// 切换数据刷新策略选择
+function switchRefreshStrategy(strategy, event) {
+  event.preventDefault();
+  
+  // 更新策略标签按钮状态
+  document.querySelectorAll('.strategy-tab').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  // 重新加载数据刷新状态
+  loadDataRefreshStatus(strategy);
+}
+
+// 加载数据刷新状态
+async function loadDataRefreshStatus(strategy = 'all') {
+  try {
+    const response = await fetch('/api/data-refresh/status');
+    const data = await response.json();
+    
+    if (data.success) {
+      updateDataRefreshUI(data.data, strategy);
+    } else {
+      console.error('获取数据刷新状态失败:', data.error);
+    }
+  } catch (error) {
+    console.error('加载数据刷新状态失败:', error);
+  }
+}
+
+// 更新数据刷新状态UI
+function updateDataRefreshUI(refreshData, strategy = 'all') {
+  const v3Count = document.getElementById('v3RefreshCount');
+  const ictCount = document.getElementById('ictRefreshCount');
+  const totalRate = document.getElementById('totalRefreshRate');
+  const tableBody = document.getElementById('refreshTableBody');
+  
+  if (!v3Count || !ictCount || !totalRate || !tableBody) return;
+  
+  // 计算统计数据
+  let v3RefreshCount = 0;
+  let ictRefreshCount = 0;
+  let totalRefreshCount = 0;
+  let totalSuccessCount = 0;
+  
+  // 构建表格数据
+  let tableRows = '';
+  
+  // 处理V3策略数据
+  if (strategy === 'all' || strategy === 'V3') {
+    for (const [symbol, dataTypes] of Object.entries(refreshData.v3Strategy || {})) {
+      for (const [dataType, status] of Object.entries(dataTypes)) {
+        if (status.shouldRefresh) v3RefreshCount++;
+        totalRefreshCount++;
+        if (status.lastRefresh) totalSuccessCount++;
+        
+        tableRows += `
+          <tr>
+            <td>${symbol}</td>
+            <td>V3</td>
+            <td>${dataType}</td>
+            <td>${status.lastRefresh ? new Date(status.lastRefresh).toLocaleString() : '从未刷新'}</td>
+            <td>${status.nextRefresh ? new Date(status.nextRefresh).toLocaleString() : '未知'}</td>
+            <td><span class="refresh-status ${status.shouldRefresh ? 'pending' : 'ready'}">${status.shouldRefresh ? '待刷新' : '已就绪'}</span></td>
+            <td><button class="refresh-btn" onclick="forceRefreshData('${symbol}', 'V3', '${dataType}')">强制刷新</button></td>
+          </tr>
+        `;
+      }
+    }
+  }
+  
+  // 处理ICT策略数据
+  if (strategy === 'all' || strategy === 'ICT') {
+    for (const [symbol, dataTypes] of Object.entries(refreshData.ictStrategy || {})) {
+      for (const [dataType, status] of Object.entries(dataTypes)) {
+        if (status.shouldRefresh) ictRefreshCount++;
+        totalRefreshCount++;
+        if (status.lastRefresh) totalSuccessCount++;
+        
+        tableRows += `
+          <tr>
+            <td>${symbol}</td>
+            <td>ICT</td>
+            <td>${dataType}</td>
+            <td>${status.lastRefresh ? new Date(status.lastRefresh).toLocaleString() : '从未刷新'}</td>
+            <td>${status.nextRefresh ? new Date(status.nextRefresh).toLocaleString() : '未知'}</td>
+            <td><span class="refresh-status ${status.shouldRefresh ? 'pending' : 'ready'}">${status.shouldRefresh ? '待刷新' : '已就绪'}</span></td>
+            <td><button class="refresh-btn" onclick="forceRefreshData('${symbol}', 'ICT', '${dataType}')">强制刷新</button></td>
+          </tr>
+        `;
+      }
+    }
+  }
+  
+  // 更新统计信息
+  v3Count.textContent = v3RefreshCount;
+  ictCount.textContent = ictRefreshCount;
+  totalRate.textContent = totalRefreshCount > 0 ? `${Math.round((totalSuccessCount / totalRefreshCount) * 100)}%` : '0%';
+  
+  // 更新表格
+  tableBody.innerHTML = tableRows;
+}
+
+// 强制刷新数据
+async function forceRefreshData(symbol, strategyType, dataType) {
+  try {
+    const response = await fetch(`/api/data-refresh/force-refresh/${symbol}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        strategyType: strategyType,
+        dataType: dataType
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      alert('数据刷新已触发');
+      // 重新加载数据刷新状态
+      loadDataRefreshStatus();
+    } else {
+      alert('数据刷新失败: ' + data.error);
+    }
+  } catch (error) {
+    console.error('强制刷新数据失败:', error);
+    alert('强制刷新数据失败: ' + error.message);
+  }
+}
+
+// 加载交易对数据
+async function loadTradingPairsData(strategy = 'all') {
+  try {
+    const response = await fetch('/api/unified-monitoring/dashboard');
+    const data = await response.json();
+    
+    if (data.success) {
+      updateTradingPairsUI(data.data, strategy);
+    } else {
+      console.error('获取交易对数据失败:', data.error);
+    }
+  } catch (error) {
+    console.error('加载交易对数据失败:', error);
+  }
+}
+
+// 更新交易对UI
+function updateTradingPairsUI(dashboardData, strategy = 'all') {
+  const tableBody = document.querySelector('#trading-pairsView .symbols-table tbody');
+  if (!tableBody) return;
+  
+  let tableRows = '';
+  
+  for (const symbolData of dashboardData.detailedStats || []) {
+    const { symbol, v3Strategy, ictStrategy } = symbolData;
+    
+    // 根据策略过滤显示
+    if (strategy === 'all' || strategy === 'V3') {
+      tableRows += `
+        <tr>
+          <td>${symbol}</td>
+          <td>V3</td>
+          <td>${v3Strategy.dataCollection.rate.toFixed(1)}%</td>
+          <td>${v3Strategy.dataValidation.status === 'VALID' ? '100%' : '0%'}</td>
+          <td>${v3Strategy.simulationCompletion.rate.toFixed(1)}%</td>
+          <td>${v3Strategy.simulationCompletion.activeCount}</td>
+          <td>15分钟</td>
+          <td><span class="status-badge ${getHealthClass(v3Strategy)}">${getHealthStatus(v3Strategy)}</span></td>
+        </tr>
+      `;
+    }
+    
+    if (strategy === 'all' || strategy === 'ICT') {
+      tableRows += `
+        <tr>
+          <td>${symbol}</td>
+          <td>ICT</td>
+          <td>${ictStrategy.dataCollection.rate.toFixed(1)}%</td>
+          <td>${ictStrategy.dataValidation.status === 'VALID' ? '100%' : '0%'}</td>
+          <td>${ictStrategy.simulationCompletion.rate.toFixed(1)}%</td>
+          <td>${ictStrategy.simulationCompletion.activeCount}</td>
+          <td>15分钟</td>
+          <td><span class="status-badge ${getHealthClass(ictStrategy)}">${getHealthStatus(ictStrategy)}</span></td>
+        </tr>
+      `;
+    }
+  }
+  
+  tableBody.innerHTML = tableRows;
+}
+
+// 获取健康状态类
+function getHealthClass(strategyData) {
+  if (strategyData.dataCollection.rate < 80 || strategyData.dataValidation.errors > 5) {
+    return 'error';
+  } else if (strategyData.dataCollection.rate < 90 || strategyData.dataValidation.warnings > 3) {
+    return 'warning';
+  } else {
+    return 'healthy';
+  }
+}
+
+// 获取健康状态文本
+function getHealthStatus(strategyData) {
+  if (strategyData.dataCollection.rate < 80 || strategyData.dataValidation.errors > 5) {
+    return '错误';
+  } else if (strategyData.dataCollection.rate < 90 || strategyData.dataValidation.warnings > 3) {
+    return '警告';
+  } else {
+    return '健康';
+  }
+}
+
+// 加载告警数据
+async function loadAlertsData() {
+  try {
+    const response = await fetch('/api/monitoring/alerts');
+    const data = await response.json();
+    
+    if (data.success) {
+      updateAlertsUI(data.data);
+    } else {
+      console.error('获取告警数据失败:', data.error);
+    }
+  } catch (error) {
+    console.error('加载告警数据失败:', error);
+  }
+}
+
+// 更新告警UI
+function updateAlertsUI(alertsData) {
+  const alertContainer = document.querySelector('#alertsView .alert-history');
+  if (!alertContainer) return;
+  
+  let alertHtml = '<h3>🚨 数据监控告警明细</h3>';
+  
+  if (alertsData.alerts && alertsData.alerts.length > 0) {
+    for (const alert of alertsData.alerts) {
+      alertHtml += `
+        <div class="alert-item ${alert.severity.toLowerCase()}">
+          <div class="alert-header">
+            <span class="alert-symbol">${alert.symbol}</span>
+            <span class="alert-strategy">${alert.strategyType}</span>
+            <span class="alert-time">${new Date(alert.createdAt).toLocaleString()}</span>
+          </div>
+          <div class="alert-message">${alert.message}</div>
+          <div class="alert-actions">
+            <button class="btn small" onclick="resolveAlert(${alert.id})">解决</button>
+          </div>
+        </div>
+      `;
+    }
+  } else {
+    alertHtml += '<div class="no-alerts">暂无告警</div>';
+  }
+  
+  alertContainer.innerHTML = alertHtml;
+}
+
+// 解决告警
+async function resolveAlert(alertId) {
+  try {
+    const response = await fetch(`/api/monitoring/alerts/${alertId}/resolve`, {
+      method: 'POST'
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      alert('告警已解决');
+      // 重新加载告警数据
+      loadAlertsData();
+    } else {
+      alert('解决告警失败: ' + data.error);
+    }
+  } catch (error) {
+    console.error('解决告警失败:', error);
+    alert('解决告警失败: ' + error.message);
+  }
 }
 
 // 关闭监控面板

@@ -18,9 +18,10 @@ class SymbolManagement {
       // 加载当前已添加的交易对
       await this.loadCurrentSymbols();
       
-      // 并行加载交易次数统计和各类交易对数据
+      // 并行加载交易次数统计、策略统计和各类交易对数据
       await Promise.all([
         this.loadTradeCounts(),
+        this.loadStrategyStats(),
         this.loadAllCategories()
       ]);
     } catch (error) {
@@ -54,6 +55,42 @@ class SymbolManagement {
       console.error('加载交易次数统计失败:', error);
       // 不显示错误，因为这是可选功能
     }
+  }
+
+  async loadStrategyStats() {
+    try {
+      // 加载V3策略统计
+      const v3Stats = await this.apiClient.getV3StrategyStats();
+      this.updateV3Stats(v3Stats);
+
+      // 加载ICT策略统计
+      const ictStats = await this.apiClient.getICTStrategyStats();
+      this.updateICTStats(ictStats);
+
+      // 更新综合统计
+      this.updateCombinedStats();
+    } catch (error) {
+      console.error('加载策略统计失败:', error);
+    }
+  }
+
+  updateV3Stats(stats) {
+    document.getElementById('v3TotalTrades').textContent = stats.total_trades || '0';
+    document.getElementById('v3WinRate').textContent = stats.win_rate ? `${stats.win_rate.toFixed(2)}%` : '--';
+  }
+
+  updateICTStats(stats) {
+    document.getElementById('ictTotalTrades').textContent = stats.total_trades || '0';
+    document.getElementById('ictWinRate').textContent = stats.win_rate ? `${stats.win_rate.toFixed(2)}%` : '--';
+  }
+
+  updateCombinedStats() {
+    // 更新监控交易对数量
+    document.getElementById('totalSymbols').textContent = this.currentSymbols.size;
+
+    // 计算活跃策略数量
+    const activeStrategies = this.currentSymbols.size > 0 ? 2 : 0; // V3和ICT策略
+    document.getElementById('activeStrategies').textContent = activeStrategies;
   }
 
   updateCurrentSymbolsDisplay() {
@@ -247,6 +284,7 @@ class SymbolManagement {
     try {
       await this.loadCurrentSymbols();
       await this.loadTradeCounts();
+      await this.loadStrategyStats();
       await this.loadAllCategories();
       this.showSuccess('所有数据刷新成功');
     } catch (error) {

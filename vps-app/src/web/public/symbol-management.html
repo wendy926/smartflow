@@ -46,6 +46,72 @@
             background: white;
         }
 
+        .strategy-stats {
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .strategy-stats h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-card.v3-strategy {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stat-card.ict-strategy {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .stat-card.combined-stats {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .stat-card h4 {
+            margin: 0 0 15px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin: 5px 0;
+        }
+
         .symbols-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -317,6 +383,34 @@
                 <a href="index.html?cache=1" class="btn secondary">← 返回主页</a>
             </div>
         </header>
+
+        <!-- 策略统计卡片 -->
+        <div class="strategy-stats">
+            <h3>📈 策略统计概览</h3>
+            <div class="stats-grid">
+                <div class="stat-card v3-strategy">
+                    <h4>V3策略</h4>
+                    <div class="stat-value" id="v3TotalTrades">--</div>
+                    <div class="stat-label">总交易数</div>
+                    <div class="stat-value" id="v3WinRate">--</div>
+                    <div class="stat-label">胜率</div>
+                </div>
+                <div class="stat-card ict-strategy">
+                    <h4>ICT策略</h4>
+                    <div class="stat-value" id="ictTotalTrades">--</div>
+                    <div class="stat-label">总交易数</div>
+                    <div class="stat-value" id="ictWinRate">--</div>
+                    <div class="stat-label">胜率</div>
+                </div>
+                <div class="stat-card combined-stats">
+                    <h4>综合统计</h4>
+                    <div class="stat-value" id="totalSymbols">--</div>
+                    <div class="stat-label">监控交易对</div>
+                    <div class="stat-value" id="activeStrategies">--</div>
+                    <div class="stat-label">活跃策略</div>
+                </div>
+            </div>
+        </div>
 
         <!-- 当前已添加的交易对 -->
         <div class="current-symbols">

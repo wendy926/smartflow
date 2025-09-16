@@ -26,6 +26,8 @@ const CacheManager = require('./modules/cache/CacheManager');
 const CacheMiddleware = require('./modules/middleware/CacheMiddleware');
 const DataChangeDetector = require('./modules/cache/DataChangeDetector');
 const PerformanceMonitor = require('./modules/monitoring/PerformanceMonitor');
+const UnifiedMonitoringMigration = require('./modules/database/UnifiedMonitoringMigration');
+const UnifiedMonitoringAPI = require('./modules/api/UnifiedMonitoringAPI');
 
 class SmartFlowServer {
   constructor() {
@@ -48,6 +50,8 @@ class SmartFlowServer {
     this.cacheMiddleware = null;
     this.dataChangeDetector = null;
     this.performanceMonitor = new PerformanceMonitor();
+    this.unifiedMonitoringMigration = null;
+    this.unifiedMonitoringAPI = null;
 
     // ICT策略相关
     this.ictDatabaseManager = null;
@@ -1914,6 +1918,11 @@ class SmartFlowServer {
       await schemaUpdater.updateSchema();
       console.log('✅ 数据库表结构更新完成');
 
+      // 执行统一监控中心数据库迁移
+      this.unifiedMonitoringMigration = new UnifiedMonitoringMigration(this.db);
+      await this.unifiedMonitoringMigration.migrate();
+      console.log('✅ 统一监控中心数据库迁移完成');
+
       // 初始化模拟交易管理器
       this.simulationManager = new SimulationManager(this.db);
       this.simulationManager.startPriceMonitoring();
@@ -2040,6 +2049,11 @@ class SmartFlowServer {
       // 初始化V3策略
       await this.initializeV3Strategy();
       console.log('✅ V3策略初始化完成');
+
+      // 初始化统一监控中心API
+      this.unifiedMonitoringAPI = new UnifiedMonitoringAPI(this.db);
+      this.unifiedMonitoringAPI.setupRoutes(this.app);
+      console.log('✅ 统一监控中心API初始化完成');
 
       // 启动定期分析
       this.startPeriodicAnalysis();
@@ -2412,7 +2426,7 @@ class SmartFlowServer {
     try {
       // 获取用户设置的最大损失金额
       const maxLossAmount = await this.db.getUserSetting('maxLossAmount', 100);
-      
+
       // 并行执行V3策略和ICT策略分析
       const [v3Analysis, ictAnalysis] = await Promise.all([
         SmartFlowStrategyV3.analyzeSymbol(symbol, {
@@ -2428,7 +2442,7 @@ class SmartFlowServer {
 
       // 检测V3策略数据是否发生变化
       const v3HasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'signal', v3Analysis);
-      
+
       // 检测ICT策略数据是否发生变化
       const ictHasChanged = await this.dataChangeDetector.detectDataChange(symbol, 'ict_signal', ictAnalysis);
 
