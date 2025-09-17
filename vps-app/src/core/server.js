@@ -28,6 +28,9 @@ const DataChangeDetector = require('./modules/cache/DataChangeDetector');
 const PerformanceMonitor = require('./modules/monitoring/PerformanceMonitor');
 const UnifiedMonitoringMigration = require('./modules/database/UnifiedMonitoringMigration');
 const UnifiedMonitoringAPI = require('./modules/api/UnifiedMonitoringAPI');
+const PriceFieldsMigration = require('./modules/database/PriceFieldsMigration');
+const HighPerformancePriceManager = require('./modules/price/HighPerformancePriceManager');
+const PriceFieldsAPI = require('./modules/api/PriceFieldsAPI');
 
 class SmartFlowServer {
   constructor() {
@@ -52,6 +55,9 @@ class SmartFlowServer {
     this.performanceMonitor = new PerformanceMonitor();
     this.unifiedMonitoringMigration = null;
     this.unifiedMonitoringAPI = null;
+    this.priceFieldsMigration = null;
+    this.highPerformancePriceManager = null;
+    this.priceFieldsAPI = null;
 
     // ICT策略相关
     this.ictDatabaseManager = null;
@@ -1923,6 +1929,11 @@ class SmartFlowServer {
       await this.unifiedMonitoringMigration.migrate();
       console.log('✅ 统一监控中心数据库迁移完成');
 
+      // 执行价格字段数据库迁移
+      this.priceFieldsMigration = new PriceFieldsMigration(this.db);
+      await this.priceFieldsMigration.migrate();
+      console.log('✅ 价格字段数据库迁移完成');
+
       // 初始化模拟交易管理器
       this.simulationManager = new SimulationManager(this.db);
       this.simulationManager.startPriceMonitoring();
@@ -2054,6 +2065,15 @@ class SmartFlowServer {
       this.unifiedMonitoringAPI = new UnifiedMonitoringAPI(this.db);
       this.unifiedMonitoringAPI.setupRoutes(this.app);
       console.log('✅ 统一监控中心API初始化完成');
+
+      // 初始化高性能价格管理器
+      this.highPerformancePriceManager = new HighPerformancePriceManager(this.db);
+      console.log('✅ 高性能价格管理器初始化完成');
+
+      // 初始化价格字段API
+      this.priceFieldsAPI = new PriceFieldsAPI(this.db, this.highPerformancePriceManager);
+      this.priceFieldsAPI.setupRoutes(this.app);
+      console.log('✅ 价格字段API初始化完成');
 
       // 启动定期分析
       this.startPeriodicAnalysis();
