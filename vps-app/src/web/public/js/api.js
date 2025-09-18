@@ -208,7 +208,7 @@ class APIClient {
 
   // 获取数据更新时间
   async getUpdateTimes() {
-    return await this.request('/api/update-times');
+    return await this.request('/api/getUpdateTimes');
   }
 
   // 获取数据质量详情

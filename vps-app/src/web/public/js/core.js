@@ -166,16 +166,30 @@ class SmartFlowApp {
         window.dataManager = new DataManager();
       }
 
-      // 并行加载所有数据
-      const [signals, stats] = await Promise.all([
+      // 并行加载所有数据，包括更新时间
+      const [signals, stats, updateTimes] = await Promise.all([
         window.dataManager.getAllSignals(true), // 强制刷新信号数据
-        window.dataManager.getWinRateStats()
+        window.dataManager.getWinRateStats(),
+        window.apiClient.getUpdateTimes().catch(error => {
+          console.warn('获取更新时间失败，使用当前时间:', error);
+          const now = new Date().toISOString();
+          return { trend: now, signal: now, execution: now };
+        })
       ]);
 
       console.log('📊 数据加载完成:', {
         signalsCount: signals.length,
-        stats: stats
+        stats: stats,
+        updateTimes: updateTimes
       });
+
+      // 更新更新时间
+      if (updateTimes) {
+        this.updateTimes.trend = new Date(updateTimes.trend);
+        this.updateTimes.signal = new Date(updateTimes.signal);
+        this.updateTimes.execution = new Date(updateTimes.execution);
+        console.log('✅ 更新时间已设置:', this.updateTimes);
+      }
 
       // 更新UI
       this.updateStatsDisplay(signals, stats);
@@ -183,11 +197,6 @@ class SmartFlowApp {
 
       // 保存到缓存
       this.saveDataToCache(signals, stats);
-
-      // 更新更新时间
-      this.updateTimes.trend = new Date();
-      this.updateTimes.signal = new Date();
-      this.updateTimes.execution = new Date();
 
       // 更新UI时间戳
       this.updateTimestamp();
@@ -542,14 +551,20 @@ class SmartFlowApp {
     // 更新胜率统计
     if (stats) {
       const winRateEl = document.getElementById('winRate');
-      const totalTradesEl = document.getElementById('totalTrades');
-      const winTradesEl = document.getElementById('winTrades');
-      const lossTradesEl = document.getElementById('lossTrades');
+      const winRateDetailsEl = document.getElementById('winRateDetails');
 
-      if (winRateEl) winRateEl.textContent = stats.winRate ? `${stats.winRate.toFixed(1)}%` : '--';
-      if (totalTradesEl) totalTradesEl.textContent = stats.totalTrades || 0;
-      if (winTradesEl) winTradesEl.textContent = stats.winTrades || 0;
-      if (lossTradesEl) lossTradesEl.textContent = stats.lossTrades || 0;
+      if (winRateEl) {
+        const winRate = stats.winRate || stats.win_rate || 0;
+        winRateEl.textContent = winRate > 0 ? `${winRate.toFixed(1)}%` : '0%';
+        console.log('✅ 更新胜率显示:', winRate);
+      }
+
+      if (winRateDetailsEl) {
+        const totalTrades = stats.totalTrades || stats.total_trades || 0;
+        const winTrades = stats.winTrades || stats.winning_trades || 0;
+        winRateDetailsEl.textContent = `${winTrades}/${totalTrades}`;
+        console.log('✅ 更新胜率详情:', `${winTrades}/${totalTrades}`);
+      }
     }
   }
 
@@ -637,11 +652,35 @@ class SmartFlowApp {
     const now = new Date();
     const timeStr = now.toLocaleTimeString('zh-CN');
 
+    // 更新主要的最后更新时间
     const lastUpdateEl = document.getElementById('lastUpdate');
     const updateTimeEl = document.getElementById('updateTime');
 
     if (lastUpdateEl) lastUpdateEl.textContent = timeStr;
     if (updateTimeEl) updateTimeEl.textContent = timeStr;
+
+    // 更新各个层级的更新时间
+    const trendUpdateTimeEl = document.getElementById('trendUpdateTime');
+    const signalUpdateTimeEl = document.getElementById('signalUpdateTime');
+    const executionUpdateTimeEl = document.getElementById('executionUpdateTime');
+
+    if (trendUpdateTimeEl) {
+      const trendTime = this.updateTimes.trend ? new Date(this.updateTimes.trend).toLocaleTimeString('zh-CN') : timeStr;
+      trendUpdateTimeEl.textContent = trendTime;
+      console.log('✅ 更新趋势时间:', trendTime);
+    }
+
+    if (signalUpdateTimeEl) {
+      const signalTime = this.updateTimes.signal ? new Date(this.updateTimes.signal).toLocaleTimeString('zh-CN') : timeStr;
+      signalUpdateTimeEl.textContent = signalTime;
+      console.log('✅ 更新信号时间:', signalTime);
+    }
+
+    if (executionUpdateTimeEl) {
+      const executionTime = this.updateTimes.execution ? new Date(this.updateTimes.execution).toLocaleTimeString('zh-CN') : timeStr;
+      executionUpdateTimeEl.textContent = executionTime;
+      console.log('✅ 更新执行时间:', executionTime);
+    }
   }
 
   // 显示加载状态
