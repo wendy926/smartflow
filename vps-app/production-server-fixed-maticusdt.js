@@ -267,12 +267,8 @@ app.get('/api/ict/signals', async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: signals,
-      timestamp: new Date().toISOString(),
-      count: signals.length
-    });
+    // 前端期望直接返回数组，与V3 API格式保持一致
+    res.json(signals);
   } catch (error) {
     console.error('获取ICT信号失败:', error);
     res.status(500).json({
