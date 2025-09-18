@@ -46,6 +46,38 @@
       display: flex;
       gap: 15px;
       align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .strategy-filter {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px 15px;
+      border-radius: 25px;
+      backdrop-filter: blur(10px);
+    }
+
+    .strategy-filter label {
+      color: white;
+      font-weight: 500;
+      margin-right: 5px;
+    }
+
+    .strategy-filter select {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 14px;
+    }
+
+    .strategy-filter select option {
+      background: #333;
+      color: white;
     }
 
     .monitoring-content {
@@ -897,6 +929,14 @@
       <p>实时监控交易信号和系统状态</p>
       <div class="header-controls">
         <a href="index.html?cache=1" class="back-btn">← 返回主页</a>
+        <div class="strategy-filter">
+          <label for="strategyFilter">策略筛选:</label>
+          <select id="strategyFilter" onchange="filterByStrategy()">
+            <option value="all">全部策略</option>
+            <option value="V3">V3策略</option>
+            <option value="ICT">ICT策略</option>
+          </select>
+        </div>
         <button class="btn primary" onclick="refreshMonitoringData()">🔄 刷新</button>
       </div>
     </div>

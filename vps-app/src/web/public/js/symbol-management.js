@@ -59,24 +59,72 @@ class SymbolManagement {
 
   async loadStrategyStats() {
     try {
-      // 加载V3策略统计
-      const v3Stats = await this.apiClient.getV3StrategyStats();
-      this.updateV3Stats(v3Stats);
+      console.log('📊 开始加载统一策略统计...');
 
-      // 加载ICT策略统计
-      const ictStats = await this.apiClient.getICTStrategyStats();
-      this.updateICTStats(ictStats);
+      // 获取统一监控数据
+      const response = await fetch('/api/unified-monitoring/dashboard');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('📊 统一策略统计获取成功:', data);
+
+      // 更新V3策略统计
+      this.updateV3StatsFromUnified(data.data);
+
+      // 更新ICT策略统计
+      this.updateICTStatsFromUnified(data.data);
 
       // 更新综合统计
       this.updateCombinedStats();
+
+      console.log('✅ 统一策略统计加载完成');
     } catch (error) {
-      console.error('加载策略统计失败:', error);
+      console.error('❌ 加载统一策略统计失败:', error);
+      this.showError('加载策略统计失败: ' + error.message);
     }
   }
 
   updateV3Stats(stats) {
     document.getElementById('v3TotalTrades').textContent = stats.total_trades || '0';
     document.getElementById('v3WinRate').textContent = stats.win_rate ? `${stats.win_rate.toFixed(2)}%` : '--';
+  }
+
+  // 从统一监控数据更新V3策略统计
+  updateV3StatsFromUnified(data) {
+    const v3Stats = data.summary?.v3Strategy || {};
+    const v3CompletionRates = data.completionRates?.v3Strategy || {};
+
+    // 更新V3策略卡片
+    const v3Card = document.querySelector('.strategy-card.v3');
+    if (v3Card) {
+      const totalTradesEl = v3Card.querySelector('.stat-value');
+      const winRateEl = v3Card.querySelector('.stat-value:nth-child(2)');
+      const dataCollectionEl = v3Card.querySelector('.stat-value:nth-child(3)');
+
+      if (totalTradesEl) totalTradesEl.textContent = v3Stats.totalSymbols || '0';
+      if (winRateEl) winRateEl.textContent = `${v3CompletionRates.dataCollection || 0}%`;
+      if (dataCollectionEl) dataCollectionEl.textContent = `${v3CompletionRates.simulationTrading || 0}%`;
+    }
+  }
+
+  // 从统一监控数据更新ICT策略统计
+  updateICTStatsFromUnified(data) {
+    const ictStats = data.summary?.ictStrategy || {};
+    const ictCompletionRates = data.completionRates?.ictStrategy || {};
+
+    // 更新ICT策略卡片
+    const ictCard = document.querySelector('.strategy-card.ict');
+    if (ictCard) {
+      const totalTradesEl = ictCard.querySelector('.stat-value');
+      const winRateEl = ictCard.querySelector('.stat-value:nth-child(2)');
+      const dataCollectionEl = ictCard.querySelector('.stat-value:nth-child(3)');
+
+      if (totalTradesEl) totalTradesEl.textContent = ictStats.totalSymbols || '0';
+      if (winRateEl) winRateEl.textContent = `${ictCompletionRates.dataCollection || 0}%`;
+      if (dataCollectionEl) dataCollectionEl.textContent = `${ictCompletionRates.simulationTrading || 0}%`;
+    }
   }
 
   updateICTStats(stats) {

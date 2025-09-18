@@ -1,5 +1,18 @@
 // monitoring.js - 监控面板相关功能
 
+// 全局变量
+let currentStrategyFilter = 'all';
+let monitoringData = null;
+
+// 策略筛选功能
+function filterByStrategy() {
+  const strategyFilter = document.getElementById('strategyFilter');
+  if (strategyFilter) {
+    currentStrategyFilter = strategyFilter.value;
+    refreshMonitoringData();
+  }
+}
+
 // 加载统一监控面板
 async function loadUnifiedMonitoring() {
   try {
@@ -144,16 +157,210 @@ async function clearCacheAndRefresh() {
 // 刷新监控数据
 async function refreshMonitoringData() {
   try {
-    const [monitoringData, realtimeData] = await Promise.all([
-      fetch('/api/monitoring-dashboard').then(res => res.json()),
-      fetch('/api/realtime-data-stats').then(res => res.json())
-    ]);
+    console.log('🔄 开始刷新监控数据...');
 
-    await updateMonitoringPanel(monitoringData, realtimeData);
+    // 获取统一监控数据
+    const response = await fetch('/api/unified-monitoring/dashboard');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('📊 统一监控数据获取成功:', data);
+
+    // 保存原始数据
+    monitoringData = data.data;
+
+    // 根据策略筛选更新界面
+    updateMonitoringDisplayWithFilter(data.data);
+
     console.log('✅ 监控数据刷新完成');
   } catch (error) {
     console.error('❌ 刷新监控数据失败:', error);
     updateMonitoringPanelWithError('刷新监控数据失败: ' + error.message);
+  }
+}
+
+// 根据策略筛选更新显示
+function updateMonitoringDisplayWithFilter(data) {
+  if (!data) return;
+
+  // 根据当前筛选条件过滤数据
+  let filteredData = data;
+
+  if (currentStrategyFilter !== 'all') {
+    // 过滤详细统计数据
+    if (data.detailedStats) {
+      filteredData = {
+        ...data,
+        detailedStats: data.detailedStats.map(symbolData => {
+          const filtered = { symbol: symbolData.symbol };
+
+          if (currentStrategyFilter === 'V3') {
+            filtered.v3Strategy = symbolData.v3Strategy;
+            filtered.ictStrategy = null;
+          } else if (currentStrategyFilter === 'ICT') {
+            filtered.v3Strategy = null;
+            filtered.ictStrategy = symbolData.ictStrategy;
+          } else {
+            filtered.v3Strategy = symbolData.v3Strategy;
+            filtered.ictStrategy = symbolData.ictStrategy;
+          }
+
+          return filtered;
+        })
+      };
+    }
+  }
+
+  updateMonitoringDisplay(filteredData);
+}
+
+// 更新监控显示
+function updateMonitoringDisplay(data) {
+  // 更新概览统计
+  updateSummaryStats(data.summary);
+
+  // 更新详细统计表格
+  updateDetailedStatsTable(data.detailedStats);
+
+  // 更新告警信息
+  updateAlertsDisplay(data.recentAlerts);
+
+  // 更新数据刷新状态
+  updateDataRefreshStatus();
+}
+
+// 更新数据刷新状态
+async function updateDataRefreshStatus() {
+  try {
+    console.log('🔄 开始更新数据刷新状态...');
+
+    const response = await fetch('/api/data-refresh/status');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('📊 数据刷新状态获取成功:', data);
+
+    // 更新V3策略刷新统计
+    updateV3RefreshStats(data.data.v3Strategy);
+
+    // 更新ICT策略刷新统计
+    updateICTRefreshStats(data.data.ictStrategy);
+
+    // 更新刷新状态表格
+    updateRefreshStatusTable(data.data);
+
+    console.log('✅ 数据刷新状态更新完成');
+  } catch (error) {
+    console.error('❌ 更新数据刷新状态失败:', error);
+  }
+}
+
+// 更新V3策略刷新统计
+function updateV3RefreshStats(v3Data) {
+  const v3RefreshCountEl = document.getElementById('v3RefreshCount');
+  if (v3RefreshCountEl && v3Data) {
+    let refreshCount = 0;
+    Object.values(v3Data).forEach(symbolData => {
+      Object.values(symbolData).forEach(dataType => {
+        if (dataType.shouldRefresh) refreshCount++;
+      });
+    });
+    v3RefreshCountEl.textContent = refreshCount;
+  }
+}
+
+// 更新ICT策略刷新统计
+function updateICTRefreshStats(ictData) {
+  const ictRefreshCountEl = document.getElementById('ictRefreshCount');
+  if (ictRefreshCountEl && ictData) {
+    let refreshCount = 0;
+    Object.values(ictData).forEach(symbolData => {
+      Object.values(symbolData).forEach(dataType => {
+        if (dataType.shouldRefresh) refreshCount++;
+      });
+    });
+    ictRefreshCountEl.textContent = refreshCount;
+  }
+}
+
+// 更新刷新状态表格
+function updateRefreshStatusTable(refreshData) {
+  const refreshTableBody = document.getElementById('refreshStatusTableBody');
+  if (!refreshTableBody) return;
+
+  const allData = { ...refreshData.v3Strategy, ...refreshData.ictStrategy };
+  const symbols = Object.keys(allData);
+
+  if (symbols.length === 0) {
+    refreshTableBody.innerHTML = '<tr><td colspan="6" class="loading">暂无数据</td></tr>';
+    return;
+  }
+
+  refreshTableBody.innerHTML = symbols.map(symbol => {
+    const v3Data = refreshData.v3Strategy[symbol] || {};
+    const ictData = refreshData.ictStrategy[symbol] || {};
+
+    return `
+      <tr>
+        <td>${symbol}</td>
+        <td>
+          <div class="refresh-status">
+            ${Object.entries(v3Data).map(([type, data]) =>
+      `<span class="status-item ${data.shouldRefresh ? 'needs-refresh' : 'up-to-date'}">${type}</span>`
+    ).join('')}
+          </div>
+        </td>
+        <td>
+          <div class="refresh-status">
+            ${Object.entries(ictData).map(([type, data]) =>
+      `<span class="status-item ${data.shouldRefresh ? 'needs-refresh' : 'up-to-date'}">${type}</span>`
+    ).join('')}
+          </div>
+        </td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="forceRefreshSymbol('${symbol}')">
+            强制刷新
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// 强制刷新指定交易对的数据
+async function forceRefreshSymbol(symbol) {
+  try {
+    console.log(`🔄 开始强制刷新 ${symbol} 的数据...`);
+
+    const response = await fetch(`/api/data-refresh/force-refresh/${symbol}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        strategyType: 'all', // 刷新所有策略
+        dataType: 'all' // 刷新所有数据类型
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ 强制刷新成功:', result);
+
+    // 刷新数据刷新状态
+    await updateDataRefreshStatus();
+
+    alert(`${symbol} 数据刷新成功`);
+  } catch (error) {
+    console.error('❌ 强制刷新失败:', error);
+    alert(`强制刷新失败: ${error.message}`);
   }
 }
 

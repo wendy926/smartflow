@@ -57,17 +57,25 @@ class SimulationDataManager {
 
   async loadAllSimulations() {
     try {
-      // 加载所有模拟交易数据（不分页）
-      const result = await this.apiClient.getSimulationHistory();
-      // API直接返回数组，不是对象
-      this.allSimulations = Array.isArray(result) ? result : (result.simulations || []);
+      console.log('📊 开始加载统一模拟交易数据...');
+
+      // 获取统一模拟交易数据
+      const response = await fetch('/api/unified-simulations/history?page=1&pageSize=1000');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      this.allSimulations = data.data.simulations || [];
       this.filteredSimulations = [...this.allSimulations];
+
+      console.log(`✅ 统一模拟交易数据加载完成，共 ${this.allSimulations.length} 条记录`);
 
       // 初始化筛选选项
       this.initializeFilterOptions();
     } catch (error) {
-      console.error('加载模拟交易历史失败:', error);
-      this.showError('加载模拟交易历史失败: ' + error.message);
+      console.error('❌ 加载统一模拟交易数据失败:', error);
+      this.showError('加载统一模拟交易数据失败: ' + error.message);
     }
   }
 
@@ -204,7 +212,7 @@ class SimulationDataManager {
     // 筛选数据
     this.filteredSimulations = this.allSimulations.filter(sim => {
       // 策略筛选
-      if (this.currentFilters.strategy && sim.strategy !== this.currentFilters.strategy) {
+      if (this.currentFilters.strategy && sim.strategyType !== this.currentFilters.strategy) {
         return false;
       }
 
@@ -328,7 +336,7 @@ class SimulationDataManager {
       return `
         <tr>
           <td>${sim.symbol}</td>
-          <td>${sim.strategy || 'V3'}</td>
+          <td>${sim.strategyType || 'V3'}</td>
           <td>${sim.direction === 'LONG' ? '做多' : '做空'}</td>
           <td>${this.formatNumber(sim.entry_price)}</td>
           <td>${this.formatNumber(sim.stop_loss_price)}</td>
