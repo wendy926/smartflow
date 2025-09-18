@@ -4,12 +4,41 @@ const request = require('supertest');
 // Under test
 const UnifiedStrategyAPI = require('../../src/core/modules/api/UnifiedStrategyAPI');
 
-// Minimal in-memory mock DB with async methods get/all/run
+// 完整的Mock数据库，兼容DatabaseManager接口
 class MockDb {
   constructor() {
     this.rows = {
       custom_symbols: [{ symbol: 'BTCUSDT' }, { symbol: 'ETHUSDT' }],
-      strategy_monitoring_stats: [],
+      strategy_monitoring_stats: [
+        {
+          symbol: 'BTCUSDT',
+          strategy_type: 'V3',
+          data_collection_rate: 95.5,
+          data_collection_attempts: 100,
+          data_collection_successes: 95,
+          data_validation_status: 'VALID',
+          data_validation_errors: 0,
+          data_validation_warnings: 2,
+          simulation_completion_rate: 100,
+          simulation_triggers: 10,
+          simulation_completions: 10,
+          overall_health: 'HEALTHY'
+        },
+        {
+          symbol: 'BTCUSDT',
+          strategy_type: 'ICT',
+          data_collection_rate: 92.3,
+          data_collection_attempts: 100,
+          data_collection_successes: 92,
+          data_validation_status: 'VALID',
+          data_validation_errors: 0,
+          data_validation_warnings: 1,
+          simulation_completion_rate: 100,
+          simulation_triggers: 8,
+          simulation_completions: 8,
+          overall_health: 'HEALTHY'
+        }
+      ],
       unified_simulations: [
         {
           id: 1,
@@ -66,37 +95,66 @@ class MockDb {
       ],
     };
   }
-  async all(sql, params = []) {
-    if (/FROM\s+custom_symbols/i.test(sql)) return this.rows.custom_symbols;
-    if (/FROM\s+monitoring_alerts/i.test(sql)) return this.rows.monitoring_alerts;
-    if (/FROM\s+unified_simulations/i.test(sql) && /GROUP BY/i.test(sql)) {
-      // stats queries
-      return [];
+
+  // 实现runQuery方法（DatabaseManager的主要接口）
+  async runQuery(sql, params = []) {
+    if (/SELECT\s+DISTINCT\s+symbol\s+FROM\s+custom_symbols/i.test(sql)) {
+      return this.rows.custom_symbols;
     }
-    if (/FROM\s+unified_simulations/i.test(sql)) return this.rows.unified_simulations;
-    if (/FROM\s+data_refresh_status/i.test(sql)) return this.rows.data_refresh_status;
-    return [];
-  }
-  async get(sql, params = []) {
-    if (/COUNT\(\*\)/i.test(sql) && /FROM\s+unified_simulations/i.test(sql)) {
-      return { total: this.rows.unified_simulations.length };
+    if (/FROM\s+strategy_monitoring_stats/i.test(sql)) {
+      return this.rows.strategy_monitoring_stats.filter(row => {
+        if (params.length >= 2) {
+          return row.symbol === params[0] && row.strategy_type === params[1];
+        }
+        return true;
+      });
     }
-    if (/AVG\(data_collection_rate\)/i.test(sql)) return { avg_rate: 95.5 };
-    if (/AVG\(simulation_completion_rate\)/i.test(sql)) return { avg_rate: 100 };
-    return {};
-  }
-  async run(sql, params = []) {
+    if (/FROM\s+monitoring_alerts/i.test(sql)) {
+      return this.rows.monitoring_alerts;
+    }
+    if (/FROM\s+unified_simulations/i.test(sql)) {
+      if (/COUNT\(\*\)/i.test(sql)) {
+        return [{ total: this.rows.unified_simulations.length }];
+      }
+      if (/GROUP BY/i.test(sql)) {
+        // stats queries
+        return [];
+      }
+      return this.rows.unified_simulations;
+    }
+    if (/FROM\s+data_refresh_status/i.test(sql)) {
+      return this.rows.data_refresh_status.filter(row => {
+        if (params.length >= 1) {
+          return row.symbol === params[0];
+        }
+        return true;
+      });
+    }
     if (/UPDATE\s+data_refresh_status/i.test(sql)) {
-      // emulate ok
-      return { changes: 1 };
+      return [{ changes: 1 }];
     }
     if (/UPDATE\s+monitoring_alerts/i.test(sql)) {
       const id = params[0];
       const row = this.rows.monitoring_alerts.find((a) => a.id === Number(id));
       if (row) row.resolved = 1;
-      return { changes: row ? 1 : 0 };
+      return [{ changes: row ? 1 : 0 }];
     }
-    return { changes: 0 };
+    return [];
+  }
+
+  // 兼容旧接口
+  async all(sql, params = []) {
+    return this.runQuery(sql, params);
+  }
+  
+  async get(sql, params = []) {
+    const results = await this.runQuery(sql, params);
+    return results[0] || {};
+  }
+  
+  async run(sql, params = []) {
+    const results = await this.runQuery(sql, params);
+    return results[0] || { changes: 0 };
   }
 }
 
