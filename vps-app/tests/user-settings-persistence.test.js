@@ -110,6 +110,9 @@ describe('用户设置持久化功能测试', () => {
     it('应该处理API调用失败的情况', () => {
       const mockError = new Error('API调用失败');
       
+      // 模拟console.warn以避免测试输出噪音
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      
       // 模拟错误处理逻辑
       let defaultSettings = {
         maxLossAmount: '100'
@@ -122,7 +125,13 @@ describe('用户设置持久化功能测试', () => {
         console.warn('加载用户设置失败，使用默认值:', error);
       }
       
+      // 验证console.warn被调用
+      expect(consoleSpy).toHaveBeenCalledWith('加载用户设置失败，使用默认值:', mockError);
+      
       assert.strictEqual(defaultSettings.maxLossAmount, '100');
+      
+      // 恢复console.warn
+      consoleSpy.mockRestore();
     });
     
     it('应该处理无效的设置值', () => {
