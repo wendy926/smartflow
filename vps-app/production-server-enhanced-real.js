@@ -557,9 +557,9 @@ app.get('/api/win-rate-stats', (req, res) => {
         totalTrades: totalTrades,
         winTrades: winningTrades,
         lossTrades: losingTrades,
-        avgProfit: parseFloat((row.avg_profit || 0).toFixed(2)),
-        avgLoss: parseFloat((row.avg_loss || 0).toFixed(2)),
-        netProfit: parseFloat((row.net_profit || 0).toFixed(2)),
+        avgProfit: row.avg_profit ? parseFloat(row.avg_profit.toFixed(2)) : 0,
+        avgLoss: row.avg_loss ? parseFloat(row.avg_loss.toFixed(2)) : 0,
+        netProfit: row.net_profit ? parseFloat(row.net_profit.toFixed(2)) : 0,
         lastUpdated: new Date().toISOString()
       }
     });
