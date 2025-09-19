@@ -481,9 +481,10 @@ app.post('/api/user-settings', (req, res) => {
 app.get('/api/getUpdateTimes', (req, res) => {
   const now = new Date().toISOString();
   res.json({
-    trendUpdate: now,
-    signalUpdate: now,
-    executionUpdate: now,
+    trend: now,
+    signal: now,
+    execution: now,
+    ict: now,
     lastRefresh: now
   });
 });

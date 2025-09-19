@@ -89,15 +89,19 @@ class DataManager {
 
     if (!data) {
       try {
-        data = await window.apiClient.getSimulationHistory();
+        const response = await window.apiClient.getSimulationHistory();
+        // 处理API响应结构，确保返回数组
+        data = response && response.data ? response.data : [];
         this.setCache(cacheKey, data);
       } catch (error) {
         console.error('获取模拟交易历史失败:', error);
-        throw error;
+        // 返回空数组而不是抛出错误，避免forEach调用失败
+        return [];
       }
     }
 
-    return data;
+    // 确保返回的是数组
+    return Array.isArray(data) ? data : [];
   }
 
   // 获取胜率统计
