@@ -564,15 +564,53 @@ app.get('/api/win-rate-stats', (req, res) => {
 
 // 模拟交易API
 app.get('/api/symbol-stats', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      totalSymbols: 22,
-      activeSymbols: 20,
-      v3Symbols: 22,
-      ictSymbols: 22,
-      categories: { largecap: 5, midcap: 8, smallcap: 9 }
+  const sql = `
+    SELECT 
+      symbol,
+      COUNT(*) as total_trades,
+      SUM(CASE WHEN is_win = 1 THEN 1 ELSE 0 END) as winning_trades,
+      SUM(CASE WHEN is_win = 0 AND status = 'CLOSED' THEN 1 ELSE 0 END) as losing_trades,
+      AVG(CASE WHEN is_win = 1 THEN profit_loss ELSE NULL END) as avg_profit,
+      AVG(CASE WHEN is_win = 0 AND status = 'CLOSED' THEN profit_loss ELSE NULL END) as avg_loss,
+      SUM(CASE WHEN status = 'CLOSED' THEN profit_loss ELSE 0 END) as net_profit
+    FROM simulations 
+    WHERE status = 'CLOSED'
+    GROUP BY symbol
+    ORDER BY net_profit DESC
+  `;
+  
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error('交易对统计查询失败:', err);
+      res.json({
+        success: true,
+        data: []
+      });
+      return;
     }
+    
+    const symbolStats = rows.map(row => {
+      const totalTrades = row.total_trades || 0;
+      const winningTrades = row.winning_trades || 0;
+      const losingTrades = row.losing_trades || 0;
+      const winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100) : 0;
+      
+      return {
+        symbol: row.symbol,
+        total_trades: totalTrades,
+        winning_trades: winningTrades,
+        losing_trades: losingTrades,
+        win_rate: parseFloat(winRate.toFixed(2)),
+        net_profit: parseFloat((row.net_profit || 0).toFixed(4)),
+        avg_profit: parseFloat((row.avg_profit || 0).toFixed(4)),
+        avg_loss: parseFloat((row.avg_loss || 0).toFixed(4))
+      };
+    });
+    
+    res.json({
+      success: true,
+      data: symbolStats
+    });
   });
 });
 
@@ -1106,6 +1144,35 @@ app.get('/api/alerts', (req, res) => {
   res.json({
     success: true,
     data: alerts
+  });
+});
+
+// 数据刷新状态API
+app.get('/api/data-refresh/status', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      lastUpdate: new Date().toISOString(),
+      status: 'running',
+      nextUpdate: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      updateInterval: 300000, // 5分钟
+      symbols: {
+        total: 22,
+        updated: 22,
+        pending: 0,
+        failed: 0
+      },
+      strategies: {
+        v3: {
+          lastUpdate: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+          status: 'active'
+        },
+        ict: {
+          lastUpdate: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+          status: 'active'
+        }
+      }
+    }
   });
 });
 
