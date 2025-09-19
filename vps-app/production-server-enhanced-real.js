@@ -517,7 +517,8 @@ app.get('/api/getUpdateTimes', (req, res) => {
 });
 
 app.get('/api/win-rate-stats', (req, res) => {
-  const sql = `
+  // 查询整体胜率统计
+  const overallSql = `
     SELECT 
       COUNT(*) as total_trades,
       SUM(CASE WHEN is_win = 1 THEN 1 ELSE 0 END) as winning_trades,
@@ -529,10 +530,24 @@ app.get('/api/win-rate-stats', (req, res) => {
     WHERE status = 'CLOSED'
   `;
   
-  db.get(sql, [], (err, row) => {
+  // 查询按策略分组的胜率统计
+  const byStrategySql = `
+    SELECT 
+      strategy_type,
+      COUNT(*) as total_trades,
+      SUM(CASE WHEN is_win = 1 THEN 1 ELSE 0 END) as winning_trades,
+      SUM(CASE WHEN is_win = 0 THEN 1 ELSE 0 END) as losing_trades,
+      AVG(CASE WHEN is_win = 1 THEN profit_loss ELSE NULL END) as avg_profit,
+      AVG(CASE WHEN is_win = 0 THEN profit_loss ELSE NULL END) as avg_loss,
+      SUM(profit_loss) as net_profit
+    FROM simulations 
+    WHERE status = 'CLOSED'
+    GROUP BY strategy_type
+  `;
+  
+  db.get(overallSql, [], (err, overallRow) => {
     if (err) {
-      console.error('胜率统计查询失败:', err);
-      // 返回默认数据
+      console.error('整体胜率统计查询失败:', err);
       res.json({
         success: true,
         data: {
@@ -553,27 +568,109 @@ app.get('/api/win-rate-stats', (req, res) => {
       return;
     }
     
-    const totalTrades = row.total_trades || 0;
-    const winningTrades = row.winning_trades || 0;
-    const losingTrades = row.losing_trades || 0;
+    // 计算整体胜率
+    const totalTrades = overallRow.total_trades || 0;
+    const winningTrades = overallRow.winning_trades || 0;
+    const losingTrades = overallRow.losing_trades || 0;
     const winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100) : 0;
     
-    res.json({
-      success: true,
-      data: {
-        win_rate: parseFloat(winRate.toFixed(2)),
-        total_trades: totalTrades,
-        winning_trades: winningTrades,
-        losing_trades: losingTrades,
-        winRate: parseFloat(winRate.toFixed(2)),
-        totalTrades: totalTrades,
-        winTrades: winningTrades,
-        lossTrades: losingTrades,
-        avgProfit: row.avg_profit ? parseFloat(row.avg_profit.toFixed(2)) : 0,
-        avgLoss: row.avg_loss ? parseFloat(row.avg_loss.toFixed(2)) : 0,
-        netProfit: row.net_profit ? parseFloat(row.net_profit.toFixed(2)) : 0,
-        lastUpdated: new Date().toISOString()
+    // 查询按策略分组的统计
+    db.all(byStrategySql, [], (err, strategyRows) => {
+      if (err) {
+        console.error('按策略胜率统计查询失败:', err);
+        // 如果按策略查询失败，只返回整体统计
+        res.json({
+          success: true,
+          data: {
+            win_rate: parseFloat(winRate.toFixed(2)),
+            total_trades: totalTrades,
+            winning_trades: winningTrades,
+            losing_trades: losingTrades,
+            winRate: parseFloat(winRate.toFixed(2)),
+            totalTrades: totalTrades,
+            winTrades: winningTrades,
+            lossTrades: losingTrades,
+            avgProfit: overallRow.avg_profit ? parseFloat(overallRow.avg_profit.toFixed(2)) : 0,
+            avgLoss: overallRow.avg_loss ? parseFloat(overallRow.avg_loss.toFixed(2)) : 0,
+            netProfit: overallRow.net_profit ? parseFloat(overallRow.net_profit.toFixed(2)) : 0,
+            lastUpdated: new Date().toISOString()
+          }
+        });
+        return;
       }
+      
+      // 处理按策略分组的统计
+      const byStrategy = {};
+      strategyRows.forEach(row => {
+        const strategyType = row.strategy_type || 'V3';
+        const strategyWinRate = row.total_trades > 0 ? (row.winning_trades / row.total_trades * 100) : 0;
+        
+        byStrategy[strategyType] = {
+          win_rate: parseFloat(strategyWinRate.toFixed(2)),
+          total_trades: row.total_trades || 0,
+          winning_trades: row.winning_trades || 0,
+          losing_trades: row.losing_trades || 0,
+          winRate: parseFloat(strategyWinRate.toFixed(2)),
+          totalTrades: row.total_trades || 0,
+          winTrades: row.winning_trades || 0,
+          lossTrades: row.losing_trades || 0,
+          avgProfit: row.avg_profit ? parseFloat(row.avg_profit.toFixed(2)) : 0,
+          avgLoss: row.avg_loss ? parseFloat(row.avg_loss.toFixed(2)) : 0,
+          netProfit: row.net_profit ? parseFloat(row.net_profit.toFixed(2)) : 0
+        };
+      });
+      
+      // 确保V3和ICT策略都有数据
+      if (!byStrategy.V3) {
+        byStrategy.V3 = {
+          win_rate: 0,
+          total_trades: 0,
+          winning_trades: 0,
+          losing_trades: 0,
+          winRate: 0,
+          totalTrades: 0,
+          winTrades: 0,
+          lossTrades: 0,
+          avgProfit: 0,
+          avgLoss: 0,
+          netProfit: 0
+        };
+      }
+      
+      if (!byStrategy.ICT) {
+        byStrategy.ICT = {
+          win_rate: 0,
+          total_trades: 0,
+          winning_trades: 0,
+          losing_trades: 0,
+          winRate: 0,
+          totalTrades: 0,
+          winTrades: 0,
+          lossTrades: 0,
+          avgProfit: 0,
+          avgLoss: 0,
+          netProfit: 0
+        };
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          win_rate: parseFloat(winRate.toFixed(2)),
+          total_trades: totalTrades,
+          winning_trades: winningTrades,
+          losing_trades: losingTrades,
+          winRate: parseFloat(winRate.toFixed(2)),
+          totalTrades: totalTrades,
+          winTrades: winningTrades,
+          lossTrades: losingTrades,
+          avgProfit: overallRow.avg_profit ? parseFloat(overallRow.avg_profit.toFixed(2)) : 0,
+          avgLoss: overallRow.avg_loss ? parseFloat(overallRow.avg_loss.toFixed(2)) : 0,
+          netProfit: overallRow.net_profit ? parseFloat(overallRow.net_profit.toFixed(2)) : 0,
+          byStrategy: byStrategy,
+          lastUpdated: new Date().toISOString()
+        }
+      });
     });
   });
 });
