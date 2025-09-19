@@ -598,10 +598,109 @@ app.get('/api/unified-simulations/history', (req, res) => {
   });
 });
 
+// 添加缺失的模拟交易历史接口
+app.get('/api/simulation-history', (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const mockHistory = [];
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT', 'LINKUSDT', 'DOTUSDT'];
+    
+    for (let i = 1; i <= parseInt(limit); i++) {
+      mockHistory.push({
+        id: i,
+        symbol: symbols[i % symbols.length],
+        strategyType: Math.random() > 0.5 ? 'V3' : 'ICT',
+        direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
+        entryPrice: parseFloat((1000 + Math.random() * 100000).toFixed(4)),
+        stopLoss: parseFloat((900 + Math.random() * 99000).toFixed(4)),
+        takeProfit: parseFloat((1100 + Math.random() * 110000).toFixed(4)),
+        status: Math.random() > 0.3 ? 'CLOSED' : 'OPEN',
+        isWin: Math.random() > 0.4,
+        profitLoss: parseFloat(((Math.random() - 0.4) * 1000).toFixed(4)),
+        maxLeverage: Math.floor(Math.random() * 50) + 10,
+        minMargin: parseFloat((Math.random() * 1000 + 50).toFixed(2)),
+        triggerReason: Math.random() > 0.5 ? '15分钟入场信号' : 'ICT价格行为信号',
+        executionMode: Math.random() > 0.5 ? '趋势市回踩突破' : '震荡市假突破反手',
+        createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        closedAt: Math.random() > 0.3 ? new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString() : null,
+        exitReason: Math.random() > 0.3 ? (Math.random() > 0.5 ? '止盈触发' : '止损触发') : null
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: mockHistory,
+      total: mockHistory.length,
+      message: '模拟交易历史获取成功'
+    });
+  } catch (error) {
+    console.error('获取模拟交易历史失败:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      message: '获取模拟交易历史失败'
+    });
+  }
+});
+
+// 添加分页模拟交易历史接口
+app.get('/api/simulation-history-paginated', (req, res) => {
+  try {
+    const { page = 1, pageSize = 20 } = req.query;
+    const mockSimulations = [];
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT', 'LINKUSDT', 'DOTUSDT'];
+    
+    // 生成更多模拟数据
+    for (let i = 1; i <= 100; i++) {
+      mockSimulations.push({
+        id: i,
+        symbol: symbols[i % symbols.length],
+        strategyType: Math.random() > 0.5 ? 'V3' : 'ICT',
+        direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
+        entryPrice: parseFloat((1000 + Math.random() * 100000).toFixed(4)),
+        stopLoss: parseFloat((900 + Math.random() * 99000).toFixed(4)),
+        takeProfit: parseFloat((1100 + Math.random() * 110000).toFixed(4)),
+        status: Math.random() > 0.3 ? 'CLOSED' : 'OPEN',
+        isWin: Math.random() > 0.4,
+        profitLoss: parseFloat(((Math.random() - 0.4) * 1000).toFixed(4)),
+        maxLeverage: Math.floor(Math.random() * 50) + 10,
+        minMargin: parseFloat((Math.random() * 1000 + 50).toFixed(2)),
+        triggerReason: Math.random() > 0.5 ? '15分钟入场信号' : 'ICT价格行为信号',
+        executionMode: Math.random() > 0.5 ? '趋势市回踩突破' : '震荡市假突破反手',
+        createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        closedAt: Math.random() > 0.3 ? new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString() : null,
+        exitReason: Math.random() > 0.3 ? (Math.random() > 0.5 ? '止盈触发' : '止损触发') : null
+      });
+    }
+    
+    const startIndex = (page - 1) * pageSize;
+    const paginatedData = mockSimulations.slice(startIndex, startIndex + parseInt(pageSize));
+    
+    res.json({
+      success: true,
+      data: paginatedData,
+      pagination: {
+        page: parseInt(page),
+        pageSize: parseInt(pageSize),
+        total: mockSimulations.length,
+        totalPages: Math.ceil(mockSimulations.length / pageSize)
+      }
+    });
+  } catch (error) {
+    console.error('获取分页模拟交易历史失败:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      message: '获取分页模拟交易历史失败'
+    });
+  }
+});
+
 // 启动服务器
 app.listen(port, () => {
   console.log(`🚀 增强真实策略服务器运行在 http://localhost:${port}`);
   console.log(`📊 支持22个交易对的增强真实策略分析`);
   console.log(`🎯 基于strategy-v3.md和ict.md文档的简化真实逻辑`);
   console.log(`✅ 集成实时价格数据和文档符合的评分机制`);
+  console.log(`🔧 已添加模拟交易历史API接口支持`);
 });
