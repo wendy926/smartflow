@@ -709,13 +709,6 @@ app.get('/api/unified-monitoring/dashboard', (req, res) => {
   });
 });
 
-app.get('/api/data-refresh/status', (req, res) => {
-  res.json({
-    success: true,
-    data: { v3: { refreshRate: 95.5 }, ict: { refreshRate: 92.3 } }
-  });
-});
-
 app.get('/api/unified-simulations/history', (req, res) => {
   const { page = 1, pageSize = 100 } = req.query;
   const mockSimulations = [];
