@@ -426,11 +426,29 @@ app.get('/api/direction-stats', (req, res) => {
     success: true,
     data: {
       total: 156,
-      long: 89,
-      short: 67,
-      winRate: 68.2,
-      avgProfit: 12.5,
-      avgLoss: -8.3
+      long: {
+        total_trades: 89,
+        win_trades: 61,
+        lose_trades: 28,
+        win_rate: 68.5,
+        net_profit: 1254.67,
+        avg_profit: 20.57,
+        avg_loss: -12.34
+      },
+      short: {
+        total_trades: 67,
+        win_trades: 45,
+        lose_trades: 22,
+        win_rate: 67.2,
+        net_profit: 892.45,
+        avg_profit: 19.83,
+        avg_loss: -11.92
+      },
+      overall: {
+        winRate: 68.2,
+        avgProfit: 12.5,
+        avgLoss: -8.3
+      }
     }
   });
 });

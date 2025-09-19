@@ -223,6 +223,11 @@ class APIClient {
       body: JSON.stringify(tradeData)
     });
   }
+
+  // 别名方法，与createSimulation功能相同
+  async startSimulation(tradeData) {
+    return await this.createSimulation(tradeData);
+  }
 }
 
 // 创建全局API客户端实例
