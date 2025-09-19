@@ -882,3 +882,49 @@ function updateSummaryStats(summary) {
       `${(summary.simulationCompletionRate * 100).toFixed(1)}%`;
   }
 }
+
+// 更新详细统计表格
+function updateDetailedStatsTable(detailedStats) {
+  if (!detailedStats || !Array.isArray(detailedStats)) {
+    console.warn('详细统计数据为空或格式不正确:', detailedStats);
+    return;
+  }
+
+  const tableBody = document.querySelector('.monitoring-table tbody');
+  if (!tableBody) {
+    console.warn('未找到监控表格tbody元素');
+    return;
+  }
+
+  // 清空现有内容
+  tableBody.innerHTML = '';
+
+  // 添加数据行
+  detailedStats.forEach(stat => {
+    const row = document.createElement('tr');
+    
+    // 根据整体状态设置行样式
+    const statusClass = stat.overallStatus === '健康' ? 'healthy' : 
+                       stat.overallStatus === '警告' ? 'warning' : 'error';
+    
+    row.innerHTML = `
+      <td>${stat.symbol || '--'}</td>
+      <td>${stat.strategy || '--'}</td>
+      <td>${stat.dataCollectionRate ? `${stat.dataCollectionRate.toFixed(1)}%` : '--'}</td>
+      <td>${stat.signalAnalysisRate ? `${stat.signalAnalysisRate.toFixed(1)}%` : '--'}</td>
+      <td>${stat.simulationCompletionRate ? `${stat.simulationCompletionRate.toFixed(1)}%` : '--'}</td>
+      <td>${stat.simulationProgressRate ? `${stat.simulationProgressRate.toFixed(1)}%` : '--'}</td>
+      <td>${stat.refreshFrequency || '--'}</td>
+      <td><span class="status-indicator ${statusClass}">${stat.overallStatus || '--'}</span></td>
+    `;
+    
+    tableBody.appendChild(row);
+  });
+
+  // 如果没有数据，显示提示信息
+  if (detailedStats.length === 0) {
+    const row = document.createElement('tr');
+    row.innerHTML = '<td colspan="8" style="text-align: center; color: #6c757d; padding: 20px;">暂无详细统计数据</td>';
+    tableBody.appendChild(row);
+  }
+}
