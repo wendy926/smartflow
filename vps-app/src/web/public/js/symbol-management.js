@@ -101,37 +101,33 @@ class SymbolManagement {
 
   // 从统一监控数据更新V3策略统计
   updateV3StatsFromUnified(data) {
-    const v3Stats = data.summary?.v3Strategy || {};
-    const v3CompletionRates = data.completionRates?.v3Strategy || {};
+    const v3Stats = data.v3Stats || {};
+    const summary = data.summary || {};
 
     // 更新V3策略卡片
     const v3Card = document.querySelector('.strategy-card.v3');
     if (v3Card) {
       const totalTradesEl = v3Card.querySelector('.stat-value');
       const winRateEl = v3Card.querySelector('.stat-value:nth-child(2)');
-      const dataCollectionEl = v3Card.querySelector('.stat-value:nth-child(3)');
 
-      if (totalTradesEl) totalTradesEl.textContent = v3Stats.totalSymbols || '0';
-      if (winRateEl) winRateEl.textContent = `${v3CompletionRates.dataCollection || 0}%`;
-      if (dataCollectionEl) dataCollectionEl.textContent = `${v3CompletionRates.simulationTrading || 0}%`;
+      if (totalTradesEl) totalTradesEl.textContent = summary.v3Symbols || '0';
+      if (winRateEl) winRateEl.textContent = `${v3Stats.dataCollectionRate || 0}%`;
     }
   }
 
   // 从统一监控数据更新ICT策略统计
   updateICTStatsFromUnified(data) {
-    const ictStats = data.summary?.ictStrategy || {};
-    const ictCompletionRates = data.completionRates?.ictStrategy || {};
+    const ictStats = data.ictStats || {};
+    const summary = data.summary || {};
 
     // 更新ICT策略卡片
     const ictCard = document.querySelector('.strategy-card.ict');
     if (ictCard) {
       const totalTradesEl = ictCard.querySelector('.stat-value');
       const winRateEl = ictCard.querySelector('.stat-value:nth-child(2)');
-      const dataCollectionEl = ictCard.querySelector('.stat-value:nth-child(3)');
 
-      if (totalTradesEl) totalTradesEl.textContent = ictStats.totalSymbols || '0';
-      if (winRateEl) winRateEl.textContent = `${ictCompletionRates.dataCollection || 0}%`;
-      if (dataCollectionEl) dataCollectionEl.textContent = `${ictCompletionRates.simulationTrading || 0}%`;
+      if (totalTradesEl) totalTradesEl.textContent = summary.ictSymbols || '0';
+      if (winRateEl) winRateEl.textContent = `${ictStats.dataCollectionRate || 0}%`;
     }
   }
 
