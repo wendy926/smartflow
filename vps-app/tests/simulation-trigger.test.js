@@ -175,6 +175,143 @@ function testDataConsistency() {
   console.log('✅ 数据一致性验证测试通过');
 }
 
+// 测试止损距离计算
+function testStopLossDistanceCalculation() {
+  console.log('🧪 测试止损距离计算...');
+  
+  try {
+    const currentPrice = 50000;
+    const stopLossPrice = 49000;
+    
+    // 计算止损距离百分比
+    const stopLossDistance = Math.abs(currentPrice - stopLossPrice) / currentPrice * 100;
+    
+    assert.strictEqual(stopLossDistance, 2, '止损距离应正确计算为2%');
+    
+    // 测试空头止损距离
+    const shortStopLoss = 51000;
+    const shortStopLossDistance = Math.abs(currentPrice - shortStopLoss) / currentPrice * 100;
+    
+    assert.strictEqual(shortStopLossDistance, 2, '空头止损距离应正确计算为2%');
+    
+    console.log('✅ 止损距离计算测试通过');
+  } catch (error) {
+    console.error('❌ 止损距离计算测试失败:', error.message);
+    process.exit(1);
+  }
+}
+
+// 测试ATR值计算
+function testATRCalculation() {
+  console.log('🧪 测试ATR值计算...');
+  
+  try {
+    // 模拟K线数据计算ATR
+    const klines = [
+      [1690000000000, "30000", "30100", "29900", "30050", "120.5"],
+      [1690003600000, "30050", "30200", "29950", "30100", "150.8"],
+      [1690007200000, "30100", "30250", "30000", "30200", "200.3"],
+      [1690010800000, "30200", "30300", "30100", "30250", "180.2"],
+      [1690014400000, "30250", "30400", "30150", "30300", "220.1"]
+    ];
+    
+    // 计算真实波幅
+    const trs = [];
+    for (let i = 1; i < klines.length; i++) {
+      const high = parseFloat(klines[i][2]);
+      const low = parseFloat(klines[i][3]);
+      const prevClose = parseFloat(klines[i - 1][4]);
+      
+      const tr = Math.max(
+        high - low,
+        Math.abs(high - prevClose),
+        Math.abs(low - prevClose)
+      );
+      trs.push(tr);
+    }
+    
+    const atr = trs.reduce((sum, tr) => sum + tr, 0) / trs.length;
+    
+    assert.ok(atr > 0, 'ATR值应大于0');
+    assert.ok(atr < 1000, 'ATR值应在合理范围内');
+    
+    console.log('✅ ATR值计算测试通过');
+  } catch (error) {
+    console.error('❌ ATR值计算测试失败:', error.message);
+    process.exit(1);
+  }
+}
+
+// 测试杠杆和保证金计算（基于strategy-v3.md）
+function testLeverageAndMarginCalculation() {
+  console.log('🧪 测试杠杆和保证金计算...');
+  
+  try {
+    const currentPrice = 50000;
+    const stopLossPrice = 49000;
+    const maxLossAmount = 100;
+    
+    // 计算止损距离百分比
+    const stopLossPercentage = Math.abs(currentPrice - stopLossPrice) / currentPrice;
+    
+    // 最大杠杆数Y = 1/(X%+0.5%) 数值向下取整
+    const maxLeverage = Math.floor(1 / (stopLossPercentage + 0.005));
+    
+    // 保证金Z = M/(Y*X%) 数值向上取整
+    const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossPercentage));
+    
+    // 验证计算结果
+    assert.ok(maxLeverage > 0, '最大杠杆应大于0');
+    assert.ok(maxLeverage <= 50, '最大杠杆不应超过50');
+    assert.ok(minMargin > 0, '最小保证金应大于0');
+    assert.ok(minMargin >= maxLossAmount, '最小保证金应至少等于最大损失金额');
+    
+    // 验证杠杆计算逻辑
+    const expectedLeverage = Math.floor(1 / (0.02 + 0.005)); // 2%止损 + 0.5%缓冲
+    assert.strictEqual(maxLeverage, expectedLeverage, '杠杆计算应符合strategy-v3.md逻辑');
+    
+    console.log('✅ 杠杆和保证金计算测试通过');
+  } catch (error) {
+    console.error('❌ 杠杆和保证金计算测试失败:', error.message);
+    process.exit(1);
+  }
+}
+
+// 测试出场价格计算
+function testExitPriceCalculation() {
+  console.log('🧪 测试出场价格计算...');
+  
+  try {
+    const entryPrice = 50000;
+    const stopLossPrice = 49000;
+    const takeProfitPrice = 51000;
+    
+    // 模拟止盈出场
+    const exitPriceTakeProfit = takeProfitPrice;
+    const profit = exitPriceTakeProfit - entryPrice;
+    
+    // 模拟止损出场
+    const exitPriceStopLoss = stopLossPrice;
+    const loss = exitPriceStopLoss - entryPrice;
+    
+    // 验证计算结果
+    assert.strictEqual(profit, 1000, '止盈收益应正确计算');
+    assert.strictEqual(loss, -1000, '止损亏损应正确计算');
+    
+    // 验证风险回报比
+    const riskAmount = entryPrice - stopLossPrice;
+    const rewardAmount = takeProfitPrice - entryPrice;
+    const riskRewardRatio = rewardAmount / riskAmount;
+    
+    assert.strictEqual(riskRewardRatio, 2, '风险回报比应为1:2');
+    
+    console.log('✅ 出场价格计算测试通过');
+  } catch (error) {
+    console.error('❌ 出场价格计算测试失败:', error.message);
+    process.exit(1);
+  }
+}
+
 // 运行所有测试
 function runAllTests() {
   console.log('🚀 开始运行模拟交易触发逻辑单元测试...\n');
@@ -186,6 +323,10 @@ function runAllTests() {
     testTriggerReasonGeneration();
     testTrendDetection();
     testDataConsistency();
+    testStopLossDistanceCalculation();
+    testATRCalculation();
+    testLeverageAndMarginCalculation();
+    testExitPriceCalculation();
     
     console.log('\n🎉 所有测试通过！');
     console.log('✅ 测试覆盖范围：');
@@ -195,6 +336,10 @@ function runAllTests() {
     console.log('   - 触发原因生成');
     console.log('   - 趋势判断逻辑');
     console.log('   - 数据一致性验证');
+    console.log('   - 止损距离计算');
+    console.log('   - ATR值计算');
+    console.log('   - 杠杆和保证金计算（strategy-v3.md逻辑）');
+    console.log('   - 出场价格计算');
   } catch (error) {
     console.error('\n❌ 测试失败:', error.message);
     process.exit(1);
@@ -213,5 +358,9 @@ module.exports = {
   testTriggerReasonGeneration,
   testTrendDetection,
   testDataConsistency,
+  testStopLossDistanceCalculation,
+  testATRCalculation,
+  testLeverageAndMarginCalculation,
+  testExitPriceCalculation,
   runAllTests
 };

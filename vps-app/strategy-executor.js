@@ -38,7 +38,7 @@ class StrategyExecutor {
       const currentPrice = parseFloat(signal.currentPrice);
 
       // 计算止损止盈
-      const { stopLoss, takeProfit, maxLeverage, minMargin } = this.calculateV3Parameters(
+      const { stopLoss, takeProfit, maxLeverage, minMargin, stopLossDistance, atrValue } = this.calculateV3Parameters(
         currentPrice, atr14, entrySignal, trend4h
       );
 
@@ -51,6 +51,8 @@ class StrategyExecutor {
         take_profit_price: takeProfit,
         max_leverage: maxLeverage,
         min_margin: minMargin,
+        stop_loss_distance: stopLossDistance,
+        atr_value: atrValue,
         trigger_reason: `V3策略${signal.signal}信号-15m确认`,
         status: 'ACTIVE'
       };
@@ -92,7 +94,7 @@ class StrategyExecutor {
 
       // 5. 计算交易参数
       const currentPrice = parseFloat(signal.currentPrice);
-      const { stopLoss, takeProfit, maxLeverage, minMargin } = this.calculateICTParameters(
+      const { stopLoss, takeProfit, maxLeverage, minMargin, stopLossDistance, atrValue } = this.calculateICTParameters(
         currentPrice, ob, atr4h, trend1d
       );
 
@@ -105,6 +107,8 @@ class StrategyExecutor {
         take_profit_price: takeProfit,
         max_leverage: maxLeverage,
         min_margin: minMargin,
+        stop_loss_distance: stopLossDistance,
+        atr_value: atrValue,
         trigger_reason: `ICT策略${signal.signal}信号-15m确认`,
         status: 'ACTIVE'
       };
@@ -118,29 +122,49 @@ class StrategyExecutor {
 
   /**
    * V3策略参数计算
+   * 基于strategy-v3.md文档的杠杆和保证金计算逻辑
    */
   calculateV3Parameters(currentPrice, atr14, entrySignal, trend4h) {
-    const stopLossDistance = currentPrice * 0.02; // 2%止损距离
-    const takeProfitDistance = stopLossDistance * 2; // 1:2风险回报比
+    // 计算止损距离（使用ATR或固定比例，取较大值）
+    const atrStopDistance = atr14 * 1.2; // 1.2倍ATR
+    const fixedStopDistance = currentPrice * 0.02; // 2%固定止损
+    const stopLossDistance = Math.max(atrStopDistance, fixedStopDistance);
 
     let stopLoss, takeProfit;
     if (trend4h === 'LONG') {
       stopLoss = currentPrice - stopLossDistance;
-      takeProfit = currentPrice + takeProfitDistance;
+      takeProfit = currentPrice + (stopLossDistance * 2); // 1:2风险回报比
     } else {
       stopLoss = currentPrice + stopLossDistance;
-      takeProfit = currentPrice - takeProfitDistance;
+      takeProfit = currentPrice - (stopLossDistance * 2); // 1:2风险回报比
     }
 
-    // 最大杠杆计算：基于止损距离
-    const maxLeverage = Math.floor(1 / 0.02); // 基于2%止损距离
-    const minMargin = 100; // 最小保证金
+    // 按照strategy-v3.md计算杠杆和保证金
+    // 止损距离X% = |entrySignal - stopLoss| / entrySignal
+    const stopLossPercentage = Math.abs(currentPrice - stopLoss) / currentPrice;
+    
+    // 最大杠杆数Y = 1/(X%+0.5%) 数值向下取整
+    const maxLeverage = Math.floor(1 / (stopLossPercentage + 0.005));
+    
+    // 最大损失金额M = 用户选择的单次交易最大损失金额（假设100 USDT）
+    const maxLossAmount = 100;
+    
+    // 保证金Z = M/(Y*X%) 数值向上取整
+    const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossPercentage));
 
-    return { stopLoss, takeProfit, maxLeverage, minMargin };
+    return { 
+      stopLoss, 
+      takeProfit, 
+      maxLeverage, 
+      minMargin, 
+      stopLossDistance: stopLossPercentage * 100, // 转换为百分比
+      atrValue: atr14 
+    };
   }
 
   /**
    * ICT策略参数计算
+   * 基于ict.md文档的杠杆和保证金计算逻辑
    */
   calculateICTParameters(currentPrice, ob, atr4h, trend1d) {
     let stopLoss, takeProfit;
@@ -157,12 +181,27 @@ class StrategyExecutor {
       takeProfit = currentPrice - 3 * stopDistance; // RR=3:1
     }
 
-    // 最大杠杆计算：基于风险比例1%
-    const riskPct = 0.01;
-    const maxLeverage = Math.floor(1 / (Math.abs(currentPrice - stopLoss) / currentPrice + 0.005));
-    const minMargin = 100; // 最小保证金
+    // 按照strategy-v3.md计算杠杆和保证金
+    // 止损距离X% = |entrySignal - stopLoss| / entrySignal
+    const stopLossPercentage = Math.abs(currentPrice - stopLoss) / currentPrice;
+    
+    // 最大杠杆数Y = 1/(X%+0.5%) 数值向下取整
+    const maxLeverage = Math.floor(1 / (stopLossPercentage + 0.005));
+    
+    // 最大损失金额M = 用户选择的单次交易最大损失金额（假设100 USDT）
+    const maxLossAmount = 100;
+    
+    // 保证金Z = M/(Y*X%) 数值向上取整
+    const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossPercentage));
 
-    return { stopLoss, takeProfit, maxLeverage, minMargin };
+    return { 
+      stopLoss, 
+      takeProfit, 
+      maxLeverage, 
+      minMargin, 
+      stopLossDistance: stopLossPercentage * 100, // 转换为百分比
+      atrValue: atr4h 
+    };
   }
 
   /**
@@ -386,8 +425,8 @@ class StrategyExecutor {
       const sql = `
         INSERT INTO simulations (
           symbol, strategy_type, entry_price, stop_loss_price, take_profit_price,
-          max_leverage, min_margin, trigger_reason, status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          max_leverage, min_margin, stop_loss_distance, atr_value, trigger_reason, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const params = [
@@ -398,6 +437,8 @@ class StrategyExecutor {
         simulation.take_profit_price,
         simulation.max_leverage,
         simulation.min_margin,
+        simulation.stop_loss_distance,
+        simulation.atr_value,
         simulation.trigger_reason,
         simulation.status,
         new Date().toISOString()
