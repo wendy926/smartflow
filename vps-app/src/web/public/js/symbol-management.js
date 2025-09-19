@@ -357,7 +357,10 @@ class SymbolManagement {
   }
 
   formatMarketCap(marketCap) {
+    // 处理undefined、null或无效值
+    if (marketCap === undefined || marketCap === null || marketCap === '') return '--';
     if (typeof marketCap === 'string') return marketCap;
+    if (isNaN(marketCap)) return '--';
     if (marketCap >= 1e9) return `$${(marketCap / 1e9).toFixed(1)}B`;
     if (marketCap >= 1e6) return `$${(marketCap / 1e6).toFixed(1)}M`;
     if (marketCap >= 1e3) return `$${(marketCap / 1e3).toFixed(1)}K`;
@@ -365,7 +368,10 @@ class SymbolManagement {
   }
 
   formatPrice(price) {
+    // 处理undefined、null或无效值
+    if (price === undefined || price === null || price === '') return '--';
     if (typeof price === 'string') return price;
+    if (isNaN(price)) return '--';
     if (price >= 1000) return `$${price.toFixed(0)}`;
     if (price >= 1) return `$${price.toFixed(2)}`;
     if (price >= 0.01) return `$${price.toFixed(4)}`;

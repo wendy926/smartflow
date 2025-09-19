@@ -848,7 +848,13 @@ app.get('/api/symbols', (req, res) => {
 });
 
 app.get('/api/symbols/mainstream', (req, res) => {
-  const mainstream = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT'];
+  const mainstream = [
+    { symbol: 'BTCUSDT', marketCap: 850000000000, price: 45000, name: 'Bitcoin' },
+    { symbol: 'ETHUSDT', marketCap: 280000000000, price: 3200, name: 'Ethereum' },
+    { symbol: 'BNBUSDT', marketCap: 45000000000, price: 300, name: 'BNB' },
+    { symbol: 'ADAUSDT', marketCap: 15000000000, price: 0.45, name: 'Cardano' },
+    { symbol: 'XRPUSDT', marketCap: 25000000000, price: 0.52, name: 'XRP' }
+  ];
   res.json({
     success: true,
     data: mainstream
@@ -856,7 +862,15 @@ app.get('/api/symbols/mainstream', (req, res) => {
 });
 
 app.get('/api/symbols/highcap', (req, res) => {
-  const highcap = ['SOLUSDT', 'LINKUSDT', 'DOTUSDT', 'LTCUSDT', 'BCHUSDT', 'UNIUSDT', 'AVAXUSDT'];
+  const highcap = [
+    { symbol: 'SOLUSDT', marketCap: 120000000000, price: 25.5, name: 'Solana' },
+    { symbol: 'LINKUSDT', marketCap: 8500000000, price: 14.2, name: 'Chainlink' },
+    { symbol: 'DOTUSDT', marketCap: 6500000000, price: 5.8, name: 'Polkadot' },
+    { symbol: 'LTCUSDT', marketCap: 5500000000, price: 72.3, name: 'Litecoin' },
+    { symbol: 'BCHUSDT', marketCap: 4200000000, price: 215.6, name: 'Bitcoin Cash' },
+    { symbol: 'UNIUSDT', marketCap: 3800000000, price: 6.8, name: 'Uniswap' },
+    { symbol: 'AVAXUSDT', marketCap: 8500000000, price: 32.1, name: 'Avalanche' }
+  ];
   res.json({
     success: true,
     data: highcap
@@ -864,7 +878,12 @@ app.get('/api/symbols/highcap', (req, res) => {
 });
 
 app.get('/api/symbols/trending', (req, res) => {
-  const trending = ['POLUSDT', 'ATOMUSDT', 'THETAUSDT', 'FTMUSDT'];
+  const trending = [
+    { symbol: 'POLUSDT', marketCap: 1200000000, price: 0.85, name: 'Polygon' },
+    { symbol: 'ATOMUSDT', marketCap: 2800000000, price: 8.5, name: 'Cosmos' },
+    { symbol: 'THETAUSDT', marketCap: 1800000000, price: 1.8, name: 'Theta Network' },
+    { symbol: 'FTMUSDT', marketCap: 2200000000, price: 0.75, name: 'Fantom' }
+  ];
   res.json({
     success: true,
     data: trending
@@ -872,7 +891,14 @@ app.get('/api/symbols/trending', (req, res) => {
 });
 
 app.get('/api/symbols/smallcap', (req, res) => {
-  const smallcap = ['FILUSDT', 'TRXUSDT', 'ETCUSDT', 'XLMUSDT', 'VETUSDT', 'ICPUSDT'];
+  const smallcap = [
+    { symbol: 'FILUSDT', marketCap: 800000000, price: 4.2, name: 'Filecoin' },
+    { symbol: 'TRXUSDT', marketCap: 650000000, price: 0.075, name: 'TRON' },
+    { symbol: 'ETCUSDT', marketCap: 420000000, price: 18.5, name: 'Ethereum Classic' },
+    { symbol: 'XLMUSDT', marketCap: 350000000, price: 0.12, name: 'Stellar' },
+    { symbol: 'VETUSDT', marketCap: 280000000, price: 0.035, name: 'VeChain' },
+    { symbol: 'ICPUSDT', marketCap: 450000000, price: 4.8, name: 'Internet Computer' }
+  ];
   res.json({
     success: true,
     data: smallcap
