@@ -62,8 +62,8 @@ async function loadUnifiedMonitoring() {
     // 异步加载数据并更新界面
     try {
       const [monitoringData, realtimeData] = await Promise.all([
-        fetch('/api/monitoring-dashboard').then(res => res.json()),
-        fetch('/api/realtime-data-stats').then(res => res.json())
+        fetch('/api/unified-monitoring/dashboard').then(res => res.json()),
+        fetch('/api/monitoring-data').then(res => res.json())
       ]);
       await updateMonitoringPanel(monitoringData, realtimeData);
     } catch (error) {

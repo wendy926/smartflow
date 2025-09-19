@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>前端测试页面</title>
+</head>
+
+<body>
+  <h1>前端测试页面</h1>
+  <div id="testResults"></div>
+
+  <script src="js/api.js?v=20250919-strategy-fix"></script>
+  <script src="js/data/DataManager.js?v=20250919-strategy-fix"></script>
+
+  <script>
+    async function testAPI() {
+      const results = document.getElementById('testResults');
+
+      try {
+        // 测试API客户端
+        results.innerHTML += '<h2>1. 测试API客户端</h2>';
+        results.innerHTML += `<p>API客户端状态: ${typeof window.apiClient}</p>`;
+
+        if (window.apiClient) {
+          // 测试胜率统计API
+          results.innerHTML += '<h2>2. 测试胜率统计API</h2>';
+          const winRateStats = await window.apiClient.getWinRateStats();
+          results.innerHTML += `<p>API响应: ${JSON.stringify(winRateStats, null, 2)}</p>`;
+
+          // 测试DataManager
+          results.innerHTML += '<h2>3. 测试DataManager</h2>';
+          window.dataManager = new DataManager();
+          const stats = await window.dataManager.getWinRateStats();
+          results.innerHTML += `<p>DataManager响应: ${JSON.stringify(stats, null, 2)}</p>`;
+
+          // 测试数据处理
+          results.innerHTML += '<h2>4. 测试数据处理</h2>';
+          const statsData = stats && stats.data ? stats.data : stats;
+          results.innerHTML += `<p>处理后的数据: ${JSON.stringify(statsData, null, 2)}</p>`;
+
+          // 测试胜率显示逻辑
+          results.innerHTML += '<h2>5. 测试胜率显示逻辑</h2>';
+          const winRate = statsData.winRate || statsData.win_rate || 0;
+          const totalTrades = statsData.totalTrades || statsData.total_trades || 0;
+          const winTrades = statsData.winTrades || statsData.winning_trades || 0;
+
+          results.innerHTML += `<p>胜率: ${winRate}</p>`;
+          results.innerHTML += `<p>总交易数: ${totalTrades}</p>`;
+          results.innerHTML += `<p>盈利交易数: ${winTrades}</p>`;
+
+          const displayText = winRate > 0 ? `${winRate.toFixed(1)}%` : '0%';
+          const detailsText = `${winTrades}/${totalTrades}`;
+
+          results.innerHTML += `<p>显示文本: ${displayText}</p>`;
+          results.innerHTML += `<p>详情文本: ${detailsText}</p>`;
+
+        } else {
+          results.innerHTML += '<p style="color: red;">API客户端未初始化</p>';
+        }
+
+      } catch (error) {
+        results.innerHTML += `<p style="color: red;">错误: ${error.message}</p>`;
+        console.error('测试失败:', error);
+      }
+    }
+
+    // 页面加载完成后运行测试
+    document.addEventListener('DOMContentLoaded', testAPI);
+  </script>
+</body>
+
+</html>

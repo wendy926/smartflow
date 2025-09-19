@@ -158,7 +158,7 @@ class APIClient {
 
   // 获取监控仪表板数据
   async getMonitoringDashboard() {
-    return await this.request('/api/monitoring-dashboard');
+    return await this.request('/api/unified-monitoring/dashboard');
   }
 
   // 获取健康检查数据

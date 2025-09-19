@@ -1113,6 +1113,142 @@
   <script src="js/components/Modal.js?v=20250108-4"></script>
   <script src="js/data/DataManager.js?v=20250108-4"></script>
   <script src="js/monitoring.js?v=20250119-data-fix"></script>
+  
+  <script>
+    // 监控页面初始化
+    document.addEventListener('DOMContentLoaded', async function() {
+      console.log('🚀 监控页面初始化开始...');
+      
+      try {
+        // 初始化API客户端
+        if (!window.apiClient) {
+          window.apiClient = new APIClient();
+        }
+        
+        // 初始化DataManager
+        if (!window.dataManager) {
+          window.dataManager = new DataManager();
+        }
+        
+        // 加载监控数据
+        console.log('📊 开始加载监控数据...');
+        await loadMonitoringData();
+        
+        console.log('✅ 监控页面初始化完成');
+      } catch (error) {
+        console.error('❌ 监控页面初始化失败:', error);
+        // 显示错误信息
+        const errorDiv = document.createElement('div');
+        errorDiv.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">监控数据加载失败: ' + error.message + '</p>';
+        document.body.insertBefore(errorDiv, document.body.firstChild);
+      }
+    });
+    
+    // 加载监控数据函数
+    async function loadMonitoringData() {
+      try {
+        console.log('🔄 开始加载监控数据...');
+        
+        // 获取监控数据
+        const [unifiedData, detailedData] = await Promise.all([
+          fetch('/api/unified-monitoring/dashboard').then(res => res.json()),
+          fetch('/api/monitoring-data').then(res => res.json())
+        ]);
+        
+        console.log('📊 监控数据获取成功:', { unifiedData, detailedData });
+        
+        // 更新页面显示
+        updateMonitoringDisplay(unifiedData.data, detailedData.data);
+        
+        console.log('✅ 监控数据加载完成');
+      } catch (error) {
+        console.error('❌ 加载监控数据失败:', error);
+        throw error;
+      }
+    }
+    
+    // 更新监控显示函数
+    function updateMonitoringDisplay(unifiedData, detailedData) {
+      console.log('🔄 更新监控显示...');
+      
+      // 更新概览数据
+      if (unifiedData && unifiedData.summary) {
+        const summary = unifiedData.summary;
+        document.getElementById('totalSymbols').textContent = summary.totalSymbols || '--';
+        document.getElementById('healthySymbols').textContent = summary.v3Symbols || '--';
+        document.getElementById('warningSymbols').textContent = summary.ictSymbols || '--';
+        document.getElementById('errorSymbols').textContent = '0';
+        document.getElementById('totalAlerts').textContent = '0';
+      }
+      
+      // 更新指标数据
+      if (unifiedData && unifiedData.v3Stats) {
+        const v3Stats = unifiedData.v3Stats;
+        document.getElementById('dataCollectionRate').textContent = (v3Stats.dataCollectionRate || 0) + '%';
+        document.getElementById('dataValidationStatus').textContent = v3Stats.validationStatus || '--';
+        document.getElementById('simulationCompletionRate').textContent = (v3Stats.simulationRate || 0) + '%';
+      }
+      
+      // 更新详细表格
+      if (detailedData && detailedData.detailedStats) {
+        updateDetailedTable(detailedData.detailedStats);
+      }
+      
+      // 更新告警数据
+      if (detailedData && detailedData.recentAlerts) {
+        updateAlertsDisplay(detailedData.recentAlerts);
+      }
+      
+      console.log('✅ 监控显示更新完成');
+    }
+    
+    // 更新详细表格
+    function updateDetailedTable(detailedStats) {
+      const tbody = document.querySelector('#detailedTableBody');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      
+      detailedStats.forEach(stat => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${stat.symbol}</td>
+          <td>${stat.strategy}</td>
+          <td>${stat.dataCollectionRate}%</td>
+          <td>${stat.signalAnalysisRate}%</td>
+          <td>${stat.simulationCompletionRate}%</td>
+          <td>${stat.simulationProgressRate}%</td>
+          <td>${stat.refreshFrequency}</td>
+          <td><span class="status ${stat.overallStatus === '健康' ? 'healthy' : stat.overallStatus === '警告' ? 'warning' : 'error'}">${stat.overallStatus}</span></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+    
+    // 更新告警显示
+    function updateAlertsDisplay(alerts) {
+      const alertList = document.getElementById('alertList');
+      if (!alertList) return;
+      
+      if (alerts && alerts.length > 0) {
+        alertList.innerHTML = '';
+        alerts.forEach(alert => {
+          const alertDiv = document.createElement('div');
+          alertDiv.className = `alert-item ${alert.severity}`;
+          alertDiv.innerHTML = `
+            <div class="alert-header">
+              <span class="alert-type">${alert.type}</span>
+              <span class="alert-time">${new Date(alert.timestamp).toLocaleString()}</span>
+            </div>
+            <div class="alert-message">${alert.message}</div>
+          `;
+          alertList.appendChild(alertDiv);
+        });
+      } else {
+        alertList.innerHTML = '<div class="no-alerts">暂无告警记录</div>';
+      }
+    }
+  </script>
 </body>
 
 </html>
