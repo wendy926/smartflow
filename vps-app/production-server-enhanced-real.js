@@ -5,6 +5,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
+const StrategyExecutor = require('./strategy-executor');
 const TechnicalIndicators = require('./src/core/modules/utils/TechnicalIndicators');
 
 const app = express();
@@ -19,6 +20,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.log('✅ 数据库连接成功');
   }
 });
+
+// 初始化策略执行器
+const strategyExecutor = new StrategyExecutor(dbPath);
 
 // 中间件设置
 app.use(cors());
@@ -767,27 +771,23 @@ app.post('/api/simulation/start', (req, res) => {
   });
 });
 
-// 批量触发模拟交易API
+// 批量触发模拟交易API - 使用策略执行器
 app.post('/api/simulation/trigger-all', async (req, res) => {
   try {
     // 获取当前所有信号
     const signalsResponse = await fetch('https://smart.aimaventop.com/api/signals');
     const signals = await signalsResponse.json();
     
-    let triggeredCount = 0;
+    console.log(`📊 开始批量执行策略，共 ${signals.length} 个信号`);
     
-    for (const signal of signals) {
-      // 只处理有明确信号的交易对
-      if (signal.signal && signal.signal !== '--' && signal.signal !== '观望') {
-        await triggerSimulationFromSignal(signal);
-        triggeredCount++;
-      }
-    }
+    // 使用策略执行器批量执行
+    const results = await strategyExecutor.executeAllStrategies(signals);
     
     res.json({
       success: true,
-      message: `已触发 ${triggeredCount} 个模拟交易`,
-      triggered_count: triggeredCount,
+      message: `已执行 ${results.length} 个策略并创建模拟交易`,
+      triggered_count: results.length,
+      results: results,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
