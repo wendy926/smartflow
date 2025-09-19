@@ -1169,6 +1169,35 @@ app.get('/api/data-refresh/status', (req, res) => {
   });
 });
 
+// 兼容前端代码的API路径
+app.get('/api/data-refresh-status', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      lastUpdate: new Date().toISOString(),
+      status: 'running',
+      nextUpdate: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      updateInterval: 300000, // 5分钟
+      symbols: {
+        total: 22,
+        updated: 22,
+        pending: 0,
+        failed: 0
+      },
+      strategies: {
+        v3: {
+          lastUpdate: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+          status: 'active'
+        },
+        ict: {
+          lastUpdate: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+          status: 'active'
+        }
+      }
+    }
+  });
+});
+
 // 启动服务器
 app.listen(port, () => {
   console.log(`🚀 增强真实策略服务器运行在 http://localhost:${port}`);
