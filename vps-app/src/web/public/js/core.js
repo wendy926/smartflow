@@ -191,8 +191,9 @@ class SmartFlowApp {
         console.log('✅ 更新时间已设置:', this.updateTimes);
       }
 
-      // 更新UI
-      this.updateStatsDisplay(signals, stats);
+      // 更新UI - 处理API响应结构
+      const statsData = stats && stats.data ? stats.data : stats;
+      this.updateStatsDisplay(signals, statsData);
       this.updateSignalsTable(signals);
 
       // 保存到缓存
@@ -941,7 +942,7 @@ class SmartFlowApp {
   /**
    * 更新ICT统计信息
    */
-  updateICTStats(signals) {
+  async updateICTStats(signals) {
     const totalSignals = signals.length;
     const longSignals = signals.filter(s => s.signalType && s.signalType.includes('LONG')).length;
     const shortSignals = signals.filter(s => s.signalType && s.signalType.includes('SHORT')).length;
@@ -953,6 +954,49 @@ class SmartFlowApp {
     if (ictTotalSignalsEl) ictTotalSignalsEl.textContent = totalSignals;
     if (ictLongSignalsEl) ictLongSignalsEl.textContent = longSignals;
     if (ictShortSignalsEl) ictShortSignalsEl.textContent = shortSignals;
+
+    // 获取ICT策略胜率统计
+    try {
+      const stats = await window.dataManager.getWinRateStats();
+      const statsData = stats && stats.data ? stats.data : stats;
+      
+      // 从统计数据中提取ICT策略的胜率（如果有按策略分组的数据）
+      if (statsData && statsData.byStrategy && statsData.byStrategy.ICT) {
+        const ictStats = statsData.byStrategy.ICT;
+        const ictWinRateEl = document.getElementById('ictWinRate');
+        const ictWinRateDetailsEl = document.getElementById('ictWinRateDetails');
+        
+        if (ictWinRateEl) {
+          const winRate = ictStats.winRate || ictStats.win_rate || 0;
+          ictWinRateEl.textContent = winRate > 0 ? `${winRate.toFixed(1)}%` : '0%';
+          console.log('✅ 更新ICT策略胜率显示:', winRate);
+        }
+        
+        if (ictWinRateDetailsEl) {
+          const totalTrades = ictStats.totalTrades || ictStats.total_trades || 0;
+          const winTrades = ictStats.winTrades || ictStats.winning_trades || 0;
+          ictWinRateDetailsEl.textContent = `${winTrades}/${totalTrades}`;
+          console.log('✅ 更新ICT策略胜率详情:', `${winTrades}/${totalTrades}`);
+        }
+      } else {
+        // 如果没有按策略分组的数据，使用整体数据作为ICT策略数据
+        const ictWinRateEl = document.getElementById('ictWinRate');
+        const ictWinRateDetailsEl = document.getElementById('ictWinRateDetails');
+        
+        if (ictWinRateEl) {
+          const winRate = statsData.winRate || statsData.win_rate || 0;
+          ictWinRateEl.textContent = winRate > 0 ? `${winRate.toFixed(1)}%` : '0%';
+        }
+        
+        if (ictWinRateDetailsEl) {
+          const totalTrades = statsData.totalTrades || statsData.total_trades || 0;
+          const winTrades = statsData.winTrades || statsData.winning_trades || 0;
+          ictWinRateDetailsEl.textContent = `${winTrades}/${totalTrades}`;
+        }
+      }
+    } catch (error) {
+      console.error('获取ICT策略胜率统计失败:', error);
+    }
   }
 
   /**
@@ -964,9 +1008,17 @@ class SmartFlowApp {
 
     const ictLastUpdateEl = document.getElementById('ictLastUpdate');
     const ictUpdateTimeEl = document.getElementById('ictUpdateTime');
+    
+    // 更新高时间框架更新时间（1D趋势分析）
+    const htfUpdateTimeEl = document.getElementById('htfUpdateTime');
+    
+    // 更新低时间框架更新时间（15m入场确认）
+    const ltfUpdateTimeEl = document.getElementById('ltfUpdateTime');
 
     if (ictLastUpdateEl) ictLastUpdateEl.textContent = timeStr;
     if (ictUpdateTimeEl) ictUpdateTimeEl.textContent = timeStr;
+    if (htfUpdateTimeEl) htfUpdateTimeEl.textContent = timeStr;
+    if (ltfUpdateTimeEl) ltfUpdateTimeEl.textContent = timeStr;
   }
 
   /**
