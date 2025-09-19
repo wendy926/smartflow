@@ -127,7 +127,7 @@ class ICTCore {
   }
 
   /**
-   * 趋势检测 - 基于过去N天收盘价
+   * 趋势检测 - 按照ict.md文档实现3分制评分系统
    * @param {Array} data - 1D K线数据
    * @param {number} lookback - 回看天数
    * @returns {Object} 趋势分析结果
@@ -141,58 +141,123 @@ class ICTCore {
         return { trend: 'sideways', score: 0, error: '数据不足' };
       }
 
-      const first = last[0];
-      const lastPrice = last[last.length - 1];
-
-      let trend = 'sideways';
       let score = 0;
+      const trendFactors = {};
 
-      // 计算价格变化百分比
-      const priceChange = (lastPrice - first) / first;
-      const priceChangePercent = priceChange * 100;
-
-      // 计算趋势强度 - 统计上涨和下跌天数
-      const upDays = last.filter((price, i) => i > 0 && price > last[i - 1]).length;
-      const downDays = last.filter((price, i) => i > 0 && price < last[i - 1]).length;
-      const totalDays = upDays + downDays;
-
-      // 计算移动平均线趋势
-      const ma5 = this.calculateMA(last, 5);
-      const ma10 = this.calculateMA(last, 10);
-      const ma20 = this.calculateMA(last, 20);
-
-      const currentMA5 = ma5[ma5.length - 1];
-      const currentMA10 = ma10[ma10.length - 1];
-      const currentMA20 = ma20[ma20.length - 1];
-
-      // 趋势判断逻辑 - 更宽松的条件
-      if (priceChangePercent > 1.0) { // 1%以上涨幅
-        trend = 'up';
-        score = 3;
-      } else if (priceChangePercent < -1.0) { // 1%以上跌幅
-        trend = 'down';
-        score = 3;
-      } else if (upDays > downDays * 1.2) { // 上涨天数 > 下跌天数 × 1.2
-        trend = 'up';
-        score = 2;
-      } else if (downDays > upDays * 1.2) { // 下跌天数 > 上涨天数 × 1.2
-        trend = 'down';
-        score = 2;
-      } else if (currentMA5 > currentMA10 && currentMA10 > currentMA20) { // 均线多头排列
-        trend = 'up';
-        score = 1;
-      } else if (currentMA5 < currentMA10 && currentMA10 < currentMA20) { // 均线空头排列
-        trend = 'down';
-        score = 1;
+      // 1. 价格结构分析 (1分) - 检测Higher Highs和Higher Lows
+      const priceStructure = this.analyzePriceStructure(last);
+      if (priceStructure.higherHighs && priceStructure.higherLows) {
+        score += 1;
+        trendFactors.priceStructure = 1;
+      } else if (!priceStructure.higherHighs && !priceStructure.higherLows) {
+        score -= 1;
+        trendFactors.priceStructure = -1;
+      } else {
+        trendFactors.priceStructure = 0;
       }
 
-      console.log(`📊 趋势检测 [${data[0] ? data[0][0] : 'unknown'}]: 价格变化=${priceChangePercent.toFixed(2)}%, 上涨天数=${upDays}, 下跌天数=${downDays}, 趋势=${trend}, 得分=${score}`);
+      // 2. MA确认 (1分) - MA20和MA50方向确认
+      const ma20 = this.calculateMA(last, 20);
+      const ma50 = this.calculateMA(last, 50);
+      const currentMA20 = ma20[ma20.length - 1];
+      const currentMA50 = ma50[ma50.length - 1];
+      const lastPrice = last[last.length - 1];
 
-      return { trend, score, first, last: lastPrice, priceChangePercent, upDays, downDays };
+      if (lastPrice > currentMA20 && currentMA20 > currentMA50) {
+        score += 1;
+        trendFactors.maConfirmation = 1;
+      } else if (lastPrice < currentMA20 && currentMA20 < currentMA50) {
+        score -= 1;
+        trendFactors.maConfirmation = -1;
+      } else {
+        trendFactors.maConfirmation = 0;
+      }
+
+      // 3. 成交量确认 (1分) - 成交量放大确认趋势
+      const volumes = data.slice(-lookback).map(d => parseFloat(d[5]));
+      const avgVolume = volumes.reduce((a, b) => a + b, 0) / volumes.length;
+      const currentVolume = volumes[volumes.length - 1];
+      
+      if (currentVolume > avgVolume * 1.2) {
+        score += 1;
+        trendFactors.volumeConfirmation = 1;
+      } else {
+        trendFactors.volumeConfirmation = 0;
+      }
+
+      // 确定趋势方向
+      let trend = 'sideways';
+      if (score >= 2) {
+        trend = 'up';
+      } else if (score <= -2) {
+        trend = 'down';
+      }
+
+      console.log(`📊 ICT趋势检测 [${data[0] ? data[0][0] : 'unknown'}]: 得分=${score}, 趋势=${trend}, 因子=${JSON.stringify(trendFactors)}`);
+
+      return { 
+        trend, 
+        score, 
+        first: last[0], 
+        last: lastPrice, 
+        trendFactors,
+        ma20: currentMA20,
+        ma50: currentMA50,
+        priceStructure,
+        volumeRatio: currentVolume / avgVolume
+      };
     } catch (error) {
-      console.error('趋势检测失败:', error);
+      console.error('ICT趋势检测失败:', error);
       return { trend: 'sideways', score: 0, error: error.message };
     }
+  }
+
+  /**
+   * 分析价格结构 - 检测Higher Highs和Higher Lows
+   * @param {Array} closes - 收盘价数组
+   * @returns {Object} 价格结构分析结果
+   */
+  analyzePriceStructure(closes) {
+    const highs = [];
+    const lows = [];
+
+    // 寻找局部高点和低点
+    for (let i = 2; i < closes.length - 2; i++) {
+      // 检测局部高点
+      if (closes[i] > closes[i-1] && closes[i] > closes[i-2] && 
+          closes[i] > closes[i+1] && closes[i] > closes[i+2]) {
+        highs.push({ index: i, price: closes[i] });
+      }
+      
+      // 检测局部低点
+      if (closes[i] < closes[i-1] && closes[i] < closes[i-2] && 
+          closes[i] < closes[i+1] && closes[i] < closes[i+2]) {
+        lows.push({ index: i, price: closes[i] });
+      }
+    }
+
+    // 分析Higher Highs
+    let higherHighs = false;
+    if (highs.length >= 2) {
+      const lastHigh = highs[highs.length - 1];
+      const secondLastHigh = highs[highs.length - 2];
+      higherHighs = lastHigh.price > secondLastHigh.price;
+    }
+
+    // 分析Higher Lows
+    let higherLows = false;
+    if (lows.length >= 2) {
+      const lastLow = lows[lows.length - 1];
+      const secondLastLow = lows[lows.length - 2];
+      higherLows = lastLow.price > secondLastLow.price;
+    }
+
+    return {
+      higherHighs,
+      higherLows,
+      highs: highs.slice(-3), // 保留最近3个高点
+      lows: lows.slice(-3)    // 保留最近3个低点
+    };
   }
 
   /**

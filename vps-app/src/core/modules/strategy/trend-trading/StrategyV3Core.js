@@ -552,10 +552,10 @@ class StrategyV3Core {
       // 检查每个方向是否至少2分
       if (bullScore >= 2) {
         direction = "BULL";
-        totalScore += bullScore;
+        totalScore = bullScore; // 先设置方向分
       } else if (bearScore >= 2) {
         direction = "BEAR";
-        totalScore += bearScore;
+        totalScore = bearScore; // 先设置方向分
       } else {
         // 每个方向都没有到2分，直接返回震荡市
         if (this.dataMonitor) {
@@ -767,9 +767,14 @@ class StrategyV3Core {
       console.log(`🔍 VWAP方向一致性检查 [${symbol}]: currentPrice=${currentPrice}, lastVWAP=${lastVWAP}, trend4h=${trend4h}`);
       const vwapDirectionConsistent = this.checkVWAPDirectionConsistency(currentPrice, lastVWAP, trend4h);
       console.log(`🔍 VWAP方向一致性结果 [${symbol}]: ${vwapDirectionConsistent}`);
-      if (vwapDirectionConsistent) {
-        score += 1; // 计入总分
+      
+      // VWAP方向一致性是必须满足的条件，不满足直接返回0分
+      if (!vwapDirectionConsistent) {
+        console.log(`❌ VWAP方向不一致 [${symbol}]: 直接返回0分`);
+        return { score: 0, error: 'VWAP方向不一致' };
       }
+      
+      // VWAP方向一致，可以继续打分
 
       // 2. 突破确认
       const breakoutScore = this.calculateBreakoutScore(candles, trend4h);
