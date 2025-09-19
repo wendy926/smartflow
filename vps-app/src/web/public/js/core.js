@@ -334,6 +334,9 @@ class SmartFlowApp {
         this.updateTimestamp();
         this.saveDataToCache(signals, stats);
 
+        // 检查模拟交易触发条件
+        await this.checkSimulationTriggers();
+
         console.log('✅ 监控数据自动刷新完成');
       } catch (error) {
         console.error('❌ 监控数据自动刷新失败:', error);
@@ -422,7 +425,7 @@ class SmartFlowApp {
       // 获取当前已触发的模拟交易记录
       const currentHistory = await window.dataManager.getSimulationHistory();
 
-      // 创建已触发信号的映射，基于交易对+时间窗口（最近10分钟）
+      // 创建已触发信号的映射，基于交易对+策略类型+时间窗口（最近10分钟）
       const triggeredSignals = new Map();
       const now = Date.now();
       const timeWindow = 10 * 60 * 1000; // 10分钟
@@ -430,20 +433,36 @@ class SmartFlowApp {
       currentHistory.forEach(record => {
         const recordTime = new Date(record.created_at).getTime();
         if (now - recordTime < timeWindow) {
-          const key = `${record.symbol}_${record.signal_type}`;
+          const key = `${record.symbol}_${record.strategy_type || 'V3'}_${record.direction || 'LONG'}`;
           triggeredSignals.set(key, record);
         }
       });
 
       // 检查当前信号是否有新的入场执行信号
       for (const signal of signals) {
+        let shouldTrigger = false;
+        let signalType = 'LONG';
+        let strategyType = signal.strategyVersion || 'V3';
+
+        // V3策略信号检查
         if (signal.execution && (signal.execution.includes('做多_') || signal.execution.includes('做空_'))) {
-          const signalType = signal.execution.includes('做多_') ? 'LONG' : 'SHORT';
-          const key = `${signal.symbol}_${signalType}`;
+          signalType = signal.execution.includes('做多_') ? 'LONG' : 'SHORT';
+          shouldTrigger = true;
+        }
+        // ICT策略信号检查
+        else if (signal.signalType && signal.signalType !== 'WAIT' && signal.signalType !== '观望') {
+          signalType = signal.signalType.includes('LONG') ? 'LONG' : 'SHORT';
+          shouldTrigger = true;
+        }
+
+        if (shouldTrigger) {
+          const key = `${signal.symbol}_${strategyType}_${signalType}`;
 
           if (!triggeredSignals.has(key)) {
-            console.log(`🚀 检测到新的入场执行信号: ${signal.symbol} ${signalType}`);
+            console.log(`🚀 检测到新的入场执行信号: ${signal.symbol} ${strategyType} ${signalType}`);
             await this.autoStartSimulation(signal);
+          } else {
+            console.log(`⏭️ 跳过 ${signal.symbol} ${strategyType} ${signalType}：最近10分钟内已有模拟交易`);
           }
         }
       }
@@ -526,26 +545,40 @@ class SmartFlowApp {
    */
   async autoStartSimulation(signalData) {
     try {
-      const direction = signalData.execution.includes('做多_') ? 'LONG' : 'SHORT';
-      const stopLossDistance = signalData.stopLoss ? Math.abs(signalData.entrySignal - signalData.stopLoss) : 0;
+      // 确定方向和策略类型
+      let direction = 'LONG';
+      let strategyType = signalData.strategyVersion || 'V3';
+      
+      if (signalData.execution) {
+        // V3策略
+        direction = signalData.execution.includes('做多_') ? 'LONG' : 'SHORT';
+      } else if (signalData.signalType) {
+        // ICT策略
+        direction = signalData.signalType.includes('LONG') ? 'LONG' : 'SHORT';
+      }
+      
+      // 使用信号数据中的价格信息
+      const entryPrice = signalData.entrySignal || signalData.entryPrice || signalData.currentPrice;
+      const stopLoss = signalData.stopLoss;
+      const takeProfit = signalData.takeProfit;
+      
+      // 计算止损距离
+      const stopLossDistance = stopLoss ? Math.abs(entryPrice - stopLoss) / entryPrice * 100 : 0;
 
-      const tradeData = {
-        symbol: signalData.symbol,
-        entryPrice: signalData.entrySignal,
-        stopLoss: signalData.stopLoss,
-        takeProfit: signalData.takeProfit,
-        direction: direction,
-        executionMode: signalData.execution,
-        stopLossDistance: stopLossDistance,
-        maxLeverage: 10, // 默认值
-        minMargin: 100,  // 默认值
-        atrValue: signalData.atr14 || 0,
-        atr14: signalData.atr14 || 0,
-        strategy: 'V3'
-      };
-
-      console.log('🤖 自动启动模拟交易:', tradeData);
-      await this.createSimulation(tradeData);
+      console.log(`🤖 自动启动模拟交易: ${signalData.symbol} ${strategyType} ${direction}`);
+      console.log(`   入场价格: ${entryPrice}, 止损: ${stopLoss}, 止盈: ${takeProfit}`);
+      
+      // 调用批量触发API，让服务器端处理策略逻辑
+      const response = await window.apiClient.request('/api/simulation/trigger-all', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          symbol: signalData.symbol,
+          strategy: strategyType,
+          direction: direction 
+        })
+      });
+      
+      console.log('✅ 模拟交易触发成功:', response);
     } catch (error) {
       console.error('❌ 自动启动模拟交易失败:', error);
     }
