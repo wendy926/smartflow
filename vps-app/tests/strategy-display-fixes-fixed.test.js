@@ -1,4 +1,4 @@
-// strategy-display-fixes.test.js - 策略显示修复单元测试
+// strategy-display-fixes-fixed.test.js - 策略显示修复单元测试（修复版）
 // 测试V3策略胜率显示和ICT策略时间框架更新的修复
 
 const assert = require('assert');
@@ -219,9 +219,10 @@ describe('策略显示修复测试', () => {
       ];
       
       invalidStats.forEach(stats => {
-        const winRate = (stats?.winRate || stats?.win_rate || 0);
-        const totalTrades = (stats?.totalTrades || stats?.total_trades || 0);
-        const winTrades = (stats?.winTrades || stats?.winning_trades || 0);
+        // 确保类型转换
+        const winRate = Number(stats?.winRate || stats?.win_rate || 0);
+        const totalTrades = Number(stats?.totalTrades || stats?.total_trades || 0);
+        const winTrades = Number(stats?.winTrades || stats?.winning_trades || 0);
         
         // 验证默认值处理
         assert.ok(typeof winRate === 'number');
