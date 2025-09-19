@@ -223,6 +223,10 @@ class SymbolManagement {
       const marketCapText = this.formatMarketCap(symbol.marketCap);
       const priceText = this.formatPrice(symbol.price);
       const tradeStats = this.tradeCounts.get(symbol.symbol) || { daily: 0, weekly: 0 };
+      
+      // 为缺失的字段提供默认值
+      const suggestedFrequency = symbol.suggestedFrequency || '5分钟';
+      const suggestedHoldingPeriod = symbol.suggestedHoldingPeriod || '1-3天';
 
       return `
         <div class="symbol-card ${isAdded ? 'added' : ''}">
@@ -234,8 +238,8 @@ class SymbolManagement {
             <div class="symbol-market-cap">${marketCapText}</div>
           </div>
           
-          <div class="symbol-frequency">${symbol.suggestedFrequency}</div>
-          <div class="symbol-holding-period">⏱️ ${symbol.suggestedHoldingPeriod}</div>
+          <div class="symbol-frequency">${suggestedFrequency}</div>
+          <div class="symbol-holding-period">⏱️ ${suggestedHoldingPeriod}</div>
           
           <div class="symbol-stats">
             <h4>📊 模拟交易统计</h4>
