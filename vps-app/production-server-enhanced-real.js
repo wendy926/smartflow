@@ -4,10 +4,21 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const sqlite3 = require('sqlite3').verbose();
 const TechnicalIndicators = require('./src/core/modules/utils/TechnicalIndicators');
 
 const app = express();
 const port = process.env.PORT || 8080;
+
+// 数据库连接
+const dbPath = path.join(__dirname, 'smartflow.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('数据库连接失败:', err.message);
+  } else {
+    console.log('✅ 数据库连接成功');
+  }
+});
 
 // 中间件设置
 app.use(cors());
@@ -490,22 +501,64 @@ app.get('/api/getUpdateTimes', (req, res) => {
 });
 
 app.get('/api/win-rate-stats', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      win_rate: 66.7,
-      total_trades: 150,
-      winning_trades: 100,
-      losing_trades: 50,
-      winRate: 66.7,
-      totalTrades: 150,
-      winTrades: 100,
-      lossTrades: 50,
-      avgProfit: 156.78,
-      avgLoss: -92.10,
-      netProfit: 2986.00,
-      lastUpdated: new Date().toISOString()
+  const sql = `
+    SELECT 
+      COUNT(*) as total_trades,
+      SUM(CASE WHEN is_win = 1 THEN 1 ELSE 0 END) as winning_trades,
+      SUM(CASE WHEN is_win = 0 AND status = 'CLOSED' THEN 1 ELSE 0 END) as losing_trades,
+      AVG(CASE WHEN is_win = 1 THEN profit_loss ELSE NULL END) as avg_profit,
+      AVG(CASE WHEN is_win = 0 AND status = 'CLOSED' THEN profit_loss ELSE NULL END) as avg_loss,
+      SUM(CASE WHEN status = 'CLOSED' THEN profit_loss ELSE 0 END) as net_profit
+    FROM simulations 
+    WHERE status = 'CLOSED'
+  `;
+  
+  db.get(sql, [], (err, row) => {
+    if (err) {
+      console.error('胜率统计查询失败:', err);
+      // 返回默认数据
+      res.json({
+        success: true,
+        data: {
+          win_rate: 0,
+          total_trades: 0,
+          winning_trades: 0,
+          losing_trades: 0,
+          winRate: 0,
+          totalTrades: 0,
+          winTrades: 0,
+          lossTrades: 0,
+          avgProfit: 0,
+          avgLoss: 0,
+          netProfit: 0,
+          lastUpdated: new Date().toISOString()
+        }
+      });
+      return;
     }
+    
+    const totalTrades = row.total_trades || 0;
+    const winningTrades = row.winning_trades || 0;
+    const losingTrades = row.losing_trades || 0;
+    const winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100) : 0;
+    
+    res.json({
+      success: true,
+      data: {
+        win_rate: parseFloat(winRate.toFixed(2)),
+        total_trades: totalTrades,
+        winning_trades: winningTrades,
+        losing_trades: losingTrades,
+        winRate: parseFloat(winRate.toFixed(2)),
+        totalTrades: totalTrades,
+        winTrades: winningTrades,
+        lossTrades: losingTrades,
+        avgProfit: parseFloat((row.avg_profit || 0).toFixed(2)),
+        avgLoss: parseFloat((row.avg_loss || 0).toFixed(2)),
+        netProfit: parseFloat((row.net_profit || 0).toFixed(2)),
+        lastUpdated: new Date().toISOString()
+      }
+    });
   });
 });
 
@@ -524,19 +577,76 @@ app.get('/api/symbol-stats', (req, res) => {
 });
 
 app.get('/api/direction-stats', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      total: 156,
-      long: {
-        total_trades: 89, win_trades: 61, lose_trades: 28, win_rate: 68.5,
-        net_profit: 1254.67, avg_profit: 20.57, avg_loss: -12.34
-      },
-      short: {
-        total_trades: 67, win_trades: 45, lose_trades: 22, win_rate: 67.2,
-        net_profit: 892.45, avg_profit: 19.83, avg_loss: -11.92
-      }
+  const sql = `
+    SELECT 
+      CASE WHEN trigger_reason LIKE '%多头%' OR trigger_reason LIKE '%做多%' THEN 'LONG' ELSE 'SHORT' END as direction,
+      COUNT(*) as total_trades,
+      SUM(CASE WHEN is_win = 1 THEN 1 ELSE 0 END) as win_trades,
+      SUM(CASE WHEN is_win = 0 AND status = 'CLOSED' THEN 1 ELSE 0 END) as lose_trades,
+      AVG(CASE WHEN is_win = 1 THEN profit_loss ELSE NULL END) as avg_profit,
+      AVG(CASE WHEN is_win = 0 AND status = 'CLOSED' THEN profit_loss ELSE NULL END) as avg_loss,
+      SUM(CASE WHEN status = 'CLOSED' THEN profit_loss ELSE 0 END) as net_profit
+    FROM simulations 
+    WHERE status = 'CLOSED'
+    GROUP BY direction
+  `;
+  
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error('方向统计查询失败:', err);
+      // 返回默认数据
+      res.json({
+        success: true,
+        data: {
+          total: 0,
+          long: {
+            total_trades: 0, win_trades: 0, lose_trades: 0, win_rate: 0,
+            net_profit: 0, avg_profit: 0, avg_loss: 0
+          },
+          short: {
+            total_trades: 0, win_trades: 0, lose_trades: 0, win_rate: 0,
+            net_profit: 0, avg_profit: 0, avg_loss: 0
+          }
+        }
+      });
+      return;
     }
+    
+    const longStats = rows.find(row => row.direction === 'LONG') || {
+      total_trades: 0, win_trades: 0, lose_trades: 0, avg_profit: 0, avg_loss: 0, net_profit: 0
+    };
+    const shortStats = rows.find(row => row.direction === 'SHORT') || {
+      total_trades: 0, win_trades: 0, lose_trades: 0, avg_profit: 0, avg_loss: 0, net_profit: 0
+    };
+    
+    const totalTrades = longStats.total_trades + shortStats.total_trades;
+    const longWinRate = longStats.total_trades > 0 ? (longStats.win_trades / longStats.total_trades * 100) : 0;
+    const shortWinRate = shortStats.total_trades > 0 ? (shortStats.win_trades / shortStats.total_trades * 100) : 0;
+    
+    res.json({
+      success: true,
+      data: {
+        total: totalTrades,
+        long: {
+          total_trades: longStats.total_trades,
+          win_trades: longStats.win_trades,
+          lose_trades: longStats.lose_trades,
+          win_rate: parseFloat(longWinRate.toFixed(1)),
+          net_profit: parseFloat((longStats.net_profit || 0).toFixed(2)),
+          avg_profit: parseFloat((longStats.avg_profit || 0).toFixed(2)),
+          avg_loss: parseFloat((longStats.avg_loss || 0).toFixed(2))
+        },
+        short: {
+          total_trades: shortStats.total_trades,
+          win_trades: shortStats.win_trades,
+          lose_trades: shortStats.lose_trades,
+          win_rate: parseFloat(shortWinRate.toFixed(1)),
+          net_profit: parseFloat((shortStats.net_profit || 0).toFixed(2)),
+          avg_profit: parseFloat((shortStats.avg_profit || 0).toFixed(2)),
+          avg_loss: parseFloat((shortStats.avg_loss || 0).toFixed(2))
+        }
+      }
+    });
   });
 });
 
@@ -605,36 +715,60 @@ app.get('/api/unified-simulations/history', (req, res) => {
 app.get('/api/simulation-history', (req, res) => {
   try {
     const { limit = 50 } = req.query;
-    const mockHistory = [];
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT', 'LINKUSDT', 'DOTUSDT'];
     
-    for (let i = 1; i <= parseInt(limit); i++) {
-      mockHistory.push({
-        id: i,
-        symbol: symbols[i % symbols.length],
-        strategyType: Math.random() > 0.5 ? 'V3' : 'ICT',
-        direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
-        entryPrice: parseFloat((1000 + Math.random() * 100000).toFixed(4)),
-        stopLoss: parseFloat((900 + Math.random() * 99000).toFixed(4)),
-        takeProfit: parseFloat((1100 + Math.random() * 110000).toFixed(4)),
-        status: Math.random() > 0.3 ? 'CLOSED' : 'OPEN',
-        isWin: Math.random() > 0.4,
-        profitLoss: parseFloat(((Math.random() - 0.4) * 1000).toFixed(4)),
-        maxLeverage: Math.floor(Math.random() * 50) + 10,
-        minMargin: parseFloat((Math.random() * 1000 + 50).toFixed(2)),
-        triggerReason: Math.random() > 0.5 ? '15分钟入场信号' : 'ICT价格行为信号',
-        executionMode: Math.random() > 0.5 ? '趋势市回踩突破' : '震荡市假突破反手',
-        createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        closedAt: Math.random() > 0.3 ? new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString() : null,
-        exitReason: Math.random() > 0.3 ? (Math.random() > 0.5 ? '止盈触发' : '止损触发') : null
+    const sql = `
+      SELECT 
+        id, symbol, entry_price as entryPrice, stop_loss_price as stopLoss, 
+        take_profit_price as takeProfit, max_leverage as maxLeverage, 
+        min_margin as minMargin, trigger_reason as triggerReason, 
+        status, created_at as createdAt, closed_at as closedAt, 
+        exit_price as exitPrice, exit_reason as exitReason, 
+        is_win as isWin, profit_loss as profitLoss
+      FROM simulations 
+      ORDER BY created_at DESC 
+      LIMIT ?
+    `;
+    
+    db.all(sql, [parseInt(limit)], (err, rows) => {
+      if (err) {
+        console.error('数据库查询失败:', err);
+        // 如果数据库查询失败，返回空数组而不是错误
+        res.json({
+          success: true,
+          data: [],
+          total: 0,
+          message: '数据库查询失败，返回空数据'
+        });
+        return;
+      }
+      
+      // 转换数据格式以匹配前端期望
+      const formattedRows = rows.map(row => ({
+        id: row.id,
+        symbol: row.symbol,
+        strategyType: 'V3', // 默认策略类型，可以根据实际需要调整
+        direction: row.triggerReason?.includes('多头') ? 'LONG' : 'SHORT',
+        entryPrice: parseFloat(row.entryPrice || 0).toFixed(4),
+        stopLoss: parseFloat(row.stopLoss || 0).toFixed(4),
+        takeProfit: parseFloat(row.takeProfit || 0).toFixed(4),
+        status: row.status || 'OPEN',
+        isWin: row.isWin || false,
+        profitLoss: parseFloat(row.profitLoss || 0).toFixed(4),
+        maxLeverage: row.maxLeverage || 20,
+        minMargin: parseFloat(row.minMargin || 100).toFixed(2),
+        triggerReason: row.triggerReason || '信号触发',
+        executionMode: '趋势市回踩突破', // 默认执行模式
+        createdAt: row.createdAt || new Date().toISOString(),
+        closedAt: row.closedAt || null,
+        exitReason: row.exitReason || null
+      }));
+      
+      res.json({
+        success: true,
+        data: formattedRows,
+        total: formattedRows.length,
+        message: '模拟交易历史获取成功'
       });
-    }
-    
-    res.json({
-      success: true,
-      data: mockHistory,
-      total: mockHistory.length,
-      message: '模拟交易历史获取成功'
     });
   } catch (error) {
     console.error('获取模拟交易历史失败:', error);
