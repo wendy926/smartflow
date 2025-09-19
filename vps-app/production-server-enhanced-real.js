@@ -880,7 +880,7 @@ app.get('/api/unified-simulations/history', (req, res) => {
       id: row.id,
       symbol: row.symbol,
       strategyType: row.strategyType || 'V3',
-      direction: row.triggerReason?.includes('多头') || row.triggerReason?.includes('做多') ? 'LONG' : 'SHORT',
+      direction: row.triggerReason?.includes('多头') || row.triggerReason?.includes('做多') || row.triggerReason?.includes('LONG') ? 'LONG' : 'SHORT',
       entryPrice: parseFloat(row.entryPrice || 0),
       stopLoss: parseFloat(row.stopLoss || 0),
       takeProfit: parseFloat(row.takeProfit || 0),
