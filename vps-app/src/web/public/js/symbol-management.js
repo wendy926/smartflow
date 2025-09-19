@@ -32,8 +32,12 @@ class SymbolManagement {
 
   async loadCurrentSymbols() {
     try {
-      const symbols = await this.apiClient.getSymbols();
-      this.currentSymbols = new Set(symbols.map(s => s.symbol));
+      const response = await this.apiClient.getSymbols();
+      // 处理API响应结构，提取data字段
+      const symbols = response && response.data ? response.data : response;
+      // 确保symbols是数组
+      const symbolArray = Array.isArray(symbols) ? symbols : [];
+      this.currentSymbols = new Set(symbolArray.map(s => typeof s === 'string' ? s : s.symbol));
       this.updateCurrentSymbolsDisplay();
     } catch (error) {
       console.error('加载当前交易对失败:', error);
@@ -43,9 +47,13 @@ class SymbolManagement {
 
   async loadTradeCounts() {
     try {
-      const counts = await this.apiClient.getSymbolTradeCounts();
+      const response = await this.apiClient.getSymbolTradeCounts();
+      // 处理API响应结构，提取data字段
+      const counts = response && response.data ? response.data : response;
+      // 确保counts是数组
+      const countsArray = Array.isArray(counts) ? counts : [];
       this.tradeCounts.clear();
-      counts.forEach(count => {
+      countsArray.forEach(count => {
         this.tradeCounts.set(count.symbol, {
           daily: count.daily_count || 0,
           weekly: count.weekly_count || 0
@@ -176,24 +184,29 @@ class SymbolManagement {
       const container = document.getElementById(`${category}Symbols`);
       container.innerHTML = '<div class="loading-spinner"></div>';
 
-      let symbols = [];
+      let response;
       switch (category) {
         case 'mainstream':
-          symbols = await this.apiClient.getMainstreamSymbols();
+          response = await this.apiClient.getMainstreamSymbols();
           break;
         case 'highcap':
-          symbols = await this.apiClient.getHighCapSymbols();
+          response = await this.apiClient.getHighCapSymbols();
           break;
         case 'trending':
-          symbols = await this.apiClient.getTrendingSymbols();
+          response = await this.apiClient.getTrendingSymbols();
           break;
         case 'smallcap':
-          symbols = await this.apiClient.getSmallCapSymbols();
+          response = await this.apiClient.getSmallCapSymbols();
           break;
       }
 
-      this.symbolData[category] = symbols;
-      this.renderCategory(category, symbols);
+      // 处理API响应结构，提取data字段
+      const symbols = response && response.data ? response.data : response;
+      // 确保symbols是数组
+      const symbolArray = Array.isArray(symbols) ? symbols : [];
+      
+      this.symbolData[category] = symbolArray;
+      this.renderCategory(category, symbolArray);
     } catch (error) {
       console.error(`加载${category}交易对失败:`, error);
       const container = document.getElementById(`${category}Symbols`);
