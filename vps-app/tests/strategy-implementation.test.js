@@ -165,7 +165,13 @@ class ICTStrategyImplementationTest {
         // 模拟检测逻辑
         const swingPoints = this.findSwingPoints(candles4h);
         if (swingPoints.highs.length === 0) {
-          return { detected: false, reason: '未找到有效的swing高低点' };
+          return { 
+            detected: false, 
+            speed: 0,
+            threshold: this.config.htf.minSpeedATRRatio * atr4h,
+            validSweeps: [],
+            reason: '未找到有效的swing高低点' 
+          };
         }
         
         const recentBars = candles4h.slice(-3);
