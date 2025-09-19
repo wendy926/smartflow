@@ -732,12 +732,14 @@ app.get('/api/unified-simulations/history', (req, res) => {
   
   res.json({
     success: true,
-    data: paginatedData,
-    pagination: {
-      page: parseInt(page),
-      pageSize: parseInt(pageSize),
-      total: mockSimulations.length,
-      totalPages: Math.ceil(mockSimulations.length / pageSize)
+    data: {
+      simulations: paginatedData,
+      pagination: {
+        page: parseInt(page),
+        pageSize: parseInt(pageSize),
+        total: mockSimulations.length,
+        totalPages: Math.ceil(mockSimulations.length / pageSize)
+      }
     }
   });
 });

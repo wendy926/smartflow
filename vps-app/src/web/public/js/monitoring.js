@@ -206,6 +206,11 @@ function updateMonitoringDisplayWithFilter(data) {
 
 // 更新监控显示
 function updateMonitoringDisplay(data) {
+  console.log('🔍 updateMonitoringDisplay 接收到的数据:', data);
+  console.log('🔍 data.summary:', data.summary);
+  console.log('🔍 data.detailedStats:', data.detailedStats);
+  console.log('🔍 data.recentAlerts:', data.recentAlerts);
+  
   // 更新概览统计
   updateSummaryStats(data.summary);
 
