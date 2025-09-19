@@ -444,6 +444,75 @@ class SmartFlowApp {
   }
 
   /**
+   * 检查并自动触发ICT模拟交易
+   */
+  async checkAndAutoTriggerICTSimulation(signals) {
+    try {
+      // 获取当前已触发的模拟交易记录
+      const currentHistory = await window.dataManager.getSimulationHistory();
+
+      // 创建已触发信号的映射，基于交易对+时间窗口（最近10分钟）
+      const triggeredSignals = new Map();
+      const now = Date.now();
+      const timeWindow = 10 * 60 * 1000; // 10分钟
+
+      currentHistory.forEach(record => {
+        const recordTime = new Date(record.created_at).getTime();
+        if (now - recordTime < timeWindow) {
+          const key = `${record.symbol}_${record.direction || record.signal_type}`;
+          triggeredSignals.set(key, record);
+        }
+      });
+
+      // 检查ICT信号是否有新的入场信号
+      for (const signal of signals) {
+        if (signal.signalType && signal.signalType !== 'WAIT' && signal.entryPrice) {
+          const direction = signal.signalType.includes('LONG') ? 'LONG' : 'SHORT';
+          const key = `${signal.symbol}_${direction}`;
+
+          if (!triggeredSignals.has(key)) {
+            console.log(`🎯 检测到新的ICT入场信号: ${signal.symbol} ${direction}`);
+            await this.autoStartICTSimulation(signal);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ 检查ICT自动触发模拟交易失败:', error);
+    }
+  }
+
+  /**
+   * 自动启动ICT模拟交易
+   */
+  async autoStartICTSimulation(signalData) {
+    try {
+      const direction = signalData.signalType.includes('LONG') ? 'LONG' : 'SHORT';
+      const stopLossDistance = signalData.stopLoss ? Math.abs(signalData.entryPrice - signalData.stopLoss) : 0;
+
+      const tradeData = {
+        symbol: signalData.symbol,
+        entryPrice: signalData.entryPrice,
+        stopLoss: signalData.stopLoss,
+        takeProfit: signalData.takeProfit,
+        direction: direction,
+        signalType: signalData.signalType,
+        strategyType: 'ICT',
+        stopLossDistance: stopLossDistance,
+        executionMode: signalData.executionMode || signalData.signalType
+      };
+
+      const result = await window.apiClient.startSimulation(tradeData);
+      
+      if (result.success) {
+        console.log(`✅ ICT模拟交易已自动启动: ${signalData.symbol} ${direction}`, result);
+        this.showSuccess(`ICT模拟交易已启动: ${signalData.symbol} ${direction}`);
+      }
+    } catch (error) {
+      console.error('❌ ICT自动启动模拟交易失败:', error);
+    }
+  }
+
+  /**
    * 自动启动模拟交易
    */
   async autoStartSimulation(signalData) {
@@ -775,6 +844,9 @@ class SmartFlowApp {
       this.updateICTStats(data);
       this.updateTimes.ict = new Date();
       this.updateICTTimestamp();
+      
+      // ICT策略自动触发模拟交易检查
+      await this.checkAndAutoTriggerICTSimulation(data);
 
     } catch (error) {
       console.error('❌ ICT数据加载失败:', error);
@@ -871,8 +943,8 @@ class SmartFlowApp {
    */
   updateICTStats(signals) {
     const totalSignals = signals.length;
-    const longSignals = signals.filter(s => s.signalType === 'LONG').length;
-    const shortSignals = signals.filter(s => s.signalType === 'SHORT').length;
+    const longSignals = signals.filter(s => s.signalType && s.signalType.includes('LONG')).length;
+    const shortSignals = signals.filter(s => s.signalType && s.signalType.includes('SHORT')).length;
 
     const ictTotalSignalsEl = document.getElementById('ictTotalSignals');
     const ictLongSignalsEl = document.getElementById('ictLongSignals');

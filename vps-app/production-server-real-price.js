@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * 生产环境服务器 - 修复MATICUSDT问题
- * 将已下线的MATICUSDT替换为POLUSDT，确保所有交易对都有有效价格
+ * 生产环境服务器 - 修复价格数据，使用Binance实时价格
+ * 包含22个交易对和完整API，使用真实的Binance API价格
  */
 
 const express = require('express');
@@ -26,7 +26,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    version: 'v4.2-fixed-maticusdt'
+    version: 'v4.1-real-price'
   });
 });
 
@@ -38,11 +38,10 @@ app.get('/api/health-check', (req, res) => {
   });
 });
 
-// V3策略22个交易对的完整信号数据 - 修复MATICUSDT问题
+// V3策略22个交易对的完整信号数据 - 使用实时Binance价格
 app.get('/api/signals', async (req, res) => {
   try {
-    // 将MATICUSDT替换为POLUSDT（Polygon的新代币，在期货市场存在）
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'UNIUSDT', 'POLUSDT', 'AVAXUSDT', 'ATOMUSDT', 'FILUSDT', 'TRXUSDT', 'ETCUSDT', 'XLMUSDT', 'VETUSDT', 'ICPUSDT', 'THETAUSDT', 'FTMUSDT'];
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'UNIUSDT', 'MATICUSDT', 'AVAXUSDT', 'ATOMUSDT', 'FILUSDT', 'TRXUSDT', 'ETCUSDT', 'XLMUSDT', 'VETUSDT', 'ICPUSDT', 'THETAUSDT', 'FTMUSDT'];
 
     // 获取所有交易对的实时价格
     const pricePromises = symbols.map(async (symbol) => {
@@ -56,37 +55,26 @@ app.get('/api/signals', async (req, res) => {
         }
 
         const data = await response.json();
-        const price = parseFloat(data.price);
-
-        // 验证价格有效性
-        if (isNaN(price) || price <= 0) {
-          throw new Error(`Invalid price: ${price}`);
-        }
-
-        return { symbol, price, success: true };
+        return { symbol, price: parseFloat(data.price) };
       } catch (error) {
         console.warn(`获取${symbol}价格失败:`, error.message);
-
-        // 使用更准确的备用价格
+        // 如果API失败，使用备用价格
         const fallbackPrices = {
-          'BTCUSDT': 117000, 'ETHUSDT': 4500, 'BNBUSDT': 990, 'SOLUSDT': 245,
-          'XRPUSDT': 3.1, 'ADAUSDT': 0.9, 'DOTUSDT': 4.5, 'LINKUSDT': 24,
-          'LTCUSDT': 115, 'BCHUSDT': 640, 'UNIUSDT': 9.5, 'POLUSDT': 0.26,
-          'AVAXUSDT': 33, 'ATOMUSDT': 4.6, 'FILUSDT': 2.5, 'TRXUSDT': 0.35,
-          'ETCUSDT': 21, 'XLMUSDT': 0.4, 'VETUSDT': 0.025, 'ICPUSDT': 4.9,
-          'THETAUSDT': 0.86, 'FTMUSDT': 0.77
+          'BTCUSDT': 100000, 'ETHUSDT': 4000, 'BNBUSDT': 700, 'SOLUSDT': 200,
+          'XRPUSDT': 2.5, 'ADAUSDT': 1.0, 'DOTUSDT': 8.0, 'LINKUSDT': 15.0,
+          'LTCUSDT': 100, 'BCHUSDT': 400, 'UNIUSDT': 12.0, 'MATICUSDT': 1.0,
+          'AVAXUSDT': 40.0, 'ATOMUSDT': 15.0, 'FILUSDT': 6.0, 'TRXUSDT': 0.2,
+          'ETCUSDT': 30.0, 'XLMUSDT': 0.5, 'VETUSDT': 0.05, 'ICPUSDT': 15.0,
+          'THETAUSDT': 2.0, 'FTMUSDT': 1.0
         };
-        return { symbol, price: fallbackPrices[symbol] || 100, success: false };
+        return { symbol, price: fallbackPrices[symbol] || 100 };
       }
     });
 
     const priceData = await Promise.all(pricePromises);
     const priceMap = {};
-    const priceStatus = {};
-
     priceData.forEach(item => {
       priceMap[item.symbol] = item.price;
-      priceStatus[item.symbol] = item.success;
     });
 
     const baseSignals = [
@@ -104,8 +92,7 @@ app.get('/api/signals', async (req, res) => {
       { symbol: 'LTCUSDT', category: 'midcap', trend4h: '震荡市', marketType: '震荡市', score: 2, direction: null, score1h: 1, execution: null, dataCollectionRate: 93.2, signal: 'WAIT', hourlyJudgment: '震荡偏多', fifteenMinJudgment: '观望为主' },
       { symbol: 'BCHUSDT', category: 'midcap', trend4h: '多头趋势', marketType: '趋势市', score: 3, direction: 'BULL', score1h: 4, execution: '做多_多头回踩突破', dataCollectionRate: 94.7, signal: 'EXECUTE_LONG', hourlyJudgment: '多头延续', fifteenMinJudgment: '突破跟进' },
       { symbol: 'UNIUSDT', category: 'midcap', trend4h: '空头趋势', marketType: '趋势市', score: 3, direction: 'BEAR', score1h: 2, execution: '做空_空头反抽破位', dataCollectionRate: 95.9, signal: 'EXECUTE_SHORT', hourlyJudgment: '空头延续', fifteenMinJudgment: '反抽做空' },
-      // POLUSDT替换MATICUSDT
-      { symbol: 'POLUSDT', category: 'midcap', trend4h: '多头趋势', marketType: '趋势市', score: 4, direction: 'BULL', score1h: 5, execution: '做多_多头回踩突破', dataCollectionRate: 98.1, signal: 'EXECUTE_LONG', hourlyJudgment: '多头强势', fifteenMinJudgment: '强势突破' },
+      { symbol: 'MATICUSDT', category: 'midcap', trend4h: '多头趋势', marketType: '趋势市', score: 4, direction: 'BULL', score1h: 5, execution: '做多_多头回踩突破', dataCollectionRate: 98.1, signal: 'EXECUTE_LONG', hourlyJudgment: '多头强势', fifteenMinJudgment: '强势突破' },
       { symbol: 'AVAXUSDT', category: 'midcap', trend4h: '震荡市', marketType: '震荡市', score: 2, direction: null, score1h: 0, execution: null, dataCollectionRate: 92.4, signal: 'WAIT', hourlyJudgment: '震荡整理', fifteenMinJudgment: '等待方向' },
       { symbol: 'ATOMUSDT', category: 'midcap', trend4h: '多头趋势', marketType: '趋势市', score: 3, direction: 'BULL', score1h: 3, execution: '做多_多头回踩突破', dataCollectionRate: 96.6, signal: 'EXECUTE_LONG', hourlyJudgment: '多头延续', fifteenMinJudgment: '支撑买入' },
       // 小市值币 - smallcap
@@ -124,8 +111,6 @@ app.get('/api/signals', async (req, res) => {
       ...signal,
       // 使用实时价格
       currentPrice: priceMap[signal.symbol] || 0,
-      // 添加价格状态信息用于调试
-      priceSource: priceStatus[signal.symbol] ? 'realtime' : 'fallback',
       // 确保所有必需字段都存在
       trend: signal.trend4h, // 向后兼容
       trendStrength: signal.score >= 4 ? '强' : signal.score >= 3 ? '中' : '弱',
@@ -141,12 +126,6 @@ app.get('/api/signals', async (req, res) => {
       symbolCategory: signal.category
     }));
 
-    // 验证所有价格都大于0
-    const invalidPrices = enrichedSignals.filter(s => s.currentPrice <= 0);
-    if (invalidPrices.length > 0) {
-      console.warn('发现无效价格的交易对:', invalidPrices.map(s => s.symbol));
-    }
-
     // 前端期望直接返回数组，而不是包装对象
     res.json(enrichedSignals);
 
@@ -160,11 +139,10 @@ app.get('/api/signals', async (req, res) => {
   }
 });
 
-// 其他API保持不变...
 // V3策略数据变化状态检查API
 app.get('/api/data-change-status', async (req, res) => {
   try {
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'UNIUSDT', 'POLUSDT', 'AVAXUSDT', 'ATOMUSDT', 'FILUSDT', 'TRXUSDT', 'ETCUSDT', 'XLMUSDT', 'VETUSDT', 'ICPUSDT', 'THETAUSDT', 'FTMUSDT'];
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'UNIUSDT', 'MATICUSDT', 'AVAXUSDT', 'ATOMUSDT', 'FILUSDT', 'TRXUSDT', 'ETCUSDT', 'XLMUSDT', 'VETUSDT', 'ICPUSDT', 'THETAUSDT', 'FTMUSDT'];
     const changeStatus = {};
 
     for (const symbol of symbols) {
@@ -196,10 +174,10 @@ app.get('/api/data-change-status', async (req, res) => {
   }
 });
 
-// ICT策略信号API - 也更新MATICUSDT为POLUSDT
+// ICT策略信号API
 app.get('/api/ict/signals', async (req, res) => {
   try {
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'UNIUSDT', 'POLUSDT', 'AVAXUSDT', 'ATOMUSDT', 'FILUSDT', 'TRXUSDT', 'ETCUSDT', 'XLMUSDT', 'VETUSDT', 'ICPUSDT', 'THETAUSDT', 'FTMUSDT'];
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'UNIUSDT', 'MATICUSDT', 'AVAXUSDT', 'ATOMUSDT', 'FILUSDT', 'TRXUSDT', 'ETCUSDT', 'XLMUSDT', 'VETUSDT', 'ICPUSDT', 'THETAUSDT', 'FTMUSDT'];
     const signals = [];
 
     const categories = ['largecap', 'midcap', 'smallcap'];
@@ -267,8 +245,12 @@ app.get('/api/ict/signals', async (req, res) => {
       });
     }
 
-    // 前端期望直接返回数组，与V3 API格式保持一致
-    res.json(signals);
+    res.json({
+      success: true,
+      data: signals,
+      timestamp: new Date().toISOString(),
+      count: signals.length
+    });
   } catch (error) {
     console.error('获取ICT信号失败:', error);
     res.status(500).json({
@@ -279,7 +261,7 @@ app.get('/api/ict/signals', async (req, res) => {
   }
 });
 
-// 其他API端点保持不变...
+// 用户设置API
 app.get('/api/user-settings', (req, res) => {
   res.json({
     maxLossAmount: 100,
@@ -297,6 +279,7 @@ app.get('/api/user-settings', (req, res) => {
 });
 
 app.post('/api/user-settings', (req, res) => {
+  // 模拟保存用户设置
   res.json({
     success: true,
     message: '设置已保存',
@@ -304,29 +287,7 @@ app.post('/api/user-settings', (req, res) => {
   });
 });
 
-// 更新时间API - 前端需要的getUpdateTimes方法
-app.get('/api/getUpdateTimes', (req, res) => {
-  const now = new Date().toISOString();
-  res.json({
-    trend: now,
-    signal: now,
-    execution: now,
-    timestamp: now
-  });
-});
-
-// 更新时间API - 备用路由
-app.get('/api/update-times', (req, res) => {
-  const now = new Date().toISOString();
-  res.json({
-    trend: now,
-    signal: now,
-    execution: now,
-    lastUpdate: now,
-    timestamp: now
-  });
-});
-
+// 其他必需的API端点...
 app.get('/api/simulation-history', (req, res) => {
   const history = [
     { id: 1, symbol: 'BTCUSDT', strategy: 'V3', entry: 117000, exit: 119500, profit: 2500, status: 'CLOSED', timestamp: new Date(Date.now() - 86400000).toISOString() },
@@ -338,31 +299,19 @@ app.get('/api/simulation-history', (req, res) => {
 });
 
 app.get('/api/win-rate-stats', (req, res) => {
-  // 返回前端期望的数据格式
   res.json({
-    // API原格式（保持兼容性）
     total_trades: 234,
     winning_trades: 156,
     losing_trades: 78,
     win_rate: 66.67,
     total_profit: 12450.50,
     total_loss: -4230.25,
-    net_profit: 8220.25,
-    // 前端期望格式（解决字段映射问题）
-    totalTrades: 234,
-    winTrades: 156,
-    lossTrades: 78,
-    winRate: 66.67,
-    totalProfit: 12450.50,
-    totalLoss: -4230.25,
-    netProfit: 8220.25,
-    // 添加更新时间
-    lastUpdated: new Date().toISOString()
+    net_profit: 8220.25
   });
 });
 
 app.get('/api/symbols', (req, res) => {
-  const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'UNIUSDT', 'POLUSDT', 'AVAXUSDT', 'ATOMUSDT', 'FILUSDT', 'TRXUSDT', 'ETCUSDT', 'XLMUSDT', 'VETUSDT', 'ICPUSDT', 'THETAUSDT', 'FTMUSDT'];
+  const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'LTCUSDT', 'BCHUSDT', 'UNIUSDT', 'MATICUSDT', 'AVAXUSDT', 'ATOMUSDT', 'FILUSDT', 'TRXUSDT', 'ETCUSDT', 'XLMUSDT', 'VETUSDT', 'ICPUSDT', 'THETAUSDT', 'FTMUSDT'];
   res.json(symbols);
 });
 
@@ -394,44 +343,13 @@ app.get('/api/getICTStrategyStats', (req, res) => {
   });
 });
 
+// 模拟交易开始
 app.post('/api/simulation/start', (req, res) => {
   res.json({
     success: true,
     message: '模拟交易已启动',
     simulation_id: Date.now(),
     timestamp: new Date().toISOString()
-  });
-});
-
-// 模拟交易统计数据API
-app.get('/api/symbol-stats', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      totalSymbols: 22,
-      activeSymbols: 20,
-      v3Symbols: 22,
-      ictSymbols: 22,
-      categories: {
-        largecap: 5,
-        midcap: 8,
-        smallcap: 9
-      }
-    }
-  });
-});
-
-app.get('/api/direction-stats', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      total: 156,
-      long: 89,
-      short: 67,
-      winRate: 68.2,
-      avgProfit: 12.5,
-      avgLoss: -8.3
-    }
   });
 });
 
@@ -468,58 +386,19 @@ try {
   });
 
   app.get('/api/unified-simulations/history', (req, res) => {
-    const { page = 1, pageSize = 100 } = req.query;
-    
-    // 模拟统一模拟交易数据
-    const mockSimulations = [];
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'UNIUSDT', 'AVAXUSDT', 'MATICUSDT'];
-    const strategies = ['V3', 'ICT'];
-    const directions = ['LONG', 'SHORT'];
-    const statuses = ['CLOSED', 'OPEN'];
-    
-    for (let i = 1; i <= 50; i++) {
-      const symbol = symbols[Math.floor(Math.random() * symbols.length)];
-      const strategy = strategies[Math.floor(Math.random() * strategies.length)];
-      const direction = directions[Math.floor(Math.random() * directions.length)];
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      
-      mockSimulations.push({
-        id: i,
-        symbol,
-        strategyType: strategy,
-        direction,
-        entryPrice: 1000 + Math.random() * 100000,
-        stopLoss: 950 + Math.random() * 95000,
-        takeProfit: 1050 + Math.random() * 105000,
-        status,
-        profitLoss: status === 'CLOSED' ? (Math.random() - 0.4) * 1000 : 0,
-        exitReason: status === 'CLOSED' ? (Math.random() > 0.5 ? 'TAKE_PROFIT' : 'STOP_LOSS') : null,
-        createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
-      });
-    }
-    
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + parseInt(pageSize);
-    const paginatedData = mockSimulations.slice(startIndex, endIndex);
-    
     res.json({
       success: true,
-      data: paginatedData,
-      pagination: {
-        page: parseInt(page),
-        pageSize: parseInt(pageSize),
-        total: mockSimulations.length,
-        totalPages: Math.ceil(mockSimulations.length / pageSize)
-      }
+      data: [],
+      total: 0
     });
   });
 }
 
 app.listen(port, () => {
   console.log(`🚀 生产环境服务器运行在 http://localhost:${port}`);
-  console.log(`📊 支持22个交易对的完整API - MATICUSDT修复版`);
-  console.log(`✅ 修复了MATICUSDT价格显示问题（替换为POLUSDT）`);
-  console.log(`✅ 所有交易对都使用有效的期货价格`);
+  console.log(`📊 支持22个交易对的完整API - 实时价格版`);
+  console.log(`✅ 修复了V3策略价格、分类、判断数据显示问题`);
+  console.log(`✅ 添加了ICT策略完整API支持`);
   console.log(`🔥 使用Binance实时价格数据`);
   console.log(`⏰ 启动时间: ${new Date().toISOString()}`);
 });
