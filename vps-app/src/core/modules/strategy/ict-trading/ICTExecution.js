@@ -1,9 +1,12 @@
 // ICTExecution.js - ICT策略执行逻辑
 // 实现风险管理、止损止盈、仓位计算
 
+const ICTExitConditions = require('./ICTExitConditions');
+
 class ICTExecution {
   constructor(database = null) {
     this.database = database;
+    this.exitConditions = new ICTExitConditions(database);
   }
 
   /**
@@ -318,6 +321,25 @@ class ICTExecution {
         error: error.message,
         symbol: signal.symbol || 'UNKNOWN',
         status: 'ERROR'
+      };
+    }
+  }
+
+  /**
+   * ICT策略出场条件检查 - 按照ict.md文档实现
+   * @param {Object} params - 出场条件参数
+   * @returns {Object} 出场条件检查结果
+   */
+  checkExitConditions(params) {
+    try {
+      return this.exitConditions.checkICTExitConditions(params);
+    } catch (error) {
+      console.error('ICT出场条件检查失败:', error);
+      return { 
+        exit: false, 
+        reason: 'ERROR', 
+        exitPrice: null,
+        description: `检查失败: ${error.message}`
       };
     }
   }
