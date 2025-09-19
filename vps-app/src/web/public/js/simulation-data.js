@@ -99,6 +99,19 @@ class SimulationDataManager {
   }
 
   updateStatsDisplay(stats) {
+    // 确保stats存在
+    if (!stats) {
+      console.warn('统计数据不完整:', stats);
+      // 设置默认值
+      document.getElementById('overallWinRate').textContent = '--';
+      document.getElementById('overallProfitLoss').textContent = '--';
+      document.getElementById('totalTrades').textContent = '0';
+      document.getElementById('completedTrades').textContent = '0';
+      document.getElementById('winningTrades').textContent = '0';
+      document.getElementById('losingTrades').textContent = '0';
+      return;
+    }
+
     // 整体统计
     document.getElementById('overallWinRate').textContent =
       stats.win_rate ? `${stats.win_rate.toFixed(2)}%` : '--';
@@ -132,6 +145,17 @@ class SimulationDataManager {
   }
 
   updateDirectionStats(directionStats) {
+    // 确保directionStats存在且包含必要的数据结构
+    if (!directionStats || !directionStats.long || !directionStats.short) {
+      console.warn('方向统计数据不完整:', directionStats);
+      // 设置默认值
+      document.getElementById('longWinRate').textContent = '--';
+      document.getElementById('shortWinRate').textContent = '--';
+      document.getElementById('longProfitLoss').textContent = '--';
+      document.getElementById('shortProfitLoss').textContent = '--';
+      return;
+    }
+
     // 使用真实的方向统计数据
     const longStats = directionStats.long;
     const shortStats = directionStats.short;

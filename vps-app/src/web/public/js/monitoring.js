@@ -844,3 +844,41 @@ function closeMonitoringPanel() {
     panel.remove();
   }
 }
+
+// 更新概览统计数据
+function updateSummaryStats(summary) {
+  if (!summary) {
+    console.warn('概览统计数据为空:', summary);
+    return;
+  }
+
+  // 更新交易对维度数据
+  if (summary.totalSymbols !== undefined) {
+    document.getElementById('totalSymbols').textContent = summary.totalSymbols || 0;
+  }
+  if (summary.healthySymbols !== undefined) {
+    document.getElementById('healthySymbols').textContent = summary.healthySymbols || 0;
+  }
+  if (summary.warningSymbols !== undefined) {
+    document.getElementById('warningSymbols').textContent = summary.warningSymbols || 0;
+  }
+  if (summary.errorSymbols !== undefined) {
+    document.getElementById('errorSymbols').textContent = summary.errorSymbols || 0;
+  }
+  if (summary.totalAlerts !== undefined) {
+    document.getElementById('totalAlerts').textContent = summary.totalAlerts || 0;
+  }
+
+  // 更新指标维度数据
+  if (summary.dataCollectionRate !== undefined) {
+    document.getElementById('dataCollectionRate').textContent = 
+      `${(summary.dataCollectionRate * 100).toFixed(1)}%`;
+  }
+  if (summary.dataValidationStatus !== undefined) {
+    document.getElementById('dataValidationStatus').textContent = summary.dataValidationStatus || '--';
+  }
+  if (summary.simulationCompletionRate !== undefined) {
+    document.getElementById('simulationCompletionRate').textContent = 
+      `${(summary.simulationCompletionRate * 100).toFixed(1)}%`;
+  }
+}
