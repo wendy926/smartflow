@@ -89,9 +89,12 @@ class DataManager {
 
     if (!data) {
       try {
+        console.log('🔍 正在获取模拟交易历史...');
         const response = await window.apiClient.getSimulationHistory();
+        console.log('📊 API响应结构:', response);
         // 处理API响应结构，确保返回数组
         data = response && response.data ? response.data : [];
+        console.log('✅ 提取的数据:', data, '类型:', typeof data, '是否为数组:', Array.isArray(data));
         this.setCache(cacheKey, data);
       } catch (error) {
         console.error('获取模拟交易历史失败:', error);
@@ -101,7 +104,9 @@ class DataManager {
     }
 
     // 确保返回的是数组
-    return Array.isArray(data) ? data : [];
+    const result = Array.isArray(data) ? data : [];
+    console.log('🎯 最终返回的模拟交易历史:', result, '长度:', result.length);
+    return result;
   }
 
   // 获取胜率统计
