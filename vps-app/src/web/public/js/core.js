@@ -64,10 +64,18 @@ class SmartFlowApp {
       if (settings) {
         this.userSettings = { ...this.userSettings, ...settings };
 
-        // 应用设置到UI
+        // 应用设置到UI - V3策略
         const maxLossAmountElement = document.getElementById('maxLossAmount');
-        if (maxLossAmountElement) {
+        if (maxLossAmountElement && this.userSettings.maxLossAmount) {
           maxLossAmountElement.value = this.userSettings.maxLossAmount;
+          console.log('✅ V3策略最大损失金额已加载:', this.userSettings.maxLossAmount);
+        }
+
+        // 应用设置到UI - ICT策略
+        const ictMaxLossAmountElement = document.getElementById('ictMaxLossAmount');
+        if (ictMaxLossAmountElement && this.userSettings.maxLossAmount) {
+          ictMaxLossAmountElement.value = this.userSettings.maxLossAmount;
+          console.log('✅ ICT策略最大损失金额已加载:', this.userSettings.maxLossAmount);
         }
       }
     } catch (error) {

@@ -18,6 +18,21 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.error('数据库连接失败:', err.message);
   } else {
     console.log('✅ 数据库连接成功');
+    
+    // 创建用户设置表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS user_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) {
+        console.error('创建用户设置表失败:', err.message);
+      } else {
+        console.log('✅ 用户设置表已就绪');
+      }
+    });
   }
 });
 
@@ -482,27 +497,112 @@ app.get('/api/data-change-status', async (req, res) => {
 });
 
 app.get('/api/user-settings', (req, res) => {
-  res.json({
-    maxLossAmount: 100,
-    riskLevel: 'medium',
-    autoRefresh: true,
-    refreshInterval: 60000,
-    theme: 'light',
-    notifications: true,
-    soundEnabled: true,
-    displayCurrency: 'USDT',
-    leverage: 10,
-    stopLossPercent: 2,
-    takeProfitPercent: 6
-  });
+  try {
+    // 从数据库读取用户设置
+    const sql = 'SELECT key, value FROM user_settings';
+    
+    db.all(sql, [], (err, rows) => {
+      if (err) {
+        console.error('读取用户设置失败:', err);
+        // 返回默认设置
+        res.json({
+          maxLossAmount: '100',
+          riskLevel: 'medium',
+          autoRefresh: true,
+          refreshInterval: 60000,
+          theme: 'light',
+          notifications: true,
+          soundEnabled: true,
+          displayCurrency: 'USDT',
+          leverage: 10,
+          stopLossPercent: 2,
+          takeProfitPercent: 6
+        });
+        return;
+      }
+      
+      // 将数据库行转换为对象
+      const settings = {
+        maxLossAmount: '100', // 默认值
+        riskLevel: 'medium',
+        autoRefresh: true,
+        refreshInterval: 60000,
+        theme: 'light',
+        notifications: true,
+        soundEnabled: true,
+        displayCurrency: 'USDT',
+        leverage: 10,
+        stopLossPercent: 2,
+        takeProfitPercent: 6
+      };
+      
+      // 用数据库中的值覆盖默认值
+      rows.forEach(row => {
+        settings[row.key] = row.value;
+      });
+      
+      console.log('📋 用户设置已加载:', settings);
+      res.json(settings);
+    });
+  } catch (error) {
+    console.error('用户设置API错误:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: '获取用户设置失败'
+    });
+  }
 });
 
 app.post('/api/user-settings', (req, res) => {
-  res.json({
-    success: true,
-    message: '设置已更新',
-    timestamp: new Date().toISOString()
-  });
+  try {
+    const { key, value } = req.body;
+    
+    if (!key || value === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少必要的参数: key 和 value'
+      });
+    }
+    
+    console.log(`💾 保存用户设置: ${key} = ${value}`);
+    
+    // 使用 UPSERT 语句保存设置
+    const sql = `
+      INSERT INTO user_settings (key, value, updated_at) 
+      VALUES (?, ?, datetime('now', '+8 hours'))
+      ON CONFLICT(key) DO UPDATE SET 
+        value = excluded.value,
+        updated_at = excluded.updated_at
+    `;
+    
+    db.run(sql, [key, value], function(err) {
+      if (err) {
+        console.error('保存用户设置失败:', err);
+        return res.status(500).json({
+          success: false,
+          error: err.message,
+          message: '保存用户设置失败'
+        });
+      }
+      
+      console.log(`✅ 用户设置已保存: ${key} = ${value}`);
+      res.json({
+        success: true,
+        message: '设置已更新',
+        key: key,
+        value: value,
+        timestamp: new Date().toISOString()
+      });
+    });
+  } catch (error) {
+    console.error('用户设置保存API错误:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: '保存用户设置失败'
+    });
+  }
 });
 
 app.get('/api/getUpdateTimes', (req, res) => {
