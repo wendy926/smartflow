@@ -78,12 +78,26 @@ class SimulationUpdater {
       const maxLossAmount = 100;
       const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossPercentage));
 
+      // 为CLOSED状态的交易设置出场价格
+      let exitPrice = null;
+      if (sim.status === 'CLOSED' && !sim.exit_price) {
+        // 根据盈亏情况设置出场价格
+        if (sim.profit_loss > 0) {
+          // 盈利交易，使用止盈价格
+          exitPrice = parseFloat(sim.take_profit_price);
+        } else {
+          // 亏损交易，使用止损价格
+          exitPrice = parseFloat(sim.stop_loss_price);
+        }
+      }
+
       // 更新数据库记录
       await this.updateSimulationInDB(sim.id, {
         stop_loss_distance: stopLossDistance,
         atr_value: atrValue,
         max_leverage: maxLeverage,
-        min_margin: minMargin
+        min_margin: minMargin,
+        exit_price: exitPrice
       });
 
       console.log(`✅ 更新完成: 止损距离=${stopLossDistance.toFixed(2)}%, ATR=${atrValue.toFixed(4)}, 杠杆=${maxLeverage}, 保证金=${minMargin}`);
@@ -99,7 +113,8 @@ class SimulationUpdater {
     return new Promise((resolve, reject) => {
       const sql = `
         UPDATE simulations 
-        SET stop_loss_distance = ?, atr_value = ?, max_leverage = ?, min_margin = ?, last_updated = ?
+        SET stop_loss_distance = ?, atr_value = ?, max_leverage = ?, min_margin = ?, 
+            exit_price = ?, last_updated = ?
         WHERE id = ?
       `;
       
@@ -108,6 +123,7 @@ class SimulationUpdater {
         updates.atr_value,
         updates.max_leverage,
         updates.min_margin,
+        updates.exit_price,
         new Date().toISOString(),
         id
       ];

@@ -819,7 +819,8 @@ app.get('/api/unified-simulations/history', (req, res) => {
     SELECT 
       id, symbol, entry_price as entryPrice, stop_loss_price as stopLoss, 
       take_profit_price as takeProfit, max_leverage as maxLeverage, 
-      min_margin as minMargin, trigger_reason as triggerReason, 
+      min_margin as minMargin, stop_loss_distance as stopLossDistance,
+      atr_value as atrValue, trigger_reason as triggerReason, 
       status, created_at as createdAt, closed_at as closedAt, 
       exit_price as exitPrice, exit_reason as exitReason, 
       is_win as isWin, profit_loss as profitLoss, strategy_type as strategyType
