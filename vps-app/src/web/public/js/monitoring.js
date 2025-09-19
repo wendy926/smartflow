@@ -928,3 +928,47 @@ function updateDetailedStatsTable(detailedStats) {
     tableBody.appendChild(row);
   }
 }
+
+// 更新告警信息显示
+function updateAlertsDisplay(alerts) {
+  if (!alerts || !Array.isArray(alerts)) {
+    console.warn('告警数据为空或格式不正确:', alerts);
+    return;
+  }
+
+  const alertsContainer = document.getElementById('alerts-list');
+  if (!alertsContainer) {
+    console.warn('未找到告警容器元素');
+    return;
+  }
+
+  // 清空现有内容
+  alertsContainer.innerHTML = '';
+
+  // 添加告警项
+  alerts.forEach(alert => {
+    const alertItem = document.createElement('div');
+    alertItem.className = `alert-item ${alert.level || 'info'}`;
+    
+    alertItem.innerHTML = `
+      <div class="alert-header">
+        <span class="alert-level">${alert.level || 'INFO'}</span>
+        <span class="alert-time">${alert.timestamp || '--'}</span>
+      </div>
+      <div class="alert-content">
+        <div class="alert-symbol">${alert.symbol || '--'}</div>
+        <div class="alert-message">${alert.message || '--'}</div>
+      </div>
+    `;
+    
+    alertsContainer.appendChild(alertItem);
+  });
+
+  // 如果没有告警，显示提示信息
+  if (alerts.length === 0) {
+    const noAlerts = document.createElement('div');
+    noAlerts.className = 'no-alerts';
+    noAlerts.innerHTML = '<p>🎉 暂无告警信息</p>';
+    alertsContainer.appendChild(noAlerts);
+  }
+}
