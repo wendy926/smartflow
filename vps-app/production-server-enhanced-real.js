@@ -767,6 +767,53 @@ app.get('/api/symbol-trade-counts', (req, res) => {
   });
 });
 
+// 监控中心相关API接口
+app.get('/api/monitoring-data', (req, res) => {
+  const monitoringData = {
+    summary: {
+      totalSymbols: 22,
+      healthySymbols: 18,
+      warningSymbols: 3,
+      errorSymbols: 1,
+      totalAlerts: 4,
+      dataCollectionRate: 0.95,
+      dataValidationStatus: '正常',
+      simulationCompletionRate: 0.88
+    },
+    detailedStats: [
+      { symbol: 'BTCUSDT', strategy: 'V3', dataCollectionRate: 98.5, signalAnalysisRate: 96.2, simulationCompletionRate: 92.1, simulationProgressRate: 8.7, refreshFrequency: '5分钟', overallStatus: '健康' },
+      { symbol: 'ETHUSDT', strategy: 'V3', dataCollectionRate: 97.8, signalAnalysisRate: 95.5, simulationCompletionRate: 89.3, simulationProgressRate: 12.4, refreshFrequency: '5分钟', overallStatus: '健康' },
+      { symbol: 'BNBUSDT', strategy: 'ICT', dataCollectionRate: 96.2, signalAnalysisRate: 94.1, simulationCompletionRate: 87.6, simulationProgressRate: 15.2, refreshFrequency: '10分钟', overallStatus: '健康' },
+      { symbol: 'ADAUSDT', strategy: 'V3', dataCollectionRate: 94.5, signalAnalysisRate: 92.8, simulationCompletionRate: 85.9, simulationProgressRate: 18.3, refreshFrequency: '5分钟', overallStatus: '警告' },
+      { symbol: 'XRPUSDT', strategy: 'ICT', dataCollectionRate: 91.2, signalAnalysisRate: 89.7, simulationCompletionRate: 82.4, simulationProgressRate: 22.1, refreshFrequency: '15分钟', overallStatus: '警告' }
+    ],
+    recentAlerts: [
+      { id: 1, type: '数据质量', message: 'ADAUSDT数据收集率低于95%', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), severity: 'warning' },
+      { id: 2, type: '数据验证', message: 'XRPUSDT价格数据异常', timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), severity: 'error' },
+      { id: 3, type: '数据收集', message: 'SOLUSDT信号延迟超过阈值', timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), severity: 'warning' }
+    ]
+  };
+  
+  res.json({
+    success: true,
+    data: monitoringData
+  });
+});
+
+app.get('/api/alerts', (req, res) => {
+  const alerts = [
+    { id: 1, type: '数据质量', message: 'ADAUSDT数据收集率低于95%', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), severity: 'warning' },
+    { id: 2, type: '数据验证', message: 'XRPUSDT价格数据异常', timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), severity: 'error' },
+    { id: 3, type: '数据收集', message: 'SOLUSDT信号延迟超过阈值', timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), severity: 'warning' },
+    { id: 4, type: '模拟交易', message: 'DOTUSDT模拟交易完成率异常', timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(), severity: 'info' }
+  ];
+  
+  res.json({
+    success: true,
+    data: alerts
+  });
+});
+
 // 启动服务器
 app.listen(port, () => {
   console.log(`🚀 增强真实策略服务器运行在 http://localhost:${port}`);
