@@ -342,7 +342,7 @@ class SimulationDataManager {
     }
 
     tbody.innerHTML = simulations.map(sim => {
-      const entryTime = new Date(sim.created_at).toLocaleString('zh-CN', {
+      const entryTime = new Date(sim.createdAt).toLocaleString('zh-CN', {
         timeZone: 'Asia/Shanghai',
         year: 'numeric',
         month: '2-digit',
@@ -351,7 +351,7 @@ class SimulationDataManager {
         minute: '2-digit',
         second: '2-digit'
       });
-      const exitTime = sim.closed_at ? new Date(sim.closed_at).toLocaleString('zh-CN', {
+      const exitTime = sim.closedAt ? new Date(sim.closedAt).toLocaleString('zh-CN', {
         timeZone: 'Asia/Shanghai',
         year: 'numeric',
         month: '2-digit',
@@ -368,18 +368,18 @@ class SimulationDataManager {
           <td>${sim.symbol}</td>
           <td>${sim.strategyType || 'V3'}</td>
           <td>${sim.direction === 'LONG' ? '做多' : '做空'}</td>
-          <td>${this.formatNumber(sim.entry_price)}</td>
-          <td>${this.formatNumber(sim.stop_loss_price)}</td>
-          <td>${this.formatNumber(sim.take_profit_price)}</td>
-          <td>${sim.max_leverage || '--'}</td>
-          <td>${this.formatNumber(sim.min_margin)} USDT</td>
-          <td>${sim.stop_loss_distance ? sim.stop_loss_distance.toFixed(2) + '%' : '--'}</td>
-          <td>${this.formatNumber(sim.atr_value)}</td>
+          <td>${this.formatNumber(sim.entryPrice)}</td>
+          <td>${this.formatNumber(sim.stopLoss)}</td>
+          <td>${this.formatNumber(sim.takeProfit)}</td>
+          <td>${sim.maxLeverage || '--'}</td>
+          <td>${this.formatNumber(sim.minMargin)} USDT</td>
+          <td>${sim.stopLossDistance ? sim.stopLossDistance.toFixed(2) + '%' : '--'}</td>
+          <td>${this.formatNumber(sim.atrValue)}</td>
           <td>${entryTime}</td>
           <td>${exitTime}</td>
-          <td>${this.formatNumber(sim.exit_price)}</td>
-          <td>${sim.exit_reason || '--'}</td>
-          <td>${sim.trigger_reason || '--'}</td>
+          <td>${this.formatNumber(sim.exitPrice)}</td>
+          <td>${sim.exitReason || '--'}</td>
+          <td>${sim.triggerReason || '--'}</td>
           <td class="profit-loss ${profitLossClass}">${profitLoss === null ? '--' : this.formatNumber(profitLoss)}</td>
           <td class="profit-loss ${resultClass}">${resultText}</td>
         </tr>
@@ -604,19 +604,19 @@ class SimulationDataManager {
    */
   calculateSimulationResult(sim) {
     // 如果交易没有结束，不显示盈亏金额
-    const profitLoss = sim.status === 'ACTIVE' ? null : (sim.profit_loss || 0);
+    const profitLoss = sim.status === 'ACTIVE' ? null : (sim.profitLoss || 0);
     const profitLossClass = profitLoss === null ? 'neutral' : (profitLoss > 0 ? 'positive' : profitLoss < 0 ? 'negative' : 'neutral');
 
-    // 根据状态和is_win字段判断结果
+    // 根据状态和isWin字段判断结果
     let resultClass, resultText;
     if (sim.status === 'ACTIVE') {
       // 如果交易没有结束，显示进行中，不展示盈亏金额
       resultClass = 'neutral';
       resultText = '进行中';
-    } else if (sim.is_win === 1 || sim.is_win === true) {
+    } else if (sim.isWin === 1 || sim.isWin === true) {
       resultClass = 'positive';
       resultText = '盈利';
-    } else if (sim.is_win === 0 || sim.is_win === false) {
+    } else if (sim.isWin === 0 || sim.isWin === false) {
       resultClass = 'negative';
       resultText = '亏损';
     } else {
