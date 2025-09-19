@@ -193,21 +193,9 @@ function updateMonitoringDisplayWithFilter(data) {
     if (data.detailedStats) {
       filteredData = {
         ...data,
-        detailedStats: data.detailedStats.map(symbolData => {
-          const filtered = { symbol: symbolData.symbol };
-
-          if (currentStrategyFilter === 'V3') {
-            filtered.v3Strategy = symbolData.v3Strategy;
-            filtered.ictStrategy = null;
-          } else if (currentStrategyFilter === 'ICT') {
-            filtered.v3Strategy = null;
-            filtered.ictStrategy = symbolData.ictStrategy;
-          } else {
-            filtered.v3Strategy = symbolData.v3Strategy;
-            filtered.ictStrategy = symbolData.ictStrategy;
-          }
-
-          return filtered;
+        detailedStats: data.detailedStats.filter(symbolData => {
+          // 根据strategy字段进行筛选
+          return symbolData.strategy === currentStrategyFilter;
         })
       };
     }
@@ -952,11 +940,11 @@ function updateAlertsDisplay(alerts) {
     
     alertItem.innerHTML = `
       <div class="alert-header">
-        <span class="alert-level">${alert.level || 'INFO'}</span>
+        <span class="alert-level">${alert.severity || alert.level || 'INFO'}</span>
         <span class="alert-time">${alert.timestamp || '--'}</span>
       </div>
       <div class="alert-content">
-        <div class="alert-symbol">${alert.symbol || '--'}</div>
+        <div class="alert-type">${alert.type || '--'}</div>
         <div class="alert-message">${alert.message || '--'}</div>
       </div>
     `;
