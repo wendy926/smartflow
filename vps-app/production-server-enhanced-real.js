@@ -688,6 +688,76 @@ app.get('/api/direction-stats', (req, res) => {
   });
 });
 
+// 自动模拟交易触发逻辑
+async function triggerSimulationFromSignal(signal) {
+  try {
+    // 检查是否已经存在相同的活跃交易
+    const existingSql = 'SELECT COUNT(*) as count FROM simulations WHERE symbol = ? AND status = "ACTIVE"';
+    
+    db.get(existingSql, [signal.symbol], (err, row) => {
+      if (err) {
+        console.error('检查现有模拟交易失败:', err);
+        return;
+      }
+      
+      if (row.count > 0) {
+        console.log(`交易对 ${signal.symbol} 已有活跃交易，跳过`);
+        return;
+      }
+      
+      // 计算交易参数
+      const currentPrice = parseFloat(signal.currentPrice);
+      const stopLossDistance = currentPrice * 0.02; // 2%止损距离
+      const takeProfitDistance = stopLossDistance * 2; // 1:2风险回报比
+      
+      let stopLoss, takeProfit;
+      if (signal.signal === '做多' || signal.signal === '多头回踩突破') {
+        stopLoss = currentPrice - stopLossDistance;
+        takeProfit = currentPrice + takeProfitDistance;
+      } else {
+        stopLoss = currentPrice + stopLossDistance;
+        takeProfit = currentPrice - takeProfitDistance;
+      }
+      
+      // 计算杠杆和保证金
+      const maxLeverage = Math.floor(1 / 0.02); // 基于2%止损距离
+      const minMargin = 100; // 最小保证金
+      
+      const insertSql = `
+        INSERT INTO simulations (
+          symbol, entry_price, stop_loss_price, take_profit_price,
+          max_leverage, min_margin, trigger_reason, status,
+          created_at, strategy_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      
+      const strategyType = signal.strategyVersion || 'V3';
+      const triggerReason = `${strategyType}策略${signal.signal}信号`;
+      
+      db.run(insertSql, [
+        signal.symbol,
+        currentPrice,
+        stopLoss,
+        takeProfit,
+        maxLeverage,
+        minMargin,
+        triggerReason,
+        'ACTIVE',
+        new Date().toISOString(),
+        strategyType
+      ], function(err) {
+        if (err) {
+          console.error('创建模拟交易失败:', err);
+        } else {
+          console.log(`✅ 模拟交易已创建: ${signal.symbol} (ID: ${this.lastID})`);
+        }
+      });
+    });
+  } catch (error) {
+    console.error('触发模拟交易失败:', error);
+  }
+}
+
 app.post('/api/simulation/start', (req, res) => {
   res.json({
     success: true,
@@ -695,6 +765,39 @@ app.post('/api/simulation/start', (req, res) => {
     simulation_id: Date.now(),
     timestamp: new Date().toISOString()
   });
+});
+
+// 批量触发模拟交易API
+app.post('/api/simulation/trigger-all', async (req, res) => {
+  try {
+    // 获取当前所有信号
+    const signalsResponse = await fetch('https://smart.aimaventop.com/api/signals');
+    const signals = await signalsResponse.json();
+    
+    let triggeredCount = 0;
+    
+    for (const signal of signals) {
+      // 只处理有明确信号的交易对
+      if (signal.signal && signal.signal !== '--' && signal.signal !== '观望') {
+        await triggerSimulationFromSignal(signal);
+        triggeredCount++;
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `已触发 ${triggeredCount} 个模拟交易`,
+      triggered_count: triggeredCount,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('批量触发模拟交易失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: '批量触发模拟交易失败'
+    });
+  }
 });
 
 // 统一监控API
@@ -711,36 +814,77 @@ app.get('/api/unified-monitoring/dashboard', (req, res) => {
 
 app.get('/api/unified-simulations/history', (req, res) => {
   const { page = 1, pageSize = 100 } = req.query;
-  const mockSimulations = [];
-  const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT'];
   
-  for (let i = 1; i <= 50; i++) {
-    mockSimulations.push({
-      id: i,
-      symbol: symbols[i % symbols.length],
-      strategyType: Math.random() > 0.5 ? 'V3' : 'ICT',
-      direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
-      entryPrice: 1000 + Math.random() * 100000,
-      status: Math.random() > 0.3 ? 'CLOSED' : 'OPEN',
-      profitLoss: (Math.random() - 0.4) * 1000,
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
-    });
-  }
+  const sql = `
+    SELECT 
+      id, symbol, entry_price as entryPrice, stop_loss_price as stopLoss, 
+      take_profit_price as takeProfit, max_leverage as maxLeverage, 
+      min_margin as minMargin, trigger_reason as triggerReason, 
+      status, created_at as createdAt, closed_at as closedAt, 
+      exit_price as exitPrice, exit_reason as exitReason, 
+      is_win as isWin, profit_loss as profitLoss, strategy_type as strategyType
+    FROM simulations 
+    ORDER BY created_at DESC 
+    LIMIT ? OFFSET ?
+  `;
   
-  const startIndex = (page - 1) * pageSize;
-  const paginatedData = mockSimulations.slice(startIndex, startIndex + parseInt(pageSize));
+  const offset = (parseInt(page) - 1) * parseInt(pageSize);
   
-  res.json({
-    success: true,
-    data: {
-      simulations: paginatedData,
-      pagination: {
-        page: parseInt(page),
-        pageSize: parseInt(pageSize),
-        total: mockSimulations.length,
-        totalPages: Math.ceil(mockSimulations.length / pageSize)
-      }
+  db.all(sql, [parseInt(pageSize), offset], (err, rows) => {
+    if (err) {
+      console.error('获取模拟交易历史失败:', err);
+      res.json({
+        success: true,
+        data: {
+          simulations: [],
+          pagination: {
+            page: parseInt(page),
+            pageSize: parseInt(pageSize),
+            total: 0,
+            totalPages: 0
+          }
+        }
+      });
+      return;
     }
+    
+    const formattedRows = rows.map(row => ({
+      id: row.id,
+      symbol: row.symbol,
+      strategyType: row.strategyType || 'V3',
+      direction: row.triggerReason?.includes('多头') || row.triggerReason?.includes('做多') ? 'LONG' : 'SHORT',
+      entryPrice: parseFloat(row.entryPrice || 0),
+      stopLoss: parseFloat(row.stopLoss || 0),
+      takeProfit: parseFloat(row.takeProfit || 0),
+      status: row.status || 'OPEN',
+      isWin: row.isWin || false,
+      profitLoss: parseFloat(row.profitLoss || 0),
+      maxLeverage: row.maxLeverage || 20,
+      minMargin: parseFloat(row.minMargin || 100),
+      triggerReason: row.triggerReason || '信号触发',
+      executionMode: '趋势市回踩突破',
+      createdAt: row.createdAt || new Date().toISOString(),
+      closedAt: row.closedAt || null,
+      exitReason: row.exitReason || null
+    }));
+    
+    // 获取总数
+    db.get('SELECT COUNT(*) as total FROM simulations', [], (err, countRow) => {
+      const total = countRow ? countRow.total : 0;
+      
+      res.json({
+        success: true,
+        data: {
+          simulations: formattedRows,
+          pagination: {
+            page: parseInt(page),
+            pageSize: parseInt(pageSize),
+            total: total,
+            totalPages: Math.ceil(total / parseInt(pageSize))
+          }
+        }
+      });
+    });
   });
 });
 
