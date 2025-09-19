@@ -435,85 +435,79 @@ app.get('/api/direction-stats', (req, res) => {
   });
 });
 
-// 统一策略API路由（如果需要）
-try {
-  const UnifiedStrategyAPI = require('./src/core/modules/api/UnifiedStrategyAPI');
-  const unifiedAPI = new UnifiedStrategyAPI(null, null);
-  unifiedAPI.setupRoutes(app);
-} catch (error) {
-  console.warn('统一策略API加载失败，使用模拟数据:', error.message);
+// 统一策略API路由（生产环境直接使用模拟数据）
+console.log('使用生产环境模拟数据，跳过复杂统一策略API');
 
-  // 模拟统一监控API
-  app.get('/api/unified-monitoring/dashboard', (req, res) => {
-    res.json({
-      success: true,
-      data: {
-        summary: {
-          totalSymbols: 22,
-          v3Symbols: 22,
-          ictSymbols: 22,
-          overallHealth: 'HEALTHY'
-        },
-        v3Stats: { dataCollectionRate: 95.5, validationStatus: 'VALID', simulationRate: 100 },
-        ictStats: { dataCollectionRate: 92.3, validationStatus: 'VALID', simulationRate: 100 }
-      }
-    });
-  });
-
-  app.get('/api/data-refresh/status', (req, res) => {
-    res.json({
-      success: true,
-      data: { v3: { refreshRate: 95.5 }, ict: { refreshRate: 92.3 } }
-    });
-  });
-
-  app.get('/api/unified-simulations/history', (req, res) => {
-    const { page = 1, pageSize = 100 } = req.query;
-    
-    // 模拟统一模拟交易数据
-    const mockSimulations = [];
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'UNIUSDT', 'AVAXUSDT', 'MATICUSDT'];
-    const strategies = ['V3', 'ICT'];
-    const directions = ['LONG', 'SHORT'];
-    const statuses = ['CLOSED', 'OPEN'];
-    
-    for (let i = 1; i <= 50; i++) {
-      const symbol = symbols[Math.floor(Math.random() * symbols.length)];
-      const strategy = strategies[Math.floor(Math.random() * strategies.length)];
-      const direction = directions[Math.floor(Math.random() * directions.length)];
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      
-      mockSimulations.push({
-        id: i,
-        symbol,
-        strategyType: strategy,
-        direction,
-        entryPrice: 1000 + Math.random() * 100000,
-        stopLoss: 950 + Math.random() * 95000,
-        takeProfit: 1050 + Math.random() * 105000,
-        status,
-        profitLoss: status === 'CLOSED' ? (Math.random() - 0.4) * 1000 : 0,
-        exitReason: status === 'CLOSED' ? (Math.random() > 0.5 ? 'TAKE_PROFIT' : 'STOP_LOSS') : null,
-        createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
-      });
+// 模拟统一监控API
+app.get('/api/unified-monitoring/dashboard', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      summary: {
+        totalSymbols: 22,
+        v3Symbols: 22,
+        ictSymbols: 22,
+        overallHealth: 'HEALTHY'
+      },
+      v3Stats: { dataCollectionRate: 95.5, validationStatus: 'VALID', simulationRate: 100 },
+      ictStats: { dataCollectionRate: 92.3, validationStatus: 'VALID', simulationRate: 100 }
     }
-    
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + parseInt(pageSize);
-    const paginatedData = mockSimulations.slice(startIndex, endIndex);
-    
-    res.json({
-      success: true,
-      data: paginatedData,
-      pagination: {
-        page: parseInt(page),
-        pageSize: parseInt(pageSize),
-        total: mockSimulations.length,
-        totalPages: Math.ceil(mockSimulations.length / pageSize)
-      }
-    });
   });
-}
+});
+
+app.get('/api/data-refresh/status', (req, res) => {
+  res.json({
+    success: true,
+    data: { v3: { refreshRate: 95.5 }, ict: { refreshRate: 92.3 } }
+  });
+});
+
+app.get('/api/unified-simulations/history', (req, res) => {
+  const { page = 1, pageSize = 100 } = req.query;
+  
+  // 模拟统一模拟交易数据
+  const mockSimulations = [];
+  const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT', 'DOTUSDT', 'LINKUSDT', 'UNIUSDT', 'AVAXUSDT', 'MATICUSDT'];
+  const strategies = ['V3', 'ICT'];
+  const directions = ['LONG', 'SHORT'];
+  const statuses = ['CLOSED', 'OPEN'];
+  
+  for (let i = 1; i <= 50; i++) {
+    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+    const strategy = strategies[Math.floor(Math.random() * strategies.length)];
+    const direction = directions[Math.floor(Math.random() * directions.length)];
+    const status = statuses[Math.floor(Math.random() * statuses.length)];
+    
+    mockSimulations.push({
+      id: i,
+      symbol,
+      strategyType: strategy,
+      direction,
+      entryPrice: 1000 + Math.random() * 100000,
+      stopLoss: 950 + Math.random() * 95000,
+      takeProfit: 1050 + Math.random() * 105000,
+      status,
+      profitLoss: status === 'CLOSED' ? (Math.random() - 0.4) * 1000 : 0,
+      exitReason: status === 'CLOSED' ? (Math.random() > 0.5 ? 'TAKE_PROFIT' : 'STOP_LOSS') : null,
+      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+    });
+  }
+  
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + parseInt(pageSize);
+  const paginatedData = mockSimulations.slice(startIndex, endIndex);
+  
+  res.json({
+    success: true,
+    data: paginatedData,
+    pagination: {
+      page: parseInt(page),
+      pageSize: parseInt(pageSize),
+      total: mockSimulations.length,
+      totalPages: Math.ceil(mockSimulations.length / pageSize)
+    }
+  });
+});
 
 app.listen(port, () => {
   console.log(`🚀 生产环境服务器运行在 http://localhost:${port}`);
