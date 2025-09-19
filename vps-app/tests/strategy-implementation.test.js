@@ -256,12 +256,14 @@ class ICTStrategyImplementationTest {
       }
     };
     
-    // 模拟4H K线数据
+    // 模拟4H K线数据（创建明显的swing点）
     const candles4h = [
       { high: 50000, low: 49000, close: 49500 },
       { high: 51000, low: 50000, close: 50500 },
-      { high: 52000, low: 51000, close: 51500 },
-      { high: 53000, low: 52000, close: 52500 }
+      { high: 52000, low: 51000, close: 51500 }, // swing high
+      { high: 51500, low: 50500, close: 51000 },
+      { high: 53000, low: 52000, close: 52500 }, // 刺破swing high
+      { high: 52500, low: 51500, close: 52000 }  // 收回
     ];
     
     const atr4h = 500;
@@ -272,6 +274,12 @@ class ICTStrategyImplementationTest {
     assert.strictEqual(typeof result.speed, 'number', '速率应该是数字');
     assert.strictEqual(typeof result.threshold, 'number', '阈值应该是数字');
     assert.strictEqual(Array.isArray(result.validSweeps), true, '有效Sweep应该是数组');
+    
+    // 如果检测到Sweep，验证速率
+    if (result.detected) {
+      assert.strictEqual(result.speed >= 0, true, '速率应该大于等于0');
+      assert.strictEqual(result.speed >= result.threshold, true, '速率应该大于等于阈值');
+    }
     
     console.log('✅ ICT策略Sweep检测机制测试通过');
   }
