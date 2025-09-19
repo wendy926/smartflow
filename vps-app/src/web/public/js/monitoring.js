@@ -500,18 +500,27 @@ function updateDetailedTable(monitoringData, realtimeData) {
 }
 
 // 切换监控标签页
-function switchMonitoringTab(tabName) {
+function switchMonitoringTab(tabName, event) {
   // 更新标签按钮状态
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.remove('active');
   });
-  document.querySelector(`[onclick="switchMonitoringTab('${tabName}')"]`).classList.add('active');
+  
+  // 找到当前点击的按钮并添加active类
+  const currentBtn = event ? event.target : document.querySelector(`[onclick*="switchMonitoringTab('${tabName}'"]`);
+  if (currentBtn) {
+    currentBtn.classList.add('active');
+  }
 
   // 更新标签内容显示
   document.querySelectorAll('.monitoring-view').forEach(content => {
     content.classList.remove('active');
   });
-  document.getElementById(`${tabName}View`).classList.add('active');
+  
+  const targetView = document.getElementById(`${tabName}View`);
+  if (targetView) {
+    targetView.classList.add('active');
+  }
 
   // 根据标签页加载相应数据
   if (tabName === 'data-refresh') {

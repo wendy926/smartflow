@@ -47,9 +47,15 @@ class SimulationDataManager {
         this.apiClient.getDirectionStats(),
         this.apiClient.getSymbolStats()
       ]);
-      this.updateStatsDisplay(stats);
-      this.updateDirectionStats(directionStats);
-      this.updateSymbolStats(symbolStats);
+      
+      // 处理API响应结构，提取data字段
+      const processedStats = stats && stats.data ? stats.data : stats;
+      const processedDirectionStats = directionStats && directionStats.data ? directionStats.data : directionStats;
+      const processedSymbolStats = symbolStats && symbolStats.data ? symbolStats.data : symbolStats;
+      
+      this.updateStatsDisplay(processedStats);
+      this.updateDirectionStats(processedDirectionStats);
+      this.updateSymbolStats(processedSymbolStats);
     } catch (error) {
       console.error('加载统计数据失败:', error);
     }

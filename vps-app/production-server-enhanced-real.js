@@ -492,18 +492,20 @@ app.get('/api/getUpdateTimes', (req, res) => {
 app.get('/api/win-rate-stats', (req, res) => {
   res.json({
     success: true,
-    win_rate: 66.7,
-    total_trades: 150,
-    winning_trades: 100,
-    losing_trades: 50,
-    winRate: 66.7,
-    totalTrades: 150,
-    winTrades: 100,
-    lossTrades: 50,
-    avgProfit: 156.78,
-    avgLoss: -92.10,
-    netProfit: 2986.00,
-    lastUpdated: new Date().toISOString()
+    data: {
+      win_rate: 66.7,
+      total_trades: 150,
+      winning_trades: 100,
+      losing_trades: 50,
+      winRate: 66.7,
+      totalTrades: 150,
+      winTrades: 100,
+      lossTrades: 50,
+      avgProfit: 156.78,
+      avgLoss: -92.10,
+      netProfit: 2986.00,
+      lastUpdated: new Date().toISOString()
+    }
   });
 });
 
