@@ -172,9 +172,9 @@ describe('监控中心修复测试', () => {
       }
       
       // 验证更新结果
-      assert.strictEqual(mockElements.totalSymbols.textContent, '22');
-      assert.strictEqual(mockElements.healthySymbols.textContent, '22');
-      assert.strictEqual(mockElements.warningSymbols.textContent, '22');
+      assert.strictEqual(mockElements.totalSymbols.textContent, 22);
+      assert.strictEqual(mockElements.healthySymbols.textContent, 22);
+      assert.strictEqual(mockElements.warningSymbols.textContent, 22);
       assert.strictEqual(mockElements.dataCollectionRate.textContent, '95.5%');
       assert.strictEqual(mockElements.dataValidationStatus.textContent, 'VALID');
       assert.strictEqual(mockElements.simulationCompletionRate.textContent, '100%');
