@@ -14,14 +14,19 @@ class ICTStrategyImplementationTest {
   static testICT3PointTrendSystem() {
     console.log('\n🧪 测试ICT策略1D趋势判断3分制评分系统...');
     
-    // 模拟上升趋势数据
-    const upTrendData = [
-      [1640995200000, '50000', '51000', '49000', '50500', '1000'], // 上涨
-      [1641081600000, '50500', '51500', '50000', '51000', '1200'], // 上涨
-      [1641168000000, '51000', '52000', '50500', '51500', '1100'], // 上涨
-      [1641254400000, '51500', '52500', '51000', '52000', '1300'], // 上涨
-      [1641340800000, '52000', '53000', '51500', '52500', '1400']  // 上涨
-    ];
+    // 模拟上升趋势数据（需要足够的数据点进行MA计算）
+    const upTrendData = [];
+    for (let i = 0; i < 25; i++) {
+      const basePrice = 50000 + i * 100;
+      upTrendData.push([
+        1640995200000 + i * 86400000, // 时间戳
+        basePrice.toString(),
+        (basePrice + 500).toString(),
+        (basePrice - 500).toString(),
+        (basePrice + 200).toString(),
+        (1000 + i * 10).toString()
+      ]);
+    }
     
     // 模拟ICT核心实例
     const ictCore = {
@@ -30,13 +35,20 @@ class ICTStrategyImplementationTest {
         const last = closes.slice(-lookback);
         
         let score = 0;
-        const trendFactors = {};
+        const trendFactors = {
+          priceStructure: 0,
+          maConfirmation: 0,
+          volumeConfirmation: 0
+        };
         
         // 1. 价格结构分析 (1分)
         const priceStructure = this.analyzePriceStructure(last);
         if (priceStructure.higherHighs && priceStructure.higherLows) {
           score += 1;
           trendFactors.priceStructure = 1;
+        } else if (!priceStructure.higherHighs && !priceStructure.higherLows) {
+          score -= 1;
+          trendFactors.priceStructure = -1;
         }
         
         // 2. MA确认 (1分)
