@@ -480,7 +480,13 @@ class StrategyExecutor {
     const results = [];
     
     for (const signal of signals) {
-      if (!signal.signal || signal.signal === '--' || signal.signal === '观望') {
+      // 检查V3策略信号
+      if (signal.strategyVersion === 'V3' && (!signal.signal || signal.signal === '--' || signal.signal === '观望')) {
+        continue;
+      }
+      
+      // 检查ICT策略信号
+      if (signal.strategyVersion === 'ICT' && (!signal.signalType || signal.signalType === 'WAIT')) {
         continue;
       }
 
