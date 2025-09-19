@@ -176,7 +176,8 @@ class ICTStrategyImplementationTest {
           detected: validSweeps.length > 0,
           speed: validSweeps.length > 0 ? validSweeps[0].speed : 0,
           threshold: this.config.htf.minSpeedATRRatio * atr4h,
-          validSweeps
+          validSweeps,
+          reason: validSweeps.length === 0 ? '未检测到有效的Sweep' : '检测到有效Sweep'
         };
       },
       
