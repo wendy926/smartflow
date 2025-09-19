@@ -23,11 +23,11 @@ class SimulationDataManager {
 
   async loadData() {
     try {
-      // 加载统计数据
-      await this.loadStats();
-
-      // 加载所有模拟交易数据
+      // 先加载所有模拟交易数据
       await this.loadAllSimulations();
+
+      // 再加载统计数据（此时allSimulations已经可用）
+      await this.loadStats();
 
       // 等待DOM元素完全加载后再应用筛选
       setTimeout(() => {
@@ -119,11 +119,11 @@ class SimulationDataManager {
     document.getElementById('overallProfitLoss').textContent =
       stats.net_profit ? `${stats.net_profit.toFixed(4)} USDT` : '--';
 
-    // 总交易数（所有交易）
+    // 总交易数（所有交易）- 使用allSimulations的长度
     document.getElementById('totalTrades').textContent =
-      stats.total_trades || '0';
+      this.allSimulations ? this.allSimulations.length : '0';
 
-    // 已完成交易数（已平仓的交易）
+    // 已完成交易数（已平仓的交易）- 使用统计API的数据
     document.getElementById('completedTrades').textContent =
       stats.total_trades || '0';
 
