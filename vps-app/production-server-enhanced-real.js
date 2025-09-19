@@ -66,8 +66,8 @@ const STRATEGY_CONFIG = {
  */
 async function analyzeV3Strategy(symbol) {
   try {
-    // 获取实时价格
-    let currentPrice = 47000; // 默认价格
+    // 获取实时价格 - 必须获取真实价格，不允许使用默认值
+    let currentPrice = null;
     try {
       const response = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`, {
         timeout: 3000
@@ -78,6 +78,12 @@ async function analyzeV3Strategy(symbol) {
       }
     } catch (error) {
       console.warn(`获取${symbol}价格失败:`, error.message);
+    }
+    
+    // 如果无法获取实时价格，跳过分析
+    if (!currentPrice || currentPrice <= 0) {
+      console.warn(`无法获取${symbol}的有效价格，跳过V3策略分析`);
+      return createErrorResult(symbol, 'V3', '无法获取有效价格');
     }
 
     // 模拟技术分析 (基于真实逻辑)
@@ -115,8 +121,8 @@ async function analyzeV3Strategy(symbol) {
  */
 async function analyzeICTStrategy(symbol) {
   try {
-    // 获取实时价格
-    let currentPrice = 47000;
+    // 获取实时价格 - 必须获取真实价格，不允许使用默认值
+    let currentPrice = null;
     try {
       const response = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`, {
         timeout: 3000
@@ -127,6 +133,12 @@ async function analyzeICTStrategy(symbol) {
       }
     } catch (error) {
       console.warn(`获取${symbol}价格失败:`, error.message);
+    }
+    
+    // 如果无法获取实时价格，跳过分析
+    if (!currentPrice || currentPrice <= 0) {
+      console.warn(`无法获取${symbol}的有效价格，跳过ICT策略分析`);
+      return createErrorResult(symbol, 'ICT', '无法获取有效价格');
     }
 
     // 模拟ICT分析 (基于真实逻辑)
