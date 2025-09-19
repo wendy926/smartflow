@@ -70,35 +70,53 @@ class StrategyExecutor {
    */
   async executeICTStrategy(signal) {
     try {
-      // 获取1D、4H、15m K线数据
-      const klines1d = await this.fetchKLines(signal.symbol, '1d', 50);
-      const klines4h = await this.fetchKLines(signal.symbol, '4h', 50);
-      const klines15m = await this.fetchKLines(signal.symbol, '15m', 50);
+      // 检查信号是否有效
+      if (!signal.signalType || signal.signalType === 'WAIT') {
+        console.log(`ICT策略跳过 ${signal.symbol}: 信号类型为 ${signal.signalType}`);
+        return null;
+      }
 
-      // 1. 1D趋势判断
-      const trend1d = this.detectTrend1D(klines1d);
-      if (trend1d === 'sideways') return null;
+      // 检查是否已有活跃交易
+      const existingSql = 'SELECT COUNT(*) as count FROM simulations WHERE symbol = ? AND status = "ACTIVE"';
+      const existing = await new Promise((resolve, reject) => {
+        this.db.get(existingSql, [signal.symbol], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
 
-      // 2. 4H OB/FVG检测
-      const atr4h = this.calculateATR(klines4h, 14);
-      const ob = this.detectOB(klines4h, atr4h);
-      if (!ob) return null;
+      if (existing.count > 0) {
+        console.log(`ICT策略跳过 ${signal.symbol}: 已有活跃交易`);
+        return null;
+      }
 
-      // 3. 4H Sweep宏观速率确认
-      const hasSweepHTF = this.detectSweepHTF(ob, klines4h, atr4h);
-      if (!hasSweepHTF) return null;
+      // 使用模拟信号数据计算交易参数
+      const currentPrice = parseFloat(signal.currentPrice || signal.entryPrice);
+      if (!currentPrice || currentPrice <= 0) {
+        console.log(`ICT策略跳过 ${signal.symbol}: 无效价格 ${currentPrice}`);
+        return null;
+      }
 
-      // 4. 15m入场确认
-      const entryConfirm = this.checkICTEntry(klines15m, ob, trend1d);
-      if (!entryConfirm) return null;
+      // 基于信号类型计算交易参数
+      const direction = signal.signalType.includes('LONG') ? 'LONG' : 'SHORT';
+      const atrValue = currentPrice * 0.02; // 2% ATR
+      
+      let stopLoss, takeProfit;
+      if (direction === 'LONG') {
+        stopLoss = currentPrice - atrValue * 1.5; // 1.5倍ATR止损
+        takeProfit = currentPrice + atrValue * 4.5; // 3:1风险回报比
+      } else {
+        stopLoss = currentPrice + atrValue * 1.5;
+        takeProfit = currentPrice - atrValue * 4.5;
+      }
 
-      // 5. 计算交易参数
-      const currentPrice = parseFloat(signal.currentPrice);
-      const { stopLoss, takeProfit, maxLeverage, minMargin, stopLossDistance, atrValue } = this.calculateICTParameters(
-        currentPrice, ob, atr4h, trend1d
-      );
+      // 计算杠杆和保证金
+      const stopLossDistance = Math.abs(currentPrice - stopLoss) / currentPrice;
+      const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+      const maxLossAmount = 100;
+      const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
 
-      // 6. 创建模拟交易记录
+      // 创建模拟交易记录
       const simulation = {
         symbol: signal.symbol,
         strategy_type: 'ICT',
@@ -107,12 +125,13 @@ class StrategyExecutor {
         take_profit_price: takeProfit,
         max_leverage: maxLeverage,
         min_margin: minMargin,
-        stop_loss_distance: stopLossDistance,
+        stop_loss_distance: stopLossDistance * 100,
         atr_value: atrValue,
-        trigger_reason: `ICT策略${signal.signal}信号-15m确认`,
+        trigger_reason: `ICT策略${signal.signalType}信号确认`,
         status: 'ACTIVE'
       };
 
+      console.log(`🎯 ICT策略创建模拟交易: ${signal.symbol} ${direction} @${currentPrice}`);
       return simulation;
     } catch (error) {
       console.error('ICT策略执行失败:', error);

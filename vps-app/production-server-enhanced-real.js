@@ -786,14 +786,29 @@ app.post('/api/simulation/start', (req, res) => {
 // 批量触发模拟交易API - 使用策略执行器
 app.post('/api/simulation/trigger-all', async (req, res) => {
   try {
-    // 获取当前所有信号
-    const signalsResponse = await fetch('https://smart.aimaventop.com/api/signals');
-    const signals = await signalsResponse.json();
+    // 获取V3策略信号
+    const v3SignalsResponse = await fetch('https://smart.aimaventop.com/api/signals');
+    const v3Signals = await v3SignalsResponse.json();
     
-    console.log(`📊 开始批量执行策略，共 ${signals.length} 个信号`);
+    // 获取ICT策略信号
+    const ictSignalsResponse = await fetch('https://smart.aimaventop.com/api/ict/signals');
+    const ictSignals = await ictSignalsResponse.json();
+    
+    // 合并所有信号并添加策略版本标识
+    const allSignals = [
+      ...v3Signals.map(signal => ({ ...signal, strategyVersion: 'V3' })),
+      ...ictSignals.map(signal => ({ 
+        ...signal, 
+        strategyVersion: 'ICT',
+        signal: signal.executionMode || signal.signalType,
+        currentPrice: signal.entryPrice
+      }))
+    ];
+    
+    console.log(`📊 开始批量执行策略，共 ${allSignals.length} 个信号 (V3: ${v3Signals.length}, ICT: ${ictSignals.length})`);
     
     // 使用策略执行器批量执行
-    const results = await strategyExecutor.executeAllStrategies(signals);
+    const results = await strategyExecutor.executeAllStrategies(allSignals);
     
     res.json({
       success: true,
