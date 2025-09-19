@@ -499,7 +499,7 @@ app.get('/api/data-change-status', async (req, res) => {
 app.get('/api/user-settings', (req, res) => {
   try {
     // 从数据库读取用户设置
-    const sql = 'SELECT key, value FROM user_settings';
+    const sql = 'SELECT setting_key as key, setting_value as value FROM user_settings';
     
     db.all(sql, [], (err, rows) => {
       if (err) {
@@ -569,10 +569,10 @@ app.post('/api/user-settings', (req, res) => {
     
     // 使用 UPSERT 语句保存设置
     const sql = `
-      INSERT INTO user_settings (key, value, updated_at) 
+      INSERT INTO user_settings (setting_key, setting_value, updated_at) 
       VALUES (?, ?, datetime('now', '+8 hours'))
-      ON CONFLICT(key) DO UPDATE SET 
-        value = excluded.value,
+      ON CONFLICT(setting_key) DO UPDATE SET 
+        setting_value = excluded.setting_value,
         updated_at = excluded.updated_at
     `;
     
