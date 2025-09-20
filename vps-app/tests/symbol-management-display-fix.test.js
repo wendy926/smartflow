@@ -80,11 +80,11 @@ describe('交易对管理页面显示修复测试', () => {
       updateICTStatsFromUnified(mockData);
 
       // 验证V3策略统计更新
-      assert.strictEqual(mockElements.v3TotalTrades.textContent, '22');
+      assert.strictEqual(mockElements.v3TotalTrades.textContent, 22);
       assert.strictEqual(mockElements.v3WinRate.textContent, '95.5%');
 
       // 验证ICT策略统计更新
-      assert.strictEqual(mockElements.ictTotalTrades.textContent, '22');
+      assert.strictEqual(mockElements.ictTotalTrades.textContent, 22);
       assert.strictEqual(mockElements.ictWinRate.textContent, '92.3%');
     });
 
@@ -241,9 +241,9 @@ describe('交易对管理页面显示修复测试', () => {
 
       const result = extractStrategyStats(apiResponse);
 
-      assert.strictEqual(result.v3TotalTrades, '22');
+      assert.strictEqual(result.v3TotalTrades, 22);
       assert.strictEqual(result.v3WinRate, '95.5%');
-      assert.strictEqual(result.ictTotalTrades, '22');
+      assert.strictEqual(result.ictTotalTrades, 22);
       assert.strictEqual(result.ictWinRate, '92.3%');
     });
 
@@ -282,9 +282,9 @@ describe('交易对管理页面显示修复测试', () => {
 
       const result = extractNestedData(nestedApiResponse);
 
-      assert.strictEqual(result.v3TotalTrades, '15');
+      assert.strictEqual(result.v3TotalTrades, 15);
       assert.strictEqual(result.v3WinRate, '88.7%');
-      assert.strictEqual(result.ictTotalTrades, '18');
+      assert.strictEqual(result.ictTotalTrades, 18);
       assert.strictEqual(result.ictWinRate, '91.2%');
     });
   });
