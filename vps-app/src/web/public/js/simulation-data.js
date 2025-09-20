@@ -566,7 +566,14 @@ class SimulationDataManager {
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.classList.remove('active');
     });
-    document.querySelector(`[data-strategy="${strategy}"]`).classList.add('active');
+    
+    // 安全地查找并更新策略按钮状态
+    const strategyBtn = document.querySelector(`[data-strategy="${strategy}"]`);
+    if (strategyBtn) {
+      strategyBtn.classList.add('active');
+    } else {
+      console.warn(`未找到策略按钮: ${strategy}`);
+    }
 
     // 更新策略筛选条件
     this.currentFilters.strategy = strategy === 'all' ? '' : strategy;
