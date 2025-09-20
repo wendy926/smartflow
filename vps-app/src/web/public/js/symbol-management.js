@@ -101,33 +101,51 @@ class SymbolManagement {
 
   // 从统一监控数据更新V3策略统计
   updateV3StatsFromUnified(data) {
-    const v3Stats = data.v3Stats || {};
-    const summary = data.summary || {};
-
-    // 更新V3策略卡片
-    const v3Card = document.querySelector('.strategy-card.v3');
-    if (v3Card) {
-      const totalTradesEl = v3Card.querySelector('.stat-value');
-      const winRateEl = v3Card.querySelector('.stat-value:nth-child(2)');
-
-      if (totalTradesEl) totalTradesEl.textContent = summary.v3Symbols || '0';
-      if (winRateEl) winRateEl.textContent = `${v3Stats.dataCollectionRate || 0}%`;
+    try {
+      // 获取V3策略统计数据
+      const v3Stats = data.v3Stats || {};
+      const summary = data.summary || {};
+      
+      // 直接更新V3策略统计元素
+      const v3TotalTradesEl = document.getElementById('v3TotalTrades');
+      const v3WinRateEl = document.getElementById('v3WinRate');
+      
+      if (v3TotalTradesEl) {
+        v3TotalTradesEl.textContent = summary.v3Symbols || '0';
+        console.log('✅ 更新V3总交易数:', summary.v3Symbols || '0');
+      }
+      
+      if (v3WinRateEl) {
+        v3WinRateEl.textContent = v3Stats.dataCollectionRate ? `${v3Stats.dataCollectionRate.toFixed(1)}%` : '--';
+        console.log('✅ 更新V3胜率:', v3Stats.dataCollectionRate || '--');
+      }
+    } catch (error) {
+      console.error('❌ 更新V3策略统计失败:', error);
     }
   }
 
   // 从统一监控数据更新ICT策略统计
   updateICTStatsFromUnified(data) {
-    const ictStats = data.ictStats || {};
-    const summary = data.summary || {};
-
-    // 更新ICT策略卡片
-    const ictCard = document.querySelector('.strategy-card.ict');
-    if (ictCard) {
-      const totalTradesEl = ictCard.querySelector('.stat-value');
-      const winRateEl = ictCard.querySelector('.stat-value:nth-child(2)');
-
-      if (totalTradesEl) totalTradesEl.textContent = summary.ictSymbols || '0';
-      if (winRateEl) winRateEl.textContent = `${ictStats.dataCollectionRate || 0}%`;
+    try {
+      // 获取ICT策略统计数据
+      const ictStats = data.ictStats || {};
+      const summary = data.summary || {};
+      
+      // 直接更新ICT策略统计元素
+      const ictTotalTradesEl = document.getElementById('ictTotalTrades');
+      const ictWinRateEl = document.getElementById('ictWinRate');
+      
+      if (ictTotalTradesEl) {
+        ictTotalTradesEl.textContent = summary.ictSymbols || '0';
+        console.log('✅ 更新ICT总交易数:', summary.ictSymbols || '0');
+      }
+      
+      if (ictWinRateEl) {
+        ictWinRateEl.textContent = ictStats.dataCollectionRate ? `${ictStats.dataCollectionRate.toFixed(1)}%` : '--';
+        console.log('✅ 更新ICT胜率:', ictStats.dataCollectionRate || '--');
+      }
+    } catch (error) {
+      console.error('❌ 更新ICT策略统计失败:', error);
     }
   }
 
