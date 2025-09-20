@@ -34,8 +34,8 @@ describe('策略参数计算功能测试', () => {
       assert.strictEqual(takeProfit, 53000);
       assert.strictEqual(atrValue, 1000);
       assert.strictEqual(stopLossDistance, 2); // 2%
-      assert.strictEqual(maxLeverage, 66); // Math.floor(1 / (0.02 + 0.005)) = 40
-      assert.strictEqual(minMargin, 76); // Math.ceil(100 / (66 * 0.02)) = 76
+      assert.strictEqual(maxLeverage, 40); // Math.floor(1 / (0.02 + 0.005)) = 40
+      assert.strictEqual(minMargin, 125); // Math.ceil(100 / (40 * 0.02)) = 125
     });
 
     it('应该处理不同的止损距离计算不同的杠杆', () => {
@@ -114,7 +114,7 @@ describe('策略参数计算功能测试', () => {
       assert.strictEqual(takeProfit, 52000);
       assert.strictEqual(stopLossPercentage, 0.02); // 2%
       assert.strictEqual(maxLeverage, 40); // Math.floor(1 / (0.02 + 0.005)) = 40
-      assert.strictEqual(minMargin, 126); // Math.ceil(100 / (40 * 0.02)) = 126
+      assert.strictEqual(minMargin, 125); // Math.ceil(100 / (40 * 0.02)) = 125
     });
 
     it('应该在信号数据缺失时使用ATR计算', () => {
@@ -164,7 +164,7 @@ describe('策略参数计算功能测试', () => {
       const maxLeverage = Math.floor(1 / (stopLossPercentage + 0.005));
 
       assert.strictEqual(stopLossPercentage, 0.03333333333333333); // 约3.33%
-      assert.strictEqual(maxLeverage, 29); // Math.floor(1 / (0.0333 + 0.005)) = 26
+      assert.strictEqual(maxLeverage, 26); // Math.floor(1 / (0.0333 + 0.005)) = 26
     });
   });
 
