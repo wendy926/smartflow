@@ -109,7 +109,9 @@ async function analyzeV3Strategy(symbol) {
       category: getSymbolCategory(symbol),
       trend4h: analysis.trend4h,
       trendStrength: analysis.trendStrength,
-      score: analysis.score4h,
+      score: analysis.score4h,  // 保持向后兼容
+      score4h: analysis.score4h,  // 4H趋势打分
+      score1h: analysis.score1h,  // 1H多因子得分
       signal: analysis.signal,
       hourlyJudgment: analysis.hourlyJudgment,
       fifteenMinJudgment: analysis.fifteenMinJudgment,
@@ -506,19 +508,19 @@ app.get('/api/user-settings', (req, res) => {
       if (err) {
         console.error('读取用户设置失败:', err);
         // 返回默认设置
-        res.json({
+  res.json({
           maxLossAmount: '100',
-          riskLevel: 'medium',
-          autoRefresh: true,
-          refreshInterval: 60000,
-          theme: 'light',
-          notifications: true,
-          soundEnabled: true,
-          displayCurrency: 'USDT',
-          leverage: 10,
-          stopLossPercent: 2,
-          takeProfitPercent: 6
-        });
+    riskLevel: 'medium',
+    autoRefresh: true,
+    refreshInterval: 60000,
+    theme: 'light',
+    notifications: true,
+    soundEnabled: true,
+    displayCurrency: 'USDT',
+    leverage: 10,
+    stopLossPercent: 2,
+    takeProfitPercent: 6
+  });
         return;
       }
       
@@ -588,13 +590,13 @@ app.post('/api/user-settings', (req, res) => {
       }
       
       console.log(`✅ 用户设置已保存: ${key} = ${value}`);
-      res.json({
-        success: true,
-        message: '设置已更新',
+  res.json({
+    success: true,
+    message: '设置已更新',
         key: key,
         value: value,
-        timestamp: new Date().toISOString()
-      });
+    timestamp: new Date().toISOString()
+  });
     });
   } catch (error) {
     console.error('用户设置保存API错误:', error);
