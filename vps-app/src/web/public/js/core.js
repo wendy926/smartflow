@@ -721,7 +721,7 @@ class SmartFlowApp {
       <td><button class="expand-btn" onclick="toggleHistory('${signal.symbol}')" title="查看详细信息">+</button></td>
       <td><strong>${signal.symbol}</strong></td>
       <td class="category-${signal.category}">${this.getCategoryDisplay(signal.category)}</td>
-      <td class="score-${signal.score >= 3 ? 'high' : 'low'}">${signal.score || 0}</td>
+      <td class="score-${signal.score4h >= 4 ? 'high' : 'low'}">${signal.score4h || 0}</td>
       <td class="trend-${signal.trend4h?.toLowerCase() || 'none'}">${signal.trend4h || '--'}</td>
       <td class="score-${signal.score1h >= 3 ? 'high' : 'low'}">${signal.score1h || 0}</td>
       <td class="trend-${signal.trendStrength?.toLowerCase() || 'none'}">${signal.trendStrength || '--'}</td>

@@ -236,6 +236,7 @@ function simulateV3Analysis(symbol, currentPrice) {
     trend4h,
     trendStrength: trend4hScore >= 7 ? '强' : trend4hScore >= 5 ? '中' : '弱',
     score4h: trend4hScore,
+    score1h: hourlyScore,  // 添加1H多因子得分
     signal,
     hourlyJudgment: getHourlyJudgment(signal, hourlyScore),
     fifteenMinJudgment: getFifteenMinJudgment(execution),
