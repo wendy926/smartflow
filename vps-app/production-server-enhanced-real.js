@@ -1541,6 +1541,134 @@ app.get('/api/data-refresh-status', (req, res) => {
   });
 });
 
+// 模拟交易状态更新API
+app.post('/api/simulation/update-status', async (req, res) => {
+  try {
+    console.log('🔄 开始更新模拟交易状态...');
+    
+    // 获取所有活跃的模拟交易
+    const activeSimulations = await new Promise((resolve, reject) => {
+      db.all('SELECT * FROM simulations WHERE status = "ACTIVE"', [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+    
+    let updatedCount = 0;
+    let closedCount = 0;
+    
+    for (const sim of activeSimulations) {
+      try {
+        // 获取当前价格
+        const currentPrice = await getCurrentPrice(sim.symbol);
+        if (!currentPrice) continue;
+        
+        // 检查出场条件
+        const exitResult = checkExitConditions(sim, currentPrice);
+        
+        if (exitResult.exit) {
+          // 计算盈亏
+          const profitLoss = calculateProfitLoss(sim, exitResult.exitPrice);
+          const isWin = profitLoss > 0;
+          
+          // 更新数据库
+          await new Promise((resolve, reject) => {
+            db.run(`
+              UPDATE simulations 
+              SET status = 'CLOSED', 
+                  exit_price = ?, 
+                  exit_reason = ?, 
+                  profit_loss = ?, 
+                  is_win = ?, 
+                  closed_at = datetime('now', '+8 hours')
+              WHERE id = ?
+            `, [exitResult.exitPrice, exitResult.reason, profitLoss, isWin ? 1 : 0, sim.id], (err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+          
+          console.log(`✅ 模拟交易已关闭: ${sim.symbol} ${sim.strategy_type} - ${exitResult.reason}`);
+          closedCount++;
+        }
+        
+        updatedCount++;
+      } catch (error) {
+        console.error(`❌ 更新模拟交易失败 ${sim.symbol}:`, error);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `已更新 ${updatedCount} 个模拟交易，关闭 ${closedCount} 个`,
+      updatedCount,
+      closedCount
+    });
+  } catch (error) {
+    console.error('❌ 更新模拟交易状态失败:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 检查出场条件的函数
+function checkExitConditions(sim, currentPrice) {
+  const entryPrice = parseFloat(sim.entry_price);
+  const stopLoss = parseFloat(sim.stop_loss_price);
+  const takeProfit = parseFloat(sim.take_profit_price);
+  
+  // 检查止损
+  if (sim.direction === 'LONG' && currentPrice <= stopLoss) {
+    return { exit: true, exitPrice: stopLoss, reason: '止损触发' };
+  }
+  if (sim.direction === 'SHORT' && currentPrice >= stopLoss) {
+    return { exit: true, exitPrice: stopLoss, reason: '止损触发' };
+  }
+  
+  // 检查止盈
+  if (sim.direction === 'LONG' && currentPrice >= takeProfit) {
+    return { exit: true, exitPrice: takeProfit, reason: '止盈触发' };
+  }
+  if (sim.direction === 'SHORT' && currentPrice <= takeProfit) {
+    return { exit: true, exitPrice: takeProfit, reason: '止盈触发' };
+  }
+  
+  // 检查时间止损（24小时）
+  const createdTime = new Date(sim.created_at);
+  const now = new Date();
+  const hoursDiff = (now - createdTime) / (1000 * 60 * 60);
+  
+  if (hoursDiff > 24) {
+    return { exit: true, exitPrice: currentPrice, reason: '时间止损' };
+  }
+  
+  return { exit: false };
+}
+
+// 计算盈亏的函数
+function calculateProfitLoss(sim, exitPrice) {
+  const entryPrice = parseFloat(sim.entry_price);
+  const direction = sim.direction;
+  
+  if (direction === 'LONG') {
+    return exitPrice - entryPrice;
+  } else {
+    return entryPrice - exitPrice;
+  }
+}
+
+// 获取当前价格的函数
+async function getCurrentPrice(symbol) {
+  try {
+    // 使用Binance API获取价格
+    const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+    const data = await response.json();
+    return parseFloat(data.price);
+  } catch (error) {
+    console.error(`获取 ${symbol} 价格失败:`, error);
+    return null;
+  }
+}
+
 // 启动服务器
 app.listen(port, () => {
   console.log(`🚀 增强真实策略服务器运行在 http://localhost:${port}`);
@@ -1549,4 +1677,19 @@ app.listen(port, () => {
   console.log(`✅ 集成实时价格数据和文档符合的评分机制`);
   console.log(`🔧 已添加模拟交易历史API接口支持`);
   console.log(`📈 已添加交易对管理相关API接口支持`);
+  console.log(`🔄 已添加模拟交易状态自动更新机制`);
+  
+  // 启动定期更新模拟交易状态的任务
+  setInterval(async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/simulation/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const result = await response.json();
+      console.log(`🔄 定期更新模拟交易状态: ${result.message}`);
+    } catch (error) {
+      console.error('❌ 定期更新模拟交易状态失败:', error);
+    }
+  }, 5 * 60 * 1000); // 每5分钟更新一次
 });
