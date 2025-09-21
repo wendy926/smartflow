@@ -205,13 +205,20 @@ async function analyzeICTStrategy(symbol) {
  * 模拟V3策略分析 - 基于strategy-v3.md逻辑
  */
 function simulateV3Analysis(symbol, currentPrice) {
-  // 模拟4H趋势过滤10分打分
+  // 模拟4H趋势过滤10分打分 - 调整概率分布，增加有效信号的概率
   const trend4hScore = Math.floor(Math.random() * 11); // 0-10分
   const trend4h = trend4hScore >= STRATEGY_CONFIG.v3.trend4h.scoreThreshold ? 
     (Math.random() > 0.5 ? '多头趋势' : '空头趋势') : '震荡市';
   
-  // 模拟1H多因子打分6分制
-  const hourlyScore = trend4h !== '震荡市' ? Math.floor(Math.random() * 7) : 0; // 0-6分
+  // 模拟1H多因子打分6分制 - 调整概率分布，增加≥3分的概率
+  let hourlyScore = 0;
+  if (trend4h !== '震荡市') {
+    // 使用加权随机，增加高分概率：30%概率≥3分，70%概率0-2分
+    hourlyScore = Math.random() < 0.3 ? 
+      Math.floor(Math.random() * 4) + 3 : // 3-6分
+      Math.floor(Math.random() * 3); // 0-2分
+  }
+  
   const signal = hourlyScore >= STRATEGY_CONFIG.v3.hourly.scoreThreshold ? 
     (trend4h === '多头趋势' ? '做多' : '做空') : '观望';
 
@@ -254,8 +261,16 @@ function simulateV3Analysis(symbol, currentPrice) {
  * 模拟ICT策略分析 - 基于ict.md逻辑
  */
 function simulateICTAnalysis(symbol, currentPrice) {
-  // 模拟1D趋势判断3分制
-  const dailyTrendScore = Math.floor(Math.random() * 4); // 0-3分
+  // 模拟1D趋势判断3分制 - 调整概率分布，增加有效信号的概率
+  let dailyTrendScore = Math.floor(Math.random() * 4); // 0-3分
+  
+  // 使用加权随机，增加≥2分的概率：40%概率≥2分，60%概率0-1分
+  if (Math.random() < 0.4) {
+    dailyTrendScore = Math.floor(Math.random() * 2) + 2; // 2-3分
+  } else {
+    dailyTrendScore = Math.floor(Math.random() * 2); // 0-1分
+  }
+  
   const dailyTrend = dailyTrendScore >= STRATEGY_CONFIG.ict.dailyTrendThreshold ? 
     (Math.random() > 0.5 ? 'up' : 'down') : 'sideways';
 
