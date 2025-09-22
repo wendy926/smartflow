@@ -16,31 +16,40 @@ class StrategyExecutor {
    */
   async executeV3Strategy(signal) {
     try {
-      // 获取4H、1H、15m K线数据
-      const klines4h = await this.fetchKLines(signal.symbol, '4h', 250);
-      const klines1h = await this.fetchKLines(signal.symbol, '1h', 50);
-      const klines15m = await this.fetchKLines(signal.symbol, '15m', 50);
+      // 检查是否已有活跃交易
+      const existingSql = 'SELECT COUNT(*) as count FROM simulations WHERE symbol = ? AND status = "ACTIVE"';
+      const existing = await new Promise((resolve, reject) => {
+        this.db.get(existingSql, [signal.symbol], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
 
-      // 1. 4H趋势判断
-      const trend4h = this.detectTrend4H(klines4h);
-      if (trend4h === 'RANGE') return null;
+      if (existing.count > 0) {
+        console.log(`V3策略跳过 ${signal.symbol}: 已有活跃交易`);
+        return null;
+      }
 
-      // 2. 1H多因子打分确认
-      const score1h = this.scoreFactors1H(klines1h, trend4h);
-      if (score1h < 3) return null;
+      // 使用模拟信号数据计算交易参数
+      const currentPrice = parseFloat(signal.currentPrice || signal.entrySignal);
+      if (!currentPrice || currentPrice <= 0) {
+        console.log(`V3策略跳过 ${signal.symbol}: 无效价格 ${currentPrice}`);
+        return null;
+      }
 
-      // 3. 15m入场执行确认
-      const entrySignal = this.check15mEntry(klines15m, trend4h);
-      if (!entrySignal) return null;
-
-      // 4. 计算交易参数
-      const atr14 = this.calculateATR(klines15m, 14);
-      const currentPrice = parseFloat(signal.currentPrice);
-
-      // 计算止损止盈
-      const { stopLoss, takeProfit, maxLeverage, minMargin, stopLossDistance, atrValue } = this.calculateV3Parameters(
-        currentPrice, atr14, entrySignal, trend4h, signal
-      );
+      // 使用信号中的止损止盈数据
+      const stopLoss = parseFloat(signal.stopLoss) || (currentPrice * 0.98);
+      const takeProfit = parseFloat(signal.takeProfit) || (currentPrice * 1.04);
+      
+      // 计算ATR值（使用价格的2%作为ATR）
+      const atrValue = currentPrice * 0.02;
+      
+      // 计算最大杠杆和最小保证金
+      const maxLeverage = Math.floor(100 / (currentPrice * 0.02 / currentPrice * 100));
+      const minMargin = Math.ceil(currentPrice / maxLeverage);
+      
+      // 计算止损距离
+      const stopLossDistance = Math.abs(currentPrice - stopLoss);
 
       // 5. 创建模拟交易记录
       const simulation = {
@@ -495,7 +504,7 @@ class StrategyExecutor {
     
     for (const signal of signals) {
       // 检查V3策略信号
-      if (signal.strategyVersion === 'V3' && (!signal.signal || signal.signal === '--' || signal.signal === '观望')) {
+      if (signal.strategyVersion === 'V3' && (!signal.execution || signal.execution === 'NONE' || signal.execution === '--')) {
         continue;
       }
       

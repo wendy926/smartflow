@@ -213,8 +213,8 @@ function simulateV3Analysis(symbol, currentPrice) {
   // 模拟1H多因子打分6分制 - 调整概率分布，增加≥3分的概率
   let hourlyScore = 0;
   if (trend4h !== '震荡市') {
-    // 使用加权随机，增加高分概率：30%概率≥3分，70%概率0-2分
-    hourlyScore = Math.random() < 0.3 ? 
+    // 使用加权随机，增加高分概率：50%概率≥3分，50%概率0-2分
+    hourlyScore = Math.random() < 0.5 ? 
       Math.floor(Math.random() * 4) + 3 : // 3-6分
       Math.floor(Math.random() * 3); // 0-2分
   }
@@ -1195,8 +1195,8 @@ app.get('/api/simulation-history-paginated', (req, res) => {
       pageSize: parseInt(pageSize),
       total: mockSimulations.length,
       totalPages: Math.ceil(mockSimulations.length / pageSize)
-      }
-    });
+    }
+  });
   } catch (error) {
     console.error('获取分页模拟交易历史失败:', error);
     res.status(500).json({ 
