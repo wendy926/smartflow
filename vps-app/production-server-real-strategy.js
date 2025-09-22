@@ -261,6 +261,181 @@ app.get('/api/getUpdateTimes', (req, res) => {
 /**
  * 获取模拟交易历史（兼容现有接口）
  */
+app.get('/api/simulation-history', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    
+    // 从现有simulations表获取数据
+    const sql = `
+      SELECT 
+        id, symbol, strategy_type, direction, entry_price, stop_loss_price, take_profit_price,
+        max_leverage, min_margin, stop_loss_distance, atr_value, trigger_reason, execution_mode,
+        status, exit_price, exit_reason, profit_loss, is_win, created_at, closed_at
+      FROM simulations 
+      ORDER BY created_at DESC 
+      LIMIT ?
+    `;
+    
+    db.all(sql, [limit], (err, rows) => {
+      if (err) {
+        console.error('❌ 查询模拟交易历史失败:', err.message);
+        res.json([]); // 返回空数组，避免前端错误
+        return;
+      }
+      
+      const simulations = rows.map(row => ({
+        id: row.id,
+        symbol: row.symbol,
+        strategy_type: row.strategy_type || 'V3',
+        direction: row.direction,
+        entry_price: row.entry_price,
+        stop_loss_price: row.stop_loss_price,
+        take_profit_price: row.take_profit_price,
+        max_leverage: row.max_leverage,
+        min_margin: row.min_margin,
+        stop_loss_distance: row.stop_loss_distance,
+        atr_value: row.atr_value,
+        trigger_reason: row.trigger_reason,
+        execution_mode: row.execution_mode,
+        status: row.status,
+        exit_price: row.exit_price,
+        exit_reason: row.exit_reason,
+        profit_loss: row.profit_loss,
+        is_win: row.is_win,
+        created_at: row.created_at,
+        closed_at: row.closed_at,
+        // 兼容前端期望的字段名
+        signal_type: row.strategy_type || 'V3',
+        pnl: row.profit_loss,
+        entryPrice: row.entry_price,
+        stopLoss: row.stop_loss_price,
+        takeProfit: row.take_profit_price
+      }));
+      
+      // 直接返回数组，兼容前端期望格式
+      res.json(simulations);
+    });
+    
+  } catch (error) {
+    console.error('❌ 获取模拟交易历史失败:', error.message);
+    res.json([]); // 返回空数组，避免前端错误
+  }
+});
+
+/**
+ * 获取分页模拟交易历史（兼容现有接口）
+ */
+app.get('/api/simulation-history-paginated', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 20;
+    const offset = (page - 1) * pageSize;
+    
+    // 获取总数
+    const countSql = 'SELECT COUNT(*) as total FROM simulations';
+    
+    db.get(countSql, [], (err, countResult) => {
+      if (err) {
+        console.error('❌ 查询模拟交易总数失败:', err.message);
+        res.json({
+          simulations: [],
+          pagination: {
+            currentPage: page,
+            pageSize: pageSize,
+            totalPages: 0,
+            totalCount: 0
+          }
+        });
+        return;
+      }
+      
+      const totalCount = countResult.total;
+      const totalPages = Math.ceil(totalCount / pageSize);
+      
+      // 获取分页数据
+      const sql = `
+        SELECT 
+          id, symbol, strategy_type, direction, entry_price, stop_loss_price, take_profit_price,
+          max_leverage, min_margin, stop_loss_distance, atr_value, trigger_reason, execution_mode,
+          status, exit_price, exit_reason, profit_loss, is_win, created_at, closed_at
+        FROM simulations 
+        ORDER BY created_at DESC 
+        LIMIT ? OFFSET ?
+      `;
+      
+      db.all(sql, [pageSize, offset], (err, rows) => {
+        if (err) {
+          console.error('❌ 查询分页模拟交易历史失败:', err.message);
+          res.json({
+            simulations: [],
+            pagination: {
+              currentPage: page,
+              pageSize: pageSize,
+              totalPages: 0,
+              totalCount: 0
+            }
+          });
+          return;
+        }
+        
+        const simulations = rows.map(row => ({
+          id: row.id,
+          symbol: row.symbol,
+          strategy_type: row.strategy_type || 'V3',
+          direction: row.direction,
+          entry_price: row.entry_price,
+          stop_loss_price: row.stop_loss_price,
+          take_profit_price: row.take_profit_price,
+          max_leverage: row.max_leverage,
+          min_margin: row.min_margin,
+          stop_loss_distance: row.stop_loss_distance,
+          atr_value: row.atr_value,
+          trigger_reason: row.trigger_reason,
+          execution_mode: row.execution_mode,
+          status: row.status,
+          exit_price: row.exit_price,
+          exit_reason: row.exit_reason,
+          profit_loss: row.profit_loss,
+          is_win: row.is_win,
+          created_at: row.created_at,
+          closed_at: row.closed_at,
+          // 兼容前端期望的字段名
+          signal_type: row.strategy_type || 'V3',
+          pnl: row.profit_loss,
+          entryPrice: row.entry_price,
+          stopLoss: row.stop_loss_price,
+          takeProfit: row.take_profit_price
+        }));
+        
+        res.json({
+          simulations: simulations,
+          pagination: {
+            currentPage: page,
+            pageSize: pageSize,
+            totalPages: totalPages,
+            totalCount: totalCount
+          }
+        });
+      });
+    });
+    
+  } catch (error) {
+    console.error('❌ 获取分页模拟交易历史失败:', error.message);
+    res.json({
+      simulations: [],
+      pagination: {
+        currentPage: 1,
+        pageSize: 20,
+        totalPages: 0,
+        totalCount: 0
+      }
+    });
+  }
+});
+
+/**
+ * 获取统一模拟交易历史（兼容现有接口）
+ */
 app.get('/api/unified-simulations/history', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
