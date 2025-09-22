@@ -30,7 +30,7 @@ module.exports = {
   },
 
   // 测试超时
-  testTimeout: 30000,
+  testTimeout: 5000,
 
   // 模块路径映射
   moduleNameMapper: {
@@ -46,8 +46,12 @@ module.exports = {
   restoreMocks: true,
 
   // 详细输出
-  verbose: true,
+  verbose: false,
 
-  // 并行测试
-  maxWorkers: 2
+  // 并行测试 - 单进程避免内存问题
+  maxWorkers: 1,
+  
+  // 检测未关闭的句柄
+  detectOpenHandles: true,
+  forceExit: true
 };
