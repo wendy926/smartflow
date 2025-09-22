@@ -192,3 +192,27 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn()
 };
+
+// 清理函数
+const cleanup = () => {
+  // 清理所有定时器
+  jest.clearAllTimers();
+  
+  // 清理所有模拟
+  jest.clearAllMocks();
+  
+  // 强制垃圾回收
+  if (global.gc) {
+    global.gc();
+  }
+};
+
+// 在每个测试后清理
+afterEach(() => {
+  cleanup();
+});
+
+// 在所有测试后清理
+afterAll(() => {
+  cleanup();
+});

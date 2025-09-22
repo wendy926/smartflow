@@ -114,6 +114,18 @@ app.use((err, req, res, next) => {
 });
 
 describe('API接口测试', () => {
+  // 在每个测试前清理
+  beforeEach(() => {
+    jest.clearAllMocks();
+    if (global.gc) global.gc();
+  });
+
+  // 在每个测试后清理
+  afterEach(() => {
+    jest.clearAllMocks();
+    if (global.gc) global.gc();
+  });
+
   describe('健康检查接口', () => {
     test('GET /api/v1/health 应该返回系统状态', async () => {
       // Act
