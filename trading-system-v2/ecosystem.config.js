@@ -5,8 +5,8 @@ module.exports = {
       script: './src/main.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '120M',
-      node_args: '--max-old-space-size=120 --expose-gc',
+      max_memory_restart: '60M',
+      node_args: '--max-old-space-size=60',
       env: {
         NODE_ENV: 'production',
         MEMORY_LIMIT: '120',
@@ -22,8 +22,8 @@ module.exports = {
       script: './src/workers/strategy-worker.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '150M',
-      node_args: '--max-old-space-size=150 --expose-gc',
+      max_memory_restart: '80M',
+      node_args: '--max-old-space-size=80',
       cron_restart: '*/5 * * * *',
       env: {
         NODE_ENV: 'production',
@@ -41,8 +41,8 @@ module.exports = {
       script: './src/workers/data-cleaner.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '50M',
-      node_args: '--max-old-space-size=50 --expose-gc',
+      max_memory_restart: '30M',
+      node_args: '--max-old-space-size=30',
       cron_restart: '0 2 * * *',
       env: {
         NODE_ENV: 'production',
@@ -58,8 +58,8 @@ module.exports = {
       script: './src/workers/monitor.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '30M',
-      node_args: '--max-old-space-size=30 --expose-gc',
+      max_memory_restart: '20M',
+      node_args: '--max-old-space-size=20',
       env: {
         NODE_ENV: 'production',
         MEMORY_LIMIT: '30'

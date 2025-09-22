@@ -38,6 +38,6 @@ module.exports = {
   
   // 内存优化
   testEnvironmentOptions: {
-    NODE_OPTIONS: '--max-old-space-size=256 --expose-gc'
+    NODE_OPTIONS: '--max-old-space-size=256'
   }
 };
