@@ -16,17 +16,17 @@ class StrategyExecutor {
    */
   async executeV3Strategy(signal) {
     try {
-      // 检查是否已有活跃交易
-      const existingSql = 'SELECT COUNT(*) as count FROM simulations WHERE symbol = ? AND status = "ACTIVE"';
+      // 检查是否已有V3策略的活跃交易（只检查同策略类型）
+      const existingSql = 'SELECT COUNT(*) as count FROM simulations WHERE symbol = ? AND strategy_type = ? AND status = "ACTIVE"';
       const existing = await new Promise((resolve, reject) => {
-        this.db.get(existingSql, [signal.symbol], (err, row) => {
+        this.db.get(existingSql, [signal.symbol, 'V3'], (err, row) => {
           if (err) reject(err);
           else resolve(row);
         });
       });
 
       if (existing.count > 0) {
-        console.log(`V3策略跳过 ${signal.symbol}: 已有活跃交易`);
+        console.log(`V3策略跳过 ${signal.symbol}: 已有V3策略活跃交易`);
         return null;
       }
 
@@ -85,17 +85,17 @@ class StrategyExecutor {
         return null;
       }
 
-      // 检查是否已有活跃交易
-      const existingSql = 'SELECT COUNT(*) as count FROM simulations WHERE symbol = ? AND status = "ACTIVE"';
+      // 检查是否已有ICT策略的活跃交易（只检查同策略类型）
+      const existingSql = 'SELECT COUNT(*) as count FROM simulations WHERE symbol = ? AND strategy_type = ? AND status = "ACTIVE"';
       const existing = await new Promise((resolve, reject) => {
-        this.db.get(existingSql, [signal.symbol], (err, row) => {
+        this.db.get(existingSql, [signal.symbol, 'ICT'], (err, row) => {
           if (err) reject(err);
           else resolve(row);
         });
       });
 
       if (existing.count > 0) {
-        console.log(`ICT策略跳过 ${signal.symbol}: 已有活跃交易`);
+        console.log(`ICT策略跳过 ${signal.symbol}: 已有ICT策略活跃交易`);
         return null;
       }
 
