@@ -114,7 +114,7 @@ data/exports/
 data/temp/
 
 # Cache files
-cache/
+# cache/  # 注释掉，允许src/cache/目录
 *.cache
 
 # Test files
