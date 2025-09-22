@@ -102,46 +102,113 @@ class SimulationDataManager {
     // 确保stats存在
     if (!stats) {
       console.warn('统计数据不完整:', stats);
-      // 设置默认值
-      document.getElementById('overallWinRate').textContent = '--';
-      document.getElementById('overallProfitLoss').textContent = '--';
-      document.getElementById('totalTrades').textContent = '0';
-      document.getElementById('completedTrades').textContent = '0';
-      document.getElementById('winningTrades').textContent = '0';
-      document.getElementById('losingTrades').textContent = '0';
+      this.setDefaultStats();
       return;
     }
 
-    // 整体统计
-    document.getElementById('overallWinRate').textContent =
-      stats.win_rate ? `${stats.win_rate.toFixed(2)}%` : '--';
+    // 计算V3和ICT策略的分别统计
+    const v3Stats = this.calculateStrategyStats('V3');
+    const ictStats = this.calculateStrategyStats('ICT');
+    const overallStats = this.calculateOverallStats();
 
-    document.getElementById('overallProfitLoss').textContent =
-      stats.net_profit ? `${stats.net_profit.toFixed(4)} USDT` : '--';
+    // 更新V3策略统计
+    this.updateV3Stats(v3Stats);
 
-    // 总交易数（所有交易）- 使用allSimulations的长度
-    document.getElementById('totalTrades').textContent =
-      this.allSimulations ? this.allSimulations.length : '0';
+    // 更新ICT策略统计
+    this.updateICTStats(ictStats);
 
-    // 已完成交易数（已平仓的交易）- 使用统计API的数据
-    document.getElementById('completedTrades').textContent =
-      stats.total_trades || '0';
+    // 更新整体统计
+    this.updateOverallStats(overallStats);
+  }
 
-    document.getElementById('winningTrades').textContent =
-      stats.winning_trades || '0';
+  calculateStrategyStats(strategyType) {
+    const strategySimulations = this.allSimulations.filter(sim => sim.strategyType === strategyType);
+    const completedSimulations = strategySimulations.filter(sim => sim.status === 'CLOSED');
+    const winningSimulations = completedSimulations.filter(sim => sim.isWin === true);
+    const losingSimulations = completedSimulations.filter(sim => sim.isWin === false);
+    
+    const totalTrades = strategySimulations.length;
+    const completedTrades = completedSimulations.length;
+    const winningTrades = winningSimulations.length;
+    const losingTrades = losingSimulations.length;
+    
+    const winRate = completedTrades > 0 ? (winningTrades / completedTrades) * 100 : 0;
+    const netProfit = completedSimulations.reduce((sum, sim) => sum + (sim.profitLoss || 0), 0);
 
-    document.getElementById('losingTrades').textContent =
-      stats.losing_trades || '0';
+    return {
+      totalTrades,
+      completedTrades,
+      winningTrades,
+      losingTrades,
+      winRate,
+      netProfit
+    };
+  }
 
-    // 设置盈亏颜色
-    const profitLossElement = document.getElementById('overallProfitLoss');
-    if (stats.net_profit > 0) {
-      profitLossElement.className = 'stat-value positive';
-    } else if (stats.net_profit < 0) {
-      profitLossElement.className = 'stat-value negative';
-    } else {
-      profitLossElement.className = 'stat-value neutral';
-    }
+  calculateOverallStats() {
+    const completedSimulations = this.allSimulations.filter(sim => sim.status === 'CLOSED');
+    const winningSimulations = completedSimulations.filter(sim => sim.isWin === true);
+    const losingSimulations = completedSimulations.filter(sim => sim.isWin === false);
+    
+    const totalTrades = this.allSimulations.length;
+    const completedTrades = completedSimulations.length;
+    const winningTrades = winningSimulations.length;
+    const losingTrades = losingSimulations.length;
+    
+    const winRate = completedTrades > 0 ? (winningTrades / completedTrades) * 100 : 0;
+    const netProfit = completedSimulations.reduce((sum, sim) => sum + (sim.profitLoss || 0), 0);
+
+    return {
+      totalTrades,
+      completedTrades,
+      winningTrades,
+      losingTrades,
+      winRate,
+      netProfit
+    };
+  }
+
+  updateV3Stats(stats) {
+    document.getElementById('v3WinRate').textContent = `${stats.winRate.toFixed(2)}%`;
+    document.getElementById('v3ProfitLoss').textContent = `${stats.netProfit.toFixed(4)} USDT`;
+    document.getElementById('v3TotalTrades').textContent = stats.totalTrades.toString();
+    document.getElementById('v3CompletedTrades').textContent = stats.completedTrades.toString();
+    document.getElementById('v3WinningTrades').textContent = stats.winningTrades.toString();
+    document.getElementById('v3LosingTrades').textContent = stats.losingTrades.toString();
+  }
+
+  updateICTStats(stats) {
+    document.getElementById('ictWinRate').textContent = `${stats.winRate.toFixed(2)}%`;
+    document.getElementById('ictProfitLoss').textContent = `${stats.netProfit.toFixed(4)} USDT`;
+    document.getElementById('ictTotalTrades').textContent = stats.totalTrades.toString();
+    document.getElementById('ictCompletedTrades').textContent = stats.completedTrades.toString();
+    document.getElementById('ictWinningTrades').textContent = stats.winningTrades.toString();
+    document.getElementById('ictLosingTrades').textContent = stats.losingTrades.toString();
+  }
+
+  updateOverallStats(stats) {
+    document.getElementById('overallWinRate').textContent = `${stats.winRate.toFixed(2)}%`;
+    document.getElementById('overallProfitLoss').textContent = `${stats.netProfit.toFixed(4)} USDT`;
+    document.getElementById('totalTrades').textContent = stats.totalTrades.toString();
+    document.getElementById('completedTrades').textContent = stats.completedTrades.toString();
+    document.getElementById('winningTrades').textContent = stats.winningTrades.toString();
+    document.getElementById('losingTrades').textContent = stats.losingTrades.toString();
+  }
+
+  setDefaultStats() {
+    // 设置默认值
+    const elements = [
+      'v3WinRate', 'v3ProfitLoss', 'v3TotalTrades', 'v3CompletedTrades', 'v3WinningTrades', 'v3LosingTrades',
+      'ictWinRate', 'ictProfitLoss', 'ictTotalTrades', 'ictCompletedTrades', 'ictWinningTrades', 'ictLosingTrades',
+      'overallWinRate', 'overallProfitLoss', 'totalTrades', 'completedTrades', 'winningTrades', 'losingTrades'
+    ];
+    
+    elements.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = id.includes('WinRate') || id.includes('ProfitLoss') ? '--' : '0';
+      }
+    });
   }
 
   updateDirectionStats(directionStats) {

@@ -533,7 +533,78 @@
                 <button class="filter-btn" data-strategy="ict">ICT策略</button>
             </div>
 
+            <!-- V3策略统计 -->
+            <h2 class="section-title">📊 V3策略统计</h2>
+            <div class="stats-grid" id="v3Stats">
+                <div class="stat-card">
+                    <h3>📈 V3胜率</h3>
+                    <div id="v3WinRate" class="stat-value neutral">--</div>
+                    <div class="stat-label">V3策略已完成交易胜率</div>
+                </div>
+                <div class="stat-card">
+                    <h3>💰 V3盈亏</h3>
+                    <div id="v3ProfitLoss" class="stat-value neutral">--</div>
+                    <div class="stat-label">V3策略累计盈亏金额 (USDT)</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📊 V3总交易数</h3>
+                    <div id="v3TotalTrades" class="stat-value neutral">--</div>
+                    <div class="stat-label">V3策略总交易数量</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📊 V3已完成交易数</h3>
+                    <div id="v3CompletedTrades" class="stat-value neutral">--</div>
+                    <div class="stat-label">V3策略已完成交易数量</div>
+                </div>
+                <div class="stat-card">
+                    <h3>🎯 V3盈利交易</h3>
+                    <div id="v3WinningTrades" class="stat-value positive">--</div>
+                    <div class="stat-label">V3策略盈利交易数量</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📉 V3亏损交易</h3>
+                    <div id="v3LosingTrades" class="stat-value negative">--</div>
+                    <div class="stat-label">V3策略亏损交易数量</div>
+                </div>
+            </div>
+
+            <!-- ICT策略统计 -->
+            <h2 class="section-title">📊 ICT策略统计</h2>
+            <div class="stats-grid" id="ictStats">
+                <div class="stat-card">
+                    <h3>📈 ICT胜率</h3>
+                    <div id="ictWinRate" class="stat-value neutral">--</div>
+                    <div class="stat-label">ICT策略已完成交易胜率</div>
+                </div>
+                <div class="stat-card">
+                    <h3>💰 ICT盈亏</h3>
+                    <div id="ictProfitLoss" class="stat-value neutral">--</div>
+                    <div class="stat-label">ICT策略累计盈亏金额 (USDT)</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📊 ICT总交易数</h3>
+                    <div id="ictTotalTrades" class="stat-value neutral">--</div>
+                    <div class="stat-label">ICT策略总交易数量</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📊 ICT已完成交易数</h3>
+                    <div id="ictCompletedTrades" class="stat-value neutral">--</div>
+                    <div class="stat-label">ICT策略已完成交易数量</div>
+                </div>
+                <div class="stat-card">
+                    <h3>🎯 ICT盈利交易</h3>
+                    <div id="ictWinningTrades" class="stat-value positive">--</div>
+                    <div class="stat-label">ICT策略盈利交易数量</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📉 ICT亏损交易</h3>
+                    <div id="ictLosingTrades" class="stat-value negative">--</div>
+                    <div class="stat-label">ICT策略亏损交易数量</div>
+                </div>
+            </div>
+
             <!-- 整体统计 -->
+            <h2 class="section-title">📊 整体统计</h2>
             <div class="stats-grid" id="overallStats">
                 <div class="stat-card">
                     <h3>📈 整体胜率</h3>
@@ -730,7 +801,7 @@
     <script src="js/api.js?v=20250109-11"></script>
     <script src="js/components/Modal.js?v=20250109-11"></script>
     <script src="js/data/DataManager.js?v=20250109-11"></script>
-    <script src="js/simulation-data.js?v=20250119-field-fix"></script>
+    <script src="js/simulation-data.js?v=20250122-strategy-stats"></script>
 </body>
 
 </html>
