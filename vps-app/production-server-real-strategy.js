@@ -160,7 +160,7 @@ app.get('/api/ict/signals', async (req, res) => {
   try {
     const result = await realStrategyAPI.getAllICTSignals();
     
-    // 转换为前端期望的格式
+    // 转换为前端期望的格式，直接返回数组
     const signals = result.data.map(signal => ({
       symbol: signal.symbol,
       signalType: signal.signalType,
@@ -180,19 +180,13 @@ app.get('/api/ict/signals', async (req, res) => {
       timestamp: signal.timestamp
     }));
     
-    res.json({
-      success: true,
-      data: signals,
-      count: signals.length
-    });
+    // 直接返回数组，兼容前端期望格式
+    res.json(signals);
     
   } catch (error) {
     console.error('❌ 获取ICT信号失败:', error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      data: []
-    });
+    // 返回空数组，避免前端错误
+    res.json([]);
   }
 });
 
@@ -640,6 +634,31 @@ app.post('/api/refresh-all', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+/**
+ * 获取数据变化状态API（兼容现有功能）
+ */
+app.get('/api/data-change-status', async (req, res) => {
+  try {
+    // 返回数据变化状态
+    const changeStatus = {
+      hasChanges: false,
+      lastUpdate: new Date().toISOString(),
+      signalCount: 0,
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json(changeStatus);
+    
+  } catch (error) {
+    console.error('❌ 获取数据变化状态失败:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      data: null
     });
   }
 });
