@@ -371,7 +371,7 @@ class DatabaseOperations {
     try {
       const strategyUpper = strategy.toUpperCase();
       const limitNum = Number(limit);
-      
+
       let query = `
         SELECT st.*, s.symbol 
         FROM simulation_trades st 

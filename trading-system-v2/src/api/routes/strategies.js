@@ -163,33 +163,49 @@ router.get('/v3/judgments', async (req, res) => {
   try {
     const { limit = 10, symbol } = req.query;
 
-    // 这里应该从数据库获取历史判断记录
-    // 暂时返回模拟数据
-    const mockJudgments = [
-      {
-        id: 1,
-        symbol: symbol || 'BTCUSDT',
-        timeframe: '4H',
-        trend: 'UP',
-        signal: 'BUY',
-        confidence: 0.85,
-        score: 8.5,
-        factors: {
-          ma20: 45230,
-          adx: 28.5,
-          bbw: 0.12,
-          vwap: 45180,
-          oiChange: 5.2,
-          funding: 0.01
-        },
-        timestamp: new Date().toISOString()
+    // 获取所有活跃的交易对
+    const symbols = await getDbOps().getAllSymbols();
+    const activeSymbols = symbols.filter(s => s.status === 'ACTIVE');
+    
+    const results = [];
+    
+    // 为每个交易对执行V3策略
+    for (const sym of activeSymbols.slice(0, parseInt(limit))) {
+      try {
+        const result = await v3Strategy.execute(sym.symbol);
+        results.push({
+          id: sym.id,
+          symbol: sym.symbol,
+          timeframe: '4H',
+          trend: result.timeframes?.trend4H || 'RANGE',
+          signal: result.signal || 'HOLD',
+          confidence: result.confidence || 0,
+          score: result.score || 0,
+          factors: result.timeframes?.factors1H || {},
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        logger.error(`V3 strategy error for ${sym.symbol}:`, error);
+        // 添加错误记录
+        results.push({
+          id: sym.id,
+          symbol: sym.symbol,
+          timeframe: '4H',
+          trend: 'ERROR',
+          signal: 'ERROR',
+          confidence: 0,
+          score: 0,
+          factors: {},
+          timestamp: new Date().toISOString(),
+          error: error.message
+        });
       }
-    ];
+    }
 
     res.json({
       success: true,
-      data: mockJudgments.slice(0, parseInt(limit)),
-      count: mockJudgments.length,
+      data: results,
+      count: results.length,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -209,26 +225,49 @@ router.get('/ict/judgments', async (req, res) => {
   try {
     const { limit = 10, symbol } = req.query;
 
-    // 这里应该从数据库获取历史判断记录
-    // 暂时返回模拟数据
-    const mockJudgments = [
-      {
-        id: 1,
-        symbol: symbol || 'BTCUSDT',
-        timeframe: '1D',
-        trend: 'DOWN',
-        signal: 'SELL',
-        confidence: 0.72,
-        score: 7.2,
-        reasons: ['订单块检测', '流动性扫荡', '吞没形态'],
-        timestamp: new Date().toISOString()
+    // 获取所有活跃的交易对
+    const symbols = await getDbOps().getAllSymbols();
+    const activeSymbols = symbols.filter(s => s.status === 'ACTIVE');
+    
+    const results = [];
+    
+    // 为每个交易对执行ICT策略
+    for (const sym of activeSymbols.slice(0, parseInt(limit))) {
+      try {
+        const result = await ictStrategy.execute(sym.symbol);
+        results.push({
+          id: sym.id,
+          symbol: sym.symbol,
+          timeframe: '1D',
+          trend: result.timeframes?.trend1D || 'RANGE',
+          signal: result.signal || 'HOLD',
+          confidence: result.confidence || 0,
+          score: result.score || 0,
+          reasons: result.reasons || [],
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        logger.error(`ICT strategy error for ${sym.symbol}:`, error);
+        // 添加错误记录
+        results.push({
+          id: sym.id,
+          symbol: sym.symbol,
+          timeframe: '1D',
+          trend: 'ERROR',
+          signal: 'ERROR',
+          confidence: 0,
+          score: 0,
+          reasons: [],
+          timestamp: new Date().toISOString(),
+          error: error.message
+        });
       }
-    ];
+    }
 
     res.json({
       success: true,
-      data: mockJudgments.slice(0, parseInt(limit)),
-      count: mockJudgments.length,
+      data: results,
+      count: results.length,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
