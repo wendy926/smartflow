@@ -125,8 +125,12 @@ class DataUpdater {
    */
   async updateSymbolInDatabase(symbol, data) {
     try {
-      const connection = await this.database.getConnection();
+      // 使用数据库操作模块
+      const DatabaseOperations = require('../database/operations');
+      const dbOps = DatabaseOperations;
       
+      // 直接使用SQL更新
+      const connection = await dbOps.getConnection();
       await connection.execute(
         `UPDATE symbols 
          SET last_price = ?, 
