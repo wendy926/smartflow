@@ -47,6 +47,9 @@ const mockAxios = {
 
 jest.mock('axios', () => mockAxios);
 
+// 导入axios用于测试
+const axios = require('axios');
+
 jest.mock('ws', () => {
   return jest.fn().mockImplementation(() => ({
     on: jest.fn(),
