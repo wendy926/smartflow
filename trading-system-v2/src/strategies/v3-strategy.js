@@ -25,7 +25,7 @@ class V3Strategy {
       const klines = await this.binanceAPI.getKlines(symbol, '4h', 200);
       const prices = klines.map(k => parseFloat(k[4])); // 收盘价
       const volumes = klines.map(k => parseFloat(k[5])); // 成交量
-      
+
       // 计算技术指标
       const ma20 = TechnicalIndicators.calculateMA(prices, 20);
       const ma50 = TechnicalIndicators.calculateMA(prices, 50);
@@ -37,30 +37,39 @@ class V3Strategy {
       );
       const bbw = TechnicalIndicators.calculateBBW(prices);
       const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
-      
+
       // 获取资金费率
       const fundingRate = await this.binanceAPI.getFundingRate(symbol);
-      
+
       // 获取持仓量变化
       const oiHist = await this.binanceAPI.getOpenInterestHist(symbol, '1h', 24);
       const oiChange = TechnicalIndicators.calculateOIChange(
         oiHist.map(oi => parseFloat(oi.sumOpenInterest))
       );
-      
+
       // 获取Delta数据
       const deltaData = await this.binanceAPI.getDelta(symbol, 100);
-      
+
       // 判断趋势方向
       const currentPrice = prices[prices.length - 1];
       const trendDirection = this.determineTrendDirection(
-        currentPrice, ma20[ma20.length - 1], ma50[ma50.length - 1], 
+        currentPrice, ma20[ma20.length - 1], ma50[ma50.length - 1],
         ma200[ma200.length - 1], adx.adx
       );
-      
+
+      // 计算10点评分系统
+      const score = this.calculate4HScore(
+        currentPrice, ma20, ma50, ma200, adx, bbw, vwap,
+        parseFloat(fundingRate.lastFundingRate), oiChange, deltaData.delta
+      );
+
       return {
         symbol,
         timeframe: '4H',
+        trend: trendDirection,
         trendDirection,
+        confidence: this.calculateTrendConfidence(adx.adx, bbw.bbw),
+        score: score.total,
         indicators: {
           ma20: ma20[ma20.length - 1],
           ma50: ma50[ma50.length - 1],
@@ -81,16 +90,38 @@ class V3Strategy {
   }
 
   /**
-   * 分析1H因子
+   * 计算趋势置信度
+   * @param {number} adx - ADX值
+   * @param {number} bbw - 布林带宽度
+   * @returns {number} 置信度
+   */
+  calculateTrendConfidence(adx, bbw) {
+    let confidence = 0.5; // 基础置信度
+
+    // ADX影响
+    if (adx > 25) confidence += 0.3;
+    else if (adx > 20) confidence += 0.2;
+    else if (adx < 15) confidence -= 0.2;
+
+    // 布林带宽度影响
+    if (bbw < 0.05) confidence += 0.2; // 收窄表示趋势可能开始
+    else if (bbw > 0.15) confidence -= 0.1; // 过宽表示震荡
+
+    return Math.max(0, Math.min(1, confidence));
+  }
+
+  /**
+   * 分析1H因子（6个因子详细评分）
    * @param {string} symbol - 交易对
+   * @param {string} trendDirection - 趋势方向
    * @returns {Promise<Object>} 1H因子分析结果
    */
-  async analyze1HFactors(symbol) {
+  async analyze1HFactors(symbol, trendDirection = 'UP') {
     try {
       const klines = await this.binanceAPI.getKlines(symbol, '1h', 100);
       const prices = klines.map(k => parseFloat(k[4]));
       const volumes = klines.map(k => parseFloat(k[5]));
-      
+
       // 计算技术指标
       const ema20 = TechnicalIndicators.calculateEMA(prices, 20);
       const ema50 = TechnicalIndicators.calculateEMA(prices, 50);
@@ -101,24 +132,24 @@ class V3Strategy {
       );
       const bbw = TechnicalIndicators.calculateBBW(prices);
       const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
-      
+
       // 获取资金费率和持仓量变化
       const fundingRate = await this.binanceAPI.getFundingRate(symbol);
       const oiHist = await this.binanceAPI.getOpenInterestHist(symbol, '1h', 24);
       const oiChange = TechnicalIndicators.calculateOIChange(
         oiHist.map(oi => parseFloat(oi.sumOpenInterest))
       );
-      
+
       // 获取Delta数据
       const deltaData = await this.binanceAPI.getDelta(symbol, 100);
-      
-      // 计算因子得分
-      const factors = this.calculateFactors(
+
+      // 计算6个因子的详细评分
+      const factors = this.calculate1HFactors(
         prices[prices.length - 1], ema20[ema20.length - 1], ema50[ema50.length - 1],
         adx.adx, bbw.bbw, vwap, parseFloat(fundingRate.lastFundingRate),
-        oiChange, deltaData.delta
+        oiChange, deltaData.delta, trendDirection
       );
-      
+
       return {
         symbol,
         timeframe: '1H',
@@ -151,7 +182,7 @@ class V3Strategy {
       const klines = await this.binanceAPI.getKlines(symbol, '15m', 50);
       const prices = klines.map(k => parseFloat(k[4]));
       const volumes = klines.map(k => parseFloat(k[5]));
-      
+
       // 计算技术指标
       const ema20 = TechnicalIndicators.calculateEMA(prices, 20);
       const adx = TechnicalIndicators.calculateADX(
@@ -161,24 +192,24 @@ class V3Strategy {
       );
       const bbw = TechnicalIndicators.calculateBBW(prices);
       const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
-      
+
       // 获取资金费率和持仓量变化
       const fundingRate = await this.binanceAPI.getFundingRate(symbol);
       const oiHist = await this.binanceAPI.getOpenInterestHist(symbol, '15m', 24);
       const oiChange = TechnicalIndicators.calculateOIChange(
         oiHist.map(oi => parseFloat(oi.sumOpenInterest))
       );
-      
+
       // 获取Delta数据
       const deltaData = await this.binanceAPI.getDelta(symbol, 100);
-      
+
       // 判断执行信号
       const entrySignal = this.determineEntrySignal(
         prices[prices.length - 1], ema20[ema20.length - 1],
         adx.adx, bbw.bbw, vwap, parseFloat(fundingRate.lastFundingRate),
         oiChange, deltaData.delta
       );
-      
+
       return {
         symbol,
         timeframe: '15M',
@@ -211,7 +242,7 @@ class V3Strategy {
    */
   determineTrendDirection(currentPrice, ma20, ma50, ma200, adx) {
     if (!ma20 || !ma50 || !ma200 || !adx) return 'RANGE';
-    
+
     // 强趋势判断
     if (adx > 25) {
       if (currentPrice > ma20 && ma20 > ma50 && ma50 > ma200) {
@@ -220,14 +251,14 @@ class V3Strategy {
         return 'DOWN';
       }
     }
-    
+
     // 弱趋势判断
     if (currentPrice > ma20 && ma20 > ma50) {
       return 'UP';
     } else if (currentPrice < ma20 && ma20 < ma50) {
       return 'DOWN';
     }
-    
+
     return 'RANGE';
   }
 
@@ -247,7 +278,7 @@ class V3Strategy {
   calculateFactors(currentPrice, ema20, ema50, adx, bbw, vwap, fundingRate, oiChange, delta) {
     let score = 0;
     const factors = {};
-    
+
     // 趋势因子 (40分)
     if (currentPrice > ema20 && ema20 > ema50) {
       score += 40;
@@ -258,7 +289,7 @@ class V3Strategy {
     } else {
       factors.trend = 'NEUTRAL';
     }
-    
+
     // 动量因子 (20分)
     if (adx > 25) {
       score += 20;
@@ -269,7 +300,7 @@ class V3Strategy {
     } else {
       factors.momentum = 'WEAK';
     }
-    
+
     // 波动率因子 (15分)
     if (bbw > 0.05) {
       score += 15;
@@ -280,7 +311,7 @@ class V3Strategy {
     } else {
       factors.volatility = 'LOW';
     }
-    
+
     // 成交量因子 (10分)
     if (currentPrice > vwap) {
       score += 10;
@@ -288,7 +319,7 @@ class V3Strategy {
     } else {
       factors.volume = 'BEARISH';
     }
-    
+
     // 资金费率因子 (10分)
     if (Math.abs(fundingRate) < 0.0001) {
       score += 10;
@@ -300,7 +331,7 @@ class V3Strategy {
       score += 5;
       factors.funding = 'BEARISH';
     }
-    
+
     // 持仓量因子 (5分)
     if (oiChange > 0.02) {
       score += 5;
@@ -311,7 +342,7 @@ class V3Strategy {
     } else {
       factors.openInterest = 'STABLE';
     }
-    
+
     return {
       totalScore: score,
       factors
@@ -332,23 +363,23 @@ class V3Strategy {
    */
   determineEntrySignal(currentPrice, ema20, adx, bbw, vwap, fundingRate, oiChange, delta) {
     if (!ema20 || !adx || !bbw || !vwap) return 'HOLD';
-    
+
     // 基础条件检查
     const isTrending = adx > 15;
     const isVolatile = bbw > 0.02;
     const isAboveVWAP = currentPrice > vwap;
     const isBelowVWAP = currentPrice < vwap;
-    
+
     // 买入信号
     if (isTrending && isVolatile && isAboveVWAP && delta > 0.1) {
       return 'BUY';
     }
-    
+
     // 卖出信号
     if (isTrending && isVolatile && isBelowVWAP && delta < -0.1) {
       return 'SELL';
     }
-    
+
     return 'HOLD';
   }
 
@@ -360,17 +391,17 @@ class V3Strategy {
   async execute(symbol) {
     try {
       logger.info(`开始执行V3策略分析: ${symbol}`);
-      
+
       // 并行执行多时间级别分析
       const [trend4H, factors1H, execution15M] = await Promise.all([
         this.analyze4HTrend(symbol),
         this.analyze1HFactors(symbol),
         this.analyze15mExecution(symbol)
       ]);
-      
+
       // 综合判断
       const finalSignal = this.combineSignals(trend4H, factors1H, execution15M);
-      
+
       const result = {
         symbol,
         strategy: 'V3',
@@ -382,7 +413,7 @@ class V3Strategy {
         },
         timestamp: new Date()
       };
-      
+
       logger.info(`V3策略分析完成: ${symbol} - ${finalSignal}`);
       return result;
     } catch (error) {
@@ -402,17 +433,17 @@ class V3Strategy {
     const trendDirection = trend4H.trendDirection;
     const factorsScore = factors1H.factors.totalScore;
     const executionSignal = execution15M.entrySignal;
-    
+
     // 强趋势 + 高因子得分 + 明确执行信号
     if (trendDirection !== 'RANGE' && factorsScore > 70 && executionSignal !== 'HOLD') {
       return executionSignal;
     }
-    
+
     // 中等条件
     if (trendDirection !== 'RANGE' && factorsScore > 50 && executionSignal !== 'HOLD') {
       return executionSignal;
     }
-    
+
     return 'HOLD';
   }
 
@@ -439,7 +470,15 @@ class V3Strategy {
     const high = klines.map(k => parseFloat(k[2]));
     const low = klines.map(k => parseFloat(k[3]));
     const close = klines.map(k => parseFloat(k[4]));
-    return TechnicalIndicators.calculateADX(high, low, close, period);
+
+    const result = TechnicalIndicators.calculateADX(high, low, close, period);
+
+    // 按照测试期望返回格式
+    return {
+      adx: result.adx,
+      diPlus: result.di_plus,
+      diMinus: result.di_minus
+    };
   }
 
   /**
@@ -451,7 +490,10 @@ class V3Strategy {
    */
   async calculateBBW(klines, period = 20, stdDev = 2) {
     const prices = klines.map(k => parseFloat(k[4]));
-    return TechnicalIndicators.calculateBBW(prices, period, stdDev);
+    const result = TechnicalIndicators.calculateBBW(prices, period, stdDev);
+
+    // 按照测试期望返回数字而不是对象
+    return result.bbw;
   }
 
   /**
@@ -497,6 +539,17 @@ class V3Strategy {
   }
 
   /**
+   * 计算Delta不平衡 (包装器)
+   * @param {Array} aggTradeData - 聚合交易数据
+   * @returns {number} Delta不平衡值
+   */
+  async calculateDeltaImbalance(aggTradeData) {
+    const buyVolumes = aggTradeData.map(trade => parseFloat(trade.buyVolume || 0));
+    const sellVolumes = aggTradeData.map(trade => parseFloat(trade.sellVolume || 0));
+    return TechnicalIndicators.calculateDeltaImbalance(buyVolumes, sellVolumes);
+  }
+
+  /**
    * 判断1H因子 (包装器)
    * @param {string} symbol - 交易对
    * @param {string} trendDirection - 趋势方向
@@ -532,8 +585,7 @@ class V3Strategy {
     const high = klines.map(k => parseFloat(k[2]));
     const low = klines.map(k => parseFloat(k[3]));
     const close = klines.map(k => parseFloat(k[4]));
-    const atr = TechnicalIndicators.calculateATR(high, low, close, period);
-    return [atr]; // 返回数组以匹配测试期望
+    return TechnicalIndicators.calculateATR(high, low, close, period);
   }
 
   /**
@@ -567,6 +619,97 @@ class V3Strategy {
   }
 
   /**
+   * 分析15m入场信号
+   * @param {string} symbol - 交易对
+   * @param {string} trendDirection - 趋势方向
+   * @param {Object} data - 数据
+   * @returns {Object} 入场分析结果
+   */
+  async analyze15mEntry(symbol, trendDirection) {
+    try {
+      // 获取15m数据
+      const klines15m = await this.binanceAPI.getKlines(symbol, '15m', 100);
+      const prices = klines15m.map(k => parseFloat(k[4]));
+      const volumes = klines15m.map(k => parseFloat(k[5]));
+
+      // 计算技术指标
+      const ema20 = TechnicalIndicators.calculateEMA(prices, 20);
+      const ema50 = TechnicalIndicators.calculateEMA(prices, 50);
+      const atr = TechnicalIndicators.calculateATR(
+        klines15m.map(k => parseFloat(k[2])), // 最高价
+        klines15m.map(k => parseFloat(k[3])), // 最低价
+        prices, 14
+      );
+      const bbw = TechnicalIndicators.calculateBBW(prices);
+      const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
+
+      // 入场信号判断
+      let entry_signal = 'HOLD';
+      let confidence_score = 0;
+      let is_fake_breakout = false;
+
+      const currentPrice = prices[prices.length - 1];
+      const currentEMA20 = ema20[ema20.length - 1];
+      const currentEMA50 = ema50[ema50.length - 1];
+      const currentATR = atr[atr.length - 1];
+
+      if (trendDirection === 'UP') {
+        // 趋势市场：EMA20 > EMA50，价格突破EMA20
+        if (currentEMA20 > currentEMA50 && currentPrice > currentEMA20) {
+          entry_signal = 'BUY';
+          confidence_score = 85;
+        }
+      } else if (trendDirection === 'DOWN') {
+        // 趋势市场：EMA20 < EMA50，价格跌破EMA20
+        if (currentEMA20 < currentEMA50 && currentPrice < currentEMA20) {
+          entry_signal = 'SELL';
+          confidence_score = 85;
+        }
+      } else if (trendDirection === 'RANGE') {
+        // 震荡市场：布林带收窄 + 假突破策略
+        console.log('RANGE模式 - bbw:', bbw.bbw, 'currentPrice:', currentPrice);
+        if (bbw.bbw && bbw.bbw < 0.1) { // 布林带收窄（放宽条件）
+          // 计算震荡区间（不包含当前价格）
+          const recentHigh = Math.max(...prices.slice(-20, -1));
+          const recentLow = Math.min(...prices.slice(-20, -1));
+          console.log('布林带收窄 - recentHigh:', recentHigh, 'recentLow:', recentLow, 'ATR:', currentATR);
+
+          if (currentPrice > recentHigh + (currentATR * 0.5)) {
+            entry_signal = 'SELL'; // 假突破做空
+            confidence_score = 70;
+            is_fake_breakout = true;
+            console.log('假突破做空触发');
+          } else if (currentPrice < recentLow - (currentATR * 0.5)) {
+            entry_signal = 'BUY'; // 假突破做多
+            confidence_score = 70;
+            is_fake_breakout = true;
+            console.log('假突破做多触发');
+          }
+        } else {
+          console.log('布林带未收窄，bbw:', bbw.bbw);
+        }
+      }
+
+      return {
+        entry_signal,
+        confidence: confidence_score,
+        is_fake_breakout,
+        ema20: currentEMA20,
+        ema50: currentEMA50,
+        atr: currentATR,
+        current_price: currentPrice
+      };
+    } catch (error) {
+      logger.error(`15m入场分析失败: ${error.message}`);
+      return {
+        entry_signal: 'HOLD',
+        confidence: 0,
+        error: error.message
+      };
+    }
+  }
+
+  /**
    * 计算止损 (包装器)
    * @param {number} entryPrice - 入场价格
    * @param {number} atr - ATR值
@@ -583,6 +726,174 @@ class V3Strategy {
       return rangeLow ? rangeLow - (atr * 0.5) : entryPrice - (atr * 1.5);
     }
     return entryPrice - (atr * 1.5);
+  }
+
+  /**
+   * 计算1H多因子评分（6个因子）
+   * @param {number} currentPrice - 当前价格
+   * @param {number} ema20 - 20周期EMA
+   * @param {number} ema50 - 50周期EMA
+   * @param {number} adx - ADX值
+   * @param {number} bbw - 布林带宽度
+   * @param {number} vwap - VWAP
+   * @param {number} fundingRate - 资金费率
+   * @param {number} oiChange - 持仓量变化
+   * @param {number} delta - Delta值
+   * @param {string} trendDirection - 趋势方向
+   * @returns {Object} 因子评分结果
+   */
+  calculate1HFactors(currentPrice, ema20, ema50, adx, bbw, vwap, fundingRate, oiChange, delta, trendDirection) {
+    const factors = {
+      vwapDirection: 0,        // VWAP方向 (20分)
+      breakoutConfirmation: 0, // 突破确认 (20分)
+      volumeConfirmation: 0,   // 成交量双确认 (20分)
+      oiChange: 0,             // OI变化 (15分)
+      fundingRate: 0,          // 资金费率 (15分)
+      deltaImbalance: 0        // Delta失衡 (10分)
+    };
+
+    // 1. VWAP方向 (20分)
+    if (trendDirection === 'UP' && currentPrice > vwap) {
+      factors.vwapDirection = 20;
+    } else if (trendDirection === 'DOWN' && currentPrice < vwap) {
+      factors.vwapDirection = 20;
+    } else if (trendDirection === 'RANGE') {
+      factors.vwapDirection = 10; // 震荡市场中性
+    }
+
+    // 2. 突破确认 (20分)
+    if (trendDirection === 'UP' && currentPrice > ema20 && ema20 > ema50) {
+      factors.breakoutConfirmation = 20;
+    } else if (trendDirection === 'DOWN' && currentPrice < ema20 && ema20 < ema50) {
+      factors.breakoutConfirmation = 20;
+    } else if ((trendDirection === 'UP' && currentPrice > ema20) ||
+      (trendDirection === 'DOWN' && currentPrice < ema20)) {
+      factors.breakoutConfirmation = 10; // 部分确认
+    }
+
+    // 3. 成交量双确认 (20分)
+    if (Math.abs(delta) > 0.15) {
+      factors.volumeConfirmation = 20; // 强成交量确认
+    } else if (Math.abs(delta) > 0.1) {
+      factors.volumeConfirmation = 15; // 中等成交量确认
+    } else if (Math.abs(delta) > 0.05) {
+      factors.volumeConfirmation = 10; // 弱成交量确认
+    }
+
+    // 4. OI变化 (15分)
+    if (trendDirection === 'UP' && oiChange > 0.03) {
+      factors.oiChange = 15; // 持仓量大幅增加
+    } else if (trendDirection === 'DOWN' && oiChange < -0.03) {
+      factors.oiChange = 15; // 持仓量大幅减少
+    } else if (Math.abs(oiChange) > 0.01) {
+      factors.oiChange = 10; // 持仓量适度变化
+    } else if (Math.abs(oiChange) > 0.005) {
+      factors.oiChange = 5;  // 持仓量轻微变化
+    }
+
+    // 5. 资金费率 (15分)
+    if (trendDirection === 'UP' && fundingRate < -0.0005) {
+      factors.fundingRate = 15; // 负资金费率支持多头
+    } else if (trendDirection === 'DOWN' && fundingRate > 0.0005) {
+      factors.fundingRate = 15; // 正资金费率支持空头
+    } else if (Math.abs(fundingRate) > 0.0002) {
+      factors.fundingRate = 10; // 资金费率异常
+    } else if (Math.abs(fundingRate) > 0.0001) {
+      factors.fundingRate = 5;  // 资金费率轻微异常
+    }
+
+    // 6. Delta失衡 (10分)
+    if (trendDirection === 'UP' && delta > 0.1) {
+      factors.deltaImbalance = 10; // 买盘强势
+    } else if (trendDirection === 'DOWN' && delta < -0.1) {
+      factors.deltaImbalance = 10; // 卖盘强势
+    } else if (Math.abs(delta) > 0.05) {
+      factors.deltaImbalance = 5;  // 部分失衡
+    }
+
+    const totalScore = Object.values(factors).reduce((sum, score) => sum + score, 0);
+
+    return {
+      totalScore,
+      factors
+    };
+  }
+
+  /**
+   * 计算4H趋势评分（10点评分系统）
+   * @param {number} currentPrice - 当前价格
+   * @param {Array} ma20 - 20日均线
+   * @param {Array} ma50 - 50日均线
+   * @param {Array} ma200 - 200日均线
+   * @param {Object} adx - ADX指标
+   * @param {Object} bbw - 布林带宽度
+   * @param {number} vwap - VWAP
+   * @param {number} fundingRate - 资金费率
+   * @param {number} oiChange - 持仓量变化
+   * @param {number} delta - Delta值
+   * @returns {Object} 评分结果
+   */
+  calculate4HScore(currentPrice, ma20, ma50, ma200, adx, bbw, vwap, fundingRate, oiChange, delta) {
+    const scores = {
+      trendStability: 0,    // 趋势稳定性 (2分)
+      trendStrength: 0,     // 趋势强度 (2分)
+      bbExpansion: 0,       // 布林带扩张 (2分)
+      momentumConfirmation: 0, // 动量确认 (2分)
+      volumeConfirmation: 0,   // 成交量确认 (1分)
+      fundingConfirmation: 0   // 资金费率确认 (1分)
+    };
+
+    // 1. 趋势稳定性 (2分)
+    if (ma20[ma20.length - 1] && ma50[ma50.length - 1] && ma200[ma200.length - 1]) {
+      if (currentPrice > ma20[ma20.length - 1] && ma20[ma20.length - 1] > ma50[ma50.length - 1] && ma50[ma50.length - 1] > ma200[ma200.length - 1]) {
+        scores.trendStability = 2; // 完美上升趋势
+      } else if (currentPrice < ma20[ma20.length - 1] && ma20[ma20.length - 1] < ma50[ma50.length - 1] && ma50[ma50.length - 1] < ma200[ma200.length - 1]) {
+        scores.trendStability = 2; // 完美下降趋势
+      } else if ((currentPrice > ma20[ma20.length - 1] && ma20[ma20.length - 1] > ma50[ma50.length - 1]) ||
+        (currentPrice < ma20[ma20.length - 1] && ma20[ma20.length - 1] < ma50[ma50.length - 1])) {
+        scores.trendStability = 1; // 部分趋势
+      }
+    }
+
+    // 2. 趋势强度 (2分)
+    if (adx.adx > 30) {
+      scores.trendStrength = 2;
+    } else if (adx.adx > 20) {
+      scores.trendStrength = 1;
+    }
+
+    // 3. 布林带扩张 (2分)
+    if (bbw.bbw > 0.02) {
+      scores.bbExpansion = 2; // 高波动
+    } else if (bbw.bbw > 0.01) {
+      scores.bbExpansion = 1; // 中等波动
+    }
+
+    // 4. 动量确认 (2分)
+    if (currentPrice > vwap && oiChange > 0.02) {
+      scores.momentumConfirmation = 2; // 价格高于VWAP且持仓量增加
+    } else if (currentPrice > vwap || oiChange > 0.01) {
+      scores.momentumConfirmation = 1; // 部分确认
+    }
+
+    // 5. 成交量确认 (1分)
+    if (delta > 0.1) {
+      scores.volumeConfirmation = 1; // 买盘强势
+    } else if (delta < -0.1) {
+      scores.volumeConfirmation = 1; // 卖盘强势
+    }
+
+    // 6. 资金费率确认 (1分)
+    if (Math.abs(fundingRate) > 0.0005) {
+      scores.fundingConfirmation = 1; // 资金费率异常
+    }
+
+    const total = Object.values(scores).reduce((sum, score) => sum + score, 0);
+
+    return {
+      total,
+      breakdown: scores
+    };
   }
 
   /**

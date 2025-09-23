@@ -40,10 +40,10 @@ class TechnicalIndicators {
    */
   static calculateEMA(prices, period) {
     if (prices.length === 0) return [];
-    
+
     const multiplier = 2 / (period + 1);
     const ema = [];
-    
+
     // 第一个值使用SMA
     if (prices.length >= period) {
       const sma = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
@@ -51,13 +51,13 @@ class TechnicalIndicators {
     } else {
       ema.push(prices[0]);
     }
-    
+
     // 计算后续EMA值
     for (let i = 1; i < prices.length; i++) {
       const emaValue = (prices[i] * multiplier) + (ema[i - 1] * (1 - multiplier));
       ema.push(emaValue);
     }
-    
+
     return ema;
   }
 
@@ -80,10 +80,10 @@ class TechnicalIndicators {
 
     // 计算平滑的TR, DM+, DM-
     const atr = this.calculateSmoothed(tr, period);
-    const di_plus = this.calculateSmoothed(dm_plus, period).map((val, i) => 
+    const di_plus = this.calculateSmoothed(dm_plus, period).map((val, i) =>
       atr[i] > 0 ? (val / atr[i]) * 100 : 0
     );
-    const di_minus = this.calculateSmoothed(dm_minus, period).map((val, i) => 
+    const di_minus = this.calculateSmoothed(dm_minus, period).map((val, i) =>
       atr[i] > 0 ? (val / atr[i]) * 100 : 0
     );
 
@@ -126,11 +126,11 @@ class TechnicalIndicators {
       const mean = ma[i];
       const variance = slice.reduce((acc, price) => acc + Math.pow(price - mean, 2), 0) / period;
       const std = Math.sqrt(variance);
-      
+
       const upperBand = mean + (std * stdDev);
       const lowerBand = mean - (std * stdDev);
       const width = (upperBand - lowerBand) / mean;
-      
+
       bbw.push(width);
       upper.push(upperBand);
       lower.push(lowerBand);
@@ -179,7 +179,7 @@ class TechnicalIndicators {
 
     const current = openInterest[openInterest.length - 1];
     const previous = openInterest[openInterest.length - 1 - period];
-    
+
     return previous > 0 ? (current - previous) / previous : null;
   }
 
@@ -202,6 +202,24 @@ class TechnicalIndicators {
   }
 
   /**
+   * 计算Delta不平衡
+   * @param {Array} buyVolumes - 买入成交量数组
+   * @param {Array} sellVolumes - 卖出成交量数组
+   * @returns {number} Delta不平衡值
+   */
+  static calculateDeltaImbalance(buyVolumes, sellVolumes) {
+    if (buyVolumes.length !== sellVolumes.length || buyVolumes.length === 0) {
+      return null;
+    }
+
+    const totalBuy = buyVolumes.reduce((sum, vol) => sum + vol, 0);
+    const totalSell = sellVolumes.reduce((sum, vol) => sum + vol, 0);
+    const totalVolume = totalBuy + totalSell;
+
+    return totalVolume > 0 ? (totalBuy - totalSell) / totalVolume : null;
+  }
+
+  /**
    * 计算ATR (Average True Range)
    * @param {Array} high - 最高价数组
    * @param {Array} low - 最低价数组
@@ -211,13 +229,13 @@ class TechnicalIndicators {
    */
   static calculateATR(high, low, close, period = 14) {
     if (high.length < period + 1) {
-      return null;
+      return new Array(high.length).fill(null);
     }
 
     const tr = this.calculateTrueRange(high, low, close);
     const atr = this.calculateSmoothed(tr, period);
-    
-    return atr[atr.length - 1];
+
+    return atr;
   }
 
   /**
@@ -234,9 +252,9 @@ class TechnicalIndicators {
     const ma200 = this.calculateMA(prices, maPeriod);
     const currentPrice = prices[prices.length - 1];
     const currentMA = ma200[ma200.length - 1];
-    
+
     const priceChange = (currentPrice - currentMA) / currentMA;
-    
+
     if (priceChange > 0.02) return 'UP';
     if (priceChange < -0.02) return 'DOWN';
     return 'RANGE';
@@ -251,7 +269,7 @@ class TechnicalIndicators {
    */
   static calculateTrueRange(high, low, close) {
     const tr = [];
-    
+
     for (let i = 0; i < high.length; i++) {
       if (i === 0) {
         tr.push(high[i] - low[i]);
@@ -262,7 +280,7 @@ class TechnicalIndicators {
         tr.push(Math.max(hl, hc, lc));
       }
     }
-    
+
     return tr;
   }
 
@@ -274,14 +292,14 @@ class TechnicalIndicators {
    */
   static calculateDMPlus(high, low) {
     const dm_plus = [];
-    
+
     for (let i = 0; i < high.length; i++) {
       if (i === 0) {
         dm_plus.push(0);
       } else {
         const highDiff = high[i] - high[i - 1];
         const lowDiff = low[i - 1] - low[i];
-        
+
         if (highDiff > lowDiff && highDiff > 0) {
           dm_plus.push(highDiff);
         } else {
@@ -289,7 +307,7 @@ class TechnicalIndicators {
         }
       }
     }
-    
+
     return dm_plus;
   }
 
@@ -301,14 +319,14 @@ class TechnicalIndicators {
    */
   static calculateDMMinus(high, low) {
     const dm_minus = [];
-    
+
     for (let i = 0; i < high.length; i++) {
       if (i === 0) {
         dm_minus.push(0);
       } else {
         const highDiff = high[i] - high[i - 1];
         const lowDiff = low[i - 1] - low[i];
-        
+
         if (lowDiff > highDiff && lowDiff > 0) {
           dm_minus.push(lowDiff);
         } else {
@@ -316,7 +334,7 @@ class TechnicalIndicators {
         }
       }
     }
-    
+
     return dm_minus;
   }
 
@@ -328,7 +346,7 @@ class TechnicalIndicators {
    */
   static calculateSmoothed(values, period) {
     const smoothed = [];
-    
+
     for (let i = 0; i < values.length; i++) {
       if (i < period - 1) {
         smoothed.push(null);
@@ -342,7 +360,7 @@ class TechnicalIndicators {
         smoothed.push(smoothedValue);
       }
     }
-    
+
     return smoothed;
   }
 
@@ -365,15 +383,15 @@ class TechnicalIndicators {
     const currClose = close[open.length - 1];
 
     // 看涨吞没
-    if (prevClose < prevOpen && currClose > currOpen && 
-        currOpen < prevClose && currClose > prevOpen) {
+    if (prevClose < prevOpen && currClose > currOpen &&
+      currOpen < prevClose && currClose > prevOpen) {
       const confidence = Math.min(100, Math.abs(currClose - currOpen) / Math.abs(prevClose - prevOpen) * 50);
       return { isEngulfing: true, type: 'BULLISH', confidence };
     }
 
     // 看跌吞没
-    if (prevClose > prevOpen && currClose < currOpen && 
-        currOpen > prevClose && currClose < prevOpen) {
+    if (prevClose > prevOpen && currClose < currOpen &&
+      currOpen > prevClose && currClose < prevOpen) {
       const confidence = Math.min(100, Math.abs(currClose - currOpen) / Math.abs(prevClose - prevOpen) * 50);
       return { isEngulfing: true, type: 'BEARISH', confidence };
     }

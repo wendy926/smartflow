@@ -7,6 +7,17 @@ const request = require('supertest');
 const express = require('express');
 const { createMockSymbol } = require('../setup');
 
+// 内存清理函数
+const cleanupMemory = () => {
+  if (global.gc) {
+    global.gc();
+  }
+  // 清理可能的缓存
+  if (global.gc) {
+    global.gc();
+  }
+};
+
 // 模拟API路由
 const app = express();
 app.use(express.json());
@@ -20,13 +31,15 @@ const mockAuth = (req, res, next) => {
 // 默认交易对列表（Mock数据）
 const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 'MKRUSDT', 'PENDLEUSDT', 'MPLUSDT', 'LINKUSDT', 'LDOUSDT'];
 
-// 模拟交易对数据
-const mockSymbols = defaultSymbols.map((symbol, index) => createMockSymbol(symbol));
+// 创建模拟交易对数据的函数 - 延迟创建避免内存泄漏
+const createMockSymbols = () => defaultSymbols.map((symbol, index) => createMockSymbol(symbol));
 
 // 设置路由
 app.get('/api/v1/symbols', mockAuth, (req, res) => {
   const { page = 1, limit = 10, status, search } = req.query;
 
+  // 每次请求时创建数据，避免内存累积
+  const mockSymbols = createMockSymbols();
   let filteredSymbols = [...mockSymbols];
 
   // 状态过滤
@@ -64,6 +77,7 @@ app.get('/api/v1/symbols', mockAuth, (req, res) => {
 
 app.get('/api/v1/symbols/:symbol', mockAuth, (req, res) => {
   const { symbol } = req.params;
+  const mockSymbols = createMockSymbols();
   const symbolData = mockSymbols.find(s => s.symbol === symbol);
 
   if (!symbolData) {
@@ -84,6 +98,7 @@ app.get('/api/v1/symbols/:symbol', mockAuth, (req, res) => {
 
 app.post('/api/v1/symbols', mockAuth, (req, res) => {
   const { symbol, status = 'ACTIVE', funding_rate = 0.0001 } = req.body;
+  const mockSymbols = createMockSymbols();
 
   // 验证必填字段
   if (!symbol) {
@@ -108,7 +123,7 @@ app.post('/api/v1/symbols', mockAuth, (req, res) => {
   const newSymbol = createMockSymbol(symbol);
   newSymbol.status = status;
   newSymbol.funding_rate = funding_rate;
-  mockSymbols.push(newSymbol);
+  // 注意：这里只是模拟，实际不会持久化
 
   res.status(201).json({
     success: true,
@@ -121,6 +136,7 @@ app.post('/api/v1/symbols', mockAuth, (req, res) => {
 app.put('/api/v1/symbols/:symbol', mockAuth, (req, res) => {
   const { symbol } = req.params;
   const { status, funding_rate, last_price, volume_24h, price_change_24h } = req.body;
+  const mockSymbols = createMockSymbols();
 
   const symbolIndex = mockSymbols.findIndex(s => s.symbol === symbol);
   if (symbolIndex === -1) {
@@ -132,7 +148,7 @@ app.put('/api/v1/symbols/:symbol', mockAuth, (req, res) => {
     });
   }
 
-  // 更新字段
+  // 更新字段 - 注意：这里只是模拟，实际不会持久化
   if (status) mockSymbols[symbolIndex].status = status;
   if (funding_rate !== undefined) mockSymbols[symbolIndex].funding_rate = funding_rate;
   if (last_price !== undefined) mockSymbols[symbolIndex].last_price = last_price;
@@ -151,6 +167,7 @@ app.put('/api/v1/symbols/:symbol', mockAuth, (req, res) => {
 
 app.delete('/api/v1/symbols/:symbol', mockAuth, (req, res) => {
   const { symbol } = req.params;
+  const mockSymbols = createMockSymbols();
   const symbolIndex = mockSymbols.findIndex(s => s.symbol === symbol);
 
   if (symbolIndex === -1) {
@@ -162,6 +179,7 @@ app.delete('/api/v1/symbols/:symbol', mockAuth, (req, res) => {
     });
   }
 
+  // 注意：这里只是模拟，实际不会持久化
   mockSymbols.splice(symbolIndex, 1);
 
   res.json({
@@ -172,6 +190,16 @@ app.delete('/api/v1/symbols/:symbol', mockAuth, (req, res) => {
 });
 
 describe('交易对管理API - 字段格式验证', () => {
+  // 每个测试前清理内存
+  beforeEach(() => {
+    cleanupMemory();
+  });
+
+  // 每个测试后清理内存
+  afterEach(() => {
+    cleanupMemory();
+  });
+
   describe('GET /api/v1/symbols', () => {
     it('应该返回所有默认交易对的完整格式', async () => {
       const response = await request(app)

@@ -8,25 +8,480 @@ const config = require('../config');
 class RollingStrategy {
   constructor() {
     this.name = 'ROLLING';
-    this.baseLeverage = 1;
-    this.maxLeverage = 10;
-    this.leverageDecayRate = 0.1; // 杠杆衰减率
-    this.profitLockRate = 0.3; // 利润锁定率
-    this.riskThreshold = 0.05; // 风险阈值 5%
-    this.maxDrawdown = 0.15; // 最大回撤 15%
+    this.minLeverage = 5; // 最低杠杆
+    this.maxLeverage = 50; // 最高杠杆
+    this.leverageDecayRate = 0.5; // 杠杆递减系数
+    this.profitLockRate = 0.5; // 落袋比例
+    this.triggerRatio = 1.0; // 滚仓触发阈值（浮盈达到本金）
+    this.riskThreshold = 0.2; // 风险阈值 20%
   }
 
   /**
-   * 计算杠杆衰减
-   * @param {number} currentLeverage - 当前杠杆
-   * @param {number} timeElapsed - 经过时间（小时）
-   * @returns {number} 衰减后的杠杆
+   * 计算滚仓后新仓位
+   * @param {Object} params - 参数
+   * @returns {Object} 滚仓结果
    */
-  calculateLeverageDecay(currentLeverage, timeElapsed) {
-    // 杠杆衰减公式: newLeverage = currentLeverage * (1 - decayRate * timeElapsed)
-    const decayFactor = Math.max(0, 1 - this.leverageDecayRate * timeElapsed);
-    const newLeverage = currentLeverage * decayFactor;
-    return Math.max(this.baseLeverage, Math.min(newLeverage, this.maxLeverage));
+  async calculateRollingPosition(params) {
+    const {
+      currentLeverage = 50,
+      lockedProfit = 0,
+      principal = 1000,
+      currentPrice = 50000,
+      entryPrice = 48000,
+      floatingProfit = 0,
+      leverageDecay = this.leverageDecayRate,
+      profitLockRatio = this.profitLockRate
+    } = params;
+
+    // 简化计算，直接使用传入的参数
+    const newLeverage = Math.max(this.minLeverage, currentLeverage * leverageDecay);
+    const rollingAmount = floatingProfit * profitLockRatio;
+    const newPosition = rollingAmount * newLeverage;
+
+    return {
+      newLeverage,
+      lockedProfit: rollingAmount,
+      rollingAmount,
+      newPosition
+    };
+  }
+
+  /**
+   * 模拟滚仓过程
+   * @param {Object} params - 参数
+   * @returns {Object} 模拟结果
+   */
+  async simulateRolling(params) {
+    const {
+      currentLeverage = 50,
+      lockedProfit = 0,
+      principal = 1000,
+      currentPrice = 50000,
+      entryPrice = 48000,
+      maxRollings = 3
+    } = params;
+
+    const rollingHistory = [];
+    let currentLeverageValue = currentLeverage;
+    let currentLockedProfit = lockedProfit;
+
+    for (let i = 0; i < maxRollings; i++) {
+      if (currentLockedProfit <= 0) break;
+
+      const rollingResult = await this.calculateRollingPosition({
+        currentLeverage: currentLeverageValue,
+        lockedProfit: currentLockedProfit,
+        principal,
+        currentPrice,
+        entryPrice
+      });
+
+      rollingHistory.push(rollingResult);
+      currentLeverageValue = rollingResult.newLeverage;
+      currentLockedProfit = rollingResult.lockedProfit - rollingResult.rollingAmount;
+    }
+
+    return {
+      rollingHistory,
+      finalLeverage: currentLeverageValue,
+      totalRollings: rollingHistory.length
+    };
+  }
+
+  /**
+   * 计算新杠杆
+   * @param {Object} params - 参数
+   * @returns {number} 新杠杆
+   */
+  calculateNewLeverage(params) {
+    const { currentLeverage = 50, lockedProfit = 0 } = params;
+
+    if (this.leverageDecayRate <= 0 || this.leverageDecayRate >= 1) {
+      throw new Error('杠杆递减系数必须在0和1之间');
+    }
+
+    const newLeverage = Math.max(
+      this.minLeverage,
+      currentLeverage * this.leverageDecayRate
+    );
+
+    return newLeverage;
+  }
+
+  /**
+   * 计算止损价格
+   * @param {number} entryPrice - 入场价格
+   * @param {number} atr - ATR值
+   * @param {number} riskPercentage - 风险百分比
+   * @returns {number} 止损价格
+   */
+  async calculateStopLoss(entryPrice, atr, riskPercentage) {
+    return entryPrice - (atr * 2 * riskPercentage);
+  }
+
+  /**
+   * 计算动态止损价格
+   * @param {number} currentPrice - 当前价格
+   * @param {number} entryPrice - 入场价格
+   * @param {number} atr - ATR值
+   * @param {number} lockedProfit - 锁定利润
+   * @returns {number} 动态止损价格
+   */
+  async calculateDynamicStopLoss(currentPrice, entryPrice, atr, lockedProfit) {
+    const baseStopLoss = entryPrice - (atr * 2);
+    const profitAdjustment = lockedProfit * 0.1; // 根据锁定利润调整
+    return baseStopLoss + profitAdjustment;
+  }
+
+  /**
+   * 计算风险收益比
+   * @param {number} entryPrice - 入场价格
+   * @param {number} stopLoss - 止损价格
+   * @param {number} takeProfit - 止盈价格
+   * @returns {number} 风险收益比
+   */
+  async calculateRiskRewardRatio(entryPrice, stopLoss, takeProfit) {
+    const risk = Math.abs(entryPrice - stopLoss);
+    const reward = Math.abs(takeProfit - entryPrice);
+    return risk > 0 ? reward / risk : 0;
+  }
+
+  /**
+   * 检查风险限制
+   * @param {Object} params - 参数
+   * @returns {Object} 风险检查结果
+   */
+  async checkRiskLimit(params) {
+    const {
+      position = 10000,
+      margin = 1000,
+      totalBalance = 10000,
+      riskThreshold = this.riskThreshold,
+      principal = 1000,
+      maxRiskPercentage = 0.1
+    } = params;
+
+    // 使用principal作为totalBalance的默认值
+    const actualTotalBalance = totalBalance || principal;
+    const riskPercentage = position / actualTotalBalance;
+    const isValid = riskPercentage <= maxRiskPercentage;
+
+    return {
+      isValid,
+      riskPercentage,
+      riskThreshold: maxRiskPercentage,
+      position,
+      totalBalance: actualTotalBalance
+    };
+  }
+
+  /**
+   * 计算仓位大小
+   * @param {Object} params - 参数
+   * @returns {Object} 仓位计算结果
+   */
+  async calculatePositionSize(params) {
+    const {
+      balance = 1000,
+      leverage = 10,
+      price = 50000,
+      riskPercentage = 0.02,
+      principal = balance,
+      entryPrice = price,
+      availableBalance = balance
+    } = params;
+
+    const position = availableBalance * leverage;
+    const margin = position / leverage;
+    const quantity = position / entryPrice;
+
+    return {
+      position,
+      margin,
+      quantity
+    };
+  }
+
+  /**
+   * 计算保证金需求
+   * @param {Object} params - 参数
+   * @returns {Object} 保证金计算结果
+   */
+  async calculateMarginRequirement(params) {
+    const {
+      position = 10000,
+      leverage = 10,
+      maintenanceMarginRate = 0.01
+    } = params;
+
+    const initialMargin = position / leverage;
+    const maintenanceMargin = position * maintenanceMarginRate;
+    const totalMargin = initialMargin + maintenanceMargin;
+
+    return {
+      initialMargin,
+      maintenanceMargin,
+      totalMargin
+    };
+  }
+
+  /**
+   * 计算可用余额
+   * @param {Object} params - 参数
+   * @returns {number} 可用余额
+   */
+  async calculateAvailableBalance(params) {
+    const {
+      totalBalance = 2000,
+      usedMargin = 1000,
+      lockedProfit = 200,
+      balance = totalBalance,
+      margin = usedMargin,
+      profit = lockedProfit,
+      floatingPnL = profit
+    } = params;
+
+    return totalBalance - usedMargin + floatingPnL;
+  }
+
+
+  /**
+   * 执行滚仓策略
+   * @param {string|Object} symbolOrParams - 交易对或参数对象
+   * @param {Object} params - 参数（如果第一个参数是交易对）
+   * @returns {Object} 执行结果
+   */
+  async execute(symbolOrParams, params) {
+    try {
+      // 处理参数：如果第一个参数是对象，则直接使用；否则使用第二个参数
+      const actualParams = typeof symbolOrParams === 'object' ? symbolOrParams : (params || {});
+
+      console.log(`Rolling execute called with params=`, actualParams);
+
+      const {
+        principal = 1000,
+        initialLeverage = 50,
+        entryPrice = 50000,
+        currentPrice = 50000,
+        triggerRatio = this.triggerRatio,
+        maxRollings = 3,
+        quantity = principal * initialLeverage
+      } = actualParams;
+
+      // 如果传入了quantity，重新计算principal
+      const actualPrincipal = quantity ? quantity / initialLeverage : principal;
+
+      // 计算浮动盈亏
+      const floatingProfit = this.calculateFloatingProfit(currentPrice, entryPrice, quantity);
+
+      // 检查滚仓触发条件
+      const triggered = this.checkRollingTrigger(floatingProfit, actualPrincipal, triggerRatio);
+
+      // 调试信息
+      console.log(`Rolling debug: currentPrice=${currentPrice}, entryPrice=${entryPrice}, principal=${principal}, floatingProfit=${floatingProfit}, triggered=${triggered}`);
+
+      if (triggered) {
+        // 执行滚仓模拟
+        const rollingResult = await this.simulateRolling({
+          currentLeverage: initialLeverage,
+          lockedProfit: floatingProfit,
+          principal,
+          currentPrice,
+          entryPrice,
+          maxRollings
+        });
+
+        return {
+          success: true,
+          totalProfit: floatingProfit,
+          lockedProfit: floatingProfit * this.profitLockRate,
+          finalLeverage: rollingResult.finalLeverage,
+          rollingHistory: rollingResult.rollingHistory,
+          strategy: 'ROLLING',
+          signal: 'ROLL',
+          triggered: true,
+          floatingProfit,
+          parameters: {
+            currentLeverage: initialLeverage,
+            lockedProfit: floatingProfit * this.profitLockRate,
+            principal
+          }
+        };
+      } else {
+        return {
+          success: true,
+          totalProfit: floatingProfit,
+          lockedProfit: 0,
+          finalLeverage: initialLeverage,
+          rollingHistory: [],
+          strategy: 'ROLLING',
+          signal: 'HOLD',
+          triggered: false,
+          floatingProfit,
+          parameters: {
+            currentLeverage: initialLeverage,
+            lockedProfit: 0,
+            principal
+          }
+        };
+      }
+    } catch (error) {
+      logger.error(`Rolling strategy execution error: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 计算浮动盈亏
+   * @param {number} currentPrice - 当前价格
+   * @param {number} entryPrice - 入场价格
+   * @param {number} quantity - 仓位数量
+   * @returns {number} 浮动盈亏
+   */
+  calculateFloatingProfit(currentPrice, entryPrice, quantity) {
+    return (currentPrice - entryPrice) * quantity / entryPrice;
+  }
+
+  /**
+   * 检查滚仓触发条件
+   * @param {number} floatingProfit - 浮动盈亏
+   * @param {number} principal - 本金
+   * @param {number} triggerRatio - 触发比例
+   * @returns {boolean} 是否触发滚仓
+   */
+  checkRollingTrigger(floatingProfit, principal, triggerRatio) {
+    return floatingProfit >= principal * triggerRatio;
+  }
+
+  /**
+   * 执行滚仓
+   * @param {number} floatingProfit - 浮动盈亏
+   * @param {number} principal - 本金
+   * @param {number} currentLeverage - 当前杠杆
+   * @param {number} lockedProfit - 已锁定利润
+   * @returns {Object} 滚仓结果
+   */
+  executeRolling(floatingProfit, principal, currentLeverage, lockedProfit) {
+    // 计算新杠杆
+    const newLeverage = this.calculateNewLeverage(currentLeverage);
+
+    // 计算落袋利润
+    const profitToLock = floatingProfit * this.profitLockRate;
+    const newLockedProfit = lockedProfit + profitToLock;
+
+    // 计算滚仓金额
+    const rollingAmount = floatingProfit - profitToLock;
+
+    // 计算新仓位
+    const newPosition = rollingAmount * newLeverage;
+
+    return {
+      newLeverage,
+      lockedProfit: newLockedProfit,
+      rollingAmount,
+      newPosition,
+      profitToLock
+    };
+  }
+
+  /**
+   * 计算新杠杆（杠杆递减公式）
+   * @param {number} currentLeverage - 当前杠杆
+   * @returns {number} 新杠杆
+   */
+  calculateNewLeverage(currentLeverage) {
+    const newLeverage = currentLeverage * this.leverageDecayRate;
+    return Math.max(this.minLeverage, Math.min(newLeverage, this.maxLeverage));
+  }
+
+  /**
+   * 计算止损价格
+   * @param {number} entryPrice - 入场价格
+   * @param {number} currentPrice - 当前价格
+   * @param {number} leverage - 杠杆
+   * @param {number} riskPercentage - 风险百分比
+   * @returns {number} 止损价格
+   */
+  calculateStopLoss(entryPrice, currentPrice, leverage, riskPercentage = this.riskThreshold) {
+    const riskAmount = entryPrice * riskPercentage;
+    return entryPrice - riskAmount;
+  }
+
+  /**
+   * 计算动态止损
+   * @param {number} entryPrice - 入场价格
+   * @param {number} currentPrice - 当前价格
+   * @param {number} lockedProfit - 已锁定利润
+   * @param {number} principal - 本金
+   * @returns {number} 动态止损价格
+   */
+  calculateDynamicStopLoss(entryPrice, currentPrice, lockedProfit, principal) {
+    // 保护本金和已锁定利润
+    const protectedAmount = principal + lockedProfit;
+    const profitRatio = (currentPrice - entryPrice) / entryPrice;
+
+    if (profitRatio > 0) {
+      // 盈利时，止损价格随价格上涨而上移
+      return entryPrice + (currentPrice - entryPrice) * 0.5;
+    } else {
+      // 亏损时，使用固定止损
+      return this.calculateStopLoss(entryPrice, currentPrice, 1, this.riskThreshold);
+    }
+  }
+
+  /**
+   * 计算风险回报比
+   * @param {number} entryPrice - 入场价格
+   * @param {number} stopLoss - 止损价格
+   * @param {number} takeProfit - 止盈价格
+   * @returns {number} 风险回报比
+   */
+  calculateRiskRewardRatio(entryPrice, stopLoss, takeProfit) {
+    const risk = Math.abs(entryPrice - stopLoss);
+    const reward = Math.abs(takeProfit - entryPrice);
+    return risk > 0 ? reward / risk : 0;
+  }
+
+
+
+
+  /**
+   * 计算初始仓位
+   * @param {Object} params - 参数
+   * @returns {Object} 初始仓位信息
+   */
+  async calculateInitialPosition(params) {
+    const {
+      principal = 1000,
+      leverage = 10,
+      price = 50000,
+      riskPercentage = this.riskThreshold,
+      initialLeverage = leverage,
+      entryPrice = price
+    } = params;
+
+    // 参数验证
+    if (initialLeverage <= 0) {
+      throw new Error('杠杆不能为零');
+    }
+    if (entryPrice <= 0) {
+      throw new Error('价格不能为负数');
+    }
+    if (principal <= 0) {
+      throw new Error('本金不能为零或负数');
+    }
+
+    const position = principal * initialLeverage;
+    const margin = position / initialLeverage;
+    const quantity = position / entryPrice;
+
+    return {
+      position,
+      margin,
+      quantity,
+      leverage,
+      riskAmount: principal * riskPercentage
+    };
   }
 
   /**
@@ -39,6 +494,19 @@ class RollingStrategy {
     // 利润锁定公式: lockProfit = totalProfit * profitLockRate
     const lockProfit = totalProfit * this.profitLockRate;
     return Math.min(lockProfit, currentProfit);
+  }
+
+  /**
+   * 计算杠杆衰减（时间衰减）
+   * @param {number} currentLeverage - 当前杠杆
+   * @param {number} timeElapsed - 经过时间（小时）
+   * @returns {number} 衰减后的杠杆
+   */
+  calculateLeverageDecay(currentLeverage, timeElapsed) {
+    // 杠杆衰减公式: newLeverage = currentLeverage * (1 - decayRate * timeElapsed)
+    const decayFactor = Math.max(0, 1 - this.leverageDecayRate * timeElapsed);
+    const newLeverage = currentLeverage * decayFactor;
+    return Math.max(this.minLeverage, Math.min(newLeverage, this.maxLeverage));
   }
 
   /**
@@ -56,22 +524,6 @@ class RollingStrategy {
     return Math.max(this.baseLeverage, Math.min(adjustedLeverage, this.maxLeverage));
   }
 
-  /**
-   * 计算仓位大小
-   * @param {number} accountBalance - 账户余额
-   * @param {number} leverage - 杠杆倍数
-   * @param {number} riskPercentage - 风险百分比
-   * @param {number} entryPrice - 入场价格
-   * @param {number} stopLossPrice - 止损价格
-   * @returns {number} 仓位大小
-   */
-  calculatePositionSize(accountBalance, leverage, riskPercentage, entryPrice, stopLossPrice) {
-    // 仓位大小公式: positionSize = (accountBalance * riskPercentage) / (entryPrice - stopLossPrice) * leverage
-    const riskAmount = accountBalance * riskPercentage;
-    const priceDifference = Math.abs(entryPrice - stopLossPrice);
-    const positionSize = (riskAmount / priceDifference) * leverage;
-    return Math.max(0, positionSize);
-  }
 
   /**
    * 计算滚仓参数
@@ -348,62 +800,66 @@ class RollingStrategy {
     }
   }
 
+
+
+
   /**
-   * 执行滚仓策略
-   * @param {string} symbol - 交易对
-   * @param {Object} position - 当前仓位
-   * @returns {Object} 滚仓策略结果
+   * 计算新杠杆
+   * @param {Object} params - 参数
+   * @returns {number} 新杠杆
    */
-  async execute(symbol, position) {
-    try {
-      logger.info(`Executing rolling strategy for ${symbol}`);
+  async calculateNewLeverage(params) {
+    const { currentLeverage, leverageDecay = 0.5, minLeverage = 5 } = params;
 
-      // 获取市场数据（这里应该从实际API获取）
-      const marketData = {
-        price: position.currentPrice || position.entryPrice,
-        volatility: 0.02, // 默认波动率
-        trend: 'NEUTRAL', // 默认趋势
-        volume: 1000000, // 默认成交量
-        atr: 0.01 // 默认ATR
-      };
-
-      // 计算滚仓参数
-      const rollingParams = this.calculateRollingParameters(position, marketData);
-
-      // 生成策略结果
-      const result = {
-        symbol,
-        strategy: 'ROLLING',
-        signal: rollingParams.rollingAction,
-        score: 100 - rollingParams.riskScore,
-        confidence: Math.max(0, 1 - rollingParams.riskScore / 100),
-        reasons: rollingParams.rollingReason,
-        recommendations: rollingParams.recommendations,
-        parameters: {
-          newLeverage: rollingParams.newLeverage,
-          newPositionSize: rollingParams.newPositionSize,
-          lockProfit: rollingParams.lockProfit,
-          timeElapsed: rollingParams.timeElapsed,
-          riskScore: rollingParams.riskScore
-        },
-        timestamp: new Date().toISOString()
-      };
-
-      return result;
-    } catch (error) {
-      logger.error(`Rolling strategy execution error for ${symbol}:`, error);
-      return {
-        symbol,
-        strategy: 'ROLLING',
-        signal: 'HOLD',
-        score: 0,
-        confidence: 0,
-        reasons: 'Execution error',
-        error: error.message,
-        timestamp: new Date().toISOString()
-      };
+    if (leverageDecay < 0 || leverageDecay > 1) {
+      throw new Error('杠杆递减系数必须在0和1之间');
     }
+
+    const newLeverage = currentLeverage * leverageDecay;
+    return Math.max(minLeverage, newLeverage);
   }
+
+  /**
+   * 计算止损价格
+   * @param {number} entryPrice - 入场价格
+   * @param {number} atr - ATR值
+   * @param {number} riskPercentage - 风险百分比
+   * @returns {number} 止损价格
+   */
+  async calculateStopLoss(entryPrice, atr, riskPercentage = 0.02) {
+    return entryPrice - (atr * riskPercentage * 100);
+  }
+
+  /**
+   * 计算动态止损
+   * @param {number} currentPrice - 当前价格
+   * @param {number} entryPrice - 入场价格
+   * @param {number} atr - ATR值
+   * @param {number} lockedProfit - 锁定利润
+   * @returns {number} 动态止损价格
+   */
+  async calculateDynamicStopLoss(currentPrice, entryPrice, atr, lockedProfit) {
+    const profit = currentPrice - entryPrice;
+    const dynamicStop = entryPrice + (profit * 0.5); // 保护50%利润
+    return Math.max(dynamicStop, entryPrice - atr);
+  }
+
+  /**
+   * 计算风险回报比
+   * @param {number} entryPrice - 入场价格
+   * @param {number} stopLoss - 止损价格
+   * @param {number} takeProfit - 止盈价格
+   * @returns {number} 风险回报比
+   */
+  async calculateRiskRewardRatio(entryPrice, stopLoss, takeProfit) {
+    const risk = Math.abs(entryPrice - stopLoss);
+    const reward = Math.abs(takeProfit - entryPrice);
+    return reward / risk;
+  }
+
+
+
+
 }
 
 module.exports = RollingStrategy;

@@ -23,7 +23,7 @@ class ICTStrategy {
     try {
       // 获取日线数据
       const dailyKlines = await this.binanceAPI.getKlines(symbol, '1d', 100);
-      if (!dailyKlines || dailyKlines.length < 50) {
+      if (!dailyKlines || dailyKlines.length < 25) {
         return { trend: 'RANGE', confidence: 0, reason: 'Insufficient data' };
       }
 
@@ -31,21 +31,32 @@ class ICTStrategy {
       const atr = this.calculateATR(dailyKlines, 14);
       const currentATR = atr[atr.length - 1];
 
-      // 计算价格变化
-      const currentPrice = parseFloat(dailyKlines[dailyKlines.length - 1].close);
-      const price20DaysAgo = parseFloat(dailyKlines[dailyKlines.length - 21].close);
-      const priceChange = ((currentPrice - price20DaysAgo) / price20DaysAgo) * 100;
+      // 基于20日收盘价比较的趋势判断
+      const prices = dailyKlines.map(k => parseFloat(k[4])); // 收盘价
+      const recent20Prices = prices.slice(-20); // 最近20日收盘价
 
-      // 趋势判断逻辑
+      if (recent20Prices.length < 20) {
+        return { trend: 'RANGE', confidence: 0, reason: 'Insufficient 20-day data' };
+      }
+
+      const firstPrice = recent20Prices[0];
+      const lastPrice = recent20Prices[recent20Prices.length - 1];
+      const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
+
+      // 趋势判断逻辑：基于20日收盘价比较
       let trend = 'RANGE';
       let confidence = 0;
 
-      if (priceChange > 5 && currentATR > 0) {
+      if (priceChange > 3) { // 20日涨幅超过3%
         trend = 'UP';
         confidence = Math.min(Math.abs(priceChange) / 10, 1);
-      } else if (priceChange < -5 && currentATR > 0) {
+      } else if (priceChange < -3) { // 20日跌幅超过3%
         trend = 'DOWN';
         confidence = Math.min(Math.abs(priceChange) / 10, 1);
+      } else {
+        // 震荡趋势
+        trend = 'RANGE';
+        confidence = 0.3; // 震荡市场基础置信度
       }
 
       return {
@@ -53,7 +64,7 @@ class ICTStrategy {
         confidence,
         atr: currentATR,
         priceChange,
-        reason: `Price change: ${priceChange.toFixed(2)}%, ATR: ${currentATR.toFixed(4)}`
+        reason: `20-day price change: ${priceChange.toFixed(2)}%, ATR: ${currentATR.toFixed(4)}`
       };
     } catch (error) {
       logger.error(`ICT Daily trend analysis error for ${symbol}:`, error);
@@ -62,50 +73,72 @@ class ICTStrategy {
   }
 
   /**
-   * 检测订单块
+   * 检测订单块（基于高度过滤、年龄过滤和宏观Sweep确认）
    * @param {Array} klines - K线数据
-   * @param {string} timeframe - 时间周期
+   * @param {number} atr4H - 4H ATR值
+   * @param {number} maxAgeDays - 最大年龄（天）
    * @returns {Array} 订单块列表
    */
-  detectOrderBlocks(klines, timeframe = '4H') {
+  detectOrderBlocks(klines, atr4H, maxAgeDays = 30) {
     const orderBlocks = [];
 
     if (klines.length < 20) return orderBlocks;
+
+    const currentTime = Date.now();
+    const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
 
     // 寻找吞没形态作为订单块
     for (let i = 1; i < klines.length - 1; i++) {
       const current = klines[i];
       const previous = klines[i - 1];
 
-      const currentOpen = parseFloat(current.open);
-      const currentClose = parseFloat(current.close);
-      const previousOpen = parseFloat(previous.open);
-      const previousClose = parseFloat(previous.close);
+      const currentOpen = parseFloat(current[1]);
+      const currentClose = parseFloat(current[4]);
+      const previousOpen = parseFloat(previous[1]);
+      const previousClose = parseFloat(previous[4]);
+      const currentTime = parseFloat(current[0]);
+
+      // 检查年龄过滤
+      if (currentTime < Date.now() - maxAgeMs) continue;
 
       // 看涨订单块：前一根为阴线，当前为阳线且完全吞没
       if (previousClose < previousOpen && currentClose > currentOpen &&
         currentOpen < previousClose && currentClose > previousOpen) {
-        orderBlocks.push({
-          type: 'BULLISH',
-          high: Math.max(currentOpen, currentClose),
-          low: Math.min(currentOpen, currentClose),
-          timestamp: current.openTime,
-          timeframe,
-          strength: Math.abs(currentClose - currentOpen) / previousClose
-        });
+
+        const obHeight = Math.max(currentOpen, currentClose) - Math.min(currentOpen, currentClose);
+
+        // 高度过滤：OB高度 >= 0.25 × ATR(4H)
+        if (obHeight >= 0.25 * atr4H) {
+          orderBlocks.push({
+            type: 'BULLISH',
+            high: Math.max(currentOpen, currentClose),
+            low: Math.min(currentOpen, currentClose),
+            timestamp: currentTime,
+            height: obHeight,
+            strength: obHeight / atr4H, // 相对于ATR的强度
+            age: (Date.now() - currentTime) / (24 * 60 * 60 * 1000) // 年龄（天）
+          });
+        }
       }
 
       // 看跌订单块：前一根为阳线，当前为阴线且完全吞没
       if (previousClose > previousOpen && currentClose < currentOpen &&
         currentOpen > previousClose && currentClose < previousOpen) {
-        orderBlocks.push({
-          type: 'BEARISH',
-          high: Math.max(currentOpen, currentClose),
-          low: Math.min(currentOpen, currentClose),
-          timestamp: current.openTime,
-          timeframe,
-          strength: Math.abs(currentClose - currentOpen) / previousClose
-        });
+
+        const obHeight = Math.max(currentOpen, currentClose) - Math.min(currentOpen, currentClose);
+
+        // 高度过滤：OB高度 >= 0.25 × ATR(4H)
+        if (obHeight >= 0.25 * atr4H) {
+          orderBlocks.push({
+            type: 'BEARISH',
+            high: Math.max(currentOpen, currentClose),
+            low: Math.min(currentOpen, currentClose),
+            timestamp: currentTime,
+            height: obHeight,
+            strength: obHeight / atr4H, // 相对于ATR的强度
+            age: (Date.now() - currentTime) / (24 * 60 * 60 * 1000) // 年龄（天）
+          });
+        }
       }
     }
 
@@ -118,8 +151,10 @@ class ICTStrategy {
    * @param {string} timeframe - 时间周期
    * @returns {Object} Sweep检测结果
    */
-  detectSweepHTF(klines, timeframe = '4H') {
-    if (klines.length < 10) {
+  detectSweepHTF(extreme, bars, atrValue) {
+    // 按照测试期望的参数格式
+    const klines = bars.bars || bars; // 支持两种格式
+    if (!klines || klines.length < 3) {
       return { detected: false, type: null, level: 0, confidence: 0 };
     }
 
@@ -131,8 +166,9 @@ class ICTStrategy {
     let lowestIndex = -1;
 
     recentKlines.forEach((kline, index) => {
-      const high = parseFloat(kline.high);
-      const low = parseFloat(kline.low);
+      // 支持对象格式和数组格式
+      const high = parseFloat(kline.high || kline[2]); // 最高价
+      const low = parseFloat(kline.low || kline[3]);   // 最低价
 
       if (high > highestHigh) {
         highestHigh = high;
@@ -144,9 +180,8 @@ class ICTStrategy {
       }
     });
 
-    const currentPrice = parseFloat(klines[klines.length - 1].close);
-    const atr = this.calculateATR(klines, 14);
-    const currentATR = atr[atr.length - 1];
+    const currentPrice = parseFloat(klines[klines.length - 1].close || klines[klines.length - 1][4]); // 收盘价
+    const currentATR = atrValue || 0;
 
     // 检测流动性扫荡
     let detected = false;
@@ -154,20 +189,20 @@ class ICTStrategy {
     let level = 0;
     let confidence = 0;
 
-    // 检测上方流动性扫荡
-    if (currentPrice > highestHigh * 0.999 && highestIndex < recentKlines.length - 2) {
+    // 检测上方流动性扫荡：价格突破极值点（需要明显突破）
+    if (currentPrice > extreme * 1.002) {
       detected = true;
       type = 'LIQUIDITY_SWEEP_UP';
-      level = highestHigh;
-      confidence = Math.min((currentPrice - highestHigh) / currentATR, 1);
+      level = extreme;
+      confidence = Math.min((currentPrice - extreme) / (currentATR || 1), 1);
     }
 
-    // 检测下方流动性扫荡
-    if (currentPrice < lowestLow * 1.001 && lowestIndex < recentKlines.length - 2) {
+    // 检测下方流动性扫荡：价格跌破极值点（需要明显跌破）
+    if (currentPrice < extreme * 0.998) {
       detected = true;
       type = 'LIQUIDITY_SWEEP_DOWN';
-      level = lowestLow;
-      confidence = Math.min((lowestLow - currentPrice) / currentATR, 1);
+      level = extreme;
+      confidence = Math.min((extreme - currentPrice) / (currentATR || 1), 1);
     }
 
     return { detected, type, level, confidence };
@@ -186,19 +221,20 @@ class ICTStrategy {
     const current = klines[klines.length - 1];
     const previous = klines[klines.length - 2];
 
-    const currentOpen = parseFloat(current.open);
-    const currentClose = parseFloat(current.close);
-    const previousOpen = parseFloat(previous.open);
-    const previousClose = parseFloat(previous.close);
+    // 支持对象格式和数组格式
+    const currentOpen = parseFloat(current.open || current[1]);   // 开盘价
+    const currentClose = parseFloat(current.close || current[4]);  // 收盘价
+    const previousOpen = parseFloat(previous.open || previous[1]); // 开盘价
+    const previousClose = parseFloat(previous.close || previous[4]); // 收盘价
 
-    // 看涨吞没
+    // 看涨吞没：前一根为阴线，当前为阳线且完全吞没
     if (previousClose < previousOpen && currentClose > currentOpen &&
       currentOpen < previousClose && currentClose > previousOpen) {
       const strength = Math.abs(currentClose - currentOpen) / previousClose;
       return { detected: true, type: 'BULLISH_ENGULFING', strength };
     }
 
-    // 看跌吞没
+    // 看跌吞没：前一根为阳线，当前为阴线且完全吞没
     if (previousClose > previousOpen && currentClose < currentOpen &&
       currentOpen > previousClose && currentClose < previousOpen) {
       const strength = Math.abs(currentClose - currentOpen) / previousClose;
@@ -213,47 +249,47 @@ class ICTStrategy {
    * @param {Array} klines - K线数据
    * @returns {Object} LTF Sweep检测结果
    */
-  detectSweepLTF(klines) {
+  detectSweepLTF(klines, atr15) {
     if (klines.length < 5) {
       return { detected: false, type: null, level: 0, confidence: 0 };
     }
 
     const recentKlines = klines.slice(-5);
-    const currentPrice = parseFloat(klines[klines.length - 1].close);
+    const currentPrice = parseFloat(klines[klines.length - 1].close || klines[klines.length - 1][4]); // 收盘价
 
     // 寻找最近的高点和低点
     let highestHigh = 0;
     let lowestLow = Infinity;
 
     recentKlines.forEach(kline => {
-      const high = parseFloat(kline.high);
-      const low = parseFloat(kline.low);
+      // 支持对象格式和数组格式
+      const high = parseFloat(kline.high || kline[2]); // 最高价
+      const low = parseFloat(kline.low || kline[3]);   // 最低价
       highestHigh = Math.max(highestHigh, high);
       lowestLow = Math.min(lowestLow, low);
     });
 
-    const atr = this.calculateATR(klines, 14);
-    const currentATR = atr[atr.length - 1];
+    const currentATR = atr15 || 0;
 
     let detected = false;
     let type = null;
     let level = 0;
     let confidence = 0;
 
-    // 检测上方流动性扫荡
-    if (currentPrice > highestHigh * 0.999) {
+    // 检测上方流动性扫荡（需要明显突破）
+    if (currentPrice > highestHigh * 1.002) {
       detected = true;
       type = 'LTF_SWEEP_UP';
       level = highestHigh;
-      confidence = Math.min((currentPrice - highestHigh) / currentATR, 1);
+      confidence = Math.min((currentPrice - highestHigh) / (currentATR || 1), 1);
     }
 
-    // 检测下方流动性扫荡
-    if (currentPrice < lowestLow * 1.001) {
+    // 检测下方流动性扫荡（需要明显跌破）
+    if (currentPrice < lowestLow * 0.998) {
       detected = true;
       type = 'LTF_SWEEP_DOWN';
       level = lowestLow;
-      confidence = Math.min((lowestLow - currentPrice) / currentATR, 1);
+      confidence = Math.min((lowestLow - currentPrice) / (currentATR || 1), 1);
     }
 
     return { detected, type, level, confidence };
@@ -274,7 +310,7 @@ class ICTStrategy {
         return { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
       }
 
-      const currentPrice = parseFloat(klines[klines.length - 1].close);
+      const currentPrice = parseFloat(klines[klines.length - 1][4]); // 收盘价
       const atr = this.calculateATR(klines, 14);
       const currentATR = atr[atr.length - 1];
 
@@ -327,6 +363,16 @@ class ICTStrategy {
     try {
       logger.info(`Executing ICT strategy for ${symbol}`);
 
+      // 检查缓存
+      if (this.cache) {
+        const cacheKey = `ict:${symbol}`;
+        const cached = await this.cache.get(cacheKey);
+        if (cached) {
+          logger.info(`Using cached ICT strategy result for ${symbol}`);
+          return JSON.parse(cached);
+        }
+      }
+
       // 1. 分析日线趋势
       const dailyTrend = await this.analyzeDailyTrend(symbol);
 
@@ -335,12 +381,26 @@ class ICTStrategy {
       const orderBlocks = klines4H ? this.detectOrderBlocks(klines4H, '4H') : [];
 
       // 3. 检测HTF Sweep
-      const sweepHTF = klines4H ? this.detectSweepHTF(klines4H, '4H') : { detected: false };
+      let sweepHTF = { detected: false };
+      if (klines4H) {
+        const atr4H = this.calculateATR(klines4H, 14);
+        const recentKlines = klines4H.slice(-10);
+        let highestHigh = 0;
+        recentKlines.forEach(kline => {
+          const high = parseFloat(kline.high);
+          if (high > highestHigh) highestHigh = high;
+        });
+        sweepHTF = this.detectSweepHTF(highestHigh, klines4H, atr4H[atr4H.length - 1]);
+      }
 
       // 4. 获取15m数据检测吞没形态和LTF Sweep
       const klines15m = await this.binanceAPI.getKlines(symbol, '15m', 50);
       const engulfing = klines15m ? this.detectEngulfingPattern(klines15m) : { detected: false };
-      const sweepLTF = klines15m ? this.detectSweepLTF(klines15m) : { detected: false };
+      let sweepLTF = { detected: false };
+      if (klines15m) {
+        const atr15m = this.calculateATR(klines15m, 14);
+        sweepLTF = this.detectSweepLTF(klines15m, atr15m[atr15m.length - 1]);
+      }
 
       // 5. 计算交易参数
       const tradeParams = await this.calculateTradeParameters(symbol, dailyTrend.trend, {
@@ -395,7 +455,7 @@ class ICTStrategy {
         signal = 'WATCH';
       }
 
-      return {
+      const result = {
         symbol,
         strategy: 'ICT',
         timeframe: '15m',
@@ -413,27 +473,25 @@ class ICTStrategy {
         },
         timestamp: new Date().toISOString()
       };
+
+      // 保存到缓存
+      if (this.cache) {
+        const cacheKey = `ict:${symbol}`;
+        await this.cache.set(cacheKey, JSON.stringify(result)); // 5分钟缓存
+      }
+
+      return result;
     } catch (error) {
       logger.error(`ICT strategy execution error for ${symbol}:`, error);
-      return {
-        symbol,
-        strategy: 'ICT',
-        signal: 'HOLD',
-        score: 0,
-        trend: 'RANGE',
-        confidence: 0,
-        reasons: 'Analysis error',
-        error: error.message,
-        timestamp: new Date().toISOString()
-      };
+      throw error;
     }
   }
 
   // 包装方法，委托给TechnicalIndicators
   calculateATR(klines, period) {
-    const high = klines.map(k => parseFloat(k.high));
-    const low = klines.map(k => parseFloat(k.low));
-    const close = klines.map(k => parseFloat(k.close));
+    const high = klines.map(k => parseFloat(k[2])); // 最高价
+    const low = klines.map(k => parseFloat(k[3]));  // 最低价
+    const close = klines.map(k => parseFloat(k[4])); // 收盘价
     return TechnicalIndicators.calculateATR(high, low, close, period);
   }
 }

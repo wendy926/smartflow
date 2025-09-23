@@ -195,10 +195,10 @@ global.console = {
 const cleanup = () => {
   // 清理所有定时器
   jest.clearAllTimers();
-  
+
   // 清理所有模拟
   jest.clearAllMocks();
-  
+
   // 强制垃圾回收
   if (global.gc) {
     global.gc();

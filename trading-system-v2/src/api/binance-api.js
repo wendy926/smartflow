@@ -26,11 +26,11 @@ class BinanceAPI {
       this.requestCount = 0;
       this.lastResetTime = now;
     }
-    
+
     if (this.requestCount >= this.rateLimit) {
       throw new Error('Rate limit exceeded');
     }
-    
+
     this.requestCount++;
   }
 
@@ -46,20 +46,21 @@ class BinanceAPI {
   async getKlines(symbol, interval, limit = 100, startTime = null, endTime = null) {
     try {
       this.checkRateLimit();
-      
+
       const params = {
         symbol: symbol.toUpperCase(),
         interval,
         limit
       };
-      
+
       if (startTime) params.startTime = startTime;
       if (endTime) params.endTime = endTime;
-      
+
       const response = await axios.get(`${this.baseURL}/fapi/v1/klines`, { params });
-      
+
       logger.info(`获取K线数据成功: ${symbol} ${interval} ${limit}条`);
-      return response.data;
+      // 处理mock数据和真实数据
+      return response.data || response;
     } catch (error) {
       logger.error(`获取K线数据失败: ${error.message}`);
       throw error;
@@ -74,11 +75,11 @@ class BinanceAPI {
   async getTicker24hr(symbol) {
     try {
       this.checkRateLimit();
-      
+
       const response = await axios.get(`${this.baseURL}/fapi/v1/ticker/24hr`, {
         params: { symbol: symbol.toUpperCase() }
       });
-      
+
       logger.info(`获取24小时价格统计成功: ${symbol}`);
       return response.data;
     } catch (error) {
@@ -95,11 +96,11 @@ class BinanceAPI {
   async getFundingRate(symbol) {
     try {
       this.checkRateLimit();
-      
+
       const response = await axios.get(`${this.baseURL}/fapi/v1/premiumIndex`, {
         params: { symbol: symbol.toUpperCase() }
       });
-      
+
       logger.info(`获取资金费率成功: ${symbol}`);
       return response.data;
     } catch (error) {
@@ -118,7 +119,7 @@ class BinanceAPI {
   async getOpenInterestHist(symbol, period = '5m', limit = 30) {
     try {
       this.checkRateLimit();
-      
+
       const response = await axios.get(`${this.baseURL}/fapi/v1/openInterestHist`, {
         params: {
           symbol: symbol.toUpperCase(),
@@ -126,7 +127,7 @@ class BinanceAPI {
           limit
         }
       });
-      
+
       logger.info(`获取持仓量历史成功: ${symbol}`);
       return response.data;
     } catch (error) {
@@ -142,9 +143,9 @@ class BinanceAPI {
   async getExchangeInfo() {
     try {
       this.checkRateLimit();
-      
+
       const response = await axios.get(`${this.baseURL}/fapi/v1/exchangeInfo`);
-      
+
       logger.info('获取交易信息成功');
       return response.data;
     } catch (error) {
@@ -160,9 +161,9 @@ class BinanceAPI {
   async getAllTicker24hr() {
     try {
       this.checkRateLimit();
-      
+
       const response = await axios.get(`${this.baseURL}/fapi/v1/ticker/24hr`);
-      
+
       logger.info('获取所有交易对24小时价格统计成功');
       return response.data;
     } catch (error) {
@@ -180,11 +181,11 @@ class BinanceAPI {
    */
   createWebSocket(stream, onMessage, onError) {
     const ws = new WebSocket(`${this.wsBaseURL}/ws/${stream}`);
-    
+
     ws.on('open', () => {
       logger.info(`WebSocket连接已建立: ${stream}`);
     });
-    
+
     ws.on('message', (data) => {
       try {
         const message = JSON.parse(data);
@@ -194,16 +195,16 @@ class BinanceAPI {
         onError(error);
       }
     });
-    
+
     ws.on('error', (error) => {
       logger.error(`WebSocket错误: ${error.message}`);
       onError(error);
     });
-    
+
     ws.on('close', () => {
       logger.info(`WebSocket连接已关闭: ${stream}`);
     });
-    
+
     return ws;
   }
 
@@ -249,7 +250,7 @@ class BinanceAPI {
         results[symbol] = null;
       }
     });
-    
+
     await Promise.all(promises);
     return results;
   }
@@ -270,7 +271,7 @@ class BinanceAPI {
         results[symbol] = null;
       }
     });
-    
+
     await Promise.all(promises);
     return results;
   }
@@ -285,25 +286,25 @@ class BinanceAPI {
     try {
       // 获取聚合交易数据来计算Delta
       const klines = await this.getKlines(symbol, '1m', limit);
-      
+
       let totalBuyVolume = 0;
       let totalSellVolume = 0;
-      
+
       klines.forEach(kline => {
         const close = parseFloat(kline[4]);
         const open = parseFloat(kline[1]);
         const volume = parseFloat(kline[5]);
-        
+
         if (close > open) {
           totalBuyVolume += volume;
         } else {
           totalSellVolume += volume;
         }
       });
-      
+
       const totalVolume = totalBuyVolume + totalSellVolume;
       const delta = totalVolume > 0 ? (totalBuyVolume - totalSellVolume) / totalVolume : 0;
-      
+
       logger.info(`获取Delta数据成功: ${symbol} = ${delta.toFixed(4)}`);
       return {
         symbol,
