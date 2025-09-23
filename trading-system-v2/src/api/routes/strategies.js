@@ -9,6 +9,15 @@ const ICTStrategy = require('../../strategies/ict-strategy');
 const RollingStrategy = require('../../strategies/rolling-strategy');
 const logger = require('../../utils/logger');
 
+// 延迟初始化数据库操作
+let dbOps = null;
+const getDbOps = () => {
+  if (!dbOps) {
+    dbOps = require('../../database/operations');
+  }
+  return dbOps;
+};
+
 // 初始化策略实例
 const v3Strategy = new V3Strategy();
 const ictStrategy = new ICTStrategy();
