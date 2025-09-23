@@ -48,7 +48,7 @@ class TradingSystemApp {
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     // 静态文件
-    this.app.use(express.static('src/web/public'));
+    this.app.use(express.static('src/web'));
   }
 
   setupRoutes() {

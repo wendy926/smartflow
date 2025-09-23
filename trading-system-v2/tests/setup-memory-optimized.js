@@ -132,20 +132,20 @@ global.console = {
 const cleanup = () => {
   // 清理所有定时器
   jest.clearAllTimers();
-  
+
   // 清理所有模拟
   jest.clearAllMocks();
-  
+
   // 清理全局变量
   if (global.testUtils) {
     delete global.testUtils;
   }
-  
+
   // 强制垃圾回收
   if (global.gc) {
     global.gc();
   }
-  
+
   // 清理模块缓存中的大对象
   const modulesToClean = [
     'mysql2/promise',
@@ -153,7 +153,7 @@ const cleanup = () => {
     'axios',
     'ws'
   ];
-  
+
   modulesToClean.forEach(moduleName => {
     const modulePath = require.resolve(moduleName);
     if (require.cache[modulePath]) {
