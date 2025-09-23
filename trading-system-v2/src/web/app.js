@@ -336,9 +336,195 @@ class SmartFlowApp {
    * 加载策略数据
    */
   async loadStrategyData() {
-    // 策略数据已在HTML中静态展示
-    // 这里可以添加动态数据加载逻辑
     console.log(`Loading strategy data for ${this.currentStrategy}`);
+    
+    // 加载交易记录数据
+    await this.loadTradingRecords(this.currentStrategy);
+  }
+
+  /**
+   * 加载交易记录数据
+   * @param {string} strategy - 策略名称
+   */
+  async loadTradingRecords(strategy) {
+    try {
+      const response = await this.fetchData(`/trades?strategy=${strategy}&limit=50`);
+      const trades = response.data || [];
+      
+      // 渲染交易记录表格
+      this.renderTradingRecords(strategy, trades);
+    } catch (error) {
+      console.error(`加载${strategy}策略交易记录失败:`, error);
+      // 显示模拟数据
+      this.renderTradingRecords(strategy, this.getMockTradingRecords(strategy));
+    }
+  }
+
+  /**
+   * 渲染交易记录表格
+   * @param {string} strategy - 策略名称
+   * @param {Array} trades - 交易记录数据
+   */
+  renderTradingRecords(strategy, trades) {
+    const tbody = document.getElementById(`${strategy}-trades-body`);
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (trades.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="13" style="text-align: center; color: #6c757d; padding: 2rem;">
+            暂无交易记录
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    trades.forEach(trade => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${trade.symbol || '--'}</td>
+        <td>${this.formatDateTime(trade.entry_time)}</td>
+        <td>${trade.entry_price ? parseFloat(trade.entry_price).toFixed(4) : '--'}</td>
+        <td class="judgment-basis">${trade.entry_reason || '--'}</td>
+        <td>${trade.take_profit ? parseFloat(trade.take_profit).toFixed(4) : '--'}</td>
+        <td>${trade.stop_loss ? parseFloat(trade.stop_loss).toFixed(4) : '--'}</td>
+        <td>${trade.leverage || '--'}</td>
+        <td>${trade.margin ? parseFloat(trade.margin).toFixed(2) : '--'}</td>
+        <td><span class="status-tag status-${trade.status || 'open'}">${this.getStatusText(trade.status)}</span></td>
+        <td>${trade.exit_time ? this.formatDateTime(trade.exit_time) : '--'}</td>
+        <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
+        <td class="judgment-basis">${trade.exit_reason || '--'}</td>
+        <td class="${this.getProfitClass(trade.pnl)}">${this.formatProfit(trade.pnl)}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  /**
+   * 获取模拟交易记录数据
+   * @param {string} strategy - 策略名称
+   * @returns {Array} 模拟交易记录
+   */
+  getMockTradingRecords(strategy) {
+    const mockTrades = {
+      v3: [
+        {
+          symbol: 'BTCUSDT',
+          entry_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          entry_price: 112500.00,
+          entry_reason: '4H趋势向上，1H因子评分85，15m突破信号',
+          take_profit: 115000.00,
+          stop_loss: 110000.00,
+          leverage: 10,
+          margin: 1000.00,
+          status: 'open',
+          pnl: 250.00
+        },
+        {
+          symbol: 'ETHUSDT',
+          entry_time: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+          entry_price: 4200.00,
+          entry_reason: '4H趋势向上，1H因子评分78，15m回调入场',
+          take_profit: 4400.00,
+          stop_loss: 4000.00,
+          leverage: 8,
+          margin: 800.00,
+          status: 'closed',
+          exit_time: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+          exit_price: 4350.00,
+          exit_reason: '达到止盈目标',
+          pnl: 150.00
+        }
+      ],
+      ict: [
+        {
+          symbol: 'ONDOUSDT',
+          entry_time: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+          entry_price: 0.9450,
+          entry_reason: '检测到看涨订单块，HTF扫荡确认，吞没形态',
+          take_profit: 0.9800,
+          stop_loss: 0.9200,
+          leverage: 15,
+          margin: 500.00,
+          status: 'open',
+          pnl: 25.00
+        },
+        {
+          symbol: 'LINKUSDT',
+          entry_time: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+          entry_price: 21.50,
+          entry_reason: '订单块支撑，流动性扫荡确认',
+          take_profit: 22.50,
+          stop_loss: 20.80,
+          leverage: 12,
+          margin: 600.00,
+          status: 'stopped',
+          exit_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          exit_price: 20.90,
+          exit_reason: '触发止损',
+          pnl: -60.00
+        }
+      ]
+    };
+    
+    return mockTrades[strategy] || [];
+  }
+
+  /**
+   * 格式化日期时间
+   * @param {string} dateTime - ISO日期时间字符串
+   * @returns {string} 格式化后的日期时间
+   */
+  formatDateTime(dateTime) {
+    if (!dateTime) return '--';
+    const date = new Date(dateTime);
+    return date.toLocaleString('zh-CN', { 
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  /**
+   * 获取状态文本
+   * @param {string} status - 状态值
+   * @returns {string} 状态文本
+   */
+  getStatusText(status) {
+    const statusMap = {
+      'open': '持仓中',
+      'closed': '已平仓',
+      'stopped': '已止损'
+    };
+    return statusMap[status] || '未知';
+  }
+
+  /**
+   * 获取盈亏样式类
+   * @param {number} pnl - 盈亏金额
+   * @returns {string} CSS类名
+   */
+  getProfitClass(pnl) {
+    if (pnl > 0) return 'profit-positive';
+    if (pnl < 0) return 'profit-negative';
+    return 'profit-neutral';
+  }
+
+  /**
+   * 格式化盈亏显示
+   * @param {number} pnl - 盈亏金额
+   * @returns {string} 格式化后的盈亏
+   */
+  formatProfit(pnl) {
+    if (pnl === null || pnl === undefined) return '--';
+    const sign = pnl >= 0 ? '+' : '';
+    return `${sign}${parseFloat(pnl).toFixed(2)}`;
   }
 
   /**

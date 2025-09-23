@@ -1026,13 +1026,114 @@ body {
   color: #c62828;
 }
 
+/* 交易记录样式 */
+.trading-records {
+  margin-top: 2rem;
+}
+
+.trading-records h3 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 0.5rem;
+}
+
+.trading-records .data-table {
+  font-size: 0.9rem;
+}
+
+.trading-records .data-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  padding: 12px 8px;
+  text-align: center;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.trading-records .data-table td {
+  padding: 10px 8px;
+  text-align: center;
+  border-bottom: 1px solid #dee2e6;
+  vertical-align: middle;
+}
+
+.trading-records .data-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* 状态标签样式 */
+.status-tag {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-open {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+.status-closed {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.status-stopped {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+/* 盈亏显示样式 */
+.profit-positive {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.profit-negative {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.profit-neutral {
+  color: #6c757d;
+}
+
+/* 判断依据样式 */
+.judgment-basis {
+  max-width: 200px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  text-align: left;
+  word-wrap: break-word;
+}
+
 /* 移动端响应式 */
 @media (max-width: 768px) {
   .timeframe-signals {
     flex-direction: column;
   }
-
+  
   .strategy-info {
     gap: 4px;
+  }
+  
+  .trading-records .data-table {
+    font-size: 0.8rem;
+  }
+  
+  .trading-records .data-table th,
+  .trading-records .data-table td {
+    padding: 8px 4px;
+  }
+  
+  .judgment-basis {
+    max-width: 150px;
+    font-size: 0.7rem;
   }
 }
