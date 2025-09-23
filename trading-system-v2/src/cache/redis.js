@@ -60,6 +60,38 @@ class RedisClient {
   isReady() {
     return this.isConnected && this.client && this.client.status === 'ready';
   }
+
+  // 代理Redis方法
+  async get(key) {
+    if (!this.isReady()) {
+      await this.connect();
+    }
+    return this.client.get(key);
+  }
+
+  async set(key, value, ttl = null) {
+    if (!this.isReady()) {
+      await this.connect();
+    }
+    if (ttl) {
+      return this.client.setex(key, ttl, value);
+    }
+    return this.client.set(key, value);
+  }
+
+  async del(key) {
+    if (!this.isReady()) {
+      await this.connect();
+    }
+    return this.client.del(key);
+  }
+
+  async exists(key) {
+    if (!this.isReady()) {
+      await this.connect();
+    }
+    return this.client.exists(key);
+  }
 }
 
 module.exports = new RedisClient();
