@@ -96,7 +96,7 @@ class DatabaseOperations {
     const cacheKey = `symbol:${symbol}`;
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      return cached;
+      return JSON.parse(cached);
     }
 
     const connection = await this.getConnection();
@@ -203,7 +203,7 @@ class DatabaseOperations {
     const cacheKey = 'symbols:all';
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      return cached;
+      return JSON.parse(cached);
     }
 
     const connection = await this.getConnection();
@@ -653,7 +653,7 @@ class DatabaseOperations {
     const cacheKey = `config:${configKey}`;
     const cached = await this.redis.get(cacheKey);
     if (cached) {
-      return cached;
+      return JSON.parse(cached);
     }
 
     const connection = await this.getConnection();
