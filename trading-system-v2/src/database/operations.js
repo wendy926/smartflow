@@ -201,35 +201,15 @@ class DatabaseOperations {
    */
   async getAllSymbols() {
     try {
-      // 先检查缓存
-      const cacheKey = 'symbols:all';
-      let cached = null;
-      try {
-        cached = await Promise.race([
-          this.redis.get(cacheKey),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 2000))
-        ]);
-      } catch (redisError) {
-        logger.warn('Redis cache check failed, using database:', redisError.message);
-      }
+      logger.info('开始查询数据库获取交易对列表');
       
-      if (cached) {
-        return JSON.parse(cached);
-      }
-
       const connection = await this.getConnection();
       try {
         const [rows] = await connection.execute(
           'SELECT * FROM symbols WHERE status = "active" ORDER BY symbol'
         );
-
-        // 尝试缓存结果，但不阻塞
-        try {
-          await this.redis.set(cacheKey, JSON.stringify(rows), 300); // 5分钟缓存
-        } catch (cacheError) {
-          logger.warn('Failed to cache symbols:', cacheError.message);
-        }
-
+        
+        logger.info(`数据库查询成功，获取到 ${rows.length} 个交易对`);
         return rows;
       } finally {
         connection.release();
