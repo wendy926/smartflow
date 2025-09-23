@@ -74,7 +74,7 @@ class RedisClient {
       await this.connect();
     }
     if (ttl) {
-      return this.client.setex(key, ttl, value);
+      return this.client.setex(key, Math.floor(ttl), value);
     }
     return this.client.set(key, value);
   }
