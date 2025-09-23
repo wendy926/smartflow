@@ -21,14 +21,20 @@ const getDbOps = () => {
  */
 router.get('/', async (req, res) => {
   try {
+    logger.info('开始获取交易对列表');
     const symbols = await getDbOps().getAllSymbols();
+    logger.info(`获取到 ${symbols.length} 个交易对`);
 
-    res.json({
+    const response = {
       success: true,
       data: symbols,
       count: symbols.length,
       timestamp: new Date().toISOString()
-    });
+    };
+    
+    logger.info('准备发送响应');
+    res.json(response);
+    logger.info('响应已发送');
   } catch (error) {
     logger.error('获取交易对列表失败:', error);
     res.status(500).json({
