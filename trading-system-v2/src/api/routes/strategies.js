@@ -189,11 +189,11 @@ router.get('/v3/judgments', async (req, res) => {
           id: sym.id,
           symbol: sym.symbol,
           timeframe: '4H',
-          trend: result.timeframes?.trend4H || 'RANGE',
+          trend: result.timeframes?.["4H"]?.trend || 'RANGE',
           signal: result.signal || 'HOLD',
-          confidence: result.confidence || 0,
-          score: result.score || 0,
-          factors: result.timeframes?.factors1H || {},
+          confidence: result.timeframes?.["4H"]?.confidence || 0,
+          score: result.timeframes?.["4H"]?.score || 0,
+          factors: result.timeframes?.["1H"]?.factors || {},
           timestamp: new Date().toISOString()
         });
       } catch (error) {
@@ -254,7 +254,7 @@ router.get('/ict/judgments', async (req, res) => {
           id: sym.id,
           symbol: sym.symbol,
           timeframe: '1D',
-          trend: result.timeframes?.trend1D || 'RANGE',
+          trend: result.trend || 'RANGE',
           signal: result.signal || 'HOLD',
           confidence: result.confidence || 0,
           score: result.score || 0,
