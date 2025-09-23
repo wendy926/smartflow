@@ -6,14 +6,8 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../../utils/logger');
 
-// 延迟初始化数据库操作
-let dbOps = null;
-const getDbOps = () => {
-  if (!dbOps) {
-    dbOps = require('../../database/operations');
-  }
-  return dbOps;
-};
+// 直接导入数据库操作
+const dbOps = require('../../database/operations');
 
 /**
  * 获取所有交易对
@@ -22,7 +16,7 @@ const getDbOps = () => {
 router.get('/', async (req, res) => {
   try {
     logger.info('开始获取交易对列表');
-    const symbols = await getDbOps().getAllSymbols();
+    const symbols = await dbOps.getAllSymbols();
     logger.info(`获取到 ${symbols.length} 个交易对`);
 
     const response = {
@@ -51,7 +45,7 @@ router.get('/', async (req, res) => {
 router.get('/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    const symbolInfo = await getDbOps().getSymbol(symbol);
+    const symbolInfo = await dbOps.getSymbol(symbol);
 
     if (!symbolInfo) {
       return res.status(404).json({
@@ -89,7 +83,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const result = await getDbOps().addSymbol({
+    const result = await dbOps.addSymbol({
       symbol,
       status,
       funding_rate,
@@ -122,7 +116,7 @@ router.put('/:symbol', async (req, res) => {
     const { symbol } = req.params;
     const updateData = req.body;
 
-    const result = await getDbOps().updateSymbol(symbol, updateData);
+    const result = await dbOps.updateSymbol(symbol, updateData);
 
     res.json({
       success: true,
@@ -147,7 +141,7 @@ router.delete('/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
 
-    await getDbOps().deleteSymbol(symbol);
+    await dbOps.deleteSymbol(symbol);
 
     res.json({
       success: true,
@@ -169,7 +163,7 @@ router.delete('/:symbol', async (req, res) => {
  */
 router.get('/active', async (req, res) => {
   try {
-    const activeSymbols = await getDbOps().getActiveSymbols();
+    const activeSymbols = await dbOps.getActiveSymbols();
 
     res.json({
       success: true,
