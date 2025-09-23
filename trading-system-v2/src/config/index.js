@@ -78,6 +78,13 @@ const config = {
     apiSuccessThreshold: 95
   },
 
+  // Telegram配置
+  telegram: {
+    botToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    chatId: process.env.TELEGRAM_CHAT_ID || '',
+    enabled: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID)
+  },
+
   // 策略配置
   strategies: {
     v3: {
