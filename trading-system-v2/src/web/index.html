@@ -107,28 +107,6 @@
             </div>
           </div>
 
-          <div class="card strategy-card">
-            <div class="card-header">
-              <h3>Rolling Strategy</h3>
-              <span class="timeframe-badge timeframe-15m">15M</span>
-            </div>
-            <div class="card-content">
-              <div class="signal-display">
-                <div class="signal-item">
-                  <span class="signal-label">动作</span>
-                  <span class="signal-value signal-hold">持有</span>
-                </div>
-                <div class="signal-item">
-                  <span class="signal-label">杠杆</span>
-                  <span class="signal-value">3.2x</span>
-                </div>
-                <div class="signal-item">
-                  <span class="signal-label">风险</span>
-                  <span class="signal-value risk-low">低</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- 交易对列表 -->
@@ -152,7 +130,6 @@
                     <th>24h变化</th>
                     <th>V3信号</th>
                     <th>ICT信号</th>
-                    <th>Rolling动作</th>
                     <th>状态</th>
                   </tr>
                 </thead>
@@ -172,7 +149,6 @@
           <div class="strategy-tabs">
             <button class="strategy-tab active" data-strategy="v3">Strategy V3</button>
             <button class="strategy-tab" data-strategy="ict">ICT Strategy</button>
-            <button class="strategy-tab" data-strategy="rolling">Rolling Strategy</button>
           </div>
         </div>
 
@@ -283,43 +259,6 @@
             </div>
           </div>
 
-          <!-- Rolling Strategy 内容 -->
-          <div id="rolling-content" class="strategy-panel">
-            <div class="strategy-info">
-              <h3>Rolling Strategy - 动态杠杆滚仓</h3>
-              <p>基于杠杆衰减、利润锁定和风险控制的动态滚仓策略</p>
-            </div>
-
-            <div class="rolling-parameters">
-              <div class="parameter-card">
-                <h4>当前参数</h4>
-                <div class="parameter-values">
-                  <div class="parameter-item">
-                    <span>当前杠杆</span>
-                    <span class="value">3.2x</span>
-                  </div>
-                  <div class="parameter-item">
-                    <span>风险评分</span>
-                    <span class="value risk-medium">65</span>
-                  </div>
-                  <div class="parameter-item">
-                    <span>时间衰减</span>
-                    <span class="value">12h</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="parameter-card">
-                <h4>滚仓建议</h4>
-                <div class="rolling-recommendations">
-                  <div class="recommendation-item">
-                    <span class="recommendation-type">部分平仓</span>
-                    <span class="recommendation-reason">锁定利润</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -405,10 +344,6 @@
                   <span class="strategy-name">ICT Strategy</span>
                   <span class="strategy-status-value status-running">运行中</span>
                 </div>
-                <div class="strategy-status-item">
-                  <span class="strategy-name">Rolling Strategy</span>
-                  <span class="strategy-status-value status-running">运行中</span>
-                </div>
               </div>
             </div>
           </div>
@@ -424,7 +359,6 @@
               <option value="all">所有策略</option>
               <option value="v3">Strategy V3</option>
               <option value="ict">ICT Strategy</option>
-              <option value="rolling">Rolling Strategy</option>
             </select>
             <select class="form-select" id="timeframeSelect">
               <option value="all">所有时间周期</option>
@@ -480,13 +414,6 @@
                     <div class="comparison-fill" style="width: 65%"></div>
                   </div>
                   <span class="comparison-value">65%</span>
-                </div>
-                <div class="comparison-item">
-                  <span class="comparison-name">Rolling Strategy</span>
-                  <div class="comparison-bar">
-                    <div class="comparison-fill" style="width: 68%"></div>
-                  </div>
-                  <span class="comparison-value">68%</span>
                 </div>
               </div>
             </div>

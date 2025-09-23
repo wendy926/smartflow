@@ -150,7 +150,7 @@ class SmartFlowApp {
   async loadStrategySignals() {
     try {
       // 模拟策略信号数据
-      const strategies = ['v3', 'ict', 'rolling'];
+      const strategies = ['v3', 'ict'];
       const signals = {};
 
       for (const strategy of strategies) {
@@ -187,12 +187,6 @@ class SmartFlowApp {
         trend: 'DOWN',
         score: 72,
         confidence: 0.7
-      },
-      rolling: {
-        signal: 'HOLD',
-        trend: 'RANGE',
-        score: 68,
-        confidence: 0.6
       }
     };
     return mockSignals[strategy] || { signal: 'HOLD', trend: 'RANGE', score: 50, confidence: 0.5 };
@@ -206,7 +200,7 @@ class SmartFlowApp {
     const strategyCards = document.querySelectorAll('.strategy-card');
 
     strategyCards.forEach((card, index) => {
-      const strategyNames = ['v3', 'ict', 'rolling'];
+      const strategyNames = ['v3', 'ict'];
       const strategy = strategyNames[index];
       const signal = signals[strategy];
 

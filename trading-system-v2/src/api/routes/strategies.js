@@ -23,7 +23,6 @@ router.get('/status', async (req, res) => {
     const status = {
       v3: { name: 'V3趋势交易策略', status: 'active' },
       ict: { name: 'ICT订单块策略', status: 'active' },
-      rolling: { name: '动态杠杆滚仓工具', status: 'active' },
       timestamp: new Date().toISOString()
     };
 
@@ -241,43 +240,5 @@ router.get('/ict/judgments', async (req, res) => {
   }
 });
 
-/**
- * 获取Rolling策略判断记录
- * GET /api/v1/strategies/rolling/judgments
- */
-router.get('/rolling/judgments', async (req, res) => {
-  try {
-    const { limit = 10, symbol } = req.query;
-    
-    // 这里应该从数据库获取历史判断记录
-    // 暂时返回模拟数据
-    const mockJudgments = [
-      {
-        id: 1,
-        symbol: symbol || 'BTCUSDT',
-        timeframe: '15M',
-        action: 'HOLD',
-        leverage: 3.2,
-        risk: 'LOW',
-        floatingProfit: 200,
-        lockedProfit: 0,
-        timestamp: new Date().toISOString()
-      }
-    ];
-
-    res.json({
-      success: true,
-      data: mockJudgments.slice(0, parseInt(limit)),
-      count: mockJudgments.length,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    logger.error('Rolling judgments error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
 
 module.exports = router;
