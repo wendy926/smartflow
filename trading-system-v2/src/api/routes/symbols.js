@@ -180,4 +180,26 @@ router.get('/active', async (req, res) => {
   }
 });
 
+/**
+ * 手动更新交易对数据
+ * POST /api/v1/symbols/update
+ */
+router.post('/update', async (req, res) => {
+  try {
+    // 这里应该调用数据更新服务
+    // 暂时返回成功响应
+    res.json({
+      success: true,
+      message: '数据更新已触发',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error updating symbols:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

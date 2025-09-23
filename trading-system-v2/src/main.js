@@ -15,11 +15,13 @@ const logger = require('./utils/logger');
 const database = require('./database/connection');
 const cache = require('./cache/redis');
 const monitoring = require('./monitoring/resource-monitor');
+const DataUpdater = require('./services/data-updater');
 
 class TradingSystemApp {
   constructor() {
     this.app = express();
     this.port = process.env.PORT || 3000;
+    this.dataUpdater = null;
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -28,7 +30,7 @@ class TradingSystemApp {
   setupMiddleware() {
     // 安全中间件
     this.app.use(helmet());
-    
+
     // CORS配置
     this.app.use(cors({
       origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
@@ -89,7 +91,7 @@ class TradingSystemApp {
     // 全局错误处理
     this.app.use((err, req, res, next) => {
       logger.error('Unhandled error:', err);
-      
+
       res.status(err.status || 500).json({
         error: err.message || 'Internal Server Error',
         timestamp: new Date().toISOString(),
@@ -112,6 +114,11 @@ class TradingSystemApp {
       monitoring.start();
       logger.info('Resource monitoring started');
 
+      // 启动数据更新服务
+      this.dataUpdater = new DataUpdater(database, cache);
+      this.dataUpdater.start();
+      logger.info('Data updater started');
+
       // 启动服务器
       this.app.listen(this.port, () => {
         logger.info(`Trading System V2.0 started on port ${this.port}`);
@@ -128,16 +135,21 @@ class TradingSystemApp {
   async stop() {
     try {
       logger.info('Shutting down application...');
-      
+
+      // 停止数据更新服务
+      if (this.dataUpdater) {
+        this.dataUpdater.stop();
+      }
+
       // 停止监控
       monitoring.stop();
-      
+
       // 关闭数据库连接
       await database.disconnect();
-      
+
       // 关闭Redis连接
       await cache.disconnect();
-      
+
       logger.info('Application stopped successfully');
       process.exit(0);
     } catch (error) {
