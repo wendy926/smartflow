@@ -114,10 +114,10 @@ class TradingSystemApp {
       monitoring.start();
       logger.info('Resource monitoring started');
 
-      // 启动数据更新服务
-      this.dataUpdater = new DataUpdater(database, cache);
-      this.dataUpdater.start();
-      logger.info('Data updater started');
+    // 暂时禁用数据更新服务以避免连接池问题
+    // this.dataUpdater = new DataUpdater(database, cache);
+    // this.dataUpdater.start();
+    // logger.info('Data updater started');
 
       // 启动服务器
       this.app.listen(this.port, () => {
