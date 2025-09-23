@@ -175,7 +175,7 @@ afterAll(() => {
 });
 
 // 设置axios的默认返回值
-axios.get.mockResolvedValue({
+jest.mocked(axios.get).mockResolvedValue({
   data: testUtils.createMockKlines(20, 50000),
   status: 200,
   statusText: 'OK'
