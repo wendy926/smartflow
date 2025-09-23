@@ -383,7 +383,7 @@ class DatabaseOperations {
       }
 
       query += ' ORDER BY st.created_at DESC LIMIT ?';
-      params.push(parseInt(limit));
+      params.push(Number(limit));
 
       const [rows] = await connection.execute(query, params);
       return rows;
