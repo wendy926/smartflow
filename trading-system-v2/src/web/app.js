@@ -5,7 +5,7 @@
 
 class SmartFlowApp {
   constructor() {
-    this.apiBaseUrl = 'http://localhost:8080/api/v1';
+    this.apiBaseUrl = '/api/v1';
     this.currentTab = 'dashboard';
     this.currentStrategy = 'v3';
     this.refreshInterval = null;
