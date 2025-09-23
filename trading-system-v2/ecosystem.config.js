@@ -5,8 +5,8 @@ module.exports = {
       script: './src/main.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '60M',
-      node_args: '--max-old-space-size=60',
+      max_memory_restart: '100M',
+      node_args: '--max-old-space-size=100',
       env: {
         NODE_ENV: 'production',
         MEMORY_LIMIT: '120',
@@ -22,8 +22,8 @@ module.exports = {
       script: './src/workers/strategy-worker.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '80M',
-      node_args: '--max-old-space-size=80',
+      max_memory_restart: '100M',
+      node_args: '--max-old-space-size=100',
       cron_restart: '*/5 * * * *',
       env: {
         NODE_ENV: 'production',

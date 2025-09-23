@@ -162,7 +162,7 @@ router.post('/batch-analyze', async (req, res) => {
 router.get('/v3/judgments', async (req, res) => {
   try {
     const { limit = 10, symbol } = req.query;
-    
+
     // 这里应该从数据库获取历史判断记录
     // 暂时返回模拟数据
     const mockJudgments = [
@@ -208,7 +208,7 @@ router.get('/v3/judgments', async (req, res) => {
 router.get('/ict/judgments', async (req, res) => {
   try {
     const { limit = 10, symbol } = req.query;
-    
+
     // 这里应该从数据库获取历史判断记录
     // 暂时返回模拟数据
     const mockJudgments = [
