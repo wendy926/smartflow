@@ -11,7 +11,7 @@ class ICTStrategy {
   constructor() {
     this.name = 'ICT';
     this.timeframes = ['1D', '4H', '15m'];
-    this.binanceAPI = BinanceAPI;
+    this.binanceAPI = new BinanceAPI();
   }
 
   /**
