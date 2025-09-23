@@ -106,7 +106,7 @@ describe('TelegramAlertService', () => {
   describe('formatAlertMessage', () => {
     it.skip('应该正确格式化CPU告警消息', () => {
       const message = telegramService.formatAlertMessage('CPU_HIGH', 'CPU使用率过高', { cpu: 80 });
-      
+
       expect(message).toContain('🔥');
       expect(message).toContain('CPU使用率告警');
       expect(message).toContain('CPU使用率过高');
@@ -115,7 +115,7 @@ describe('TelegramAlertService', () => {
 
     it.skip('应该正确格式化内存告警消息', () => {
       const message = telegramService.formatAlertMessage('MEMORY_HIGH', '内存使用率过高', { memory: 85 });
-      
+
       expect(message).toContain('💾');
       expect(message).toContain('内存使用率告警');
       expect(message).toContain('内存使用率过高');
@@ -124,7 +124,7 @@ describe('TelegramAlertService', () => {
 
     it.skip('应该包含时间戳', () => {
       const message = telegramService.formatAlertMessage('CPU_HIGH', '测试消息', {});
-      
+
       expect(message).toContain('时间:');
       expect(message).toMatch(/\d{4}\/\d{1,2}\/\d{1,2} \d{1,2}:\d{2}:\d{2}/);
     });

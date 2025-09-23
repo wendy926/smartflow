@@ -17,7 +17,7 @@ describe('AlertEngine', () => {
       sendAlert: jest.fn().mockResolvedValue(true)
     };
     TelegramAlertService.mockImplementation(() => mockTelegramService);
-    
+
     alertEngine = new AlertEngine();
   });
 

@@ -165,10 +165,10 @@ class AlertEngine {
     if (!this.alertHistory.has(key)) {
       this.alertHistory.set(key, []);
     }
-    
+
     const history = this.alertHistory.get(key);
     history.push(alertData);
-    
+
     // 只保留最近100条记录
     if (history.length > 100) {
       history.splice(0, history.length - 100);
@@ -183,7 +183,7 @@ class AlertEngine {
   getAlertHistory(type = null, days = 7) {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    
+
     const allAlerts = [];
     for (const [key, alerts] of this.alertHistory) {
       const alertDate = new Date(key.split('_')[1]);
@@ -193,7 +193,7 @@ class AlertEngine {
         }
       }
     }
-    
+
     return allAlerts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }
 
@@ -215,9 +215,9 @@ class AlertEngine {
       const alertType = key.split('_')[0];
       stats.totalAlerts += alerts.length;
       stats.alertsByType[alertType] = (stats.alertsByType[alertType] || 0) + alerts.length;
-      
+
       // 统计最近24小时的告警
-      const recentAlerts = alerts.filter(alert => 
+      const recentAlerts = alerts.filter(alert =>
         new Date(alert.timestamp) > yesterday
       );
       stats.last24Hours += recentAlerts.length;

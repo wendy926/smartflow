@@ -4,11 +4,18 @@
 
 const express = require('express');
 const router = express.Router();
-const DatabaseOperations = require('../../database/operations');
 const resourceMonitor = require('../../monitoring/resource-monitor');
 const logger = require('../../utils/logger');
 
-const dbOps = new DatabaseOperations();
+// 延迟初始化数据库操作
+let dbOps = null;
+const getDbOps = () => {
+  if (!dbOps) {
+    const DatabaseOperations = require('../../database/operations');
+    dbOps = new DatabaseOperations();
+  }
+  return dbOps;
+};
 
 /**
  * 获取系统监控数据
@@ -18,7 +25,7 @@ router.get('/system', async (req, res) => {
   try {
     const systemInfo = resourceMonitor.getSystemInfo();
     const currentResources = resourceMonitor.checkResources();
-    
+
     res.json({
       success: true,
       data: {
@@ -43,9 +50,9 @@ router.get('/system', async (req, res) => {
 router.get('/metrics', async (req, res) => {
   try {
     const { metric_type, component, limit = 100 } = req.query;
-    
-    const metrics = await dbOps.getMonitoringMetrics(metric_type, component, limit);
-    
+
+    const metrics = await getDbOps().getMonitoringMetrics(metric_type, component, limit);
+
     res.json({
       success: true,
       data: metrics,
@@ -77,16 +84,16 @@ router.post('/metrics', async (req, res) => {
       avg_response_time = 0,
       error_message = null
     } = req.body;
-    
+
     if (!metric_type || !component) {
       return res.status(400).json({
         success: false,
         error: 'metric_type和component不能为空'
       });
     }
-    
+
     const success_rate = total_count > 0 ? (success_count / total_count) * 100 : 0;
-    
+
     const metricData = {
       metric_type,
       component,
@@ -98,9 +105,9 @@ router.post('/metrics', async (req, res) => {
       avg_response_time,
       error_message
     };
-    
-    const result = await dbOps.addMonitoringMetric(metricData);
-    
+
+    const result = await getDbOps().addMonitoringMetric(metricData);
+
     res.json({
       success: true,
       data: result,
@@ -123,9 +130,9 @@ router.post('/metrics', async (req, res) => {
 router.get('/symbols', async (req, res) => {
   try {
     const { strategy } = req.query;
-    
-    const stats = await dbOps.getSymbolStatistics(strategy);
-    
+
+    const stats = await getDbOps().getSymbolStatistics(strategy);
+
     res.json({
       success: true,
       data: stats,
@@ -160,17 +167,17 @@ router.post('/:symbol/statistics', async (req, res) => {
       worst_trade = 0,
       avg_holding_time = 0
     } = req.body;
-    
+
     if (!strategy_type) {
       return res.status(400).json({
         success: false,
         error: 'strategy_type不能为空'
       });
     }
-    
+
     const win_rate = total_trades > 0 ? (winning_trades / total_trades) * 100 : 0;
     const avg_pnl_per_trade = total_trades > 0 ? total_pnl / total_trades : 0;
-    
+
     const statData = {
       symbol,
       strategy_type,
@@ -186,9 +193,9 @@ router.post('/:symbol/statistics', async (req, res) => {
       worst_trade,
       avg_holding_time
     };
-    
-    const result = await dbOps.updateSymbolStatistics(statData);
-    
+
+    const result = await getDbOps().updateSymbolStatistics(statData);
+
     res.json({
       success: true,
       data: result,
@@ -220,7 +227,7 @@ router.get('/health', async (req, res) => {
       },
       resources: resourceMonitor.checkResources()
     };
-    
+
     res.json({
       success: true,
       data: health

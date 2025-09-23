@@ -24,7 +24,7 @@ router.post('/rolling-calculator', async (req, res) => {
       triggerRatio = 0.2,
       maxRollings = 3
     } = req.body;
-    
+
     const result = await rollingStrategy.execute({
       principal,
       initialLeverage,
@@ -33,7 +33,7 @@ router.post('/rolling-calculator', async (req, res) => {
       triggerRatio,
       maxRollings
     });
-    
+
     res.json({
       success: true,
       data: result,
@@ -61,13 +61,13 @@ router.post('/risk-calculator', async (req, res) => {
       stopLoss = 49000,
       riskPercentage = 0.02
     } = req.body;
-    
+
     // 计算风险参数
     const riskAmount = balance * riskPercentage;
     const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
     const positionSize = riskAmount / (stopLossDistance * entryPrice);
     const marginRequired = (positionSize * entryPrice) / leverage;
-    
+
     const result = {
       balance,
       leverage,
@@ -81,7 +81,7 @@ router.post('/risk-calculator', async (req, res) => {
       maxLoss: positionSize * Math.abs(entryPrice - stopLoss),
       riskRewardRatio: 3 // 默认3:1
     };
-    
+
     res.json({
       success: true,
       data: result,
@@ -109,21 +109,21 @@ router.post('/leverage-calculator', async (req, res) => {
       maxLossAmount = 200,
       direction = 'LONG'
     } = req.body;
-    
+
     // 计算止损距离
     const stopLossDistance = direction === 'LONG'
       ? (entryPrice - stopLoss) / entryPrice
       : (stopLoss - entryPrice) / entryPrice;
-    
+
     // 计算最大杠杆
     const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
-    
+
     // 计算最小保证金
     const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
-    
+
     // 计算仓位大小
     const positionSize = minMargin * maxLeverage / entryPrice;
-    
+
     const result = {
       balance,
       entryPrice,
@@ -136,7 +136,7 @@ router.post('/leverage-calculator', async (req, res) => {
       maxLossAmount,
       actualLoss: positionSize * Math.abs(entryPrice - stopLoss)
     };
-    
+
     res.json({
       success: true,
       data: result,
@@ -158,7 +158,7 @@ router.post('/leverage-calculator', async (req, res) => {
 router.post('/system-test', async (req, res) => {
   try {
     const testResults = [];
-    
+
     // 测试数据库连接
     try {
       // 这里可以添加数据库连接测试
@@ -174,7 +174,7 @@ router.post('/system-test', async (req, res) => {
         message: error.message
       });
     }
-    
+
     // 测试策略计算
     try {
       const v3Result = await rollingStrategy.execute({
@@ -183,7 +183,7 @@ router.post('/system-test', async (req, res) => {
         entryPrice: 50000,
         currentPrice: 51000
       });
-      
+
       testResults.push({
         test: '策略计算',
         status: 'success',
@@ -196,7 +196,7 @@ router.post('/system-test', async (req, res) => {
         message: error.message
       });
     }
-    
+
     // 测试系统资源
     try {
       const resources = resourceMonitor.checkResources();
@@ -212,10 +212,10 @@ router.post('/system-test', async (req, res) => {
         message: error.message
       });
     }
-    
+
     const successCount = testResults.filter(r => r.status === 'success').length;
     const totalCount = testResults.length;
-    
+
     res.json({
       success: true,
       data: {

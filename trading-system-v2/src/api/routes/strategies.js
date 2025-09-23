@@ -26,7 +26,7 @@ router.get('/status', async (req, res) => {
       rolling: { name: '动态杠杆滚仓工具', status: 'active' },
       timestamp: new Date().toISOString()
     };
-    
+
     res.json({
       success: true,
       data: status
@@ -47,9 +47,9 @@ router.get('/status', async (req, res) => {
 router.post('/v3/analyze', async (req, res) => {
   try {
     const { symbol = 'BTCUSDT' } = req.body;
-    
+
     const result = await v3Strategy.execute(symbol);
-    
+
     res.json({
       success: true,
       data: result,
@@ -71,9 +71,9 @@ router.post('/v3/analyze', async (req, res) => {
 router.post('/ict/analyze', async (req, res) => {
   try {
     const { symbol = 'BTCUSDT' } = req.body;
-    
+
     const result = await ictStrategy.execute(symbol);
-    
+
     res.json({
       success: true,
       data: result,
@@ -95,9 +95,9 @@ router.post('/ict/analyze', async (req, res) => {
 router.post('/rolling/calculate', async (req, res) => {
   try {
     const params = req.body;
-    
+
     const result = await rollingStrategy.execute(params);
-    
+
     res.json({
       success: true,
       data: result,
@@ -120,14 +120,14 @@ router.post('/batch-analyze', async (req, res) => {
   try {
     const { symbols = ['BTCUSDT', 'ETHUSDT'] } = req.body;
     const results = [];
-    
+
     for (const symbol of symbols) {
       try {
         const [v3Result, ictResult] = await Promise.all([
           v3Strategy.execute(symbol),
           ictStrategy.execute(symbol)
         ]);
-        
+
         results.push({
           symbol,
           v3: v3Result,
@@ -141,7 +141,7 @@ router.post('/batch-analyze', async (req, res) => {
         });
       }
     }
-    
+
     res.json({
       success: true,
       data: results,

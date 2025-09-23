@@ -37,7 +37,7 @@ class TelegramAlertService {
 
     try {
       const alertMessage = this.formatAlertMessage(type, message, data);
-      
+
       const response = await axios.post(
         `https://api.telegram.org/bot${this.botToken}/sendMessage`,
         {

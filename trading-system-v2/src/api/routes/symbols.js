@@ -4,10 +4,17 @@
 
 const express = require('express');
 const router = express.Router();
-const DatabaseOperations = require('../../database/operations');
 const logger = require('../../utils/logger');
 
-const dbOps = new DatabaseOperations();
+// 延迟初始化数据库操作
+let dbOps = null;
+const getDbOps = () => {
+  if (!dbOps) {
+    const DatabaseOperations = require('../../database/operations');
+    dbOps = new DatabaseOperations();
+  }
+  return dbOps;
+};
 
 /**
  * 获取所有交易对
@@ -15,8 +22,8 @@ const dbOps = new DatabaseOperations();
  */
 router.get('/', async (req, res) => {
   try {
-    const symbols = await dbOps.getAllSymbols();
-    
+    const symbols = await getDbOps().getAllSymbols();
+
     res.json({
       success: true,
       data: symbols,
@@ -39,15 +46,15 @@ router.get('/', async (req, res) => {
 router.get('/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    const symbolInfo = await dbOps.getSymbol(symbol);
-    
+    const symbolInfo = await getDbOps().getSymbol(symbol);
+
     if (!symbolInfo) {
       return res.status(404).json({
         success: false,
         error: '交易对不存在'
       });
     }
-    
+
     res.json({
       success: true,
       data: symbolInfo,
@@ -69,15 +76,15 @@ router.get('/:symbol', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { symbol, status = 'ACTIVE', funding_rate = 0, last_price = 0, volume_24h = 0, price_change_24h = 0 } = req.body;
-    
+
     if (!symbol) {
       return res.status(400).json({
         success: false,
         error: '交易对符号不能为空'
       });
     }
-    
-    const result = await dbOps.addSymbol({
+
+    const result = await getDbOps().addSymbol({
       symbol,
       status,
       funding_rate,
@@ -85,7 +92,7 @@ router.post('/', async (req, res) => {
       volume_24h,
       price_change_24h
     });
-    
+
     res.json({
       success: true,
       data: result,
@@ -109,9 +116,9 @@ router.put('/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
     const updateData = req.body;
-    
-    const result = await dbOps.updateSymbol(symbol, updateData);
-    
+
+    const result = await getDbOps().updateSymbol(symbol, updateData);
+
     res.json({
       success: true,
       data: result,
@@ -134,9 +141,9 @@ router.put('/:symbol', async (req, res) => {
 router.delete('/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    
-    await dbOps.deleteSymbol(symbol);
-    
+
+    await getDbOps().deleteSymbol(symbol);
+
     res.json({
       success: true,
       message: '交易对删除成功',
@@ -157,8 +164,8 @@ router.delete('/:symbol', async (req, res) => {
  */
 router.get('/active', async (req, res) => {
   try {
-    const activeSymbols = await dbOps.getActiveSymbols();
-    
+    const activeSymbols = await getDbOps().getActiveSymbols();
+
     res.json({
       success: true,
       data: activeSymbols,

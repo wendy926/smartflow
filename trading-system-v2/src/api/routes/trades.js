@@ -4,10 +4,17 @@
 
 const express = require('express');
 const router = express.Router();
-const DatabaseOperations = require('../../database/operations');
 const logger = require('../../utils/logger');
 
-const dbOps = new DatabaseOperations();
+// 延迟初始化数据库操作
+let dbOps = null;
+const getDbOps = () => {
+  if (!dbOps) {
+    const DatabaseOperations = require('../../database/operations');
+    dbOps = new DatabaseOperations();
+  }
+  return dbOps;
+};
 
 /**
  * 获取模拟交易记录
@@ -16,9 +23,9 @@ const dbOps = new DatabaseOperations();
 router.get('/', async (req, res) => {
   try {
     const { strategy, symbol, status, limit = 100, offset = 0 } = req.query;
-    
-    const trades = await dbOps.getTrades(strategy, symbol, status, limit, offset);
-    
+
+    const trades = await getDbOps().getTrades(strategy, symbol, status, limit, offset);
+
     res.json({
       success: true,
       data: trades,
@@ -52,14 +59,14 @@ router.post('/', async (req, res) => {
       risk_amount,
       position_size
     } = req.body;
-    
+
     if (!symbol || !strategy_type || !direction || !entry_price || !stop_loss || !take_profit) {
       return res.status(400).json({
         success: false,
         error: '必填字段不能为空'
       });
     }
-    
+
     const tradeData = {
       symbol,
       strategy_type,
@@ -72,9 +79,9 @@ router.post('/', async (req, res) => {
       risk_amount: risk_amount || Math.abs(entry_price - stop_loss) * position_size,
       position_size: position_size || 1
     };
-    
-    const result = await dbOps.addTrade(tradeData);
-    
+
+    const result = await getDbOps().addTrade(tradeData);
+
     res.json({
       success: true,
       data: result,
@@ -98,9 +105,9 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-    
-    const result = await dbOps.updateTrade(id, updateData);
-    
+
+    const result = await getDbOps().updateTrade(id, updateData);
+
     res.json({
       success: true,
       data: result,
@@ -124,30 +131,30 @@ router.post('/:id/close', async (req, res) => {
   try {
     const { id } = req.params;
     const { exit_price, exit_reason = 'MANUAL' } = req.body;
-    
+
     if (!exit_price) {
       return res.status(400).json({
         success: false,
         error: '退出价格不能为空'
       });
     }
-    
+
     // 获取交易信息
-    const trade = await dbOps.getTradeById(id);
+    const trade = await getDbOps().getTradeById(id);
     if (!trade) {
       return res.status(404).json({
         success: false,
         error: '交易记录不存在'
       });
     }
-    
+
     // 计算盈亏
-    const pnl = trade.direction === 'LONG' 
+    const pnl = trade.direction === 'LONG'
       ? (exit_price - trade.entry_price) * trade.position_size
       : (trade.entry_price - exit_price) * trade.position_size;
-    
+
     const pnl_percentage = (pnl / (trade.entry_price * trade.position_size)) * 100;
-    
+
     const updateData = {
       status: 'CLOSED',
       exit_price,
@@ -156,9 +163,9 @@ router.post('/:id/close', async (req, res) => {
       pnl_percentage,
       closed_at: new Date()
     };
-    
-    const result = await dbOps.updateTrade(id, updateData);
-    
+
+    const result = await getDbOps().updateTrade(id, updateData);
+
     res.json({
       success: true,
       data: result,
@@ -181,9 +188,9 @@ router.post('/:id/close', async (req, res) => {
 router.get('/statistics', async (req, res) => {
   try {
     const { strategy, symbol } = req.query;
-    
-    const stats = await dbOps.getTradeStatistics(strategy, symbol);
-    
+
+    const stats = await getDbOps().getTradeStatistics(strategy, symbol);
+
     res.json({
       success: true,
       data: stats,
