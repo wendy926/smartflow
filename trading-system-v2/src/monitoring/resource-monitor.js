@@ -8,8 +8,8 @@ const AlertEngine = require('../services/alert-engine');
 
 class ResourceMonitor {
   constructor() {
-    this.cpuThreshold = 60; // CPU使用率阈值
-    this.memoryThreshold = 60; // 内存使用率阈值
+    this.cpuThreshold = 70; // CPU使用率阈值
+    this.memoryThreshold = 75; // 内存使用率阈值
     this.checkInterval = 30000; // 检查间隔30秒
     this.isMonitoring = false;
     this.alertEngine = new AlertEngine();
