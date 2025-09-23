@@ -73,10 +73,12 @@ class RedisClient {
     if (!this.isReady()) {
       await this.connect();
     }
+    // 确保value是字符串
+    const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
     if (ttl) {
-      return this.client.setex(key, Math.floor(ttl), value);
+      return this.client.setex(key, Math.floor(ttl), stringValue);
     }
-    return this.client.set(key, value);
+    return this.client.set(key, stringValue);
   }
 
   async del(key) {
