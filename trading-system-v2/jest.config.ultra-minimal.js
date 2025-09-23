@@ -30,11 +30,11 @@ module.exports = {
 
   // 单进程运行
   maxWorkers: 1,
-  
+
   // 检测未关闭的句柄
   detectOpenHandles: false,
   forceExit: true,
-  
+
   // 内存优化
   testEnvironmentOptions: {
     NODE_OPTIONS: '--max-old-space-size=30'

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartFlow 交易策略系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部导航 -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+                <h1>SmartFlow</h1>
+            </div>
+            <nav class="nav">
+                <a href="#dashboard" class="nav-link active" data-tab="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    仪表板
+                </a>
+                <a href="#strategies" class="nav-link" data-tab="strategies">
+                    <i class="fas fa-chess"></i>
+                    策略执行
+                </a>
+                <a href="#monitoring" class="nav-link" data-tab="monitoring">
+                    <i class="fas fa-monitor-heart-rate"></i>
+                    系统监控
+                </a>
+                <a href="#statistics" class="nav-link" data-tab="statistics">
+                    <i class="fas fa-chart-bar"></i>
+                    胜率统计
+                </a>
+                <a href="#tools" class="nav-link" data-tab="tools">
+                    <i class="fas fa-tools"></i>
+                    工具
+                </a>
+            </nav>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="main-content">
+            <!-- 仪表板 -->
+            <div id="dashboard" class="tab-content active">
+                <div class="page-header">
+                    <h2>交易策略仪表板</h2>
+                    <div class="status-indicators">
+                        <div class="status-item">
+                            <span class="status-label">系统状态</span>
+                            <span class="status-value status-online">在线</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">最后更新</span>
+                            <span class="status-value" id="lastUpdate">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 策略概览卡片 -->
+                <div class="cards-grid">
+                    <div class="card strategy-card">
+                        <div class="card-header">
+                            <h3>Strategy V3</h3>
+                            <span class="timeframe-badge timeframe-4h">4H</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="signal-display">
+                                <div class="signal-item">
+                                    <span class="signal-label">趋势</span>
+                                    <span class="signal-value trend-up">上涨</span>
+                                </div>
+                                <div class="signal-item">
+                                    <span class="signal-label">信号</span>
+                                    <span class="signal-value signal-buy">买入</span>
+                                </div>
+                                <div class="signal-item">
+                                    <span class="signal-label">评分</span>
+                                    <span class="signal-value score-high">85</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card strategy-card">
+                        <div class="card-header">
+                            <h3>ICT Strategy</h3>
+                            <span class="timeframe-badge timeframe-1d">1D</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="signal-display">
+                                <div class="signal-item">
+                                    <span class="signal-label">趋势</span>
+                                    <span class="signal-value trend-down">下跌</span>
+                                </div>
+                                <div class="signal-item">
+                                    <span class="signal-label">信号</span>
+                                    <span class="signal-value signal-sell">卖出</span>
+                                </div>
+                                <div class="signal-item">
+                                    <span class="signal-label">评分</span>
+                                    <span class="signal-value score-medium">72</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card strategy-card">
+                        <div class="card-header">
+                            <h3>Rolling Strategy</h3>
+                            <span class="timeframe-badge timeframe-15m">15M</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="signal-display">
+                                <div class="signal-item">
+                                    <span class="signal-label">动作</span>
+                                    <span class="signal-value signal-hold">持有</span>
+                                </div>
+                                <div class="signal-item">
+                                    <span class="signal-label">杠杆</span>
+                                    <span class="signal-value">3.2x</span>
+                                </div>
+                                <div class="signal-item">
+                                    <span class="signal-label">风险</span>
+                                    <span class="signal-value risk-low">低</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 交易对列表 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>交易对监控</h3>
+                        <div class="card-actions">
+                            <button class="btn btn-primary" onclick="refreshData()">
+                                <i class="fas fa-sync-alt"></i>
+                                刷新
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="table-container">
+                            <table class="data-table" id="symbolsTable">
+                                <thead>
+                                    <tr>
+                                        <th>交易对</th>
+                                        <th>价格</th>
+                                        <th>24h变化</th>
+                                        <th>V3信号</th>
+                                        <th>ICT信号</th>
+                                        <th>Rolling动作</th>
+                                        <th>状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="symbolsTableBody">
+                                    <!-- 数据将通过JavaScript动态加载 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 策略执行页面 -->
+            <div id="strategies" class="tab-content">
+                <div class="page-header">
+                    <h2>策略执行与记录</h2>
+                    <div class="strategy-tabs">
+                        <button class="strategy-tab active" data-strategy="v3">Strategy V3</button>
+                        <button class="strategy-tab" data-strategy="ict">ICT Strategy</button>
+                        <button class="strategy-tab" data-strategy="rolling">Rolling Strategy</button>
+                    </div>
+                </div>
+
+                <div class="strategy-content">
+                    <!-- Strategy V3 内容 -->
+                    <div id="v3-content" class="strategy-panel active">
+                        <div class="strategy-info">
+                            <h3>Strategy V3 - 多因子趋势策略</h3>
+                            <p>基于4H趋势判断、1H因子分析和15M入场信号的综合策略</p>
+                        </div>
+                        
+                        <div class="indicators-grid">
+                            <div class="indicator-card">
+                                <h4>4H趋势指标</h4>
+                                <div class="indicator-values">
+                                    <div class="indicator-item">
+                                        <span>MA20</span>
+                                        <span class="value">45,230</span>
+                                    </div>
+                                    <div class="indicator-item">
+                                        <span>ADX</span>
+                                        <span class="value">28.5</span>
+                                    </div>
+                                    <div class="indicator-item">
+                                        <span>BBW</span>
+                                        <span class="value">0.12</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="indicator-card">
+                                <h4>1H因子分析</h4>
+                                <div class="indicator-values">
+                                    <div class="indicator-item">
+                                        <span>VWAP</span>
+                                        <span class="value">45,180</span>
+                                    </div>
+                                    <div class="indicator-item">
+                                        <span>OI变化</span>
+                                        <span class="value">+5.2%</span>
+                                    </div>
+                                    <div class="indicator-item">
+                                        <span>Funding</span>
+                                        <span class="value">0.01%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="indicator-card">
+                                <h4>15M入场信号</h4>
+                                <div class="indicator-values">
+                                    <div class="indicator-item">
+                                        <span>Delta</span>
+                                        <span class="value">+120</span>
+                                    </div>
+                                    <div class="indicator-item">
+                                        <span>EMA</span>
+                                        <span class="value">45,200</span>
+                                    </div>
+                                    <div class="indicator-item">
+                                        <span>ATR</span>
+                                        <span class="value">180</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ICT Strategy 内容 -->
+                    <div id="ict-content" class="strategy-panel">
+                        <div class="strategy-info">
+                            <h3>ICT Strategy - 订单块策略</h3>
+                            <p>基于订单块、流动性扫荡和吞没形态的ICT概念策略</p>
+                        </div>
+                        
+                        <div class="ict-signals">
+                            <div class="signal-card">
+                                <h4>订单块检测</h4>
+                                <div class="order-blocks">
+                                    <div class="order-block bullish">
+                                        <span class="block-type">看涨订单块</span>
+                                        <span class="block-price">45,150 - 45,200</span>
+                                        <span class="block-strength">强</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="signal-card">
+                                <h4>流动性扫荡</h4>
+                                <div class="sweep-signals">
+                                    <div class="sweep-item">
+                                        <span class="sweep-type">HTF Sweep</span>
+                                        <span class="sweep-level">45,300</span>
+                                        <span class="sweep-confidence">高</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="signal-card">
+                                <h4>吞没形态</h4>
+                                <div class="engulfing-signals">
+                                    <div class="engulfing-item">
+                                        <span class="engulfing-type">看涨吞没</span>
+                                        <span class="engulfing-strength">0.85</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rolling Strategy 内容 -->
+                    <div id="rolling-content" class="strategy-panel">
+                        <div class="strategy-info">
+                            <h3>Rolling Strategy - 动态杠杆滚仓</h3>
+                            <p>基于杠杆衰减、利润锁定和风险控制的动态滚仓策略</p>
+                        </div>
+                        
+                        <div class="rolling-parameters">
+                            <div class="parameter-card">
+                                <h4>当前参数</h4>
+                                <div class="parameter-values">
+                                    <div class="parameter-item">
+                                        <span>当前杠杆</span>
+                                        <span class="value">3.2x</span>
+                                    </div>
+                                    <div class="parameter-item">
+                                        <span>风险评分</span>
+                                        <span class="value risk-medium">65</span>
+                                    </div>
+                                    <div class="parameter-item">
+                                        <span>时间衰减</span>
+                                        <span class="value">12h</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="parameter-card">
+                                <h4>滚仓建议</h4>
+                                <div class="rolling-recommendations">
+                                    <div class="recommendation-item">
+                                        <span class="recommendation-type">部分平仓</span>
+                                        <span class="recommendation-reason">锁定利润</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统监控页面 -->
+            <div id="monitoring" class="tab-content">
+                <div class="page-header">
+                    <h2>系统监控</h2>
+                    <div class="monitoring-controls">
+                        <button class="btn btn-primary" onclick="refreshMonitoring()">
+                            <i class="fas fa-sync-alt"></i>
+                            刷新监控
+                        </button>
+                    </div>
+                </div>
+
+                <div class="monitoring-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>系统资源</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="resource-item">
+                                <span class="resource-label">CPU使用率</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 35%"></div>
+                                </div>
+                                <span class="resource-value">35%</span>
+                            </div>
+                            <div class="resource-item">
+                                <span class="resource-label">内存使用率</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 68%"></div>
+                                </div>
+                                <span class="resource-value">68%</span>
+                            </div>
+                            <div class="resource-item">
+                                <span class="resource-label">磁盘使用率</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 45%"></div>
+                                </div>
+                                <span class="resource-value">45%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>API状态</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="api-status">
+                                <div class="api-item">
+                                    <span class="api-name">Binance REST API</span>
+                                    <span class="api-status-value status-online">正常</span>
+                                </div>
+                                <div class="api-item">
+                                    <span class="api-name">Binance WebSocket</span>
+                                    <span class="api-status-value status-online">正常</span>
+                                </div>
+                                <div class="api-item">
+                                    <span class="api-name">数据库连接</span>
+                                    <span class="api-status-value status-online">正常</span>
+                                </div>
+                                <div class="api-item">
+                                    <span class="api-name">Redis缓存</span>
+                                    <span class="api-status-value status-online">正常</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>策略执行状态</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="strategy-status">
+                                <div class="strategy-status-item">
+                                    <span class="strategy-name">Strategy V3</span>
+                                    <span class="strategy-status-value status-running">运行中</span>
+                                </div>
+                                <div class="strategy-status-item">
+                                    <span class="strategy-name">ICT Strategy</span>
+                                    <span class="strategy-status-value status-running">运行中</span>
+                                </div>
+                                <div class="strategy-status-item">
+                                    <span class="strategy-name">Rolling Strategy</span>
+                                    <span class="strategy-status-value status-running">运行中</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 胜率统计页面 -->
+            <div id="statistics" class="tab-content">
+                <div class="page-header">
+                    <h2>交易对胜率统计</h2>
+                    <div class="statistics-controls">
+                        <select class="form-select" id="strategySelect">
+                            <option value="all">所有策略</option>
+                            <option value="v3">Strategy V3</option>
+                            <option value="ict">ICT Strategy</option>
+                            <option value="rolling">Rolling Strategy</option>
+                        </select>
+                        <select class="form-select" id="timeframeSelect">
+                            <option value="all">所有时间周期</option>
+                            <option value="1d">1天</option>
+                            <option value="4h">4小时</option>
+                            <option value="1h">1小时</option>
+                            <option value="15m">15分钟</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="statistics-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>总体统计</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="stat-item">
+                                <span class="stat-label">总交易数</span>
+                                <span class="stat-value">1,247</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">胜率</span>
+                                <span class="stat-value stat-positive">68.5%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">总盈亏</span>
+                                <span class="stat-value stat-positive">+$12,450</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">最大回撤</span>
+                                <span class="stat-value stat-negative">-8.2%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>策略对比</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="strategy-comparison">
+                                <div class="comparison-item">
+                                    <span class="comparison-name">Strategy V3</span>
+                                    <div class="comparison-bar">
+                                        <div class="comparison-fill" style="width: 72%"></div>
+                                    </div>
+                                    <span class="comparison-value">72%</span>
+                                </div>
+                                <div class="comparison-item">
+                                    <span class="comparison-name">ICT Strategy</span>
+                                    <div class="comparison-bar">
+                                        <div class="comparison-fill" style="width: 65%"></div>
+                                    </div>
+                                    <span class="comparison-value">65%</span>
+                                </div>
+                                <div class="comparison-item">
+                                    <span class="comparison-name">Rolling Strategy</span>
+                                    <div class="comparison-bar">
+                                        <div class="comparison-fill" style="width: 68%"></div>
+                                    </div>
+                                    <span class="comparison-value">68%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>交易对详细统计</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="table-container">
+                            <table class="data-table" id="statisticsTable">
+                                <thead>
+                                    <tr>
+                                        <th>交易对</th>
+                                        <th>策略</th>
+                                        <th>时间周期</th>
+                                        <th>交易数</th>
+                                        <th>胜率</th>
+                                        <th>盈亏</th>
+                                        <th>夏普比率</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statisticsTableBody">
+                                    <!-- 数据将通过JavaScript动态加载 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 工具页面 -->
+            <div id="tools" class="tab-content">
+                <div class="page-header">
+                    <h2>交易工具</h2>
+                </div>
+
+                <div class="tools-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>动态杠杆滚仓计算器</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="calculator-form">
+                                <div class="form-group">
+                                    <label>账户余额</label>
+                                    <input type="number" id="accountBalance" placeholder="10000" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>当前杠杆</label>
+                                    <input type="number" id="currentLeverage" placeholder="3" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>持仓时间(小时)</label>
+                                    <input type="number" id="holdingTime" placeholder="12" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>当前回撤(%)</label>
+                                    <input type="number" id="currentDrawdown" placeholder="5" class="form-input">
+                                </div>
+                                <button class="btn btn-primary" onclick="calculateRolling()">计算滚仓参数</button>
+                            </div>
+                            <div class="calculator-result" id="rollingResult">
+                                <!-- 计算结果将显示在这里 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Telegram监控设置</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="telegram-settings">
+                                <div class="form-group">
+                                    <label>Bot Token</label>
+                                    <input type="text" id="botToken" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>Chat ID</label>
+                                    <input type="text" id="chatId" placeholder="123456789" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label>告警阈值</label>
+                                    <select class="form-select" id="alertThreshold">
+                                        <option value="60">60%</option>
+                                        <option value="70">70%</option>
+                                        <option value="80">80%</option>
+                                        <option value="90">90%</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary" onclick="saveTelegramSettings()">保存设置</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>系统测试API</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="api-test">
+                                <div class="test-group">
+                                    <button class="btn btn-secondary" onclick="testAPI('health')">健康检查</button>
+                                    <button class="btn btn-secondary" onclick="testAPI('symbols')">交易对API</button>
+                                    <button class="btn btn-secondary" onclick="testAPI('strategies')">策略API</button>
+                                    <button class="btn btn-secondary" onclick="testAPI('trades')">交易API</button>
+                                </div>
+                                <div class="test-result" id="apiTestResult">
+                                    <!-- API测试结果将显示在这里 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
