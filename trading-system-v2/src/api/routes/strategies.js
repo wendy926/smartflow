@@ -156,4 +156,128 @@ router.post('/batch-analyze', async (req, res) => {
   }
 });
 
+/**
+ * 获取V3策略判断记录
+ * GET /api/v1/strategies/v3/judgments
+ */
+router.get('/v3/judgments', async (req, res) => {
+  try {
+    const { limit = 10, symbol } = req.query;
+    
+    // 这里应该从数据库获取历史判断记录
+    // 暂时返回模拟数据
+    const mockJudgments = [
+      {
+        id: 1,
+        symbol: symbol || 'BTCUSDT',
+        timeframe: '4H',
+        trend: 'UP',
+        signal: 'BUY',
+        confidence: 0.85,
+        score: 8.5,
+        factors: {
+          ma20: 45230,
+          adx: 28.5,
+          bbw: 0.12,
+          vwap: 45180,
+          oiChange: 5.2,
+          funding: 0.01
+        },
+        timestamp: new Date().toISOString()
+      }
+    ];
+
+    res.json({
+      success: true,
+      data: mockJudgments.slice(0, parseInt(limit)),
+      count: mockJudgments.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('V3 judgments error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 获取ICT策略判断记录
+ * GET /api/v1/strategies/ict/judgments
+ */
+router.get('/ict/judgments', async (req, res) => {
+  try {
+    const { limit = 10, symbol } = req.query;
+    
+    // 这里应该从数据库获取历史判断记录
+    // 暂时返回模拟数据
+    const mockJudgments = [
+      {
+        id: 1,
+        symbol: symbol || 'BTCUSDT',
+        timeframe: '1D',
+        trend: 'DOWN',
+        signal: 'SELL',
+        confidence: 0.72,
+        score: 7.2,
+        reasons: ['订单块检测', '流动性扫荡', '吞没形态'],
+        timestamp: new Date().toISOString()
+      }
+    ];
+
+    res.json({
+      success: true,
+      data: mockJudgments.slice(0, parseInt(limit)),
+      count: mockJudgments.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('ICT judgments error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 获取Rolling策略判断记录
+ * GET /api/v1/strategies/rolling/judgments
+ */
+router.get('/rolling/judgments', async (req, res) => {
+  try {
+    const { limit = 10, symbol } = req.query;
+    
+    // 这里应该从数据库获取历史判断记录
+    // 暂时返回模拟数据
+    const mockJudgments = [
+      {
+        id: 1,
+        symbol: symbol || 'BTCUSDT',
+        timeframe: '15M',
+        action: 'HOLD',
+        leverage: 3.2,
+        risk: 'LOW',
+        floatingProfit: 200,
+        lockedProfit: 0,
+        timestamp: new Date().toISOString()
+      }
+    ];
+
+    res.json({
+      success: true,
+      data: mockJudgments.slice(0, parseInt(limit)),
+      count: mockJudgments.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Rolling judgments error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
