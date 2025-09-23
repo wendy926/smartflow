@@ -200,28 +200,43 @@ class DatabaseOperations {
    * @returns {Array} 交易对列表
    */
   async getAllSymbols() {
-    // 先检查缓存
-    const cacheKey = 'symbols:all';
-    const cached = await this.redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-
-    const connection = await this.getConnection();
     try {
-      const [rows] = await connection.execute(
-        'SELECT * FROM symbols WHERE status = "active" ORDER BY symbol'
-      );
+      // 先检查缓存
+      const cacheKey = 'symbols:all';
+      let cached = null;
+      try {
+        cached = await Promise.race([
+          this.redis.get(cacheKey),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 2000))
+        ]);
+      } catch (redisError) {
+        logger.warn('Redis cache check failed, using database:', redisError.message);
+      }
+      
+      if (cached) {
+        return JSON.parse(cached);
+      }
 
-      // 缓存结果
-      await this.redis.set(cacheKey, rows, 300); // 5分钟缓存
+      const connection = await this.getConnection();
+      try {
+        const [rows] = await connection.execute(
+          'SELECT * FROM symbols WHERE status = "active" ORDER BY symbol'
+        );
 
-      return rows;
+        // 尝试缓存结果，但不阻塞
+        try {
+          await this.redis.set(cacheKey, JSON.stringify(rows), 300); // 5分钟缓存
+        } catch (cacheError) {
+          logger.warn('Failed to cache symbols:', cacheError.message);
+        }
+
+        return rows;
+      } finally {
+        connection.release();
+      }
     } catch (error) {
       logger.error('Error getting all symbols:', error);
       throw error;
-    } finally {
-      connection.release();
     }
   }
 

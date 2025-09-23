@@ -270,11 +270,11 @@ class SmartFlowApp {
 
     for (const symbol of symbols) {
       const row = document.createElement('tr');
-      
+
       // 获取策略判断数据
       const v3Judgment = await this.getStrategyJudgment(symbol.symbol, 'v3');
       const ictJudgment = await this.getStrategyJudgment(symbol.symbol, 'ict');
-      
+
       row.innerHTML = `
         <td>${symbol.symbol}</td>
         <td>${symbol.last_price ? parseFloat(symbol.last_price).toFixed(4) : '--'}</td>
