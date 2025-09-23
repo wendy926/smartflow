@@ -6,8 +6,14 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../../utils/logger');
 
-// 直接导入数据库操作
-const dbOps = require('../../database/operations');
+// 延迟初始化数据库操作
+let dbOps = null;
+const getDbOps = () => {
+  if (!dbOps) {
+    dbOps = require('../../database/operations');
+  }
+  return dbOps;
+};
 
 /**
  * 获取所有交易对
@@ -16,7 +22,7 @@ const dbOps = require('../../database/operations');
 router.get('/', async (req, res) => {
   try {
     logger.info('开始获取交易对列表');
-    const symbols = await dbOps.getAllSymbols();
+    const symbols = await getDbOps().getAllSymbols();
     logger.info(`获取到 ${symbols.length} 个交易对`);
 
     const response = {
@@ -25,7 +31,7 @@ router.get('/', async (req, res) => {
       count: symbols.length,
       timestamp: new Date().toISOString()
     };
-    
+
     logger.info('准备发送响应');
     res.json(response);
     logger.info('响应已发送');
@@ -45,7 +51,7 @@ router.get('/', async (req, res) => {
 router.get('/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    const symbolInfo = await dbOps.getSymbol(symbol);
+    const symbolInfo = await getDbOps().getSymbol(symbol);
 
     if (!symbolInfo) {
       return res.status(404).json({
@@ -83,7 +89,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const result = await dbOps.addSymbol({
+    const result = await getDbOps().addSymbol({
       symbol,
       status,
       funding_rate,
@@ -116,7 +122,7 @@ router.put('/:symbol', async (req, res) => {
     const { symbol } = req.params;
     const updateData = req.body;
 
-    const result = await dbOps.updateSymbol(symbol, updateData);
+    const result = await getDbOps().updateSymbol(symbol, updateData);
 
     res.json({
       success: true,
@@ -141,7 +147,7 @@ router.delete('/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
 
-    await dbOps.deleteSymbol(symbol);
+    await getDbOps().deleteSymbol(symbol);
 
     res.json({
       success: true,
@@ -163,7 +169,7 @@ router.delete('/:symbol', async (req, res) => {
  */
 router.get('/active', async (req, res) => {
   try {
-    const activeSymbols = await dbOps.getActiveSymbols();
+    const activeSymbols = await getDbOps().getActiveSymbols();
 
     res.json({
       success: true,

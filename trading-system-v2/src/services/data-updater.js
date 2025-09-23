@@ -14,8 +14,8 @@ class DataUpdater {
     this.updateInterval = 60000; // 1分钟更新一次
     this.isRunning = false;
     this.symbols = [
-      'BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 'MKRUSDT', 
-      'PENDLEUSDT', 'MPLUSDT', 'LINKUSDT', 'LDOUSDT'
+      'BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 
+      'PENDLEUSDT', 'LINKUSDT', 'LDOUSDT'
     ];
   }
 

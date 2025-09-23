@@ -946,3 +946,93 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* 策略单元格样式 */
+.strategy-cell {
+  padding: 8px;
+  vertical-align: top;
+}
+
+.strategy-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeframe-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.timeframe-badge {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.timeframe-1d {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+.timeframe-4h {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #ce93d8;
+}
+
+.timeframe-1h {
+  background-color: #e8f5e8;
+  color: #388e3c;
+  border: 1px solid #a5d6a7;
+}
+
+.timeframe-15m {
+  background-color: #fff3e0;
+  color: #f57c00;
+  border: 1px solid #ffcc02;
+}
+
+.signal-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-badge {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: 500;
+}
+
+.score-high {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
+.score-medium {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.score-low {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+/* 移动端响应式 */
+@media (max-width: 768px) {
+  .timeframe-signals {
+    flex-direction: column;
+  }
+  
+  .strategy-info {
+    gap: 4px;
+  }
+}

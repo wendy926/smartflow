@@ -134,7 +134,7 @@ class SmartFlowApp {
     try {
       // 加载交易对数据
       const symbols = await this.fetchData('/symbols');
-      this.renderSymbolsTable(symbols.data || []);
+      await this.renderSymbolsTable(symbols.data || []);
 
       // 加载策略数据
       await this.loadStrategySignals();
@@ -262,27 +262,74 @@ class SmartFlowApp {
    * 渲染交易对表格
    * @param {Array} symbols - 交易对数据
    */
-  renderSymbolsTable(symbols) {
+  async renderSymbolsTable(symbols) {
     const tbody = document.getElementById('symbolsTableBody');
     if (!tbody) return;
 
     tbody.innerHTML = '';
 
-    symbols.forEach(symbol => {
+    for (const symbol of symbols) {
       const row = document.createElement('tr');
+      
+      // 获取策略判断数据
+      const v3Judgment = await this.getStrategyJudgment(symbol.symbol, 'v3');
+      const ictJudgment = await this.getStrategyJudgment(symbol.symbol, 'ict');
+      
       row.innerHTML = `
-                <td>${symbol.symbol}</td>
-                <td>${symbol.last_price ? parseFloat(symbol.last_price).toFixed(4) : '--'}</td>
-                <td class="${symbol.price_change_24h >= 0 ? 'stat-positive' : 'stat-negative'}">
-                    ${symbol.price_change_24h ? (symbol.price_change_24h * 100).toFixed(2) + '%' : '--'}
-                </td>
-                <td><span class="signal-value signal-buy">买入</span></td>
-                <td><span class="signal-value signal-sell">卖出</span></td>
-                <td><span class="signal-value signal-hold">持有</span></td>
-                <td><span class="status-value status-online">活跃</span></td>
-            `;
+        <td>${symbol.symbol}</td>
+        <td>${symbol.last_price ? parseFloat(symbol.last_price).toFixed(4) : '--'}</td>
+        <td class="${symbol.price_change_24h >= 0 ? 'stat-positive' : 'stat-negative'}">
+          ${symbol.price_change_24h ? (symbol.price_change_24h * 100).toFixed(2) + '%' : '--'}
+        </td>
+        <td class="strategy-cell">
+          <div class="strategy-info">
+            <div class="timeframe-signals">
+              <span class="timeframe-badge timeframe-4h">4H: ${v3Judgment?.timeframes?.trend4H || '--'}</span>
+              <span class="timeframe-badge timeframe-1h">1H: ${v3Judgment?.timeframes?.factors1H || '--'}</span>
+              <span class="timeframe-badge timeframe-15m">15m: ${v3Judgment?.timeframes?.entry15m || '--'}</span>
+            </div>
+            <div class="signal-display">
+              <span class="signal-value signal-${v3Judgment?.signal?.toLowerCase() || 'hold'}">${this.getSignalText(v3Judgment?.signal)}</span>
+              <span class="score-badge score-${v3Judgment?.score >= 80 ? 'high' : v3Judgment?.score >= 60 ? 'medium' : 'low'}">${v3Judgment?.score || '--'}</span>
+            </div>
+          </div>
+        </td>
+        <td class="strategy-cell">
+          <div class="strategy-info">
+            <div class="timeframe-signals">
+              <span class="timeframe-badge timeframe-1d">1D: ${ictJudgment?.timeframes?.trend1D || '--'}</span>
+              <span class="timeframe-badge timeframe-4h">4H: ${ictJudgment?.timeframes?.orderBlocks4H || '--'}</span>
+              <span class="timeframe-badge timeframe-15m">15m: ${ictJudgment?.timeframes?.entry15m || '--'}</span>
+            </div>
+            <div class="signal-display">
+              <span class="signal-value signal-${ictJudgment?.signal?.toLowerCase() || 'hold'}">${this.getSignalText(ictJudgment?.signal)}</span>
+              <span class="score-badge score-${ictJudgment?.score >= 80 ? 'high' : ictJudgment?.score >= 60 ? 'medium' : 'low'}">${ictJudgment?.score || '--'}</span>
+            </div>
+          </div>
+        </td>
+        <td><span class="status-value status-${symbol.status === 'active' ? 'online' : 'offline'}">${symbol.status === 'active' ? '活跃' : '停用'}</span></td>
+      `;
       tbody.appendChild(row);
-    });
+    }
+  }
+
+  /**
+   * 获取策略判断数据
+   * @param {string} symbol - 交易对
+   * @param {string} strategy - 策略名称
+   * @returns {Object} 策略判断数据
+   */
+  async getStrategyJudgment(symbol, strategy) {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/strategies/${strategy}/judgments?symbol=${symbol}&limit=1`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.data && data.data.length > 0 ? data.data[0] : null;
+      }
+    } catch (error) {
+      console.error(`获取${strategy}策略判断失败:`, error);
+    }
+    return null;
   }
 
   /**
