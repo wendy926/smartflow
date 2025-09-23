@@ -52,7 +52,14 @@ class DatabaseOperations {
     if (!this.pool) {
       await this.init();
     }
-    return await this.pool.getConnection();
+    
+    // 添加超时控制
+    return await Promise.race([
+      this.pool.getConnection(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection pool timeout')), 3000)
+      )
+    ]);
   }
 
   // ==================== 交易对管理 ====================
@@ -203,29 +210,22 @@ class DatabaseOperations {
     try {
       logger.info('开始查询数据库获取交易对列表');
       
-      // 添加超时控制
-      const connection = await Promise.race([
-        this.getConnection(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Database connection timeout')), 5000)
-        )
-      ]);
+      const connection = await this.getConnection();
       
       try {
         logger.info('数据库连接获取成功，开始执行查询');
         
-        const [rows] = await Promise.race([
-          connection.execute('SELECT * FROM symbols WHERE status = "active" ORDER BY symbol'),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Database query timeout')), 10000)
-          )
-        ]);
+        const [rows] = await connection.execute(
+          'SELECT * FROM symbols WHERE status = "active" ORDER BY symbol'
+        );
         
         logger.info(`数据库查询成功，获取到 ${rows.length} 个交易对`);
         return rows;
       } finally {
-        connection.release();
-        logger.info('数据库连接已释放');
+        if (connection) {
+          connection.release();
+          logger.info('数据库连接已释放');
+        }
       }
     } catch (error) {
       logger.error('Error getting all symbols:', error);
