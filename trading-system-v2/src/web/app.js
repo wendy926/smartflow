@@ -318,7 +318,7 @@ class SmartFlowApp {
             </div>
           </div>
         </td>
-        <td><span class="status-value status-${symbol.status === 'active' ? 'online' : 'offline'}">${symbol.status === 'active' ? '活跃' : '停用'}</span></td>
+        <td><span class="status-value status-${symbol.status === 'ACTIVE' ? 'online' : 'offline'}">${symbol.status === 'ACTIVE' ? '活跃' : '停用'}</span></td>
       `;
       tbody.appendChild(row);
     }

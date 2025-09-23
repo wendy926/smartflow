@@ -56,7 +56,7 @@ class DatabaseOperations {
     // 添加超时控制
     return await Promise.race([
       this.pool.getConnection(),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Connection pool timeout')), 8000)
       )
     ]);
@@ -369,16 +369,21 @@ class DatabaseOperations {
   async getTrades(strategy, symbol = null, limit = 100) {
     const connection = await this.getConnection();
     try {
-      let query = 'SELECT * FROM simulation_trades WHERE strategy = ?';
-      const params = [strategy];
+      let query = `
+        SELECT st.*, s.symbol 
+        FROM simulation_trades st 
+        JOIN symbols s ON st.symbol_id = s.id 
+        WHERE st.strategy_name = ?
+      `;
+      const params = [strategy.toUpperCase()];
 
       if (symbol) {
-        query += ' AND symbol = ?';
+        query += ' AND s.symbol = ?';
         params.push(symbol);
       }
 
-      query += ' ORDER BY created_at DESC LIMIT ?';
-      params.push(limit);
+      query += ' ORDER BY st.created_at DESC LIMIT ?';
+      params.push(parseInt(limit));
 
       const [rows] = await connection.execute(query, params);
       return rows;
