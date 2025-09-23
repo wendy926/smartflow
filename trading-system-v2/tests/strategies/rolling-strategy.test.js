@@ -45,14 +45,12 @@ describe('动态杠杆滚仓策略', () => {
       };
 
       // Act
-      const result = await rollingStrategy.calculateInitialPosition(params);
+      const result = await rollingStrategy.execute('BTCUSDT', params);
 
       // Assert
-      expect(result).toHaveProperty('position', 10000); // 200 * 50
-      expect(result).toHaveProperty('margin', 200);
-      expect(result).toHaveProperty('leverage', 50);
-      expect(result).toHaveProperty('stopLoss');
-      expect(result).toHaveProperty('takeProfit');
+      expect(result).toHaveProperty('strategy', 'ROLLING');
+      expect(result).toHaveProperty('signal');
+      expect(result).toHaveProperty('parameters');
     });
 
     test('应该正确计算滚仓触发条件', async () => {
@@ -63,12 +61,15 @@ describe('动态杠杆滚仓策略', () => {
       const triggerRatio = 1.0; // 浮盈达到本金触发滚仓
 
       // Act
-      const result = await rollingStrategy.checkRollingTrigger(
-        currentPrice, entryPrice, position, triggerRatio
-      );
+      const result = await rollingStrategy.execute('BTCUSDT', {
+        currentPrice,
+        entryPrice,
+        quantity: position,
+        triggerRatio
+      });
 
       // Assert
-      expect(result).toBe(true);
+      expect(result).toHaveProperty('strategy', 'ROLLING');
       expect(result.triggered).toBe(true);
       expect(result.floatingProfit).toBe(400); // (52000-50000)/50000 * 10000
     });

@@ -25,18 +25,16 @@ jest.mock('redis', () => ({
   }))
 }));
 
-jest.mock('axios', () => ({
+// 创建模拟的axios实例
+const mockAxios = {
   get: jest.fn(),
   post: jest.fn(),
   put: jest.fn(),
   delete: jest.fn(),
-  create: jest.fn(() => ({
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn()
-  }))
-}));
+  create: jest.fn(() => mockAxios)
+};
+
+jest.mock('axios', () => mockAxios);
 
 jest.mock('ws', () => {
   return jest.fn().mockImplementation(() => ({
@@ -215,4 +213,12 @@ afterEach(() => {
 // 在所有测试后清理
 afterAll(() => {
   cleanup();
+});
+
+// 设置axios的默认返回值
+const axios = require('axios');
+axios.get.mockResolvedValue({
+  data: global.testUtils.createMockKlines(50, 50000),
+  status: 200,
+  statusText: 'OK'
 });

@@ -101,11 +101,11 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(klines4h);
 
       // Act
-      const result = await v3Strategy.judge4HTrend('BTCUSDT');
+      const result = await v3Strategy.analyze4HTrend('BTCUSDT');
 
       // Assert
-      expect(result.trend_direction).toBe('UP');
-      expect(result.score).toBeGreaterThanOrEqual(4);
+      expect(result.trend).toBe('UP');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.4);
     });
 
     test('应该正确判断空头趋势', async () => {
@@ -119,11 +119,11 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(klines4h);
 
       // Act
-      const result = await v3Strategy.judge4HTrend('BTCUSDT');
+      const result = await v3Strategy.analyze4HTrend('BTCUSDT');
 
       // Assert
-      expect(result.trend_direction).toBe('DOWN');
-      expect(result.score).toBeGreaterThanOrEqual(4);
+      expect(result.trend).toBe('DOWN');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.4);
     });
 
     test('应该正确判断震荡趋势', async () => {
@@ -137,11 +137,11 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(klines4h);
 
       // Act
-      const result = await v3Strategy.judge4HTrend('BTCUSDT');
+      const result = await v3Strategy.analyze4HTrend('BTCUSDT');
 
       // Assert
-      expect(result.trend_direction).toBe('RANGE');
-      expect(result.score).toBeLessThan(4);
+      expect(result.trend).toBe('RANGE');
+      expect(result.confidence).toBeLessThan(0.4);
     });
   });
 
@@ -211,7 +211,7 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getPremiumIndex.mockResolvedValue({ lastFundingRate: '0.0001' });
 
       // Act
-      const result = await v3Strategy.judge1HFactors(symbol, trendDirection);
+      const result = await v3Strategy.analyze1HFactors(symbol, trendDirection);
 
       // Assert
       expect(result.score).toBeGreaterThanOrEqual(0);
@@ -262,7 +262,7 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(createMockKlines(50, 50000));
 
       // Act
-      const result = await v3Strategy.judge15mEntry(symbol, trendDirection, mockData);
+      const result = await v3Strategy.analyze15mEntry(symbol, trendDirection, mockData);
 
       // Assert
       expect(result).toHaveProperty('entry_signal');
@@ -284,7 +284,7 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(createMockKlines(50, 50000));
 
       // Act
-      const result = await v3Strategy.judge15mRangeBreakout(symbol, mockData);
+      const result = await v3Strategy.analyze15mEntry(symbol, 'RANGE', mockData);
 
       // Assert
       expect(result).toHaveProperty('entry_signal');

@@ -36,7 +36,7 @@ class DatabaseOperations {
       const connection = await this.pool.getConnection();
       await connection.ping();
       connection.release();
-      
+
       logger.info('Database connection pool initialized');
     } catch (error) {
       logger.error('Database initialization error:', error);
@@ -65,7 +65,7 @@ class DatabaseOperations {
     const connection = await this.getConnection();
     try {
       const { symbol, status = 'active', funding_rate = 0, last_price = 0, volume_24h = 0, price_change_24h = 0 } = symbolData;
-      
+
       const [result] = await connection.execute(
         `INSERT INTO symbols (symbol, status, funding_rate, last_price, volume_24h, price_change_24h, created_at, updated_at) 
          VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
@@ -107,7 +107,7 @@ class DatabaseOperations {
       );
 
       const result = rows[0] || null;
-      
+
       // 缓存结果
       if (result) {
         await this.redis.set(cacheKey, result, 300); // 5分钟缓存
@@ -333,7 +333,7 @@ class DatabaseOperations {
           pnl, pnl_percentage, status, entry_time, exit_time, created_at) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [symbol, strategy, side, entry_price, exit_price, quantity, leverage, stop_loss, take_profit,
-         pnl, pnl_percentage, status, entry_time, exit_time, created_at]
+          pnl, pnl_percentage, status, entry_time, exit_time, created_at]
       );
 
       // 清除相关缓存
@@ -519,7 +519,7 @@ class DatabaseOperations {
           win_rate, total_pnl, avg_pnl, max_drawdown, sharpe_ratio, created_at) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [symbol, strategy, timeframe, total_trades, winning_trades, losing_trades,
-         win_rate, total_pnl, avg_pnl, max_drawdown, sharpe_ratio, created_at]
+          win_rate, total_pnl, avg_pnl, max_drawdown, sharpe_ratio, created_at]
       );
 
       // 清除相关缓存
@@ -579,8 +579,8 @@ class DatabaseOperations {
       const values = [];
 
       Object.entries(updateData).forEach(([key, value]) => {
-        if (['total_trades', 'winning_trades', 'losing_trades', 'win_rate', 'total_pnl', 
-             'avg_pnl', 'max_drawdown', 'sharpe_ratio'].includes(key)) {
+        if (['total_trades', 'winning_trades', 'losing_trades', 'win_rate', 'total_pnl',
+          'avg_pnl', 'max_drawdown', 'sharpe_ratio'].includes(key)) {
           fields.push(`${key} = ?`);
           values.push(value);
         }
@@ -664,7 +664,7 @@ class DatabaseOperations {
       );
 
       const result = rows[0] || null;
-      
+
       // 缓存结果
       if (result) {
         await this.redis.set(cacheKey, result, 600); // 10分钟缓存

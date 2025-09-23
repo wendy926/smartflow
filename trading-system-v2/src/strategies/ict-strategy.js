@@ -69,22 +69,22 @@ class ICTStrategy {
    */
   detectOrderBlocks(klines, timeframe = '4H') {
     const orderBlocks = [];
-    
+
     if (klines.length < 20) return orderBlocks;
 
     // 寻找吞没形态作为订单块
     for (let i = 1; i < klines.length - 1; i++) {
       const current = klines[i];
       const previous = klines[i - 1];
-      
+
       const currentOpen = parseFloat(current.open);
       const currentClose = parseFloat(current.close);
       const previousOpen = parseFloat(previous.open);
       const previousClose = parseFloat(previous.close);
 
       // 看涨订单块：前一根为阴线，当前为阳线且完全吞没
-      if (previousClose < previousOpen && currentClose > currentOpen && 
-          currentOpen < previousClose && currentClose > previousOpen) {
+      if (previousClose < previousOpen && currentClose > currentOpen &&
+        currentOpen < previousClose && currentClose > previousOpen) {
         orderBlocks.push({
           type: 'BULLISH',
           high: Math.max(currentOpen, currentClose),
@@ -94,10 +94,10 @@ class ICTStrategy {
           strength: Math.abs(currentClose - currentOpen) / previousClose
         });
       }
-      
+
       // 看跌订单块：前一根为阳线，当前为阴线且完全吞没
-      if (previousClose > previousOpen && currentClose < currentOpen && 
-          currentOpen > previousClose && currentClose < previousOpen) {
+      if (previousClose > previousOpen && currentClose < currentOpen &&
+        currentOpen > previousClose && currentClose < previousOpen) {
         orderBlocks.push({
           type: 'BEARISH',
           high: Math.max(currentOpen, currentClose),
@@ -133,7 +133,7 @@ class ICTStrategy {
     recentKlines.forEach((kline, index) => {
       const high = parseFloat(kline.high);
       const low = parseFloat(kline.low);
-      
+
       if (high > highestHigh) {
         highestHigh = high;
         highestIndex = index;
@@ -161,7 +161,7 @@ class ICTStrategy {
       level = highestHigh;
       confidence = Math.min((currentPrice - highestHigh) / currentATR, 1);
     }
-    
+
     // 检测下方流动性扫荡
     if (currentPrice < lowestLow * 1.001 && lowestIndex < recentKlines.length - 2) {
       detected = true;
@@ -185,22 +185,22 @@ class ICTStrategy {
 
     const current = klines[klines.length - 1];
     const previous = klines[klines.length - 2];
-    
+
     const currentOpen = parseFloat(current.open);
     const currentClose = parseFloat(current.close);
     const previousOpen = parseFloat(previous.open);
     const previousClose = parseFloat(previous.close);
 
     // 看涨吞没
-    if (previousClose < previousOpen && currentClose > currentOpen && 
-        currentOpen < previousClose && currentClose > previousOpen) {
+    if (previousClose < previousOpen && currentClose > currentOpen &&
+      currentOpen < previousClose && currentClose > previousOpen) {
       const strength = Math.abs(currentClose - currentOpen) / previousClose;
       return { detected: true, type: 'BULLISH_ENGULFING', strength };
     }
-    
+
     // 看跌吞没
-    if (previousClose > previousOpen && currentClose < currentOpen && 
-        currentOpen > previousClose && currentClose < previousOpen) {
+    if (previousClose > previousOpen && currentClose < currentOpen &&
+      currentOpen > previousClose && currentClose < previousOpen) {
       const strength = Math.abs(currentClose - currentOpen) / previousClose;
       return { detected: true, type: 'BEARISH_ENGULFING', strength };
     }
@@ -220,7 +220,7 @@ class ICTStrategy {
 
     const recentKlines = klines.slice(-5);
     const currentPrice = parseFloat(klines[klines.length - 1].close);
-    
+
     // 寻找最近的高点和低点
     let highestHigh = 0;
     let lowestLow = Infinity;
@@ -247,7 +247,7 @@ class ICTStrategy {
       level = highestHigh;
       confidence = Math.min((currentPrice - highestHigh) / currentATR, 1);
     }
-    
+
     // 检测下方流动性扫荡
     if (currentPrice < lowestLow * 1.001) {
       detected = true;
@@ -329,19 +329,19 @@ class ICTStrategy {
 
       // 1. 分析日线趋势
       const dailyTrend = await this.analyzeDailyTrend(symbol);
-      
+
       // 2. 获取4H数据检测订单块
       const klines4H = await this.binanceAPI.getKlines(symbol, '4h', 50);
       const orderBlocks = klines4H ? this.detectOrderBlocks(klines4H, '4H') : [];
-      
+
       // 3. 检测HTF Sweep
       const sweepHTF = klines4H ? this.detectSweepHTF(klines4H, '4H') : { detected: false };
-      
+
       // 4. 获取15m数据检测吞没形态和LTF Sweep
       const klines15m = await this.binanceAPI.getKlines(symbol, '15m', 50);
       const engulfing = klines15m ? this.detectEngulfingPattern(klines15m) : { detected: false };
       const sweepLTF = klines15m ? this.detectSweepLTF(klines15m) : { detected: false };
-      
+
       // 5. 计算交易参数
       const tradeParams = await this.calculateTradeParameters(symbol, dailyTrend.trend, {
         engulfing,
@@ -361,7 +361,7 @@ class ICTStrategy {
 
       // 订单块评分
       if (orderBlocks.length > 0) {
-        const recentOrderBlocks = orderBlocks.filter(ob => 
+        const recentOrderBlocks = orderBlocks.filter(ob =>
           Date.now() - ob.timestamp < 7 * 24 * 60 * 60 * 1000 // 7天内
         );
         if (recentOrderBlocks.length > 0) {
