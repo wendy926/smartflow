@@ -11,8 +11,7 @@ const logger = require('../../utils/logger');
 let dbOps = null;
 const getDbOps = () => {
   if (!dbOps) {
-    const DatabaseOperations = require('../../database/operations');
-    dbOps = new DatabaseOperations();
+    dbOps = require('../../database/operations');
   }
   return dbOps;
 };
