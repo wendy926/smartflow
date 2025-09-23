@@ -268,13 +268,24 @@ class SmartFlowApp {
 
     tbody.innerHTML = '';
 
+    if (symbols.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; color: #6c757d; padding: 2rem;">
+            暂无交易对数据
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
     for (const symbol of symbols) {
       const row = document.createElement('tr');
-
+      
       // 获取策略判断数据
       const v3Judgment = await this.getStrategyJudgment(symbol.symbol, 'v3');
       const ictJudgment = await this.getStrategyJudgment(symbol.symbol, 'ict');
-
+      
       row.innerHTML = `
         <td>${symbol.symbol}</td>
         <td>${symbol.last_price ? parseFloat(symbol.last_price).toFixed(4) : '--'}</td>
@@ -337,7 +348,7 @@ class SmartFlowApp {
    */
   async loadStrategyData() {
     console.log(`Loading strategy data for ${this.currentStrategy}`);
-    
+
     // 加载交易记录数据
     await this.loadTradingRecords(this.currentStrategy);
   }
@@ -355,8 +366,8 @@ class SmartFlowApp {
       this.renderTradingRecords(strategy, trades);
     } catch (error) {
       console.error(`加载${strategy}策略交易记录失败:`, error);
-      // 显示模拟数据
-      this.renderTradingRecords(strategy, this.getMockTradingRecords(strategy));
+      // 显示空数据而不是模拟数据
+      this.renderTradingRecords(strategy, []);
     }
   }
 
@@ -469,7 +480,7 @@ class SmartFlowApp {
         }
       ]
     };
-    
+
     return mockTrades[strategy] || [];
   }
 
@@ -481,7 +492,7 @@ class SmartFlowApp {
   formatDateTime(dateTime) {
     if (!dateTime) return '--';
     const date = new Date(dateTime);
-    return date.toLocaleString('zh-CN', { 
+    return date.toLocaleString('zh-CN', {
       timeZone: 'Asia/Shanghai',
       year: 'numeric',
       month: '2-digit',

@@ -1118,20 +1118,20 @@ body {
   .timeframe-signals {
     flex-direction: column;
   }
-  
+
   .strategy-info {
     gap: 4px;
   }
-  
+
   .trading-records .data-table {
     font-size: 0.8rem;
   }
-  
+
   .trading-records .data-table th,
   .trading-records .data-table td {
     padding: 8px 4px;
   }
-  
+
   .judgment-basis {
     max-width: 150px;
     font-size: 0.7rem;

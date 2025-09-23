@@ -22,7 +22,7 @@ const config = {
     name: process.env.DB_NAME || 'trading_system',
     user: process.env.DB_USER || 'trading_user',
     password: process.env.DB_PASSWORD || 'password',
-    connectionLimit: 3,
+    connectionLimit: 10,
     acquireTimeout: 20000,
     timeout: 20000,
     reconnect: true,
