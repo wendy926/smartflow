@@ -369,23 +369,23 @@ class DatabaseOperations {
   async getTrades(strategy, symbol = null, limit = 100) {
     const connection = await this.getConnection();
     try {
+      const strategyUpper = strategy.toUpperCase();
+      const limitNum = Number(limit);
+      
       let query = `
         SELECT st.*, s.symbol 
         FROM simulation_trades st 
         JOIN symbols s ON st.symbol_id = s.id 
-        WHERE st.strategy_name = ?
+        WHERE st.strategy_name = '${strategyUpper}'
       `;
-      const params = [strategy.toUpperCase()];
 
       if (symbol) {
-        query += ' AND s.symbol = ?';
-        params.push(symbol);
+        query += ` AND s.symbol = '${symbol}'`;
       }
 
-      query += ' ORDER BY st.created_at DESC LIMIT ?';
-      params.push(Number(limit));
+      query += ` ORDER BY st.created_at DESC LIMIT ${limitNum}`;
 
-      const [rows] = await connection.execute(query, params);
+      const [rows] = await connection.execute(query);
       return rows;
     } catch (error) {
       logger.error(`Error getting trades for ${strategy}:`, error);
