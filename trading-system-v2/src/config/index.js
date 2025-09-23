@@ -32,7 +32,9 @@ const config = {
     multipleStatements: false,
     dateStrings: true,
     supportBigNumbers: false,
-    bigNumberStrings: false
+    bigNumberStrings: false,
+    // 时区配置 - 使用北京时间 UTC+8
+    timezone: '+08:00'
   },
 
   // Redis配置

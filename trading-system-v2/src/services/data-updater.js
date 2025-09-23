@@ -105,7 +105,7 @@ class DataUpdater {
           logger.warn(`获取 ${symbol} 资金费率失败:`, error.message);
         }
 
-        // 更新数据库
+        // 更新数据库 - 使用北京时间
         await this.updateSymbolInDatabase(symbol, {
           last_price: parseFloat(tickerData.lastPrice),
           volume_24h: parseFloat(tickerData.volume),
@@ -113,7 +113,9 @@ class DataUpdater {
           funding_rate: fundingRate
         });
 
-        logger.info(`✅ 更新 ${symbol}: 价格=${tickerData.lastPrice}, 变化=${tickerData.priceChangePercent}%`);
+        // 获取北京时间
+        const beijingTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+        logger.info(`✅ 更新 ${symbol}: 价格=${tickerData.lastPrice}, 变化=${tickerData.priceChangePercent}% (${beijingTime})`);
       }
     } catch (error) {
       logger.error(`更新 ${symbol} 数据失败:`, error.message);
@@ -129,7 +131,7 @@ class DataUpdater {
       const DatabaseOperations = require('../database/operations');
       const dbOps = DatabaseOperations;
       
-      // 直接使用SQL更新
+      // 直接使用SQL更新 - 使用北京时间
       const connection = await dbOps.getConnection();
       await connection.execute(
         `UPDATE symbols 
@@ -137,7 +139,7 @@ class DataUpdater {
              volume_24h = ?, 
              price_change_24h = ?, 
              funding_rate = ?, 
-             updated_at = NOW()
+             updated_at = CONVERT_TZ(NOW(), '+00:00', '+08:00')
          WHERE symbol = ?`,
         [
           data.last_price,
@@ -162,11 +164,14 @@ class DataUpdater {
    * 获取服务状态
    */
   getStatus() {
+    // 使用北京时间
+    const beijingTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
     return {
       isRunning: this.isRunning,
       updateInterval: this.updateInterval,
       symbols: this.symbols,
-      lastUpdate: new Date().toISOString()
+      lastUpdate: beijingTime,
+      timezone: 'Asia/Shanghai (UTC+8)'
     };
   }
 }

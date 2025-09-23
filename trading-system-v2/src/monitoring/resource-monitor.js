@@ -60,7 +60,9 @@ class ResourceMonitor {
       const cpuUsage = this.getCpuUsage();
       const memoryUsage = this.getMemoryUsage();
 
-      logger.info(`系统资源状态 - CPU: ${cpuUsage.toFixed(2)}%, 内存: ${memoryUsage.toFixed(2)}%`);
+      // 使用北京时间
+      const beijingTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+      logger.info(`系统资源状态 - CPU: ${cpuUsage.toFixed(2)}%, 内存: ${memoryUsage.toFixed(2)}% (${beijingTime})`);
 
       // 检查CPU使用率
       if (cpuUsage > this.cpuThreshold) {

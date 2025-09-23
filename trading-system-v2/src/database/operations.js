@@ -29,7 +29,8 @@ class DatabaseOperations {
         acquireTimeout: 60000,
         timeout: 60000,
         reconnect: true,
-        charset: 'utf8mb4'
+        charset: 'utf8mb4',
+        timezone: config.database.timezone || '+08:00'
       });
 
       // 测试连接

@@ -23,11 +23,14 @@ router.get('/', async (req, res) => {
   try {
     const symbols = await getDbOps().getAllSymbols();
 
+    // 使用北京时间
+    const beijingTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
     res.json({
       success: true,
       data: symbols,
       count: symbols.length,
-      timestamp: new Date().toISOString()
+      timestamp: beijingTime,
+      timezone: 'Asia/Shanghai (UTC+8)'
     });
   } catch (error) {
     logger.error('获取交易对列表失败:', error);
