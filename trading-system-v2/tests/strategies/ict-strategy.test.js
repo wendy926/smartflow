@@ -378,7 +378,7 @@ describe('ICT策略 - 订单块交易策略', () => {
 
       // Assert
       expect(result.stopLoss).toBeGreaterThan(0); // 止损应该大于0
-      expect(result.stopLoss).toBeLessThan(50000); // 下降趋势的止损应该低于入场价
+      expect(result.stopLoss).toBeGreaterThan(50000); // 下降趋势的止损应该高于入场价
     });
 
     test('应该正确计算止盈目标', async () => {
