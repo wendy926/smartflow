@@ -369,6 +369,11 @@ class DatabaseOperations {
   async getTrades(strategy, symbol = null, limit = 100) {
     const connection = await this.getConnection();
     try {
+      // 如果没有提供strategy参数，返回空数组
+      if (!strategy) {
+        return [];
+      }
+
       const strategyUpper = strategy.toUpperCase();
       const limitNum = Number(limit);
 
@@ -376,16 +381,20 @@ class DatabaseOperations {
         SELECT st.*, s.symbol 
         FROM simulation_trades st 
         JOIN symbols s ON st.symbol_id = s.id 
-        WHERE st.strategy_name = '${strategyUpper}'
+        WHERE st.strategy_name = ?
       `;
+      
+      const params = [strategyUpper];
 
       if (symbol) {
-        query += ` AND s.symbol = '${symbol}'`;
+        query += ` AND s.symbol = ?`;
+        params.push(symbol);
       }
 
-      query += ` ORDER BY st.created_at DESC LIMIT ${limitNum}`;
+      query += ` ORDER BY st.created_at DESC LIMIT ?`;
+      params.push(limitNum);
 
-      const [rows] = await connection.execute(query);
+      const [rows] = await connection.execute(query, params);
       return rows;
     } catch (error) {
       logger.error(`Error getting trades for ${strategy}:`, error);
@@ -900,22 +909,22 @@ class DatabaseOperations {
     try {
       // 获取总交易数
       const [totalTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as total FROM simulation_trades WHERE strategy = ?',
-        [strategy]
+        'SELECT COUNT(*) as total FROM simulation_trades WHERE strategy_name = ?',
+        [strategy.toUpperCase()]
       );
       const totalTrades = totalTradesResult[0].total;
 
       // 获取盈利交易数
       const [profitableTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE strategy = ? AND pnl > 0',
-        [strategy]
+        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE strategy_name = ? AND pnl > 0',
+        [strategy.toUpperCase()]
       );
       const profitableTrades = profitableTradesResult[0].profitable;
 
       // 获取亏损交易数
       const [losingTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as losing FROM simulation_trades WHERE strategy = ? AND pnl < 0',
-        [strategy]
+        'SELECT COUNT(*) as losing FROM simulation_trades WHERE strategy_name = ? AND pnl < 0',
+        [strategy.toUpperCase()]
       );
       const losingTrades = losingTradesResult[0].losing;
 
@@ -924,15 +933,15 @@ class DatabaseOperations {
 
       // 获取总盈亏
       const [totalPnlResult] = await connection.execute(
-        'SELECT COALESCE(SUM(pnl), 0) as totalPnl FROM simulation_trades WHERE strategy = ?',
-        [strategy]
+        'SELECT COALESCE(SUM(pnl), 0) as totalPnl FROM simulation_trades WHERE strategy_name = ?',
+        [strategy.toUpperCase()]
       );
       const totalPnl = totalPnlResult[0].totalPnl;
 
       // 获取最大回撤
       const [maxDrawdownResult] = await connection.execute(
-        'SELECT COALESCE(MIN(pnl), 0) as maxDrawdown FROM simulation_trades WHERE strategy = ?',
-        [strategy]
+        'SELECT COALESCE(MIN(pnl), 0) as maxDrawdown FROM simulation_trades WHERE strategy_name = ?',
+        [strategy.toUpperCase()]
       );
       const maxDrawdown = Math.abs(maxDrawdownResult[0].maxDrawdown);
 
