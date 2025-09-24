@@ -203,7 +203,10 @@ class ICTStrategy {
       confidence = Math.min((extreme - currentPrice) / (currentATR || 1), 1);
     }
 
-    return { detected, type, level, confidence };
+    // 计算扫荡速率
+    const speed = detected ? confidence * (currentATR || 1) : 0;
+    
+    return { detected, type, level, confidence, speed };
   }
 
   /**
@@ -290,7 +293,10 @@ class ICTStrategy {
       confidence = Math.min((lowestLow - currentPrice) / (currentATR || 1), 1);
     }
 
-    return { detected, type, level, confidence };
+    // 计算扫荡速率
+    const speed = detected ? confidence * (currentATR || 1) : 0;
+
+    return { detected, type, level, confidence, speed };
   }
 
   /**
@@ -509,13 +515,13 @@ class ICTStrategy {
             orderBlocks: orderBlocks.slice(-3),
             atr: atr4H[atr4H.length - 1] || 0,
             sweepDetected: sweepHTF.detected || false,
-            sweepSpeed: sweepHTF.speed || 0
+            sweepRate: sweepHTF.speed || 0
           },
           '15M': {
             signal: signal,
             engulfing: engulfing.detected || false,
             atr: atr15m[atr15m.length - 1] || 0,
-            sweepSpeed: sweepLTF.speed || 0,
+            sweepRate: sweepLTF.speed || 0,
             volume: klines15m[klines15m.length - 1] ? parseFloat(klines15m[klines15m.length - 1][5]) : 0
           }
         },

@@ -253,10 +253,12 @@ class V3Strategy {
         atr: (() => {
           try {
             const atrArray = this.calculateATR(klines.map(k => parseFloat(k[2])), klines.map(k => parseFloat(k[3])), prices);
-            return atrArray && atrArray.length > 0 ? atrArray[atrArray.length - 1] : 0;
+            const lastATR = atrArray && atrArray.length > 0 ? atrArray[atrArray.length - 1] : null;
+            // 如果ATR为null或0，使用价格的一定百分比作为默认值
+            return lastATR && lastATR > 0 ? lastATR : (prices[prices.length - 1] * 0.01);
           } catch (error) {
             logger.warn(`15M ATR计算失败: ${error.message}`);
-            return 0;
+            return prices[prices.length - 1] * 0.01; // 使用当前价格的1%作为默认ATR
           }
         })(),
         bbw: bbw.bbw || 0,
