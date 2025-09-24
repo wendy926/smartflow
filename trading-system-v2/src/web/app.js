@@ -288,34 +288,33 @@ class SmartFlowApp {
    * @param {Object} stats - 总体统计数据
    */
   updateOverallStats(stats) {
-    // 更新总体统计卡片
-    const overallStatsElement = document.getElementById('overall-stats');
-    if (!overallStatsElement) return;
-
     // 更新总交易数
-    const totalTradesElement = overallStatsElement.querySelector('.total-trades');
+    const totalTradesElement = document.getElementById('overall-total-trades');
     if (totalTradesElement) {
       totalTradesElement.textContent = stats.totalTrades || 0;
     }
 
     // 更新总胜率
-    const winRateElement = overallStatsElement.querySelector('.win-rate');
+    const winRateElement = document.getElementById('overall-win-rate');
     if (winRateElement) {
-      winRateElement.textContent = `${stats.winRate || 0}%`;
+      const winRate = stats.winRate || 0;
+      winRateElement.textContent = `${winRate}%`;
+      winRateElement.className = `stat-value ${winRate >= 50 ? 'stat-positive' : 'stat-negative'}`;
     }
 
     // 更新总盈亏
-    const totalPnlElement = overallStatsElement.querySelector('.total-pnl');
+    const totalPnlElement = document.getElementById('overall-total-pnl');
     if (totalPnlElement) {
       const pnl = stats.totalPnl || 0;
       totalPnlElement.textContent = pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
-      totalPnlElement.className = `total-pnl ${pnl >= 0 ? 'positive' : 'negative'}`;
+      totalPnlElement.className = `stat-value ${pnl >= 0 ? 'stat-positive' : 'stat-negative'}`;
     }
 
     // 更新最大回撤
-    const maxDrawdownElement = overallStatsElement.querySelector('.max-drawdown');
+    const maxDrawdownElement = document.getElementById('overall-max-drawdown');
     if (maxDrawdownElement) {
       maxDrawdownElement.textContent = `-${stats.maxDrawdown || 0}%`;
+      maxDrawdownElement.className = 'stat-value stat-negative';
     }
   }
 
