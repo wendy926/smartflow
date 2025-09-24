@@ -5,8 +5,16 @@
 
 const express = require('express');
 const router = express.Router();
-const database = require('../../database/connection');
 const logger = require('../../utils/logger');
+
+// 延迟初始化数据库操作
+let dbOps = null;
+const getDbOps = () => {
+  if (!dbOps) {
+    dbOps = require('../../database/operations');
+  }
+  return dbOps;
+};
 
 /**
  * 获取用户设置
@@ -96,7 +104,7 @@ router.get('/', async (req, res) => {
  */
 async function getUserSetting(key, defaultValue = null) {
   try {
-    const connection = await database.getConnection();
+    const connection = await getDbOps().getConnection();
     
     try {
       const [rows] = await connection.execute(
@@ -131,7 +139,7 @@ async function getUserSetting(key, defaultValue = null) {
  */
 async function setUserSetting(key, value) {
   try {
-    const connection = await database.getConnection();
+    const connection = await getDbOps().getConnection();
     
     try {
       // 将值转换为字符串存储
@@ -163,7 +171,7 @@ async function setUserSetting(key, value) {
  */
 async function getAllUserSettings() {
   try {
-    const connection = await database.getConnection();
+    const connection = await getDbOps().getConnection();
     
     try {
       const [rows] = await connection.execute(
