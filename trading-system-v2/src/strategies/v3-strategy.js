@@ -139,7 +139,7 @@ class V3Strategy {
       );
       const bbw = TechnicalIndicators.calculateBBW(prices);
       const vwap = TechnicalIndicators.calculateVWAP(klines);
-      
+
       // 调试信息
       logger.info(`V3 1H技术指标 - VWAP: ${vwap}, ADX: ${adx?.adx}, BBW: ${bbw?.bbw}`);
 
@@ -543,7 +543,7 @@ class V3Strategy {
         this.binanceAPI.getKlines(symbol, '15m', 50),
         this.binanceAPI.getTicker24hr(symbol),
         this.binanceAPI.getFundingRate(symbol),
-        this.binanceAPI.getOpenInterestHist(symbol, '1h', 6)
+        this.binanceAPI.getOpenInterestHist(symbol, '1h', 7)
       ]);
 
       // 检查数据有效性
