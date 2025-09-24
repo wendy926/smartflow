@@ -377,42 +377,75 @@ router.get('/current-status', async (req, res) => {
 
         results.push({
           symbol: sym.symbol,
-          lastPrice: sym.last_price,
-          priceChange24h: sym.price_change_24h,
+          lastPrice: sym.last_price || 0,
+          priceChange24h: sym.price_change_24h || 0,
           v3: {
             signal: v3Result.signal || 'HOLD',
             trend: v3Result.timeframes?.["4H"]?.trend || 'RANGE',
-            confidence: v3Result.timeframes?.["4H"]?.confidence || 0,
             score: v3Result.timeframes?.["4H"]?.score || 0,
-            factors: v3Result.timeframes?.["1H"]?.factors || {},
-            entry15m: v3Result.timeframes?.["15M"]?.entry || 'HOLD',
-            entryPrice: v3Result.entryPrice,
-            entryTime: v3Result.entryTime,
-            takeProfit: v3Result.takeProfit,
-            stopLoss: v3Result.stopLoss,
-            leverage: v3Result.leverage,
-            margin: v3Result.margin
+            timeframes: {
+              "4H": {
+                trend: v3Result.timeframes?.["4H"]?.trend || 'RANGE',
+                score: v3Result.timeframes?.["4H"]?.score || 0,
+                adx: v3Result.timeframes?.["4H"]?.adx || 0,
+                bbw: v3Result.timeframes?.["4H"]?.bbw || 0,
+                ma20: v3Result.timeframes?.["4H"]?.ma20 || 0,
+                ma50: v3Result.timeframes?.["4H"]?.ma50 || 0,
+                ma200: v3Result.timeframes?.["4H"]?.ma200 || 0
+              },
+              "1H": {
+                vwap: v3Result.timeframes?.["1H"]?.vwap || 0,
+                oiChange: v3Result.timeframes?.["1H"]?.oiChange || 0,
+                funding: v3Result.timeframes?.["1H"]?.funding || 0,
+                delta: v3Result.timeframes?.["1H"]?.delta || 0,
+                score: v3Result.timeframes?.["1H"]?.score || 0
+              },
+              "15M": {
+                signal: v3Result.timeframes?.["15M"]?.signal || 'HOLD',
+                ema20: v3Result.timeframes?.["15M"]?.ema20 || 0,
+                ema50: v3Result.timeframes?.["15M"]?.ema50 || 0,
+                atr: v3Result.timeframes?.["15M"]?.atr || 0,
+                bbw: v3Result.timeframes?.["15M"]?.bbw || 0,
+                score: v3Result.timeframes?.["15M"]?.score || 0
+              }
+            },
+            entryPrice: v3Result.entryPrice || 0,
+            stopLoss: v3Result.stopLoss || 0,
+            takeProfit: v3Result.takeProfit || 0,
+            leverage: v3Result.leverage || 0,
+            margin: v3Result.margin || 0
           },
           ict: {
             signal: ictResult.signal || 'HOLD',
             trend: ictResult.trend || 'RANGE',
-            confidence: ictResult.confidence || 0,
             score: ictResult.score || 0,
-            orderBlocks: ictResult.orderBlocks || [],
-            sweep: ictResult.sweep || {},
-            engulfing: ictResult.engulfing || {},
-            entryPrice: ictResult.entryPrice,
-            entryTime: ictResult.entryTime,
-            takeProfit: ictResult.takeProfit,
-            stopLoss: ictResult.stopLoss,
-            leverage: ictResult.leverage,
-            margin: ictResult.margin
+            timeframes: {
+              "1D": {
+                trend: ictResult.timeframes?.["1D"]?.trend || 'SIDEWAYS',
+                closeChange: ictResult.timeframes?.["1D"]?.closeChange || 0,
+                lookback: ictResult.timeframes?.["1D"]?.lookback || 20
+              },
+              "4H": {
+                orderBlocks: ictResult.timeframes?.["4H"]?.orderBlocks || [],
+                atr: ictResult.timeframes?.["4H"]?.atr || 0,
+                sweepDetected: ictResult.timeframes?.["4H"]?.sweepDetected || false,
+                sweepSpeed: ictResult.timeframes?.["4H"]?.sweepSpeed || 0
+              },
+              "15M": {
+                signal: ictResult.timeframes?.["15M"]?.signal || 'HOLD',
+                engulfing: ictResult.timeframes?.["15M"]?.engulfing || false,
+                atr: ictResult.timeframes?.["15M"]?.atr || 0,
+                sweepSpeed: ictResult.timeframes?.["15M"]?.sweepSpeed || 0,
+                volume: ictResult.timeframes?.["15M"]?.volume || 0
+              }
+            },
+            entryPrice: ictResult.entryPrice || 0,
+            stopLoss: ictResult.stopLoss || 0,
+            takeProfit: ictResult.takeProfit || 0,
+            leverage: ictResult.leverage || 0,
+            margin: ictResult.margin || 0
           },
-          midTimeframePriceDiff: {
-            v3Price: v3Result.timeframes?.["4H"]?.price || 0,
-            ictPrice: ictResult.timeframes?.["4H"]?.price || 0,
-            difference: (v3Result.timeframes?.["4H"]?.price || 0) - (ictResult.timeframes?.["4H"]?.price || 0)
-          }
+          midTimeframePrice: v3Result.timeframes?.["4H"]?.price || ictResult.timeframes?.["4H"]?.price || 0
         });
       } catch (error) {
         logger.error(`获取${sym.symbol}策略状态失败:`, error);

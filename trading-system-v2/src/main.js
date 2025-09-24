@@ -61,6 +61,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/monitoring', require('./api/routes/monitoring'));
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
+    this.app.use('/api/v1/settings', require('./api/routes/settings'));
 
     // 健康检查
     this.app.get('/health', (req, res) => {

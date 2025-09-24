@@ -415,7 +415,7 @@ class SmartFlowApp {
       const ma20 = trend4H.ma20 || 0;
       const ma50 = trend4H.ma50 || 0;
       const ma200 = trend4H.ma200 || 0;
-      
+
       return `
         <div class="indicator-group">
           <div class="indicator-item">
@@ -450,7 +450,7 @@ class SmartFlowApp {
       const trend = trend1D.trend || 'SIDEWAYS';
       const closeChange = trend1D.closeChange || 0;
       const lookback = trend1D.lookback || 20;
-      
+
       return `
         <div class="indicator-group">
           <div class="indicator-item">
@@ -487,7 +487,7 @@ class SmartFlowApp {
       const delta = factors1H.delta || 0;
       const score = factors1H.score || 0;
       const valid = score >= 3;
-      
+
       return `
         <div class="indicator-group">
           <div class="indicator-item">
@@ -524,7 +524,7 @@ class SmartFlowApp {
       const sweepDetected = ob4H.sweepDetected || false;
       const sweepSpeed = ob4H.sweepSpeed || 0;
       const valid = orderBlocks.length > 0 && sweepDetected;
-      
+
       return `
         <div class="indicator-group">
           <div class="indicator-item">
@@ -570,7 +570,7 @@ class SmartFlowApp {
       const bbw = entry15m.bbw || 0;
       const score = entry15m.score || 0;
       const valid = score >= 2;
-      
+
       return `
         <div class="indicator-group">
           <div class="indicator-item">
@@ -608,7 +608,7 @@ class SmartFlowApp {
       const sweepSpeed = entry15m.sweepSpeed || 0;
       const volume = entry15m.volume || 0;
       const valid = engulfing && sweepSpeed >= 0.2 * atr;
-      
+
       return `
         <div class="indicator-group">
           <div class="indicator-item">
@@ -759,22 +759,22 @@ class SmartFlowApp {
    */
   formatLeverage(strategyInfo) {
     if (!strategyInfo) return '--';
-    
+
     const entryPrice = parseFloat(strategyInfo.entryPrice) || 0;
     const stopLoss = parseFloat(strategyInfo.stopLoss) || 0;
     const maxLossAmount = this.maxLossAmount; // 使用用户选择的最大损失金额
-    
+
     if (entryPrice === 0 || stopLoss === 0) return '--';
-    
+
     // 计算止损距离X%
     const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
-    
+
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
     const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
-    
+
     // 计算保证金Z：M/(Y*X%) 数值向上取整
     const margin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
-    
+
     return `
       <div class="leverage-info">
         <div class="leverage-item">
@@ -800,26 +800,26 @@ class SmartFlowApp {
    */
   formatMargin(strategyInfo) {
     if (!strategyInfo) return '--';
-    
+
     const entryPrice = parseFloat(strategyInfo.entryPrice) || 0;
     const stopLoss = parseFloat(strategyInfo.stopLoss) || 0;
     const maxLossAmount = this.maxLossAmount; // 使用用户选择的最大损失金额
     const positionSize = parseFloat(strategyInfo.positionSize) || 0;
-    
+
     if (entryPrice === 0 || stopLoss === 0) return '--';
-    
+
     // 计算止损距离X%
     const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
-    
+
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
     const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
-    
+
     // 计算保证金Z：M/(Y*X%) 数值向上取整
     const margin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
-    
+
     // 计算实际保证金（基于仓位大小）
     const actualMargin = positionSize > 0 ? (positionSize * entryPrice) / Math.min(maxLeverage, 20) : margin;
-    
+
     return `
       <div class="margin-info">
         <div class="margin-item">
@@ -843,13 +843,13 @@ class SmartFlowApp {
    */
   async saveMaxLossAmount() {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/settings/max-loss-amount`, {
+      const response = await fetch(`${this.apiBaseUrl}/settings/maxLossAmount`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          maxLossAmount: this.maxLossAmount
+          value: this.maxLossAmount
         })
       });
 
@@ -868,11 +868,11 @@ class SmartFlowApp {
    */
   async loadMaxLossAmount() {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/settings/max-loss-amount`);
+      const response = await fetch(`${this.apiBaseUrl}/settings/maxLossAmount`);
       
       if (response.ok) {
         const data = await response.json();
-        this.maxLossAmount = data.maxLossAmount || 100;
+        this.maxLossAmount = data.value || 100;
         
         // 更新选择器显示
         const maxLossAmountSelect = document.getElementById('maxLossAmount');
