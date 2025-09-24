@@ -373,7 +373,7 @@ class DatabaseOperations {
       
       // 如果没有提供strategy参数，返回所有交易记录
       if (!strategy) {
-        const limitNum = Number(limit);
+        const limitNum = parseInt(limit, 10);
         let query = `
           SELECT st.*, s.symbol 
           FROM simulation_trades st 
@@ -386,7 +386,7 @@ class DatabaseOperations {
       }
 
       const strategyUpper = strategy.toUpperCase();
-      const limitNum = Number(limit);
+      const limitNum = parseInt(limit, 10);
 
       let query = `
         SELECT st.*, s.symbol 
