@@ -400,8 +400,8 @@ class SmartFlowApp {
         <td class="price-cell">${this.formatPrice(v3EntryPrice)}</td>
         <td class="price-cell">${this.formatPrice(v3StopLoss)}</td>
         <td class="price-cell">${this.formatPrice(v3TakeProfit)}</td>
-        <td class="leverage-cell">${this.formatLeverage({ leverage: v3Leverage })}</td>
-        <td class="margin-cell">${this.formatMargin({ margin: v3Margin })}</td>
+        <td class="leverage-cell">${this.formatLeverage({entryPrice: v3EntryPrice, stopLoss: v3StopLoss})}</td>
+        <td class="margin-cell">${this.formatMargin({entryPrice: v3EntryPrice, stopLoss: v3StopLoss, positionSize: v3Margin})}</td>
       `;
       tbody.appendChild(v3Row);
 
@@ -437,8 +437,8 @@ class SmartFlowApp {
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictEntryPrice) : '--'}</td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictStopLoss) : '--'}</td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictTakeProfit) : '--'}</td>
-        <td class="leverage-cell">${showTradeParams ? this.formatLeverage({ leverage: ictLeverage }) : '--'}</td>
-        <td class="margin-cell">${showTradeParams ? this.formatMargin({ margin: ictMargin }) : '--'}</td>
+        <td class="leverage-cell">${showTradeParams ? this.formatLeverage({entryPrice: ictEntryPrice, stopLoss: ictStopLoss}) : '--'}</td>
+        <td class="margin-cell">${showTradeParams ? this.formatMargin({entryPrice: ictEntryPrice, stopLoss: ictStopLoss, positionSize: ictMargin}) : '--'}</td>
       `;
       tbody.appendChild(ictRow);
     });
@@ -1485,6 +1485,9 @@ class SmartFlowApp {
       };
 
       this.updateStatisticsDisplay(statisticsData);
+      
+      // 加载交易对详细统计
+      await this.loadTradingPairStatistics();
     } catch (error) {
       console.error('Error loading statistics:', error);
       // 使用空数据作为后备
@@ -1500,6 +1503,88 @@ class SmartFlowApp {
         }
       });
     }
+  }
+
+  /**
+   * 加载交易对详细统计
+   */
+  async loadTradingPairStatistics() {
+    try {
+      // 获取所有交易记录
+      const response = await this.fetchData('/trades?limit=100');
+      const trades = response.data;
+
+      // 按交易对和策略分组统计
+      const pairStats = {};
+      trades.forEach(trade => {
+        const key = `${trade.symbol}_${trade.strategy_name}`;
+        if (!pairStats[key]) {
+          pairStats[key] = {
+            symbol: trade.symbol,
+            strategy: trade.strategy_name,
+            timeframe: '15m', // 默认时间周期
+            totalTrades: 0,
+            profitableTrades: 0,
+            losingTrades: 0,
+            totalPnl: 0,
+            winRate: 0,
+            sharpeRatio: 0
+          };
+        }
+
+        pairStats[key].totalTrades++;
+        const pnl = parseFloat(trade.pnl) || 0;
+        pairStats[key].totalPnl += pnl;
+        
+        if (pnl > 0) {
+          pairStats[key].profitableTrades++;
+        } else if (pnl < 0) {
+          pairStats[key].losingTrades++;
+        }
+      });
+
+      // 计算胜率和夏普比率
+      Object.values(pairStats).forEach(stat => {
+        stat.winRate = stat.totalTrades > 0 ? (stat.profitableTrades / stat.totalTrades) * 100 : 0;
+        // 简化的夏普比率计算（实际应该基于收益率标准差）
+        stat.sharpeRatio = stat.totalTrades > 0 ? (stat.totalPnl / stat.totalTrades) / Math.max(1, Math.abs(stat.totalPnl)) : 0;
+      });
+
+      this.updateTradingPairStatisticsTable(Object.values(pairStats));
+    } catch (error) {
+      console.error('Error loading trading pair statistics:', error);
+      this.updateTradingPairStatisticsTable([]);
+    }
+  }
+
+  /**
+   * 更新交易对详细统计表格
+   * @param {Array} pairStats - 交易对统计数据
+   */
+  updateTradingPairStatisticsTable(pairStats) {
+    const tbody = document.getElementById('statisticsTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (pairStats.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center">暂无数据</td></tr>';
+      return;
+    }
+
+    pairStats.forEach(stat => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${stat.symbol}</td>
+        <td><span class="strategy-badge ${stat.strategy.toLowerCase()}">${stat.strategy}</span></td>
+        <td>${stat.timeframe}</td>
+        <td>${stat.totalTrades}</td>
+        <td><span class="${stat.winRate >= 50 ? 'stat-positive' : 'stat-negative'}">${stat.winRate.toFixed(1)}%</span></td>
+        <td><span class="${stat.totalPnl >= 0 ? 'stat-positive' : 'stat-negative'}">${stat.totalPnl >= 0 ? '+' : ''}${stat.totalPnl.toFixed(2)}</span></td>
+        <td>${stat.sharpeRatio.toFixed(2)}</td>
+      `;
+      tbody.appendChild(row);
+    });
   }
 
   /**
