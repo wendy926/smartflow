@@ -9,14 +9,16 @@ class SmartFlowApp {
     this.currentTab = 'dashboard';
     this.currentStrategy = 'v3';
     this.refreshInterval = null;
+    this.maxLossAmount = 100; // 默认最大损失金额100 USDT
     this.init();
   }
 
   /**
    * 初始化应用
    */
-  init() {
+  async init() {
     this.setupEventListeners();
+    await this.loadMaxLossAmount(); // 加载最大损失金额设置
     this.loadInitialData();
     this.startAutoRefresh();
   }
@@ -63,6 +65,16 @@ class SmartFlowApp {
     if (refreshStrategyStatusBtn) {
       refreshStrategyStatusBtn.addEventListener('click', () => {
         this.loadStrategyCurrentStatus();
+      });
+    }
+
+    // 最大损失金额选择器
+    const maxLossAmountSelect = document.getElementById('maxLossAmount');
+    if (maxLossAmountSelect) {
+      maxLossAmountSelect.addEventListener('change', (e) => {
+        this.maxLossAmount = parseInt(e.target.value);
+        this.saveMaxLossAmount();
+        this.refreshStrategyStatusTable();
       });
     }
   }
@@ -337,7 +349,7 @@ class SmartFlowApp {
     if (statusData.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="13" style="text-align: center; color: #6c757d; padding: 2rem;">
+          <td colspan="12" style="text-align: center; color: #6c757d; padding: 2rem;">
             暂无策略状态数据
           </td>
         </tr>
@@ -354,15 +366,14 @@ class SmartFlowApp {
         <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
         <td><span class="strategy-badge v3">V3</span></td>
         <td><span class="signal-value signal-${v3Info.signal?.toLowerCase() || 'hold'}">${this.getSignalText(v3Info.signal)}</span></td>
-        <td class="timeframe-cell">${this.formatV3Trend4H(v3Info.timeframes?.["4H"])}</td>
-        <td class="timeframe-cell">${this.formatV3Factors1H(v3Info.timeframes?.["1H"])}</td>
-        <td class="timeframe-cell">${this.formatV3Entry15m(v3Info.timeframes?.["15M"])}</td>
-        <td><span class="score-badge score-${v3Info.score >= 80 ? 'high' : v3Info.score >= 60 ? 'medium' : 'low'}">${v3Info.score || '--'}</span></td>
-        <td>${v3Info.entryPrice ? parseFloat(v3Info.entryPrice).toFixed(4) : '--'}</td>
-        <td>${v3Info.stopLoss ? parseFloat(v3Info.stopLoss).toFixed(4) : '--'}</td>
-        <td>${v3Info.takeProfit ? parseFloat(v3Info.takeProfit).toFixed(4) : '--'}</td>
-        <td>${v3Info.leverage ? v3Info.leverage + 'x' : '--'}</td>
-        <td>${v3Info.margin ? '$' + parseFloat(v3Info.margin).toFixed(2) : '--'}</td>
+        <td class="timeframe-cell">${this.formatHighTimeframe(v3Info, 'V3')}</td>
+        <td class="timeframe-cell">${this.formatMidTimeframe(v3Info, 'V3')}</td>
+        <td class="timeframe-cell">${this.formatLowTimeframe(v3Info, 'V3')}</td>
+        <td class="price-cell">${this.formatPrice(v3Info.entryPrice)}</td>
+        <td class="price-cell">${this.formatPrice(v3Info.stopLoss)}</td>
+        <td class="price-cell">${this.formatPrice(v3Info.takeProfit)}</td>
+        <td class="leverage-cell">${this.formatLeverage(v3Info)}</td>
+        <td class="margin-cell">${this.formatMargin(v3Info)}</td>
       `;
       tbody.appendChild(v3Row);
 
@@ -374,133 +385,260 @@ class SmartFlowApp {
         <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
         <td><span class="strategy-badge ict">ICT</span></td>
         <td><span class="signal-value signal-${ictInfo.signal?.toLowerCase() || 'hold'}">${this.getSignalText(ictInfo.signal)}</span></td>
-        <td class="timeframe-cell">${this.formatICTTrend1D(ictInfo.timeframes?.["1D"])}</td>
-        <td class="timeframe-cell">${this.formatICTOB4H(ictInfo.timeframes?.["4H"])}</td>
-        <td class="timeframe-cell">${this.formatICTEntry15m(ictInfo.timeframes?.["15M"])}</td>
-        <td><span class="score-badge score-${ictInfo.score >= 80 ? 'high' : ictInfo.score >= 60 ? 'medium' : 'low'}">${ictInfo.score || '--'}</span></td>
-        <td>${ictInfo.entryPrice ? parseFloat(ictInfo.entryPrice).toFixed(4) : '--'}</td>
-        <td>${ictInfo.stopLoss ? parseFloat(ictInfo.stopLoss).toFixed(4) : '--'}</td>
-        <td>${ictInfo.takeProfit ? parseFloat(ictInfo.takeProfit).toFixed(4) : '--'}</td>
-        <td>${ictInfo.leverage ? ictInfo.leverage + 'x' : '--'}</td>
-        <td>${ictInfo.margin ? '$' + parseFloat(ictInfo.margin).toFixed(2) : '--'}</td>
+        <td class="timeframe-cell">${this.formatHighTimeframe(ictInfo, 'ICT')}</td>
+        <td class="timeframe-cell">${this.formatMidTimeframe(ictInfo, 'ICT')}</td>
+        <td class="timeframe-cell">${this.formatLowTimeframe(ictInfo, 'ICT')}</td>
+        <td class="price-cell">${this.formatPrice(ictInfo.entryPrice)}</td>
+        <td class="price-cell">${this.formatPrice(ictInfo.stopLoss)}</td>
+        <td class="price-cell">${this.formatPrice(ictInfo.takeProfit)}</td>
+        <td class="leverage-cell">${this.formatLeverage(ictInfo)}</td>
+        <td class="margin-cell">${this.formatMargin(ictInfo)}</td>
       `;
       tbody.appendChild(ictRow);
     });
   }
 
   /**
-   * 格式化V3策略4H趋势指标
-   * @param {Object} trend4H - 4H趋势数据
-   * @returns {string} 格式化后的4H趋势信息
+   * 格式化高时间框架判断（趋势判断）
+   * @param {Object} strategyInfo - 策略信息
+   * @param {string} strategyType - 策略类型 ('V3' 或 'ICT')
+   * @returns {string} 格式化后的高时间框架信息
    */
-  formatV3Trend4H(trend4H) {
-    if (!trend4H) return '--';
-    
-    const trend = trend4H.trend || 'RANGE';
-    const score = trend4H.score || 0;
-    const adx = trend4H.adx || 0;
-    const bbw = trend4H.bbw || 0;
-    
-    return `
-      <div class="indicator-group">
-        <div class="indicator-item">
-          <span class="indicator-label">趋势:</span>
-          <span class="trend-value trend-${trend.toLowerCase()}">${this.getTrendText(trend)}</span>
+  formatHighTimeframe(strategyInfo, strategyType) {
+    if (strategyType === 'V3') {
+      // V3策略：4H趋势判断（满分10分制）
+      const trend4H = strategyInfo.timeframes?.["4H"] || {};
+      const trend = trend4H.trend || 'RANGE';
+      const score = trend4H.score || 0;
+      const adx = trend4H.adx || 0;
+      const bbw = trend4H.bbw || 0;
+      const ma20 = trend4H.ma20 || 0;
+      const ma50 = trend4H.ma50 || 0;
+      const ma200 = trend4H.ma200 || 0;
+      
+      return `
+        <div class="indicator-group">
+          <div class="indicator-item">
+            <span class="indicator-label">4H趋势:</span>
+            <span class="trend-value trend-${trend.toLowerCase()}">${this.getTrendText(trend)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">评分:</span>
+            <span class="score-badge score-${score >= 4 ? 'high' : score >= 2 ? 'medium' : 'low'}">${score}/10</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">MA20:</span>
+            <span class="indicator-value">${ma20.toFixed(2)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">MA50:</span>
+            <span class="indicator-value">${ma50.toFixed(2)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">ADX:</span>
+            <span class="indicator-value">${adx.toFixed(1)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">BBW:</span>
+            <span class="indicator-value">${(bbw * 100).toFixed(2)}%</span>
+          </div>
         </div>
-        <div class="indicator-item">
-          <span class="indicator-label">评分:</span>
-          <span class="score-badge score-${score >= 4 ? 'high' : score >= 2 ? 'medium' : 'low'}">${score}/10</span>
+      `;
+    } else if (strategyType === 'ICT') {
+      // ICT策略：1D趋势判断（20日收盘价比较）
+      const trend1D = strategyInfo.timeframes?.["1D"] || {};
+      const trend = trend1D.trend || 'SIDEWAYS';
+      const closeChange = trend1D.closeChange || 0;
+      const lookback = trend1D.lookback || 20;
+      
+      return `
+        <div class="indicator-group">
+          <div class="indicator-item">
+            <span class="indicator-label">1D趋势:</span>
+            <span class="trend-value trend-${trend.toLowerCase()}">${this.getTrendText(trend)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">${lookback}日变化:</span>
+            <span class="indicator-value ${closeChange >= 0 ? 'positive' : 'negative'}">${(closeChange * 100).toFixed(2)}%</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">判断:</span>
+            <span class="indicator-value ${trend !== 'SIDEWAYS' ? 'positive' : 'negative'}">${trend !== 'SIDEWAYS' ? '有效' : '忽略'}</span>
+          </div>
         </div>
-        <div class="indicator-item">
-          <span class="indicator-label">ADX:</span>
-          <span class="indicator-value">${adx.toFixed(1)}</span>
-        </div>
-        <div class="indicator-item">
-          <span class="indicator-label">BBW:</span>
-          <span class="indicator-value">${(bbw * 100).toFixed(2)}%</span>
-        </div>
-      </div>
-    `;
+      `;
+    }
+    return '--';
   }
 
   /**
-   * 格式化V3策略1H因子指标
-   * @param {Object} factors1H - 1H因子数据
-   * @returns {string} 格式化后的1H因子信息
+   * 格式化中时间框架判断（多因子得分/趋势加强判断）
+   * @param {Object} strategyInfo - 策略信息
+   * @param {string} strategyType - 策略类型 ('V3' 或 'ICT')
+   * @returns {string} 格式化后的中时间框架信息
    */
-  formatV3Factors1H(factors1H) {
-    if (!factors1H) return '--';
-    
-    const vwap = factors1H.vwap || 0;
-    const oiChange = factors1H.oiChange || 0;
-    const funding = factors1H.funding || 0;
-    const delta = factors1H.delta || 0;
-    const score = factors1H.score || 0;
-    
-    return `
-      <div class="indicator-group">
-        <div class="indicator-item">
-          <span class="indicator-label">VWAP:</span>
-          <span class="indicator-value">${vwap.toFixed(2)}</span>
+  formatMidTimeframe(strategyInfo, strategyType) {
+    if (strategyType === 'V3') {
+      // V3策略：1H多因子确认（6项因子，score≥3才有效）
+      const factors1H = strategyInfo.timeframes?.["1H"] || {};
+      const vwap = factors1H.vwap || 0;
+      const oiChange = factors1H.oiChange || 0;
+      const funding = factors1H.funding || 0;
+      const delta = factors1H.delta || 0;
+      const score = factors1H.score || 0;
+      const valid = score >= 3;
+      
+      return `
+        <div class="indicator-group">
+          <div class="indicator-item">
+            <span class="indicator-label">1H多因子:</span>
+            <span class="indicator-value ${valid ? 'positive' : 'negative'}">${valid ? '有效' : '无效'}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">得分:</span>
+            <span class="score-badge score-${score >= 3 ? 'high' : score >= 2 ? 'medium' : 'low'}">${score}/6</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">VWAP:</span>
+            <span class="indicator-value">${vwap.toFixed(2)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">OI变化:</span>
+            <span class="indicator-value ${oiChange >= 0 ? 'positive' : 'negative'}">${oiChange.toFixed(1)}%</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">资金费率:</span>
+            <span class="indicator-value">${(funding * 100).toFixed(3)}%</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">Delta:</span>
+            <span class="indicator-value ${delta >= 0 ? 'positive' : 'negative'}">${delta.toFixed(2)}</span>
+          </div>
         </div>
-        <div class="indicator-item">
-          <span class="indicator-label">OI变化:</span>
-          <span class="indicator-value ${oiChange >= 0 ? 'positive' : 'negative'}">${oiChange.toFixed(1)}%</span>
+      `;
+    } else if (strategyType === 'ICT') {
+      // ICT策略：4H订单块检测（OB高度、年龄、Sweep速率）
+      const ob4H = strategyInfo.timeframes?.["4H"] || {};
+      const orderBlocks = ob4H.orderBlocks || [];
+      const atr = ob4H.atr || 0;
+      const sweepDetected = ob4H.sweepDetected || false;
+      const sweepSpeed = ob4H.sweepSpeed || 0;
+      const valid = orderBlocks.length > 0 && sweepDetected;
+      
+      return `
+        <div class="indicator-group">
+          <div class="indicator-item">
+            <span class="indicator-label">4H订单块:</span>
+            <span class="indicator-value ${valid ? 'positive' : 'negative'}">${valid ? '有效' : '无效'}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">订单块:</span>
+            <span class="indicator-value">${orderBlocks.length}个</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">ATR:</span>
+            <span class="indicator-value">${atr.toFixed(2)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">扫荡:</span>
+            <span class="indicator-value ${sweepDetected ? 'positive' : 'negative'}">${sweepDetected ? '是' : '否'}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">扫荡速率:</span>
+            <span class="indicator-value">${sweepSpeed.toFixed(2)}</span>
+          </div>
         </div>
-        <div class="indicator-item">
-          <span class="indicator-label">资金费率:</span>
-          <span class="indicator-value">${(funding * 100).toFixed(3)}%</span>
-        </div>
-        <div class="indicator-item">
-          <span class="indicator-label">Delta:</span>
-          <span class="indicator-value ${delta >= 0 ? 'positive' : 'negative'}">${delta.toFixed(2)}</span>
-        </div>
-        <div class="indicator-item">
-          <span class="indicator-label">得分:</span>
-          <span class="score-badge score-${score >= 3 ? 'high' : score >= 2 ? 'medium' : 'low'}">${score}/6</span>
-        </div>
-      </div>
-    `;
+      `;
+    }
+    return '--';
   }
 
   /**
-   * 格式化V3策略15m入场指标
-   * @param {Object} entry15m - 15m入场数据
-   * @returns {string} 格式化后的15m入场信息
+   * 格式化低时间框架判断（入场判断）
+   * @param {Object} strategyInfo - 策略信息
+   * @param {string} strategyType - 策略类型 ('V3' 或 'ICT')
+   * @returns {string} 格式化后的低时间框架信息
    */
-  formatV3Entry15m(entry15m) {
-    if (!entry15m) return '--';
-    
-    const signal = entry15m.signal || 'HOLD';
-    const ema20 = entry15m.ema20 || 0;
-    const ema50 = entry15m.ema50 || 0;
-    const atr = entry15m.atr || 0;
-    const bbw = entry15m.bbw || 0;
-    
-    return `
-      <div class="indicator-group">
-        <div class="indicator-item">
-          <span class="indicator-label">信号:</span>
-          <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal)}</span>
+  formatLowTimeframe(strategyInfo, strategyType) {
+    if (strategyType === 'V3') {
+      // V3策略：15m入场执行（多因子得分≥2）
+      const entry15m = strategyInfo.timeframes?.["15M"] || {};
+      const signal = entry15m.signal || 'HOLD';
+      const ema20 = entry15m.ema20 || 0;
+      const ema50 = entry15m.ema50 || 0;
+      const atr = entry15m.atr || 0;
+      const bbw = entry15m.bbw || 0;
+      const score = entry15m.score || 0;
+      const valid = score >= 2;
+      
+      return `
+        <div class="indicator-group">
+          <div class="indicator-item">
+            <span class="indicator-label">15m入场:</span>
+            <span class="indicator-value ${valid ? 'positive' : 'negative'}">${valid ? '有效' : '无效'}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">信号:</span>
+            <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">得分:</span>
+            <span class="score-badge score-${score >= 2 ? 'high' : score >= 1 ? 'medium' : 'low'}">${score}/2+</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">EMA20:</span>
+            <span class="indicator-value">${ema20.toFixed(2)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">EMA50:</span>
+            <span class="indicator-value">${ema50.toFixed(2)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">ATR:</span>
+            <span class="indicator-value">${atr.toFixed(2)}</span>
+          </div>
         </div>
-        <div class="indicator-item">
-          <span class="indicator-label">EMA20:</span>
-          <span class="indicator-value">${ema20.toFixed(2)}</span>
+      `;
+    } else if (strategyType === 'ICT') {
+      // ICT策略：15m入场确认（吞没形态、Sweep微观速率）
+      const entry15m = strategyInfo.timeframes?.["15M"] || {};
+      const signal = entry15m.signal || 'HOLD';
+      const engulfing = entry15m.engulfing || false;
+      const atr = entry15m.atr || 0;
+      const sweepSpeed = entry15m.sweepSpeed || 0;
+      const volume = entry15m.volume || 0;
+      const valid = engulfing && sweepSpeed >= 0.2 * atr;
+      
+      return `
+        <div class="indicator-group">
+          <div class="indicator-item">
+            <span class="indicator-label">15m入场:</span>
+            <span class="indicator-value ${valid ? 'positive' : 'negative'}">${valid ? '有效' : '无效'}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">信号:</span>
+            <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">吞没:</span>
+            <span class="indicator-value ${engulfing ? 'positive' : 'negative'}">${engulfing ? '是' : '否'}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">ATR:</span>
+            <span class="indicator-value">${atr.toFixed(2)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">扫荡速率:</span>
+            <span class="indicator-value">${sweepSpeed.toFixed(2)}</span>
+          </div>
+          <div class="indicator-item">
+            <span class="indicator-label">成交量:</span>
+            <span class="indicator-value">${(volume / 1000000).toFixed(1)}M</span>
+          </div>
         </div>
-        <div class="indicator-item">
-          <span class="indicator-label">EMA50:</span>
-          <span class="indicator-value">${ema50.toFixed(2)}</span>
-        </div>
-        <div class="indicator-item">
-          <span class="indicator-label">ATR:</span>
-          <span class="indicator-value">${atr.toFixed(2)}</span>
-        </div>
-        <div class="indicator-item">
-          <span class="indicator-label">BBW:</span>
-          <span class="indicator-value">${(bbw * 100).toFixed(2)}%</span>
-        </div>
-      </div>
-    `;
+      `;
+    }
+    return '--';
   }
 
   /**
@@ -510,11 +648,11 @@ class SmartFlowApp {
    */
   formatICTTrend1D(trend1D) {
     if (!trend1D) return '--';
-    
+
     const trend = trend1D.trend || 'SIDEWAYS';
     const closeChange = trend1D.closeChange || 0;
     const lookback = trend1D.lookback || 20;
-    
+
     return `
       <div class="indicator-group">
         <div class="indicator-item">
@@ -536,12 +674,12 @@ class SmartFlowApp {
    */
   formatICTOB4H(ob4H) {
     if (!ob4H) return '--';
-    
+
     const orderBlocks = ob4H.orderBlocks || [];
     const atr = ob4H.atr || 0;
     const sweepDetected = ob4H.sweepDetected || false;
     const sweepSpeed = ob4H.sweepSpeed || 0;
-    
+
     return `
       <div class="indicator-group">
         <div class="indicator-item">
@@ -571,13 +709,13 @@ class SmartFlowApp {
    */
   formatICTEntry15m(entry15m) {
     if (!entry15m) return '--';
-    
+
     const signal = entry15m.signal || 'HOLD';
     const engulfing = entry15m.engulfing || false;
     const atr = entry15m.atr || 0;
     const sweepSpeed = entry15m.sweepSpeed || 0;
     const volume = entry15m.volume || 0;
-    
+
     return `
       <div class="indicator-group">
         <div class="indicator-item">
@@ -602,6 +740,161 @@ class SmartFlowApp {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * 格式化价格显示
+   * @param {number|string} price - 价格
+   * @returns {string} 格式化后的价格
+   */
+  formatPrice(price) {
+    if (!price || price === 0) return '--';
+    return parseFloat(price).toFixed(4);
+  }
+
+  /**
+   * 格式化杠杆显示
+   * @param {Object} strategyInfo - 策略信息
+   * @returns {string} 格式化后的杠杆信息
+   */
+  formatLeverage(strategyInfo) {
+    if (!strategyInfo) return '--';
+    
+    const entryPrice = parseFloat(strategyInfo.entryPrice) || 0;
+    const stopLoss = parseFloat(strategyInfo.stopLoss) || 0;
+    const maxLossAmount = this.maxLossAmount; // 使用用户选择的最大损失金额
+    
+    if (entryPrice === 0 || stopLoss === 0) return '--';
+    
+    // 计算止损距离X%
+    const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+    
+    // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
+    const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+    
+    // 计算保证金Z：M/(Y*X%) 数值向上取整
+    const margin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
+    
+    return `
+      <div class="leverage-info">
+        <div class="leverage-item">
+          <span class="leverage-label">最大杠杆:</span>
+          <span class="leverage-value">${maxLeverage}x</span>
+        </div>
+        <div class="leverage-item">
+          <span class="leverage-label">止损距离:</span>
+          <span class="leverage-value">${(stopLossDistance * 100).toFixed(2)}%</span>
+        </div>
+        <div class="leverage-item">
+          <span class="leverage-label">建议杠杆:</span>
+          <span class="leverage-value">${Math.min(maxLeverage, 20)}x</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 格式化保证金显示
+   * @param {Object} strategyInfo - 策略信息
+   * @returns {string} 格式化后的保证金信息
+   */
+  formatMargin(strategyInfo) {
+    if (!strategyInfo) return '--';
+    
+    const entryPrice = parseFloat(strategyInfo.entryPrice) || 0;
+    const stopLoss = parseFloat(strategyInfo.stopLoss) || 0;
+    const maxLossAmount = this.maxLossAmount; // 使用用户选择的最大损失金额
+    const positionSize = parseFloat(strategyInfo.positionSize) || 0;
+    
+    if (entryPrice === 0 || stopLoss === 0) return '--';
+    
+    // 计算止损距离X%
+    const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+    
+    // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
+    const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+    
+    // 计算保证金Z：M/(Y*X%) 数值向上取整
+    const margin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
+    
+    // 计算实际保证金（基于仓位大小）
+    const actualMargin = positionSize > 0 ? (positionSize * entryPrice) / Math.min(maxLeverage, 20) : margin;
+    
+    return `
+      <div class="margin-info">
+        <div class="margin-item">
+          <span class="margin-label">最小保证金:</span>
+          <span class="margin-value">$${margin.toFixed(2)}</span>
+        </div>
+        <div class="margin-item">
+          <span class="margin-label">实际保证金:</span>
+          <span class="margin-value">$${actualMargin.toFixed(2)}</span>
+        </div>
+        <div class="margin-item">
+          <span class="margin-label">最大损失:</span>
+          <span class="margin-value">$${maxLossAmount.toFixed(2)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 保存最大损失金额到数据库
+   */
+  async saveMaxLossAmount() {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/settings/max-loss-amount`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          maxLossAmount: this.maxLossAmount
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      console.log(`最大损失金额已保存: ${this.maxLossAmount} USDT`);
+    } catch (error) {
+      console.error('保存最大损失金额失败:', error);
+    }
+  }
+
+  /**
+   * 从数据库加载最大损失金额
+   */
+  async loadMaxLossAmount() {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/settings/max-loss-amount`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.maxLossAmount = data.maxLossAmount || 100;
+        
+        // 更新选择器显示
+        const maxLossAmountSelect = document.getElementById('maxLossAmount');
+        if (maxLossAmountSelect) {
+          maxLossAmountSelect.value = this.maxLossAmount.toString();
+        }
+        
+        console.log(`最大损失金额已加载: ${this.maxLossAmount} USDT`);
+      } else {
+        console.log('使用默认最大损失金额: 100 USDT');
+      }
+    } catch (error) {
+      console.error('加载最大损失金额失败:', error);
+    }
+  }
+
+  /**
+   * 刷新策略状态表格（重新计算杠杆和保证金）
+   */
+  refreshStrategyStatusTable() {
+    // 重新加载策略状态数据，这会触发表格重新渲染
+    this.loadStrategyCurrentStatus();
   }
 
   /**
@@ -1155,7 +1448,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-      result.innerHTML = `
+  result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">

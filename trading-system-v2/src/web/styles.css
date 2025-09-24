@@ -1874,6 +1874,120 @@ body {
   color: #dc3545;
 }
 
+/* 价格单元格样式 */
+.price-cell {
+  text-align: center;
+  font-weight: 600;
+  color: #2c3e50;
+  min-width: 100px;
+}
+
+/* 杠杆信息样式 */
+.leverage-cell {
+  padding: 8px;
+  vertical-align: top;
+  min-width: 150px;
+}
+
+.leverage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.leverage-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 4px;
+  background: rgba(33, 150, 243, 0.1);
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.leverage-label {
+  font-weight: 500;
+  color: #1976d2;
+  min-width: 60px;
+}
+
+.leverage-value {
+  font-weight: 600;
+  color: #1976d2;
+  text-align: right;
+}
+
+/* 保证金信息样式 */
+.margin-cell {
+  padding: 8px;
+  vertical-align: top;
+  min-width: 150px;
+}
+
+.margin-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.margin-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 4px;
+  background: rgba(76, 175, 80, 0.1);
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.margin-label {
+  font-weight: 500;
+  color: #388e3c;
+  min-width: 60px;
+}
+
+.margin-value {
+  font-weight: 600;
+  color: #388e3c;
+  text-align: right;
+}
+
+/* 风险选择器样式 */
+.risk-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 16px;
+}
+
+.risk-selector label {
+  font-weight: 500;
+  color: #6c757d;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.risk-selector .form-select {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+  font-size: 14px;
+  min-width: 120px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.risk-selector .form-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.risk-selector .form-select:hover {
+  border-color: #007bff;
+}
+
 /* 移动端计算器响应式 */
 @media (max-width: 768px) {
   .form-row {
