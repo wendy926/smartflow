@@ -38,6 +38,10 @@
           <i class="fas fa-tools"></i>
           工具
         </a>
+        <a href="/docs" class="nav-link" data-tab="docs">
+          <i class="fas fa-book"></i>
+          文档
+        </a>
       </nav>
     </header>
 
@@ -638,6 +642,214 @@
                   <!-- API测试结果将显示在这里 -->
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 文档页面 -->
+      <div id="docs" class="tab-content">
+        <div class="page-header">
+          <h2>策略文档</h2>
+          <p>SmartFlow交易系统策略实现逻辑说明</p>
+        </div>
+
+        <div class="docs-container">
+          <!-- V3策略文档 -->
+          <div class="strategy-doc">
+            <div class="doc-header">
+              <h3>V3多因子趋势策略</h3>
+              <span class="strategy-badge v3">V3</span>
+            </div>
+            <div class="doc-content">
+              <h4>策略概述</h4>
+              <p>V3策略是一个基于多时间框架分析的量化交易策略，通过4H趋势判断、1H多因子评分和15M入场确认三个层次进行交易决策。</p>
+
+              <h4>时间框架分析</h4>
+              <div class="timeframe-section">
+                <div class="timeframe-item">
+                  <h5>高时间框架 (4H) - 趋势判断</h5>
+                  <ul>
+                    <li><strong>MA20/MA50交叉</strong>：判断趋势方向，金叉为上升，死叉为下跌</li>
+                    <li><strong>ADX指标</strong>：衡量趋势强度，ADX > 25为强趋势</li>
+                    <li><strong>BBW指标</strong>：布林带宽度，反映市场波动性</li>
+                    <li><strong>评分机制</strong>：0-10分，综合判断趋势强度和方向</li>
+                  </ul>
+                </div>
+
+                <div class="timeframe-item">
+                  <h5>中时间框架 (1H) - 多因子评分</h5>
+                  <ul>
+                    <li><strong>VWAP方向</strong>：成交量加权平均价格方向</li>
+                    <li><strong>OI变化</strong>：持仓量变化，反映资金流向</li>
+                    <li><strong>资金费率</strong>：市场情绪指标</li>
+                    <li><strong>Delta值</strong>：买卖压力差值</li>
+                    <li><strong>评分机制</strong>：0-6分，下边界3分+VWAP方向一致才有效</li>
+                  </ul>
+                </div>
+
+                <div class="timeframe-item">
+                  <h5>低时间框架 (15M) - 入场确认</h5>
+                  <ul>
+                    <li><strong>EMA20/EMA50</strong>：短期均线确认</li>
+                    <li><strong>ATR指标</strong>：平均真实波幅，用于止损计算</li>
+                    <li><strong>评分机制</strong>：0-2分，确认入场时机</li>
+                  </ul>
+                </div>
+              </div>
+
+              <h4>交易参数计算</h4>
+              <div class="calculation-section">
+                <h5>止损距离计算</h5>
+                <p>使用2倍ATR作为止损距离：</p>
+                <ul>
+                  <li>多头：<code>stopLoss = entryPrice - (ATR × 2)</code></li>
+                  <li>空头：<code>stopLoss = entryPrice + (ATR × 2)</code></li>
+                </ul>
+
+                <h5>杠杆和保证金计算</h5>
+                <p>严格按照文档公式计算：</p>
+                <ul>
+                  <li><strong>止损距离X%</strong>：<code>|entryPrice - stopLoss| / entryPrice</code></li>
+                  <li><strong>最大杠杆数Y</strong>：<code>Math.floor(1 / (X% + 0.5%))</code></li>
+                  <li><strong>最小保证金Z</strong>：<code>Math.ceil(M / (Y × X%))</code></li>
+                </ul>
+                <p>其中M为最大损失金额（默认100 USDT）</p>
+              </div>
+
+              <h4>交易信号生成</h4>
+              <p>当三个时间框架都判断有效时，生成交易信号：</p>
+              <ul>
+                <li><strong>BUY信号</strong>：4H上升趋势 + 1H多因子有效 + 15M入场确认</li>
+                <li><strong>SELL信号</strong>：4H下跌趋势 + 1H多因子有效 + 15M入场确认</li>
+                <li><strong>HOLD信号</strong>：任一时间框架判断无效</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- ICT策略文档 -->
+          <div class="strategy-doc">
+            <div class="doc-header">
+              <h3>ICT订单块策略</h3>
+              <span class="strategy-badge ict">ICT</span>
+            </div>
+            <div class="doc-content">
+              <h4>策略概述</h4>
+              <p>ICT（Inner Circle Trader）策略基于订单块理论，通过识别机构订单区域和价格扫荡行为进行交易决策。</p>
+
+              <h4>时间框架分析</h4>
+              <div class="timeframe-section">
+                <div class="timeframe-item">
+                  <h5>高时间框架 (1D) - 趋势判断</h5>
+                  <ul>
+                    <li><strong>20日价格变化</strong>：计算20个交易日的价格变化率</li>
+                    <li><strong>趋势判断</strong>：基于价格变化幅度确定趋势方向</li>
+                    <li><strong>震荡市处理</strong>：震荡市不计算交易参数</li>
+                  </ul>
+                </div>
+
+                <div class="timeframe-item">
+                  <h5>中时间框架 (4H) - 订单块检测</h5>
+                  <ul>
+                    <li><strong>订单块识别</strong>：检测机构订单区域</li>
+                    <li><strong>ATR计算</strong>：用于订单块有效性判断</li>
+                    <li><strong>扫荡检测</strong>：检测价格是否扫荡订单块</li>
+                    <li><strong>扫荡速率</strong>：计算扫荡速度，反映市场动能</li>
+                  </ul>
+                </div>
+
+                <div class="timeframe-item">
+                  <h5>低时间框架 (15M) - 入场确认</h5>
+                  <ul>
+                    <li><strong>吞没形态</strong>：检测K线吞没模式</li>
+                    <li><strong>ATR指标</strong>：用于止损计算</li>
+                    <li><strong>成交量分析</strong>：确认入场时机</li>
+                    <li><strong>扫荡速率</strong>：低时间框架扫荡确认</li>
+                  </ul>
+                </div>
+              </div>
+
+              <h4>订单块理论</h4>
+              <div class="theory-section">
+                <h5>订单块识别</h5>
+                <p>订单块是机构大单集中的价格区域，具有以下特征：</p>
+                <ul>
+                  <li>价格在该区域停留时间较长</li>
+                  <li>成交量相对集中</li>
+                  <li>后续价格突破该区域时具有较强动能</li>
+                </ul>
+
+                <h5>扫荡检测</h5>
+                <p>扫荡是指价格快速穿越订单块区域的行为：</p>
+                <ul>
+                  <li>检测价格是否突破订单块边界</li>
+                  <li>计算扫荡速率，反映市场动能强度</li>
+                  <li>扫荡后价格回归为有效信号</li>
+                </ul>
+              </div>
+
+              <h4>交易参数计算</h4>
+              <div class="calculation-section">
+                <h5>止损距离计算</h5>
+                <p>同样使用2倍ATR作为止损距离，与V3策略保持一致。</p>
+
+                <h5>杠杆和保证金计算</h5>
+                <p>使用与V3策略相同的计算公式，确保风险控制一致性。</p>
+              </div>
+
+              <h4>交易信号生成</h4>
+              <p>基于订单块理论和扫荡行为：</p>
+              <ul>
+                <li><strong>BUY信号</strong>：1D上升趋势 + 4H订单块有效 + 15M入场确认</li>
+                <li><strong>SELL信号</strong>：1D下跌趋势 + 4H订单块有效 + 15M入场确认</li>
+                <li><strong>HOLD信号</strong>：震荡市或任一条件不满足</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 系统架构文档 -->
+          <div class="strategy-doc">
+            <div class="doc-header">
+              <h3>系统架构说明</h3>
+              <span class="strategy-badge system">系统</span>
+            </div>
+            <div class="doc-content">
+              <h4>技术栈</h4>
+              <ul>
+                <li><strong>后端</strong>：Node.js + Express.js</li>
+                <li><strong>数据库</strong>：MySQL 8.0</li>
+                <li><strong>缓存</strong>：Redis</li>
+                <li><strong>前端</strong>：原生JavaScript + HTML5 + CSS3</li>
+                <li><strong>数据源</strong>：Binance API (REST + WebSocket)</li>
+              </ul>
+
+              <h4>核心组件</h4>
+              <ul>
+                <li><strong>策略引擎</strong>：V3和ICT策略实现</li>
+                <li><strong>交易管理器</strong>：交易创建、状态管理、去重逻辑</li>
+                <li><strong>数据更新器</strong>：实时数据获取和缓存</li>
+                <li><strong>监控系统</strong>：系统资源监控和告警</li>
+                <li><strong>通知系统</strong>：Telegram集成</li>
+              </ul>
+
+              <h4>风险控制</h4>
+              <ul>
+                <li><strong>交易去重</strong>：同一交易对同时只能有一个活跃交易</li>
+                <li><strong>杠杆限制</strong>：最大杠杆20倍，基于止损距离动态计算</li>
+                <li><strong>保证金管理</strong>：基于最大损失金额计算最小保证金</li>
+                <li><strong>止损机制</strong>：基于ATR的动态止损</li>
+              </ul>
+
+              <h4>数据流程</h4>
+              <ol>
+                <li>从Binance API获取实时市场数据</li>
+                <li>计算技术指标（MA、EMA、ADX、BBW、ATR等）</li>
+                <li>执行策略逻辑判断</li>
+                <li>生成交易信号和参数</li>
+                <li>检查交易条件和去重逻辑</li>
+                <li>创建交易记录并更新数据库</li>
+                <li>发送通知和更新前端显示</li>
+              </ol>
             </div>
           </div>
         </div>

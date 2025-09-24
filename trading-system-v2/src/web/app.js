@@ -435,7 +435,8 @@ class SmartFlowApp {
 
       // 检查是否有V3策略的交易记录
       const v3Trade = tradesMap[`${item.symbol}_V3`];
-      const v3SignalText = v3Trade ? '入场' : '观望';
+      // 基于当前策略信号状态判断，而不是历史交易记录
+      const v3SignalText = (v3Signal === 'BUY' || v3Signal === 'SELL') ? '入场' : '观望';
 
       // 优先使用交易记录数据，否则使用实时计算数据
       const v3EntryPrice = v3Trade ? parseFloat(v3Trade.entry_price) : (v3Info.entryPrice || 0);
@@ -469,7 +470,8 @@ class SmartFlowApp {
 
       // 检查是否有ICT策略的交易记录
       const ictTrade = tradesMap[`${item.symbol}_ICT`];
-      const ictSignalText = ictTrade ? '入场' : (ictSignal === 'BUY' || ictSignal === 'SELL' ? '入场' : '观望');
+      // 基于当前策略信号状态判断，而不是历史交易记录
+      const ictSignalText = (ictSignal === 'BUY' || ictSignal === 'SELL') ? '入场' : '观望';
 
       // 优先使用交易记录数据，否则使用实时计算数据
       const ictEntryPrice = ictTrade ? parseFloat(ictTrade.entry_price) : (ictInfo.entryPrice || 0);
