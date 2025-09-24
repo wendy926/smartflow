@@ -919,7 +919,7 @@ class SmartFlowApp {
 
     // 计算最小保证金Z：M/(Y*X%) 数值向上取整
     const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
-    
+
     // 计算实际保证金：基于建议杠杆（最大杠杆和20的较小值）
     const suggestedLeverage = Math.min(maxLeverage, 20);
     const actualMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistance));
@@ -1652,7 +1652,7 @@ class SmartFlowApp {
    */
   formatLeverageForTrade(trade) {
     if (!trade || !trade.entry_price || !trade.stop_loss) return '--';
-    
+
     const entryPrice = parseFloat(trade.entry_price) || 0;
     const stopLoss = parseFloat(trade.stop_loss) || 0;
     const maxLossAmount = this.maxLossAmount || 100;
@@ -1664,7 +1664,7 @@ class SmartFlowApp {
 
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
     const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
-    
+
     // 建议杠杆（最大杠杆和20的较小值）
     const suggestedLeverage = Math.min(maxLeverage, 20);
 
@@ -1678,7 +1678,7 @@ class SmartFlowApp {
    */
   formatMarginForTrade(trade) {
     if (!trade || !trade.entry_price || !trade.stop_loss) return '--';
-    
+
     const entryPrice = parseFloat(trade.entry_price) || 0;
     const stopLoss = parseFloat(trade.stop_loss) || 0;
     const maxLossAmount = this.maxLossAmount || 100;
@@ -1690,10 +1690,10 @@ class SmartFlowApp {
 
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
     const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
-    
+
     // 建议杠杆（最大杠杆和20的较小值）
     const suggestedLeverage = Math.min(maxLeverage, 20);
-    
+
     // 计算建议保证金：M/(Y*X%) 数值向上取整
     const suggestedMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistance));
 
@@ -1832,7 +1832,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-  result.innerHTML = `
+      result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">

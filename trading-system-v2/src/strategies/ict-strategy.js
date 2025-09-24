@@ -411,27 +411,30 @@ class ICTStrategy {
       if (trend === 'UP') {
         stopLoss = currentPrice - (currentATR * 2);
         takeProfit = currentPrice + (currentATR * 4);
-        leverage = Math.min(5, Math.max(1, Math.floor(100 / currentATR)));
       } else if (trend === 'DOWN') {
         stopLoss = currentPrice + (currentATR * 2);
         takeProfit = currentPrice - (currentATR * 4);
-        leverage = Math.min(5, Math.max(1, Math.floor(100 / currentATR)));
       }
 
-      // 根据信号强度调整杠杆
-      if (signals.engulfing && signals.engulfing.strength > 0.5) {
-        leverage = Math.min(leverage * 1.5, 10);
-      }
+      // 按照文档计算杠杆和保证金
+      const stopLossDistance = Math.abs(currentPrice - stopLoss) / currentPrice;
+      const maxLossAmount = 100; // 默认最大损失金额
+      
+      // 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
+      const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+      
+      // 建议杠杆（最大杠杆和20的较小值）
+      leverage = Math.min(maxLeverage, 20);
 
-      if (signals.sweepHTF && signals.sweepHTF.confidence > 0.7) {
-        leverage = Math.min(leverage * 1.2, 10);
-      }
+      // 计算保证金Z：M/(Y*X%) 数值向上取整
+      const margin = stopLossDistance > 0 ? Math.ceil(maxLossAmount / (leverage * stopLossDistance)) : 0;
 
       return {
         entry,
         stopLoss: parseFloat(stopLoss.toFixed(4)),
         takeProfit: parseFloat(takeProfit.toFixed(4)),
-        leverage: Math.min(leverage, 10),
+        leverage: leverage,
+        margin: margin,
         risk: Math.min(risk, 0.05)
       };
     } catch (error) {

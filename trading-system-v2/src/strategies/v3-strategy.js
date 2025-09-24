@@ -347,23 +347,29 @@ class V3Strategy {
       if (signal === 'BUY') {
         stopLoss = entryPrice - (atr * 2);
         takeProfit = entryPrice + (atr * 4);
-        leverage = Math.min(10, Math.max(1, Math.floor(100 / atr)));
       } else if (signal === 'SELL') {
         stopLoss = entryPrice + (atr * 2);
         takeProfit = entryPrice - (atr * 4);
-        leverage = Math.min(10, Math.max(1, Math.floor(100 / atr)));
       }
 
-      // 计算保证金
+      // 按照文档计算杠杆和保证金
       const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
       const maxLossAmount = 100; // 默认最大损失金额
+      
+      // 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
+      const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+      
+      // 建议杠杆（最大杠杆和20的较小值）
+      leverage = Math.min(maxLeverage, 20);
+      
+      // 保证金Z：M/(Y*X%) 数值向上取整
       const margin = stopLossDistance > 0 ? Math.ceil(maxLossAmount / (leverage * stopLossDistance)) : 0;
 
       return {
         entryPrice: parseFloat(entryPrice.toFixed(4)),
         stopLoss: parseFloat(stopLoss.toFixed(4)),
         takeProfit: parseFloat(takeProfit.toFixed(4)),
-        leverage: Math.min(leverage, 20),
+        leverage: leverage,
         margin: margin
       };
     } catch (error) {
