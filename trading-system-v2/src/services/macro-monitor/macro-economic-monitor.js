@@ -257,13 +257,8 @@ class MacroEconomicMonitor {
       const rows = await this.database.query(query);
       if (rows.length > 0) {
         const row = rows[0];
-        let rawData = {};
-        try {
-          rawData = JSON.parse(row.raw_data || "{}");
-        } catch (e) {
-          logger.warn("JSON解析失败，使用默认值:", e.message);
-          rawData = {};
-        }
+        // raw_data已经是解析后的对象，不需要JSON.parse
+        const rawData = row.raw_data || {};
         return {
           value: row.metric_value,
           date: rawData.date || "Unknown",
@@ -295,13 +290,8 @@ class MacroEconomicMonitor {
       const rows = await this.database.query(query);
       if (rows.length > 0) {
         const row = rows[0];
-        let rawData = {};
-        try {
-          rawData = JSON.parse(row.raw_data || "{}");
-        } catch (e) {
-          logger.warn("JSON解析失败，使用默认值:", e.message);
-          rawData = {};
-        }
+        // raw_data已经是解析后的对象，不需要JSON.parse
+        const rawData = row.raw_data || {};
         return {
           value: row.metric_value,
           currentCPI: rawData.currentCPI || 0,
