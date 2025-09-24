@@ -371,7 +371,7 @@ router.get('/current-status', async (req, res) => {
     for (const sym of activeSymbols) {
       try {
         // 获取实时价格数据
-        const BinanceAPI = require('../api/binance-api');
+        const BinanceAPI = require('../../api/binance-api');
         const api = new BinanceAPI();
         const tickerData = await api.getTicker24hr(sym.symbol);
         
