@@ -594,7 +594,7 @@ class SmartFlowApp {
           </div>
           <div class="indicator-item">
             <span class="indicator-label">信号:</span>
-            <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal)}</span>
+            <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal, "ICT")}</span>
           </div>
           <div class="indicator-item">
             <span class="indicator-label">得分:</span>
@@ -632,7 +632,7 @@ class SmartFlowApp {
           </div>
           <div class="indicator-item">
             <span class="indicator-label">信号:</span>
-            <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal)}</span>
+            <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal, "ICT")}</span>
           </div>
           <div class="indicator-item">
             <span class="indicator-label">吞没:</span>
@@ -735,7 +735,7 @@ class SmartFlowApp {
       <div class="indicator-group">
         <div class="indicator-item">
           <span class="indicator-label">信号:</span>
-          <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal)}</span>
+          <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal, "ICT")}</span>
         </div>
         <div class="indicator-item">
           <span class="indicator-label">吞没:</span>
@@ -963,11 +963,12 @@ class SmartFlowApp {
    * @param {string} signal - 信号值
    * @returns {string} 信号文本
    */
-  getSignalText(signal) {
+  getSignalText(signal, strategy = 'V3') {
     const signalMap = {
       'BUY': '买入',
       'SELL': '卖出',
-      'HOLD': '持有'
+      'HOLD': strategy === 'ICT' ? '观望' : '持有',
+      'WATCH': '关注'
     };
     return signalMap[signal] || '未知';
   }

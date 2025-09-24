@@ -370,6 +370,11 @@ router.get('/current-status', async (req, res) => {
     // 为每个交易对执行两个策略
     for (const sym of activeSymbols) {
       try {
+        // 获取实时价格数据
+        const binanceAPI = require('../api/binance-api');
+        const api = new binanceAPI();
+        const tickerData = await api.getTicker24hr(sym.symbol);
+        
         const [v3Result, ictResult] = await Promise.all([
           v3Strategy.execute(sym.symbol),
           ictStrategy.execute(sym.symbol)
@@ -377,8 +382,9 @@ router.get('/current-status', async (req, res) => {
 
         results.push({
           symbol: sym.symbol,
-          lastPrice: sym.last_price || 0,
-          priceChange24h: sym.price_change_24h || 0,
+          lastPrice: tickerData.lastPrice || sym.last_price || 0,
+          priceChange24h: tickerData.priceChangePercent ? parseFloat(tickerData.priceChangePercent) / 100 : sym.price_change_24h || 0,
+          timestamp: new Date().toISOString(),
           v3: {
             signal: v3Result.signal || 'HOLD',
             trend: v3Result.timeframes?.["4H"]?.trend || 'RANGE',

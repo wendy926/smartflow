@@ -205,7 +205,7 @@ class ICTStrategy {
 
     // 计算扫荡速率
     const speed = detected ? confidence * (currentATR || 1) : 0;
-    
+
     return { detected, type, level, confidence, speed };
   }
 
