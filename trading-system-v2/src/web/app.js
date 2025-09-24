@@ -360,12 +360,18 @@ class SmartFlowApp {
     statusData.forEach(item => {
       // V3策略行
       const v3Info = item.v3 || {};
+      const v3Trend = v3Info.timeframes?.['4H']?.trend || 'RANGE';
+      const v3Signal = v3Info.signal || 'HOLD';
+      const v3EntryPrice = v3Info.entryPrice || 0;
+      const v3SignalText = v3EntryPrice > 0 ? '入场' : '观望';
+      
       const v3Row = document.createElement('tr');
       v3Row.innerHTML = `
         <td>${item.symbol}</td>
         <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
         <td><span class="strategy-badge v3">V3</span></td>
-        <td><span class="trend-value trend-${v3Info.timeframes?.['4H']?.trend?.toLowerCase() || 'range'}">${this.getTrendText(v3Info.timeframes?.['4H']?.trend || 'RANGE')}</span></td>
+        <td><span class="trend-value trend-${v3Trend.toLowerCase()}">${this.getTrendText(v3Trend)}</span></td>
+        <td><span class="signal-value signal-${v3SignalText === '入场' ? 'entry' : 'watch'}">${v3SignalText}</span></td>
         <td class="timeframe-cell">${this.formatHighTimeframe(v3Info, 'V3')}</td>
         <td class="timeframe-cell">${this.formatMidTimeframe(v3Info, 'V3')}</td>
         <td class="timeframe-cell">${this.formatLowTimeframe(v3Info, 'V3')}</td>
@@ -381,6 +387,8 @@ class SmartFlowApp {
       const ictInfo = item.ict || {};
       const ictTrend = ictInfo.timeframes?.['1D']?.trend || 'RANGE';
       const ictSignal = ictInfo.signal || 'HOLD';
+      const ictEntryPrice = ictInfo.entryPrice || 0;
+      const ictSignalText = ictEntryPrice > 0 ? '入场' : '观望';
       
       // ICT策略在震荡市不显示交易参数
       const showTradeParams = ictTrend !== 'RANGE' && ictSignal !== 'HOLD';
@@ -391,6 +399,7 @@ class SmartFlowApp {
         <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
         <td><span class="strategy-badge ict">ICT</span></td>
         <td><span class="trend-value trend-${ictTrend.toLowerCase()}">${this.getTrendText(ictTrend)}</span></td>
+        <td><span class="signal-value signal-${ictSignalText === '入场' ? 'entry' : 'watch'}">${ictSignalText}</span></td>
         <td class="timeframe-cell">${this.formatHighTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatMidTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatLowTimeframe(ictInfo, 'ICT')}</td>

@@ -205,6 +205,12 @@ class V3Strategy {
 
       // 计算Delta（简化版本）
       const delta = this.calculateSimpleDelta(prices, volumes);
+      
+      // 检查VWAP有效性
+      if (vwap === null || vwap === undefined) {
+        logger.warn(`15M VWAP计算失败，使用价格均值`);
+        vwap = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+      }
 
       // 调试信息
       logger.info(`15M指标计算 - 数据长度: ${klines.length}, 价格长度: ${prices.length}, EMA20: ${ema20[ema20.length - 1]}, EMA50: ${ema50[ema50.length - 1]}, ADX: ${adx.adx}, BBW: ${bbw.bbw}, VWAP: ${vwap}, Delta: ${delta}`);
@@ -479,8 +485,8 @@ class V3Strategy {
    * @returns {string} 入场信号
    */
   determineEntrySignal(currentPrice, ema20, adx, bbw, vwap, fundingRate, oiChange, delta) {
-    if (ema20 === null || ema20 === undefined || adx === null || adx === undefined || 
-        bbw === null || bbw === undefined || vwap === null || vwap === undefined) {
+    if (ema20 === null || ema20 === undefined || adx === null || adx === undefined ||
+      bbw === null || bbw === undefined || vwap === null || vwap === undefined) {
       return 'HOLD';
     }
 
@@ -610,6 +616,15 @@ class V3Strategy {
 
     // 中等条件
     if (trendDirection !== 'RANGE' && factorsScore > 50 && executionSignal !== 'HOLD') {
+      return executionSignal;
+    }
+
+    // 降低条件：只要有趋势就尝试交易
+    if (trendDirection !== 'RANGE' && factorsScore > 20) {
+      // 如果15M信号是HOLD，但有趋势，则根据趋势方向生成信号
+      if (executionSignal === 'HOLD') {
+        return trendDirection === 'UP' ? 'BUY' : 'SELL';
+      }
       return executionSignal;
     }
 
