@@ -378,10 +378,10 @@ class DatabaseOperations {
           SELECT st.*, s.symbol 
           FROM simulation_trades st 
           JOIN symbols s ON st.symbol_id = s.id 
-          ORDER BY st.created_at DESC LIMIT ?
+          ORDER BY st.created_at DESC LIMIT ${limitNum}
         `;
-        logger.info(`Executing query without strategy filter: ${query}, params: [${limitNum}]`);
-        const [rows] = await connection.execute(query, [limitNum]);
+        logger.info(`Executing query without strategy filter: ${query}`);
+        const [rows] = await connection.execute(query);
         return rows;
       }
 
@@ -392,21 +392,17 @@ class DatabaseOperations {
         SELECT st.*, s.symbol 
         FROM simulation_trades st 
         JOIN symbols s ON st.symbol_id = s.id 
-        WHERE st.strategy_name = ?
+        WHERE st.strategy_name = '${strategyUpper}'
       `;
 
-      const params = [strategyUpper];
-
       if (symbol) {
-        query += ` AND s.symbol = ?`;
-        params.push(symbol);
+        query += ` AND s.symbol = '${symbol}'`;
       }
 
-      query += ` ORDER BY st.created_at DESC LIMIT ?`;
-      params.push(limitNum);
+      query += ` ORDER BY st.created_at DESC LIMIT ${limitNum}`;
 
-      logger.info(`Executing query with strategy filter: ${query}, params: [${params.join(', ')}]`);
-      const [rows] = await connection.execute(query, params);
+      logger.info(`Executing query with strategy filter: ${query}`);
+      const [rows] = await connection.execute(query);
       return rows;
     } catch (error) {
       logger.error(`Error getting trades for ${strategy}:`, error);
