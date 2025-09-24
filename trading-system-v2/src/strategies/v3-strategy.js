@@ -316,8 +316,14 @@ class V3Strategy {
    */
   async calculateTradeParameters(symbol, signal, currentPrice, atr) {
     try {
-      if (!currentPrice || !atr) {
+      if (!currentPrice) {
         return { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
+      }
+      
+      // 如果ATR为0或无效，使用价格的1%作为默认ATR
+      if (!atr || atr === 0) {
+        atr = currentPrice * 0.01;
+        logger.warn(`ATR无效，使用默认值: ${atr}`);
       }
 
       const entryPrice = currentPrice;
