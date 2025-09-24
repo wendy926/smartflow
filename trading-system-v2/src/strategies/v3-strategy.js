@@ -122,7 +122,7 @@ class V3Strategy {
         logger.warn(`1H数据不足: ${klines?.length || 0}条`);
         return { factors: {}, score: 0, confidence: 0, error: 'Insufficient data' };
       }
-      
+
       // 调试信息
       logger.info(`1H分析开始 - K线数量: ${klines.length}, 数据: ${JSON.stringify(Object.keys(data))}`);
 
@@ -143,11 +143,9 @@ class V3Strategy {
       // 计算持仓量变化（6小时OI变化）
       const oiChange = data.oiHistory && data.oiHistory.length > 0 ?
         TechnicalIndicators.calculateOIChange(data.oiHistory.map(oi => parseFloat(oi.sumOpenInterest)), 6) : 0;
-      
+
       // 调试信息
-      if (symbol === 'BTCUSDT') {
-        logger.info(`V3 OI调试 - 原始数据: ${JSON.stringify(data.oiHistory?.slice(0, 2))}, 计算结果: ${oiChange}`);
-      }
+      logger.info(`V3 OI调试 - 原始数据: ${JSON.stringify(data.oiHistory?.slice(0, 2))}, 计算结果: ${oiChange}`);
 
       // 计算Delta（简化版本）
       const delta = this.calculateSimpleDelta(prices, volumes);
@@ -567,14 +565,14 @@ class V3Strategy {
           // 检查是否已有交易（简单的内存缓存检查）
           const cacheKey = `v3_trade_${symbol}`;
           const existingTrade = this.cache ? await this.cache.get(cacheKey) : null;
-          
+
           if (!existingTrade) {
             // 没有现有交易，计算新的交易参数
             const currentPrice = parseFloat(klines15M[klines15M.length - 1][4]);
             const atr = this.calculateATR(klines15M.map(k => parseFloat(k[2])), klines15M.map(k => parseFloat(k[3])), klines15M.map(k => parseFloat(k[4])));
             const currentATR = atr[atr.length - 1];
             tradeParams = await this.calculateTradeParameters(symbol, finalSignal, currentPrice, currentATR);
-            
+
             // 缓存交易参数（5分钟过期）
             if (this.cache && tradeParams.entryPrice > 0) {
               await this.cache.set(cacheKey, JSON.stringify(tradeParams), 300);

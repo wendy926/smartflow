@@ -426,11 +426,9 @@ class ICTStrategy {
         if (high > highestHigh) highestHigh = high;
       });
       const sweepHTF = this.detectSweepHTF(highestHigh, klines4H, atr4H[atr4H.length - 1]);
-      
+
       // 调试信息
-      if (symbol === 'BTCUSDT') {
-        logger.info(`ICT HTF Sweep调试 - 最高价: ${highestHigh}, 当前价: ${parseFloat(klines4H[klines4H.length - 1][4])}, 检测结果: ${JSON.stringify(sweepHTF)}`);
-      }
+      logger.info(`ICT HTF Sweep调试 - 最高价: ${highestHigh}, 当前价: ${parseFloat(klines4H[klines4H.length - 1][4])}, 检测结果: ${JSON.stringify(sweepHTF)}`);
 
       // 4. 检测吞没形态和LTF Sweep
       const engulfing = this.detectEngulfingPattern(klines15m);
@@ -444,7 +442,7 @@ class ICTStrategy {
           // 检查是否已有交易
           const cacheKey = `ict_trade_${symbol}`;
           const existingTrade = this.cache ? await this.cache.get(cacheKey) : null;
-          
+
           if (!existingTrade) {
             // 没有现有交易，计算新的交易参数
             tradeParams = await this.calculateTradeParameters(symbol, dailyTrend.trend, {
@@ -452,7 +450,7 @@ class ICTStrategy {
               sweepHTF,
               sweepLTF
             });
-            
+
             // 缓存交易参数（5分钟过期）
             if (this.cache && tradeParams.entry > 0) {
               await this.cache.set(cacheKey, JSON.stringify(tradeParams), 300);
