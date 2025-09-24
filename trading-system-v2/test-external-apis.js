@@ -7,7 +7,7 @@ const logger = require('./src/utils/logger');
 
 async function testExternalAPIs() {
   console.log('开始测试外部API接口...\n');
-  
+
   const results = {
     success: 0,
     failed: 0,
@@ -21,7 +21,7 @@ async function testExternalAPIs() {
       const fetch = (await import('node-fetch')).default;
       const response = await fetch(url, { timeout: 10000 });
       const data = await response.json();
-      
+
       if (response.ok) {
         console.log(`✅ ${name}: ${description}`);
         console.log(`   状态码: ${response.status}`);

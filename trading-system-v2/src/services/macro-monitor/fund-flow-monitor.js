@@ -22,7 +22,7 @@ class FundFlowMonitor {
   async checkLargeBTCTransactions() {
     try {
       const fetch = (await import('node-fetch')).default;
-      const url = this.blockchairApiKey 
+      const url = this.blockchairApiKey
         ? `https://api.blockchair.com/bitcoin/transactions?q=value_usd(gt.1000000)&key=${this.blockchairApiKey}`
         : 'https://api.blockchair.com/bitcoin/transactions?q=value_usd(gt.1000000)';
       const response = await fetch(url);
@@ -212,10 +212,10 @@ class FundFlowMonitor {
         SELECT * FROM macro_monitoring_data 
         WHERE data_type = 'FUND_FLOW' 
         ORDER BY created_at DESC 
-        LIMIT ?
+        LIMIT 50
       `;
 
-      const [rows] = await this.database.execute(query, [limit]);
+      const rows = await this.database.query(query);
       return rows;
 
     } catch (error) {

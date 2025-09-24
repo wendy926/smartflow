@@ -160,10 +160,10 @@ class MarketSentimentMonitor {
         SELECT * FROM macro_monitoring_data 
         WHERE data_type = 'MARKET_SENTIMENT' 
         ORDER BY created_at DESC 
-        LIMIT ?
+        LIMIT 50
       `;
 
-      const [rows] = await this.database.execute(query, [limit]);
+      const rows = await this.database.query(query);
       return rows;
 
     } catch (error) {
@@ -186,12 +186,19 @@ class MarketSentimentMonitor {
         LIMIT 1
       `;
 
-      const [rows] = await this.database.execute(query);
+      const rows = await this.database.query(query);
       if (rows.length > 0) {
         const row = rows[0];
+        let rawData = {};
+        try {
+          rawData = JSON.parse(row.raw_data || "{}");
+        } catch (e) {
+          logger.warn("JSON解析失败，使用默认值:", e.message);
+          rawData = {};
+        }
         return {
           value: row.metric_value,
-          classification: JSON.parse(row.raw_data).classification,
+          classification: rawData.classification || "Unknown",
           timestamp: row.created_at
         };
       }

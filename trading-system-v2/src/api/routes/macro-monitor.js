@@ -233,10 +233,9 @@ router.get('/alerts', async (req, res) => {
       params.push(alertLevel);
     }
 
-    query += ' ORDER BY created_at DESC LIMIT ?';
-    params.push(limit);
+    query += ' ORDER BY created_at DESC LIMIT 50';
 
-    const [rows] = await req.macroMonitor.database.execute(query, params);
+    const rows = await req.macroMonitor.database.query(query, params);
 
     res.json({
       success: true,

@@ -28,7 +28,7 @@ class FuturesMarketMonitor {
     try {
       const fetch = (await import('node-fetch')).default;
       const alerts = [];
-      
+
       // 检查多空比
       const longShortResponse = await fetch(this.binanceLongShort);
       const longShortData = await longShortResponse.json();
@@ -96,7 +96,7 @@ class FuturesMarketMonitor {
     try {
       const fetch = (await import('node-fetch')).default;
       const alerts = [];
-      
+
       // 检查多空比
       const longShortResponse = await fetch(this.bybitLongShort);
       const longShortData = await longShortResponse.json();
@@ -141,7 +141,7 @@ class FuturesMarketMonitor {
 
       if (fundingData.result && fundingData.result.length > 0) {
         const fundingRate = parseFloat(fundingData.result[0].fundingRate);
-        
+
         // 记录数据
         await this.saveFuturesData('FUTURES_MARKET', 'Bybit', '资金费率', fundingRate, '费率', 'NORMAL', {
           fundingRate: fundingRate,
@@ -163,7 +163,7 @@ class FuturesMarketMonitor {
     try {
       const fetch = (await import('node-fetch')).default;
       const alerts = [];
-      
+
       // 检查未平仓合约
       const oiResponse = await fetch(this.okxOI);
       const oiData = await oiResponse.json();
@@ -295,10 +295,10 @@ class FuturesMarketMonitor {
         SELECT * FROM macro_monitoring_data 
         WHERE data_type = 'FUTURES_MARKET' 
         ORDER BY created_at DESC 
-        LIMIT ?
+        LIMIT 50
       `;
 
-      const [rows] = await this.database.execute(query, [limit]);
+      const rows = await this.database.query(query);
       return rows;
 
     } catch (error) {
