@@ -10,6 +10,7 @@ class FundFlowMonitor {
     this.database = database;
     this.config = config;
     this.etherscanApiKey = config.etherscanApiKey || 'AZAZFVBNA16WCUMAHPGDFTVSXB5KJUHCIM';
+    this.blockchairApiKey = config.blockchairApiKey || '';
     this.exchangeWallet = config.exchangeWallet || '0x28C6c06298d514Db089934071355E5743bf21d60';
     this.btcThreshold = config.btcThreshold || 10000000; // 10M USD
     this.ethThreshold = config.ethThreshold || 1000; // 1000 ETH
@@ -21,7 +22,10 @@ class FundFlowMonitor {
   async checkLargeBTCTransactions() {
     try {
       const fetch = (await import('node-fetch')).default;
-      const response = await fetch('https://api.blockchair.com/bitcoin/transactions?q=value_usd(gt.1000000)');
+      const url = this.blockchairApiKey 
+        ? `https://api.blockchair.com/bitcoin/transactions?q=value_usd(gt.1000000)&key=${this.blockchairApiKey}`
+        : 'https://api.blockchair.com/bitcoin/transactions?q=value_usd(gt.1000000)';
+      const response = await fetch(url);
       const data = await response.json();
 
       if (data.data && data.data.length > 0) {

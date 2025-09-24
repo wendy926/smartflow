@@ -15,8 +15,8 @@ class FuturesMarketMonitor {
     // API端点
     this.binanceLongShort = 'https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=5m';
     this.binanceOI = 'https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=5m';
-    this.bybitLongShort = 'https://api.bybit.com/v2/public/position/list?symbol=BTCUSD';
-    this.bybitFunding = 'https://api.bybit.com/v2/public/funding/prev-funding-rate?symbol=BTCUSD';
+    this.bybitLongShort = 'https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=BTCUSDT&period=5m';
+    this.bybitFunding = 'https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1';
     this.okxOI = 'https://www.okx.com/api/v5/public/open-interest?instId=BTC-USDT-SWAP';
     this.okxFunding = 'https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP';
   }
@@ -102,16 +102,13 @@ class FuturesMarketMonitor {
       const longShortData = await longShortResponse.json();
 
       if (longShortData.result && longShortData.result.length > 0) {
-        const positions = longShortData.result;
-        const long = positions.filter(p => p.side === 'Buy').length;
-        const short = positions.filter(p => p.side === 'Sell').length;
-        const ratio = long / short;
+        const latest = longShortData.result[longShortData.result.length - 1];
+        const ratio = parseFloat(latest.longShortRatio);
 
         // 记录数据
         await this.saveFuturesData('FUTURES_MARKET', 'Bybit', '多空比', ratio, '比率', 'NORMAL', {
-          longCount: long,
-          shortCount: short,
-          ratio: ratio
+          longShortRatio: ratio,
+          timestamp: latest.timestamp
         });
 
         // 检查告警阈值
@@ -120,7 +117,7 @@ class FuturesMarketMonitor {
             type: 'FUTURES_MARKET',
             level: 'WARNING',
             title: 'Bybit多头过热告警',
-            message: `Bybit多空比过高: ${ratio.toFixed(2)} (多:${long} 空:${short})`,
+            message: `Bybit多空比过高: ${ratio.toFixed(2)}`,
             metric_name: '多空比',
             metric_value: ratio,
             threshold_value: this.longShortRatioHigh
@@ -130,7 +127,7 @@ class FuturesMarketMonitor {
             type: 'FUTURES_MARKET',
             level: 'WARNING',
             title: 'Bybit空头过重告警',
-            message: `Bybit多空比过低: ${ratio.toFixed(2)} (多:${long} 空:${short})`,
+            message: `Bybit多空比过低: ${ratio.toFixed(2)}`,
             metric_name: '多空比',
             metric_value: ratio,
             threshold_value: this.longShortRatioLow
@@ -143,12 +140,12 @@ class FuturesMarketMonitor {
       const fundingData = await fundingResponse.json();
 
       if (fundingData.result && fundingData.result.length > 0) {
-        const fundingRate = parseFloat(fundingData.result[0].funding_rate);
-
+        const fundingRate = parseFloat(fundingData.result[0].fundingRate);
+        
         // 记录数据
         await this.saveFuturesData('FUTURES_MARKET', 'Bybit', '资金费率', fundingRate, '费率', 'NORMAL', {
           fundingRate: fundingRate,
-          timestamp: fundingData.result[0].funding_rate_timestamp
+          timestamp: fundingData.result[0].fundingTime
         });
       }
 

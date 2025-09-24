@@ -79,14 +79,14 @@ async function testExternalAPIs() {
   // 6. 测试Bybit API (多空比)
   await testAPI(
     'Bybit API (多空比)',
-    'https://api.bybit.com/v2/public/position/list?symbol=BTCUSD',
+    'https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=BTCUSDT&period=5m',
     '多空比数据'
   );
 
   // 7. 测试Bybit API (资金费率)
   await testAPI(
     'Bybit API (资金费率)',
-    'https://api.bybit.com/v2/public/funding/prev-funding-rate?symbol=BTCUSD',
+    'https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1',
     '资金费率数据'
   );
 
