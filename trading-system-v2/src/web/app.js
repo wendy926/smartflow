@@ -438,12 +438,12 @@ class SmartFlowApp {
       // 基于当前策略信号状态判断，而不是历史交易记录
       const v3SignalText = (v3Signal === 'BUY' || v3Signal === 'SELL') ? '入场' : '观望';
 
-      // 优先使用交易记录数据，否则使用实时计算数据
-      const v3EntryPrice = v3Trade ? parseFloat(v3Trade.entry_price) : (v3Info.entryPrice || 0);
-      const v3StopLoss = v3Trade ? parseFloat(v3Trade.stop_loss) : (v3Info.stopLoss || 0);
-      const v3TakeProfit = v3Trade ? parseFloat(v3Trade.take_profit) : (v3Info.takeProfit || 0);
-      const v3Leverage = v3Trade ? parseFloat(v3Trade.leverage) : (v3Info.leverage || 0);
-      const v3Margin = v3Trade ? parseFloat(v3Trade.margin_used) : (v3Info.margin || 0);
+      // 只有当信号为入场时才显示交易参数，否则显示"--"
+      const v3EntryPrice = v3SignalText === '入场' ? (v3Info.entryPrice || 0) : 0;
+      const v3StopLoss = v3SignalText === '入场' ? (v3Info.stopLoss || 0) : 0;
+      const v3TakeProfit = v3SignalText === '入场' ? (v3Info.takeProfit || 0) : 0;
+      const v3Leverage = v3SignalText === '入场' ? (v3Info.leverage || 0) : 0;
+      const v3Margin = v3SignalText === '入场' ? (v3Info.margin || 0) : 0;
 
       const v3Row = document.createElement('tr');
       v3Row.innerHTML = `
@@ -473,15 +473,15 @@ class SmartFlowApp {
       // 基于当前策略信号状态判断，而不是历史交易记录
       const ictSignalText = (ictSignal === 'BUY' || ictSignal === 'SELL') ? '入场' : '观望';
 
-      // 优先使用交易记录数据，否则使用实时计算数据
-      const ictEntryPrice = ictTrade ? parseFloat(ictTrade.entry_price) : (ictInfo.entryPrice || 0);
-      const ictStopLoss = ictTrade ? parseFloat(ictTrade.stop_loss) : (ictInfo.stopLoss || 0);
-      const ictTakeProfit = ictTrade ? parseFloat(ictTrade.take_profit) : (ictInfo.takeProfit || 0);
-      const ictLeverage = ictTrade ? parseFloat(ictTrade.leverage) : (ictInfo.leverage || 0);
-      const ictMargin = ictTrade ? parseFloat(ictTrade.margin_used) : (ictInfo.margin || 0);
+      // 只有当信号为入场时才显示交易参数，否则显示"--"
+      const ictEntryPrice = ictSignalText === '入场' ? (ictInfo.entryPrice || 0) : 0;
+      const ictStopLoss = ictSignalText === '入场' ? (ictInfo.stopLoss || 0) : 0;
+      const ictTakeProfit = ictSignalText === '入场' ? (ictInfo.takeProfit || 0) : 0;
+      const ictLeverage = ictSignalText === '入场' ? (ictInfo.leverage || 0) : 0;
+      const ictMargin = ictSignalText === '入场' ? (ictInfo.margin || 0) : 0;
 
-      // ICT策略在震荡市不显示交易参数
-      const showTradeParams = ictTrend !== 'RANGE' && ictSignal !== 'HOLD' && ictTrade;
+      // ICT策略在震荡市不显示交易参数，且信号必须为入场
+      const showTradeParams = ictTrend !== 'RANGE' && ictSignalText === '入场';
 
       const ictRow = document.createElement('tr');
       ictRow.innerHTML = `
@@ -1850,7 +1850,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-      result.innerHTML = `
+  result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">
