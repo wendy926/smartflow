@@ -435,13 +435,13 @@ router.get('/current-status', async (req, res) => {
                 orderBlocks: ictResult.timeframes?.["4H"]?.orderBlocks || [],
                 atr: ictResult.timeframes?.["4H"]?.atr || 0,
                 sweepDetected: ictResult.timeframes?.["4H"]?.sweepDetected || false,
-                sweepSpeed: ictResult.timeframes?.["4H"]?.sweepSpeed || 0
+                sweepRate: ictResult.timeframes?.["4H"]?.sweepRate || 0
               },
               "15M": {
                 signal: ictResult.timeframes?.["15M"]?.signal || 'HOLD',
                 engulfing: ictResult.timeframes?.["15M"]?.engulfing || false,
                 atr: ictResult.timeframes?.["15M"]?.atr || 0,
-                sweepSpeed: ictResult.timeframes?.["15M"]?.sweepSpeed || 0,
+                sweepRate: ictResult.timeframes?.["15M"]?.sweepRate || 0,
                 volume: ictResult.timeframes?.["15M"]?.volume || 0
               }
             },
