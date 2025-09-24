@@ -137,9 +137,9 @@ class SmartFlowApp {
 
     this.currentStrategy = strategyName;
     this.loadStrategyData();
-
-    // 加载所有交易记录
-    this.loadAllTradingRecords();
+    
+    // 加载当前策略的交易记录
+    this.loadTradingRecords(strategyName);
   }
 
   /**
@@ -1132,20 +1132,20 @@ class SmartFlowApp {
       row.innerHTML = `
         <td>${trade.symbol || '--'}</td>
         <td>${trade.strategy_name || '--'}</td>
-        <td>${this.getDirectionText(trade.trade_type)}</td>
+        <td>${getDirectionText(trade.trade_type)}</td>
         <td class="judgment-basis">${trade.entry_reason || '--'}</td>
-        <td>${this.formatDateTime(trade.entry_time)}</td>
+        <td>${formatDate(trade.entry_time)}</td>
         <td>${trade.entry_price ? parseFloat(trade.entry_price).toFixed(4) : '--'}</td>
         <td>${trade.take_profit ? parseFloat(trade.take_profit).toFixed(4) : '--'}</td>
         <td>${trade.stop_loss ? parseFloat(trade.stop_loss).toFixed(4) : '--'}</td>
         <td>${trade.leverage ? parseFloat(trade.leverage).toFixed(2) : '--'}</td>
         <td>${trade.margin_used ? parseFloat(trade.margin_used).toFixed(2) : '--'}</td>
-        <td><span class="status-tag status-${trade.status || 'open'}">${this.getStatusText(trade.status)}</span></td>
+        <td><span class="status-tag status-${(trade.status || 'open').toLowerCase()}">${getStatusText(trade.status)}</span></td>
         <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
         <td class="judgment-basis">${trade.exit_reason || '--'}</td>
-        <td class="${this.getProfitClass(trade.pnl)}">${this.formatProfit(trade.pnl)}</td>
-        <td class="${this.getProfitClass(trade.pnl)}">${this.formatProfitAmount(trade.pnl)}</td>
-        <td>${this.calculateMaxDrawdown(trade)}</td>
+        <td class="${getProfitClass(trade.pnl)}">${formatProfit(trade.pnl)}</td>
+        <td class="${getProfitClass(trade.pnl)}">${formatProfitAmount(trade.pnl)}</td>
+        <td>${calculateMaxDrawdown(trade)}</td>
       `;
       tbody.appendChild(row);
     });
@@ -1177,20 +1177,20 @@ class SmartFlowApp {
       row.innerHTML = `
         <td>${trade.symbol || '--'}</td>
         <td>${trade.strategy_name || '--'}</td>
-        <td>${this.getDirectionText(trade.trade_type)}</td>
+        <td>${getDirectionText(trade.trade_type)}</td>
         <td class="judgment-basis">${trade.entry_reason || '--'}</td>
-        <td>${this.formatDateTime(trade.entry_time)}</td>
+        <td>${formatDate(trade.entry_time)}</td>
         <td>${trade.entry_price ? parseFloat(trade.entry_price).toFixed(4) : '--'}</td>
         <td>${trade.take_profit ? parseFloat(trade.take_profit).toFixed(4) : '--'}</td>
         <td>${trade.stop_loss ? parseFloat(trade.stop_loss).toFixed(4) : '--'}</td>
         <td>${trade.leverage ? parseFloat(trade.leverage).toFixed(2) : '--'}</td>
         <td>${trade.margin_used ? parseFloat(trade.margin_used).toFixed(2) : '--'}</td>
-        <td><span class="status-tag status-${trade.status || 'open'}">${this.getStatusText(trade.status)}</span></td>
+        <td><span class="status-tag status-${(trade.status || 'open').toLowerCase()}">${getStatusText(trade.status)}</span></td>
         <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
         <td class="judgment-basis">${trade.exit_reason || '--'}</td>
-        <td class="${this.getProfitClass(trade.pnl)}">${this.formatProfit(trade.pnl)}</td>
-        <td class="${this.getProfitClass(trade.pnl)}">${this.formatProfitAmount(trade.pnl)}</td>
-        <td>${this.calculateMaxDrawdown(trade)}</td>
+        <td class="${getProfitClass(trade.pnl)}">${formatProfit(trade.pnl)}</td>
+        <td class="${getProfitClass(trade.pnl)}">${formatProfitAmount(trade.pnl)}</td>
+        <td>${calculateMaxDrawdown(trade)}</td>
       `;
       tbody.appendChild(row);
     });
