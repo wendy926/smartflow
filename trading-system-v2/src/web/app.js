@@ -11,6 +11,57 @@ class SmartFlowApp {
     this.refreshInterval = null;
     this.maxLossAmount = 100; // 默认最大损失金额100 USDT
     this.init();
+    this.initRouting();
+  }
+
+  /**
+   * 初始化路由
+   */
+  initRouting() {
+    // 监听URL变化
+    window.addEventListener('popstate', (event) => {
+      this.handleRouteChange();
+    });
+
+    // 监听导航链接点击
+    document.addEventListener('click', (event) => {
+      if (event.target.closest('.nav-link')) {
+        event.preventDefault();
+        const href = event.target.closest('.nav-link').getAttribute('href');
+        if (href && href.startsWith('/')) {
+          this.navigateTo(href);
+        }
+      }
+    });
+
+    // 初始化当前路由
+    this.handleRouteChange();
+  }
+
+  /**
+   * 处理路由变化
+   */
+  handleRouteChange() {
+    const path = window.location.pathname;
+    const tabMap = {
+      '/dashboard': 'dashboard',
+      '/strategies': 'strategies',
+      '/monitoring': 'monitoring',
+      '/statistics': 'statistics',
+      '/tools': 'tools'
+    };
+
+    const tab = tabMap[path] || 'dashboard';
+    this.switchTab(tab);
+  }
+
+  /**
+   * 导航到指定路径
+   * @param {string} path - 目标路径
+   */
+  navigateTo(path) {
+    window.history.pushState({}, '', path);
+    this.handleRouteChange();
   }
 
   /**
@@ -27,14 +78,7 @@ class SmartFlowApp {
    * 设置事件监听器
    */
   setupEventListeners() {
-    // 导航标签页切换
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const tab = link.getAttribute('data-tab');
-        this.switchTab(tab);
-      });
-    });
+    // 导航标签页切换已在initRouting中处理
 
     // 策略标签页切换
     document.querySelectorAll('.strategy-tab').forEach(tab => {
@@ -97,6 +141,19 @@ class SmartFlowApp {
     document.getElementById(tabName).classList.add('active');
 
     this.currentTab = tabName;
+
+    // 更新URL（如果当前URL不匹配）
+    const pathMap = {
+      'dashboard': '/dashboard',
+      'strategies': '/strategies',
+      'monitoring': '/monitoring',
+      'statistics': '/statistics',
+      'tools': '/tools'
+    };
+    const expectedPath = pathMap[tabName];
+    if (expectedPath && window.location.pathname !== expectedPath) {
+      window.history.pushState({}, '', expectedPath);
+    }
 
     // 根据标签页加载相应数据
     switch (tabName) {
@@ -400,8 +457,8 @@ class SmartFlowApp {
         <td class="price-cell">${this.formatPrice(v3EntryPrice)}</td>
         <td class="price-cell">${this.formatPrice(v3StopLoss)}</td>
         <td class="price-cell">${this.formatPrice(v3TakeProfit)}</td>
-        <td class="leverage-cell">${this.formatLeverage({entryPrice: v3EntryPrice, stopLoss: v3StopLoss})}</td>
-        <td class="margin-cell">${this.formatMargin({entryPrice: v3EntryPrice, stopLoss: v3StopLoss, positionSize: v3Margin})}</td>
+        <td class="leverage-cell">${this.formatLeverage({ entryPrice: v3EntryPrice, stopLoss: v3StopLoss })}</td>
+        <td class="margin-cell">${this.formatMargin({ entryPrice: v3EntryPrice, stopLoss: v3StopLoss, positionSize: v3Margin })}</td>
       `;
       tbody.appendChild(v3Row);
 
@@ -437,8 +494,8 @@ class SmartFlowApp {
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictEntryPrice) : '--'}</td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictStopLoss) : '--'}</td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictTakeProfit) : '--'}</td>
-        <td class="leverage-cell">${showTradeParams ? this.formatLeverage({entryPrice: ictEntryPrice, stopLoss: ictStopLoss}) : '--'}</td>
-        <td class="margin-cell">${showTradeParams ? this.formatMargin({entryPrice: ictEntryPrice, stopLoss: ictStopLoss, positionSize: ictMargin}) : '--'}</td>
+        <td class="leverage-cell">${showTradeParams ? this.formatLeverage({ entryPrice: ictEntryPrice, stopLoss: ictStopLoss }) : '--'}</td>
+        <td class="margin-cell">${showTradeParams ? this.formatMargin({ entryPrice: ictEntryPrice, stopLoss: ictStopLoss, positionSize: ictMargin }) : '--'}</td>
       `;
       tbody.appendChild(ictRow);
     });
@@ -860,20 +917,21 @@ class SmartFlowApp {
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
     const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
 
-    // 计算保证金Z：M/(Y*X%) 数值向上取整
-    const margin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
-
-    // 计算实际保证金（基于仓位大小）
-    const actualMargin = positionSize > 0 ? (positionSize * entryPrice) / Math.min(maxLeverage, 20) : margin;
+    // 计算最小保证金Z：M/(Y*X%) 数值向上取整
+    const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
+    
+    // 计算实际保证金：基于建议杠杆（最大杠杆和20的较小值）
+    const suggestedLeverage = Math.min(maxLeverage, 20);
+    const actualMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistance));
 
     return `
       <div class="margin-info">
         <div class="margin-item">
           <span class="margin-label">最小保证金:</span>
-          <span class="margin-value">$${margin.toFixed(2)}</span>
+          <span class="margin-value">$${minMargin.toFixed(2)}</span>
         </div>
         <div class="margin-item">
-          <span class="margin-label">实际保证金:</span>
+          <span class="margin-label">建议保证金:</span>
           <span class="margin-value">$${actualMargin.toFixed(2)}</span>
         </div>
         <div class="margin-item">
@@ -1169,8 +1227,8 @@ class SmartFlowApp {
         <td>${trade.entry_price ? parseFloat(trade.entry_price).toFixed(4) : '--'}</td>
         <td>${trade.take_profit ? parseFloat(trade.take_profit).toFixed(4) : '--'}</td>
         <td>${trade.stop_loss ? parseFloat(trade.stop_loss).toFixed(4) : '--'}</td>
-        <td>${trade.leverage ? parseFloat(trade.leverage).toFixed(2) : '--'}</td>
-        <td>${trade.margin_used ? parseFloat(trade.margin_used).toFixed(2) : '--'}</td>
+        <td>${this.formatLeverageForTrade(trade)}</td>
+        <td>${this.formatMarginForTrade(trade)}</td>
         <td><span class="status-tag status-${(trade.status || 'open').toLowerCase()}">${getStatusText(trade.status)}</span></td>
         <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
         <td class="judgment-basis">${trade.exit_reason || '--'}</td>
@@ -1214,8 +1272,8 @@ class SmartFlowApp {
         <td>${trade.entry_price ? parseFloat(trade.entry_price).toFixed(4) : '--'}</td>
         <td>${trade.take_profit ? parseFloat(trade.take_profit).toFixed(4) : '--'}</td>
         <td>${trade.stop_loss ? parseFloat(trade.stop_loss).toFixed(4) : '--'}</td>
-        <td>${trade.leverage ? parseFloat(trade.leverage).toFixed(2) : '--'}</td>
-        <td>${trade.margin_used ? parseFloat(trade.margin_used).toFixed(2) : '--'}</td>
+        <td>${this.formatLeverageForTrade(trade)}</td>
+        <td>${this.formatMarginForTrade(trade)}</td>
         <td><span class="status-tag status-${(trade.status || 'open').toLowerCase()}">${getStatusText(trade.status)}</span></td>
         <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
         <td class="judgment-basis">${trade.exit_reason || '--'}</td>
@@ -1485,7 +1543,7 @@ class SmartFlowApp {
       };
 
       this.updateStatisticsDisplay(statisticsData);
-      
+
       // 加载交易对详细统计
       await this.loadTradingPairStatistics();
     } catch (error) {
@@ -1535,7 +1593,7 @@ class SmartFlowApp {
         pairStats[key].totalTrades++;
         const pnl = parseFloat(trade.pnl) || 0;
         pairStats[key].totalPnl += pnl;
-        
+
         if (pnl > 0) {
           pairStats[key].profitableTrades++;
         } else if (pnl < 0) {
@@ -1585,6 +1643,61 @@ class SmartFlowApp {
       `;
       tbody.appendChild(row);
     });
+  }
+
+  /**
+   * 格式化交易记录中的杠杆显示
+   * @param {Object} trade - 交易记录
+   * @returns {string} 格式化后的杠杆信息
+   */
+  formatLeverageForTrade(trade) {
+    if (!trade || !trade.entry_price || !trade.stop_loss) return '--';
+    
+    const entryPrice = parseFloat(trade.entry_price) || 0;
+    const stopLoss = parseFloat(trade.stop_loss) || 0;
+    const maxLossAmount = this.maxLossAmount || 100;
+
+    if (entryPrice === 0 || stopLoss === 0) return '--';
+
+    // 计算止损距离X%
+    const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+
+    // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
+    const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+    
+    // 建议杠杆（最大杠杆和20的较小值）
+    const suggestedLeverage = Math.min(maxLeverage, 20);
+
+    return `${suggestedLeverage}x`;
+  }
+
+  /**
+   * 格式化交易记录中的保证金显示
+   * @param {Object} trade - 交易记录
+   * @returns {string} 格式化后的保证金信息
+   */
+  formatMarginForTrade(trade) {
+    if (!trade || !trade.entry_price || !trade.stop_loss) return '--';
+    
+    const entryPrice = parseFloat(trade.entry_price) || 0;
+    const stopLoss = parseFloat(trade.stop_loss) || 0;
+    const maxLossAmount = this.maxLossAmount || 100;
+
+    if (entryPrice === 0 || stopLoss === 0) return '--';
+
+    // 计算止损距离X%
+    const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+
+    // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
+    const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+    
+    // 建议杠杆（最大杠杆和20的较小值）
+    const suggestedLeverage = Math.min(maxLeverage, 20);
+    
+    // 计算建议保证金：M/(Y*X%) 数值向上取整
+    const suggestedMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistance));
+
+    return `$${suggestedMargin.toFixed(2)}`;
   }
 
   /**
@@ -1719,7 +1832,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-      result.innerHTML = `
+  result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">
