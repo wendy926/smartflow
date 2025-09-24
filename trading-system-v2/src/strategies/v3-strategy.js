@@ -244,7 +244,15 @@ class V3Strategy {
         // 将指标数据直接放在顶层，与API期望格式匹配
         ema20: ema20[ema20.length - 1] || 0,
         ema50: ema50[ema50.length - 1] || 0,
-        atr: this.calculateATR(klines.map(k => parseFloat(k[2])), klines.map(k => parseFloat(k[3])), prices).slice(-1)[0] || 0,
+        atr: (() => {
+          try {
+            const atrArray = this.calculateATR(klines.map(k => parseFloat(k[2])), klines.map(k => parseFloat(k[3])), prices);
+            return atrArray && atrArray.length > 0 ? atrArray[atrArray.length - 1] : 0;
+          } catch (error) {
+            logger.warn(`15M ATR计算失败: ${error.message}`);
+            return 0;
+          }
+        })(),
         bbw: bbw.bbw || 0,
         indicators: {
           ema20: ema20[ema20.length - 1],
