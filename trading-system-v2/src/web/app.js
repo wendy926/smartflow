@@ -137,7 +137,7 @@ class SmartFlowApp {
 
     this.currentStrategy = strategyName;
     this.loadStrategyData();
-    
+
     // 加载当前策略的交易记录
     this.loadTradingRecords(strategyName);
   }
@@ -1067,6 +1067,9 @@ class SmartFlowApp {
   async loadStrategyData() {
     console.log(`Loading strategy data for ${this.currentStrategy}`);
 
+    // 加载统计数据
+    await this.loadStrategyStatistics();
+    
     // 加载交易记录数据
     await this.loadTradingRecords(this.currentStrategy);
   }
@@ -1569,7 +1572,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-  result.innerHTML = `
+      result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">

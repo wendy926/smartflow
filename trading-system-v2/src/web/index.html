@@ -59,7 +59,67 @@
           </div>
         </div>
 
-        <!-- 策略概览卡片已移除，仅保留统计卡片 -->
+
+        <!-- 策略当前状态表格 -->
+        <div class="card">
+          <div class="card-header">
+            <h3>策略当前状态</h3>
+            <div class="card-actions">
+              <div class="risk-selector">
+                <label for="maxLossAmount">最大损失金额:</label>
+                <select id="maxLossAmount" class="form-select">
+                  <option value="20">20 USDT</option>
+                  <option value="50">50 USDT</option>
+                  <option value="100" selected>100 USDT</option>
+                  <option value="200">200 USDT</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" id="refreshStrategyStatus">
+                <i class="fas fa-sync-alt"></i>
+                刷新
+              </button>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="table-container">
+              <table class="data-table" id="strategyStatusTable">
+                <thead>
+                  <tr>
+                    <th>交易对</th>
+                    <th>当前价格</th>
+                    <th>策略</th>
+                    <th>趋势</th>
+                    <th>信号</th>
+                    <th>高时间框架<br />趋势判断</th>
+                    <th>中时间框架<br />多因子/OB区</th>
+                    <th>低时间框架<br />入场判断</th>
+                    <th>入场价格</th>
+                    <th>止损价格</th>
+                    <th>止盈价格</th>
+                    <th>杠杆</th>
+                    <th>保证金</th>
+                  </tr>
+                </thead>
+                <tbody id="strategyStatusTableBody">
+                  <!-- 数据将通过JavaScript动态加载 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 交易对监控已移除 -->
+      </div>
+
+      <!-- 策略执行页面 -->
+      <div id="strategies" class="tab-content">
+        <div class="page-header">
+          <h2>策略执行与记录</h2>
+          <div class="strategy-tabs">
+            <button class="strategy-tab active" data-strategy="v3">Strategy V3</button>
+            <button class="strategy-tab" data-strategy="ict">ICT Strategy</button>
+          </div>
+        </div>
 
         <!-- 策略统计卡片 -->
         <div class="cards-grid">
@@ -153,69 +213,16 @@
                   <span class="stat-label">最大回撤</span>
                   <span class="stat-value max-drawdown">0%</span>
                 </div>
+                <div class="stat-item">
+                  <span class="stat-label">活跃交易</span>
+                  <span class="stat-value active-trades">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">今日交易</span>
+                  <span class="stat-value today-trades">0</span>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- 策略当前状态表格 -->
-        <div class="card">
-          <div class="card-header">
-            <h3>策略当前状态</h3>
-            <div class="card-actions">
-              <div class="risk-selector">
-                <label for="maxLossAmount">最大损失金额:</label>
-                <select id="maxLossAmount" class="form-select">
-                  <option value="20">20 USDT</option>
-                  <option value="50">50 USDT</option>
-                  <option value="100" selected>100 USDT</option>
-                  <option value="200">200 USDT</option>
-                </select>
-              </div>
-              <button class="btn btn-primary" id="refreshStrategyStatus">
-                <i class="fas fa-sync-alt"></i>
-                刷新
-              </button>
-            </div>
-          </div>
-          <div class="card-content">
-            <div class="table-container">
-              <table class="data-table" id="strategyStatusTable">
-                <thead>
-                  <tr>
-                    <th>交易对</th>
-                    <th>当前价格</th>
-                    <th>策略</th>
-                    <th>趋势</th>
-                    <th>信号</th>
-                    <th>高时间框架<br />趋势判断</th>
-                    <th>中时间框架<br />多因子/OB区</th>
-                    <th>低时间框架<br />入场判断</th>
-                    <th>入场价格</th>
-                    <th>止损价格</th>
-                    <th>止盈价格</th>
-                    <th>杠杆</th>
-                    <th>保证金</th>
-                  </tr>
-                </thead>
-                <tbody id="strategyStatusTableBody">
-                  <!-- 数据将通过JavaScript动态加载 -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- 交易对监控已移除 -->
-      </div>
-
-      <!-- 策略执行页面 -->
-      <div id="strategies" class="tab-content">
-        <div class="page-header">
-          <h2>策略执行与记录</h2>
-          <div class="strategy-tabs">
-            <button class="strategy-tab active" data-strategy="v3">Strategy V3</button>
-            <button class="strategy-tab" data-strategy="ict">ICT Strategy</button>
           </div>
         </div>
 
@@ -225,62 +232,6 @@
             <div class="strategy-info">
               <h3>Strategy V3 - 多因子趋势策略</h3>
               <p>基于4H趋势判断、1H因子分析和15M入场信号的综合策略</p>
-            </div>
-
-            <div class="indicators-grid">
-              <div class="indicator-card">
-                <h4>4H趋势指标</h4>
-                <div class="indicator-values">
-                  <div class="indicator-item">
-                    <span>MA20</span>
-                    <span class="value">45,230</span>
-                  </div>
-                  <div class="indicator-item">
-                    <span>ADX</span>
-                    <span class="value">28.5</span>
-                  </div>
-                  <div class="indicator-item">
-                    <span>BBW</span>
-                    <span class="value">0.12</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="indicator-card">
-                <h4>1H因子分析</h4>
-                <div class="indicator-values">
-                  <div class="indicator-item">
-                    <span>VWAP</span>
-                    <span class="value">45,180</span>
-                  </div>
-                  <div class="indicator-item">
-                    <span>OI变化</span>
-                    <span class="value">+5.2%</span>
-                  </div>
-                  <div class="indicator-item">
-                    <span>Funding</span>
-                    <span class="value">0.01%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="indicator-card">
-                <h4>15M入场信号</h4>
-                <div class="indicator-values">
-                  <div class="indicator-item">
-                    <span>Delta</span>
-                    <span class="value">+120</span>
-                  </div>
-                  <div class="indicator-item">
-                    <span>EMA</span>
-                    <span class="value">45,200</span>
-                  </div>
-                  <div class="indicator-item">
-                    <span>ATR</span>
-                    <span class="value">180</span>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <!-- V3策略交易记录表格 -->
@@ -321,40 +272,6 @@
             <div class="strategy-info">
               <h3>ICT Strategy - 订单块策略</h3>
               <p>基于订单块、流动性扫荡和吞没形态的ICT概念策略</p>
-            </div>
-
-            <div class="ict-signals">
-              <div class="signal-card">
-                <h4>订单块检测</h4>
-                <div class="order-blocks">
-                  <div class="order-block bullish">
-                    <span class="block-type">看涨订单块</span>
-                    <span class="block-price">45,150 - 45,200</span>
-                    <span class="block-strength">强</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="signal-card">
-                <h4>流动性扫荡</h4>
-                <div class="sweep-signals">
-                  <div class="sweep-item">
-                    <span class="sweep-type">HTF Sweep</span>
-                    <span class="sweep-level">45,300</span>
-                    <span class="sweep-confidence">高</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="signal-card">
-                <h4>吞没形态</h4>
-                <div class="engulfing-signals">
-                  <div class="engulfing-item">
-                    <span class="engulfing-type">看涨吞没</span>
-                    <span class="engulfing-strength">0.85</span>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <!-- ICT策略交易记录表格 -->
