@@ -209,20 +209,25 @@ class V3Strategy {
       // 调试信息
       logger.info(`15M指标计算 - 数据长度: ${klines.length}, 价格长度: ${prices.length}, EMA20: ${ema20[ema20.length - 1]}, EMA50: ${ema50[ema50.length - 1]}, ADX: ${adx.adx}, BBW: ${bbw.bbw}, VWAP: ${vwap}, Delta: ${delta}`);
 
-      // 检查指标有效性
-      if (!ema20 || ema20.length === 0 || !ema50 || ema50.length === 0) {
-        logger.error(`15M EMA计算失败 - EMA20长度: ${ema20 ? ema20.length : 0}, EMA50长度: ${ema50 ? ema50.length : 0}`);
-        return { signal: 'ERROR', score: 0, confidence: 0, error: 'EMA calculation failed' };
+      // 检查指标有效性，如果计算失败则使用默认值
+      if (!ema20 || ema20.length === 0) {
+        logger.warn(`15M EMA20计算失败，使用默认值`);
+        ema20 = [prices[prices.length - 1]];
+      }
+
+      if (!ema50 || ema50.length === 0) {
+        logger.warn(`15M EMA50计算失败，使用默认值`);
+        ema50 = [prices[prices.length - 1]];
       }
 
       if (!adx || adx.adx === null || adx.adx === undefined) {
-        logger.error(`15M ADX计算失败 - ADX对象: ${JSON.stringify(adx)}`);
-        return { signal: 'ERROR', score: 0, confidence: 0, error: 'ADX calculation failed' };
+        logger.warn(`15M ADX计算失败，使用默认值`);
+        adx = { adx: 0, di_plus: 0, di_minus: 0 };
       }
 
       if (!bbw || bbw.bbw === null || bbw.bbw === undefined) {
-        logger.error(`15M BBW计算失败 - BBW对象: ${JSON.stringify(bbw)}`);
-        return { signal: 'ERROR', score: 0, confidence: 0, error: 'BBW calculation failed' };
+        logger.warn(`15M BBW计算失败，使用默认值`);
+        bbw = { bbw: 0, upper: 0, middle: 0, lower: 0 };
       }
 
       // 判断执行信号
