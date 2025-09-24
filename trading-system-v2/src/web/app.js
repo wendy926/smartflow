@@ -327,20 +327,25 @@ class SmartFlowApp {
       const response = await this.fetchData('/strategies/current-status?limit=10');
       const statusData = response.data;
 
+      // 加载交易记录数据
+      const tradesResponse = await this.fetchData('/trades?limit=100');
+      const tradesData = tradesResponse.data || [];
+
       // 更新策略状态表格
-      this.updateStrategyStatusTable(statusData);
+      this.updateStrategyStatusTable(statusData, tradesData);
     } catch (error) {
       console.error('Error loading strategy current status:', error);
       // 使用空数据作为后备
-      this.updateStrategyStatusTable([]);
+      this.updateStrategyStatusTable([], []);
     }
   }
 
   /**
    * 更新策略状态表格
    * @param {Array} statusData - 状态数据
+   * @param {Array} tradesData - 交易记录数据
    */
-  updateStrategyStatusTable(statusData) {
+  updateStrategyStatusTable(statusData, tradesData = []) {
     const tbody = document.getElementById('strategyStatusTableBody');
     if (!tbody) return;
 
@@ -357,13 +362,31 @@ class SmartFlowApp {
       return;
     }
 
+    // 创建交易记录映射，按symbol和strategy_name分组
+    const tradesMap = {};
+    tradesData.forEach(trade => {
+      const key = `${trade.symbol}_${trade.strategy_name}`;
+      if (!tradesMap[key] || trade.status === 'OPEN') {
+        tradesMap[key] = trade;
+      }
+    });
+
     statusData.forEach(item => {
       // V3策略行
       const v3Info = item.v3 || {};
       const v3Trend = v3Info.timeframes?.['4H']?.trend || 'RANGE';
       const v3Signal = v3Info.signal || 'HOLD';
-      const v3EntryPrice = v3Info.entryPrice || 0;
-      const v3SignalText = v3EntryPrice > 0 ? '入场' : '观望';
+
+      // 检查是否有V3策略的交易记录
+      const v3Trade = tradesMap[`${item.symbol}_V3`];
+      const v3SignalText = v3Trade ? '入场' : '观望';
+
+      // 优先使用交易记录数据，否则使用实时计算数据
+      const v3EntryPrice = v3Trade ? parseFloat(v3Trade.entry_price) : (v3Info.entryPrice || 0);
+      const v3StopLoss = v3Trade ? parseFloat(v3Trade.stop_loss) : (v3Info.stopLoss || 0);
+      const v3TakeProfit = v3Trade ? parseFloat(v3Trade.take_profit) : (v3Info.takeProfit || 0);
+      const v3Leverage = v3Trade ? parseFloat(v3Trade.leverage) : (v3Info.leverage || 0);
+      const v3Margin = v3Trade ? parseFloat(v3Trade.margin_used) : (v3Info.margin || 0);
 
       const v3Row = document.createElement('tr');
       v3Row.innerHTML = `
@@ -375,11 +398,11 @@ class SmartFlowApp {
         <td class="timeframe-cell">${this.formatHighTimeframe(v3Info, 'V3')}</td>
         <td class="timeframe-cell">${this.formatMidTimeframe(v3Info, 'V3')}</td>
         <td class="timeframe-cell">${this.formatLowTimeframe(v3Info, 'V3')}</td>
-        <td class="price-cell">${this.formatPrice(v3Info.entryPrice)}</td>
-        <td class="price-cell">${this.formatPrice(v3Info.stopLoss)}</td>
-        <td class="price-cell">${this.formatPrice(v3Info.takeProfit)}</td>
-        <td class="leverage-cell">${this.formatLeverage(v3Info)}</td>
-        <td class="margin-cell">${this.formatMargin(v3Info)}</td>
+        <td class="price-cell">${this.formatPrice(v3EntryPrice)}</td>
+        <td class="price-cell">${this.formatPrice(v3StopLoss)}</td>
+        <td class="price-cell">${this.formatPrice(v3TakeProfit)}</td>
+        <td class="leverage-cell">${this.formatLeverage({ leverage: v3Leverage })}</td>
+        <td class="margin-cell">${this.formatMargin({ margin: v3Margin })}</td>
       `;
       tbody.appendChild(v3Row);
 
@@ -387,11 +410,20 @@ class SmartFlowApp {
       const ictInfo = item.ict || {};
       const ictTrend = ictInfo.timeframes?.['1D']?.trend || 'RANGE';
       const ictSignal = ictInfo.signal || 'HOLD';
-      const ictEntryPrice = ictInfo.entryPrice || 0;
-      const ictSignalText = ictSignal === 'BUY' || ictSignal === 'SELL' ? '入场' : '观望';
+
+      // 检查是否有ICT策略的交易记录
+      const ictTrade = tradesMap[`${item.symbol}_ICT`];
+      const ictSignalText = ictTrade ? '入场' : (ictSignal === 'BUY' || ictSignal === 'SELL' ? '入场' : '观望');
+
+      // 优先使用交易记录数据，否则使用实时计算数据
+      const ictEntryPrice = ictTrade ? parseFloat(ictTrade.entry_price) : (ictInfo.entryPrice || 0);
+      const ictStopLoss = ictTrade ? parseFloat(ictTrade.stop_loss) : (ictInfo.stopLoss || 0);
+      const ictTakeProfit = ictTrade ? parseFloat(ictTrade.take_profit) : (ictInfo.takeProfit || 0);
+      const ictLeverage = ictTrade ? parseFloat(ictTrade.leverage) : (ictInfo.leverage || 0);
+      const ictMargin = ictTrade ? parseFloat(ictTrade.margin_used) : (ictInfo.margin || 0);
 
       // ICT策略在震荡市不显示交易参数
-      const showTradeParams = ictTrend !== 'RANGE' && ictSignal !== 'HOLD';
+      const showTradeParams = ictTrend !== 'RANGE' && ictSignal !== 'HOLD' && ictTrade;
 
       const ictRow = document.createElement('tr');
       ictRow.innerHTML = `
@@ -403,11 +435,11 @@ class SmartFlowApp {
         <td class="timeframe-cell">${this.formatHighTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatMidTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatLowTimeframe(ictInfo, 'ICT')}</td>
-        <td class="price-cell">${showTradeParams ? this.formatPrice(ictInfo.entryPrice) : '--'}</td>
-        <td class="price-cell">${showTradeParams ? this.formatPrice(ictInfo.stopLoss) : '--'}</td>
-        <td class="price-cell">${showTradeParams ? this.formatPrice(ictInfo.takeProfit) : '--'}</td>
-        <td class="leverage-cell">${showTradeParams ? this.formatLeverage(ictInfo) : '--'}</td>
-        <td class="margin-cell">${showTradeParams ? this.formatMargin(ictInfo) : '--'}</td>
+        <td class="price-cell">${showTradeParams ? this.formatPrice(ictEntryPrice) : '--'}</td>
+        <td class="price-cell">${showTradeParams ? this.formatPrice(ictStopLoss) : '--'}</td>
+        <td class="price-cell">${showTradeParams ? this.formatPrice(ictTakeProfit) : '--'}</td>
+        <td class="leverage-cell">${showTradeParams ? this.formatLeverage({ leverage: ictLeverage }) : '--'}</td>
+        <td class="margin-cell">${showTradeParams ? this.formatMargin({ margin: ictMargin }) : '--'}</td>
       `;
       tbody.appendChild(ictRow);
     });
@@ -1311,7 +1343,7 @@ class SmartFlowApp {
    */
   formatVolume(volume) {
     if (!volume || volume === 0) return '0';
-    
+
     const vol = parseFloat(volume);
     if (vol >= 1000000) {
       return (vol / 1000000).toFixed(3) + 'M';
