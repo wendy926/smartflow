@@ -80,7 +80,7 @@ class TradingSystemApp {
     });
 
     // 前端路由处理 - 支持SPA路由
-    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', '/tools'], (req, res) => {
+    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', '/tools', '/docs'], (req, res) => {
       res.sendFile('index.html', { root: 'src/web' });
     });
   }

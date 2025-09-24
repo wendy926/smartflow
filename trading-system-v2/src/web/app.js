@@ -48,7 +48,8 @@ class SmartFlowApp {
       '/strategies': 'strategies',
       '/monitoring': 'monitoring',
       '/statistics': 'statistics',
-      '/tools': 'tools'
+      '/tools': 'tools',
+      '/docs': 'docs'
     };
 
     const tab = tabMap[path] || 'dashboard';
@@ -1850,7 +1851,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-  result.innerHTML = `
+      result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">
