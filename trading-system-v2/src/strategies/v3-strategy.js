@@ -625,8 +625,8 @@ class V3Strategy {
       return executionSignal;
     }
 
-    // 降低条件：只要有趋势就尝试交易
-    if (trendDirection !== 'RANGE' && factorsScore >= 20) {
+    // 根据文档要求：1H多因子确认（score≥3才有效）
+    if (trendDirection !== 'RANGE' && factorsScore >= 3) {
       // 如果15M信号是HOLD，但有趋势，则根据趋势方向生成信号
       if (executionSignal === 'HOLD') {
         return trendDirection === 'UP' ? 'BUY' : 'SELL';
