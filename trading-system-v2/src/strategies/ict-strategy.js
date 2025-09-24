@@ -523,9 +523,9 @@ class ICTStrategy {
       // 选择有效的扫荡
       const sweepLTF = sweepLTFUp.detected ? sweepLTFUp : sweepLTFDown;
 
-      // 5. 计算交易参数（只在非震荡市计算且没有现有交易）
+      // 5. 计算交易参数（只在信号为BUY或SELL时计算）
       let tradeParams = { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
-      if (dailyTrend.trend !== 'RANGE') {
+      if (signal === 'BUY' || signal === 'SELL') {
         try {
           // 检查是否已有交易
           const cacheKey = `ict_trade_${symbol}`;

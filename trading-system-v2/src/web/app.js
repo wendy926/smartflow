@@ -388,7 +388,7 @@ class SmartFlowApp {
       const ictTrend = ictInfo.timeframes?.['1D']?.trend || 'RANGE';
       const ictSignal = ictInfo.signal || 'HOLD';
       const ictEntryPrice = ictInfo.entryPrice || 0;
-      const ictSignalText = ictEntryPrice > 0 ? '入场' : '观望';
+      const ictSignalText = ictSignal === 'BUY' || ictSignal === 'SELL' ? '入场' : '观望';
 
       // ICT策略在震荡市不显示交易参数
       const showTradeParams = ictTrend !== 'RANGE' && ictSignal !== 'HOLD';
