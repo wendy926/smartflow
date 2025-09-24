@@ -3,7 +3,6 @@
  * 监控恐惧贪婪指数等市场情绪指标
  */
 
-const fetch = require('node-fetch');
 const logger = require('../../utils/logger');
 
 class MarketSentimentMonitor {
@@ -20,6 +19,7 @@ class MarketSentimentMonitor {
    */
   async checkFearGreedIndex() {
     try {
+      const fetch = (await import('node-fetch')).default;
       const response = await fetch(this.fearGreedApi);
       const data = await response.json();
 

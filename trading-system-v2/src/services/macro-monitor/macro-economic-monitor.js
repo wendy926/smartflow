@@ -3,7 +3,6 @@
  * 监控美联储利率、CPI通胀率等宏观金融指标
  */
 
-const fetch = require('node-fetch');
 const logger = require('../../utils/logger');
 
 class MacroEconomicMonitor {
@@ -22,6 +21,7 @@ class MacroEconomicMonitor {
    */
   async checkFedFundsRate() {
     try {
+      const fetch = (await import('node-fetch')).default;
       const url = `https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=${this.fredApiKey}&file_type=json`;
       const response = await fetch(url);
       const data = await response.json();
@@ -77,6 +77,7 @@ class MacroEconomicMonitor {
    */
   async checkCPIRate() {
     try {
+      const fetch = (await import('node-fetch')).default;
       const url = `https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&api_key=${this.fredApiKey}&file_type=json`;
       const response = await fetch(url);
       const data = await response.json();

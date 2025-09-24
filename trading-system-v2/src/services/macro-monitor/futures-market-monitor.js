@@ -3,7 +3,6 @@
  * 监控多空比、未平仓合约、资金费率等合约市场指标
  */
 
-const fetch = require('node-fetch');
 const logger = require('../../utils/logger');
 
 class FuturesMarketMonitor {
@@ -27,8 +26,9 @@ class FuturesMarketMonitor {
    */
   async checkBinanceFutures() {
     try {
+      const fetch = (await import('node-fetch')).default;
       const alerts = [];
-
+      
       // 检查多空比
       const longShortResponse = await fetch(this.binanceLongShort);
       const longShortData = await longShortResponse.json();
@@ -94,8 +94,9 @@ class FuturesMarketMonitor {
    */
   async checkBybitFutures() {
     try {
+      const fetch = (await import('node-fetch')).default;
       const alerts = [];
-
+      
       // 检查多空比
       const longShortResponse = await fetch(this.bybitLongShort);
       const longShortData = await longShortResponse.json();
@@ -163,8 +164,9 @@ class FuturesMarketMonitor {
    */
   async checkOKXFutures() {
     try {
+      const fetch = (await import('node-fetch')).default;
       const alerts = [];
-
+      
       // 检查未平仓合约
       const oiResponse = await fetch(this.okxOI);
       const oiData = await oiResponse.json();

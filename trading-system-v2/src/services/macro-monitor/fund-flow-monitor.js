@@ -3,7 +3,6 @@
  * 监控链上大额资金流和交易所钱包转账
  */
 
-const fetch = require('node-fetch');
 const logger = require('../../utils/logger');
 
 class FundFlowMonitor {
@@ -21,6 +20,7 @@ class FundFlowMonitor {
    */
   async checkLargeBTCTransactions() {
     try {
+      const fetch = (await import('node-fetch')).default;
       const response = await fetch('https://api.blockchair.com/bitcoin/transactions?q=value_usd(gt.1000000)');
       const data = await response.json();
 
@@ -68,6 +68,7 @@ class FundFlowMonitor {
    */
   async checkExchangeWalletFlows() {
     try {
+      const fetch = (await import('node-fetch')).default;
       const url = `https://api.etherscan.io/api?module=account&action=txlist&address=${this.exchangeWallet}&apikey=${this.etherscanApiKey}`;
       const response = await fetch(url);
       const data = await response.json();
