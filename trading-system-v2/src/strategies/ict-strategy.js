@@ -523,35 +523,6 @@ class ICTStrategy {
       // 选择有效的扫荡
       const sweepLTF = sweepLTFUp.detected ? sweepLTFUp : sweepLTFDown;
 
-      // 5. 计算交易参数（只在信号为BUY或SELL时计算）
-      let tradeParams = { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
-      if (signal === 'BUY' || signal === 'SELL') {
-        try {
-          // 检查是否已有交易
-          const cacheKey = `ict_trade_${symbol}`;
-          const existingTrade = this.cache ? await this.cache.get(cacheKey) : null;
-
-          if (!existingTrade) {
-            // 没有现有交易，计算新的交易参数
-            tradeParams = await this.calculateTradeParameters(symbol, dailyTrend.trend, {
-              engulfing,
-              sweepHTF,
-              sweepLTF
-            });
-
-            // 缓存交易参数（5分钟过期）
-            if (this.cache && tradeParams.entry > 0) {
-              await this.cache.set(cacheKey, JSON.stringify(tradeParams), 300);
-            }
-          } else {
-            // 使用现有交易参数
-            tradeParams = JSON.parse(existingTrade);
-          }
-        } catch (error) {
-          logger.error(`ICT交易参数计算失败: ${error.message}`);
-        }
-      }
-
       // 6. 综合评分
       let score = 0;
       let reasons = [];
@@ -596,6 +567,35 @@ class ICTStrategy {
         signal = dailyTrend.trend === 'UP' ? 'BUY' : 'SELL';
       } else if (score >= 40) {
         signal = 'WATCH';
+      }
+
+      // 5. 计算交易参数（只在信号为BUY或SELL时计算）
+      let tradeParams = { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
+      if (signal === 'BUY' || signal === 'SELL') {
+        try {
+          // 检查是否已有交易
+          const cacheKey = `ict_trade_${symbol}`;
+          const existingTrade = this.cache ? await this.cache.get(cacheKey) : null;
+
+          if (!existingTrade) {
+            // 没有现有交易，计算新的交易参数
+            tradeParams = await this.calculateTradeParameters(symbol, dailyTrend.trend, {
+              engulfing,
+              sweepHTF,
+              sweepLTF
+            });
+
+            // 缓存交易参数（5分钟过期）
+            if (this.cache && tradeParams.entry > 0) {
+              await this.cache.set(cacheKey, JSON.stringify(tradeParams), 300);
+            }
+          } else {
+            // 使用现有交易参数
+            tradeParams = JSON.parse(existingTrade);
+          }
+        } catch (error) {
+          logger.error(`ICT交易参数计算失败: ${error.message}`);
+        }
       }
 
       const result = {
