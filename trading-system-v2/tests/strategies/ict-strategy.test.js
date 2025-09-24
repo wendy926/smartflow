@@ -432,8 +432,17 @@ describe('ICT策略 - 订单块交易策略', () => {
       const symbol = 'BTCUSDT';
       mockBinanceAPI.getKlines.mockRejectedValue(new Error('API调用失败'));
 
-      // Act & Assert
-      await expect(ictStrategy.execute(symbol)).rejects.toThrow('API调用失败');
+      // 临时禁用日志输出以减少测试噪音
+      const originalConsoleError = console.error;
+      console.error = jest.fn();
+
+      try {
+        // Act & Assert
+        await expect(ictStrategy.execute(symbol)).rejects.toThrow('API调用失败');
+      } finally {
+        // 恢复原始console.error
+        console.error = originalConsoleError;
+      }
     });
 
     test('应该使用缓存数据避免重复计算', async () => {
