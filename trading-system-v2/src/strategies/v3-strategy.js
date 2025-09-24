@@ -934,71 +934,55 @@ class V3Strategy {
    */
   calculate1HFactors(currentPrice, ema20, ema50, adx, bbw, vwap, fundingRate, oiChange, delta, trendDirection) {
     const factors = {
-      vwapDirection: 0,        // VWAP方向 (20分)
-      breakoutConfirmation: 0, // 突破确认 (20分)
-      volumeConfirmation: 0,   // 成交量双确认 (20分)
-      oiChange: 0,             // OI变化 (15分)
-      fundingRate: 0,          // 资金费率 (15分)
-      deltaImbalance: 0        // Delta失衡 (10分)
+      vwapDirection: 0,        // VWAP方向 (1分，权重20%)
+      breakoutConfirmation: 0, // 突破确认 (1分，权重20%)
+      volumeConfirmation: 0,   // 成交量双确认 (1分，权重20%)
+      oiChange: 0,             // OI变化 (1分，权重15%)
+      fundingRate: 0,          // 资金费率 (1分，权重15%)
+      deltaImbalance: 0        // Delta失衡 (1分，权重10%)
     };
 
-    // 1. VWAP方向 (20分)
+    // 1. VWAP方向 (1分，权重20%，必须满足)
     if (trendDirection === 'UP' && currentPrice > vwap) {
-      factors.vwapDirection = 20;
+      factors.vwapDirection = 1;
     } else if (trendDirection === 'DOWN' && currentPrice < vwap) {
-      factors.vwapDirection = 20;
+      factors.vwapDirection = 1;
     } else if (trendDirection === 'RANGE') {
-      factors.vwapDirection = 10; // 震荡市场中性
+      factors.vwapDirection = 0; // 震荡市场不满足VWAP方向要求
     }
 
-    // 2. 突破确认 (20分)
+    // 2. 突破确认 (1分，权重20%)
     if (trendDirection === 'UP' && currentPrice > ema20 && ema20 > ema50) {
-      factors.breakoutConfirmation = 20;
+      factors.breakoutConfirmation = 1;
     } else if (trendDirection === 'DOWN' && currentPrice < ema20 && ema20 < ema50) {
-      factors.breakoutConfirmation = 20;
+      factors.breakoutConfirmation = 1;
     } else if ((trendDirection === 'UP' && currentPrice > ema20) ||
       (trendDirection === 'DOWN' && currentPrice < ema20)) {
-      factors.breakoutConfirmation = 10; // 部分确认
+      factors.breakoutConfirmation = 0; // 部分确认不满足要求
     }
 
-    // 3. 成交量双确认 (20分)
-    if (Math.abs(delta) > 0.15) {
-      factors.volumeConfirmation = 20; // 强成交量确认
-    } else if (Math.abs(delta) > 0.1) {
-      factors.volumeConfirmation = 15; // 中等成交量确认
-    } else if (Math.abs(delta) > 0.05) {
-      factors.volumeConfirmation = 10; // 弱成交量确认
+    // 3. 成交量双确认 (1分，权重20%)
+    if (Math.abs(delta) > 0.1) {
+      factors.volumeConfirmation = 1; // 成交量确认
     }
 
-    // 4. OI变化 (15分)
-    if (trendDirection === 'UP' && oiChange > 0.03) {
-      factors.oiChange = 15; // 持仓量大幅增加
+    // 4. OI变化 (1分，权重15%)
+    if (trendDirection === 'UP' && oiChange > 0.02) {
+      factors.oiChange = 1; // 多头6h OI≥+2%
     } else if (trendDirection === 'DOWN' && oiChange < -0.03) {
-      factors.oiChange = 15; // 持仓量大幅减少
-    } else if (Math.abs(oiChange) > 0.01) {
-      factors.oiChange = 10; // 持仓量适度变化
-    } else if (Math.abs(oiChange) > 0.005) {
-      factors.oiChange = 5;  // 持仓量轻微变化
+      factors.oiChange = 1; // 空头6h OI≤-3%
     }
 
-    // 5. 资金费率 (15分)
-    if (trendDirection === 'UP' && fundingRate < -0.0005) {
-      factors.fundingRate = 15; // 负资金费率支持多头
-    } else if (trendDirection === 'DOWN' && fundingRate > 0.0005) {
-      factors.fundingRate = 15; // 正资金费率支持空头
-    } else if (Math.abs(fundingRate) > 0.0002) {
-      factors.fundingRate = 10; // 资金费率异常
-    } else if (Math.abs(fundingRate) > 0.0001) {
-      factors.fundingRate = 5;  // 资金费率轻微异常
+    // 5. 资金费率 (1分，权重15%)
+    if (Math.abs(fundingRate) <= 0.0005) { // -0.05%≤Funding Rate≤+0.05%
+      factors.fundingRate = 1;
     }
 
-    // 6. Delta失衡 (10分)
+    // 6. Delta失衡 (1分，权重10%)
     if (trendDirection === 'UP' && delta > 0.1) {
-      factors.deltaImbalance = 10; // 买盘强势
+      factors.deltaImbalance = 1; // 主动买盘≥卖盘×1.2（多头）
     } else if (trendDirection === 'DOWN' && delta < -0.1) {
-      factors.deltaImbalance = 10; // 卖盘强势
-    } else if (Math.abs(delta) > 0.05) {
-      factors.deltaImbalance = 5;  // 部分失衡
+      factors.deltaImbalance = 1; // 主动卖盘≥买盘×1.2（空头）
     }
 
     const totalScore = Object.values(factors).reduce((sum, score) => sum + score, 0);
