@@ -137,7 +137,7 @@ class SmartFlowApp {
 
     this.currentStrategy = strategyName;
     this.loadStrategyData();
-    
+
     // 加载所有交易记录
     this.loadAllTradingRecords();
   }
@@ -1960,27 +1960,22 @@ function updateTradingRecordsTable(trades) {
   trades.forEach(trade => {
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td>${trade.symbol}</td>
-      <td><span class="strategy-badge ${trade.strategy_type.toLowerCase()}">${trade.strategy_type}</span></td>
-      <td><span class="direction-badge ${trade.direction.toLowerCase()}">${trade.direction}</span></td>
-      <td>${trade.entry_price}</td>
-      <td>${trade.stop_loss}</td>
-      <td>${trade.take_profit}</td>
-      <td>${trade.leverage}x</td>
-      <td>${trade.margin_required.toFixed(2)}</td>
-      <td><span class="status-badge ${trade.status.toLowerCase()}">${getStatusText(trade.status)}</span></td>
-      <td>${formatDate(trade.created_at)}</td>
-      <td>${trade.exit_price || '-'}</td>
-      <td>${trade.pnl ? trade.pnl.toFixed(2) : '-'}</td>
-      <td>${trade.pnl_percentage ? trade.pnl_percentage.toFixed(2) + '%' : '-'}</td>
-      <td>${trade.closed_at ? formatDate(trade.closed_at) : '-'}</td>
-      <td>${trade.exit_reason || '-'}</td>
-      <td>
-        ${trade.status === 'ACTIVE' ?
-        `<button class="btn btn-sm btn-danger" onclick="closeTrade(${trade.id})">关闭交易</button>` :
-        '-'
-      }
-      </td>
+      <td>${trade.symbol || '--'}</td>
+      <td><span class="strategy-badge ${(trade.strategy_name || '').toLowerCase()}">${trade.strategy_name || '--'}</span></td>
+      <td><span class="direction-badge ${(trade.trade_type || '').toLowerCase()}">${getDirectionText(trade.trade_type)}</span></td>
+      <td class="judgment-basis">${trade.entry_reason || '--'}</td>
+      <td>${formatDate(trade.entry_time)}</td>
+      <td>${trade.entry_price ? parseFloat(trade.entry_price).toFixed(4) : '--'}</td>
+      <td>${trade.take_profit ? parseFloat(trade.take_profit).toFixed(4) : '--'}</td>
+      <td>${trade.stop_loss ? parseFloat(trade.stop_loss).toFixed(4) : '--'}</td>
+      <td>${trade.leverage ? parseFloat(trade.leverage).toFixed(2) : '--'}</td>
+      <td>${trade.margin_used ? parseFloat(trade.margin_used).toFixed(2) : '--'}</td>
+      <td><span class="status-badge ${(trade.status || '').toLowerCase()}">${getStatusText(trade.status)}</span></td>
+      <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
+      <td class="judgment-basis">${trade.exit_reason || '--'}</td>
+      <td class="${getProfitClass(trade.pnl)}">${formatProfit(trade.pnl)}</td>
+      <td class="${getProfitClass(trade.pnl)}">${formatProfitAmount(trade.pnl)}</td>
+      <td>${calculateMaxDrawdown(trade)}</td>
     `;
     tbody.appendChild(row);
   });
@@ -2234,3 +2229,59 @@ document.addEventListener('DOMContentLoaded', () => {
   // 加载Telegram状态
   loadTelegramStatus();
 });
+
+// 获取方向文本
+function getDirectionText(tradeType) {
+  const directionMap = {
+    'LONG': '做多',
+    'SHORT': '做空'
+  };
+  return directionMap[tradeType] || '--';
+}
+
+// 格式化盈亏金额
+function formatProfitAmount(pnl) {
+  if (pnl === null || pnl === undefined) return '--';
+  const amount = parseFloat(pnl);
+  if (amount === 0) return '0.00';
+  return `${amount >= 0 ? '+' : ''}${amount.toFixed(2)}`;
+}
+
+// 计算最大回撤
+function calculateMaxDrawdown(trade) {
+  // 这里简化处理，实际应该根据历史数据计算
+  if (trade.status === 'CLOSED' && trade.pnl < 0) {
+    return `${Math.abs(parseFloat(trade.pnl)).toFixed(2)}`;
+  }
+  return '--';
+}
+
+// 获取盈亏样式类
+function getProfitClass(pnl) {
+  if (pnl === null || pnl === undefined) return '';
+  const amount = parseFloat(pnl);
+  if (amount > 0) return 'profit';
+  if (amount < 0) return 'loss';
+  return '';
+}
+
+// 格式化盈亏
+function formatProfit(pnl) {
+  if (pnl === null || pnl === undefined) return '--';
+  const amount = parseFloat(pnl);
+  if (amount === 0) return '0.00%';
+  return `${amount >= 0 ? '+' : ''}${amount.toFixed(2)}%`;
+}
+
+// 格式化日期时间
+function formatDate(dateString) {
+  if (!dateString) return '--';
+  const date = new Date(dateString);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}

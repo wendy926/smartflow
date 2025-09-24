@@ -282,6 +282,38 @@
                 </div>
               </div>
             </div>
+
+            <!-- V3策略交易记录表格 -->
+            <div class="trading-records">
+              <h3>V3策略交易记录</h3>
+              <div class="table-container">
+                <table class="data-table" id="v3TradingRecordsTable">
+                  <thead>
+                    <tr>
+                      <th>交易对</th>
+                      <th>策略</th>
+                      <th>方向</th>
+                      <th>入场判断逻辑</th>
+                      <th>入场时间</th>
+                      <th>入场价格</th>
+                      <th>止盈价格</th>
+                      <th>止损价格</th>
+                      <th>杠杆</th>
+                      <th>保证金</th>
+                      <th>状态</th>
+                      <th>出场价格</th>
+                      <th>出场原因</th>
+                      <th>盈亏结果</th>
+                      <th>盈亏金额</th>
+                      <th>最大回撤</th>
+                    </tr>
+                  </thead>
+                  <tbody id="v3-trades-body">
+                    <!-- 数据将通过JavaScript动态加载 -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <!-- ICT Strategy 内容 -->
@@ -358,79 +390,6 @@
             </div>
           </div>
 
-          <!-- ICT Strategy 内容 -->
-          <div id="ict-content" class="strategy-panel">
-            <div class="strategy-info">
-              <h3>ICT Strategy - 订单块策略</h3>
-              <p>基于订单块、流动性扫荡和吞没形态的ICT概念策略</p>
-            </div>
-
-            <div class="ict-signals">
-              <div class="signal-card">
-                <h4>订单块检测</h4>
-                <div class="order-blocks">
-                  <div class="order-block bullish">
-                    <span class="block-type">看涨订单块</span>
-                    <span class="block-price">45,150 - 45,200</span>
-                    <span class="block-strength">强</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="signal-card">
-                <h4>流动性扫荡</h4>
-                <div class="sweep-signals">
-                  <div class="sweep-item">
-                    <span class="sweep-type">HTF Sweep</span>
-                    <span class="sweep-level">45,300</span>
-                    <span class="sweep-confidence">高</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="signal-card">
-                <h4>吞没形态</h4>
-                <div class="engulfing-signals">
-                  <div class="engulfing-item">
-                    <span class="engulfing-type">看涨吞没</span>
-                    <span class="engulfing-strength">0.85</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- ICT策略交易记录表格 -->
-            <div class="trading-records">
-              <h3>ICT策略交易记录</h3>
-              <div class="table-container">
-                <table class="data-table" id="ictTradingRecordsTable">
-                  <thead>
-                    <tr>
-                      <th>交易对</th>
-                      <th>策略</th>
-                      <th>方向</th>
-                      <th>入场判断逻辑</th>
-                      <th>入场时间</th>
-                      <th>入场价格</th>
-                      <th>止盈价格</th>
-                      <th>止损价格</th>
-                      <th>杠杆</th>
-                      <th>保证金</th>
-                      <th>状态</th>
-                      <th>出场价格</th>
-                      <th>出场原因</th>
-                      <th>盈亏结果</th>
-                      <th>盈亏金额</th>
-                      <th>最大回撤</th>
-                    </tr>
-                  </thead>
-                  <tbody id="ict-trades-body">
-                    <!-- 数据将通过JavaScript动态加载 -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
 
         </div>
       </div>

@@ -370,7 +370,7 @@ class DatabaseOperations {
     const connection = await this.getConnection();
     try {
       logger.info(`getTrades called with strategy: ${strategy}, symbol: ${symbol}, limit: ${limit}`);
-      
+
       // 如果没有提供strategy参数，返回所有交易记录
       if (!strategy) {
         const limitNum = parseInt(limit, 10);
