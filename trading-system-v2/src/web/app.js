@@ -519,7 +519,7 @@ class SmartFlowApp {
           </div>
           <div class="indicator-item">
             <span class="indicator-label">OI变化:</span>
-            <span class="indicator-value ${oiChange >= 0 ? 'positive' : 'negative'}">${oiChange.toFixed(1)}%</span>
+            <span class="indicator-value ${oiChange >= 0 ? 'positive' : 'negative'}">${(oiChange * 100).toFixed(2)}%</span>
           </div>
           <div class="indicator-item">
             <span class="indicator-label">资金费率:</span>
@@ -537,7 +537,7 @@ class SmartFlowApp {
       const orderBlocks = ob4H.orderBlocks || [];
       const atr = ob4H.atr || 0;
       const sweepDetected = ob4H.sweepDetected || false;
-      const sweepSpeed = ob4H.sweepSpeed || 0;
+      const sweepRate = ob4H.sweepRate || 0;
       const valid = orderBlocks.length > 0 && sweepDetected;
 
       return `
@@ -560,7 +560,7 @@ class SmartFlowApp {
           </div>
           <div class="indicator-item">
             <span class="indicator-label">扫荡速率:</span>
-            <span class="indicator-value">${sweepSpeed.toFixed(2)}</span>
+            <span class="indicator-value">${sweepRate.toFixed(2)}</span>
           </div>
         </div>
       `;
@@ -620,9 +620,9 @@ class SmartFlowApp {
       const signal = entry15m.signal || 'HOLD';
       const engulfing = entry15m.engulfing || false;
       const atr = entry15m.atr || 0;
-      const sweepSpeed = entry15m.sweepSpeed || 0;
+      const sweepRate = entry15m.sweepRate || 0;
       const volume = entry15m.volume || 0;
-      const valid = engulfing && sweepSpeed >= 0.2 * atr;
+      const valid = engulfing && sweepRate >= 0.2 * atr;
 
       return `
         <div class="indicator-group">
@@ -644,7 +644,7 @@ class SmartFlowApp {
           </div>
           <div class="indicator-item">
             <span class="indicator-label">扫荡速率:</span>
-            <span class="indicator-value">${sweepSpeed.toFixed(2)}</span>
+            <span class="indicator-value">${sweepRate.toFixed(2)}</span>
           </div>
           <div class="indicator-item">
             <span class="indicator-label">成交量:</span>
@@ -693,7 +693,7 @@ class SmartFlowApp {
     const orderBlocks = ob4H.orderBlocks || [];
     const atr = ob4H.atr || 0;
     const sweepDetected = ob4H.sweepDetected || false;
-    const sweepSpeed = ob4H.sweepSpeed || 0;
+    const sweepRate = ob4H.sweepRate || 0;
 
     return `
       <div class="indicator-group">
@@ -711,7 +711,7 @@ class SmartFlowApp {
         </div>
         <div class="indicator-item">
           <span class="indicator-label">扫荡速率:</span>
-          <span class="indicator-value">${sweepSpeed.toFixed(2)}</span>
+          <span class="indicator-value">${sweepRate.toFixed(2)}</span>
         </div>
       </div>
     `;
@@ -728,7 +728,7 @@ class SmartFlowApp {
     const signal = entry15m.signal || 'HOLD';
     const engulfing = entry15m.engulfing || false;
     const atr = entry15m.atr || 0;
-    const sweepSpeed = entry15m.sweepSpeed || 0;
+    const sweepRate = entry15m.sweepRate || 0;
     const volume = entry15m.volume || 0;
 
     return `
@@ -747,7 +747,7 @@ class SmartFlowApp {
         </div>
         <div class="indicator-item">
           <span class="indicator-label">扫荡速率:</span>
-          <span class="indicator-value">${sweepSpeed.toFixed(2)}</span>
+          <span class="indicator-value">${sweepRate.toFixed(2)}</span>
         </div>
         <div class="indicator-item">
           <span class="indicator-label">成交量:</span>
