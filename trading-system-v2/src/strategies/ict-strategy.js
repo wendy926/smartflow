@@ -302,16 +302,16 @@ class ICTStrategy {
    */
   calculateMargin(entryPrice, stopLoss, leverage) {
     if (!entryPrice || !stopLoss || !leverage) return 0;
-    
+
     // 计算止损距离百分比
     const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
-    
+
     // 使用100 USDT作为默认最大损失金额
     const maxLossAmount = 100;
-    
+
     // 计算保证金：M/(Y*X%) 数值向上取整
     const margin = Math.ceil(maxLossAmount / (leverage * stopLossDistance));
-    
+
     return margin;
   }
 
@@ -426,12 +426,15 @@ class ICTStrategy {
       const atr15m = this.calculateATR(klines15m, 14);
       const sweepLTF = this.detectSweepLTF(klines15m, atr15m[atr15m.length - 1]);
 
-      // 5. 计算交易参数
-      const tradeParams = await this.calculateTradeParameters(symbol, dailyTrend.trend, {
-        engulfing,
-        sweepHTF,
-        sweepLTF
-      });
+      // 5. 计算交易参数（只在非震荡市计算）
+      let tradeParams = { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
+      if (dailyTrend.trend !== 'RANGE') {
+        tradeParams = await this.calculateTradeParameters(symbol, dailyTrend.trend, {
+          engulfing,
+          sweepHTF,
+          sweepLTF
+        });
+      }
 
       // 6. 综合评分
       let score = 0;

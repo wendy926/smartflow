@@ -379,20 +379,26 @@ class SmartFlowApp {
 
       // ICT策略行
       const ictInfo = item.ict || {};
+      const ictTrend = ictInfo.timeframes?.['1D']?.trend || 'RANGE';
+      const ictSignal = ictInfo.signal || 'HOLD';
+      
+      // ICT策略在震荡市不显示交易参数
+      const showTradeParams = ictTrend !== 'RANGE' && ictSignal !== 'HOLD';
+      
       const ictRow = document.createElement('tr');
       ictRow.innerHTML = `
         <td>${item.symbol}</td>
         <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
         <td><span class="strategy-badge ict">ICT</span></td>
-        <td><span class="trend-value trend-${ictInfo.timeframes?.['1D']?.trend?.toLowerCase() || 'range'}">${this.getTrendText(ictInfo.timeframes?.['1D']?.trend || 'RANGE')}</span></td>
+        <td><span class="trend-value trend-${ictTrend.toLowerCase()}">${this.getTrendText(ictTrend)}</span></td>
         <td class="timeframe-cell">${this.formatHighTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatMidTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatLowTimeframe(ictInfo, 'ICT')}</td>
-        <td class="price-cell">${this.formatPrice(ictInfo.entryPrice)}</td>
-        <td class="price-cell">${this.formatPrice(ictInfo.stopLoss)}</td>
-        <td class="price-cell">${this.formatPrice(ictInfo.takeProfit)}</td>
-        <td class="leverage-cell">${this.formatLeverage(ictInfo)}</td>
-        <td class="margin-cell">${this.formatMargin(ictInfo)}</td>
+        <td class="price-cell">${showTradeParams ? this.formatPrice(ictInfo.entryPrice) : '--'}</td>
+        <td class="price-cell">${showTradeParams ? this.formatPrice(ictInfo.stopLoss) : '--'}</td>
+        <td class="price-cell">${showTradeParams ? this.formatPrice(ictInfo.takeProfit) : '--'}</td>
+        <td class="leverage-cell">${showTradeParams ? this.formatLeverage(ictInfo) : '--'}</td>
+        <td class="margin-cell">${showTradeParams ? this.formatMargin(ictInfo) : '--'}</td>
       `;
       tbody.appendChild(ictRow);
     });

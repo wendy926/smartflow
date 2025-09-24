@@ -184,8 +184,9 @@ class V3Strategy {
    */
   analyze15mExecution(klines, data = {}) {
     try {
-      if (!klines || klines.length < 50) {
-        return { signal: 'HOLD', score: 0, confidence: 0, error: 'Insufficient data' };
+      if (!klines || klines.length < 20) {
+        logger.warn(`15M K线数据不足: 实际长度 ${klines ? klines.length : 0}`);
+        return { signal: 'ERROR', score: 0, confidence: 0, error: 'Insufficient 15M data' };
       }
 
       const prices = klines.map(k => parseFloat(k[4]));
@@ -207,6 +208,22 @@ class V3Strategy {
 
       // 调试信息
       logger.info(`15M指标计算 - EMA20: ${ema20[ema20.length - 1]}, EMA50: ${ema50[ema50.length - 1]}, ADX: ${adx.adx}, BBW: ${bbw.bbw}, VWAP: ${vwap}, Delta: ${delta}`);
+
+      // 检查指标有效性
+      if (!ema20 || ema20.length === 0 || !ema50 || ema50.length === 0) {
+        logger.error('15M EMA计算失败');
+        return { signal: 'ERROR', score: 0, confidence: 0, error: 'EMA calculation failed' };
+      }
+
+      if (!adx || adx.adx === null || adx.adx === undefined) {
+        logger.error('15M ADX计算失败');
+        return { signal: 'ERROR', score: 0, confidence: 0, error: 'ADX calculation failed' };
+      }
+
+      if (!bbw || bbw.bbw === null || bbw.bbw === undefined) {
+        logger.error('15M BBW计算失败');
+        return { signal: 'ERROR', score: 0, confidence: 0, error: 'BBW calculation failed' };
+      }
 
       // 判断执行信号
       const entrySignal = this.determineEntrySignal(
@@ -251,22 +268,22 @@ class V3Strategy {
    */
   calculate15MScore(ema20, adx, bbw, vwap, delta) {
     let score = 0;
-    
+
     // EMA20有效性 (1分)
     if (ema20 && ema20 > 0) score += 1;
-    
+
     // ADX强度 (1分)
     if (adx && adx > 20) score += 1;
-    
+
     // 布林带收窄 (1分)
     if (bbw && bbw < 0.1) score += 1;
-    
+
     // VWAP有效性 (1分)
     if (vwap && vwap > 0) score += 1;
-    
+
     // Delta确认 (1分)
     if (delta && Math.abs(delta) > 0.1) score += 1;
-    
+
     return score;
   }
 
@@ -511,7 +528,7 @@ class V3Strategy {
           const currentPrice = parseFloat(klines15M[klines15M.length - 1][4]);
           const atr = this.calculateATR(klines15M.map(k => parseFloat(k[2])), klines15M.map(k => parseFloat(k[3])), klines15M.map(k => parseFloat(k[4])));
           const currentATR = atr[atr.length - 1];
-          
+
           tradeParams = await this.calculateTradeParameters(symbol, finalSignal, currentPrice, currentATR);
         } catch (error) {
           logger.error(`V3交易参数计算失败: ${error.message}`);
