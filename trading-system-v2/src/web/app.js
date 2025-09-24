@@ -1468,22 +1468,38 @@ class SmartFlowApp {
    */
   async loadStatistics() {
     try {
-      // 模拟统计数据
+      // 获取真实的统计数据
+      const response = await this.fetchData('/strategies/statistics');
+      const stats = response.data;
+
+      // 转换为统计页面需要的格式
       const statisticsData = {
-        total: 1247,
-        winRate: 68.5,
-        totalPnl: 12450,
-        maxDrawdown: 8.2,
+        total: stats.overall.totalTrades,
+        winRate: stats.overall.winRate,
+        totalPnl: stats.overall.totalPnl,
+        maxDrawdown: stats.overall.maxDrawdown,
         strategies: {
-          v3: 72,
-          ict: 65,
-          rolling: 68
+          v3: stats.v3.winRate,
+          ict: stats.ict.winRate,
+          rolling: stats.overall.winRate
         }
       };
 
       this.updateStatisticsDisplay(statisticsData);
     } catch (error) {
       console.error('Error loading statistics:', error);
+      // 使用空数据作为后备
+      this.updateStatisticsDisplay({
+        total: 0,
+        winRate: 0,
+        totalPnl: 0,
+        maxDrawdown: 0,
+        strategies: {
+          v3: 0,
+          ict: 0,
+          rolling: 0
+        }
+      });
     }
   }
 
