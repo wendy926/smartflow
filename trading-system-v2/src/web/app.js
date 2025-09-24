@@ -920,8 +920,8 @@ class SmartFlowApp {
     // 计算最小保证金Z：M/(Y*X%) 数值向上取整
     const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
 
-    // 计算实际保证金：基于建议杠杆（最大杠杆和20的较小值）
-    const suggestedLeverage = Math.min(maxLeverage, 20);
+    // 计算实际保证金：基于最大杠杆数
+    const suggestedLeverage = maxLeverage;
     const actualMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistance));
 
     return `
@@ -1665,8 +1665,8 @@ class SmartFlowApp {
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
     const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
 
-    // 建议杠杆（最大杠杆和20的较小值）
-    const suggestedLeverage = Math.min(maxLeverage, 20);
+    // 使用计算出的最大杠杆数
+    const suggestedLeverage = maxLeverage;
 
     return `${suggestedLeverage}x`;
   }
@@ -1691,8 +1691,8 @@ class SmartFlowApp {
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
     const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
 
-    // 建议杠杆（最大杠杆和20的较小值）
-    const suggestedLeverage = Math.min(maxLeverage, 20);
+    // 使用计算出的最大杠杆数
+    const suggestedLeverage = maxLeverage;
 
     // 计算建议保证金：M/(Y*X%) 数值向上取整
     const suggestedMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistance));

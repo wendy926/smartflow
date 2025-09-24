@@ -419,12 +419,12 @@ class ICTStrategy {
       // 按照文档计算杠杆和保证金
       const stopLossDistance = Math.abs(currentPrice - stopLoss) / currentPrice;
       const maxLossAmount = 100; // 默认最大损失金额
-      
+
       // 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
       const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
       
-      // 建议杠杆（最大杠杆和20的较小值）
-      leverage = Math.min(maxLeverage, 20);
+      // 使用计算出的最大杠杆数
+      leverage = maxLeverage;
 
       // 计算保证金Z：M/(Y*X%) 数值向上取整
       const margin = stopLossDistance > 0 ? Math.ceil(maxLossAmount / (leverage * stopLossDistance)) : 0;
