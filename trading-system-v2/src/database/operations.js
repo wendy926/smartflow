@@ -1006,8 +1006,8 @@ class DatabaseOperations {
         profitableTrades,
         losingTrades,
         winRate: parseFloat(winRate.toFixed(2)),
-        totalPnl: parseFloat(totalPnl.toFixed(2)),
-        maxDrawdown: parseFloat(maxDrawdown.toFixed(2))
+        totalPnl: parseFloat(Number(totalPnl).toFixed(2)),
+        maxDrawdown: parseFloat(Number(maxDrawdown).toFixed(2))
       };
     } catch (error) {
       logger.error('Error getting total statistics:', error);
