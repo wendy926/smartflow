@@ -193,6 +193,7 @@ class V3Strategy {
 
       // 计算技术指标
       const ema20 = TechnicalIndicators.calculateEMA(prices, 20);
+      const ema50 = TechnicalIndicators.calculateEMA(prices, 50);
       const adx = TechnicalIndicators.calculateADX(
         klines.map(k => parseFloat(k[2])),
         klines.map(k => parseFloat(k[3])),
@@ -203,6 +204,9 @@ class V3Strategy {
 
       // 计算Delta（简化版本）
       const delta = this.calculateSimpleDelta(prices, volumes);
+
+      // 调试信息
+      logger.info(`15M指标计算 - EMA20: ${ema20[ema20.length - 1]}, EMA50: ${ema50[ema50.length - 1]}, ADX: ${adx.adx}, BBW: ${bbw.bbw}, VWAP: ${vwap}, Delta: ${delta}`);
 
       // 判断执行信号
       const entrySignal = this.determineEntrySignal(
@@ -218,7 +222,7 @@ class V3Strategy {
         // 将指标数据直接放在顶层，与API期望格式匹配
         ema20: ema20[ema20.length - 1] || 0,
         ema50: ema50[ema50.length - 1] || 0,
-        atr: this.calculateATR(klines.map(k => parseFloat(k[2])), klines.map(k => parseFloat(k[3])), prices)[0] || 0,
+        atr: this.calculateATR(klines.map(k => parseFloat(k[2])), klines.map(k => parseFloat(k[3])), prices).slice(-1)[0] || 0,
         bbw: bbw.bbw || 0,
         indicators: {
           ema20: ema20[ema20.length - 1],
@@ -248,20 +252,20 @@ class V3Strategy {
   calculate15MScore(ema20, adx, bbw, vwap, delta) {
     let score = 0;
     
-    // EMA20方向性 (1分)
-    if (ema20 > 0) score += 1;
+    // EMA20有效性 (1分)
+    if (ema20 && ema20 > 0) score += 1;
     
     // ADX强度 (1分)
-    if (adx > 20) score += 1;
+    if (adx && adx > 20) score += 1;
     
     // 布林带收窄 (1分)
-    if (bbw < 0.1) score += 1;
+    if (bbw && bbw < 0.1) score += 1;
     
-    // VWAP确认 (1分)
-    if (vwap > 0) score += 1;
+    // VWAP有效性 (1分)
+    if (vwap && vwap > 0) score += 1;
     
     // Delta确认 (1分)
-    if (Math.abs(delta) > 0.1) score += 1;
+    if (delta && Math.abs(delta) > 0.1) score += 1;
     
     return score;
   }

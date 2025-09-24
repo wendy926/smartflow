@@ -365,7 +365,7 @@ class SmartFlowApp {
         <td>${item.symbol}</td>
         <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
         <td><span class="strategy-badge v3">V3</span></td>
-        <td><span class="signal-value signal-${v3Info.signal?.toLowerCase() || 'hold'}">${this.getSignalText(v3Info.signal)}</span></td>
+        <td><span class="trend-value trend-${v3Info.timeframes?.['4H']?.trend?.toLowerCase() || 'range'}">${this.getTrendText(v3Info.timeframes?.['4H']?.trend || 'RANGE')}</span></td>
         <td class="timeframe-cell">${this.formatHighTimeframe(v3Info, 'V3')}</td>
         <td class="timeframe-cell">${this.formatMidTimeframe(v3Info, 'V3')}</td>
         <td class="timeframe-cell">${this.formatLowTimeframe(v3Info, 'V3')}</td>
@@ -384,7 +384,7 @@ class SmartFlowApp {
         <td>${item.symbol}</td>
         <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
         <td><span class="strategy-badge ict">ICT</span></td>
-        <td><span class="signal-value signal-${ictInfo.signal?.toLowerCase() || 'hold'}">${this.getSignalText(ictInfo.signal)}</span></td>
+        <td><span class="trend-value trend-${ictInfo.timeframes?.['1D']?.trend?.toLowerCase() || 'range'}">${this.getTrendText(ictInfo.timeframes?.['1D']?.trend || 'RANGE')}</span></td>
         <td class="timeframe-cell">${this.formatHighTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatMidTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatLowTimeframe(ictInfo, 'ICT')}</td>
