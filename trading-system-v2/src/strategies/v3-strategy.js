@@ -271,6 +271,54 @@ class V3Strategy {
   }
 
   /**
+   * 计算交易参数
+   * @param {string} symbol - 交易对
+   * @param {string} signal - 交易信号
+   * @param {number} currentPrice - 当前价格
+   * @param {number} atr - ATR值
+   * @returns {Object} 交易参数
+   */
+  async calculateTradeParameters(symbol, signal, currentPrice, atr) {
+    try {
+      if (!currentPrice || !atr) {
+        return { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
+      }
+
+      const entryPrice = currentPrice;
+      let stopLoss = 0;
+      let takeProfit = 0;
+      let leverage = 1;
+
+      // 根据信号方向计算止损和止盈
+      if (signal === 'BUY') {
+        stopLoss = entryPrice - (atr * 2);
+        takeProfit = entryPrice + (atr * 4);
+        leverage = Math.min(10, Math.max(1, Math.floor(100 / atr)));
+      } else if (signal === 'SELL') {
+        stopLoss = entryPrice + (atr * 2);
+        takeProfit = entryPrice - (atr * 4);
+        leverage = Math.min(10, Math.max(1, Math.floor(100 / atr)));
+      }
+
+      // 计算保证金
+      const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+      const maxLossAmount = 100; // 默认最大损失金额
+      const margin = stopLossDistance > 0 ? Math.ceil(maxLossAmount / (leverage * stopLossDistance)) : 0;
+
+      return {
+        entryPrice: parseFloat(entryPrice.toFixed(4)),
+        stopLoss: parseFloat(stopLoss.toFixed(4)),
+        takeProfit: parseFloat(takeProfit.toFixed(4)),
+        leverage: Math.min(leverage, 20),
+        margin: margin
+      };
+    } catch (error) {
+      logger.error(`V3交易参数计算失败: ${error.message}`);
+      return { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
+    }
+  }
+
+  /**
    * 判断趋势方向
    * @param {number} currentPrice - 当前价格
    * @param {number} ma20 - 20周期移动平均
@@ -456,6 +504,20 @@ class V3Strategy {
       // 综合判断
       const finalSignal = this.combineSignals(trend4H, factors1H, execution15M);
 
+      // 计算交易参数（如果有交易信号）
+      let tradeParams = { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
+      if (finalSignal !== 'HOLD' && finalSignal !== 'ERROR') {
+        try {
+          const currentPrice = parseFloat(klines15M[klines15M.length - 1][4]);
+          const atr = this.calculateATR(klines15M.map(k => parseFloat(k[2])), klines15M.map(k => parseFloat(k[3])), klines15M.map(k => parseFloat(k[4])));
+          const currentATR = atr[atr.length - 1];
+          
+          tradeParams = await this.calculateTradeParameters(symbol, finalSignal, currentPrice, currentATR);
+        } catch (error) {
+          logger.error(`V3交易参数计算失败: ${error.message}`);
+        }
+      }
+
       const result = {
         success: true,
         symbol,
@@ -466,6 +528,12 @@ class V3Strategy {
           '1H': factors1H,
           '15M': execution15M
         },
+        // 添加交易参数
+        entryPrice: tradeParams.entryPrice || 0,
+        stopLoss: tradeParams.stopLoss || 0,
+        takeProfit: tradeParams.takeProfit || 0,
+        leverage: tradeParams.leverage || 0,
+        margin: tradeParams.margin || 0,
         timestamp: new Date()
       };
 

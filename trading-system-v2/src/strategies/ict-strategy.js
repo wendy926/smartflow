@@ -294,6 +294,28 @@ class ICTStrategy {
   }
 
   /**
+   * 计算保证金
+   * @param {number} entryPrice - 入场价格
+   * @param {number} stopLoss - 止损价格
+   * @param {number} leverage - 杠杆
+   * @returns {number} 保证金
+   */
+  calculateMargin(entryPrice, stopLoss, leverage) {
+    if (!entryPrice || !stopLoss || !leverage) return 0;
+    
+    // 计算止损距离百分比
+    const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+    
+    // 使用100 USDT作为默认最大损失金额
+    const maxLossAmount = 100;
+    
+    // 计算保证金：M/(Y*X%) 数值向上取整
+    const margin = Math.ceil(maxLossAmount / (leverage * stopLossDistance));
+    
+    return margin;
+  }
+
+  /**
    * 计算交易参数
    * @param {string} symbol - 交易对
    * @param {string} trend - 趋势方向
@@ -495,11 +517,11 @@ class ICTStrategy {
           }
         },
         // 添加交易参数
-        entryPrice: tradeParams.entryPrice || 0,
+        entryPrice: tradeParams.entry || 0,
         stopLoss: tradeParams.stopLoss || 0,
         takeProfit: tradeParams.takeProfit || 0,
         leverage: tradeParams.leverage || 0,
-        margin: tradeParams.margin || 0,
+        margin: this.calculateMargin(tradeParams.entry || 0, tradeParams.stopLoss || 0, tradeParams.leverage || 1),
         timestamp: new Date().toISOString()
       };
 
