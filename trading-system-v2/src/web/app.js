@@ -439,12 +439,32 @@ class SmartFlowApp {
       // 基于当前策略信号状态判断，而不是历史交易记录
       const v3SignalText = (v3Signal === 'BUY' || v3Signal === 'SELL') ? '入场' : '观望';
 
-      // 只有当信号为入场时才显示交易参数，否则显示"--"
-      const v3EntryPrice = v3SignalText === '入场' ? (v3Info.entryPrice || 0) : 0;
-      const v3StopLoss = v3SignalText === '入场' ? (v3Info.stopLoss || 0) : 0;
-      const v3TakeProfit = v3SignalText === '入场' ? (v3Info.takeProfit || 0) : 0;
-      const v3Leverage = v3SignalText === '入场' ? (v3Info.leverage || 0) : 0;
-      const v3Margin = v3SignalText === '入场' ? (v3Info.margin || 0) : 0;
+      // 交易参数显示逻辑：
+      // 1. 如果有历史交易记录，使用静态的历史数据
+      // 2. 如果没有历史交易记录但信号为入场，使用实时计算数据
+      // 3. 如果信号为观望，显示"--"
+      let v3EntryPrice, v3StopLoss, v3TakeProfit, v3Leverage, v3Margin;
+      
+      if (v3SignalText === '入场') {
+        if (v3Trade) {
+          // 使用历史交易记录中的静态数据
+          v3EntryPrice = parseFloat(v3Trade.entry_price) || 0;
+          v3StopLoss = parseFloat(v3Trade.stop_loss) || 0;
+          v3TakeProfit = parseFloat(v3Trade.take_profit) || 0;
+          v3Leverage = parseFloat(v3Trade.leverage) || 0;
+          v3Margin = parseFloat(v3Trade.margin_used) || 0;
+        } else {
+          // 使用实时计算的数据（新交易）
+          v3EntryPrice = v3Info.entryPrice || 0;
+          v3StopLoss = v3Info.stopLoss || 0;
+          v3TakeProfit = v3Info.takeProfit || 0;
+          v3Leverage = v3Info.leverage || 0;
+          v3Margin = v3Info.margin || 0;
+        }
+      } else {
+        // 信号为观望，显示"--"
+        v3EntryPrice = v3StopLoss = v3TakeProfit = v3Leverage = v3Margin = 0;
+      }
 
       const v3Row = document.createElement('tr');
       v3Row.innerHTML = `
@@ -474,12 +494,32 @@ class SmartFlowApp {
       // 基于当前策略信号状态判断，而不是历史交易记录
       const ictSignalText = (ictSignal === 'BUY' || ictSignal === 'SELL') ? '入场' : '观望';
 
-      // 只有当信号为入场时才显示交易参数，否则显示"--"
-      const ictEntryPrice = ictSignalText === '入场' ? (ictInfo.entryPrice || 0) : 0;
-      const ictStopLoss = ictSignalText === '入场' ? (ictInfo.stopLoss || 0) : 0;
-      const ictTakeProfit = ictSignalText === '入场' ? (ictInfo.takeProfit || 0) : 0;
-      const ictLeverage = ictSignalText === '入场' ? (ictInfo.leverage || 0) : 0;
-      const ictMargin = ictSignalText === '入场' ? (ictInfo.margin || 0) : 0;
+      // 交易参数显示逻辑：
+      // 1. 如果有历史交易记录，使用静态的历史数据
+      // 2. 如果没有历史交易记录但信号为入场，使用实时计算数据
+      // 3. 如果信号为观望，显示"--"
+      let ictEntryPrice, ictStopLoss, ictTakeProfit, ictLeverage, ictMargin;
+      
+      if (ictSignalText === '入场') {
+        if (ictTrade) {
+          // 使用历史交易记录中的静态数据
+          ictEntryPrice = parseFloat(ictTrade.entry_price) || 0;
+          ictStopLoss = parseFloat(ictTrade.stop_loss) || 0;
+          ictTakeProfit = parseFloat(ictTrade.take_profit) || 0;
+          ictLeverage = parseFloat(ictTrade.leverage) || 0;
+          ictMargin = parseFloat(ictTrade.margin_used) || 0;
+        } else {
+          // 使用实时计算的数据（新交易）
+          ictEntryPrice = ictInfo.entryPrice || 0;
+          ictStopLoss = ictInfo.stopLoss || 0;
+          ictTakeProfit = ictInfo.takeProfit || 0;
+          ictLeverage = ictInfo.leverage || 0;
+          ictMargin = ictInfo.margin || 0;
+        }
+      } else {
+        // 信号为观望，显示"--"
+        ictEntryPrice = ictStopLoss = ictTakeProfit = ictLeverage = ictMargin = 0;
+      }
 
       // ICT策略在震荡市不显示交易参数，且信号必须为入场
       const showTradeParams = ictTrend !== 'RANGE' && ictSignalText === '入场';
