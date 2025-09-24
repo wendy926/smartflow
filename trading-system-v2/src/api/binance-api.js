@@ -129,7 +129,7 @@ class BinanceAPI {
 
       const currentOI = parseFloat(response.data.openInterest);
       const currentTime = response.data.time;
-      
+
       // 模拟历史数据（实际应用中应该使用真实的历史数据API）
       const histData = [];
       for (let i = limit - 1; i >= 0; i--) {

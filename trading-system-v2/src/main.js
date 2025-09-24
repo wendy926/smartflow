@@ -60,6 +60,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/trades', require('./api/routes/trades'));
     this.app.use('/api/v1/monitoring', require('./api/routes/monitoring'));
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
+    this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
 
     // 健康检查
     this.app.get('/health', (req, res) => {

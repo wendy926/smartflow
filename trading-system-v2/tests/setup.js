@@ -9,9 +9,18 @@ process.env.DB_NAME = 'trading_system_test';
 process.env.REDIS_DB = 1;
 
 // 模拟外部依赖
+const mockPool = {
+  getConnection: jest.fn().mockResolvedValue({
+    execute: jest.fn().mockResolvedValue([[], {}]),
+    ping: jest.fn().mockResolvedValue(),
+    release: jest.fn()
+  }),
+  end: jest.fn().mockResolvedValue()
+};
+
 jest.mock('mysql2/promise', () => ({
   createConnection: jest.fn(),
-  createPool: jest.fn()
+  createPool: jest.fn(() => mockPool)
 }));
 
 jest.mock('redis', () => ({
@@ -44,6 +53,64 @@ jest.mock('ws', () => {
     readyState: 1
   }));
 });
+
+// Mock database operations
+jest.mock('../src/database/operations', () => ({
+  getConnection: jest.fn().mockResolvedValue({
+    execute: jest.fn().mockResolvedValue([[], {}]),
+    ping: jest.fn().mockResolvedValue(),
+    release: jest.fn()
+  }),
+  getAllSymbols: jest.fn().mockResolvedValue([]),
+  getSymbol: jest.fn().mockResolvedValue(null),
+  insertSymbol: jest.fn().mockResolvedValue({ success: true, id: 1 }),
+  updateSymbol: jest.fn().mockResolvedValue({ success: true, affectedRows: 1 }),
+  deleteSymbol: jest.fn().mockResolvedValue({ success: true, affectedRows: 1 }),
+  insertJudgment: jest.fn().mockResolvedValue({ success: true, id: 1 }),
+  getJudgments: jest.fn().mockResolvedValue([]),
+  insertTrade: jest.fn().mockResolvedValue({ success: true, id: 1 }),
+  getTrades: jest.fn().mockResolvedValue([]),
+  updateTrade: jest.fn().mockResolvedValue({ success: true, affectedRows: 1 }),
+  addTrade: jest.fn().mockResolvedValue({ success: true, id: 1 }),
+  getTradeById: jest.fn().mockResolvedValue(null),
+  getTradeStatistics: jest.fn().mockResolvedValue({
+    total_trades: 0,
+    winning_trades: 0,
+    losing_trades: 0,
+    win_rate: 0,
+    total_pnl: 0,
+    avg_pnl: 0,
+    best_trade: 0,
+    worst_trade: 0,
+    avg_pnl_percentage: 0
+  }),
+  insertMonitoring: jest.fn().mockResolvedValue({ success: true, id: 1 }),
+  getMonitoring: jest.fn().mockResolvedValue([]),
+  insertStatistics: jest.fn().mockResolvedValue({ success: true, id: 1 }),
+  getStatistics: jest.fn().mockResolvedValue([]),
+  updateStatistics: jest.fn().mockResolvedValue({ success: true, affectedRows: 1 }),
+  insertConfig: jest.fn().mockResolvedValue({ success: true, id: 1 }),
+  getConfig: jest.fn().mockResolvedValue(null),
+  updateConfig: jest.fn().mockResolvedValue({ success: true, affectedRows: 1 }),
+  cleanupOldData: jest.fn().mockResolvedValue({ success: true, affectedRows: 0 }),
+  getStrategyStatistics: jest.fn().mockResolvedValue({
+    totalTrades: 0,
+    profitableTrades: 0,
+    losingTrades: 0,
+    winRate: 0,
+    totalPnl: 0,
+    maxDrawdown: 0
+  }),
+  getTotalStatistics: jest.fn().mockResolvedValue({
+    totalTrades: 0,
+    profitableTrades: 0,
+    losingTrades: 0,
+    winRate: 0,
+    totalPnl: 0,
+    maxDrawdown: 0
+  }),
+  close: jest.fn().mockResolvedValue()
+}));
 
 // 全局测试工具函数
 global.testUtils = {

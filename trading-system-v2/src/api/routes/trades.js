@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../../utils/logger');
+const tradeManager = require('../../core/trade-manager');
 
 // 延迟初始化数据库操作
 let dbOps = null;
@@ -23,7 +24,7 @@ router.get('/', async (req, res) => {
   try {
     const { strategy, symbol, status, limit = 100, offset = 0 } = req.query;
 
-    const trades = await getDbOps().getTrades(strategy, symbol, status, limit, offset);
+    const trades = await getDbOps().getTrades(strategy, symbol, limit);
 
     res.json({
       success: true,
@@ -56,7 +57,8 @@ router.post('/', async (req, res) => {
       leverage = 1,
       margin_required,
       risk_amount,
-      position_size
+      position_size,
+      entry_reason = ''
     } = req.body;
 
     if (!symbol || !strategy_type || !direction || !entry_price || !stop_loss || !take_profit) {
@@ -76,17 +78,26 @@ router.post('/', async (req, res) => {
       leverage,
       margin_required: margin_required || (entry_price * position_size) / leverage,
       risk_amount: risk_amount || Math.abs(entry_price - stop_loss) * position_size,
-      position_size: position_size || 1
+      position_size: position_size || 1,
+      entry_reason
     };
 
-    const result = await getDbOps().addTrade(tradeData);
+    const result = await tradeManager.createTrade(tradeData);
 
-    res.json({
-      success: true,
-      data: result,
-      message: '模拟交易创建成功',
-      timestamp: new Date().toISOString()
-    });
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data,
+        message: result.message,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+        data: result.data
+      });
+    }
   } catch (error) {
     logger.error('创建模拟交易失败:', error);
     res.status(500).json({
@@ -138,39 +149,24 @@ router.post('/:id/close', async (req, res) => {
       });
     }
 
-    // 获取交易信息
-    const trade = await getDbOps().getTradeById(id);
-    if (!trade) {
-      return res.status(404).json({
+    const result = await tradeManager.closeTrade(id, {
+      exit_price,
+      exit_reason
+    });
+
+    if (result.success) {
+      res.json({
+        success: true,
+        data: result.data,
+        message: result.message,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(400).json({
         success: false,
-        error: '交易记录不存在'
+        error: result.error
       });
     }
-
-    // 计算盈亏
-    const pnl = trade.direction === 'LONG'
-      ? (exit_price - trade.entry_price) * trade.position_size
-      : (trade.entry_price - exit_price) * trade.position_size;
-
-    const pnl_percentage = (pnl / (trade.entry_price * trade.position_size)) * 100;
-
-    const updateData = {
-      status: 'CLOSED',
-      exit_price,
-      exit_reason,
-      pnl,
-      pnl_percentage,
-      closed_at: new Date()
-    };
-
-    const result = await getDbOps().updateTrade(id, updateData);
-
-    res.json({
-      success: true,
-      data: result,
-      message: '模拟交易关闭成功',
-      timestamp: new Date().toISOString()
-    });
   } catch (error) {
     logger.error('关闭模拟交易失败:', error);
     res.status(500).json({
@@ -188,7 +184,7 @@ router.get('/statistics', async (req, res) => {
   try {
     const { strategy, symbol } = req.query;
 
-    const stats = await getDbOps().getTradeStatistics(strategy, symbol);
+    const stats = await tradeManager.getTradeStatistics(strategy, symbol);
 
     res.json({
       success: true,
@@ -197,6 +193,132 @@ router.get('/statistics', async (req, res) => {
     });
   } catch (error) {
     logger.error('获取交易统计失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 检查交易创建条件
+ * GET /api/v1/trades/check-creation
+ */
+router.get('/check-creation', async (req, res) => {
+  try {
+    const { symbol, strategy } = req.query;
+
+    if (!symbol || !strategy) {
+      return res.status(400).json({
+        success: false,
+        error: '交易对和策略参数不能为空'
+      });
+    }
+
+    const result = await tradeManager.canCreateTrade(symbol, strategy);
+
+    res.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('检查交易创建条件失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 获取活跃交易
+ * GET /api/v1/trades/active
+ */
+router.get('/active', async (req, res) => {
+  try {
+    const { symbol, strategy } = req.query;
+
+    let activeTrades;
+    if (symbol && strategy) {
+      activeTrades = await tradeManager.getActiveTrade(symbol, strategy);
+      activeTrades = activeTrades ? [activeTrades] : [];
+    } else {
+      activeTrades = await tradeManager.getAllActiveTrades();
+    }
+
+    res.json({
+      success: true,
+      data: activeTrades,
+      count: activeTrades.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('获取活跃交易失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 获取冷却时间状态
+ * GET /api/v1/trades/cooldown-status
+ */
+router.get('/cooldown-status', async (req, res) => {
+  try {
+    const { symbol, strategy } = req.query;
+
+    if (!symbol || !strategy) {
+      return res.status(400).json({
+        success: false,
+        error: '交易对和策略参数不能为空'
+      });
+    }
+
+    const status = tradeManager.getCooldownStatus(symbol, strategy);
+
+    res.json({
+      success: true,
+      data: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('获取冷却时间状态失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 自动检查并关闭交易
+ * POST /api/v1/trades/auto-close
+ */
+router.post('/auto-close', async (req, res) => {
+  try {
+    const { symbol, current_price } = req.body;
+
+    if (!symbol || !current_price) {
+      return res.status(400).json({
+        success: false,
+        error: '交易对和当前价格参数不能为空'
+      });
+    }
+
+    const closedTrades = await tradeManager.autoCloseTrades(symbol, current_price);
+
+    res.json({
+      success: true,
+      data: closedTrades,
+      count: closedTrades.length,
+      message: `自动关闭了 ${closedTrades.length} 个交易`,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('自动关闭交易失败:', error);
     res.status(500).json({
       success: false,
       error: error.message

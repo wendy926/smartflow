@@ -18,11 +18,15 @@ class V3Strategy {
   /**
    * 分析4H趋势
    * @param {string} symbol - 交易对
-   * @returns {Promise<Object>} 4H趋势分析结果
+   * @param {Array} klines - 4H K线数据
+   * @returns {Object} 4H趋势分析结果
    */
-  async analyze4HTrend(symbol) {
+  analyze4HTrend(klines, data = {}) {
     try {
-      const klines = await this.binanceAPI.getKlines(symbol, '4h', 200);
+      if (!klines || klines.length < 200) {
+        return { trend: 'RANGE', score: 0, confidence: 0, error: 'Insufficient data' };
+      }
+
       const prices = klines.map(k => parseFloat(k[4])); // 收盘价
       const volumes = klines.map(k => parseFloat(k[5])); // 成交量
 
@@ -38,18 +42,6 @@ class V3Strategy {
       const bbw = TechnicalIndicators.calculateBBW(prices);
       const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
 
-      // 获取资金费率
-      const fundingRate = await this.binanceAPI.getFundingRate(symbol);
-
-      // 获取持仓量变化
-      const oiHist = await this.binanceAPI.getOpenInterestHist(symbol, '1h', 24);
-      const oiChange = TechnicalIndicators.calculateOIChange(
-        oiHist.map(oi => parseFloat(oi.sumOpenInterest))
-      );
-
-      // 获取Delta数据
-      const deltaData = await this.binanceAPI.getDelta(symbol, 100);
-
       // 判断趋势方向
       const currentPrice = prices[prices.length - 1];
       const trendDirection = this.determineTrendDirection(
@@ -60,11 +52,10 @@ class V3Strategy {
       // 计算10点评分系统
       const score = this.calculate4HScore(
         currentPrice, ma20, ma50, ma200, adx, bbw, vwap,
-        parseFloat(fundingRate.lastFundingRate), oiChange, deltaData.delta
+        0, 0, 0 // 这些参数将在1H分析中获取
       );
 
       return {
-        symbol,
         timeframe: '4H',
         trend: trendDirection,
         trendDirection,
@@ -77,15 +68,13 @@ class V3Strategy {
           adx: adx.adx,
           bbw: bbw.bbw,
           vwap: vwap,
-          fundingRate: parseFloat(fundingRate.lastFundingRate),
-          oiChange: oiChange,
-          delta: deltaData.delta
+          currentPrice: currentPrice
         },
         timestamp: new Date()
       };
     } catch (error) {
       logger.error(`分析4H趋势失败: ${error.message}`);
-      throw error;
+      return { trend: 'ERROR', score: 0, confidence: 0, error: error.message };
     }
   }
 
@@ -113,12 +102,18 @@ class V3Strategy {
   /**
    * 分析1H因子（6个因子详细评分）
    * @param {string} symbol - 交易对
-   * @param {string} trendDirection - 趋势方向
-   * @returns {Promise<Object>} 1H因子分析结果
+   * @param {Array} klines - 1H K线数据
+   * @param {Object} ticker24hr - 24小时价格统计
+   * @param {Object} fundingRate - 资金费率
+   * @param {Array} oiHistory - 持仓量历史
+   * @returns {Object} 1H因子分析结果
    */
-  async analyze1HFactors(symbol, trendDirection = 'UP') {
+  analyze1HFactors(klines, data = {}) {
     try {
-      const klines = await this.binanceAPI.getKlines(symbol, '1h', 100);
+      if (!klines || klines.length < 50) {
+        return { factors: {}, score: 0, confidence: 0, error: 'Insufficient data' };
+      }
+
       const prices = klines.map(k => parseFloat(k[4]));
       const volumes = klines.map(k => parseFloat(k[5]));
 
@@ -133,25 +128,21 @@ class V3Strategy {
       const bbw = TechnicalIndicators.calculateBBW(prices);
       const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
 
-      // 获取资金费率和持仓量变化
-      const fundingRate = await this.binanceAPI.getFundingRate(symbol);
-      const oiHist = await this.binanceAPI.getOpenInterestHist(symbol, '1h', 24);
-      const oiChange = TechnicalIndicators.calculateOIChange(
-        oiHist.map(oi => parseFloat(oi.sumOpenInterest))
-      );
+      // 计算持仓量变化
+      const oiChange = data.oiHistory && data.oiHistory.length > 0 ?
+        TechnicalIndicators.calculateOIChange(data.oiHistory.map(oi => parseFloat(oi.sumOpenInterest))) : 0;
 
-      // 获取Delta数据
-      const deltaData = await this.binanceAPI.getDelta(symbol, 100);
+      // 计算Delta（简化版本）
+      const delta = this.calculateSimpleDelta(prices, volumes);
 
       // 计算6个因子的详细评分
       const factors = this.calculate1HFactors(
         prices[prices.length - 1], ema20[ema20.length - 1], ema50[ema50.length - 1],
-        adx.adx, bbw.bbw, vwap, parseFloat(fundingRate.lastFundingRate),
-        oiChange, deltaData.delta, trendDirection
+        adx.adx, bbw.bbw, vwap, parseFloat(data.fundingRate?.lastFundingRate || 0),
+        oiChange, delta, 'UP'
       );
 
       return {
-        symbol,
         timeframe: '1H',
         factors,
         indicators: {
@@ -160,15 +151,15 @@ class V3Strategy {
           adx: adx.adx,
           bbw: bbw.bbw,
           vwap: vwap,
-          fundingRate: parseFloat(fundingRate.lastFundingRate),
+          fundingRate: parseFloat(data.fundingRate?.lastFundingRate || 0),
           oiChange: oiChange,
-          delta: deltaData.delta
+          delta: delta
         },
         timestamp: new Date()
       };
     } catch (error) {
       logger.error(`分析1H因子失败: ${error.message}`);
-      throw error;
+      return { factors: {}, score: 0, confidence: 0, error: error.message };
     }
   }
 
@@ -177,9 +168,12 @@ class V3Strategy {
    * @param {string} symbol - 交易对
    * @returns {Promise<Object>} 15M执行信号分析结果
    */
-  async analyze15mExecution(symbol) {
+  analyze15mExecution(klines, data = {}) {
     try {
-      const klines = await this.binanceAPI.getKlines(symbol, '15m', 50);
+      if (!klines || klines.length < 50) {
+        return { signal: 'HOLD', score: 0, confidence: 0, error: 'Insufficient data' };
+      }
+
       const prices = klines.map(k => parseFloat(k[4]));
       const volumes = klines.map(k => parseFloat(k[5]));
 
@@ -193,41 +187,32 @@ class V3Strategy {
       const bbw = TechnicalIndicators.calculateBBW(prices);
       const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
 
-      // 获取资金费率和持仓量变化
-      const fundingRate = await this.binanceAPI.getFundingRate(symbol);
-      const oiHist = await this.binanceAPI.getOpenInterestHist(symbol, '15m', 24);
-      const oiChange = TechnicalIndicators.calculateOIChange(
-        oiHist.map(oi => parseFloat(oi.sumOpenInterest))
-      );
-
-      // 获取Delta数据
-      const deltaData = await this.binanceAPI.getDelta(symbol, 100);
+      // 计算Delta（简化版本）
+      const delta = this.calculateSimpleDelta(prices, volumes);
 
       // 判断执行信号
       const entrySignal = this.determineEntrySignal(
         prices[prices.length - 1], ema20[ema20.length - 1],
-        adx.adx, bbw.bbw, vwap, parseFloat(fundingRate.lastFundingRate),
-        oiChange, deltaData.delta
+        adx.adx, bbw.bbw, vwap, 0, 0, delta
       );
 
       return {
-        symbol,
         timeframe: '15M',
-        entrySignal,
+        signal: entrySignal,
+        confidence: this.calculateTrendConfidence(adx.adx, bbw.bbw),
         indicators: {
           ema20: ema20[ema20.length - 1],
           adx: adx.adx,
           bbw: bbw.bbw,
           vwap: vwap,
-          fundingRate: parseFloat(fundingRate.lastFundingRate),
-          oiChange: oiChange,
-          delta: deltaData.delta
+          delta: delta,
+          currentPrice: prices[prices.length - 1]
         },
         timestamp: new Date()
       };
     } catch (error) {
       logger.error(`分析15M执行信号失败: ${error.message}`);
-      throw error;
+      return { signal: 'ERROR', score: 0, confidence: 0, error: error.message };
     }
   }
 
@@ -392,17 +377,33 @@ class V3Strategy {
     try {
       logger.info(`开始执行V3策略分析: ${symbol}`);
 
+      // 获取基础数据
+      const [klines4H, klines1H, klines15M, ticker24hr, fundingRate, oiHistory] = await Promise.all([
+        this.binanceAPI.getKlines(symbol, '4h', 250),
+        this.binanceAPI.getKlines(symbol, '1h', 50),
+        this.binanceAPI.getKlines(symbol, '15m', 50),
+        this.binanceAPI.getTicker24hr(symbol),
+        this.binanceAPI.getFundingRate(symbol),
+        this.binanceAPI.getOpenInterestHist(symbol, '1h', 6)
+      ]);
+
+      // 检查数据有效性
+      if (!klines4H || !klines1H || !klines15M || !ticker24hr) {
+        throw new Error(`无法获取 ${symbol} 的完整数据`);
+      }
+
       // 并行执行多时间级别分析
       const [trend4H, factors1H, execution15M] = await Promise.all([
-        this.analyze4HTrend(symbol),
-        this.analyze1HFactors(symbol),
-        this.analyze15mExecution(symbol)
+        this.analyze4HTrend(klines4H, {}),
+        this.analyze1HFactors(klines1H, { ticker24hr, fundingRate, oiHistory }),
+        this.analyze15mExecution(klines15M, {})
       ]);
 
       // 综合判断
       const finalSignal = this.combineSignals(trend4H, factors1H, execution15M);
 
       const result = {
+        success: true,
         symbol,
         strategy: 'V3',
         signal: finalSignal,
@@ -418,7 +419,20 @@ class V3Strategy {
       return result;
     } catch (error) {
       logger.error(`V3策略执行失败: ${error.message}`);
-      throw error;
+      // 返回错误状态而不是抛出异常
+      return {
+        success: false,
+        symbol,
+        strategy: 'V3',
+        signal: 'ERROR',
+        timeframes: {
+          '4H': { trend: 'ERROR', score: 0, confidence: 0, error: error.message },
+          '1H': { factors: {}, score: 0, confidence: 0, error: error.message },
+          '15M': { signal: 'ERROR', score: 0, confidence: 0, error: error.message }
+        },
+        timestamp: new Date(),
+        error: error.message
+      };
     }
   }
 
@@ -431,8 +445,8 @@ class V3Strategy {
    */
   combineSignals(trend4H, factors1H, execution15M) {
     const trendDirection = trend4H.trendDirection;
-    const factorsScore = factors1H.factors.totalScore;
-    const executionSignal = execution15M.entrySignal;
+    const factorsScore = factors1H.factors?.totalScore || 0;
+    const executionSignal = execution15M.signal;
 
     // 强趋势 + 高因子得分 + 明确执行信号
     if (trendDirection !== 'RANGE' && factorsScore > 70 && executionSignal !== 'HOLD') {
@@ -906,6 +920,47 @@ class V3Strategy {
   async calculateTakeProfit(entryPrice, stopLoss, riskRewardRatio = 2) {
     const risk = entryPrice - stopLoss;
     return entryPrice + (risk * riskRewardRatio);
+  }
+
+  /**
+   * 计算简单Delta
+   * @param {Array} prices - 价格数组
+   * @param {Array} volumes - 成交量数组
+   * @returns {number} Delta值
+   */
+  calculateSimpleDelta(prices, volumes) {
+    if (prices.length < 2) return 0;
+
+    let buyVolume = 0;
+    let sellVolume = 0;
+
+    for (let i = 1; i < prices.length; i++) {
+      const priceChange = prices[i] - prices[i - 1];
+      const volume = volumes[i];
+
+      if (priceChange > 0) {
+        buyVolume += volume;
+      } else if (priceChange < 0) {
+        sellVolume += volume;
+      }
+    }
+
+    const totalVolume = buyVolume + sellVolume;
+    return totalVolume > 0 ? (buyVolume - sellVolume) / totalVolume : 0;
+  }
+
+  /**
+   * 计算成交量确认
+   * @param {Array} volumes - 成交量数组
+   * @returns {number} 成交量确认分数
+   */
+  calculateVolumeConfirmation(volumes) {
+    if (volumes.length < 20) return 0;
+
+    const recentVolume = volumes[volumes.length - 1];
+    const avgVolume = volumes.slice(-20).reduce((sum, vol) => sum + vol, 0) / 20;
+
+    return recentVolume > avgVolume * 1.5 ? 1 : 0;
   }
 }
 

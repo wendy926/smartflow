@@ -238,4 +238,81 @@ router.post('/system-test', async (req, res) => {
   }
 });
 
+/**
+ * 动态杠杆滚仓计算器
+ * POST /api/v1/tools/dynamic-rolling-calculator
+ */
+router.post('/dynamic-rolling-calculator', async (req, res) => {
+  try {
+    const params = req.body;
+
+    const result = await rollingStrategy.calculateDynamicRolling(params);
+
+    res.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('动态杠杆滚仓计算失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 获取滚仓策略参数建议
+ * GET /api/v1/tools/rolling-parameters
+ */
+router.get('/rolling-parameters', async (req, res) => {
+  try {
+    const parameters = {
+      triggerRatio: {
+        value: 1.0,
+        description: '浮盈达到本金触发滚仓',
+        range: [0.5, 2.0],
+        recommended: 1.0
+      },
+      leverageDecay: {
+        value: 0.5,
+        description: '滚仓后杠杆减半或略高，风险递减',
+        range: [0.3, 0.7],
+        recommended: 0.5
+      },
+      profitLockRatio: {
+        value: 0.5,
+        description: '每次锁定一半利润，保证安全',
+        range: [0.3, 0.7],
+        recommended: 0.5
+      },
+      minLeverage: {
+        value: 5,
+        description: '趋势末期杠杆不能低于5x，保证收益',
+        range: [3, 10],
+        recommended: 5
+      },
+      maxLeverage: {
+        value: 50,
+        description: '最高杠杆限制',
+        range: [20, 100],
+        recommended: 50
+      }
+    };
+
+    res.json({
+      success: true,
+      data: parameters,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('获取滚仓参数失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

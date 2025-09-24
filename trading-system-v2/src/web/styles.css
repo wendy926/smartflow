@@ -853,6 +853,344 @@ body {
   align-items: center;
 }
 
+/* 交易记录样式 */
+.trading-records {
+  margin-top: 2rem;
+}
+
+.trading-records h3 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.strategy-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.strategy-badge.v3 {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.strategy-badge.ict {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.direction-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.direction-badge.long {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
+.direction-badge.short {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.status-badge.closed {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
+.status-badge.cancelled {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.btn-danger {
+  background-color: #f44336;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #d32f2f;
+}
+
+.btn-primary {
+  background-color: #2196f3;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #1976d2;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Telegram设置样式 */
+.telegram-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.telegram-section {
+  padding: 1.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.telegram-section h4 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.telegram-status {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.status-item:last-child {
+  margin-bottom: 0;
+}
+
+.status-label {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.status-value {
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.status-value.enabled {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-value.disabled {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  margin-left: 0.5rem;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+/* API测试样式 */
+.api-test-result {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.test-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.test-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.test-label {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.test-value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.test-value.status-success {
+  color: #28a745;
+}
+
+.test-value.status-error {
+  color: #dc3545;
+}
+
+.test-response {
+  margin-top: 1rem;
+}
+
+.test-response h5 {
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+}
+
+.test-response pre {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.test-error {
+  padding: 1rem;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  color: #721c24;
+}
+
+.api-test-summary {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.summary-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.summary-stats .stat-label {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.summary-stats .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.summary-stats .stat-value.success {
+  color: #28a745;
+}
+
+.summary-stats .stat-value.error {
+  color: #dc3545;
+}
+
+.test-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.test-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.test-result-item.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.test-result-item.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.test-name {
+  font-weight: 500;
+}
+
+.test-status {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.test-code {
+  font-family: monospace;
+  font-weight: 600;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .container {
@@ -1135,5 +1473,287 @@ body {
   .judgment-basis {
     max-width: 150px;
     font-size: 0.7rem;
+  }
+}
+
+/* 统计卡片样式 */
+.stats-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.stats-grid .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.stats-grid .stat-label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.stats-grid .stat-value {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.stats-grid .total-pnl.positive {
+  color: #28a745;
+}
+
+.stats-grid .total-pnl.negative {
+  color: #dc3545;
+}
+
+/* 策略状态表格样式 */
+.strategy-status {
+  min-width: 200px;
+}
+
+.strategy-status .strategy-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.strategy-status .timeframe-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.strategy-status .signal-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.price-diff {
+  font-weight: 600;
+  text-align: center;
+}
+
+.price-diff.positive {
+  color: #28a745;
+}
+
+.price-diff.negative {
+  color: #dc3545;
+}
+
+.entry-info,
+.leverage-info,
+.margin-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.entry-info div,
+.leverage-info div,
+.margin-info div {
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* 移动端统计卡片响应式 */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .stats-grid .stat-item {
+    padding: 0.25rem;
+  }
+
+  .stats-grid .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .stats-grid .stat-value {
+    font-size: 1rem;
+  }
+
+  .strategy-status {
+    min-width: 150px;
+  }
+
+  .strategy-status .timeframe-signals {
+    flex-direction: column;
+  }
+
+  .strategy-status .signal-display {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* 计算器样式 */
+.calculator-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #2c3e50;
+  font-size: 0.9rem;
+}
+
+.form-input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.calculator-result {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.result-label {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.result-value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.result-value.positive {
+  color: #28a745;
+}
+
+.result-value.negative {
+  color: #dc3545;
+}
+
+.history-section {
+  margin-top: 1.5rem;
+}
+
+.history-section h5 {
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.history-table {
+  overflow-x: auto;
+}
+
+.history-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.history-table th,
+.history-table td {
+  padding: 0.5rem;
+  text-align: center;
+  border: 1px solid #e9ecef;
+}
+
+.history-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.history-table td.positive {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.history-table td.negative {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.error {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+/* 移动端计算器响应式 */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .history-table {
+    font-size: 0.8rem;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 0.25rem;
   }
 }

@@ -127,7 +127,7 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(klines4h);
 
       // Act
-      const result = await v3Strategy.analyze4HTrend('BTCUSDT');
+      const result = await v3Strategy.analyze4HTrend(klines4h, {});
 
       // Assert
       expect(result.trend).toBe('UP');
@@ -145,7 +145,7 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(klines4h);
 
       // Act
-      const result = await v3Strategy.analyze4HTrend('BTCUSDT');
+      const result = await v3Strategy.analyze4HTrend(klines4h, {});
 
       // Assert
       expect(result.trend).toBe('DOWN');
@@ -163,7 +163,7 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(klines4h);
 
       // Act
-      const result = await v3Strategy.analyze4HTrend('BTCUSDT');
+      const result = await v3Strategy.analyze4HTrend(klines4h, {});
 
       // Assert
       expect(result.trend).toBe('RANGE');
@@ -232,7 +232,8 @@ describe('策略V3 - 趋势交易策略', () => {
         delta: 0.15
       };
 
-      mockBinanceAPI.getKlines.mockResolvedValue(createMockKlines(50, 50000));
+      const klines1h = createMockKlines(50, 50000);
+      mockBinanceAPI.getKlines.mockResolvedValue(klines1h);
       mockBinanceAPI.getTicker24hr.mockResolvedValue({ volume: '1000000' });
       mockBinanceAPI.getOpenInterestHist.mockResolvedValue([
         { sumOpenInterest: 1000000 },
@@ -241,7 +242,7 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getPremiumIndex.mockResolvedValue({ lastFundingRate: '0.0001' });
 
       // Act
-      const result = await v3Strategy.analyze1HFactors(symbol, trendDirection);
+      const result = await v3Strategy.analyze1HFactors(klines1h, { trendDirection, oiChange: 0.02, fundingRate: 0.0001, delta: 0.15 });
 
       // Assert
       expect(result.factors.totalScore).toBeGreaterThanOrEqual(0);
@@ -263,7 +264,7 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(mockKlines);
 
       // Act
-      const result = await v3Strategy.analyze4HTrend(symbol);
+      const result = await v3Strategy.analyze4HTrend(mockKlines, {});
 
       // Assert
       expect(result).toHaveProperty('trend');
@@ -299,7 +300,7 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getDelta.mockResolvedValue({ delta: 0.15 });
 
       // Act
-      const result = await v3Strategy.analyze1HFactors(symbol, trendDirection);
+      const result = await v3Strategy.analyze1HFactors(mockKlines, { trendDirection, oiChange: 0.05, fundingRate: 0.0005, delta: 0.15 });
 
       // Assert
       expect(result).toHaveProperty('factors');
@@ -319,10 +320,10 @@ describe('策略V3 - 趋势交易策略', () => {
       // Arrange
       const symbol = 'BTCUSDT';
       const trendDirection = 'UP';
-      const mockKlines = createMockKlines(20, 50000);
+      const mockKlines = createMockKlines(50, 50000);
 
       // 模拟EMA20 > EMA50的趋势
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 50; i++) {
         mockKlines[i][4] = 50000 + i * 50; // 价格上升
         mockKlines[i][5] = 1000000 + i * 5000; // 成交量增加
       }
@@ -330,25 +331,25 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(mockKlines);
 
       // Act
-      const result = await v3Strategy.analyze15mEntry(symbol, trendDirection);
+      const result = await v3Strategy.analyze15mExecution(mockKlines, { trendDirection });
 
       // Assert
-      expect(result).toHaveProperty('entry_signal');
+      expect(result).toHaveProperty('signal');
       expect(result).toHaveProperty('confidence');
-      expect(result).toHaveProperty('is_fake_breakout');
-      expect(['BUY', 'SELL', 'HOLD']).toContain(result.entry_signal);
+      expect(result).toHaveProperty('indicators');
+      expect(['BUY', 'SELL', 'HOLD']).toContain(result.signal);
       expect(typeof result.confidence).toBe('number');
-      expect(typeof result.is_fake_breakout).toBe('boolean');
+      expect(typeof result.indicators).toBe('object');
     });
 
     test('应该正确进行15m入场确认（震荡市场）', async () => {
       // Arrange
       const symbol = 'BTCUSDT';
       const trendDirection = 'RANGE';
-      const mockKlines = createMockKlines(20, 50000);
+      const mockKlines = createMockKlines(50, 50000);
 
       // 模拟震荡市场
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 50; i++) {
         mockKlines[i][4] = 50000 + Math.sin(i * 0.5) * 100; // 价格震荡
         mockKlines[i][5] = 1000000 + Math.random() * 100000; // 随机成交量
       }
@@ -356,15 +357,15 @@ describe('策略V3 - 趋势交易策略', () => {
       mockBinanceAPI.getKlines.mockResolvedValue(mockKlines);
 
       // Act
-      const result = await v3Strategy.analyze15mEntry(symbol, trendDirection);
+      const result = await v3Strategy.analyze15mExecution(mockKlines, { trendDirection });
 
       // Assert
-      expect(result).toHaveProperty('entry_signal');
+      expect(result).toHaveProperty('signal');
       expect(result).toHaveProperty('confidence');
-      expect(result).toHaveProperty('is_fake_breakout');
-      expect(['BUY', 'SELL', 'HOLD']).toContain(result.entry_signal);
+      expect(result).toHaveProperty('indicators');
+      expect(['BUY', 'SELL', 'HOLD']).toContain(result.signal);
       expect(typeof result.confidence).toBe('number');
-      expect(typeof result.is_fake_breakout).toBe('boolean');
+      expect(typeof result.indicators).toBe('object');
     });
   });
 
@@ -556,8 +557,12 @@ describe('策略V3 - 趋势交易策略', () => {
       const symbol = 'BTCUSDT';
       mockBinanceAPI.getKlines.mockRejectedValue(new Error('API调用失败'));
 
-      // Act & Assert
-      await expect(v3Strategy.execute(symbol)).rejects.toThrow('API调用失败');
+      // Act
+      const result = await v3Strategy.execute(symbol);
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('API调用失败');
     });
 
     test('应该使用缓存数据避免重复计算', async () => {

@@ -408,7 +408,7 @@ class DatabaseOperations {
       const values = [];
 
       Object.entries(updateData).forEach(([key, value]) => {
-        if (['exit_price', 'pnl', 'pnl_percentage', 'status', 'exit_time'].includes(key)) {
+        if (['exit_price', 'pnl', 'pnl_percentage', 'status', 'exit_time', 'closed_at'].includes(key)) {
           fields.push(`${key} = ?`);
           values.push(value);
         }
@@ -430,6 +430,145 @@ class DatabaseOperations {
       return { success: true, affectedRows: result.affectedRows };
     } catch (error) {
       logger.error(`Error updating trade ${tradeId}:`, error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * 添加模拟交易
+   * @param {Object} tradeData - 交易数据
+   * @returns {Object} 插入结果
+   */
+  async addTrade(tradeData) {
+    const connection = await this.getConnection();
+    try {
+      const {
+        symbol,
+        strategy_type,
+        direction,
+        entry_price,
+        stop_loss,
+        take_profit,
+        leverage = 1,
+        margin_required,
+        risk_amount,
+        position_size,
+        entry_reason = '',
+        created_at = new Date()
+      } = tradeData;
+
+      // 获取交易对ID
+      const [symbolRows] = await connection.execute(
+        'SELECT id FROM symbols WHERE symbol = ?',
+        [symbol]
+      );
+
+      if (symbolRows.length === 0) {
+        throw new Error(`Symbol ${symbol} not found`);
+      }
+
+      const symbolId = symbolRows[0].id;
+
+      const [result] = await connection.execute(
+        `INSERT INTO simulation_trades 
+         (symbol_id, strategy_type, direction, entry_price, stop_loss, take_profit, 
+          leverage, margin_required, risk_amount, position_size, entry_reason, created_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          symbolId, strategy_type, direction, entry_price, stop_loss, take_profit,
+          leverage, margin_required, risk_amount, position_size, entry_reason, created_at
+        ]
+      );
+
+      logger.info(`Trade added with ID: ${result.insertId}`);
+      return { success: true, id: result.insertId };
+    } catch (error) {
+      logger.error('Error adding trade:', error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * 根据ID获取交易
+   * @param {number} tradeId - 交易ID
+   * @returns {Object} 交易信息
+   */
+  async getTradeById(tradeId) {
+    const connection = await this.getConnection();
+    try {
+      const [rows] = await connection.execute(
+        `SELECT st.*, s.symbol 
+         FROM simulation_trades st 
+         JOIN symbols s ON st.symbol_id = s.id 
+         WHERE st.id = ?`,
+        [tradeId]
+      );
+
+      return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+      logger.error(`Error getting trade ${tradeId}:`, error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * 获取交易统计
+   * @param {string} strategy - 策略名称
+   * @param {string} symbol - 交易对符号
+   * @returns {Object} 统计数据
+   */
+  async getTradeStatistics(strategy, symbol = null) {
+    const connection = await this.getConnection();
+    try {
+      let query = `
+        SELECT 
+          COUNT(*) as total_trades,
+          SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as winning_trades,
+          SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losing_trades,
+          SUM(pnl) as total_pnl,
+          AVG(pnl) as avg_pnl,
+          MAX(pnl) as best_trade,
+          MIN(pnl) as worst_trade,
+          AVG(pnl_percentage) as avg_pnl_percentage
+        FROM simulation_trades st
+        JOIN symbols s ON st.symbol_id = s.id
+        WHERE st.strategy_type = ?
+      `;
+
+      const params = [strategy.toUpperCase()];
+
+      if (symbol) {
+        query += ' AND s.symbol = ?';
+        params.push(symbol);
+      }
+
+      const [rows] = await connection.execute(query, params);
+      const stats = rows[0];
+
+      // 计算胜率
+      const winRate = stats.total_trades > 0
+        ? (stats.winning_trades / stats.total_trades) * 100
+        : 0;
+
+      return {
+        total_trades: stats.total_trades || 0,
+        winning_trades: stats.winning_trades || 0,
+        losing_trades: stats.losing_trades || 0,
+        win_rate: parseFloat(winRate.toFixed(2)),
+        total_pnl: parseFloat((stats.total_pnl || 0).toFixed(2)),
+        avg_pnl: parseFloat((stats.avg_pnl || 0).toFixed(2)),
+        best_trade: parseFloat((stats.best_trade || 0).toFixed(2)),
+        worst_trade: parseFloat((stats.worst_trade || 0).toFixed(2)),
+        avg_pnl_percentage: parseFloat((stats.avg_pnl_percentage || 0).toFixed(2))
+      };
+    } catch (error) {
+      logger.error('Error getting trade statistics:', error);
       throw error;
     } finally {
       connection.release();
@@ -743,6 +882,126 @@ class DatabaseOperations {
       return { success: true, affectedRows: result.affectedRows };
     } catch (error) {
       logger.error(`Error cleaning up old data from ${table}:`, error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  // ==================== 策略统计管理 ====================
+
+  /**
+   * 获取策略统计信息
+   * @param {string} strategy - 策略名称
+   * @returns {Object} 策略统计信息
+   */
+  async getStrategyStatistics(strategy) {
+    const connection = await this.getConnection();
+    try {
+      // 获取总交易数
+      const [totalTradesResult] = await connection.execute(
+        'SELECT COUNT(*) as total FROM simulation_trades WHERE strategy = ?',
+        [strategy]
+      );
+      const totalTrades = totalTradesResult[0].total;
+
+      // 获取盈利交易数
+      const [profitableTradesResult] = await connection.execute(
+        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE strategy = ? AND pnl > 0',
+        [strategy]
+      );
+      const profitableTrades = profitableTradesResult[0].profitable;
+
+      // 获取亏损交易数
+      const [losingTradesResult] = await connection.execute(
+        'SELECT COUNT(*) as losing FROM simulation_trades WHERE strategy = ? AND pnl < 0',
+        [strategy]
+      );
+      const losingTrades = losingTradesResult[0].losing;
+
+      // 计算胜率
+      const winRate = totalTrades > 0 ? (profitableTrades / totalTrades) * 100 : 0;
+
+      // 获取总盈亏
+      const [totalPnlResult] = await connection.execute(
+        'SELECT COALESCE(SUM(pnl), 0) as totalPnl FROM simulation_trades WHERE strategy = ?',
+        [strategy]
+      );
+      const totalPnl = totalPnlResult[0].totalPnl;
+
+      // 获取最大回撤
+      const [maxDrawdownResult] = await connection.execute(
+        'SELECT COALESCE(MIN(pnl), 0) as maxDrawdown FROM simulation_trades WHERE strategy = ?',
+        [strategy]
+      );
+      const maxDrawdown = Math.abs(maxDrawdownResult[0].maxDrawdown);
+
+      return {
+        totalTrades,
+        profitableTrades,
+        losingTrades,
+        winRate: parseFloat(winRate.toFixed(2)),
+        totalPnl: parseFloat(totalPnl.toFixed(2)),
+        maxDrawdown: parseFloat(maxDrawdown.toFixed(2))
+      };
+    } catch (error) {
+      logger.error(`Error getting strategy statistics for ${strategy}:`, error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * 获取总体统计信息
+   * @returns {Object} 总体统计信息
+   */
+  async getTotalStatistics() {
+    const connection = await this.getConnection();
+    try {
+      // 获取总交易数
+      const [totalTradesResult] = await connection.execute(
+        'SELECT COUNT(*) as total FROM simulation_trades'
+      );
+      const totalTrades = totalTradesResult[0].total;
+
+      // 获取盈利交易数
+      const [profitableTradesResult] = await connection.execute(
+        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE pnl > 0'
+      );
+      const profitableTrades = profitableTradesResult[0].profitable;
+
+      // 获取亏损交易数
+      const [losingTradesResult] = await connection.execute(
+        'SELECT COUNT(*) as losing FROM simulation_trades WHERE pnl < 0'
+      );
+      const losingTrades = losingTradesResult[0].losing;
+
+      // 计算胜率
+      const winRate = totalTrades > 0 ? (profitableTrades / totalTrades) * 100 : 0;
+
+      // 获取总盈亏
+      const [totalPnlResult] = await connection.execute(
+        'SELECT COALESCE(SUM(pnl), 0) as totalPnl FROM simulation_trades'
+      );
+      const totalPnl = totalPnlResult[0].totalPnl;
+
+      // 获取最大回撤
+      const [maxDrawdownResult] = await connection.execute(
+        'SELECT COALESCE(MIN(pnl), 0) as maxDrawdown FROM simulation_trades'
+      );
+      const maxDrawdown = Math.abs(maxDrawdownResult[0].maxDrawdown);
+
+      return {
+        totalTrades,
+        profitableTrades,
+        losingTrades,
+        winRate: parseFloat(winRate.toFixed(2)),
+        totalPnl: parseFloat(totalPnl.toFixed(2)),
+        maxDrawdown: parseFloat(maxDrawdown.toFixed(2))
+      };
+    } catch (error) {
+      logger.error('Error getting total statistics:', error);
       throw error;
     } finally {
       connection.release();

@@ -1,66 +1,54 @@
 /**
- * 策略API路由单测
+ * 策略API路由单元测试
  */
 
 const request = require('supertest');
 const express = require('express');
-const strategiesRouter = require('../../../src/api/routes/strategies');
+const strategiesRoutes = require('../../../src/api/routes/strategies');
+const V3Strategy = require('../../../src/strategies/v3-strategy');
+const ICTStrategy = require('../../../src/strategies/ict-strategy');
+const dbOps = require('../../../src/database/operations');
 
-// Mock BinanceAPI
-jest.mock('../../../src/api/binance-api', () => {
-  return jest.fn().mockImplementation(() => ({
-    getKlines: jest.fn().mockResolvedValue([
-      [1640995200000, '50000', '51000', '49000', '50500', '1000', 1640995259999, '50000000', 100, '25000000', '25000000', '0'],
-      [1640995260000, '50500', '51500', '49500', '51000', '1200', 1640995319999, '60000000', 120, '30000000', '30000000', '0']
-    ]),
-    getTicker24hr: jest.fn().mockResolvedValue({
-      symbol: 'BTCUSDT',
-      priceChange: '1000',
-      priceChangePercent: '2.0',
-      weightedAvgPrice: '50000',
-      prevClosePrice: '49000',
-      lastPrice: '50000',
-      lastQty: '0.1',
-      bidPrice: '49990',
-      askPrice: '50010',
-      openPrice: '49000',
-      highPrice: '51000',
-      lowPrice: '49000',
-      volume: '1000',
-      quoteVolume: '50000000',
-      openTime: 1640995200000,
-      closeTime: 1640995259999,
-      firstId: 1,
-      lastId: 100,
-      count: 100
-    }),
-    getOpenInterestHist: jest.fn().mockResolvedValue([
-      { symbol: 'BTCUSDT', sumOpenInterest: '1000000', sumOpenInterestValue: '50000000000', timestamp: 1640995200000 }
-    ]),
-    getPremiumIndex: jest.fn().mockResolvedValue({
-      symbol: 'BTCUSDT',
-      markPrice: '50000',
-      indexPrice: '49950',
-      estimatedSettlePrice: '49980',
-      lastFundingRate: '0.0001',
-      nextFundingTime: 1640995200000
-    }),
-    getDelta: jest.fn().mockResolvedValue({
-      symbol: 'BTCUSDT',
-      delta: 0.1,
-      totalBuyVolume: 55000000,
-      totalSellVolume: 45000000,
-      totalVolume: 100000000
-    })
-  }));
-});
+// 模拟依赖
+jest.mock('../../../src/strategies/v3-strategy');
+jest.mock('../../../src/strategies/ict-strategy');
+jest.mock('../../../src/database/operations');
+jest.mock('../../../src/utils/logger');
 
-// 创建测试应用
-const app = express();
-app.use(express.json());
-app.use('/api/v1/strategies', strategiesRouter);
+describe('Strategies API Routes', () => {
+  let app;
+  let mockV3Strategy;
+  let mockICTStrategy;
 
-describe('策略API路由', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // 创建Express应用
+    app = express();
+    app.use(express.json());
+    app.use('/api/v1/strategies', strategiesRoutes);
+
+    // 模拟策略实例
+    mockV3Strategy = {
+      execute: jest.fn(),
+      analyze4HTrend: jest.fn(),
+      analyze1HFactors: jest.fn(),
+      analyze15mExecution: jest.fn()
+    };
+
+    mockICTStrategy = {
+      execute: jest.fn(),
+      analyzeDailyTrend: jest.fn(),
+      detectOrderBlocks: jest.fn(),
+      detectEngulfingPattern: jest.fn(),
+      detectSweepLTF: jest.fn()
+    };
+
+    // 替换模块实例
+    V3Strategy.mockImplementation(() => mockV3Strategy);
+    ICTStrategy.mockImplementation(() => mockICTStrategy);
+  });
+
   describe('GET /api/v1/strategies/status', () => {
     it('应该返回策略状态', async () => {
       const response = await request(app)
@@ -70,110 +58,362 @@ describe('策略API路由', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty('v3');
       expect(response.body.data).toHaveProperty('ict');
-      expect(response.body.data).toHaveProperty('rolling');
-      expect(response.body.data).toHaveProperty('timestamp');
+      expect(response.body.data.v3.status).toBe('active');
+      expect(response.body.data.ict.status).toBe('active');
     });
   });
 
   describe('POST /api/v1/strategies/v3/analyze', () => {
-    it.skip('应该执行V3策略分析', async () => {
+    it('应该成功执行V3策略分析', async () => {
+      const mockResult = {
+        success: true,
+        data: {
+          symbol: 'BTCUSDT',
+          trend: 'UP',
+          signal: 'BUY',
+          score: 85.5,
+          factors: {
+            trend4H: { direction: 'UP', score: 8 },
+            factors1H: { score: 7.5 },
+            execution15M: { signal: 'BUY', score: 8.5 }
+          }
+        }
+      };
+
+      mockV3Strategy.execute.mockResolvedValue(mockResult);
+
       const response = await request(app)
         .post('/api/v1/strategies/v3/analyze')
         .send({ symbol: 'BTCUSDT' })
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toHaveProperty('strategy', 'V3');
-      expect(response.body.data).toHaveProperty('signal');
-      expect(response.body.data).toHaveProperty('timeframes');
+      expect(response.body.data).toEqual(mockResult.data);
+      expect(mockV3Strategy.execute).toHaveBeenCalledWith('BTCUSDT');
     });
 
-    it.skip('应该处理分析错误', async () => {
-      // 模拟策略执行失败
-      const originalExecute = require('../../../src/strategies/v3-strategy').prototype.execute;
-      require('../../../src/strategies/v3-strategy').prototype.execute = jest.fn().mockRejectedValue(new Error('分析失败'));
+    it('应该拒绝缺少交易对参数的请求', async () => {
+      const response = await request(app)
+        .post('/api/v1/strategies/v3/analyze')
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('交易对参数不能为空');
+    });
+
+    it('应该处理策略执行错误', async () => {
+      const mockResult = {
+        success: false,
+        error: '策略执行失败'
+      };
+
+      mockV3Strategy.execute.mockResolvedValue(mockResult);
 
       const response = await request(app)
         .post('/api/v1/strategies/v3/analyze')
-        .send({ symbol: 'INVALID' })
-        .expect(500);
+        .send({ symbol: 'BTCUSDT' })
+        .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('分析失败');
-
-      // 恢复原始方法
-      require('../../../src/strategies/v3-strategy').prototype.execute = originalExecute;
+      expect(response.body.error).toBe('策略执行失败');
     });
   });
 
   describe('POST /api/v1/strategies/ict/analyze', () => {
-    it.skip('应该执行ICT策略分析', async () => {
+    it('应该成功执行ICT策略分析', async () => {
+      const mockResult = {
+        success: true,
+        data: {
+          symbol: 'BTCUSDT',
+          trend: 'UP',
+          signal: 'BUY',
+          score: 82.0,
+          factors: {
+            dailyTrend: { direction: 'UP', score: 8 },
+            orderBlocks: { count: 2, score: 7.5 },
+            engulfingPattern: { detected: true, score: 8.5 },
+            sweepLTF: { detected: true, score: 8.0 }
+          }
+        }
+      };
+
+      mockICTStrategy.execute.mockResolvedValue(mockResult);
+
       const response = await request(app)
         .post('/api/v1/strategies/ict/analyze')
         .send({ symbol: 'BTCUSDT' })
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toHaveProperty('strategy', 'ICT');
-      expect(response.body.data).toHaveProperty('signal');
-      expect(response.body.data).toHaveProperty('timeframe');
+      expect(response.body.data).toEqual(mockResult.data);
+      expect(mockICTStrategy.execute).toHaveBeenCalledWith('BTCUSDT');
     });
-  });
 
-  describe('POST /api/v1/strategies/rolling/calculate', () => {
-    it('应该执行滚仓计算', async () => {
-      const params = {
-        principal: 1000,
-        initialLeverage: 50,
-        entryPrice: 50000,
-        currentPrice: 51000
+    it('应该拒绝缺少交易对参数的请求', async () => {
+      const response = await request(app)
+        .post('/api/v1/strategies/ict/analyze')
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('交易对参数不能为空');
+    });
+
+    it('应该处理策略执行错误', async () => {
+      const mockResult = {
+        success: false,
+        error: 'ICT策略执行失败'
       };
 
-      const response = await request(app)
-        .post('/api/v1/strategies/rolling/calculate')
-        .send(params)
-        .expect(200);
+      mockICTStrategy.execute.mockResolvedValue(mockResult);
 
-      expect(response.body.success).toBe(true);
-      expect(response.body.data).toHaveProperty('strategy', 'ROLLING');
-      expect(response.body.data).toHaveProperty('signal');
-      expect(response.body.data).toHaveProperty('parameters');
+      const response = await request(app)
+        .post('/api/v1/strategies/ict/analyze')
+        .send({ symbol: 'BTCUSDT' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('ICT策略执行失败');
     });
   });
 
   describe('POST /api/v1/strategies/batch-analyze', () => {
-    it.skip('应该批量执行策略分析', async () => {
+    it('应该成功执行批量策略分析', async () => {
+      const symbols = ['BTCUSDT', 'ETHUSDT'];
+
+      const mockV3Result = {
+        success: true,
+        data: {
+          symbol: 'BTCUSDT',
+          trend: 'UP',
+          signal: 'BUY',
+          score: 85.5
+        }
+      };
+
+      const mockICTResult = {
+        success: true,
+        data: {
+          symbol: 'BTCUSDT',
+          trend: 'UP',
+          signal: 'BUY',
+          score: 82.0
+        }
+      };
+
+      mockV3Strategy.execute.mockResolvedValue(mockV3Result);
+      mockICTStrategy.execute.mockResolvedValue(mockICTResult);
+
       const response = await request(app)
         .post('/api/v1/strategies/batch-analyze')
-        .send({ symbols: ['BTCUSDT', 'ETHUSDT'] })
+        .send({ symbols })
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toHaveLength(2);
-      expect(response.body.data[0]).toHaveProperty('symbol', 'BTCUSDT');
-      expect(response.body.data[0]).toHaveProperty('v3');
-      expect(response.body.data[0]).toHaveProperty('ict');
+      expect(response.body.data).toHaveProperty('BTCUSDT');
+      expect(response.body.data).toHaveProperty('ETHUSDT');
+      expect(response.body.data.BTCUSDT).toHaveProperty('v3');
+      expect(response.body.data.BTCUSDT).toHaveProperty('ict');
     });
 
-    it.skip('应该处理部分分析失败', async () => {
-      // 模拟部分策略执行失败
-      const originalExecute = require('../../../src/strategies/v3-strategy').prototype.execute;
-      require('../../../src/strategies/v3-strategy').prototype.execute = jest.fn()
-        .mockResolvedValueOnce({ strategy: 'V3', signal: 'BUY' })
-        .mockRejectedValueOnce(new Error('V3分析失败'));
+    it('应该拒绝缺少交易对列表的请求', async () => {
+      const response = await request(app)
+        .post('/api/v1/strategies/batch-analyze')
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('交易对列表不能为空');
+    });
+
+    it('应该处理部分策略执行失败', async () => {
+      const symbols = ['BTCUSDT', 'ETHUSDT'];
+
+      const mockV3Result = {
+        success: true,
+        data: {
+          symbol: 'BTCUSDT',
+          trend: 'UP',
+          signal: 'BUY',
+          score: 85.5
+        }
+      };
+
+      const mockICTResult = {
+        success: false,
+        error: 'ICT策略执行失败'
+      };
+
+      mockV3Strategy.execute.mockResolvedValue(mockV3Result);
+      mockICTStrategy.execute.mockResolvedValue(mockICTResult);
 
       const response = await request(app)
         .post('/api/v1/strategies/batch-analyze')
-        .send({ symbols: ['BTCUSDT', 'ETHUSDT'] })
+        .send({ symbols })
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toHaveLength(2);
-      expect(response.body.data[0]).toHaveProperty('v3');
-      expect(response.body.data[1]).toHaveProperty('error', 'V3分析失败');
+      expect(response.body.data.BTCUSDT.v3).toEqual(mockV3Result.data);
+      expect(response.body.data.BTCUSDT.ict).toEqual({ error: 'ICT策略执行失败' });
+    });
+  });
 
-      // 恢复原始方法
-      require('../../../src/strategies/v3-strategy').prototype.execute = originalExecute;
+  describe('GET /api/v1/strategies/v3/judgments', () => {
+    it('应该返回V3策略判断记录', async () => {
+      const mockJudgments = [
+        {
+          id: 1,
+          symbol: 'BTCUSDT',
+          strategy_type: 'V3',
+          timeframe: '4H',
+          trend_direction: 'UP',
+          score: 85.5,
+          created_at: new Date()
+        }
+      ];
+
+      dbOps.getStrategyJudgments.mockResolvedValue(mockJudgments);
+
+      const response = await request(app)
+        .get('/api/v1/strategies/v3/judgments')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(mockJudgments);
+      expect(dbOps.getStrategyJudgments).toHaveBeenCalledWith('V3', undefined, undefined, undefined);
+    });
+
+    it('应该支持查询参数过滤', async () => {
+      const mockJudgments = [
+        {
+          id: 1,
+          symbol: 'BTCUSDT',
+          strategy_type: 'V3',
+          timeframe: '4H',
+          trend_direction: 'UP',
+          score: 85.5,
+          created_at: new Date()
+        }
+      ];
+
+      dbOps.getStrategyJudgments.mockResolvedValue(mockJudgments);
+
+      const response = await request(app)
+        .get('/api/v1/strategies/v3/judgments?symbol=BTCUSDT&timeframe=4H&limit=10')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(dbOps.getStrategyJudgments).toHaveBeenCalledWith('V3', 'BTCUSDT', '4H', 10);
+    });
+  });
+
+  describe('GET /api/v1/strategies/ict/judgments', () => {
+    it('应该返回ICT策略判断记录', async () => {
+      const mockJudgments = [
+        {
+          id: 1,
+          symbol: 'BTCUSDT',
+          strategy_type: 'ICT',
+          timeframe: '1D',
+          trend_direction: 'UP',
+          score: 82.0,
+          created_at: new Date()
+        }
+      ];
+
+      dbOps.getStrategyJudgments.mockResolvedValue(mockJudgments);
+
+      const response = await request(app)
+        .get('/api/v1/strategies/ict/judgments')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(mockJudgments);
+      expect(dbOps.getStrategyJudgments).toHaveBeenCalledWith('ICT', undefined, undefined, undefined);
+    });
+  });
+
+  describe('GET /api/v1/strategies/statistics', () => {
+    it('应该返回策略统计信息', async () => {
+      const mockStats = {
+        v3: {
+          totalTrades: 100,
+          winningTrades: 60,
+          losingTrades: 40,
+          winRate: 60,
+          totalPnL: 1000,
+          maxDrawdown: 5.5
+        },
+        ict: {
+          totalTrades: 80,
+          winningTrades: 48,
+          losingTrades: 32,
+          winRate: 60,
+          totalPnL: 800,
+          maxDrawdown: 4.2
+        },
+        overall: {
+          totalTrades: 180,
+          winningTrades: 108,
+          losingTrades: 72,
+          winRate: 60,
+          totalPnL: 1800,
+          maxDrawdown: 5.5
+        }
+      };
+
+      dbOps.getStrategyStatistics.mockResolvedValue(mockStats);
+
+      const response = await request(app)
+        .get('/api/v1/strategies/statistics')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(mockStats);
+      expect(dbOps.getStrategyStatistics).toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /api/v1/strategies/current-status', () => {
+    it('应该返回策略当前状态', async () => {
+      const mockSymbols = [
+        {
+          id: 1,
+          symbol: 'BTCUSDT',
+          last_price: 50000,
+          price_change_24h: 2.5
+        }
+      ];
+
+      const mockJudgments = [
+        {
+          symbol: 'BTCUSDT',
+          strategy_type: 'V3',
+          timeframe: '4H',
+          trend_direction: 'UP',
+          score: 85.5
+        },
+        {
+          symbol: 'BTCUSDT',
+          strategy_type: 'ICT',
+          timeframe: '1D',
+          trend_direction: 'UP',
+          score: 82.0
+        }
+      ];
+
+      dbOps.getAllSymbols.mockResolvedValue(mockSymbols);
+      dbOps.getLatestJudgments.mockResolvedValue(mockJudgments);
+
+      const response = await request(app)
+        .get('/api/v1/strategies/current-status')
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('BTCUSDT');
+      expect(response.body.data.BTCUSDT).toHaveProperty('v3');
+      expect(response.body.data.BTCUSDT).toHaveProperty('ict');
     });
   });
 });

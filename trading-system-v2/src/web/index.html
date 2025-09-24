@@ -109,6 +109,137 @@
 
         </div>
 
+        <!-- 策略统计卡片 -->
+        <div class="cards-grid">
+          <div class="card stats-card" id="v3-stats">
+            <div class="card-header">
+              <h3>V3策略统计</h3>
+            </div>
+            <div class="card-content">
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <span class="stat-label">总交易数</span>
+                  <span class="stat-value total-trades">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">盈利交易</span>
+                  <span class="stat-value profitable-trades">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">亏损交易</span>
+                  <span class="stat-value losing-trades">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">胜率</span>
+                  <span class="stat-value win-rate">0%</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">总盈亏</span>
+                  <span class="stat-value total-pnl">$0.00</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">最大回撤</span>
+                  <span class="stat-value max-drawdown">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card stats-card" id="ict-stats">
+            <div class="card-header">
+              <h3>ICT策略统计</h3>
+            </div>
+            <div class="card-content">
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <span class="stat-label">总交易数</span>
+                  <span class="stat-value total-trades">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">盈利交易</span>
+                  <span class="stat-value profitable-trades">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">亏损交易</span>
+                  <span class="stat-value losing-trades">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">胜率</span>
+                  <span class="stat-value win-rate">0%</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">总盈亏</span>
+                  <span class="stat-value total-pnl">$0.00</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">最大回撤</span>
+                  <span class="stat-value max-drawdown">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card stats-card" id="overall-stats">
+            <div class="card-header">
+              <h3>总体统计</h3>
+            </div>
+            <div class="card-content">
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <span class="stat-label">总交易数</span>
+                  <span class="stat-value total-trades">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">总胜率</span>
+                  <span class="stat-value win-rate">0%</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">总盈亏</span>
+                  <span class="stat-value total-pnl">$0.00</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">最大回撤</span>
+                  <span class="stat-value max-drawdown">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 策略当前状态表格 -->
+        <div class="card">
+          <div class="card-header">
+            <h3>策略当前状态</h3>
+            <div class="card-actions">
+              <button class="btn btn-primary" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i>
+                刷新
+              </button>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="table-container">
+              <table class="data-table" id="strategyStatusTable">
+                <thead>
+                  <tr>
+                    <th>交易对</th>
+                    <th>当前价格</th>
+                    <th>V3策略状态</th>
+                    <th>ICT策略状态</th>
+                    <th>中时间框架价格差</th>
+                    <th>入场价格</th>
+                    <th>杠杆设置</th>
+                    <th>保证金</th>
+                  </tr>
+                </thead>
+                <tbody id="strategyStatusTableBody">
+                  <!-- 数据将通过JavaScript动态加载 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- 交易对列表 -->
         <div class="card">
           <div class="card-header">
@@ -260,27 +391,30 @@
 
             <!-- 策略交易记录表格 -->
             <div class="trading-records">
-              <h3>策略交易记录</h3>
+              <h3>V3策略交易记录</h3>
               <div class="table-container">
-                <table class="data-table" id="v3-trades-table">
+                <table class="data-table" id="tradingRecordsTable">
                   <thead>
                     <tr>
                       <th>交易对</th>
-                      <th>入场时间</th>
+                      <th>策略</th>
+                      <th>方向</th>
                       <th>入场价格</th>
-                      <th>入场判断依据</th>
-                      <th>止盈价格</th>
                       <th>止损价格</th>
+                      <th>止盈价格</th>
                       <th>杠杆</th>
                       <th>保证金</th>
                       <th>状态</th>
-                      <th>出场时间</th>
+                      <th>入场时间</th>
                       <th>出场价格</th>
-                      <th>出场判断</th>
                       <th>盈亏</th>
+                      <th>盈亏%</th>
+                      <th>出场时间</th>
+                      <th>出场原因</th>
+                      <th>操作</th>
                     </tr>
                   </thead>
-                  <tbody id="v3-trades-body">
+                  <tbody id="tradingRecordsTableBody">
                     <!-- 数据将通过JavaScript动态加载 -->
                   </tbody>
                 </table>
@@ -333,25 +467,28 @@
             <div class="trading-records">
               <h3>ICT策略交易记录</h3>
               <div class="table-container">
-                <table class="data-table" id="ict-trades-table">
+                <table class="data-table" id="ictTradingRecordsTable">
                   <thead>
                     <tr>
                       <th>交易对</th>
-                      <th>入场时间</th>
+                      <th>策略</th>
+                      <th>方向</th>
                       <th>入场价格</th>
-                      <th>入场判断依据</th>
-                      <th>止盈价格</th>
                       <th>止损价格</th>
+                      <th>止盈价格</th>
                       <th>杠杆</th>
                       <th>保证金</th>
                       <th>状态</th>
-                      <th>出场时间</th>
+                      <th>入场时间</th>
                       <th>出场价格</th>
-                      <th>出场判断</th>
                       <th>盈亏</th>
+                      <th>盈亏%</th>
+                      <th>出场时间</th>
+                      <th>出场原因</th>
+                      <th>操作</th>
                     </tr>
                   </thead>
-                  <tbody id="ict-trades-body">
+                  <tbody id="ictTradingRecordsTableBody">
                     <!-- 数据将通过JavaScript动态加载 -->
                   </tbody>
                 </table>
@@ -560,23 +697,48 @@
             </div>
             <div class="card-content">
               <div class="calculator-form">
-                <div class="form-group">
-                  <label>账户余额</label>
-                  <input type="number" id="accountBalance" placeholder="10000" class="form-input">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>本金 (USDT)</label>
+                    <input type="number" id="principal" placeholder="200" class="form-input" value="200">
+                  </div>
+                  <div class="form-group">
+                    <label>初始杠杆</label>
+                    <input type="number" id="initialLeverage" placeholder="50" class="form-input" value="50">
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>当前杠杆</label>
-                  <input type="number" id="currentLeverage" placeholder="3" class="form-input">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>开仓价格</label>
+                    <input type="number" id="priceStart" placeholder="4700" class="form-input" value="4700">
+                  </div>
+                  <div class="form-group">
+                    <label>目标价格</label>
+                    <input type="number" id="priceTarget" placeholder="5200" class="form-input" value="5200">
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>持仓时间(小时)</label>
-                  <input type="number" id="holdingTime" placeholder="12" class="form-input">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>滚仓触发比例</label>
+                    <input type="number" id="triggerRatio" placeholder="1.0" step="0.1" class="form-input" value="1.0">
+                  </div>
+                  <div class="form-group">
+                    <label>杠杆递减系数</label>
+                    <input type="number" id="leverageDecay" placeholder="0.5" step="0.1" class="form-input" value="0.5">
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>当前回撤(%)</label>
-                  <input type="number" id="currentDrawdown" placeholder="5" class="form-input">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>利润锁定比例</label>
+                    <input type="number" id="profitLockRatio" placeholder="0.5" step="0.1" class="form-input"
+                      value="0.5">
+                  </div>
+                  <div class="form-group">
+                    <label>最低杠杆</label>
+                    <input type="number" id="minLeverage" placeholder="5" class="form-input" value="5">
+                  </div>
                 </div>
-                <button class="btn btn-primary" onclick="calculateRolling()">计算滚仓参数</button>
+                <button class="btn btn-primary" onclick="calculateRolling()">计算动态滚仓</button>
               </div>
               <div class="calculator-result" id="rollingResult">
                 <!-- 计算结果将显示在这里 -->
@@ -590,25 +752,47 @@
             </div>
             <div class="card-content">
               <div class="telegram-settings">
-                <div class="form-group">
-                  <label>Bot Token</label>
-                  <input type="text" id="botToken" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-                    class="form-input">
+                <!-- 交易触发Telegram设置 -->
+                <div class="telegram-section">
+                  <h4>交易触发通知</h4>
+                  <div class="form-group">
+                    <label>Bot Token</label>
+                    <input type="text" id="tradingTelegramBotToken" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                      class="form-input">
+                  </div>
+                  <div class="form-group">
+                    <label>Chat ID</label>
+                    <input type="text" id="tradingTelegramChatId" placeholder="123456789" class="form-input">
+                  </div>
+                  <div class="form-group">
+                    <button class="btn btn-primary" onclick="saveTradingTelegramSettings()">保存设置</button>
+                    <button class="btn btn-secondary" onclick="testTradingTelegram()">测试连接</button>
+                  </div>
+                  <div class="telegram-status" id="tradingTelegramStatus">
+                    <!-- 状态将通过JavaScript动态加载 -->
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>Chat ID</label>
-                  <input type="text" id="chatId" placeholder="123456789" class="form-input">
+
+                <!-- 系统监控Telegram设置 -->
+                <div class="telegram-section">
+                  <h4>系统监控告警</h4>
+                  <div class="form-group">
+                    <label>Bot Token</label>
+                    <input type="text" id="monitoringTelegramBotToken"
+                      placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" class="form-input">
+                  </div>
+                  <div class="form-group">
+                    <label>Chat ID</label>
+                    <input type="text" id="monitoringTelegramChatId" placeholder="123456789" class="form-input">
+                  </div>
+                  <div class="form-group">
+                    <button class="btn btn-primary" onclick="saveMonitoringTelegramSettings()">保存设置</button>
+                    <button class="btn btn-secondary" onclick="testMonitoringTelegram()">测试连接</button>
+                  </div>
+                  <div class="telegram-status" id="monitoringTelegramStatus">
+                    <!-- 状态将通过JavaScript动态加载 -->
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>告警阈值</label>
-                  <select class="form-select" id="alertThreshold">
-                    <option value="60">60%</option>
-                    <option value="70">70%</option>
-                    <option value="80">80%</option>
-                    <option value="90">90%</option>
-                  </select>
-                </div>
-                <button class="btn btn-primary" onclick="saveTelegramSettings()">保存设置</button>
               </div>
             </div>
           </div>
@@ -616,14 +800,27 @@
           <div class="card">
             <div class="card-header">
               <h3>系统测试API</h3>
+              <div class="card-actions">
+                <button class="btn btn-primary" onclick="runAllAPITests()">运行所有测试</button>
+              </div>
             </div>
             <div class="card-content">
               <div class="api-test">
                 <div class="test-group">
                   <button class="btn btn-secondary" onclick="testAPI('health')">健康检查</button>
                   <button class="btn btn-secondary" onclick="testAPI('symbols')">交易对API</button>
-                  <button class="btn btn-secondary" onclick="testAPI('strategies')">策略API</button>
-                  <button class="btn btn-secondary" onclick="testAPI('trades')">交易API</button>
+                  <button class="btn btn-secondary" onclick="testAPI('strategies')">策略状态API</button>
+                  <button class="btn btn-secondary" onclick="testAPI('trades')">交易记录API</button>
+                </div>
+                <div class="test-group">
+                  <button class="btn btn-secondary" onclick="testAPI('monitoring')">系统监控API</button>
+                  <button class="btn btn-secondary" onclick="testAPI('tools')">工具API</button>
+                  <button class="btn btn-secondary" onclick="testAPI('telegram')">Telegram API</button>
+                  <button class="btn btn-secondary" onclick="testAPI('v3-analyze')">V3策略分析</button>
+                </div>
+                <div class="test-group">
+                  <button class="btn btn-secondary" onclick="testAPI('ict-analyze')">ICT策略分析</button>
+                  <button class="btn btn-secondary" onclick="testAPI('create-trade')">创建交易</button>
                 </div>
                 <div class="test-result" id="apiTestResult">
                   <!-- API测试结果将显示在这里 -->

@@ -332,6 +332,89 @@ class RollingStrategy {
   }
 
   /**
+   * 动态杠杆滚仓计算器（基于rolling-v1.md）
+   * @param {Object} params - 计算参数
+   * @returns {Object} 计算结果
+   */
+  async calculateDynamicRolling(params) {
+    const {
+      principal = 200,
+      initialLeverage = 50,
+      priceStart = 4700,
+      priceTarget = 5200,
+      triggerRatio = 1.0,
+      leverageDecay = 0.5,
+      profitLockRatio = 0.5,
+      minLeverage = 5,
+      steps = 100
+    } = params;
+
+    let equity = principal; // 当前总净值
+    let lockedProfit = 0;   // 已落袋利润
+    let floatingProfit = 0; // 当前浮盈
+    let leverage = initialLeverage;
+    let position = principal * leverage; // 仓位价值
+    let price = priceStart;
+    const totalPriceIncrease = priceTarget - priceStart;
+    const priceStep = totalPriceIncrease / steps; // 模拟steps步上涨
+    const history = [];
+
+    for (let i = 1; i <= steps; i++) {
+      price += priceStep;
+      floatingProfit = position * (price - priceStart) / priceStart;
+
+      // 判断是否触发滚仓
+      if (floatingProfit >= principal * triggerRatio) {
+        // 抽回本金
+        equity += principal;
+        floatingProfit -= principal;
+
+        // 落袋部分利润
+        const locked = floatingProfit * profitLockRatio;
+        lockedProfit += locked;
+        floatingProfit -= locked;
+
+        // 滚仓
+        leverage = Math.max(minLeverage, leverage * leverageDecay);
+        position = floatingProfit * leverage;
+
+        // 重置开仓价
+        priceStart = price;
+      }
+
+      // 保存历史记录
+      history.push({
+        step: i,
+        price: parseFloat(price.toFixed(2)),
+        position: parseFloat(position.toFixed(2)),
+        floatingProfit: parseFloat(floatingProfit.toFixed(2)),
+        lockedProfit: parseFloat(lockedProfit.toFixed(2)),
+        equity: parseFloat((equity + floatingProfit + lockedProfit).toFixed(2)),
+        leverage: parseFloat(leverage.toFixed(2))
+      });
+    }
+
+    return {
+      success: true,
+      strategy: 'DYNAMIC_ROLLING',
+      finalEquity: equity + floatingProfit + lockedProfit,
+      totalLockedProfit: lockedProfit,
+      finalFloatingProfit: floatingProfit,
+      finalLeverage: leverage,
+      totalReturn: ((equity + floatingProfit + lockedProfit) - principal) / principal * 100,
+      history: history,
+      summary: {
+        principal,
+        initialLeverage,
+        finalLeverage: leverage,
+        totalProfit: lockedProfit + floatingProfit,
+        returnPercentage: ((equity + floatingProfit + lockedProfit) - principal) / principal * 100,
+        rollingCount: history.filter(h => h.leverage !== initialLeverage).length
+      }
+    };
+  }
+
+  /**
    * 计算浮动盈亏
    * @param {number} currentPrice - 当前价格
    * @param {number} entryPrice - 入场价格
