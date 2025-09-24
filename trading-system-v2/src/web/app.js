@@ -151,28 +151,11 @@ class SmartFlowApp {
   }
 
   /**
-   * 加载策略信号
+   * 加载策略信号 - 已移除策略卡片，此方法不再需要
    */
   async loadStrategySignals() {
-    try {
-      // 模拟策略信号数据
-      const strategies = ['v3', 'ict'];
-      const signals = {};
-
-      for (const strategy of strategies) {
-        try {
-          const response = await this.fetchData(`/strategies/${strategy}/judgments?limit=1`);
-          signals[strategy] = response.data?.[0] || this.getMockSignal(strategy);
-        } catch (error) {
-          console.warn(`Failed to load ${strategy} signals:`, error);
-          signals[strategy] = this.getMockSignal(strategy);
-        }
-      }
-
-      this.updateStrategyCards(signals);
-    } catch (error) {
-      console.error('Error loading strategy signals:', error);
-    }
+    // 策略卡片已移除，此方法保留为空以避免错误
+    console.log('Strategy cards removed, skipping signal loading');
   }
 
   /**
@@ -199,41 +182,12 @@ class SmartFlowApp {
   }
 
   /**
-   * 更新策略卡片
+   * 更新策略卡片 - 已移除策略卡片，此方法不再需要
    * @param {Object} signals - 策略信号数据
    */
   updateStrategyCards(signals) {
-    const strategyCards = document.querySelectorAll('.strategy-card');
-
-    strategyCards.forEach((card, index) => {
-      const strategyNames = ['v3', 'ict'];
-      const strategy = strategyNames[index];
-      const signal = signals[strategy];
-
-      if (signal) {
-        // 更新趋势显示
-        const trendElement = card.querySelector('.trend-up, .trend-down, .trend-range');
-        if (trendElement) {
-          trendElement.className = `signal-value trend-${signal.trend.toLowerCase()}`;
-          trendElement.textContent = this.getTrendText(signal.trend);
-        }
-
-        // 更新信号显示
-        const signalElement = card.querySelector('.signal-buy, .signal-sell, .signal-hold');
-        if (signalElement) {
-          signalElement.className = `signal-value signal-${signal.signal.toLowerCase()}`;
-          signalElement.textContent = this.getSignalText(signal.signal);
-        }
-
-        // 更新评分显示
-        const scoreElement = card.querySelector('.score-high, .score-medium, .score-low');
-        if (scoreElement) {
-          const scoreClass = signal.score >= 80 ? 'score-high' : signal.score >= 60 ? 'score-medium' : 'score-low';
-          scoreElement.className = `signal-value ${scoreClass}`;
-          scoreElement.textContent = signal.score;
-        }
-      }
-    });
+    // 策略卡片已移除，此方法保留为空以避免错误
+    console.log('Strategy cards removed, skipping card updates');
   }
 
   /**
@@ -254,6 +208,10 @@ class SmartFlowApp {
       this.updateOverallStats(stats.overall);
     } catch (error) {
       console.error('Error loading strategy statistics:', error);
+      // 使用模拟数据作为后备
+      this.updateStrategyStats('v3', { totalTrades: 0, profitableTrades: 0, losingTrades: 0, winRate: 0, totalPnl: 0, maxDrawdown: 0 });
+      this.updateStrategyStats('ict', { totalTrades: 0, profitableTrades: 0, losingTrades: 0, winRate: 0, totalPnl: 0, maxDrawdown: 0 });
+      this.updateOverallStats({ totalTrades: 0, winRate: 0, totalPnl: 0, maxDrawdown: 0 });
     }
   }
 
@@ -353,6 +311,8 @@ class SmartFlowApp {
       this.updateStrategyStatusTable(statusData);
     } catch (error) {
       console.error('Error loading strategy current status:', error);
+      // 使用空数据作为后备
+      this.updateStrategyStatusTable([]);
     }
   }
 
@@ -990,7 +950,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-      result.innerHTML = `
+  result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">
@@ -1179,16 +1139,16 @@ async function testAPI(type) {
         </div>
         <div class="test-response">
           <h5>响应数据:</h5>
-          <pre>${JSON.stringify(data, null, 2)}</pre>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
         </div>
       </div>
-    `;
+        `;
   } catch (error) {
     result.innerHTML = `
       <div class="api-test-result">
         <h4>API测试结果 - ${getAPITestName(type)}</h4>
         <div class="test-error">
-          <p><strong>错误:</strong> ${error.message}</p>
+            <p><strong>错误:</strong> ${error.message}</p>
           <p><strong>类型:</strong> ${error.name}</p>
         </div>
       </div>
@@ -1356,9 +1316,13 @@ async function loadTradingRecords() {
       updateTradingRecordsTable(result.data);
     } else {
       console.error('加载交易记录失败:', result.error);
+      // 使用空数据作为后备
+      updateTradingRecordsTable([]);
     }
   } catch (error) {
     console.error('加载交易记录失败:', error);
+    // 使用空数据作为后备
+    updateTradingRecordsTable([]);
   }
 }
 
@@ -1540,9 +1504,19 @@ async function loadTelegramStatus() {
       updateTelegramStatus(result.data);
     } else {
       console.error('加载Telegram状态失败:', result.error);
+      // 使用默认状态作为后备
+      updateTelegramStatus({
+        trading: { enabled: false, botToken: '未配置', chatId: '未配置' },
+        monitoring: { enabled: false, botToken: '未配置', chatId: '未配置' }
+      });
     }
   } catch (error) {
     console.error('加载Telegram状态失败:', error);
+    // 使用默认状态作为后备
+    updateTelegramStatus({
+      trading: { enabled: false, botToken: '未配置', chatId: '未配置' },
+      monitoring: { enabled: false, botToken: '未配置', chatId: '未配置' }
+    });
   }
 }
 
