@@ -648,7 +648,7 @@ class SmartFlowApp {
           </div>
           <div class="indicator-item">
             <span class="indicator-label">成交量:</span>
-            <span class="indicator-value">${(volume / 1000000).toFixed(3)}M</span>
+            <span class="indicator-value">${this.formatVolume(volume)}</span>
           </div>
         </div>
       `;
@@ -751,7 +751,7 @@ class SmartFlowApp {
         </div>
         <div class="indicator-item">
           <span class="indicator-label">成交量:</span>
-          <span class="indicator-value">${(volume / 1000000).toFixed(3)}M</span>
+          <span class="indicator-value">${this.formatVolume(volume)}</span>
         </div>
       </div>
     `;
@@ -1302,6 +1302,24 @@ class SmartFlowApp {
     };
 
     return mockTrades[strategy] || [];
+  }
+
+  /**
+   * 格式化成交量
+   * @param {number} volume - 成交量
+   * @returns {string} 格式化后的成交量
+   */
+  formatVolume(volume) {
+    if (!volume || volume === 0) return '0';
+    
+    const vol = parseFloat(volume);
+    if (vol >= 1000000) {
+      return (vol / 1000000).toFixed(3) + 'M';
+    } else if (vol >= 1000) {
+      return (vol / 1000).toFixed(1) + 'K';
+    } else {
+      return vol.toFixed(3);
+    }
   }
 
   /**

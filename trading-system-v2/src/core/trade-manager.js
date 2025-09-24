@@ -21,13 +21,24 @@ class TradeManager {
    */
   async canCreateTrade(symbol, strategy) {
     try {
-      // 检查是否有活跃交易
+      // 检查是否有活跃交易（同一策略）
       const activeTrade = await this.getActiveTrade(symbol, strategy);
       if (activeTrade) {
         return {
           canCreate: false,
           reason: '该交易对和策略已有活跃交易',
           activeTrade: activeTrade
+        };
+      }
+
+      // 检查是否有其他策略的活跃交易（跨策略检查）
+      const otherStrategy = strategy === 'V3' ? 'ICT' : 'V3';
+      const otherActiveTrade = await this.getActiveTrade(symbol, otherStrategy);
+      if (otherActiveTrade) {
+        return {
+          canCreate: false,
+          reason: `该交易对已有${otherStrategy}策略的活跃交易`,
+          activeTrade: otherActiveTrade
         };
       }
 
@@ -134,7 +145,7 @@ class TradeManager {
         };
       }
 
-      if (trade.status !== 'ACTIVE') {
+      if (trade.status !== 'OPEN') {
         return {
           success: false,
           error: '交易已关闭，无法重复关闭'
@@ -198,7 +209,7 @@ class TradeManager {
   async getActiveTrade(symbol, strategy) {
     try {
       const trades = await dbOps.getTrades(strategy, symbol, 1);
-      const activeTrade = trades.find(trade => trade.status === 'ACTIVE');
+      const activeTrade = trades.find(trade => trade.status === 'OPEN');
       return activeTrade || null;
     } catch (error) {
       logger.error('获取活跃交易失败:', error);
@@ -216,7 +227,7 @@ class TradeManager {
       const ictTrades = await dbOps.getTrades('ICT', null, 100);
 
       const allTrades = [...v3Trades, ...ictTrades];
-      return allTrades.filter(trade => trade.status === 'ACTIVE');
+      return allTrades.filter(trade => trade.status === 'OPEN');
     } catch (error) {
       logger.error('获取所有活跃交易失败:', error);
       return [];
@@ -284,7 +295,7 @@ class TradeManager {
       // 获取该交易对的所有活跃交易
       const v3Trades = await dbOps.getTrades('V3', symbol, 10);
       const ictTrades = await dbOps.getTrades('ICT', symbol, 10);
-      const allTrades = [...v3Trades, ...ictTrades].filter(trade => trade.status === 'ACTIVE');
+      const allTrades = [...v3Trades, ...ictTrades].filter(trade => trade.status === 'OPEN');
 
       for (const trade of allTrades) {
         const exitCheck = this.checkTradeExit(trade, currentPrice);
