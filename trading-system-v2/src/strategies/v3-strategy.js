@@ -61,6 +61,14 @@ class V3Strategy {
         trendDirection,
         confidence: this.calculateTrendConfidence(adx.adx, bbw.bbw),
         score: score.total,
+        // 将指标数据直接放在顶层，与API期望格式匹配
+        ma20: ma20[ma20.length - 1] || 0,
+        ma50: ma50[ma50.length - 1] || 0,
+        ma200: ma200[ma200.length - 1] || 0,
+        adx: adx.adx || 0,
+        bbw: bbw.bbw || 0,
+        vwap: vwap || 0,
+        currentPrice: currentPrice || 0,
         indicators: {
           ma20: ma20[ma20.length - 1],
           ma50: ma50[ma50.length - 1],
@@ -145,6 +153,12 @@ class V3Strategy {
       return {
         timeframe: '1H',
         factors,
+        score: factors.totalScore || 0,
+        // 将指标数据直接放在顶层，与API期望格式匹配
+        vwap: vwap || 0,
+        oiChange: oiChange || 0,
+        funding: parseFloat(data.fundingRate?.lastFundingRate || 0),
+        delta: delta || 0,
         indicators: {
           ema20: ema20[ema20.length - 1],
           ema50: ema50[ema50.length - 1],
@@ -200,6 +214,12 @@ class V3Strategy {
         timeframe: '15M',
         signal: entrySignal,
         confidence: this.calculateTrendConfidence(adx.adx, bbw.bbw),
+        score: this.calculate15MScore(ema20[ema20.length - 1], adx.adx, bbw.bbw, vwap, delta),
+        // 将指标数据直接放在顶层，与API期望格式匹配
+        ema20: ema20[ema20.length - 1] || 0,
+        ema50: ema50[ema50.length - 1] || 0,
+        atr: this.calculateATR(klines.map(k => parseFloat(k[2])), klines.map(k => parseFloat(k[3])), prices)[0] || 0,
+        bbw: bbw.bbw || 0,
         indicators: {
           ema20: ema20[ema20.length - 1],
           adx: adx.adx,
@@ -214,6 +234,36 @@ class V3Strategy {
       logger.error(`分析15M执行信号失败: ${error.message}`);
       return { signal: 'ERROR', score: 0, confidence: 0, error: error.message };
     }
+  }
+
+  /**
+   * 计算15M评分
+   * @param {number} ema20 - EMA20值
+   * @param {number} adx - ADX值
+   * @param {number} bbw - 布林带宽度
+   * @param {number} vwap - VWAP值
+   * @param {number} delta - Delta值
+   * @returns {number} 15M评分
+   */
+  calculate15MScore(ema20, adx, bbw, vwap, delta) {
+    let score = 0;
+    
+    // EMA20方向性 (1分)
+    if (ema20 > 0) score += 1;
+    
+    // ADX强度 (1分)
+    if (adx > 20) score += 1;
+    
+    // 布林带收窄 (1分)
+    if (bbw < 0.1) score += 1;
+    
+    // VWAP确认 (1分)
+    if (vwap > 0) score += 1;
+    
+    // Delta确认 (1分)
+    if (Math.abs(delta) > 0.1) score += 1;
+    
+    return score;
   }
 
   /**

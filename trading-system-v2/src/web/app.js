@@ -869,17 +869,17 @@ class SmartFlowApp {
   async loadMaxLossAmount() {
     try {
       const response = await fetch(`${this.apiBaseUrl}/settings/maxLossAmount`);
-      
+
       if (response.ok) {
         const data = await response.json();
         this.maxLossAmount = data.value || 100;
-        
+
         // 更新选择器显示
         const maxLossAmountSelect = document.getElementById('maxLossAmount');
         if (maxLossAmountSelect) {
           maxLossAmountSelect.value = this.maxLossAmount.toString();
         }
-        
+
         console.log(`最大损失金额已加载: ${this.maxLossAmount} USDT`);
       } else {
         console.log('使用默认最大损失金额: 100 USDT');
@@ -1448,7 +1448,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-  result.innerHTML = `
+      result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">

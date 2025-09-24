@@ -37,10 +37,10 @@ class DatabaseConnection {
       // 测试连接
       const connection = await this.pool.getConnection();
       await connection.ping();
-      
+
       // 初始化必要的表
       await this.initializeTables(connection);
-      
+
       connection.release();
 
       this.isConnected = true;

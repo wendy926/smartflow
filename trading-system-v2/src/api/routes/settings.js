@@ -23,10 +23,10 @@ const getDbOps = () => {
 router.get('/:key', async (req, res) => {
   try {
     const { key } = req.params;
-    
+
     // 从数据库获取用户设置
     const value = await getUserSetting(key);
-    
+
     res.json({
       key,
       value,
@@ -49,17 +49,17 @@ router.post('/:key', async (req, res) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
-    
+
     if (value === undefined) {
       return res.status(400).json({
         error: 'Value is required',
         message: 'Please provide a value in the request body'
       });
     }
-    
+
     // 保存用户设置到数据库
     await setUserSetting(key, value);
-    
+
     res.json({
       key,
       value,
@@ -82,7 +82,7 @@ router.post('/:key', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const settings = await getAllUserSettings();
-    
+
     res.json({
       settings,
       timestamp: new Date().toISOString()
@@ -105,13 +105,13 @@ router.get('/', async (req, res) => {
 async function getUserSetting(key, defaultValue = null) {
   try {
     const connection = await getDbOps().getConnection();
-    
+
     try {
       const [rows] = await connection.execute(
         'SELECT value FROM user_settings WHERE setting_key = ?',
         [key]
       );
-      
+
       if (rows.length > 0) {
         const value = rows[0].value;
         // 尝试解析JSON值
@@ -121,7 +121,7 @@ async function getUserSetting(key, defaultValue = null) {
           return value;
         }
       }
-      
+
       return defaultValue;
     } finally {
       connection.release();
@@ -140,11 +140,11 @@ async function getUserSetting(key, defaultValue = null) {
 async function setUserSetting(key, value) {
   try {
     const connection = await getDbOps().getConnection();
-    
+
     try {
       // 将值转换为字符串存储
       const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-      
+
       // 使用INSERT ... ON DUPLICATE KEY UPDATE
       await connection.execute(
         `INSERT INTO user_settings (setting_key, value, updated_at) 
@@ -154,7 +154,7 @@ async function setUserSetting(key, value) {
          updated_at = NOW()`,
         [key, stringValue]
       );
-      
+
       logger.info(`用户设置已保存: ${key} = ${stringValue}`);
     } finally {
       connection.release();
@@ -172,12 +172,12 @@ async function setUserSetting(key, value) {
 async function getAllUserSettings() {
   try {
     const connection = await getDbOps().getConnection();
-    
+
     try {
       const [rows] = await connection.execute(
         'SELECT setting_key, value FROM user_settings ORDER BY setting_key'
       );
-      
+
       const settings = {};
       rows.forEach(row => {
         try {
@@ -186,7 +186,7 @@ async function getAllUserSettings() {
           settings[row.setting_key] = row.value;
         }
       });
-      
+
       return settings;
     } finally {
       connection.release();

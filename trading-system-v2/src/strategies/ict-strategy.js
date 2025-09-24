@@ -62,6 +62,8 @@ class ICTStrategy {
         confidence,
         atr: currentATR,
         priceChange,
+        closeChange: priceChange / 100, // 转换为小数形式
+        lookback: 20, // 20日回看期
         reason: `20-day price change: ${priceChange.toFixed(2)}%, ATR: ${currentATR.toFixed(4)}`
       };
     } catch (error) {
@@ -471,6 +473,33 @@ class ICTStrategy {
           sweepHTF,
           sweepLTF
         },
+        // 添加timeframes结构以匹配API期望格式
+        timeframes: {
+          '1D': {
+            trend: dailyTrend.trend,
+            closeChange: dailyTrend.closeChange || 0,
+            lookback: dailyTrend.lookback || 20
+          },
+          '4H': {
+            orderBlocks: orderBlocks.slice(-3),
+            atr: atr4H[atr4H.length - 1] || 0,
+            sweepDetected: sweepHTF.detected || false,
+            sweepSpeed: sweepHTF.speed || 0
+          },
+          '15M': {
+            signal: signal,
+            engulfing: engulfing.detected || false,
+            atr: atr15m[atr15m.length - 1] || 0,
+            sweepSpeed: sweepLTF.speed || 0,
+            volume: klines15m[klines15m.length - 1] ? parseFloat(klines15m[klines15m.length - 1][5]) : 0
+          }
+        },
+        // 添加交易参数
+        entryPrice: tradeParams.entryPrice || 0,
+        stopLoss: tradeParams.stopLoss || 0,
+        takeProfit: tradeParams.takeProfit || 0,
+        leverage: tradeParams.leverage || 0,
+        margin: tradeParams.margin || 0,
         timestamp: new Date().toISOString()
       };
 
