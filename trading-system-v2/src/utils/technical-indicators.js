@@ -71,6 +71,7 @@ class TechnicalIndicators {
    */
   static calculateADX(high, low, close, period = 14) {
     if (high.length < period + 1) {
+      logger.warn(`ADX计算数据不足: 需要${period + 1}, 实际${high.length}`);
       return { adx: null, di_plus: null, di_minus: null };
     }
 

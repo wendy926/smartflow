@@ -184,7 +184,7 @@ class V3Strategy {
    */
   analyze15mExecution(klines, data = {}) {
     try {
-      if (!klines || klines.length < 20) {
+      if (!klines || klines.length < 15) {
         logger.warn(`15M K线数据不足: 实际长度 ${klines ? klines.length : 0}`);
         return { signal: 'ERROR', score: 0, confidence: 0, error: 'Insufficient 15M data' };
       }
