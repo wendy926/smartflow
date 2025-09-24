@@ -205,7 +205,7 @@ class V3Strategy {
 
       // 计算Delta（简化版本）
       const delta = this.calculateSimpleDelta(prices, volumes);
-      
+
       // 检查VWAP有效性
       if (vwap === null || vwap === undefined) {
         logger.warn(`15M VWAP计算失败，使用价格均值`);
@@ -319,7 +319,7 @@ class V3Strategy {
       if (!currentPrice) {
         return { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
       }
-      
+
       // 如果ATR为0或无效，使用价格的1%作为默认ATR
       if (!atr || atr === 0) {
         atr = currentPrice * 0.01;
@@ -626,7 +626,7 @@ class V3Strategy {
     }
 
     // 降低条件：只要有趋势就尝试交易
-    if (trendDirection !== 'RANGE' && factorsScore > 20) {
+    if (trendDirection !== 'RANGE' && factorsScore >= 20) {
       // 如果15M信号是HOLD，但有趋势，则根据趋势方向生成信号
       if (executionSignal === 'HOLD') {
         return trendDirection === 'UP' ? 'BUY' : 'SELL';

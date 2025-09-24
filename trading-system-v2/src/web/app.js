@@ -364,7 +364,7 @@ class SmartFlowApp {
       const v3Signal = v3Info.signal || 'HOLD';
       const v3EntryPrice = v3Info.entryPrice || 0;
       const v3SignalText = v3EntryPrice > 0 ? '入场' : '观望';
-      
+
       const v3Row = document.createElement('tr');
       v3Row.innerHTML = `
         <td>${item.symbol}</td>
@@ -389,10 +389,10 @@ class SmartFlowApp {
       const ictSignal = ictInfo.signal || 'HOLD';
       const ictEntryPrice = ictInfo.entryPrice || 0;
       const ictSignalText = ictEntryPrice > 0 ? '入场' : '观望';
-      
+
       // ICT策略在震荡市不显示交易参数
       const showTradeParams = ictTrend !== 'RANGE' && ictSignal !== 'HOLD';
-      
+
       const ictRow = document.createElement('tr');
       ictRow.innerHTML = `
         <td>${item.symbol}</td>
