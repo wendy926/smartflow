@@ -184,10 +184,10 @@ class ICTStrategy {
             // 计算扫荡速率：刺破幅度 ÷ bar数
             const exceed = high - extreme;
             const sweepSpeed = barsToReturn > 0 ? exceed / barsToReturn : exceed; // 如果是同一根K线，直接使用exceed
-            
+
             // 调试信息
             logger.info(`ICT HTF Sweep调试 - 突破幅度: ${exceed}, barsToReturn: ${barsToReturn}, sweepSpeed: ${sweepSpeed}, 阈值: ${0.4 * currentATR}`);
-            
+
             // 检查是否满足条件：sweep速率 ≥ 0.4 × ATR 且 bars数 ≤ 2
             if (sweepSpeed >= 0.4 * currentATR && barsToReturn <= 2) {
               detected = true;
@@ -212,7 +212,7 @@ class ICTStrategy {
             // 计算扫荡速率：刺破幅度 ÷ bar数
             const exceed = extreme - low;
             const sweepSpeed = barsToReturn > 0 ? exceed / barsToReturn : exceed; // 如果是同一根K线，直接使用exceed
-            
+
             // 检查是否满足条件：sweep速率 ≥ 0.4 × ATR 且 bars数 ≤ 2
             if (sweepSpeed >= 0.4 * currentATR && barsToReturn <= 2) {
               detected = true;
@@ -315,7 +315,7 @@ class ICTStrategy {
             // 计算扫荡速率：刺破幅度 ÷ bar数
             const exceed = high - highestHigh;
             const sweepSpeed = exceed / barsToReturn;
-            
+
             // 检查是否满足条件：sweep速率 ≥ 0.2 × ATR 且 bars数 ≤ 3
             if (sweepSpeed >= 0.2 * currentATR && barsToReturn <= 3) {
               detected = true;
@@ -340,7 +340,7 @@ class ICTStrategy {
             // 计算扫荡速率：刺破幅度 ÷ bar数
             const exceed = lowestLow - low;
             const sweepSpeed = exceed / barsToReturn;
-            
+
             // 检查是否满足条件：sweep速率 ≥ 0.2 × ATR 且 bars数 ≤ 3
             if (sweepSpeed >= 0.2 * currentATR && barsToReturn <= 3) {
               detected = true;
@@ -478,22 +478,50 @@ class ICTStrategy {
       const atr4H = this.calculateATR(klines4H, 14);
       const orderBlocks = this.detectOrderBlocks(klines4H, atr4H[atr4H.length - 1], 30);
 
-      // 3. 检测HTF Sweep
+      // 3. 检测HTF Sweep - 检测最近的关键swing点
       const recentKlines = klines4H.slice(-10);
-      let highestHigh = 0;
+      let recentHigh = 0;
+      let recentLow = Infinity;
       recentKlines.forEach(kline => {
         const high = parseFloat(kline[2]);
-        if (high > highestHigh) highestHigh = high;
+        const low = parseFloat(kline[3]);
+        if (high > recentHigh) recentHigh = high;
+        if (low < recentLow) recentLow = low;
       });
-      const sweepHTF = this.detectSweepHTF(highestHigh, klines4H, atr4H[atr4H.length - 1]);
+      
+      // 检测上方扫荡（突破最近高点）
+      const sweepHTFUp = this.detectSweepHTF(recentHigh, klines4H, atr4H[atr4H.length - 1]);
+      // 检测下方扫荡（跌破最近低点）
+      const sweepHTFDown = this.detectSweepHTF(recentLow, klines4H, atr4H[atr4H.length - 1]);
+      
+      // 选择有效的扫荡
+      const sweepHTF = sweepHTFUp.detected ? sweepHTFUp : sweepHTFDown;
 
       // 调试信息
-      logger.info(`ICT HTF Sweep调试 - 最高价: ${highestHigh}, 当前价: ${parseFloat(klines4H[klines4H.length - 1][4])}, 检测结果: ${JSON.stringify(sweepHTF)}`);
+      logger.info(`ICT HTF Sweep调试 - 最近高点: ${recentHigh}, 最近低点: ${recentLow}, 当前价: ${parseFloat(klines4H[klines4H.length - 1][4])}, 检测结果: ${JSON.stringify(sweepHTF)}`);
 
       // 4. 检测吞没形态和LTF Sweep
       const engulfing = this.detectEngulfingPattern(klines15m);
       const atr15m = this.calculateATR(klines15m, 14);
-      const sweepLTF = this.detectSweepLTF(klines15m, atr15m[atr15m.length - 1]);
+      
+      // 检测LTF扫荡 - 检测最近的关键swing点
+      const recent15mKlines = klines15m.slice(-10);
+      let recent15mHigh = 0;
+      let recent15mLow = Infinity;
+      recent15mKlines.forEach(kline => {
+        const high = parseFloat(kline[2]);
+        const low = parseFloat(kline[3]);
+        if (high > recent15mHigh) recent15mHigh = high;
+        if (low < recent15mLow) recent15mLow = low;
+      });
+      
+      // 检测上方扫荡（突破最近高点）
+      const sweepLTFUp = this.detectSweepLTF(klines15m, atr15m[atr15m.length - 1], recent15mHigh);
+      // 检测下方扫荡（跌破最近低点）
+      const sweepLTFDown = this.detectSweepLTF(klines15m, atr15m[atr15m.length - 1], recent15mLow);
+      
+      // 选择有效的扫荡
+      const sweepLTF = sweepLTFUp.detected ? sweepLTFUp : sweepLTFDown;
 
       // 5. 计算交易参数（只在非震荡市计算且没有现有交易）
       let tradeParams = { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
