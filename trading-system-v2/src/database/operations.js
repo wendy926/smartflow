@@ -369,6 +369,8 @@ class DatabaseOperations {
   async getTrades(strategy, symbol = null, limit = 100) {
     const connection = await this.getConnection();
     try {
+      logger.info(`getTrades called with strategy: ${strategy}, symbol: ${symbol}, limit: ${limit}`);
+      
       // 如果没有提供strategy参数，返回所有交易记录
       if (!strategy) {
         const limitNum = Number(limit);
@@ -378,6 +380,7 @@ class DatabaseOperations {
           JOIN symbols s ON st.symbol_id = s.id 
           ORDER BY st.created_at DESC LIMIT ?
         `;
+        logger.info(`Executing query without strategy filter: ${query}, params: [${limitNum}]`);
         const [rows] = await connection.execute(query, [limitNum]);
         return rows;
       }
@@ -402,6 +405,7 @@ class DatabaseOperations {
       query += ` ORDER BY st.created_at DESC LIMIT ?`;
       params.push(limitNum);
 
+      logger.info(`Executing query with strategy filter: ${query}, params: [${params.join(', ')}]`);
       const [rows] = await connection.execute(query, params);
       return rows;
     } catch (error) {
