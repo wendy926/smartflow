@@ -648,7 +648,7 @@ class SmartFlowApp {
           </div>
           <div class="indicator-item">
             <span class="indicator-label">成交量:</span>
-            <span class="indicator-value">${(volume / 1000000).toFixed(1)}M</span>
+            <span class="indicator-value">${(volume / 1000000).toFixed(3)}M</span>
           </div>
         </div>
       `;
@@ -751,7 +751,7 @@ class SmartFlowApp {
         </div>
         <div class="indicator-item">
           <span class="indicator-label">成交量:</span>
-          <span class="indicator-value">${(volume / 1000000).toFixed(1)}M</span>
+          <span class="indicator-value">${(volume / 1000000).toFixed(3)}M</span>
         </div>
       </div>
     `;

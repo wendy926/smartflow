@@ -147,8 +147,10 @@ class ICTStrategy {
 
   /**
    * 检测HTF Sweep（高时间框架流动性扫荡）
+   * 按照ICT文档：检测关键swing高/低是否在≤2根4H内被刺破并收回，刺破幅度÷bar数≥0.4×ATR(4H)
+   * @param {number} extreme - 极值点
    * @param {Array} klines - K线数据
-   * @param {string} timeframe - 时间周期
+   * @param {number} atrValue - ATR值
    * @returns {Object} Sweep检测结果
    */
   detectSweepHTF(extreme, klines, atrValue) {
@@ -156,43 +158,75 @@ class ICTStrategy {
       return { detected: false, type: null, level: 0, confidence: 0, speed: 0 };
     }
 
-    const currentPrice = parseFloat(klines[klines.length - 1][4]); // 收盘价
     const currentATR = atrValue || 0;
+    const recentBars = klines.slice(-3); // 最近3根K线，最多检查2根
 
-    // 检测流动性扫荡 - 检查价格是否在最近2根K线内突破了极值点
     let detected = false;
     let type = null;
     let level = 0;
     let confidence = 0;
+    let speed = 0;
 
     // 检查最近2根K线是否有突破极值点的情况
-    const recentKlines = klines.slice(-2);
-    for (const kline of recentKlines) {
-      const high = parseFloat(kline[2]);
-      const low = parseFloat(kline[3]);
-      const close = parseFloat(kline[4]);
+    for (let i = 0; i < Math.min(2, recentBars.length); i++) {
+      const bar = recentBars[i];
+      const high = parseFloat(bar[2]);
+      const low = parseFloat(bar[3]);
+      const close = parseFloat(bar[4]);
 
-      // 检测上方流动性扫荡：最高价突破极值点但收盘价收回
-      if (high > extreme * 1.001 && close < extreme) {
-        detected = true;
-        type = 'LIQUIDITY_SWEEP_UP';
-        level = extreme;
-        confidence = Math.min((high - extreme) / (currentATR || 1), 1);
-        break;
+      // 检测上方流动性扫荡：最高价突破极值点
+      if (high > extreme) {
+        // 检查是否在后续K线中收回（包括同一根K线）
+        let barsToReturn = 0;
+        for (let j = i; j < recentBars.length; j++) {
+          if (j > i) barsToReturn++; // 只有在后续K线中才计数
+          if (parseFloat(recentBars[j][4]) < extreme) {
+            // 计算扫荡速率：刺破幅度 ÷ bar数
+            const exceed = high - extreme;
+            const sweepSpeed = barsToReturn > 0 ? exceed / barsToReturn : exceed; // 如果是同一根K线，直接使用exceed
+            
+            // 调试信息
+            logger.info(`ICT HTF Sweep调试 - 突破幅度: ${exceed}, barsToReturn: ${barsToReturn}, sweepSpeed: ${sweepSpeed}, 阈值: ${0.4 * currentATR}`);
+            
+            // 检查是否满足条件：sweep速率 ≥ 0.4 × ATR 且 bars数 ≤ 2
+            if (sweepSpeed >= 0.4 * currentATR && barsToReturn <= 2) {
+              detected = true;
+              type = 'LIQUIDITY_SWEEP_UP';
+              level = extreme;
+              confidence = Math.min(sweepSpeed / (0.4 * currentATR), 1);
+              speed = sweepSpeed;
+              break;
+            }
+          }
+        }
+        if (detected) break;
       }
 
-      // 检测下方流动性扫荡：最低价跌破极值点但收盘价收回
-      if (low < extreme * 0.999 && close > extreme) {
-        detected = true;
-        type = 'LIQUIDITY_SWEEP_DOWN';
-        level = extreme;
-        confidence = Math.min((extreme - low) / (currentATR || 1), 1);
-        break;
+      // 检测下方流动性扫荡：最低价跌破极值点
+      if (low < extreme) {
+        // 检查是否在后续K线中收回（包括同一根K线）
+        let barsToReturn = 0;
+        for (let j = i; j < recentBars.length; j++) {
+          if (j > i) barsToReturn++; // 只有在后续K线中才计数
+          if (parseFloat(recentBars[j][4]) > extreme) {
+            // 计算扫荡速率：刺破幅度 ÷ bar数
+            const exceed = extreme - low;
+            const sweepSpeed = barsToReturn > 0 ? exceed / barsToReturn : exceed; // 如果是同一根K线，直接使用exceed
+            
+            // 检查是否满足条件：sweep速率 ≥ 0.4 × ATR 且 bars数 ≤ 2
+            if (sweepSpeed >= 0.4 * currentATR && barsToReturn <= 2) {
+              detected = true;
+              type = 'LIQUIDITY_SWEEP_DOWN';
+              level = extreme;
+              confidence = Math.min(sweepSpeed / (0.4 * currentATR), 1);
+              speed = sweepSpeed;
+              break;
+            }
+          }
+        }
+        if (detected) break;
       }
     }
-
-    // 计算扫荡速率
-    const speed = detected ? confidence * (currentATR || 1) : 0;
 
     return { detected, type, level, confidence, speed };
   }
@@ -235,7 +269,9 @@ class ICTStrategy {
 
   /**
    * 检测LTF Sweep（低时间框架流动性扫荡）
+   * 按照ICT文档：sweep发生在≤3根15m内收回，sweep幅度÷bar数≥0.2×ATR(15m)
    * @param {Array} klines - K线数据
+   * @param {number} atr15 - 15分钟ATR值
    * @returns {Object} LTF Sweep检测结果
    */
   detectSweepLTF(klines, atr15) {
@@ -243,15 +279,14 @@ class ICTStrategy {
       return { detected: false, type: null, level: 0, confidence: 0, speed: 0 };
     }
 
-    const recentKlines = klines.slice(-5);
     const currentATR = atr15 || 0;
+    const recentBars = klines.slice(-5); // 最近5根K线，最多检查3根
 
     // 寻找最近的高点和低点
     let highestHigh = 0;
     let lowestLow = Infinity;
 
-    recentKlines.forEach(kline => {
-      // 使用数组格式（Binance API返回的格式）
+    recentBars.forEach(kline => {
       const high = parseFloat(kline[2]); // 最高价
       const low = parseFloat(kline[3]);   // 最低价
       highestHigh = Math.max(highestHigh, high);
@@ -262,35 +297,64 @@ class ICTStrategy {
     let type = null;
     let level = 0;
     let confidence = 0;
+    let speed = 0;
 
     // 检查最近3根K线是否有突破极值点的情况
-    const checkKlines = klines.slice(-3);
-    for (const kline of checkKlines) {
-      const high = parseFloat(kline[2]);
-      const low = parseFloat(kline[3]);
-      const close = parseFloat(kline[4]);
+    for (let i = 0; i < Math.min(3, recentBars.length); i++) {
+      const bar = recentBars[i];
+      const high = parseFloat(bar[2]);
+      const low = parseFloat(bar[3]);
 
-      // 检测上方流动性扫荡：最高价突破极值点但收盘价收回
-      if (high > highestHigh * 1.002 && close < highestHigh) {
-        detected = true;
-        type = 'LTF_SWEEP_UP';
-        level = highestHigh;
-        confidence = Math.min((high - highestHigh) / (currentATR || 1), 1);
-        break;
+      // 检测上方流动性扫荡：最高价突破极值点
+      if (high > highestHigh) {
+        // 检查是否在后续K线中收回
+        let barsToReturn = 0;
+        for (let j = i + 1; j < recentBars.length; j++) {
+          barsToReturn++;
+          if (parseFloat(recentBars[j][4]) < highestHigh) {
+            // 计算扫荡速率：刺破幅度 ÷ bar数
+            const exceed = high - highestHigh;
+            const sweepSpeed = exceed / barsToReturn;
+            
+            // 检查是否满足条件：sweep速率 ≥ 0.2 × ATR 且 bars数 ≤ 3
+            if (sweepSpeed >= 0.2 * currentATR && barsToReturn <= 3) {
+              detected = true;
+              type = 'LTF_SWEEP_UP';
+              level = highestHigh;
+              confidence = Math.min(sweepSpeed / (0.2 * currentATR), 1);
+              speed = sweepSpeed;
+              break;
+            }
+          }
+        }
+        if (detected) break;
       }
 
-      // 检测下方流动性扫荡：最低价跌破极值点但收盘价收回
-      if (low < lowestLow * 0.998 && close > lowestLow) {
-        detected = true;
-        type = 'LTF_SWEEP_DOWN';
-        level = lowestLow;
-        confidence = Math.min((lowestLow - low) / (currentATR || 1), 1);
-        break;
+      // 检测下方流动性扫荡：最低价跌破极值点
+      if (low < lowestLow) {
+        // 检查是否在后续K线中收回
+        let barsToReturn = 0;
+        for (let j = i + 1; j < recentBars.length; j++) {
+          barsToReturn++;
+          if (parseFloat(recentBars[j][4]) > lowestLow) {
+            // 计算扫荡速率：刺破幅度 ÷ bar数
+            const exceed = lowestLow - low;
+            const sweepSpeed = exceed / barsToReturn;
+            
+            // 检查是否满足条件：sweep速率 ≥ 0.2 × ATR 且 bars数 ≤ 3
+            if (sweepSpeed >= 0.2 * currentATR && barsToReturn <= 3) {
+              detected = true;
+              type = 'LTF_SWEEP_DOWN';
+              level = lowestLow;
+              confidence = Math.min(sweepSpeed / (0.2 * currentATR), 1);
+              speed = sweepSpeed;
+              break;
+            }
+          }
+        }
+        if (detected) break;
       }
     }
-
-    // 计算扫荡速率
-    const speed = detected ? confidence * (currentATR || 1) : 0;
 
     return { detected, type, level, confidence, speed };
   }
