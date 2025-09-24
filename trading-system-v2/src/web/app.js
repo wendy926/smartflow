@@ -137,9 +137,6 @@ class SmartFlowApp {
 
     this.currentStrategy = strategyName;
     this.loadStrategyData();
-
-    // 加载当前策略的交易记录
-    this.loadTradingRecords(strategyName);
   }
 
   /**
@@ -1069,7 +1066,7 @@ class SmartFlowApp {
 
     // 加载统计数据
     await this.loadStrategyStatistics();
-    
+
     // 加载交易记录数据
     await this.loadTradingRecords(this.currentStrategy);
   }
