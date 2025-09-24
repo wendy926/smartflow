@@ -353,17 +353,23 @@ class V3Strategy {
       }
 
       // 按照文档计算杠杆和保证金
-      const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+      // 止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
+      const isLong = signal === 'BUY';
+      const stopLossDistance = isLong 
+        ? (entryPrice - stopLoss) / entryPrice  // 多头
+        : (stopLoss - entryPrice) / entryPrice; // 空头
+      const stopLossDistanceAbs = Math.abs(stopLossDistance);
+      
       const maxLossAmount = 100; // 默认最大损失金额
-
+      
       // 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
-      const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+      const maxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
       
       // 使用计算出的最大杠杆数
       leverage = maxLeverage;
-
+      
       // 保证金Z：M/(Y*X%) 数值向上取整
-      const margin = stopLossDistance > 0 ? Math.ceil(maxLossAmount / (leverage * stopLossDistance)) : 0;
+      const margin = stopLossDistanceAbs > 0 ? Math.ceil(maxLossAmount / (leverage * stopLossDistanceAbs)) : 0;
 
       return {
         entryPrice: parseFloat(entryPrice.toFixed(4)),

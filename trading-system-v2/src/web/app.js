@@ -869,14 +869,18 @@ class SmartFlowApp {
 
     if (entryPrice === 0 || stopLoss === 0) return '--';
 
-    // 计算止损距离X%
-    const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+    // 计算止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
+    const isLong = entryPrice < stopLoss; // 如果入场价格 < 止损价格，说明是空头
+    const stopLossDistance = isLong 
+      ? (entryPrice - stopLoss) / entryPrice  // 多头
+      : (stopLoss - entryPrice) / entryPrice; // 空头
+    const stopLossDistanceAbs = Math.abs(stopLossDistance);
 
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
-    const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+    const maxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
 
     // 计算保证金Z：M/(Y*X%) 数值向上取整
-    const margin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
+    const margin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistanceAbs));
 
     return `
       <div class="leverage-info">
@@ -886,7 +890,7 @@ class SmartFlowApp {
         </div>
         <div class="leverage-item">
           <span class="leverage-label">止损距离:</span>
-          <span class="leverage-value">${(stopLossDistance * 100).toFixed(2)}%</span>
+          <span class="leverage-value">${(stopLossDistanceAbs * 100).toFixed(2)}%</span>
         </div>
         <div class="leverage-item">
           <span class="leverage-label">建议杠杆:</span>
@@ -911,18 +915,22 @@ class SmartFlowApp {
 
     if (entryPrice === 0 || stopLoss === 0) return '--';
 
-    // 计算止损距离X%
-    const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+    // 计算止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
+    const isLong = entryPrice < stopLoss; // 如果入场价格 < 止损价格，说明是空头
+    const stopLossDistance = isLong 
+      ? (entryPrice - stopLoss) / entryPrice  // 多头
+      : (stopLoss - entryPrice) / entryPrice; // 空头
+    const stopLossDistanceAbs = Math.abs(stopLossDistance);
 
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
-    const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+    const maxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
 
     // 计算最小保证金Z：M/(Y*X%) 数值向上取整
-    const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistance));
+    const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistanceAbs));
 
     // 计算实际保证金：基于最大杠杆数
     const suggestedLeverage = maxLeverage;
-    const actualMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistance));
+    const actualMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistanceAbs));
 
     return `
       <div class="margin-info">
@@ -1659,11 +1667,15 @@ class SmartFlowApp {
 
     if (entryPrice === 0 || stopLoss === 0) return '--';
 
-    // 计算止损距离X%
-    const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+    // 计算止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
+    const isLong = entryPrice < stopLoss; // 如果入场价格 < 止损价格，说明是空头
+    const stopLossDistance = isLong 
+      ? (entryPrice - stopLoss) / entryPrice  // 多头
+      : (stopLoss - entryPrice) / entryPrice; // 空头
+    const stopLossDistanceAbs = Math.abs(stopLossDistance);
 
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
-    const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+    const maxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
 
     // 使用计算出的最大杠杆数
     const suggestedLeverage = maxLeverage;
@@ -1685,17 +1697,21 @@ class SmartFlowApp {
 
     if (entryPrice === 0 || stopLoss === 0) return '--';
 
-    // 计算止损距离X%
-    const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+    // 计算止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
+    const isLong = entryPrice < stopLoss; // 如果入场价格 < 止损价格，说明是空头
+    const stopLossDistance = isLong 
+      ? (entryPrice - stopLoss) / entryPrice  // 多头
+      : (stopLoss - entryPrice) / entryPrice; // 空头
+    const stopLossDistanceAbs = Math.abs(stopLossDistance);
 
     // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
-    const maxLeverage = Math.floor(1 / (stopLossDistance + 0.005));
+    const maxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
 
     // 使用计算出的最大杠杆数
     const suggestedLeverage = maxLeverage;
 
     // 计算建议保证金：M/(Y*X%) 数值向上取整
-    const suggestedMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistance));
+    const suggestedMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistanceAbs));
 
     return `$${suggestedMargin.toFixed(2)}`;
   }
@@ -1832,7 +1848,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-      result.innerHTML = `
+  result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">
