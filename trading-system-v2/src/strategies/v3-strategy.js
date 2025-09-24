@@ -274,8 +274,8 @@ class V3Strategy {
   calculate15MScore(ema20, adx, bbw, vwap, delta) {
     let score = 0;
 
-    // EMA20有效性 (1分)
-    if (ema20 && ema20 > 0) score += 1;
+    // EMA20有效性 (1分) - 允许0值
+    if (ema20 !== null && ema20 !== undefined && ema20 >= 0) score += 1;
 
     // ADX强度 (1分)
     if (adx && adx > 20) score += 1;
@@ -283,8 +283,8 @@ class V3Strategy {
     // 布林带收窄 (1分)
     if (bbw && bbw < 0.1) score += 1;
 
-    // VWAP有效性 (1分)
-    if (vwap && vwap > 0) score += 1;
+    // VWAP有效性 (1分) - 允许0值
+    if (vwap !== null && vwap !== undefined && vwap >= 0) score += 1;
 
     // Delta确认 (1分)
     if (delta && Math.abs(delta) > 0.1) score += 1;
