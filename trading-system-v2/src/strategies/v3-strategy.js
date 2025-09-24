@@ -471,7 +471,10 @@ class V3Strategy {
    * @returns {string} 入场信号
    */
   determineEntrySignal(currentPrice, ema20, adx, bbw, vwap, fundingRate, oiChange, delta) {
-    if (!ema20 || !adx || !bbw || !vwap) return 'HOLD';
+    if (ema20 === null || ema20 === undefined || adx === null || adx === undefined || 
+        bbw === null || bbw === undefined || vwap === null || vwap === undefined) {
+      return 'HOLD';
+    }
 
     // 基础条件检查
     const isTrending = adx > 15;
