@@ -139,6 +139,9 @@ class V3Strategy {
       );
       const bbw = TechnicalIndicators.calculateBBW(prices);
       const vwap = TechnicalIndicators.calculateVWAP(klines);
+      
+      // 调试信息
+      logger.info(`V3 1H技术指标 - VWAP: ${vwap}, ADX: ${adx?.adx}, BBW: ${bbw?.bbw}`);
 
       // 计算持仓量变化（6小时OI变化）
       const oiChange = data.oiHistory && data.oiHistory.length > 0 ?
