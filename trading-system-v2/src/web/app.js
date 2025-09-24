@@ -122,6 +122,14 @@ class SmartFlowApp {
         this.refreshStrategyStatusTable();
       });
     }
+
+    // 宏观监控刷新按钮
+    const refreshMacroDataBtn = document.getElementById('refreshMacroData');
+    if (refreshMacroDataBtn) {
+      refreshMacroDataBtn.addEventListener('click', () => {
+        this.loadMacroMonitoringData();
+      });
+    }
   }
 
   /**
@@ -210,6 +218,9 @@ class SmartFlowApp {
    */
   async loadDashboardData() {
     try {
+      // 加载宏观监控数据
+      await this.loadMacroMonitoringData();
+
       // 加载交易对数据
       const symbols = await this.fetchData('/symbols');
       await this.renderSymbolsTable(symbols.data || []);
@@ -225,6 +236,180 @@ class SmartFlowApp {
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       this.showError('加载仪表板数据失败');
+    }
+  }
+
+  /**
+   * 加载宏观监控数据
+   */
+  async loadMacroMonitoringData() {
+    try {
+      const response = await this.fetchData('/macro-monitor/overview');
+      const data = response.data;
+
+      if (data) {
+        this.updateMacroCards(data);
+      }
+    } catch (error) {
+      console.error('Error loading macro monitoring data:', error);
+      // 显示默认状态
+      this.updateMacroCards({
+        fundFlow: { latest: [], count: 0 },
+        sentiment: { latest: [], current: null, count: 0 },
+        futures: { latest: [], count: 0 },
+        macro: { latest: [], current: { fedFunds: null, cpi: null }, count: 0 }
+      });
+    }
+  }
+
+  /**
+   * 更新宏观监控卡片
+   */
+  updateMacroCards(data) {
+    // 更新资金流监控卡片
+    this.updateFundFlowCard(data.fundFlow);
+
+    // 更新市场情绪卡片
+    this.updateSentimentCard(data.sentiment);
+
+    // 更新合约市场卡片
+    this.updateFuturesCard(data.futures);
+
+    // 更新宏观指标卡片
+    this.updateMacroCard(data.macro);
+  }
+
+  /**
+   * 更新资金流监控卡片
+   */
+  updateFundFlowCard(fundFlowData) {
+    const btcElement = document.getElementById('btcLargeTx');
+    const ethElement = document.getElementById('ethLargeTx');
+    const statusElement = document.getElementById('fundFlowStatus');
+
+    if (fundFlowData.latest && fundFlowData.latest.length > 0) {
+      // 获取最新的BTC和ETH数据
+      const btcData = fundFlowData.latest.find(item => item.metric_name === 'BTC大额交易');
+      const ethData = fundFlowData.latest.find(item => item.metric_name === 'ETH大额转账');
+
+      if (btcData) {
+        btcElement.textContent = `$${parseFloat(btcData.metric_value).toLocaleString()}`;
+      }
+
+      if (ethData) {
+        ethElement.textContent = `${parseFloat(ethData.metric_value).toFixed(2)} ETH`;
+      }
+
+      // 检查告警状态
+      const hasAlerts = fundFlowData.latest.some(item => item.alert_level === 'CRITICAL');
+      if (hasAlerts) {
+        statusElement.innerHTML = '<span class="status-indicator status-critical">告警</span>';
+      } else {
+        statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
+      }
+    } else {
+      btcElement.textContent = '--';
+      ethElement.textContent = '--';
+      statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
+    }
+  }
+
+  /**
+   * 更新市场情绪卡片
+   */
+  updateSentimentCard(sentimentData) {
+    const indexElement = document.getElementById('fearGreedIndex');
+    const stateElement = document.getElementById('sentimentState');
+    const statusElement = document.getElementById('sentimentStatus');
+
+    if (sentimentData.current) {
+      const value = sentimentData.current.value;
+      const classification = sentimentData.current.classification;
+
+      indexElement.textContent = value;
+      stateElement.textContent = classification;
+
+      // 根据指数值设置状态
+      if (value < 20) {
+        statusElement.innerHTML = '<span class="status-indicator status-warning">极度恐惧</span>';
+      } else if (value > 80) {
+        statusElement.innerHTML = '<span class="status-indicator status-warning">极度贪婪</span>';
+      } else {
+        statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
+      }
+    } else {
+      indexElement.textContent = '--';
+      stateElement.textContent = '--';
+      statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
+    }
+  }
+
+  /**
+   * 更新合约市场卡片
+   */
+  updateFuturesCard(futuresData) {
+    const ratioElement = document.getElementById('longShortRatio');
+    const fundingElement = document.getElementById('fundingRate');
+    const statusElement = document.getElementById('futuresStatus');
+
+    if (futuresData.latest && futuresData.latest.length > 0) {
+      // 获取最新的多空比和资金费率数据
+      const ratioData = futuresData.latest.find(item => item.metric_name === '多空比');
+      const fundingData = futuresData.latest.find(item => item.metric_name === '资金费率');
+
+      if (ratioData) {
+        ratioElement.textContent = parseFloat(ratioData.metric_value).toFixed(2);
+      }
+
+      if (fundingData) {
+        const rate = parseFloat(fundingData.metric_value) * 100;
+        fundingElement.textContent = `${rate.toFixed(4)}%`;
+      }
+
+      // 检查告警状态
+      const hasAlerts = futuresData.latest.some(item => item.alert_level === 'WARNING' || item.alert_level === 'CRITICAL');
+      if (hasAlerts) {
+        statusElement.innerHTML = '<span class="status-indicator status-warning">告警</span>';
+      } else {
+        statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
+      }
+    } else {
+      ratioElement.textContent = '--';
+      fundingElement.textContent = '--';
+      statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
+    }
+  }
+
+  /**
+   * 更新宏观指标卡片
+   */
+  updateMacroCard(macroData) {
+    const fedElement = document.getElementById('fedFundsRate');
+    const cpiElement = document.getElementById('cpiRate');
+    const statusElement = document.getElementById('macroStatus');
+
+    if (macroData.current) {
+      if (macroData.current.fedFunds) {
+        fedElement.textContent = `${macroData.current.fedFunds.value}%`;
+      }
+
+      if (macroData.current.cpi) {
+        cpiElement.textContent = `${macroData.current.cpi.value.toFixed(2)}%`;
+      }
+
+      // 检查告警状态
+      const hasAlerts = macroData.latest && macroData.latest.some(item =>
+        item.alert_level === 'WARNING' || item.alert_level === 'CRITICAL'
+      );
+      if (hasAlerts) {
+        statusElement.innerHTML = '<span class="status-indicator status-warning">告警</span>';
+      } else {
+        statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
+      }
+    } else {
+      fedElement.textContent = '--';
+      cpiElement.textContent = '--';
+      statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
     }
   }
 
@@ -444,7 +629,7 @@ class SmartFlowApp {
       // 2. 如果没有历史交易记录但信号为入场，使用实时计算数据
       // 3. 如果信号为观望，显示"--"
       let v3EntryPrice, v3StopLoss, v3TakeProfit, v3Leverage, v3Margin;
-      
+
       if (v3SignalText === '入场') {
         if (v3Trade) {
           // 使用历史交易记录中的静态数据
@@ -499,7 +684,7 @@ class SmartFlowApp {
       // 2. 如果没有历史交易记录但信号为入场，使用实时计算数据
       // 3. 如果信号为观望，显示"--"
       let ictEntryPrice, ictStopLoss, ictTakeProfit, ictLeverage, ictMargin;
-      
+
       if (ictSignalText === '入场') {
         if (ictTrade) {
           // 使用历史交易记录中的静态数据
@@ -2537,6 +2722,70 @@ async function testMonitoringTelegram() {
     }
   } catch (error) {
     console.error('测试系统监控Telegram失败:', error);
+    alert('测试失败: ' + error.message);
+  }
+}
+
+// 保存宏观监控Telegram设置
+async function saveMacroTelegramSettings() {
+  const botToken = document.getElementById('macroTelegramBotToken').value;
+  const chatId = document.getElementById('macroTelegramChatId').value;
+  const btcThreshold = document.getElementById('btcThreshold').value;
+  const ethThreshold = document.getElementById('ethThreshold').value;
+  const fearGreedLow = document.getElementById('fearGreedLow').value;
+  const fearGreedHigh = document.getElementById('fearGreedHigh').value;
+
+  if (!botToken || !chatId) {
+    alert('请填写完整的宏观监控Telegram配置信息');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/v1/telegram/macro-config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        botToken,
+        chatId,
+        btcThreshold: parseFloat(btcThreshold) || 10000000,
+        ethThreshold: parseFloat(ethThreshold) || 1000,
+        fearGreedLow: parseFloat(fearGreedLow) || 20,
+        fearGreedHigh: parseFloat(fearGreedHigh) || 80
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert('宏观监控Telegram设置保存成功');
+      loadTelegramStatus();
+    } else {
+      alert('保存失败: ' + result.error);
+    }
+  } catch (error) {
+    console.error('保存宏观监控Telegram设置失败:', error);
+    alert('保存失败: ' + error.message);
+  }
+}
+
+// 测试宏观监控Telegram
+async function testMacroTelegram() {
+  try {
+    const response = await fetch('/api/v1/telegram/test-macro', {
+      method: 'POST'
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert('宏观监控Telegram测试成功！请检查Telegram消息。');
+    } else {
+      alert('测试失败: ' + result.error);
+    }
+  } catch (error) {
+    console.error('测试宏观监控Telegram失败:', error);
     alert('测试失败: ' + error.message);
   }
 }

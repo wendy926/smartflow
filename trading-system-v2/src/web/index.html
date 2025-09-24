@@ -63,6 +63,127 @@
           </div>
         </div>
 
+        <!-- 宏观监控数据卡片 -->
+        <div class="macro-monitoring-section">
+          <div class="card">
+            <div class="card-header">
+              <h3>宏观数据监控</h3>
+              <div class="card-actions">
+                <button class="btn btn-secondary" id="refreshMacroData">
+                  <i class="fas fa-sync-alt"></i>
+                  刷新
+                </button>
+              </div>
+            </div>
+            <div class="card-content">
+              <div class="macro-cards-grid">
+                <!-- 资金流监控卡片 -->
+                <div class="macro-card" id="fundFlowCard">
+                  <div class="macro-card-header">
+                    <div class="macro-card-icon">
+                      <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="macro-card-title">
+                      <h4>资金流监控</h4>
+                      <span class="macro-card-subtitle">链上大额资金流</span>
+                    </div>
+                  </div>
+                  <div class="macro-card-content">
+                    <div class="macro-metric">
+                      <span class="macro-metric-label">BTC大额交易</span>
+                      <span class="macro-metric-value" id="btcLargeTx">--</span>
+                    </div>
+                    <div class="macro-metric">
+                      <span class="macro-metric-label">ETH大额转账</span>
+                      <span class="macro-metric-value" id="ethLargeTx">--</span>
+                    </div>
+                    <div class="macro-status" id="fundFlowStatus">
+                      <span class="status-indicator status-normal">正常</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 市场情绪监控卡片 -->
+                <div class="macro-card" id="sentimentCard">
+                  <div class="macro-card-header">
+                    <div class="macro-card-icon">
+                      <i class="fas fa-brain"></i>
+                    </div>
+                    <div class="macro-card-title">
+                      <h4>市场情绪</h4>
+                      <span class="macro-card-subtitle">恐惧贪婪指数</span>
+                    </div>
+                  </div>
+                  <div class="macro-card-content">
+                    <div class="macro-metric">
+                      <span class="macro-metric-label">当前指数</span>
+                      <span class="macro-metric-value" id="fearGreedIndex">--</span>
+                    </div>
+                    <div class="macro-metric">
+                      <span class="macro-metric-label">情绪状态</span>
+                      <span class="macro-metric-value" id="sentimentState">--</span>
+                    </div>
+                    <div class="macro-status" id="sentimentStatus">
+                      <span class="status-indicator status-normal">正常</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 合约市场监控卡片 -->
+                <div class="macro-card" id="futuresCard">
+                  <div class="macro-card-header">
+                    <div class="macro-card-icon">
+                      <i class="fas fa-chart-area"></i>
+                    </div>
+                    <div class="macro-card-title">
+                      <h4>合约市场</h4>
+                      <span class="macro-card-subtitle">多空比 & 资金费率</span>
+                    </div>
+                  </div>
+                  <div class="macro-card-content">
+                    <div class="macro-metric">
+                      <span class="macro-metric-label">多空比</span>
+                      <span class="macro-metric-value" id="longShortRatio">--</span>
+                    </div>
+                    <div class="macro-metric">
+                      <span class="macro-metric-label">资金费率</span>
+                      <span class="macro-metric-value" id="fundingRate">--</span>
+                    </div>
+                    <div class="macro-status" id="futuresStatus">
+                      <span class="status-indicator status-normal">正常</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 宏观指标监控卡片 -->
+                <div class="macro-card" id="macroCard">
+                  <div class="macro-card-header">
+                    <div class="macro-card-icon">
+                      <i class="fas fa-globe-americas"></i>
+                    </div>
+                    <div class="macro-card-title">
+                      <h4>宏观指标</h4>
+                      <span class="macro-card-subtitle">利率 & 通胀率</span>
+                    </div>
+                  </div>
+                  <div class="macro-card-content">
+                    <div class="macro-metric">
+                      <span class="macro-metric-label">美联储利率</span>
+                      <span class="macro-metric-value" id="fedFundsRate">--</span>
+                    </div>
+                    <div class="macro-metric">
+                      <span class="macro-metric-label">CPI通胀率</span>
+                      <span class="macro-metric-value" id="cpiRate">--</span>
+                    </div>
+                    <div class="macro-status" id="macroStatus">
+                      <span class="status-indicator status-normal">正常</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- 策略当前状态表格 -->
         <div class="card">
@@ -607,6 +728,48 @@
                   </div>
                   <div class="telegram-status" id="monitoringTelegramStatus">
                     <!-- 状态将通过JavaScript动态加载 -->
+                  </div>
+                </div>
+
+                <!-- 宏观数据监控Telegram设置 -->
+                <div class="telegram-section">
+                  <h4>宏观数据监控告警</h4>
+                  <div class="form-group">
+                    <label>Bot Token</label>
+                    <input type="text" id="macroTelegramBotToken" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                      class="form-input">
+                  </div>
+                  <div class="form-group">
+                    <label>Chat ID</label>
+                    <input type="text" id="macroTelegramChatId" placeholder="123456789" class="form-input">
+                  </div>
+                  <div class="form-group">
+                    <label>告警阈值设置</label>
+                    <div class="threshold-settings">
+                      <div class="threshold-item">
+                        <label>BTC大额转账阈值 (USD)</label>
+                        <input type="number" id="btcThreshold" placeholder="10000000" class="form-input">
+                      </div>
+                      <div class="threshold-item">
+                        <label>ETH大额转账阈值 (ETH)</label>
+                        <input type="number" id="ethThreshold" placeholder="1000" class="form-input">
+                      </div>
+                      <div class="threshold-item">
+                        <label>恐惧贪婪指数低阈值</label>
+                        <input type="number" id="fearGreedLow" placeholder="20" class="form-input">
+                      </div>
+                      <div class="threshold-item">
+                        <label>恐惧贪婪指数高阈值</label>
+                        <input type="number" id="fearGreedHigh" placeholder="80" class="form-input">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <button class="btn btn-primary" onclick="saveMacroTelegramSettings()">保存设置</button>
+                    <button class="btn btn-secondary" onclick="testMacroTelegram()">测试连接</button>
+                  </div>
+                  <div class="telegram-status" id="macroTelegramStatus">
+                    <!-- 状态信息将显示在这里 -->
                   </div>
                 </div>
               </div>

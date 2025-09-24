@@ -16,12 +16,14 @@ const database = require('./database/connection');
 const cache = require('./cache/redis');
 const monitoring = require('./monitoring/resource-monitor');
 const DataUpdater = require('./services/data-updater');
+const MacroMonitorController = require('./services/macro-monitor/macro-monitor-controller');
 
 class TradingSystemApp {
   constructor() {
     this.app = express();
     this.port = process.env.PORT || 3000;
     this.dataUpdater = null;
+    this.macroMonitor = null;
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -59,6 +61,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/symbols', require('./api/routes/symbols'));
     this.app.use('/api/v1/trades', require('./api/routes/trades'));
     this.app.use('/api/v1/monitoring', require('./api/routes/monitoring'));
+    this.app.use('/api/v1/macro-monitor', require('./api/routes/macro-monitor'));
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
@@ -121,6 +124,12 @@ class TradingSystemApp {
       monitoring.start();
       logger.info('Resource monitoring started');
 
+      // 初始化宏观监控
+      this.macroMonitor = new MacroMonitorController(database, cache);
+      this.app.set('macroMonitor', this.macroMonitor);
+      await this.macroMonitor.start();
+      logger.info('Macro monitoring started');
+
       // 暂时禁用数据更新服务以避免连接池问题
       // this.dataUpdater = new DataUpdater(database, cache);
       // this.dataUpdater.start();
@@ -146,6 +155,11 @@ class TradingSystemApp {
       // 停止数据更新服务
       if (this.dataUpdater) {
         this.dataUpdater.stop();
+      }
+
+      // 停止宏观监控
+      if (this.macroMonitor) {
+        await this.macroMonitor.stop();
       }
 
       // 停止监控
