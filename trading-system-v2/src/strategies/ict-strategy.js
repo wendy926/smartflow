@@ -153,54 +153,42 @@ class ICTStrategy {
    */
   detectSweepHTF(extreme, klines, atrValue) {
     if (!klines || klines.length < 3) {
-      return { detected: false, type: null, level: 0, confidence: 0 };
+      return { detected: false, type: null, level: 0, confidence: 0, speed: 0 };
     }
-
-    // 寻找最近的高点和低点
-    const recentKlines = klines.slice(-10);
-    let highestHigh = 0;
-    let lowestLow = Infinity;
-    let highestIndex = -1;
-    let lowestIndex = -1;
-
-    recentKlines.forEach((kline, index) => {
-      // 处理Binance API返回的K线数据格式
-      const high = parseFloat(kline[2]); // 最高价
-      const low = parseFloat(kline[3]);   // 最低价
-
-      if (high > highestHigh) {
-        highestHigh = high;
-        highestIndex = index;
-      }
-      if (low < lowestLow) {
-        lowestLow = low;
-        lowestIndex = index;
-      }
-    });
 
     const currentPrice = parseFloat(klines[klines.length - 1][4]); // 收盘价
     const currentATR = atrValue || 0;
 
-    // 检测流动性扫荡
+    // 检测流动性扫荡 - 检查价格是否在最近2根K线内突破了极值点
     let detected = false;
     let type = null;
     let level = 0;
     let confidence = 0;
 
-    // 检测上方流动性扫荡：价格突破极值点（降低阈值）
-    if (currentPrice > extreme * 1.001) {
-      detected = true;
-      type = 'LIQUIDITY_SWEEP_UP';
-      level = extreme;
-      confidence = Math.min((currentPrice - extreme) / (currentATR || 1), 1);
-    }
+    // 检查最近2根K线是否有突破极值点的情况
+    const recentKlines = klines.slice(-2);
+    for (const kline of recentKlines) {
+      const high = parseFloat(kline[2]);
+      const low = parseFloat(kline[3]);
+      const close = parseFloat(kline[4]);
 
-    // 检测下方流动性扫荡：价格跌破极值点（降低阈值）
-    if (currentPrice < extreme * 0.999) {
-      detected = true;
-      type = 'LIQUIDITY_SWEEP_DOWN';
-      level = extreme;
-      confidence = Math.min((extreme - currentPrice) / (currentATR || 1), 1);
+      // 检测上方流动性扫荡：最高价突破极值点但收盘价收回
+      if (high > extreme * 1.001 && close < extreme) {
+        detected = true;
+        type = 'LIQUIDITY_SWEEP_UP';
+        level = extreme;
+        confidence = Math.min((high - extreme) / (currentATR || 1), 1);
+        break;
+      }
+
+      // 检测下方流动性扫荡：最低价跌破极值点但收盘价收回
+      if (low < extreme * 0.999 && close > extreme) {
+        detected = true;
+        type = 'LIQUIDITY_SWEEP_DOWN';
+        level = extreme;
+        confidence = Math.min((extreme - low) / (currentATR || 1), 1);
+        break;
+      }
     }
 
     // 计算扫荡速率
@@ -252,11 +240,11 @@ class ICTStrategy {
    */
   detectSweepLTF(klines, atr15) {
     if (!klines || klines.length < 5) {
-      return { detected: false, type: null, level: 0, confidence: 0 };
+      return { detected: false, type: null, level: 0, confidence: 0, speed: 0 };
     }
 
     const recentKlines = klines.slice(-5);
-    const currentPrice = parseFloat(klines[klines.length - 1][4]); // 收盘价
+    const currentATR = atr15 || 0;
 
     // 寻找最近的高点和低点
     let highestHigh = 0;
@@ -270,27 +258,35 @@ class ICTStrategy {
       lowestLow = Math.min(lowestLow, low);
     });
 
-    const currentATR = atr15 || 0;
-
     let detected = false;
     let type = null;
     let level = 0;
     let confidence = 0;
 
-    // 检测上方流动性扫荡（需要明显突破）
-    if (currentPrice > highestHigh * 1.002) {
-      detected = true;
-      type = 'LTF_SWEEP_UP';
-      level = highestHigh;
-      confidence = Math.min((currentPrice - highestHigh) / (currentATR || 1), 1);
-    }
+    // 检查最近3根K线是否有突破极值点的情况
+    const checkKlines = klines.slice(-3);
+    for (const kline of checkKlines) {
+      const high = parseFloat(kline[2]);
+      const low = parseFloat(kline[3]);
+      const close = parseFloat(kline[4]);
 
-    // 检测下方流动性扫荡（需要明显跌破）
-    if (currentPrice < lowestLow * 0.998) {
-      detected = true;
-      type = 'LTF_SWEEP_DOWN';
-      level = lowestLow;
-      confidence = Math.min((lowestLow - currentPrice) / (currentATR || 1), 1);
+      // 检测上方流动性扫荡：最高价突破极值点但收盘价收回
+      if (high > highestHigh * 1.002 && close < highestHigh) {
+        detected = true;
+        type = 'LTF_SWEEP_UP';
+        level = highestHigh;
+        confidence = Math.min((high - highestHigh) / (currentATR || 1), 1);
+        break;
+      }
+
+      // 检测下方流动性扫荡：最低价跌破极值点但收盘价收回
+      if (low < lowestLow * 0.998 && close > lowestLow) {
+        detected = true;
+        type = 'LTF_SWEEP_DOWN';
+        level = lowestLow;
+        confidence = Math.min((lowestLow - low) / (currentATR || 1), 1);
+        break;
+      }
     }
 
     // 计算扫荡速率
