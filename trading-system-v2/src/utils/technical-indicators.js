@@ -147,21 +147,28 @@ class TechnicalIndicators {
 
   /**
    * 计算VWAP (Volume Weighted Average Price)
-   * @param {Array} prices - 价格数组
-   * @param {Array} volumes - 成交量数组
+   * @param {Array} klines - K线数据数组，每个元素为 [openTime, open, high, low, close, volume, ...]
    * @returns {number} VWAP值
    */
-  static calculateVWAP(prices, volumes) {
-    if (prices.length !== volumes.length || prices.length === 0) {
+  static calculateVWAP(klines) {
+    if (!klines || klines.length === 0) {
       return null;
     }
 
     let totalVolumePrice = 0;
     let totalVolume = 0;
 
-    for (let i = 0; i < prices.length; i++) {
-      totalVolumePrice += prices[i] * volumes[i];
-      totalVolume += volumes[i];
+    for (const kline of klines) {
+      const high = parseFloat(kline[2]);
+      const low = parseFloat(kline[3]);
+      const close = parseFloat(kline[4]);
+      const volume = parseFloat(kline[5]);
+
+      // 使用典型价格 (high + low + close) / 3
+      const typicalPrice = (high + low + close) / 3;
+
+      totalVolumePrice += typicalPrice * volume;
+      totalVolume += volume;
     }
 
     return totalVolume > 0 ? totalVolumePrice / totalVolume : null;
@@ -170,18 +177,18 @@ class TechnicalIndicators {
   /**
    * 计算持仓量变化率
    * @param {Array} openInterest - 持仓量数组
-   * @param {number} period - 周期，默认24
+   * @param {number} period - 周期，默认6（6小时）
    * @returns {number} 持仓量变化率
    */
-  static calculateOIChange(openInterest, period = 24) {
+  static calculateOIChange(openInterest, period = 6) {
     if (openInterest.length < period + 1) {
-      return null;
+      return 0; // 数据不足时返回0而不是null
     }
 
     const current = openInterest[openInterest.length - 1];
     const previous = openInterest[openInterest.length - 1 - period];
 
-    return previous > 0 ? (current - previous) / previous : null;
+    return previous > 0 ? (current - previous) / previous : 0;
   }
 
   /**

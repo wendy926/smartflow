@@ -116,34 +116,21 @@ class BinanceAPI {
    * @param {number} limit - 数据条数
    * @returns {Promise<Array>} 持仓量历史
    */
-  async getOpenInterestHist(symbol, period = '5m', limit = 30) {
+  async getOpenInterestHist(symbol, period = '1h', limit = 6) {
     try {
       this.checkRateLimit();
 
-      // 使用openInterest API获取当前持仓量，然后模拟历史数据
-      const response = await axios.get(`${this.baseURL}/fapi/v1/openInterest`, {
+      // 使用真实的持仓量历史API
+      const response = await axios.get(`${this.baseURL}/futures/data/openInterestHist`, {
         params: {
-          symbol: symbol.toUpperCase()
+          symbol: symbol.toUpperCase(),
+          period: period,
+          limit: limit
         }
       });
 
-      const currentOI = parseFloat(response.data.openInterest);
-      const currentTime = response.data.time;
-
-      // 模拟历史数据（实际应用中应该使用真实的历史数据API）
-      const histData = [];
-      for (let i = limit - 1; i >= 0; i--) {
-        const time = currentTime - (i * 3600000); // 每小时一个数据点
-        const variation = (Math.random() - 0.5) * 0.1; // ±5%的随机变化
-        histData.push({
-          symbol: symbol.toUpperCase(),
-          sumOpenInterest: (currentOI * (1 + variation)).toString(),
-          time: time
-        });
-      }
-
-      logger.info(`获取持仓量历史成功: ${symbol} (模拟数据)`);
-      return histData;
+      logger.info(`获取持仓量历史数据成功: ${symbol} ${period} ${limit}条`);
+      return response.data;
     } catch (error) {
       logger.error(`获取持仓量历史失败: ${error.message}`);
       throw error;

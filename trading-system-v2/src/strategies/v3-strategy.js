@@ -40,7 +40,7 @@ class V3Strategy {
         prices
       );
       const bbw = TechnicalIndicators.calculateBBW(prices);
-      const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
+      const vwap = TechnicalIndicators.calculateVWAP(klines);
 
       // 判断趋势方向
       const currentPrice = prices[prices.length - 1];
@@ -134,11 +134,11 @@ class V3Strategy {
         prices
       );
       const bbw = TechnicalIndicators.calculateBBW(prices);
-      const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
+      const vwap = TechnicalIndicators.calculateVWAP(klines);
 
-      // 计算持仓量变化
+      // 计算持仓量变化（6小时OI变化）
       const oiChange = data.oiHistory && data.oiHistory.length > 0 ?
-        TechnicalIndicators.calculateOIChange(data.oiHistory.map(oi => parseFloat(oi.sumOpenInterest))) : 0;
+        TechnicalIndicators.calculateOIChange(data.oiHistory.map(oi => parseFloat(oi.sumOpenInterest)), 6) : 0;
 
       // 计算Delta（简化版本）
       const delta = this.calculateSimpleDelta(prices, volumes);
@@ -201,7 +201,7 @@ class V3Strategy {
         prices
       );
       const bbw = TechnicalIndicators.calculateBBW(prices);
-      const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
+      const vwap = TechnicalIndicators.calculateVWAP(klines);
 
       // 计算Delta（简化版本）
       const delta = this.calculateSimpleDelta(prices, volumes);
@@ -831,7 +831,7 @@ class V3Strategy {
         prices, 14
       );
       const bbw = TechnicalIndicators.calculateBBW(prices);
-      const vwap = TechnicalIndicators.calculateVWAP(prices, volumes);
+      const vwap = TechnicalIndicators.calculateVWAP(klines);
 
       // 入场信号判断
       let entry_signal = 'HOLD';
