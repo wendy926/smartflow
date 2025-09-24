@@ -337,7 +337,7 @@ class SmartFlowApp {
     if (statusData.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="10" style="text-align: center; color: #6c757d; padding: 2rem;">
+          <td colspan="13" style="text-align: center; color: #6c757d; padding: 2rem;">
             暂无策略状态数据
           </td>
         </tr>
@@ -354,12 +354,15 @@ class SmartFlowApp {
         <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
         <td><span class="strategy-badge v3">V3</span></td>
         <td><span class="signal-value signal-${v3Info.signal?.toLowerCase() || 'hold'}">${this.getSignalText(v3Info.signal)}</span></td>
-        <td><span class="trend-value trend-${v3Info.trend?.toLowerCase() || 'range'}">${this.getTrendText(v3Info.trend)}</span></td>
+        <td class="timeframe-cell">${this.formatV3Trend4H(v3Info.timeframes?.["4H"])}</td>
+        <td class="timeframe-cell">${this.formatV3Factors1H(v3Info.timeframes?.["1H"])}</td>
+        <td class="timeframe-cell">${this.formatV3Entry15m(v3Info.timeframes?.["15M"])}</td>
         <td><span class="score-badge score-${v3Info.score >= 80 ? 'high' : v3Info.score >= 60 ? 'medium' : 'low'}">${v3Info.score || '--'}</span></td>
         <td>${v3Info.entryPrice ? parseFloat(v3Info.entryPrice).toFixed(4) : '--'}</td>
+        <td>${v3Info.stopLoss ? parseFloat(v3Info.stopLoss).toFixed(4) : '--'}</td>
+        <td>${v3Info.takeProfit ? parseFloat(v3Info.takeProfit).toFixed(4) : '--'}</td>
         <td>${v3Info.leverage ? v3Info.leverage + 'x' : '--'}</td>
         <td>${v3Info.margin ? '$' + parseFloat(v3Info.margin).toFixed(2) : '--'}</td>
-        <td>${item.midTimeframePrice ? parseFloat(item.midTimeframePrice).toFixed(4) : '--'}</td>
       `;
       tbody.appendChild(v3Row);
 
@@ -371,15 +374,234 @@ class SmartFlowApp {
         <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
         <td><span class="strategy-badge ict">ICT</span></td>
         <td><span class="signal-value signal-${ictInfo.signal?.toLowerCase() || 'hold'}">${this.getSignalText(ictInfo.signal)}</span></td>
-        <td><span class="trend-value trend-${ictInfo.trend?.toLowerCase() || 'range'}">${this.getTrendText(ictInfo.trend)}</span></td>
+        <td class="timeframe-cell">${this.formatICTTrend1D(ictInfo.timeframes?.["1D"])}</td>
+        <td class="timeframe-cell">${this.formatICTOB4H(ictInfo.timeframes?.["4H"])}</td>
+        <td class="timeframe-cell">${this.formatICTEntry15m(ictInfo.timeframes?.["15M"])}</td>
         <td><span class="score-badge score-${ictInfo.score >= 80 ? 'high' : ictInfo.score >= 60 ? 'medium' : 'low'}">${ictInfo.score || '--'}</span></td>
         <td>${ictInfo.entryPrice ? parseFloat(ictInfo.entryPrice).toFixed(4) : '--'}</td>
+        <td>${ictInfo.stopLoss ? parseFloat(ictInfo.stopLoss).toFixed(4) : '--'}</td>
+        <td>${ictInfo.takeProfit ? parseFloat(ictInfo.takeProfit).toFixed(4) : '--'}</td>
         <td>${ictInfo.leverage ? ictInfo.leverage + 'x' : '--'}</td>
         <td>${ictInfo.margin ? '$' + parseFloat(ictInfo.margin).toFixed(2) : '--'}</td>
-        <td>${item.midTimeframePrice ? parseFloat(item.midTimeframePrice).toFixed(4) : '--'}</td>
       `;
       tbody.appendChild(ictRow);
     });
+  }
+
+  /**
+   * 格式化V3策略4H趋势指标
+   * @param {Object} trend4H - 4H趋势数据
+   * @returns {string} 格式化后的4H趋势信息
+   */
+  formatV3Trend4H(trend4H) {
+    if (!trend4H) return '--';
+    
+    const trend = trend4H.trend || 'RANGE';
+    const score = trend4H.score || 0;
+    const adx = trend4H.adx || 0;
+    const bbw = trend4H.bbw || 0;
+    
+    return `
+      <div class="indicator-group">
+        <div class="indicator-item">
+          <span class="indicator-label">趋势:</span>
+          <span class="trend-value trend-${trend.toLowerCase()}">${this.getTrendText(trend)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">评分:</span>
+          <span class="score-badge score-${score >= 4 ? 'high' : score >= 2 ? 'medium' : 'low'}">${score}/10</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">ADX:</span>
+          <span class="indicator-value">${adx.toFixed(1)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">BBW:</span>
+          <span class="indicator-value">${(bbw * 100).toFixed(2)}%</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 格式化V3策略1H因子指标
+   * @param {Object} factors1H - 1H因子数据
+   * @returns {string} 格式化后的1H因子信息
+   */
+  formatV3Factors1H(factors1H) {
+    if (!factors1H) return '--';
+    
+    const vwap = factors1H.vwap || 0;
+    const oiChange = factors1H.oiChange || 0;
+    const funding = factors1H.funding || 0;
+    const delta = factors1H.delta || 0;
+    const score = factors1H.score || 0;
+    
+    return `
+      <div class="indicator-group">
+        <div class="indicator-item">
+          <span class="indicator-label">VWAP:</span>
+          <span class="indicator-value">${vwap.toFixed(2)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">OI变化:</span>
+          <span class="indicator-value ${oiChange >= 0 ? 'positive' : 'negative'}">${oiChange.toFixed(1)}%</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">资金费率:</span>
+          <span class="indicator-value">${(funding * 100).toFixed(3)}%</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">Delta:</span>
+          <span class="indicator-value ${delta >= 0 ? 'positive' : 'negative'}">${delta.toFixed(2)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">得分:</span>
+          <span class="score-badge score-${score >= 3 ? 'high' : score >= 2 ? 'medium' : 'low'}">${score}/6</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 格式化V3策略15m入场指标
+   * @param {Object} entry15m - 15m入场数据
+   * @returns {string} 格式化后的15m入场信息
+   */
+  formatV3Entry15m(entry15m) {
+    if (!entry15m) return '--';
+    
+    const signal = entry15m.signal || 'HOLD';
+    const ema20 = entry15m.ema20 || 0;
+    const ema50 = entry15m.ema50 || 0;
+    const atr = entry15m.atr || 0;
+    const bbw = entry15m.bbw || 0;
+    
+    return `
+      <div class="indicator-group">
+        <div class="indicator-item">
+          <span class="indicator-label">信号:</span>
+          <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">EMA20:</span>
+          <span class="indicator-value">${ema20.toFixed(2)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">EMA50:</span>
+          <span class="indicator-value">${ema50.toFixed(2)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">ATR:</span>
+          <span class="indicator-value">${atr.toFixed(2)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">BBW:</span>
+          <span class="indicator-value">${(bbw * 100).toFixed(2)}%</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 格式化ICT策略1D趋势指标
+   * @param {Object} trend1D - 1D趋势数据
+   * @returns {string} 格式化后的1D趋势信息
+   */
+  formatICTTrend1D(trend1D) {
+    if (!trend1D) return '--';
+    
+    const trend = trend1D.trend || 'SIDEWAYS';
+    const closeChange = trend1D.closeChange || 0;
+    const lookback = trend1D.lookback || 20;
+    
+    return `
+      <div class="indicator-group">
+        <div class="indicator-item">
+          <span class="indicator-label">趋势:</span>
+          <span class="trend-value trend-${trend.toLowerCase()}">${this.getTrendText(trend)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">${lookback}日变化:</span>
+          <span class="indicator-value ${closeChange >= 0 ? 'positive' : 'negative'}">${(closeChange * 100).toFixed(2)}%</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 格式化ICT策略4H订单块指标
+   * @param {Object} ob4H - 4H订单块数据
+   * @returns {string} 格式化后的4H订单块信息
+   */
+  formatICTOB4H(ob4H) {
+    if (!ob4H) return '--';
+    
+    const orderBlocks = ob4H.orderBlocks || [];
+    const atr = ob4H.atr || 0;
+    const sweepDetected = ob4H.sweepDetected || false;
+    const sweepSpeed = ob4H.sweepSpeed || 0;
+    
+    return `
+      <div class="indicator-group">
+        <div class="indicator-item">
+          <span class="indicator-label">订单块:</span>
+          <span class="indicator-value">${orderBlocks.length}个</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">ATR:</span>
+          <span class="indicator-value">${atr.toFixed(2)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">扫荡:</span>
+          <span class="indicator-value ${sweepDetected ? 'positive' : 'negative'}">${sweepDetected ? '是' : '否'}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">扫荡速率:</span>
+          <span class="indicator-value">${sweepSpeed.toFixed(2)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 格式化ICT策略15m入场指标
+   * @param {Object} entry15m - 15m入场数据
+   * @returns {string} 格式化后的15m入场信息
+   */
+  formatICTEntry15m(entry15m) {
+    if (!entry15m) return '--';
+    
+    const signal = entry15m.signal || 'HOLD';
+    const engulfing = entry15m.engulfing || false;
+    const atr = entry15m.atr || 0;
+    const sweepSpeed = entry15m.sweepSpeed || 0;
+    const volume = entry15m.volume || 0;
+    
+    return `
+      <div class="indicator-group">
+        <div class="indicator-item">
+          <span class="indicator-label">信号:</span>
+          <span class="signal-value signal-${signal.toLowerCase()}">${this.getSignalText(signal)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">吞没:</span>
+          <span class="indicator-value ${engulfing ? 'positive' : 'negative'}">${engulfing ? '是' : '否'}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">ATR:</span>
+          <span class="indicator-value">${atr.toFixed(2)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">扫荡速率:</span>
+          <span class="indicator-value">${sweepSpeed.toFixed(2)}</span>
+        </div>
+        <div class="indicator-item">
+          <span class="indicator-label">成交量:</span>
+          <span class="indicator-value">${(volume / 1000000).toFixed(1)}M</span>
+        </div>
+      </div>
+    `;
   }
 
   /**
@@ -933,7 +1155,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-  result.innerHTML = `
+      result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">

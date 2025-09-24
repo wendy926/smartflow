@@ -1766,12 +1766,14 @@ body {
   font-weight: bold;
 }
 
-.signal-value.signal-buy, .signal-value.signal-long {
+.signal-value.signal-buy,
+.signal-value.signal-long {
   background-color: #e8f5e8;
   color: #2e7d32;
 }
 
-.signal-value.signal-sell, .signal-value.signal-short {
+.signal-value.signal-sell,
+.signal-value.signal-short {
   background-color: #ffebee;
   color: #c62828;
 }
@@ -1789,12 +1791,14 @@ body {
   font-weight: bold;
 }
 
-.trend-value.trend-up, .trend-value.trend-bullish {
+.trend-value.trend-up,
+.trend-value.trend-bullish {
   background-color: #e8f5e8;
   color: #2e7d32;
 }
 
-.trend-value.trend-down, .trend-value.trend-bearish {
+.trend-value.trend-down,
+.trend-value.trend-bearish {
   background-color: #ffebee;
   color: #c62828;
 }
@@ -1825,6 +1829,49 @@ body {
 .score-badge.score-low {
   background-color: #ffebee;
   color: #c62828;
+}
+
+/* 时间框架单元格样式 */
+.timeframe-cell {
+  padding: 8px;
+  vertical-align: top;
+  min-width: 200px;
+}
+
+.indicator-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.indicator-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.indicator-label {
+  font-weight: 500;
+  color: #6c757d;
+  min-width: 60px;
+}
+
+.indicator-value {
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: right;
+}
+
+.indicator-value.positive {
+  color: #28a745;
+}
+
+.indicator-value.negative {
+  color: #dc3545;
 }
 
 /* 移动端计算器响应式 */
