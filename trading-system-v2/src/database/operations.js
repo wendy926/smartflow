@@ -383,7 +383,7 @@ class DatabaseOperations {
         JOIN symbols s ON st.symbol_id = s.id 
         WHERE st.strategy_name = ?
       `;
-      
+
       const params = [strategyUpper];
 
       if (symbol) {

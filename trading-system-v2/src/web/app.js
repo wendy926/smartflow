@@ -57,6 +57,14 @@ class SmartFlowApp {
         this.loadStatistics();
       });
     }
+
+    // 策略状态刷新按钮
+    const refreshStrategyStatusBtn = document.getElementById('refreshStrategyStatus');
+    if (refreshStrategyStatusBtn) {
+      refreshStrategyStatusBtn.addEventListener('click', () => {
+        this.loadStrategyCurrentStatus();
+      });
+    }
   }
 
   /**
@@ -329,7 +337,7 @@ class SmartFlowApp {
     if (statusData.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" style="text-align: center; color: #6c757d; padding: 2rem;">
+          <td colspan="10" style="text-align: center; color: #6c757d; padding: 2rem;">
             暂无策略状态数据
           </td>
         </tr>
@@ -338,64 +346,39 @@ class SmartFlowApp {
     }
 
     statusData.forEach(item => {
-      const row = document.createElement('tr');
-
-      // V3策略信息
+      // V3策略行
       const v3Info = item.v3 || {};
-      const ictInfo = item.ict || {};
-
-      row.innerHTML = `
+      const v3Row = document.createElement('tr');
+      v3Row.innerHTML = `
         <td>${item.symbol}</td>
         <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
-        <td class="strategy-status">
-          <div class="strategy-info">
-            <div class="timeframe-signals">
-              <span class="timeframe-badge timeframe-4h">4H: ${v3Info.trend || '--'}</span>
-              <span class="timeframe-badge timeframe-1h">1H: ${this.formatFactors(v3Info.factors)}</span>
-              <span class="timeframe-badge timeframe-15m">15m: ${v3Info.entry15m || '--'}</span>
-            </div>
-            <div class="signal-display">
-              <span class="signal-value signal-${v3Info.signal?.toLowerCase() || 'hold'}">${this.getSignalText(v3Info.signal)}</span>
-              <span class="score-badge score-${v3Info.score >= 80 ? 'high' : v3Info.score >= 60 ? 'medium' : 'low'}">${v3Info.score || '--'}</span>
-            </div>
-          </div>
-        </td>
-        <td class="strategy-status">
-          <div class="strategy-info">
-            <div class="timeframe-signals">
-              <span class="timeframe-badge timeframe-1d">1D: ${ictInfo.trend || '--'}</span>
-              <span class="timeframe-badge timeframe-4h">4H: ${this.formatOrderBlocks(ictInfo.orderBlocks)}</span>
-              <span class="timeframe-badge timeframe-15m">15m: ${this.formatSweep(ictInfo.sweep)}</span>
-            </div>
-            <div class="signal-display">
-              <span class="signal-value signal-${ictInfo.signal?.toLowerCase() || 'hold'}">${this.getSignalText(ictInfo.signal)}</span>
-              <span class="score-badge score-${ictInfo.score >= 80 ? 'high' : ictInfo.score >= 60 ? 'medium' : 'low'}">${ictInfo.score || '--'}</span>
-            </div>
-          </div>
-        </td>
-        <td class="price-diff ${item.midTimeframePriceDiff?.difference > 0 ? 'positive' : 'negative'}">
-          ${item.midTimeframePriceDiff?.difference ? item.midTimeframePriceDiff.difference.toFixed(4) : '--'}
-        </td>
-        <td>
-          <div class="entry-info">
-            <div>V3: ${v3Info.entryPrice ? parseFloat(v3Info.entryPrice).toFixed(4) : '--'}</div>
-            <div>ICT: ${ictInfo.entryPrice ? parseFloat(ictInfo.entryPrice).toFixed(4) : '--'}</div>
-          </div>
-        </td>
-        <td>
-          <div class="leverage-info">
-            <div>V3: ${v3Info.leverage || '--'}x</div>
-            <div>ICT: ${ictInfo.leverage || '--'}x</div>
-          </div>
-        </td>
-        <td>
-          <div class="margin-info">
-            <div>V3: $${v3Info.margin ? parseFloat(v3Info.margin).toFixed(2) : '--'}</div>
-            <div>ICT: $${ictInfo.margin ? parseFloat(ictInfo.margin).toFixed(2) : '--'}</div>
-          </div>
-        </td>
+        <td><span class="strategy-badge v3">V3</span></td>
+        <td><span class="signal-value signal-${v3Info.signal?.toLowerCase() || 'hold'}">${this.getSignalText(v3Info.signal)}</span></td>
+        <td><span class="trend-value trend-${v3Info.trend?.toLowerCase() || 'range'}">${this.getTrendText(v3Info.trend)}</span></td>
+        <td><span class="score-badge score-${v3Info.score >= 80 ? 'high' : v3Info.score >= 60 ? 'medium' : 'low'}">${v3Info.score || '--'}</span></td>
+        <td>${v3Info.entryPrice ? parseFloat(v3Info.entryPrice).toFixed(4) : '--'}</td>
+        <td>${v3Info.leverage ? v3Info.leverage + 'x' : '--'}</td>
+        <td>${v3Info.margin ? '$' + parseFloat(v3Info.margin).toFixed(2) : '--'}</td>
+        <td>${item.midTimeframePrice ? parseFloat(item.midTimeframePrice).toFixed(4) : '--'}</td>
       `;
-      tbody.appendChild(row);
+      tbody.appendChild(v3Row);
+
+      // ICT策略行
+      const ictInfo = item.ict || {};
+      const ictRow = document.createElement('tr');
+      ictRow.innerHTML = `
+        <td>${item.symbol}</td>
+        <td>${item.lastPrice ? parseFloat(item.lastPrice).toFixed(4) : '--'}</td>
+        <td><span class="strategy-badge ict">ICT</span></td>
+        <td><span class="signal-value signal-${ictInfo.signal?.toLowerCase() || 'hold'}">${this.getSignalText(ictInfo.signal)}</span></td>
+        <td><span class="trend-value trend-${ictInfo.trend?.toLowerCase() || 'range'}">${this.getTrendText(ictInfo.trend)}</span></td>
+        <td><span class="score-badge score-${ictInfo.score >= 80 ? 'high' : ictInfo.score >= 60 ? 'medium' : 'low'}">${ictInfo.score || '--'}</span></td>
+        <td>${ictInfo.entryPrice ? parseFloat(ictInfo.entryPrice).toFixed(4) : '--'}</td>
+        <td>${ictInfo.leverage ? ictInfo.leverage + 'x' : '--'}</td>
+        <td>${ictInfo.margin ? '$' + parseFloat(ictInfo.margin).toFixed(2) : '--'}</td>
+        <td>${item.midTimeframePrice ? parseFloat(item.midTimeframePrice).toFixed(4) : '--'}</td>
+      `;
+      tbody.appendChild(ictRow);
     });
   }
 
