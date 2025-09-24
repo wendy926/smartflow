@@ -176,7 +176,7 @@ class MacroEconomicMonitor {
         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
       `;
 
-      await this.database.execute(query, [
+      await this.database.query(query, [
         dataType,
         source,
         metricName,
@@ -203,7 +203,7 @@ class MacroEconomicMonitor {
         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
       `;
 
-      await this.database.execute(query, [
+      await this.database.query(query, [
         alert.type,
         alert.level,
         alert.title,

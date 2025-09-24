@@ -291,7 +291,7 @@ class MacroMonitorController {
   async loadConfig() {
     try {
       const query = 'SELECT config_key, config_value FROM macro_monitoring_config WHERE is_active = 1';
-      const [rows] = await this.database.execute(query);
+      const rows = await this.database.query(query);
 
       for (const row of rows) {
         const key = row.config_key;
