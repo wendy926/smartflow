@@ -187,16 +187,16 @@ class ICTStrategy {
     let level = 0;
     let confidence = 0;
 
-    // 检测上方流动性扫荡：价格突破极值点（需要明显突破）
-    if (currentPrice > extreme * 1.002) {
+    // 检测上方流动性扫荡：价格突破极值点（降低阈值）
+    if (currentPrice > extreme * 1.001) {
       detected = true;
       type = 'LIQUIDITY_SWEEP_UP';
       level = extreme;
       confidence = Math.min((currentPrice - extreme) / (currentATR || 1), 1);
     }
 
-    // 检测下方流动性扫荡：价格跌破极值点（需要明显跌破）
-    if (currentPrice < extreme * 0.998) {
+    // 检测下方流动性扫荡：价格跌破极值点（降低阈值）
+    if (currentPrice < extreme * 0.999) {
       detected = true;
       type = 'LIQUIDITY_SWEEP_DOWN';
       level = extreme;

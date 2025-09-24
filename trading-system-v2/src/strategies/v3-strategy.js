@@ -119,8 +119,12 @@ class V3Strategy {
   analyze1HFactors(klines, data = {}) {
     try {
       if (!klines || klines.length < 50) {
+        logger.warn(`1H数据不足: ${klines?.length || 0}条`);
         return { factors: {}, score: 0, confidence: 0, error: 'Insufficient data' };
       }
+      
+      // 调试信息
+      logger.info(`1H分析开始 - K线数量: ${klines.length}, 数据: ${JSON.stringify(Object.keys(data))}`);
 
       const prices = klines.map(k => parseFloat(k[4]));
       const volumes = klines.map(k => parseFloat(k[5]));
