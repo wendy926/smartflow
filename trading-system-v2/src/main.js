@@ -74,9 +74,14 @@ class TradingSystemApp {
       });
     });
 
-    // 根路径
+    // 根路径和前端路由 - 所有前端路由都返回index.html
     this.app.get('/', (req, res) => {
-      res.sendFile('index.html', { root: 'src/web/public' });
+      res.sendFile('index.html', { root: 'src/web' });
+    });
+
+    // 前端路由处理 - 支持SPA路由
+    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', '/tools'], (req, res) => {
+      res.sendFile('index.html', { root: 'src/web' });
     });
   }
 

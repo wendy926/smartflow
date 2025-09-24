@@ -871,7 +871,7 @@ class SmartFlowApp {
 
     // 计算止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
     const isLong = entryPrice < stopLoss; // 如果入场价格 < 止损价格，说明是空头
-    const stopLossDistance = isLong 
+    const stopLossDistance = isLong
       ? (entryPrice - stopLoss) / entryPrice  // 多头
       : (stopLoss - entryPrice) / entryPrice; // 空头
     const stopLossDistanceAbs = Math.abs(stopLossDistance);
@@ -917,7 +917,7 @@ class SmartFlowApp {
 
     // 计算止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
     const isLong = entryPrice < stopLoss; // 如果入场价格 < 止损价格，说明是空头
-    const stopLossDistance = isLong 
+    const stopLossDistance = isLong
       ? (entryPrice - stopLoss) / entryPrice  // 多头
       : (stopLoss - entryPrice) / entryPrice; // 空头
     const stopLossDistanceAbs = Math.abs(stopLossDistance);
@@ -1669,7 +1669,7 @@ class SmartFlowApp {
 
     // 计算止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
     const isLong = entryPrice < stopLoss; // 如果入场价格 < 止损价格，说明是空头
-    const stopLossDistance = isLong 
+    const stopLossDistance = isLong
       ? (entryPrice - stopLoss) / entryPrice  // 多头
       : (stopLoss - entryPrice) / entryPrice; // 空头
     const stopLossDistanceAbs = Math.abs(stopLossDistance);
@@ -1699,7 +1699,7 @@ class SmartFlowApp {
 
     // 计算止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
     const isLong = entryPrice < stopLoss; // 如果入场价格 < 止损价格，说明是空头
-    const stopLossDistance = isLong 
+    const stopLossDistance = isLong
       ? (entryPrice - stopLoss) / entryPrice  // 多头
       : (stopLoss - entryPrice) / entryPrice; // 空头
     const stopLossDistanceAbs = Math.abs(stopLossDistance);
@@ -1848,7 +1848,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-  result.innerHTML = `
+      result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">
