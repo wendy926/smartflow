@@ -488,12 +488,12 @@ class ICTStrategy {
         if (high > recentHigh) recentHigh = high;
         if (low < recentLow) recentLow = low;
       });
-      
+
       // 检测上方扫荡（突破最近高点）
       const sweepHTFUp = this.detectSweepHTF(recentHigh, klines4H, atr4H[atr4H.length - 1]);
       // 检测下方扫荡（跌破最近低点）
       const sweepHTFDown = this.detectSweepHTF(recentLow, klines4H, atr4H[atr4H.length - 1]);
-      
+
       // 选择有效的扫荡
       const sweepHTF = sweepHTFUp.detected ? sweepHTFUp : sweepHTFDown;
 
@@ -503,7 +503,7 @@ class ICTStrategy {
       // 4. 检测吞没形态和LTF Sweep
       const engulfing = this.detectEngulfingPattern(klines15m);
       const atr15m = this.calculateATR(klines15m, 14);
-      
+
       // 检测LTF扫荡 - 检测最近的关键swing点
       const recent15mKlines = klines15m.slice(-10);
       let recent15mHigh = 0;
@@ -514,12 +514,12 @@ class ICTStrategy {
         if (high > recent15mHigh) recent15mHigh = high;
         if (low < recent15mLow) recent15mLow = low;
       });
-      
+
       // 检测上方扫荡（突破最近高点）
       const sweepLTFUp = this.detectSweepLTF(klines15m, atr15m[atr15m.length - 1], recent15mHigh);
       // 检测下方扫荡（跌破最近低点）
       const sweepLTFDown = this.detectSweepLTF(klines15m, atr15m[atr15m.length - 1], recent15mLow);
-      
+
       // 选择有效的扫荡
       const sweepLTF = sweepLTFUp.detected ? sweepLTFUp : sweepLTFDown;
 

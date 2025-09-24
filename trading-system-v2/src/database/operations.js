@@ -369,9 +369,17 @@ class DatabaseOperations {
   async getTrades(strategy, symbol = null, limit = 100) {
     const connection = await this.getConnection();
     try {
-      // 如果没有提供strategy参数，返回空数组
+      // 如果没有提供strategy参数，返回所有交易记录
       if (!strategy) {
-        return [];
+        const limitNum = Number(limit);
+        let query = `
+          SELECT st.*, s.symbol 
+          FROM simulation_trades st 
+          JOIN symbols s ON st.symbol_id = s.id 
+          ORDER BY st.created_at DESC LIMIT ?
+        `;
+        const [rows] = await connection.execute(query, [limitNum]);
+        return rows;
       }
 
       const strategyUpper = strategy.toUpperCase();

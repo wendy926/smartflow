@@ -137,6 +137,9 @@ class SmartFlowApp {
 
     this.currentStrategy = strategyName;
     this.loadStrategyData();
+    
+    // 加载所有交易记录
+    this.loadAllTradingRecords();
   }
 
   /**
@@ -1087,6 +1090,22 @@ class SmartFlowApp {
   }
 
   /**
+   * 加载所有交易记录数据
+   */
+  async loadAllTradingRecords() {
+    try {
+      const response = await this.fetchData(`/trades?limit=100`);
+      const trades = response.data || [];
+
+      // 渲染所有交易记录表格
+      this.renderAllTradingRecords(trades);
+    } catch (error) {
+      console.error('加载所有交易记录失败:', error);
+      this.renderAllTradingRecords([]);
+    }
+  }
+
+  /**
    * 渲染交易记录表格
    * @param {string} strategy - 策略名称
    * @param {Array} trades - 交易记录数据
@@ -1100,7 +1119,7 @@ class SmartFlowApp {
     if (trades.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="13" style="text-align: center; color: #6c757d; padding: 2rem;">
+          <td colspan="16" style="text-align: center; color: #6c757d; padding: 2rem;">
             暂无交易记录
           </td>
         </tr>
@@ -1112,21 +1131,107 @@ class SmartFlowApp {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${trade.symbol || '--'}</td>
+        <td>${trade.strategy_name || '--'}</td>
+        <td>${this.getDirectionText(trade.trade_type)}</td>
+        <td class="judgment-basis">${trade.entry_reason || '--'}</td>
         <td>${this.formatDateTime(trade.entry_time)}</td>
         <td>${trade.entry_price ? parseFloat(trade.entry_price).toFixed(4) : '--'}</td>
-        <td class="judgment-basis">${trade.entry_reason || '--'}</td>
         <td>${trade.take_profit ? parseFloat(trade.take_profit).toFixed(4) : '--'}</td>
         <td>${trade.stop_loss ? parseFloat(trade.stop_loss).toFixed(4) : '--'}</td>
-        <td>${trade.leverage || '--'}</td>
-        <td>${trade.margin ? parseFloat(trade.margin).toFixed(2) : '--'}</td>
+        <td>${trade.leverage ? parseFloat(trade.leverage).toFixed(2) : '--'}</td>
+        <td>${trade.margin_used ? parseFloat(trade.margin_used).toFixed(2) : '--'}</td>
         <td><span class="status-tag status-${trade.status || 'open'}">${this.getStatusText(trade.status)}</span></td>
-        <td>${trade.exit_time ? this.formatDateTime(trade.exit_time) : '--'}</td>
         <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
         <td class="judgment-basis">${trade.exit_reason || '--'}</td>
         <td class="${this.getProfitClass(trade.pnl)}">${this.formatProfit(trade.pnl)}</td>
+        <td class="${this.getProfitClass(trade.pnl)}">${this.formatProfitAmount(trade.pnl)}</td>
+        <td>${this.calculateMaxDrawdown(trade)}</td>
       `;
       tbody.appendChild(row);
     });
+  }
+
+  /**
+   * 渲染所有交易记录表格
+   * @param {Array} trades - 所有交易记录数据
+   */
+  renderAllTradingRecords(trades) {
+    const tbody = document.getElementById('tradingRecordsTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (trades.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="16" style="text-align: center; color: #6c757d; padding: 2rem;">
+            暂无交易记录
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    trades.forEach(trade => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${trade.symbol || '--'}</td>
+        <td>${trade.strategy_name || '--'}</td>
+        <td>${this.getDirectionText(trade.trade_type)}</td>
+        <td class="judgment-basis">${trade.entry_reason || '--'}</td>
+        <td>${this.formatDateTime(trade.entry_time)}</td>
+        <td>${trade.entry_price ? parseFloat(trade.entry_price).toFixed(4) : '--'}</td>
+        <td>${trade.take_profit ? parseFloat(trade.take_profit).toFixed(4) : '--'}</td>
+        <td>${trade.stop_loss ? parseFloat(trade.stop_loss).toFixed(4) : '--'}</td>
+        <td>${trade.leverage ? parseFloat(trade.leverage).toFixed(2) : '--'}</td>
+        <td>${trade.margin_used ? parseFloat(trade.margin_used).toFixed(2) : '--'}</td>
+        <td><span class="status-tag status-${trade.status || 'open'}">${this.getStatusText(trade.status)}</span></td>
+        <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
+        <td class="judgment-basis">${trade.exit_reason || '--'}</td>
+        <td class="${this.getProfitClass(trade.pnl)}">${this.formatProfit(trade.pnl)}</td>
+        <td class="${this.getProfitClass(trade.pnl)}">${this.formatProfitAmount(trade.pnl)}</td>
+        <td>${this.calculateMaxDrawdown(trade)}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  /**
+   * 获取方向文本
+   * @param {string} tradeType - 交易类型
+   * @returns {string} 方向文本
+   */
+  getDirectionText(tradeType) {
+    const directionMap = {
+      'LONG': '做多',
+      'SHORT': '做空'
+    };
+    return directionMap[tradeType] || '--';
+  }
+
+  /**
+   * 格式化盈亏金额
+   * @param {number} pnl - 盈亏金额
+   * @returns {string} 格式化的盈亏金额
+   */
+  formatProfitAmount(pnl) {
+    if (pnl === null || pnl === undefined) return '--';
+    const amount = parseFloat(pnl);
+    if (amount === 0) return '0.00';
+    return `${amount >= 0 ? '+' : ''}${amount.toFixed(2)}`;
+  }
+
+  /**
+   * 计算最大回撤
+   * @param {Object} trade - 交易记录
+   * @returns {string} 最大回撤
+   */
+  calculateMaxDrawdown(trade) {
+    // 这里简化处理，实际应该根据历史数据计算
+    if (trade.status === 'CLOSED' && trade.pnl < 0) {
+      return `${Math.abs(parseFloat(trade.pnl)).toFixed(2)}`;
+    }
+    return '--';
   }
 
   /**
@@ -1464,7 +1569,7 @@ async function calculateRolling() {
 
     if (data.success) {
       const calc = data.data;
-      result.innerHTML = `
+  result.innerHTML = `
         <h4>动态杠杆滚仓计算结果</h4>
         <div class="result-grid">
           <div class="result-item">
