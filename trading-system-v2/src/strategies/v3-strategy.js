@@ -139,6 +139,11 @@ class V3Strategy {
       // 计算持仓量变化（6小时OI变化）
       const oiChange = data.oiHistory && data.oiHistory.length > 0 ?
         TechnicalIndicators.calculateOIChange(data.oiHistory.map(oi => parseFloat(oi.sumOpenInterest)), 6) : 0;
+      
+      // 调试信息
+      if (symbol === 'BTCUSDT') {
+        logger.info(`V3 OI调试 - 原始数据: ${JSON.stringify(data.oiHistory?.slice(0, 2))}, 计算结果: ${oiChange}`);
+      }
 
       // 计算Delta（简化版本）
       const delta = this.calculateSimpleDelta(prices, volumes);
@@ -551,15 +556,29 @@ class V3Strategy {
       // 综合判断
       const finalSignal = this.combineSignals(trend4H, factors1H, execution15M);
 
-      // 计算交易参数（如果有交易信号）
+      // 计算交易参数（如果有交易信号且没有现有交易）
       let tradeParams = { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
       if (finalSignal !== 'HOLD' && finalSignal !== 'ERROR') {
         try {
-          const currentPrice = parseFloat(klines15M[klines15M.length - 1][4]);
-          const atr = this.calculateATR(klines15M.map(k => parseFloat(k[2])), klines15M.map(k => parseFloat(k[3])), klines15M.map(k => parseFloat(k[4])));
-          const currentATR = atr[atr.length - 1];
-
-          tradeParams = await this.calculateTradeParameters(symbol, finalSignal, currentPrice, currentATR);
+          // 检查是否已有交易（简单的内存缓存检查）
+          const cacheKey = `v3_trade_${symbol}`;
+          const existingTrade = this.cache ? await this.cache.get(cacheKey) : null;
+          
+          if (!existingTrade) {
+            // 没有现有交易，计算新的交易参数
+            const currentPrice = parseFloat(klines15M[klines15M.length - 1][4]);
+            const atr = this.calculateATR(klines15M.map(k => parseFloat(k[2])), klines15M.map(k => parseFloat(k[3])), klines15M.map(k => parseFloat(k[4])));
+            const currentATR = atr[atr.length - 1];
+            tradeParams = await this.calculateTradeParameters(symbol, finalSignal, currentPrice, currentATR);
+            
+            // 缓存交易参数（5分钟过期）
+            if (this.cache && tradeParams.entryPrice > 0) {
+              await this.cache.set(cacheKey, JSON.stringify(tradeParams), 300);
+            }
+          } else {
+            // 使用现有交易参数
+            tradeParams = JSON.parse(existingTrade);
+          }
         } catch (error) {
           logger.error(`V3交易参数计算失败: ${error.message}`);
         }

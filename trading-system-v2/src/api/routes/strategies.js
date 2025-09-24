@@ -374,7 +374,7 @@ router.get('/current-status', async (req, res) => {
         const BinanceAPI = require('../../api/binance-api');
         const api = new BinanceAPI();
         const tickerData = await api.getTicker24hr(sym.symbol);
-        
+
         const [v3Result, ictResult] = await Promise.all([
           v3Strategy.execute(sym.symbol),
           ictStrategy.execute(sym.symbol)
