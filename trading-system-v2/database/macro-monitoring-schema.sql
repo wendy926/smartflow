@@ -53,39 +53,26 @@ CREATE TABLE IF NOT EXISTS macro_monitoring_alerts (
 
 -- 插入宏观监控默认配置
 INSERT INTO macro_monitoring_config (config_key, config_value, config_type, description) VALUES
--- 资金流监控配置
 ('fund_flow_btc_threshold', '10000000', 'NUMBER', 'BTC大额转账告警阈值(USD)'),
 ('fund_flow_eth_threshold', '1000', 'NUMBER', 'ETH大额转账告警阈值(ETH)'),
 ('fund_flow_enabled', 'true', 'BOOLEAN', '资金流监控是否启用'),
-
--- 市场情绪配置
 ('fear_greed_low_threshold', '20', 'NUMBER', '恐惧贪婪指数低阈值'),
 ('fear_greed_high_threshold', '80', 'NUMBER', '恐惧贪婪指数高阈值'),
 ('market_sentiment_enabled', 'true', 'BOOLEAN', '市场情绪监控是否启用'),
-
--- 合约市场配置
 ('long_short_ratio_high', '2.0', 'NUMBER', '多空比高阈值'),
 ('long_short_ratio_low', '0.5', 'NUMBER', '多空比低阈值'),
 ('futures_market_enabled', 'true', 'BOOLEAN', '合约市场监控是否启用'),
-
--- 宏观指标配置
 ('fed_funds_high_threshold', '5.0', 'NUMBER', '美联储利率高阈值(%)'),
 ('fed_funds_low_threshold', '2.0', 'NUMBER', '美联储利率低阈值(%)'),
 ('cpi_high_threshold', '4.0', 'NUMBER', 'CPI通胀率高阈值(%)'),
 ('cpi_low_threshold', '1.0', 'NUMBER', 'CPI通胀率低阈值(%)'),
 ('macro_economic_enabled', 'true', 'BOOLEAN', '宏观指标监控是否启用'),
-
--- API配置
 ('etherscan_api_key', 'AZAZFVBNA16WCUMAHPGDFTVSXB5KJUHCIM', 'STRING', 'Etherscan API密钥'),
 ('fred_api_key', 'fbfe3e85bdec733f71b17800eaa614fd', 'STRING', 'FRED API密钥'),
 ('exchange_wallet_address', '0x28C6c06298d514Db089934071355E5743bf21d60', 'STRING', '交易所钱包地址'),
-
--- 监控间隔配置
 ('monitoring_interval', '60', 'NUMBER', '监控间隔(秒)'),
 ('data_retention_days', '30', 'NUMBER', '数据保留天数'),
 ('alert_cooldown_minutes', '30', 'NUMBER', '告警冷却时间(分钟)'),
-
--- Telegram配置
 ('telegram_macro_enabled', 'false', 'BOOLEAN', '宏观监控Telegram通知是否启用'),
 ('telegram_macro_bot_token', '', 'STRING', '宏观监控Telegram机器人令牌'),
 ('telegram_macro_chat_id', '', 'STRING', '宏观监控Telegram聊天ID')
