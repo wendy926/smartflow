@@ -260,10 +260,10 @@ router.get('/overview', async (req, res) => {
 
     // 获取各模块最新数据
     const [fundFlowData, sentimentData, futuresData, macroData] = await Promise.all([
-      req.macroMonitor.fundFlowMonitor.getFundFlowData(5),
-      req.macroMonitor.sentimentMonitor.getSentimentData(5),
-      req.macroMonitor.futuresMonitor.getFuturesData(5),
-      req.macroMonitor.macroMonitor.getMacroData(5)
+      req.macroMonitor.fundFlowMonitor.getFundFlowData(10),
+      req.macroMonitor.sentimentMonitor.getSentimentData(10),
+      req.macroMonitor.futuresMonitor.getFuturesData(10),
+      req.macroMonitor.macroMonitor.getMacroData(10)
     ]);
 
     // 获取当前关键指标
@@ -286,7 +286,7 @@ router.get('/overview', async (req, res) => {
         count: sentimentData.length
       },
       futures: {
-        latest: futuresData.slice(0, 3),
+        latest: futuresData.slice(0, 10),
         count: futuresData.length
       },
       macro: {
