@@ -875,12 +875,19 @@ class SmartFlowApp {
                 
                 // 检查是否在正确的标签页中
                 const strategiesTab = document.querySelector('[data-tab="strategies"]');
-                const strategiesContent = document.querySelector('#strategies-content');
+                const strategiesContent = document.querySelector('#strategies');
                 console.log('标签页状态:', {
                   strategiesTabActive: strategiesTab?.classList.contains('active'),
                   strategiesContentActive: strategiesContent?.classList.contains('active'),
                   strategiesContentDisplay: strategiesContent ? window.getComputedStyle(strategiesContent).display : 'not found'
                 });
+                
+                // 如果策略内容被隐藏，强制显示
+                if (strategiesContent && window.getComputedStyle(strategiesContent).display === 'none') {
+                  console.log('检测到策略内容被隐藏，正在修复...');
+                  strategiesContent.style.display = 'block';
+                  console.log('策略内容已设置为显示');
+                }
               }
             }
           } else {
