@@ -913,29 +913,36 @@ class DatabaseOperations {
   async getStrategyStatistics(strategy) {
     const connection = await this.getConnection();
     try {
-      // 获取总交易数
+      // 获取已完成交易数（只计算CLOSED状态的交易）
+      const [completedTradesResult] = await connection.execute(
+        'SELECT COUNT(*) as completed FROM simulation_trades WHERE strategy_name = ? AND status = "CLOSED"',
+        [strategy.toUpperCase()]
+      );
+      const completedTrades = completedTradesResult[0].completed;
+
+      // 获取总交易数（包含所有状态）
       const [totalTradesResult] = await connection.execute(
         'SELECT COUNT(*) as total FROM simulation_trades WHERE strategy_name = ?',
         [strategy.toUpperCase()]
       );
       const totalTrades = totalTradesResult[0].total;
 
-      // 获取盈利交易数
+      // 获取盈利交易数（已完成交易中）
       const [profitableTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE strategy_name = ? AND pnl > 0',
+        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE strategy_name = ? AND status = "CLOSED" AND pnl > 0',
         [strategy.toUpperCase()]
       );
       const profitableTrades = profitableTradesResult[0].profitable;
 
-      // 获取亏损交易数
+      // 获取亏损交易数（已完成交易中）
       const [losingTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as losing FROM simulation_trades WHERE strategy_name = ? AND pnl < 0',
+        'SELECT COUNT(*) as losing FROM simulation_trades WHERE strategy_name = ? AND status = "CLOSED" AND pnl < 0',
         [strategy.toUpperCase()]
       );
       const losingTrades = losingTradesResult[0].losing;
 
-      // 计算胜率
-      const winRate = totalTrades > 0 ? (profitableTrades / totalTrades) * 100 : 0;
+      // 计算胜率（基于已完成交易）
+      const winRate = completedTrades > 0 ? (profitableTrades / completedTrades) * 100 : 0;
 
       // 获取总盈亏
       const [totalPnlResult] = await connection.execute(
@@ -1052,26 +1059,32 @@ class DatabaseOperations {
   async getTotalStatistics() {
     const connection = await this.getConnection();
     try {
-      // 获取总交易数
+      // 获取已完成交易数（只计算CLOSED状态的交易）
+      const [completedTradesResult] = await connection.execute(
+        'SELECT COUNT(*) as completed FROM simulation_trades WHERE status = "CLOSED"'
+      );
+      const completedTrades = completedTradesResult[0].completed;
+
+      // 获取总交易数（包含所有状态）
       const [totalTradesResult] = await connection.execute(
         'SELECT COUNT(*) as total FROM simulation_trades'
       );
       const totalTrades = totalTradesResult[0].total;
 
-      // 获取盈利交易数
+      // 获取盈利交易数（已完成交易中）
       const [profitableTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE pnl > 0'
+        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE status = "CLOSED" AND pnl > 0'
       );
       const profitableTrades = profitableTradesResult[0].profitable;
 
-      // 获取亏损交易数
+      // 获取亏损交易数（已完成交易中）
       const [losingTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as losing FROM simulation_trades WHERE pnl < 0'
+        'SELECT COUNT(*) as losing FROM simulation_trades WHERE status = "CLOSED" AND pnl < 0'
       );
       const losingTrades = losingTradesResult[0].losing;
 
-      // 计算胜率
-      const winRate = totalTrades > 0 ? (profitableTrades / totalTrades) * 100 : 0;
+      // 计算胜率（基于已完成交易）
+      const winRate = completedTrades > 0 ? (profitableTrades / completedTrades) * 100 : 0;
 
       // 获取总盈亏
       const [totalPnlResult] = await connection.execute(
