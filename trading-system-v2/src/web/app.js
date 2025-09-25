@@ -212,6 +212,8 @@ class SmartFlowApp {
    * @param {string} tabName - 标签页名称
    */
   switchTab(tabName) {
+    console.log('切换标签页到:', tabName);
+    
     // 更新导航状态
     document.querySelectorAll('.nav-link').forEach(link => {
       link.classList.remove('active');
@@ -223,6 +225,13 @@ class SmartFlowApp {
       content.classList.remove('active');
     });
     document.getElementById(tabName).classList.add('active');
+
+    // 验证标签页切换结果
+    const activeTabs = document.querySelectorAll('.tab-content.active');
+    console.log('当前激活的标签页数量:', activeTabs.length);
+    activeTabs.forEach((tab, index) => {
+      console.log(`激活的标签页${index}:`, tab.id);
+    });
 
     this.currentTab = tabName;
 
