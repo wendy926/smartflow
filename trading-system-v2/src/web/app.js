@@ -390,11 +390,11 @@ class SmartFlowApp {
 
     if (macroData.current) {
       if (macroData.current.fedFunds) {
-        fedElement.textContent = `${macroData.current.fedFunds.value}%`;
+        fedElement.textContent = `${parseFloat(macroData.current.fedFunds.value).toFixed(2)}%`;
       }
 
       if (macroData.current.cpi) {
-        cpiElement.textContent = `${macroData.current.cpi.value.toFixed(2)}%`;
+        cpiElement.textContent = `${parseFloat(macroData.current.cpi.value).toFixed(2)}%`;
       }
 
       // 检查告警状态
