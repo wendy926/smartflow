@@ -362,8 +362,8 @@ class SmartFlowApp {
       // 加载策略数据
       await this.loadStrategySignals();
 
-      // 加载策略统计
-      await this.loadStrategyStatistics();
+      // 仪表板页面不加载策略统计，只加载策略当前状态
+      // await this.loadStrategyStatistics(); // 移除策略统计加载
 
       // 加载策略当前状态
       await this.loadStrategyCurrentStatus();
@@ -747,6 +747,15 @@ class SmartFlowApp {
    */
   updateOverallStats(stats) {
     console.log('更新总体统计:', stats);
+    
+    // 只在当前激活的标签页中更新总体统计
+    const currentTab = this.currentTab;
+    console.log('当前标签页:', currentTab);
+    
+    if (currentTab === 'dashboard') {
+      console.log('仪表板页面：跳过总体统计更新（仪表板页面没有总体统计元素）');
+      return;
+    }
     
     // 延迟执行以确保DOM元素已加载
     setTimeout(() => {
