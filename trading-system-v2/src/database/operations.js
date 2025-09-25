@@ -917,21 +917,21 @@ class DatabaseOperations {
     try {
       // 获取总交易数
       const [totalTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as total FROM simulation_trades WHERE strategy_type = ?',
+        'SELECT COUNT(*) as total FROM simulation_trades WHERE strategy_name = ?',
         [strategy.toUpperCase()]
       );
       const totalTrades = totalTradesResult[0].total;
 
       // 获取盈利交易数
       const [profitableTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE strategy_type = ? AND pnl > 0',
+        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE strategy_name = ? AND pnl > 0',
         [strategy.toUpperCase()]
       );
       const profitableTrades = profitableTradesResult[0].profitable;
 
       // 获取亏损交易数
       const [losingTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as losing FROM simulation_trades WHERE strategy_type = ? AND pnl < 0',
+        'SELECT COUNT(*) as losing FROM simulation_trades WHERE strategy_name = ? AND pnl < 0',
         [strategy.toUpperCase()]
       );
       const losingTrades = losingTradesResult[0].losing;
@@ -941,7 +941,7 @@ class DatabaseOperations {
 
       // 获取总盈亏
       const [totalPnlResult] = await connection.execute(
-        'SELECT COALESCE(SUM(pnl), 0) as totalPnl FROM simulation_trades WHERE strategy_type = ?',
+        'SELECT COALESCE(SUM(pnl), 0) as totalPnl FROM simulation_trades WHERE strategy_name = ?',
         [strategy.toUpperCase()]
       );
       const totalPnl = totalPnlResult[0].totalPnl;
@@ -976,7 +976,7 @@ class DatabaseOperations {
       // 获取按时间排序的交易记录
       const [trades] = await connection.execute(
         `SELECT pnl, created_at FROM simulation_trades 
-         WHERE strategy_type = ? AND pnl IS NOT NULL 
+         WHERE strategy_name = ? AND pnl IS NOT NULL 
          ORDER BY created_at ASC`,
         [strategy]
       );
@@ -989,11 +989,11 @@ class DatabaseOperations {
 
       for (const trade of trades) {
         cumulative += trade.pnl;
-        
+
         if (cumulative > peak) {
           peak = cumulative;
         }
-        
+
         const drawdown = peak - cumulative;
         if (drawdown > maxDrawdown) {
           maxDrawdown = drawdown;
@@ -1029,11 +1029,11 @@ class DatabaseOperations {
 
       for (const trade of trades) {
         cumulative += trade.pnl;
-        
+
         if (cumulative > peak) {
           peak = cumulative;
         }
-        
+
         const drawdown = peak - cumulative;
         if (drawdown > maxDrawdown) {
           maxDrawdown = drawdown;
