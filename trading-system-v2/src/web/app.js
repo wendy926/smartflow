@@ -776,6 +776,25 @@ class SmartFlowApp {
             console.log(`元素${index}重绘完成，内容: ${originalContent}`);
           }
         });
+        
+        // 额外验证：检查页面实际显示的内容
+        setTimeout(() => {
+          console.log('=== 页面显示验证 ===');
+          elements.forEach((el, index) => {
+            if (el) {
+              const rect = el.getBoundingClientRect();
+              const computedStyle = window.getComputedStyle(el);
+              console.log(`元素${index}验证:`, {
+                textContent: el.textContent,
+                innerHTML: el.innerHTML,
+                visible: rect.width > 0 && rect.height > 0,
+                display: computedStyle.display,
+                visibility: computedStyle.visibility,
+                opacity: computedStyle.opacity
+              });
+            }
+          });
+        }, 100);
       }, 50);
     }, 100); // 延迟100ms执行
   }
