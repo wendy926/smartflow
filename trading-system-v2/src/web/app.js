@@ -677,10 +677,13 @@ class SmartFlowApp {
    * @param {Object} stats - 总体统计数据
    */
   updateOverallStats(stats) {
+    console.log('更新总体统计:', stats);
     // 更新总交易数
     const totalTradesElement = document.getElementById('overall-total-trades');
+    console.log('总交易数元素:', totalTradesElement);
     if (totalTradesElement) {
       totalTradesElement.textContent = stats.totalTrades || 0;
+      console.log('总交易数已更新为:', stats.totalTrades || 0);
     }
 
     // 更新总胜率
