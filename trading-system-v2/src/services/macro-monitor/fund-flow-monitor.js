@@ -54,7 +54,7 @@ class FundFlowMonitor {
       const url = this.blockchairApiKey
         ? `https://api.blockchair.com/bitcoin/transactions?q=value_usd(${threshold}..)&key=${this.blockchairApiKey}`
         : `https://api.blockchair.com/bitcoin/transactions?q=value_usd(${threshold}..)`;
-      
+
       logger.info(`检查BTC大额交易，阈值: $${threshold.toLocaleString()}`);
       const response = await fetch(url);
       const data = await response.json();
@@ -69,7 +69,7 @@ class FundFlowMonitor {
             // 分析输入输出地址
             const inputs = tx.inputs ? tx.inputs.map(i => i.recipient) : [];
             const outputs = tx.outputs ? tx.outputs.map(o => o.recipient) : [];
-            
+
             const inputLabels = inputs.map(addr => this.getAddressLabel(addr, 'BTC'));
             const outputLabels = outputs.map(addr => this.getAddressLabel(addr, 'BTC'));
 
@@ -134,11 +134,11 @@ class FundFlowMonitor {
     try {
       const fetch = (await import('node-fetch')).default;
       const threshold = 10000000; // 1000万美元阈值
-      
+
       // 使用Ethplorer API获取大额交易
       const url = `https://api.ethplorer.io/getTopTransactions?apiKey=freekey`;
       logger.info(`检查ETH大额交易，阈值: $${threshold.toLocaleString()}`);
-      
+
       const response = await fetch(url);
       const data = await response.json();
 

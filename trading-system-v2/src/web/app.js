@@ -308,9 +308,9 @@ class SmartFlowApp {
         statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
       }
     } else {
-      btcElement.textContent = '--';
-      ethElement.textContent = '--';
-      statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
+      btcElement.textContent = '无异常';
+      ethElement.textContent = '无异常';
+      statusElement.innerHTML = '<span class="status-indicator status-normal">无异常</span>';
     }
   }
 
@@ -350,20 +350,34 @@ class SmartFlowApp {
   updateFuturesCard(futuresData) {
     const ratioElement = document.getElementById('longShortRatio');
     const fundingElement = document.getElementById('fundingRate');
+    const openInterestElement = document.getElementById('openInterest');
     const statusElement = document.getElementById('futuresStatus');
 
     if (futuresData.latest && futuresData.latest.length > 0) {
-      // 获取最新的多空比和资金费率数据
+      // 获取最新的多空比、资金费率和未平仓合约数据
       const ratioData = futuresData.latest.find(item => item.metric_name === '多空比');
       const fundingData = futuresData.latest.find(item => item.metric_name === '资金费率');
+      const openInterestData = futuresData.latest.find(item => item.metric_name === '未平仓合约');
 
       if (ratioData) {
-        ratioElement.textContent = parseFloat(ratioData.metric_value).toFixed(2);
+        const ratio = parseFloat(ratioData.metric_value);
+        ratioElement.textContent = `${ratio.toFixed(2)}:1`;
+      } else {
+        ratioElement.textContent = '--';
       }
 
       if (fundingData) {
         const rate = parseFloat(fundingData.metric_value) * 100;
         fundingElement.textContent = `${rate.toFixed(4)}%`;
+      } else {
+        fundingElement.textContent = '--';
+      }
+
+      if (openInterestData) {
+        const oi = parseFloat(openInterestData.metric_value);
+        openInterestElement.textContent = `$${oi.toLocaleString()}`;
+      } else {
+        openInterestElement.textContent = '--';
       }
 
       // 检查告警状态
@@ -376,6 +390,7 @@ class SmartFlowApp {
     } else {
       ratioElement.textContent = '--';
       fundingElement.textContent = '--';
+      openInterestElement.textContent = '--';
       statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
     }
   }
