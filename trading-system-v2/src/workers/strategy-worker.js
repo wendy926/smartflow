@@ -58,9 +58,126 @@ class StrategyWorker {
         const ictResult = await this.ictStrategy.execute(symbol);
         logger.info(`ICT策略分析完成: ${symbol} - ${ictResult.signal}`);
         
+        // 4. 根据策略信号创建交易
+        await this.handleStrategySignals(symbol, v3Result, ictResult);
+        
       } catch (error) {
         logger.error(`策略分析失败 ${symbol}: ${error.message}`);
       }
+    }
+  }
+
+  /**
+   * 处理策略信号并创建交易
+   * @param {string} symbol - 交易对
+   * @param {Object} v3Result - V3策略结果
+   * @param {Object} ictResult - ICT策略结果
+   */
+  async handleStrategySignals(symbol, v3Result, ictResult) {
+    try {
+      // 检查V3策略信号
+      if (v3Result.signal === 'LONG' || v3Result.signal === 'SHORT') {
+        await this.createTradeFromSignal(symbol, 'V3', v3Result);
+      }
+      
+      // 检查ICT策略信号
+      if (ictResult.signal === 'LONG' || ictResult.signal === 'SHORT') {
+        await this.createTradeFromSignal(symbol, 'ICT', ictResult);
+      }
+    } catch (error) {
+      logger.error(`处理策略信号失败 ${symbol}: ${error.message}`);
+    }
+  }
+
+  /**
+   * 根据策略信号创建交易
+   * @param {string} symbol - 交易对
+   * @param {string} strategy - 策略名称
+   * @param {Object} result - 策略结果
+   */
+  async createTradeFromSignal(symbol, strategy, result) {
+    try {
+      // 检查是否已有该策略的活跃交易
+      const existingTrade = await this.tradeManager.getActiveTrade(symbol, strategy);
+      if (existingTrade) {
+        logger.info(`${strategy}策略 ${symbol} 已有活跃交易，跳过创建`);
+        return;
+      }
+
+      // 获取当前价格
+      const ticker = await this.binanceAPI.getTicker24hr(symbol);
+      if (!ticker || !ticker.lastPrice) {
+        logger.warn(`无法获取 ${symbol} 的当前价格，跳过创建交易`);
+        return;
+      }
+
+      const currentPrice = parseFloat(ticker.lastPrice);
+      
+      // 创建交易数据
+      const tradeData = {
+        symbol,
+        strategy_type: strategy,
+        trade_type: result.signal,
+        entry_price: currentPrice,
+        entry_reason: result.reason || `${strategy}策略信号`,
+        quantity: this.calculatePositionSize(currentPrice, result.signal),
+        leverage: 1.0,
+        margin_used: this.calculatePositionSize(currentPrice, result.signal) * currentPrice,
+        stop_loss: result.stopLoss || this.calculateStopLoss(currentPrice, result.signal),
+        take_profit: result.takeProfit || this.calculateTakeProfit(currentPrice, result.signal)
+      };
+
+      // 创建交易
+      const createResult = await this.tradeManager.createTrade(tradeData);
+      if (createResult.success) {
+        logger.info(`成功创建${strategy}策略交易: ${symbol} ${result.signal} 入场价: ${currentPrice}`);
+      } else {
+        logger.warn(`创建${strategy}策略交易失败: ${symbol} - ${createResult.error}`);
+      }
+    } catch (error) {
+      logger.error(`创建${strategy}策略交易失败 ${symbol}: ${error.message}`);
+    }
+  }
+
+  /**
+   * 计算仓位大小
+   * @param {number} price - 当前价格
+   * @param {string} direction - 交易方向
+   * @returns {number} 仓位大小
+   */
+  calculatePositionSize(price, direction) {
+    // 固定仓位大小，可以根据需要调整
+    const baseQuantity = 0.1; // 基础数量
+    return baseQuantity;
+  }
+
+  /**
+   * 计算止损价格
+   * @param {number} price - 当前价格
+   * @param {string} direction - 交易方向
+   * @returns {number} 止损价格
+   */
+  calculateStopLoss(price, direction) {
+    const stopLossPercent = 0.02; // 2%止损
+    if (direction === 'LONG') {
+      return price * (1 - stopLossPercent);
+    } else {
+      return price * (1 + stopLossPercent);
+    }
+  }
+
+  /**
+   * 计算止盈价格
+   * @param {number} price - 当前价格
+   * @param {string} direction - 交易方向
+   * @returns {number} 止盈价格
+   */
+  calculateTakeProfit(price, direction) {
+    const takeProfitPercent = 0.04; // 4%止盈
+    if (direction === 'LONG') {
+      return price * (1 + takeProfitPercent);
+    } else {
+      return price * (1 - takeProfitPercent);
     }
   }
 

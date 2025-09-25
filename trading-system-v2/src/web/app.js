@@ -750,11 +750,11 @@ class SmartFlowApp {
       return;
     }
 
-    // 创建交易记录映射，按symbol和strategy_name分组
+    // 创建交易记录映射，按symbol和strategy_name分组，只显示OPEN状态的交易
     const tradesMap = {};
     tradesData.forEach(trade => {
       const key = `${trade.symbol}_${trade.strategy_name}`;
-      if (!tradesMap[key] || trade.status === 'OPEN') {
+      if (trade.status === 'OPEN' && (!tradesMap[key] || trade.created_at > tradesMap[key].created_at)) {
         tradesMap[key] = trade;
       }
     });
