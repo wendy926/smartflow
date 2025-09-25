@@ -75,12 +75,17 @@ class StrategyWorker {
    */
   async handleStrategySignals(symbol, v3Result, ictResult) {
     try {
-      // 检查V3策略信号
-      if (v3Result.signal === 'LONG' || v3Result.signal === 'SHORT') {
-        await this.createTradeFromSignal(symbol, 'V3', v3Result);
+      // 检查V3策略信号 (V3策略返回BUY/SELL)
+      if (v3Result.signal === 'BUY' || v3Result.signal === 'SELL') {
+        // 转换信号格式
+        const convertedResult = {
+          ...v3Result,
+          signal: v3Result.signal === 'BUY' ? 'LONG' : 'SHORT'
+        };
+        await this.createTradeFromSignal(symbol, 'V3', convertedResult);
       }
       
-      // 检查ICT策略信号
+      // 检查ICT策略信号 (ICT策略返回LONG/SHORT)
       if (ictResult.signal === 'LONG' || ictResult.signal === 'SHORT') {
         await this.createTradeFromSignal(symbol, 'ICT', ictResult);
       }
