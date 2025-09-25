@@ -688,6 +688,8 @@ class SmartFlowApp {
     
     // 延迟执行以确保DOM元素已加载
     setTimeout(() => {
+      console.log('开始更新总体统计DOM元素...');
+      
       // 更新总交易数
       const totalTradesElement = document.getElementById('overall-total-trades');
       console.log('总交易数元素:', totalTradesElement);
@@ -696,30 +698,49 @@ class SmartFlowApp {
         console.log('总交易数已更新为:', stats.totalTrades || 0);
       } else {
         console.error('找不到总交易数元素');
+        // 尝试查找所有包含"总交易数"的元素
+        const allElements = document.querySelectorAll('*');
+        console.log('页面中所有元素数量:', allElements.length);
+        const totalTradesElements = Array.from(allElements).filter(el => el.textContent && el.textContent.includes('总交易数'));
+        console.log('包含"总交易数"的元素:', totalTradesElements);
       }
 
       // 更新总胜率
       const winRateElement = document.getElementById('overall-win-rate');
+      console.log('总胜率元素:', winRateElement);
       if (winRateElement) {
         const winRate = stats.winRate || 0;
         winRateElement.textContent = `${winRate}%`;
         winRateElement.className = `stat-value ${winRate >= 50 ? 'stat-positive' : 'stat-negative'}`;
+        console.log('总胜率已更新为:', winRate + '%');
+      } else {
+        console.error('找不到总胜率元素');
       }
 
       // 更新总盈亏
       const totalPnlElement = document.getElementById('overall-total-pnl');
+      console.log('总盈亏元素:', totalPnlElement);
       if (totalPnlElement) {
         const pnl = stats.totalPnl || 0;
         totalPnlElement.textContent = pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
         totalPnlElement.className = `stat-value ${pnl >= 0 ? 'stat-positive' : 'stat-negative'}`;
+        console.log('总盈亏已更新为:', totalPnlElement.textContent);
+      } else {
+        console.error('找不到总盈亏元素');
       }
 
       // 更新最大回撤
       const maxDrawdownElement = document.getElementById('overall-max-drawdown');
+      console.log('最大回撤元素:', maxDrawdownElement);
       if (maxDrawdownElement) {
         maxDrawdownElement.textContent = `-${stats.maxDrawdown || 0}%`;
         maxDrawdownElement.className = 'stat-value stat-negative';
+        console.log('最大回撤已更新为:', maxDrawdownElement.textContent);
+      } else {
+        console.error('找不到最大回撤元素');
       }
+      
+      console.log('总体统计DOM更新完成');
     }, 100); // 延迟100ms执行
   }
 
