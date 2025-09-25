@@ -126,8 +126,8 @@ class SmartFlowApp {
     // 宏观监控刷新按钮
     const refreshMacroDataBtn = document.getElementById('refreshMacroData');
     if (refreshMacroDataBtn) {
-      refreshMacroDataBtn.addEventListener('click', () => {
-        this.loadMacroMonitoringData();
+      refreshMacroDataBtn.addEventListener('click', async () => {
+        await this.refreshMacroMonitoringData();
       });
     }
   }
@@ -259,6 +259,62 @@ class SmartFlowApp {
         futures: { latest: [], count: 0 },
         macro: { latest: [], current: { fedFunds: null, cpi: null }, count: 0 }
       });
+    }
+  }
+
+  /**
+   * 手动刷新宏观监控数据（触发真实API调用）
+   */
+  async refreshMacroMonitoringData() {
+    try {
+      // 显示加载状态
+      const refreshBtn = document.getElementById('refreshMacroData');
+      const originalText = refreshBtn ? refreshBtn.textContent : '';
+      if (refreshBtn) {
+        refreshBtn.textContent = '刷新中...';
+        refreshBtn.disabled = true;
+      }
+
+      console.log('开始手动刷新宏观监控数据...');
+
+      // 先触发真实API调用获取最新数据
+      const triggerResponse = await this.fetchData('/macro-monitor/trigger', {
+        method: 'POST'
+      });
+
+      if (triggerResponse.success) {
+        console.log('外部API调用成功，正在加载最新数据...');
+        
+        // 等待一小段时间确保数据已保存到数据库
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // 然后加载数据
+        await this.loadMacroMonitoringData();
+        
+        console.log('宏观监控数据刷新完成');
+      } else {
+        console.warn('外部API调用失败，加载现有数据:', triggerResponse.message);
+        // 即使API调用失败，也尝试加载现有数据
+        await this.loadMacroMonitoringData();
+      }
+
+    } catch (error) {
+      console.error('手动刷新宏观监控数据失败:', error);
+      
+      // 即使刷新失败，也尝试加载现有数据
+      try {
+        await this.loadMacroMonitoringData();
+      } catch (loadError) {
+        console.error('加载现有数据也失败:', loadError);
+        this.showError('刷新失败，请稍后重试');
+      }
+    } finally {
+      // 恢复按钮状态
+      const refreshBtn = document.getElementById('refreshMacroData');
+      if (refreshBtn) {
+        refreshBtn.textContent = originalText || '刷新';
+        refreshBtn.disabled = false;
+      }
     }
   }
 
