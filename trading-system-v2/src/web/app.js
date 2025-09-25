@@ -359,13 +359,13 @@ class SmartFlowApp {
 
       if (triggerResponse.success) {
         console.log('外部API调用成功，正在加载最新数据...');
-        
+
         // 等待一小段时间确保数据已保存到数据库
         await new Promise(resolve => setTimeout(resolve, 2000));
-        
+
         // 然后加载数据
         await this.loadMacroMonitoringData();
-        
+
         console.log('宏观监控数据刷新完成');
       } else {
         console.warn('外部API调用失败，加载现有数据:', triggerResponse.message);
@@ -375,7 +375,7 @@ class SmartFlowApp {
 
     } catch (error) {
       console.error('手动刷新宏观监控数据失败:', error);
-      
+
       // 即使刷新失败，也尝试加载现有数据
       try {
         await this.loadMacroMonitoringData();

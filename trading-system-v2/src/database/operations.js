@@ -917,21 +917,21 @@ class DatabaseOperations {
     try {
       // 获取总交易数
       const [totalTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as total FROM simulation_trades WHERE strategy_name = ?',
+        'SELECT COUNT(*) as total FROM simulation_trades WHERE strategy_type = ?',
         [strategy.toUpperCase()]
       );
       const totalTrades = totalTradesResult[0].total;
 
       // 获取盈利交易数
       const [profitableTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE strategy_name = ? AND pnl > 0',
+        'SELECT COUNT(*) as profitable FROM simulation_trades WHERE strategy_type = ? AND pnl > 0',
         [strategy.toUpperCase()]
       );
       const profitableTrades = profitableTradesResult[0].profitable;
 
       // 获取亏损交易数
       const [losingTradesResult] = await connection.execute(
-        'SELECT COUNT(*) as losing FROM simulation_trades WHERE strategy_name = ? AND pnl < 0',
+        'SELECT COUNT(*) as losing FROM simulation_trades WHERE strategy_type = ? AND pnl < 0',
         [strategy.toUpperCase()]
       );
       const losingTrades = losingTradesResult[0].losing;
@@ -941,17 +941,13 @@ class DatabaseOperations {
 
       // 获取总盈亏
       const [totalPnlResult] = await connection.execute(
-        'SELECT COALESCE(SUM(pnl), 0) as totalPnl FROM simulation_trades WHERE strategy_name = ?',
+        'SELECT COALESCE(SUM(pnl), 0) as totalPnl FROM simulation_trades WHERE strategy_type = ?',
         [strategy.toUpperCase()]
       );
       const totalPnl = totalPnlResult[0].totalPnl;
 
-      // 获取最大回撤
-      const [maxDrawdownResult] = await connection.execute(
-        'SELECT COALESCE(MIN(pnl), 0) as maxDrawdown FROM simulation_trades WHERE strategy_name = ?',
-        [strategy.toUpperCase()]
-      );
-      const maxDrawdown = Math.abs(maxDrawdownResult[0].maxDrawdown);
+      // 计算正确的最大回撤（基于累积收益的回撤）
+      const maxDrawdown = await this.calculateMaxDrawdown(connection, strategy.toUpperCase());
 
       return {
         totalTrades,
@@ -966,6 +962,88 @@ class DatabaseOperations {
       throw error;
     } finally {
       connection.release();
+    }
+  }
+
+  /**
+   * 计算最大回撤
+   * @param {Object} connection - 数据库连接
+   * @param {string} strategy - 策略名称
+   * @returns {number} 最大回撤
+   */
+  async calculateMaxDrawdown(connection, strategy) {
+    try {
+      // 获取按时间排序的交易记录
+      const [trades] = await connection.execute(
+        `SELECT pnl, created_at FROM simulation_trades 
+         WHERE strategy_type = ? AND pnl IS NOT NULL 
+         ORDER BY created_at ASC`,
+        [strategy]
+      );
+
+      if (trades.length === 0) return 0;
+
+      let peak = 0; // 历史最高点
+      let maxDrawdown = 0; // 最大回撤
+      let cumulative = 0; // 累积收益
+
+      for (const trade of trades) {
+        cumulative += trade.pnl;
+        
+        if (cumulative > peak) {
+          peak = cumulative;
+        }
+        
+        const drawdown = peak - cumulative;
+        if (drawdown > maxDrawdown) {
+          maxDrawdown = drawdown;
+        }
+      }
+
+      return parseFloat(Number(maxDrawdown).toFixed(2));
+    } catch (error) {
+      logger.error(`Error calculating max drawdown for ${strategy}:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * 计算总体最大回撤
+   * @param {Object} connection - 数据库连接
+   * @returns {number} 最大回撤
+   */
+  async calculateTotalMaxDrawdown(connection) {
+    try {
+      // 获取按时间排序的所有交易记录
+      const [trades] = await connection.execute(
+        `SELECT pnl, created_at FROM simulation_trades 
+         WHERE pnl IS NOT NULL 
+         ORDER BY created_at ASC`
+      );
+
+      if (trades.length === 0) return 0;
+
+      let peak = 0; // 历史最高点
+      let maxDrawdown = 0; // 最大回撤
+      let cumulative = 0; // 累积收益
+
+      for (const trade of trades) {
+        cumulative += trade.pnl;
+        
+        if (cumulative > peak) {
+          peak = cumulative;
+        }
+        
+        const drawdown = peak - cumulative;
+        if (drawdown > maxDrawdown) {
+          maxDrawdown = drawdown;
+        }
+      }
+
+      return parseFloat(Number(maxDrawdown).toFixed(2));
+    } catch (error) {
+      logger.error('Error calculating total max drawdown:', error);
+      return 0;
     }
   }
 
@@ -1003,11 +1081,8 @@ class DatabaseOperations {
       );
       const totalPnl = totalPnlResult[0].totalPnl;
 
-      // 获取最大回撤
-      const [maxDrawdownResult] = await connection.execute(
-        'SELECT COALESCE(MIN(pnl), 0) as maxDrawdown FROM simulation_trades'
-      );
-      const maxDrawdown = Math.abs(maxDrawdownResult[0].maxDrawdown);
+      // 计算正确的最大回撤（基于累积收益的回撤）
+      const maxDrawdown = await this.calculateTotalMaxDrawdown(connection);
 
       return {
         totalTrades,
