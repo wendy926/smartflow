@@ -130,6 +130,81 @@ class SmartFlowApp {
         await this.refreshMacroMonitoringData();
       });
     }
+
+    // 系统监控刷新按钮
+    const refreshMonitoringBtn = document.getElementById('refreshMonitoringBtn');
+    if (refreshMonitoringBtn) {
+      refreshMonitoringBtn.addEventListener('click', () => {
+        this.loadMonitoringData();
+      });
+    }
+
+    // 动态杠杆滚仓计算器
+    const calculateRollingBtn = document.getElementById('calculateRollingBtn');
+    if (calculateRollingBtn) {
+      calculateRollingBtn.addEventListener('click', () => {
+        this.calculateRolling();
+      });
+    }
+
+    // Telegram设置按钮
+    const saveTradingTelegramBtn = document.getElementById('saveTradingTelegramBtn');
+    if (saveTradingTelegramBtn) {
+      saveTradingTelegramBtn.addEventListener('click', () => {
+        this.saveTradingTelegramSettings();
+      });
+    }
+
+    const testTradingTelegramBtn = document.getElementById('testTradingTelegramBtn');
+    if (testTradingTelegramBtn) {
+      testTradingTelegramBtn.addEventListener('click', () => {
+        this.testTradingTelegram();
+      });
+    }
+
+    const saveMonitoringTelegramBtn = document.getElementById('saveMonitoringTelegramBtn');
+    if (saveMonitoringTelegramBtn) {
+      saveMonitoringTelegramBtn.addEventListener('click', () => {
+        this.saveMonitoringTelegramSettings();
+      });
+    }
+
+    const testMonitoringTelegramBtn = document.getElementById('testMonitoringTelegramBtn');
+    if (testMonitoringTelegramBtn) {
+      testMonitoringTelegramBtn.addEventListener('click', () => {
+        this.testMonitoringTelegram();
+      });
+    }
+
+    const saveMacroTelegramBtn = document.getElementById('saveMacroTelegramBtn');
+    if (saveMacroTelegramBtn) {
+      saveMacroTelegramBtn.addEventListener('click', () => {
+        this.saveMacroTelegramSettings();
+      });
+    }
+
+    const testMacroTelegramBtn = document.getElementById('testMacroTelegramBtn');
+    if (testMacroTelegramBtn) {
+      testMacroTelegramBtn.addEventListener('click', () => {
+        this.testMacroTelegram();
+      });
+    }
+
+    // API测试按钮
+    const runAllAPITestsBtn = document.getElementById('runAllAPITestsBtn');
+    if (runAllAPITestsBtn) {
+      runAllAPITestsBtn.addEventListener('click', () => {
+        this.runAllAPITests();
+      });
+    }
+
+    // 单个API测试按钮
+    document.querySelectorAll('[data-test]').forEach(button => {
+      button.addEventListener('click', () => {
+        const testType = button.getAttribute('data-test');
+        this.testAPI(testType);
+      });
+    });
   }
 
   /**

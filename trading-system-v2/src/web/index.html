@@ -445,7 +445,7 @@
         <div class="page-header">
           <h2>系统监控</h2>
           <div class="monitoring-controls">
-            <button class="btn btn-primary" onclick="refreshMonitoring()">
+            <button class="btn btn-primary" id="refreshMonitoringBtn">
               <i class="fas fa-sync-alt"></i>
               刷新监控
             </button>
@@ -679,7 +679,7 @@
                     <input type="number" id="minLeverage" placeholder="5" class="form-input" value="5">
                   </div>
                 </div>
-                <button class="btn btn-primary" onclick="calculateRolling()">计算动态滚仓</button>
+                <button class="btn btn-primary" id="calculateRollingBtn">计算动态滚仓</button>
               </div>
               <div class="calculator-result" id="rollingResult">
                 <!-- 计算结果将显示在这里 -->
@@ -706,8 +706,8 @@
                     <input type="text" id="tradingTelegramChatId" placeholder="123456789" class="form-input">
                   </div>
                   <div class="form-group">
-                    <button class="btn btn-primary" onclick="saveTradingTelegramSettings()">保存设置</button>
-                    <button class="btn btn-secondary" onclick="testTradingTelegram()">测试连接</button>
+                    <button class="btn btn-primary" id="saveTradingTelegramBtn">保存设置</button>
+                    <button class="btn btn-secondary" id="testTradingTelegramBtn">测试连接</button>
                   </div>
                   <div class="telegram-status" id="tradingTelegramStatus">
                     <!-- 状态将通过JavaScript动态加载 -->
@@ -727,8 +727,8 @@
                     <input type="text" id="monitoringTelegramChatId" placeholder="123456789" class="form-input">
                   </div>
                   <div class="form-group">
-                    <button class="btn btn-primary" onclick="saveMonitoringTelegramSettings()">保存设置</button>
-                    <button class="btn btn-secondary" onclick="testMonitoringTelegram()">测试连接</button>
+                    <button class="btn btn-primary" id="saveMonitoringTelegramBtn">保存设置</button>
+                    <button class="btn btn-secondary" id="testMonitoringTelegramBtn">测试连接</button>
                   </div>
                   <div class="telegram-status" id="monitoringTelegramStatus">
                     <!-- 状态将通过JavaScript动态加载 -->
@@ -769,8 +769,8 @@
                     </div>
                   </div>
                   <div class="form-group">
-                    <button class="btn btn-primary" onclick="saveMacroTelegramSettings()">保存设置</button>
-                    <button class="btn btn-secondary" onclick="testMacroTelegram()">测试连接</button>
+                    <button class="btn btn-primary" id="saveMacroTelegramBtn">保存设置</button>
+                    <button class="btn btn-secondary" id="testMacroTelegramBtn">测试连接</button>
                   </div>
                   <div class="telegram-status" id="macroTelegramStatus">
                     <!-- 状态信息将显示在这里 -->
@@ -784,26 +784,26 @@
             <div class="card-header">
               <h3>系统测试API</h3>
               <div class="card-actions">
-                <button class="btn btn-primary" onclick="runAllAPITests()">运行所有测试</button>
+                <button class="btn btn-primary" id="runAllAPITestsBtn">运行所有测试</button>
               </div>
             </div>
             <div class="card-content">
               <div class="api-test">
                 <div class="test-group">
-                  <button class="btn btn-secondary" onclick="testAPI('health')">健康检查</button>
-                  <button class="btn btn-secondary" onclick="testAPI('symbols')">交易对API</button>
-                  <button class="btn btn-secondary" onclick="testAPI('strategies')">策略状态API</button>
-                  <button class="btn btn-secondary" onclick="testAPI('trades')">交易记录API</button>
+                  <button class="btn btn-secondary" data-test="health">健康检查</button>
+                  <button class="btn btn-secondary" data-test="symbols">交易对API</button>
+                  <button class="btn btn-secondary" data-test="strategies">策略状态API</button>
+                  <button class="btn btn-secondary" data-test="trades">交易记录API</button>
                 </div>
                 <div class="test-group">
-                  <button class="btn btn-secondary" onclick="testAPI('monitoring')">系统监控API</button>
-                  <button class="btn btn-secondary" onclick="testAPI('tools')">工具API</button>
-                  <button class="btn btn-secondary" onclick="testAPI('telegram')">Telegram API</button>
-                  <button class="btn btn-secondary" onclick="testAPI('v3-analyze')">V3策略分析</button>
+                  <button class="btn btn-secondary" data-test="monitoring">系统监控API</button>
+                  <button class="btn btn-secondary" data-test="tools">工具API</button>
+                  <button class="btn btn-secondary" data-test="telegram">Telegram API</button>
+                  <button class="btn btn-secondary" data-test="v3-analyze">V3策略分析</button>
                 </div>
                 <div class="test-group">
-                  <button class="btn btn-secondary" onclick="testAPI('ict-analyze')">ICT策略分析</button>
-                  <button class="btn btn-secondary" onclick="testAPI('create-trade')">创建交易</button>
+                  <button class="btn btn-secondary" data-test="ict-analyze">ICT策略分析</button>
+                  <button class="btn btn-secondary" data-test="create-trade">创建交易</button>
                 </div>
                 <div class="test-result" id="apiTestResult">
                   <!-- API测试结果将显示在这里 -->
