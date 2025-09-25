@@ -154,10 +154,10 @@ class TradeManager {
 
       // 计算盈亏
       const pnl = trade.direction === 'LONG'
-        ? (exit_price - trade.entry_price) * trade.position_size
-        : (trade.entry_price - exit_price) * trade.position_size;
+        ? (exit_price - trade.entry_price) * trade.quantity
+        : (trade.entry_price - exit_price) * trade.quantity;
 
-      const pnl_percentage = (pnl / (trade.entry_price * trade.position_size)) * 100;
+      const pnl_percentage = (pnl / (trade.entry_price * trade.quantity)) * 100;
 
       // 更新交易记录
       const updateData = {
