@@ -122,12 +122,13 @@ class StrategyWorker {
       const tradeData = {
         symbol,
         strategy_type: strategy,
-        trade_type: result.signal,
+        direction: result.signal, // 使用direction字段而不是trade_type
         entry_price: currentPrice,
         entry_reason: result.reason || `${strategy}策略信号`,
-        quantity: this.calculatePositionSize(currentPrice, result.signal),
+        position_size: this.calculatePositionSize(currentPrice, result.signal), // 使用position_size而不是quantity
         leverage: result.leverage || 1.0,
-        margin_used: result.margin || (this.calculatePositionSize(currentPrice, result.signal) * currentPrice),
+        margin_required: result.margin || (this.calculatePositionSize(currentPrice, result.signal) * currentPrice), // 使用margin_required而不是margin_used
+        risk_amount: 100, // 添加risk_amount字段
         stop_loss: result.stopLoss !== undefined ? result.stopLoss : this.calculateStopLoss(currentPrice, result.signal),
         take_profit: result.takeProfit !== undefined ? result.takeProfit : this.calculateTakeProfit(currentPrice, result.signal)
       };
