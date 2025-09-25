@@ -606,7 +606,7 @@ class SmartFlowApp {
    */
   async loadStrategyStatistics() {
     try {
-      console.log('开始加载策略统计...');
+      console.log('开始加载策略统计... (调用栈:', new Error().stack.split('\n')[2], ')');
       const response = await this.fetchData('/strategies/statistics');
       console.log('策略统计API响应:', response);
       const stats = response.data;
@@ -622,12 +622,15 @@ class SmartFlowApp {
       // 更新总体统计
       console.log('更新总体统计:', stats.overall);
       this.updateOverallStats(stats.overall);
+      console.log('策略统计加载完成');
     } catch (error) {
       console.error('Error loading strategy statistics:', error);
+      console.error('错误调用栈:', new Error().stack);
       // 使用模拟数据作为后备
       this.updateStrategyStats('v3', { totalTrades: 0, profitableTrades: 0, losingTrades: 0, winRate: 0, totalPnl: 0, maxDrawdown: 0 });
       this.updateStrategyStats('ict', { totalTrades: 0, profitableTrades: 0, losingTrades: 0, winRate: 0, totalPnl: 0, maxDrawdown: 0 });
       this.updateOverallStats({ totalTrades: 0, winRate: 0, totalPnl: 0, maxDrawdown: 0 });
+      console.log('已使用模拟数据覆盖统计信息');
     }
   }
 
