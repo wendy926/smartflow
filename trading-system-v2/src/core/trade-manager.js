@@ -166,7 +166,7 @@ class TradeManager {
         exit_reason,
         pnl,
         pnl_percentage,
-        closed_at: new Date()
+        exit_time: new Date()
       };
 
       const result = await dbOps.updateTrade(tradeId, updateData);
