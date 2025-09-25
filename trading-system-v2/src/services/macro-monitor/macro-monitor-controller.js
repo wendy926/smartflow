@@ -275,10 +275,10 @@ class MacroMonitorController {
       ]);
 
       // 更新缓存
-      await this.cache.setex('macro_monitor:fund_flow', 300, JSON.stringify(fundFlowData));
-      await this.cache.setex('macro_monitor:sentiment', 300, JSON.stringify(sentimentData));
-      await this.cache.setex('macro_monitor:futures', 300, JSON.stringify(futuresData));
-      await this.cache.setex('macro_monitor:macro', 300, JSON.stringify(macroData));
+      await this.cache.set('macro_monitor:fund_flow', JSON.stringify(fundFlowData));
+      await this.cache.set('macro_monitor:sentiment', JSON.stringify(sentimentData));
+      await this.cache.set('macro_monitor:futures', JSON.stringify(futuresData));
+      await this.cache.set('macro_monitor:macro', JSON.stringify(macroData));
 
     } catch (error) {
       logger.error('更新缓存失败:', error);
