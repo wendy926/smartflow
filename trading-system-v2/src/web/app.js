@@ -784,13 +784,33 @@ class SmartFlowApp {
             if (el) {
               const rect = el.getBoundingClientRect();
               const computedStyle = window.getComputedStyle(el);
+              const parentRect = el.parentElement ? el.parentElement.getBoundingClientRect() : null;
+              const grandParentRect = el.parentElement && el.parentElement.parentElement ? 
+                el.parentElement.parentElement.getBoundingClientRect() : null;
+              
               console.log(`元素${index}验证:`, {
                 textContent: el.textContent,
                 innerHTML: el.innerHTML,
                 visible: rect.width > 0 && rect.height > 0,
                 display: computedStyle.display,
                 visibility: computedStyle.visibility,
-                opacity: computedStyle.opacity
+                opacity: computedStyle.opacity,
+                rect: {
+                  width: rect.width,
+                  height: rect.height,
+                  top: rect.top,
+                  left: rect.left
+                },
+                parentRect: parentRect ? {
+                  width: parentRect.width,
+                  height: parentRect.height,
+                  visible: parentRect.width > 0 && parentRect.height > 0
+                } : null,
+                grandParentRect: grandParentRect ? {
+                  width: grandParentRect.width,
+                  height: grandParentRect.height,
+                  visible: grandParentRect.width > 0 && grandParentRect.height > 0
+                } : null
               });
             }
           });
