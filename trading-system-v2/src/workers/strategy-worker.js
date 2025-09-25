@@ -126,10 +126,10 @@ class StrategyWorker {
         entry_price: currentPrice,
         entry_reason: result.reason || `${strategy}策略信号`,
         quantity: this.calculatePositionSize(currentPrice, result.signal),
-        leverage: 1.0,
-        margin_used: this.calculatePositionSize(currentPrice, result.signal) * currentPrice,
-        stop_loss: result.stopLoss || this.calculateStopLoss(currentPrice, result.signal),
-        take_profit: result.takeProfit || this.calculateTakeProfit(currentPrice, result.signal)
+        leverage: result.leverage || 1.0,
+        margin_used: result.margin || (this.calculatePositionSize(currentPrice, result.signal) * currentPrice),
+        stop_loss: result.stopLoss !== undefined ? result.stopLoss : this.calculateStopLoss(currentPrice, result.signal),
+        take_profit: result.takeProfit !== undefined ? result.takeProfit : this.calculateTakeProfit(currentPrice, result.signal)
       };
 
       // 创建交易
