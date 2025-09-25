@@ -852,6 +852,37 @@ class SmartFlowApp {
               opacity: gridStyle.opacity,
               rect: gridRect
             });
+            
+            // 如果statistics-grid容器尺寸为0，检查其父容器
+            if (statisticsGrid.offsetWidth === 0 && statisticsGrid.offsetHeight === 0) {
+              console.log('statistics-grid容器尺寸为0，检查父容器...');
+              const parentContainer = statisticsGrid.parentElement;
+              if (parentContainer) {
+                const parentRect = parentContainer.getBoundingClientRect();
+                const parentStyle = window.getComputedStyle(parentContainer);
+                console.log('父容器状态:', {
+                  tagName: parentContainer.tagName,
+                  className: parentContainer.className,
+                  offsetWidth: parentContainer.offsetWidth,
+                  offsetHeight: parentContainer.offsetHeight,
+                  clientWidth: parentContainer.clientWidth,
+                  clientHeight: parentContainer.clientHeight,
+                  display: parentStyle.display,
+                  visibility: parentStyle.visibility,
+                  opacity: parentStyle.opacity,
+                  rect: parentRect
+                });
+                
+                // 检查是否在正确的标签页中
+                const strategiesTab = document.querySelector('[data-tab="strategies"]');
+                const strategiesContent = document.querySelector('#strategies-content');
+                console.log('标签页状态:', {
+                  strategiesTabActive: strategiesTab?.classList.contains('active'),
+                  strategiesContentActive: strategiesContent?.classList.contains('active'),
+                  strategiesContentDisplay: strategiesContent ? window.getComputedStyle(strategiesContent).display : 'not found'
+                });
+              }
+            }
           } else {
             console.log('未找到statistics-grid容器');
           }
