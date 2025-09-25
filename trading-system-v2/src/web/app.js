@@ -2814,6 +2814,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 加载Telegram状态
   loadTelegramStatus();
+  
+  // 初始化文档功能
+  initBackToTop();
+  initSmoothScroll();
 });
 
 // 获取方向文本
@@ -2869,5 +2873,46 @@ function formatDate(dateString) {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit'
+  });
+}
+
+// 返回顶部按钮功能
+function initBackToTop() {
+  const backToTopBtn = document.getElementById('backToTop');
+  
+  if (!backToTopBtn) return;
+  
+  // 监听滚动事件
+  window.addEventListener('scroll', () => {
+    if (window.pageYOffset > 300) {
+      backToTopBtn.classList.add('show');
+    } else {
+      backToTopBtn.classList.remove('show');
+    }
+  });
+  
+  // 点击返回顶部
+  backToTopBtn.addEventListener('click', () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+}
+
+// 平滑滚动到锚点
+function initSmoothScroll() {
+  // 为所有锚点链接添加平滑滚动
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
   });
 }

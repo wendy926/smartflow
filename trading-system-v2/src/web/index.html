@@ -821,9 +821,45 @@
           <p>SmartFlow交易系统策略实现逻辑说明</p>
         </div>
 
+        <!-- 文档目录导航 -->
+        <div class="doc-nav">
+          <div class="doc-nav-header">
+            <h3>📖 文档目录</h3>
+          </div>
+          <div class="doc-nav-content">
+            <div class="doc-nav-section">
+              <h4>📊 宏观数据监控</h4>
+              <ul>
+                <li><a href="#macro-overview">监控概述</a></li>
+                <li><a href="#fund-flow">资金流监控</a></li>
+                <li><a href="#market-sentiment">市场情绪监控</a></li>
+                <li><a href="#futures-market">合约市场监控</a></li>
+                <li><a href="#macro-indicators">宏观指标监控</a></li>
+                <li><a href="#monitoring-config">监控配置</a></li>
+              </ul>
+            </div>
+            <div class="doc-nav-section">
+              <h4>🎯 交易策略</h4>
+              <ul>
+                <li><a href="#v3-strategy">V3多因子趋势策略</a></li>
+                <li><a href="#ict-strategy">ICT订单块策略</a></li>
+              </ul>
+            </div>
+            <div class="doc-nav-section">
+              <h4>⚙️ 系统架构</h4>
+              <ul>
+                <li><a href="#tech-stack">技术栈</a></li>
+                <li><a href="#core-components">核心组件</a></li>
+                <li><a href="#risk-control">风险控制</a></li>
+                <li><a href="#data-flow">数据流程</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         <div class="docs-container">
           <!-- V3策略文档 -->
-          <div class="strategy-doc">
+          <div class="strategy-doc" id="v3-strategy">
             <div class="doc-header">
               <h3>V3多因子趋势策略</h3>
               <span class="strategy-badge v3">V3</span>
@@ -895,7 +931,7 @@
           </div>
 
           <!-- ICT策略文档 -->
-          <div class="strategy-doc">
+          <div class="strategy-doc" id="ict-strategy">
             <div class="doc-header">
               <h3>ICT订单块策略</h3>
               <span class="strategy-badge ict">ICT</span>
@@ -974,8 +1010,147 @@
             </div>
           </div>
 
+          <!-- 宏观数据监控文档 -->
+          <div class="strategy-doc" id="macro-monitoring">
+            <div class="doc-header">
+              <h3>宏观数据监控</h3>
+              <span class="strategy-badge macro">宏观</span>
+            </div>
+            <div class="doc-content">
+              <h4 id="macro-overview">监控概述</h4>
+              <p>宏观数据监控系统实时监控链上资金流、市场情绪、合约市场风险和宏观经济指标，为交易决策提供宏观层面的数据支持。</p>
+
+              <h4 id="fund-flow">资金流监控</h4>
+              <h5>监控指标</h5>
+              <ul>
+                <li><strong>BTC大额交易</strong>：监控超过500万美元的BTC转账</li>
+                <li><strong>ETH大额转账</strong>：监控超过1000万美元的ETH转账</li>
+                <li><strong>交易所资金流</strong>：识别Binance、Coinbase、Kraken等交易所的进出资金</li>
+                <li><strong>巨鲸活动</strong>：监控已知巨鲸地址的大额转账</li>
+              </ul>
+
+              <h5>数据源</h5>
+              <ul>
+                <li><strong>Blockchair API</strong>：BTC大额交易数据，支持API Key认证</li>
+                <li><strong>Ethplorer API</strong>：ETH大额转账数据，免费API</li>
+                <li><strong>地址标签库</strong>：内置交易所和巨鲸地址识别</li>
+              </ul>
+
+              <h5>计算逻辑</h5>
+              <ul>
+                <li><strong>阈值过滤</strong>：BTC > $5M，ETH > $10M</li>
+                <li><strong>地址识别</strong>：通过地址标签库识别交易所和巨鲸</li>
+                <li><strong>转账模式</strong>：检测交易所进出、巨鲸转账等特殊模式</li>
+                <li><strong>告警机制</strong>：超过阈值时触发告警通知</li>
+              </ul>
+
+              <h4 id="market-sentiment">市场情绪监控</h4>
+              <h5>监控指标</h5>
+              <ul>
+                <li><strong>恐惧贪婪指数</strong>：0-100分，反映市场情绪状态</li>
+                <li><strong>情绪分类</strong>：极度恐惧、恐惧、中性、贪婪、极度贪婪</li>
+              </ul>
+
+              <h5>数据源</h5>
+              <ul>
+                <li><strong>Alternative.me API</strong>：恐惧贪婪指数数据，免费API</li>
+              </ul>
+
+              <h5>计算逻辑</h5>
+              <ul>
+                <li><strong>指数范围</strong>：0-100，数值越高越贪婪</li>
+                <li><strong>分类标准</strong>：
+                  <ul>
+                    <li>0-20：极度恐惧</li>
+                    <li>21-40：恐惧</li>
+                    <li>41-60：中性</li>
+                    <li>61-80：贪婪</li>
+                    <li>81-100：极度贪婪</li>
+                  </ul>
+                </li>
+                <li><strong>告警阈值</strong>：可配置低阈值（默认20）和高阈值（默认80）</li>
+              </ul>
+
+              <h4 id="futures-market">合约市场监控</h4>
+              <h5>监控指标</h5>
+              <ul>
+                <li><strong>多空比</strong>：多头持仓与空头持仓的比例</li>
+                <li><strong>资金费率</strong>：永续合约的资金费率</li>
+                <li><strong>未平仓合约</strong>：当前未平仓的合约总价值</li>
+              </ul>
+
+              <h5>数据源</h5>
+              <ul>
+                <li><strong>Binance API</strong>：多空比、资金费率、未平仓合约数据</li>
+                <li><strong>OKX API</strong>：资金费率、未平仓合约数据</li>
+                <li><strong>Bybit API</strong>：多空比数据（v5版本）</li>
+              </ul>
+
+              <h5>计算逻辑</h5>
+              <ul>
+                <li><strong>多空比</strong>：多头持仓数量 / 空头持仓数量，显示为"1.27:1"格式</li>
+                <li><strong>资金费率</strong>：实时资金费率，转换为百分比显示</li>
+                <li><strong>未平仓合约</strong>：各交易所未平仓合约总和，以USD显示</li>
+                <li><strong>数据更新</strong>：每5分钟更新一次</li>
+              </ul>
+
+              <h4 id="macro-indicators">宏观指标监控</h4>
+              <h5>监控指标</h5>
+              <ul>
+                <li><strong>美联储利率</strong>：美国联邦基金利率</li>
+                <li><strong>CPI通胀率</strong>：消费者价格指数同比变化率</li>
+              </ul>
+
+              <h5>数据源</h5>
+              <ul>
+                <li><strong>FRED API</strong>：美联储经济数据，需要API Key认证</li>
+                <li><strong>数据系列</strong>：
+                  <ul>
+                    <li>FEDFUNDS：联邦基金利率</li>
+                    <li>CPIAUCSL：消费者价格指数</li>
+                  </ul>
+                </li>
+              </ul>
+
+              <h5>计算逻辑</h5>
+              <ul>
+                <li><strong>美联储利率</strong>：直接获取最新利率值</li>
+                <li><strong>CPI通胀率</strong>：计算同比变化率
+                  <ul>
+                    <li>公式：((当前CPI - 去年同期CPI) / 去年同期CPI) × 100%</li>
+                    <li>数据频率：月度更新</li>
+                  </ul>
+                </li>
+                <li><strong>告警阈值</strong>：可配置CPI通胀率高低阈值</li>
+              </ul>
+
+              <h4 id="monitoring-config">监控配置</h4>
+              <h5>更新频率</h5>
+              <ul>
+                <li><strong>资金流监控</strong>：每5分钟检查一次</li>
+                <li><strong>市场情绪</strong>：每5分钟更新一次</li>
+                <li><strong>合约市场</strong>：每5分钟更新一次</li>
+                <li><strong>宏观指标</strong>：每5分钟检查一次（数据源更新频率较低）</li>
+              </ul>
+
+              <h5>告警设置</h5>
+              <ul>
+                <li><strong>Telegram通知</strong>：支持配置Bot Token和Chat ID</li>
+                <li><strong>告警阈值</strong>：可自定义各指标的告警阈值</li>
+                <li><strong>冷却机制</strong>：防止频繁告警</li>
+              </ul>
+
+              <h5>数据存储</h5>
+              <ul>
+                <li><strong>数据库表</strong>：macro_monitoring_data存储历史数据</li>
+                <li><strong>缓存机制</strong>：Redis缓存最新数据，提高响应速度</li>
+                <li><strong>数据保留</strong>：历史数据保留30天</li>
+              </ul>
+            </div>
+          </div>
+
           <!-- 系统架构文档 -->
-          <div class="strategy-doc">
+          <div class="strategy-doc" id="system-architecture">
             <div class="doc-header">
               <h3>系统架构说明</h3>
               <span class="strategy-badge system">系统</span>
@@ -1023,6 +1198,11 @@
       </div>
     </main>
   </div>
+
+  <!-- 返回顶部按钮 -->
+  <button class="back-to-top" id="backToTop" title="返回顶部">
+    <i class="fas fa-arrow-up"></i>
+  </button>
 
   <script src="app.js"></script>
 </body>

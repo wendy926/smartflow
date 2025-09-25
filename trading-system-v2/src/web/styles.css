@@ -1951,6 +1951,311 @@ body {
   font-weight: 500;
 }
 
+/* 文档样式 */
+.strategy-doc {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+  overflow: hidden;
+  border: 1px solid #e1e8ed;
+}
+
+.doc-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: none;
+}
+
+.doc-header h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.doc-header h3::before {
+  content: "📚";
+  font-size: 1.2rem;
+}
+
+.doc-content {
+  padding: 2rem;
+  line-height: 1.7;
+  color: #2c3e50;
+}
+
+.doc-content h4 {
+  color: #2c3e50;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 2rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #ecf0f1;
+  position: relative;
+}
+
+.doc-content h4::before {
+  content: "▶";
+  color: #3498db;
+  margin-right: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.doc-content h5 {
+  color: #34495e;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid #3498db;
+}
+
+.doc-content h6 {
+  color: #7f8c8d;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.doc-content p {
+  margin: 1rem 0;
+  color: #555;
+  text-align: justify;
+}
+
+.doc-content ul, .doc-content ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.doc-content li {
+  margin: 0.5rem 0;
+  color: #555;
+  position: relative;
+}
+
+.doc-content ul li::marker {
+  color: #3498db;
+  font-weight: bold;
+}
+
+.doc-content ol li::marker {
+  color: #3498db;
+  font-weight: bold;
+}
+
+.doc-content strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.doc-content code {
+  background: #f8f9fa;
+  color: #e74c3c;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  border: 1px solid #e9ecef;
+}
+
+.doc-content pre {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.doc-content blockquote {
+  border-left: 4px solid #3498db;
+  background: #f8f9fa;
+  margin: 1rem 0;
+  padding: 1rem 1.5rem;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  color: #555;
+}
+
+/* 文档目录导航样式 */
+.doc-nav {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+  overflow: hidden;
+  border: 1px solid #e1e8ed;
+  position: sticky;
+  top: 2rem;
+  z-index: 100;
+}
+
+.doc-nav-header {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-bottom: none;
+}
+
+.doc-nav-header h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.doc-nav-content {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.doc-nav-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.doc-nav-section h4 {
+  color: #2c3e50;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #3498db;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.doc-nav-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.doc-nav-section li {
+  margin: 0.5rem 0;
+  padding: 0;
+}
+
+.doc-nav-section a {
+  color: #555;
+  text-decoration: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  display: block;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  border-left: 3px solid transparent;
+}
+
+.doc-nav-section a:hover {
+  background: #e3f2fd;
+  color: #1976d2;
+  border-left-color: #1976d2;
+  transform: translateX(4px);
+}
+
+.doc-nav-section a:active {
+  background: #bbdefb;
+  color: #0d47a1;
+}
+
+/* 文档容器布局 */
+.docs-container {
+  display: grid;
+  gap: 2rem;
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 返回顶部按钮 */
+.back-to-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px);
+}
+
+.back-to-top.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.back-to-top:hover {
+  background: linear-gradient(135deg, #2980b9 0%, #1f618d 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .doc-nav {
+    position: static;
+    margin-bottom: 1rem;
+  }
+  
+  .doc-nav-content {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .doc-content {
+    padding: 1.5rem;
+  }
+  
+  .doc-content h4 {
+    font-size: 1.2rem;
+  }
+  
+  .doc-content h5 {
+    font-size: 1rem;
+  }
+  
+  .back-to-top {
+    bottom: 1rem;
+    right: 1rem;
+    width: 45px;
+    height: 45px;
+    font-size: 1rem;
+  }
+}
+
 /* 策略状态表格新样式 */
 .strategy-badge {
   display: inline-block;
@@ -1969,6 +2274,16 @@ body {
 .strategy-badge.ict {
   background-color: #f3e5f5;
   color: #7b1fa2;
+}
+
+.strategy-badge.macro {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
+.strategy-badge.system {
+  background-color: #fff3e0;
+  color: #f57c00;
 }
 
 .signal-value {
