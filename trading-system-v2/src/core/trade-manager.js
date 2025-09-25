@@ -153,7 +153,7 @@ class TradeManager {
       }
 
       // 计算盈亏
-      const pnl = trade.direction === 'LONG'
+      const pnl = trade.trade_type === 'LONG'
         ? (exit_price - trade.entry_price) * trade.quantity
         : (trade.entry_price - exit_price) * trade.quantity;
 
@@ -241,9 +241,9 @@ class TradeManager {
    * @returns {Object} 检查结果
    */
   checkTradeExit(trade, currentPrice) {
-    const { direction, entry_price, stop_loss, take_profit } = trade;
+    const { trade_type, entry_price, stop_loss, take_profit } = trade;
 
-    if (direction === 'LONG') {
+    if (trade_type === 'LONG') {
       // 多头交易
       if (currentPrice <= stop_loss) {
         return {
