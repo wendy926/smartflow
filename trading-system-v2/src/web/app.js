@@ -1614,7 +1614,7 @@ class SmartFlowApp {
         <td><span class="status-tag status-${(trade.status || 'open').toLowerCase()}">${getStatusText(trade.status)}</span></td>
         <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
         <td class="judgment-basis">${trade.exit_reason || '--'}</td>
-        <td class="${getProfitClass(trade.pnl)}">${formatProfit(trade.pnl)}</td>
+        <td class="${getProfitClass(trade.pnl_percentage)}">${formatProfit(trade.pnl_percentage)}</td>
         <td class="${getProfitClass(trade.pnl)}">${formatProfitAmount(trade.pnl)}</td>
         <td>${calculateMaxDrawdown(trade)}</td>
       `;
@@ -1659,7 +1659,7 @@ class SmartFlowApp {
         <td><span class="status-tag status-${(trade.status || 'open').toLowerCase()}">${getStatusText(trade.status)}</span></td>
         <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
         <td class="judgment-basis">${trade.exit_reason || '--'}</td>
-        <td class="${getProfitClass(trade.pnl)}">${formatProfit(trade.pnl)}</td>
+        <td class="${getProfitClass(trade.pnl_percentage)}">${formatProfit(trade.pnl_percentage)}</td>
         <td class="${getProfitClass(trade.pnl)}">${formatProfitAmount(trade.pnl)}</td>
         <td>${calculateMaxDrawdown(trade)}</td>
       `;
@@ -1698,10 +1698,15 @@ class SmartFlowApp {
    * @returns {string} 最大回撤
    */
   calculateMaxDrawdown(trade) {
-    // 这里简化处理，实际应该根据历史数据计算
+    // 对于已关闭的交易，最大回撤就是该交易的亏损金额
     if (trade.status === 'CLOSED' && trade.pnl < 0) {
       return `${Math.abs(parseFloat(trade.pnl)).toFixed(2)}`;
     }
+    // 对于盈利的交易，最大回撤为0
+    if (trade.status === 'CLOSED' && trade.pnl >= 0) {
+      return '0.00';
+    }
+    // 对于未关闭的交易，显示--
     return '--';
   }
 
@@ -1818,11 +1823,11 @@ class SmartFlowApp {
    */
   getStatusText(status) {
     const statusMap = {
-      'open': '持仓中',
-      'closed': '已平仓',
-      'stopped': '已止损'
+      'open': 'open',
+      'closed': 'close',
+      'stopped': 'close'
     };
-    return statusMap[status] || '未知';
+    return statusMap[status] || 'open';
   }
 
   /**
@@ -1837,14 +1842,14 @@ class SmartFlowApp {
   }
 
   /**
-   * 格式化盈亏显示
-   * @param {number} pnl - 盈亏金额
-   * @returns {string} 格式化后的盈亏
+   * 格式化盈亏百分比显示
+   * @param {number} pnlPercentage - 盈亏百分比
+   * @returns {string} 格式化后的盈亏百分比
    */
-  formatProfit(pnl) {
-    if (pnl === null || pnl === undefined) return '--';
-    const sign = pnl >= 0 ? '+' : '';
-    return `${sign}${parseFloat(pnl).toFixed(2)}`;
+  formatProfit(pnlPercentage) {
+    if (pnlPercentage === null || pnlPercentage === undefined) return '--';
+    const sign = pnlPercentage >= 0 ? '+' : '';
+    return `${sign}${parseFloat(pnlPercentage).toFixed(2)}%`;
   }
 
   /**
@@ -2626,7 +2631,7 @@ function updateTradingRecordsTable(trades) {
       <td><span class="status-badge ${(trade.status || '').toLowerCase()}">${getStatusText(trade.status)}</span></td>
       <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
       <td class="judgment-basis">${trade.exit_reason || '--'}</td>
-      <td class="${getProfitClass(trade.pnl)}">${formatProfit(trade.pnl)}</td>
+      <td class="${getProfitClass(trade.pnl_percentage)}">${formatProfit(trade.pnl_percentage)}</td>
       <td class="${getProfitClass(trade.pnl)}">${formatProfitAmount(trade.pnl)}</td>
       <td>${calculateMaxDrawdown(trade)}</td>
     `;
@@ -2637,11 +2642,11 @@ function updateTradingRecordsTable(trades) {
 // 获取状态文本
 function getStatusText(status) {
   const statusMap = {
-    'ACTIVE': '进行中',
-    'CLOSED': '已关闭',
-    'CANCELLED': '已取消'
+    'OPEN': 'open',
+    'CLOSED': 'close',
+    'STOPPED': 'close'
   };
-  return statusMap[status] || status;
+  return statusMap[status] || 'open';
 }
 
 // 关闭交易
@@ -2970,10 +2975,15 @@ function formatProfitAmount(pnl) {
 
 // 计算最大回撤
 function calculateMaxDrawdown(trade) {
-  // 这里简化处理，实际应该根据历史数据计算
+  // 对于已关闭的交易，最大回撤就是该交易的亏损金额
   if (trade.status === 'CLOSED' && trade.pnl < 0) {
     return `${Math.abs(parseFloat(trade.pnl)).toFixed(2)}`;
   }
+  // 对于盈利的交易，最大回撤为0
+  if (trade.status === 'CLOSED' && trade.pnl >= 0) {
+    return '0.00';
+  }
+  // 对于未关闭的交易，显示--
   return '--';
 }
 
@@ -2986,10 +2996,10 @@ function getProfitClass(pnl) {
   return '';
 }
 
-// 格式化盈亏
-function formatProfit(pnl) {
-  if (pnl === null || pnl === undefined) return '--';
-  const amount = parseFloat(pnl);
+// 格式化盈亏百分比
+function formatProfit(pnlPercentage) {
+  if (pnlPercentage === null || pnlPercentage === undefined) return '--';
+  const amount = parseFloat(pnlPercentage);
   if (amount === 0) return '0.00%';
   return `${amount >= 0 ? '+' : ''}${amount.toFixed(2)}%`;
 }
