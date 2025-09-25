@@ -871,6 +871,30 @@ class SmartFlowApp {
               opacity: cardStyle.opacity,
               rect: cardRect
             });
+            
+            // 如果卡片透明度为0，强制修复
+            if (cardStyle.opacity === '0') {
+              console.log('检测到卡片透明度为0，正在修复...');
+              parentCard.style.opacity = '1';
+              parentCard.style.visibility = 'visible';
+              parentCard.style.display = 'block';
+              console.log('卡片透明度已修复为1');
+              
+              // 重新检查元素状态
+              setTimeout(() => {
+                console.log('=== 修复后元素状态检查 ===');
+                elements.forEach((el, index) => {
+                  if (el) {
+                    const rect = el.getBoundingClientRect();
+                    console.log(`修复后元素${index}:`, {
+                      offsetWidth: el.offsetWidth,
+                      offsetHeight: el.offsetHeight,
+                      visible: rect.width > 0 && rect.height > 0
+                    });
+                  }
+                });
+              }, 100);
+            }
           }
         }, 100);
       }, 50);
