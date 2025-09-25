@@ -246,6 +246,10 @@ class SmartFlowApp {
         break;
       case 'strategies':
         this.loadStrategyData();
+        // 修复策略页面显示问题
+        setTimeout(() => {
+          this.fixStrategiesPageDisplay();
+        }, 100);
         break;
       case 'monitoring':
         this.loadMonitoringData();
@@ -288,6 +292,50 @@ class SmartFlowApp {
     await this.loadDashboardData();
     this.updateLastUpdateTime();
     console.log('初始数据加载完成');
+    
+    // 强制修复策略页面显示问题
+    this.fixStrategiesPageDisplay();
+  }
+  
+  /**
+   * 修复策略页面显示问题
+   */
+  fixStrategiesPageDisplay() {
+    console.log('开始修复策略页面显示问题...');
+    
+    // 检查并修复策略内容容器
+    const strategiesContent = document.querySelector('#strategies');
+    if (strategiesContent) {
+      const currentDisplay = window.getComputedStyle(strategiesContent).display;
+      console.log('策略内容容器当前状态:', currentDisplay);
+      
+      if (currentDisplay === 'none') {
+        console.log('检测到策略内容被隐藏，正在修复...');
+        strategiesContent.style.display = 'block';
+        console.log('策略内容已设置为显示');
+      }
+    }
+    
+    // 检查并修复总体统计卡片
+    const overallStatsCard = document.querySelector('#strategies .card');
+    if (overallStatsCard) {
+      const currentOpacity = window.getComputedStyle(overallStatsCard).opacity;
+      console.log('总体统计卡片当前透明度:', currentOpacity);
+      
+      if (currentOpacity === '0') {
+        console.log('检测到总体统计卡片透明度为0，正在修复...');
+        overallStatsCard.style.opacity = '1';
+        overallStatsCard.style.visibility = 'visible';
+        overallStatsCard.style.display = 'block';
+        console.log('总体统计卡片透明度已修复为1');
+      }
+    }
+    
+    // 重新加载策略数据
+    setTimeout(() => {
+      console.log('重新加载策略数据...');
+      this.loadStrategyStatistics();
+    }, 500);
   }
 
   /**
@@ -695,11 +743,11 @@ class SmartFlowApp {
     setTimeout(() => {
       console.log('开始更新总体统计DOM元素...');
       
-      // 更新总交易数
-      const totalTradesElement = document.getElementById('overall-total-trades');
+    // 更新总交易数
+    const totalTradesElement = document.getElementById('overall-total-trades');
       console.log('总交易数元素:', totalTradesElement);
-      if (totalTradesElement) {
-        totalTradesElement.textContent = stats.totalTrades || 0;
+    if (totalTradesElement) {
+      totalTradesElement.textContent = stats.totalTrades || 0;
         totalTradesElement.innerHTML = stats.totalTrades || 0; // 强制更新innerHTML
         console.log('总交易数已更新为:', stats.totalTrades || 0);
         console.log('元素当前内容:', totalTradesElement.textContent);
@@ -710,45 +758,45 @@ class SmartFlowApp {
         console.log('页面中所有元素数量:', allElements.length);
         const totalTradesElements = Array.from(allElements).filter(el => el.textContent && el.textContent.includes('总交易数'));
         console.log('包含"总交易数"的元素:', totalTradesElements);
-      }
+    }
 
-      // 更新总胜率
-      const winRateElement = document.getElementById('overall-win-rate');
+    // 更新总胜率
+    const winRateElement = document.getElementById('overall-win-rate');
       console.log('总胜率元素:', winRateElement);
-      if (winRateElement) {
-        const winRate = stats.winRate || 0;
-        winRateElement.textContent = `${winRate}%`;
+    if (winRateElement) {
+      const winRate = stats.winRate || 0;
+      winRateElement.textContent = `${winRate}%`;
         winRateElement.innerHTML = `${winRate}%`; // 强制更新innerHTML
-        winRateElement.className = `stat-value ${winRate >= 50 ? 'stat-positive' : 'stat-negative'}`;
+      winRateElement.className = `stat-value ${winRate >= 50 ? 'stat-positive' : 'stat-negative'}`;
         console.log('总胜率已更新为:', winRate + '%');
         console.log('元素当前内容:', winRateElement.textContent);
       } else {
         console.error('找不到总胜率元素');
-      }
+    }
 
-      // 更新总盈亏
-      const totalPnlElement = document.getElementById('overall-total-pnl');
+    // 更新总盈亏
+    const totalPnlElement = document.getElementById('overall-total-pnl');
       console.log('总盈亏元素:', totalPnlElement);
-      if (totalPnlElement) {
-        const pnl = stats.totalPnl || 0;
+    if (totalPnlElement) {
+      const pnl = stats.totalPnl || 0;
         const pnlText = pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
         totalPnlElement.textContent = pnlText;
         totalPnlElement.innerHTML = pnlText; // 强制更新innerHTML
-        totalPnlElement.className = `stat-value ${pnl >= 0 ? 'stat-positive' : 'stat-negative'}`;
+      totalPnlElement.className = `stat-value ${pnl >= 0 ? 'stat-positive' : 'stat-negative'}`;
         console.log('总盈亏已更新为:', pnlText);
         console.log('元素当前内容:', totalPnlElement.textContent);
       } else {
         console.error('找不到总盈亏元素');
-      }
+    }
 
-      // 更新最大回撤
-      const maxDrawdownElement = document.getElementById('overall-max-drawdown');
+    // 更新最大回撤
+    const maxDrawdownElement = document.getElementById('overall-max-drawdown');
       console.log('最大回撤元素:', maxDrawdownElement);
-      if (maxDrawdownElement) {
+    if (maxDrawdownElement) {
         const drawdownText = `-${stats.maxDrawdown || 0}%`;
         maxDrawdownElement.textContent = drawdownText;
         maxDrawdownElement.innerHTML = drawdownText; // 强制更新innerHTML
-        maxDrawdownElement.className = 'stat-value stat-negative';
+      maxDrawdownElement.className = 'stat-value stat-negative';
         console.log('最大回撤已更新为:', drawdownText);
         console.log('元素当前内容:', maxDrawdownElement.textContent);
       } else {
