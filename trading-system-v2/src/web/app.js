@@ -2814,7 +2814,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 加载Telegram状态
   loadTelegramStatus();
-  
+
   // 初始化文档功能
   initBackToTop();
   initSmoothScroll();
@@ -2879,9 +2879,9 @@ function formatDate(dateString) {
 // 返回顶部按钮功能
 function initBackToTop() {
   const backToTopBtn = document.getElementById('backToTop');
-  
+
   if (!backToTopBtn) return;
-  
+
   // 监听滚动事件
   window.addEventListener('scroll', () => {
     if (window.pageYOffset > 300) {
@@ -2890,7 +2890,7 @@ function initBackToTop() {
       backToTopBtn.classList.remove('show');
     }
   });
-  
+
   // 点击返回顶部
   backToTopBtn.addEventListener('click', () => {
     window.scrollTo({

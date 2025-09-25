@@ -42,7 +42,7 @@ class MacroMonitorController {
       cpiLow: 1.0,
 
       // 监控间隔
-      monitoringInterval: 60000, // 1分钟
+      monitoringInterval: 4 * 60 * 60 * 1000, // 4小时
       alertCooldown: 30 // 30分钟冷却时间
     };
 

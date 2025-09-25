@@ -2032,7 +2032,8 @@ body {
   text-align: justify;
 }
 
-.doc-content ul, .doc-content ol {
+.doc-content ul,
+.doc-content ol {
   margin: 1rem 0;
   padding-left: 2rem;
 }
@@ -2098,9 +2099,6 @@ body {
   margin-bottom: 2rem;
   overflow: hidden;
   border: 1px solid #e1e8ed;
-  position: sticky;
-  top: 2rem;
-  z-index: 100;
 }
 
 .doc-nav-header {
@@ -2226,27 +2224,26 @@ html {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .doc-nav {
-    position: static;
     margin-bottom: 1rem;
   }
-  
+
   .doc-nav-content {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .doc-content {
     padding: 1.5rem;
   }
-  
+
   .doc-content h4 {
     font-size: 1.2rem;
   }
-  
+
   .doc-content h5 {
     font-size: 1rem;
   }
-  
+
   .back-to-top {
     bottom: 1rem;
     right: 1rem;
