@@ -220,11 +220,18 @@ class SmartFlowApp {
     });
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
 
-    // 更新内容显示
+    // 强制隐藏所有标签页内容
     document.querySelectorAll('.tab-content').forEach(content => {
       content.classList.remove('active');
+      content.style.display = 'none'; // 强制隐藏
     });
-    document.getElementById(tabName).classList.add('active');
+    
+    // 只显示当前标签页
+    const currentTabElement = document.getElementById(tabName);
+    if (currentTabElement) {
+      currentTabElement.classList.add('active');
+      currentTabElement.style.display = 'block'; // 强制显示
+    }
 
     // 验证标签页切换结果
     const activeTabs = document.querySelectorAll('.tab-content.active');
@@ -301,36 +308,36 @@ class SmartFlowApp {
     await this.loadDashboardData();
     this.updateLastUpdateTime();
     console.log('初始数据加载完成');
-    
+
     // 强制修复策略页面显示问题
     this.fixStrategiesPageDisplay();
   }
-  
+
   /**
    * 修复策略页面显示问题
    */
   fixStrategiesPageDisplay() {
     console.log('开始修复策略页面显示问题...');
-    
+
     // 检查并修复策略内容容器
     const strategiesContent = document.querySelector('#strategies');
     if (strategiesContent) {
       const currentDisplay = window.getComputedStyle(strategiesContent).display;
       console.log('策略内容容器当前状态:', currentDisplay);
-      
+
       if (currentDisplay === 'none') {
         console.log('检测到策略内容被隐藏，正在修复...');
         strategiesContent.style.display = 'block';
         console.log('策略内容已设置为显示');
       }
     }
-    
+
     // 检查并修复总体统计卡片
     const overallStatsCard = document.querySelector('#strategies .card');
     if (overallStatsCard) {
       const currentOpacity = window.getComputedStyle(overallStatsCard).opacity;
       console.log('总体统计卡片当前透明度:', currentOpacity);
-      
+
       if (currentOpacity === '0') {
         console.log('检测到总体统计卡片透明度为0，正在修复...');
         overallStatsCard.style.opacity = '1';
@@ -339,7 +346,7 @@ class SmartFlowApp {
         console.log('总体统计卡片透明度已修复为1');
       }
     }
-    
+
     // 重新加载策略数据
     setTimeout(() => {
       console.log('重新加载策略数据...');
@@ -747,25 +754,34 @@ class SmartFlowApp {
    */
   updateOverallStats(stats) {
     console.log('更新总体统计:', stats);
-    
+
     // 只在当前激活的标签页中更新总体统计
     const currentTab = this.currentTab;
     console.log('当前标签页:', currentTab);
-    
+
     if (currentTab === 'dashboard') {
       console.log('仪表板页面：跳过总体统计更新（仪表板页面没有总体统计元素）');
       return;
     }
     
+    if (currentTab === 'statistics') {
+      console.log('胜率统计页面：更新总体统计');
+    } else if (currentTab === 'strategies') {
+      console.log('策略执行页面：更新总体统计');
+    } else {
+      console.log('其他页面：跳过总体统计更新');
+      return;
+    }
+
     // 延迟执行以确保DOM元素已加载
     setTimeout(() => {
       console.log('开始更新总体统计DOM元素...');
-      
-    // 更新总交易数
-    const totalTradesElement = document.getElementById('overall-total-trades');
+
+      // 更新总交易数
+      const totalTradesElement = document.getElementById('overall-total-trades');
       console.log('总交易数元素:', totalTradesElement);
-    if (totalTradesElement) {
-      totalTradesElement.textContent = stats.totalTrades || 0;
+      if (totalTradesElement) {
+        totalTradesElement.textContent = stats.totalTrades || 0;
         totalTradesElement.innerHTML = stats.totalTrades || 0; // 强制更新innerHTML
         console.log('总交易数已更新为:', stats.totalTrades || 0);
         console.log('元素当前内容:', totalTradesElement.textContent);
@@ -776,53 +792,53 @@ class SmartFlowApp {
         console.log('页面中所有元素数量:', allElements.length);
         const totalTradesElements = Array.from(allElements).filter(el => el.textContent && el.textContent.includes('总交易数'));
         console.log('包含"总交易数"的元素:', totalTradesElements);
-    }
+      }
 
-    // 更新总胜率
-    const winRateElement = document.getElementById('overall-win-rate');
+      // 更新总胜率
+      const winRateElement = document.getElementById('overall-win-rate');
       console.log('总胜率元素:', winRateElement);
-    if (winRateElement) {
-      const winRate = stats.winRate || 0;
-      winRateElement.textContent = `${winRate}%`;
+      if (winRateElement) {
+        const winRate = stats.winRate || 0;
+        winRateElement.textContent = `${winRate}%`;
         winRateElement.innerHTML = `${winRate}%`; // 强制更新innerHTML
-      winRateElement.className = `stat-value ${winRate >= 50 ? 'stat-positive' : 'stat-negative'}`;
+        winRateElement.className = `stat-value ${winRate >= 50 ? 'stat-positive' : 'stat-negative'}`;
         console.log('总胜率已更新为:', winRate + '%');
         console.log('元素当前内容:', winRateElement.textContent);
       } else {
         console.error('找不到总胜率元素');
-    }
+      }
 
-    // 更新总盈亏
-    const totalPnlElement = document.getElementById('overall-total-pnl');
+      // 更新总盈亏
+      const totalPnlElement = document.getElementById('overall-total-pnl');
       console.log('总盈亏元素:', totalPnlElement);
-    if (totalPnlElement) {
-      const pnl = stats.totalPnl || 0;
+      if (totalPnlElement) {
+        const pnl = stats.totalPnl || 0;
         const pnlText = pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
         totalPnlElement.textContent = pnlText;
         totalPnlElement.innerHTML = pnlText; // 强制更新innerHTML
-      totalPnlElement.className = `stat-value ${pnl >= 0 ? 'stat-positive' : 'stat-negative'}`;
+        totalPnlElement.className = `stat-value ${pnl >= 0 ? 'stat-positive' : 'stat-negative'}`;
         console.log('总盈亏已更新为:', pnlText);
         console.log('元素当前内容:', totalPnlElement.textContent);
       } else {
         console.error('找不到总盈亏元素');
-    }
+      }
 
-    // 更新最大回撤
-    const maxDrawdownElement = document.getElementById('overall-max-drawdown');
+      // 更新最大回撤
+      const maxDrawdownElement = document.getElementById('overall-max-drawdown');
       console.log('最大回撤元素:', maxDrawdownElement);
-    if (maxDrawdownElement) {
+      if (maxDrawdownElement) {
         const drawdownText = `-${stats.maxDrawdown || 0}%`;
         maxDrawdownElement.textContent = drawdownText;
         maxDrawdownElement.innerHTML = drawdownText; // 强制更新innerHTML
-      maxDrawdownElement.className = 'stat-value stat-negative';
+        maxDrawdownElement.className = 'stat-value stat-negative';
         console.log('最大回撤已更新为:', drawdownText);
         console.log('元素当前内容:', maxDrawdownElement.textContent);
       } else {
         console.error('找不到最大回撤元素');
       }
-      
+
       console.log('总体统计DOM更新完成');
-      
+
       // 强制触发浏览器重绘
       setTimeout(() => {
         console.log('强制触发浏览器重绘...');
@@ -832,7 +848,7 @@ class SmartFlowApp {
           document.getElementById('overall-total-pnl'),
           document.getElementById('overall-max-drawdown')
         ];
-        
+
         elements.forEach((el, index) => {
           if (el) {
             const originalContent = el.textContent;
@@ -842,7 +858,7 @@ class SmartFlowApp {
             console.log(`元素${index}重绘完成，内容: ${originalContent}`);
           }
         });
-        
+
         // 额外验证：检查页面实际显示的内容
         setTimeout(() => {
           console.log('=== 页面显示验证 ===');
@@ -852,9 +868,9 @@ class SmartFlowApp {
                 const rect = el.getBoundingClientRect();
                 const computedStyle = window.getComputedStyle(el);
                 const parentRect = el.parentElement ? el.parentElement.getBoundingClientRect() : null;
-                const grandParentRect = el.parentElement && el.parentElement.parentElement ? 
+                const grandParentRect = el.parentElement && el.parentElement.parentElement ?
                   el.parentElement.parentElement.getBoundingClientRect() : null;
-                
+
                 console.log(`元素${index}验证:`, {
                   textContent: el.textContent,
                   innerHTML: el.innerHTML,
@@ -884,7 +900,7 @@ class SmartFlowApp {
               }
             }
           });
-          
+
           // 额外检查：直接查看元素在页面上的实际位置
           console.log('=== 元素位置检查 ===');
           elements.forEach((el, index) => {
@@ -901,7 +917,7 @@ class SmartFlowApp {
               });
             }
           });
-          
+
           // 检查父容器状态
           console.log('=== 父容器检查 ===');
           const statisticsGrid = document.querySelector('.statistics-grid');
@@ -918,7 +934,7 @@ class SmartFlowApp {
               opacity: gridStyle.opacity,
               rect: gridRect
             });
-            
+
             // 如果statistics-grid容器尺寸为0，检查其父容器
             if (statisticsGrid.offsetWidth === 0 && statisticsGrid.offsetHeight === 0) {
               console.log('statistics-grid容器尺寸为0，检查父容器...');
@@ -938,7 +954,7 @@ class SmartFlowApp {
                   opacity: parentStyle.opacity,
                   rect: parentRect
                 });
-                
+
                 // 检查是否在正确的标签页中
                 const strategiesTab = document.querySelector('[data-tab="strategies"]');
                 const strategiesContent = document.querySelector('#strategies');
@@ -947,7 +963,7 @@ class SmartFlowApp {
                   strategiesContentActive: strategiesContent?.classList.contains('active'),
                   strategiesContentDisplay: strategiesContent ? window.getComputedStyle(strategiesContent).display : 'not found'
                 });
-                
+
                 // 如果策略内容被隐藏，强制显示
                 if (strategiesContent && window.getComputedStyle(strategiesContent).display === 'none') {
                   console.log('检测到策略内容被隐藏，正在修复...');
@@ -959,7 +975,7 @@ class SmartFlowApp {
           } else {
             console.log('未找到statistics-grid容器');
           }
-          
+
           // 检查父卡片状态
           const parentCard = elements[0]?.closest('.card');
           if (parentCard) {
@@ -975,7 +991,7 @@ class SmartFlowApp {
               opacity: cardStyle.opacity,
               rect: cardRect
             });
-            
+
             // 如果卡片透明度为0，强制修复
             if (cardStyle.opacity === '0') {
               console.log('检测到卡片透明度为0，正在修复...');
@@ -983,7 +999,7 @@ class SmartFlowApp {
               parentCard.style.visibility = 'visible';
               parentCard.style.display = 'block';
               console.log('卡片透明度已修复为1');
-              
+
               // 重新检查元素状态
               setTimeout(() => {
                 console.log('=== 修复后元素状态检查 ===');

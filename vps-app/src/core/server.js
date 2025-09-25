@@ -1155,6 +1155,24 @@ class SmartFlowServer {
       }
     });
 
+    // API错误详情监控API
+    this.app.get('/api/api-errors', (req, res) => {
+      try {
+        const BinanceAPI = require('./modules/api/BinanceAPI');
+        const errorDetails = BinanceAPI.getAPIErrorDetails();
+        res.json({
+          success: true,
+          data: errorDetails
+        });
+      } catch (error) {
+        console.error('获取API错误详情失败:', error);
+        res.status(500).json({ 
+          success: false,
+          error: error.message 
+        });
+      }
+    });
+
     // 重置实时数据统计API
     this.app.post('/api/realtime-data-stats/reset', (req, res) => {
       try {
