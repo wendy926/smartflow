@@ -606,7 +606,9 @@ class SmartFlowApp {
    */
   async loadStrategyStatistics() {
     try {
-      console.log('开始加载策略统计... (调用栈:', new Error().stack.split('\n')[2], ')');
+      const stack = new Error().stack;
+      const caller = stack.split('\n')[2] || 'unknown';
+      console.log('开始加载策略统计... (调用者:', caller.trim(), ')');
       const response = await this.fetchData('/strategies/statistics');
       console.log('策略统计API响应:', response);
       const stats = response.data;
@@ -698,7 +700,9 @@ class SmartFlowApp {
       console.log('总交易数元素:', totalTradesElement);
       if (totalTradesElement) {
         totalTradesElement.textContent = stats.totalTrades || 0;
+        totalTradesElement.innerHTML = stats.totalTrades || 0; // 强制更新innerHTML
         console.log('总交易数已更新为:', stats.totalTrades || 0);
+        console.log('元素当前内容:', totalTradesElement.textContent);
       } else {
         console.error('找不到总交易数元素');
         // 尝试查找所有包含"总交易数"的元素
@@ -714,8 +718,10 @@ class SmartFlowApp {
       if (winRateElement) {
         const winRate = stats.winRate || 0;
         winRateElement.textContent = `${winRate}%`;
+        winRateElement.innerHTML = `${winRate}%`; // 强制更新innerHTML
         winRateElement.className = `stat-value ${winRate >= 50 ? 'stat-positive' : 'stat-negative'}`;
         console.log('总胜率已更新为:', winRate + '%');
+        console.log('元素当前内容:', winRateElement.textContent);
       } else {
         console.error('找不到总胜率元素');
       }
@@ -725,9 +731,12 @@ class SmartFlowApp {
       console.log('总盈亏元素:', totalPnlElement);
       if (totalPnlElement) {
         const pnl = stats.totalPnl || 0;
-        totalPnlElement.textContent = pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
+        const pnlText = pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
+        totalPnlElement.textContent = pnlText;
+        totalPnlElement.innerHTML = pnlText; // 强制更新innerHTML
         totalPnlElement.className = `stat-value ${pnl >= 0 ? 'stat-positive' : 'stat-negative'}`;
-        console.log('总盈亏已更新为:', totalPnlElement.textContent);
+        console.log('总盈亏已更新为:', pnlText);
+        console.log('元素当前内容:', totalPnlElement.textContent);
       } else {
         console.error('找不到总盈亏元素');
       }
@@ -736,9 +745,12 @@ class SmartFlowApp {
       const maxDrawdownElement = document.getElementById('overall-max-drawdown');
       console.log('最大回撤元素:', maxDrawdownElement);
       if (maxDrawdownElement) {
-        maxDrawdownElement.textContent = `-${stats.maxDrawdown || 0}%`;
+        const drawdownText = `-${stats.maxDrawdown || 0}%`;
+        maxDrawdownElement.textContent = drawdownText;
+        maxDrawdownElement.innerHTML = drawdownText; // 强制更新innerHTML
         maxDrawdownElement.className = 'stat-value stat-negative';
-        console.log('最大回撤已更新为:', maxDrawdownElement.textContent);
+        console.log('最大回撤已更新为:', drawdownText);
+        console.log('元素当前内容:', maxDrawdownElement.textContent);
       } else {
         console.error('找不到最大回撤元素');
       }
