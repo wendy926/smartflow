@@ -685,36 +685,42 @@ class SmartFlowApp {
    */
   updateOverallStats(stats) {
     console.log('更新总体统计:', stats);
-    // 更新总交易数
-    const totalTradesElement = document.getElementById('overall-total-trades');
-    console.log('总交易数元素:', totalTradesElement);
-    if (totalTradesElement) {
-      totalTradesElement.textContent = stats.totalTrades || 0;
-      console.log('总交易数已更新为:', stats.totalTrades || 0);
-    }
+    
+    // 延迟执行以确保DOM元素已加载
+    setTimeout(() => {
+      // 更新总交易数
+      const totalTradesElement = document.getElementById('overall-total-trades');
+      console.log('总交易数元素:', totalTradesElement);
+      if (totalTradesElement) {
+        totalTradesElement.textContent = stats.totalTrades || 0;
+        console.log('总交易数已更新为:', stats.totalTrades || 0);
+      } else {
+        console.error('找不到总交易数元素');
+      }
 
-    // 更新总胜率
-    const winRateElement = document.getElementById('overall-win-rate');
-    if (winRateElement) {
-      const winRate = stats.winRate || 0;
-      winRateElement.textContent = `${winRate}%`;
-      winRateElement.className = `stat-value ${winRate >= 50 ? 'stat-positive' : 'stat-negative'}`;
-    }
+      // 更新总胜率
+      const winRateElement = document.getElementById('overall-win-rate');
+      if (winRateElement) {
+        const winRate = stats.winRate || 0;
+        winRateElement.textContent = `${winRate}%`;
+        winRateElement.className = `stat-value ${winRate >= 50 ? 'stat-positive' : 'stat-negative'}`;
+      }
 
-    // 更新总盈亏
-    const totalPnlElement = document.getElementById('overall-total-pnl');
-    if (totalPnlElement) {
-      const pnl = stats.totalPnl || 0;
-      totalPnlElement.textContent = pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
-      totalPnlElement.className = `stat-value ${pnl >= 0 ? 'stat-positive' : 'stat-negative'}`;
-    }
+      // 更新总盈亏
+      const totalPnlElement = document.getElementById('overall-total-pnl');
+      if (totalPnlElement) {
+        const pnl = stats.totalPnl || 0;
+        totalPnlElement.textContent = pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
+        totalPnlElement.className = `stat-value ${pnl >= 0 ? 'stat-positive' : 'stat-negative'}`;
+      }
 
-    // 更新最大回撤
-    const maxDrawdownElement = document.getElementById('overall-max-drawdown');
-    if (maxDrawdownElement) {
-      maxDrawdownElement.textContent = `-${stats.maxDrawdown || 0}%`;
-      maxDrawdownElement.className = 'stat-value stat-negative';
-    }
+      // 更新最大回撤
+      const maxDrawdownElement = document.getElementById('overall-max-drawdown');
+      if (maxDrawdownElement) {
+        maxDrawdownElement.textContent = `-${stats.maxDrawdown || 0}%`;
+        maxDrawdownElement.className = 'stat-value stat-negative';
+      }
+    }, 100); // 延迟100ms执行
   }
 
   /**
