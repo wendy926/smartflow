@@ -756,6 +756,27 @@ class SmartFlowApp {
       }
       
       console.log('总体统计DOM更新完成');
+      
+      // 强制触发浏览器重绘
+      setTimeout(() => {
+        console.log('强制触发浏览器重绘...');
+        const elements = [
+          document.getElementById('overall-total-trades'),
+          document.getElementById('overall-win-rate'),
+          document.getElementById('overall-total-pnl'),
+          document.getElementById('overall-max-drawdown')
+        ];
+        
+        elements.forEach((el, index) => {
+          if (el) {
+            const originalContent = el.textContent;
+            el.style.display = 'none';
+            el.offsetHeight; // 触发重排
+            el.style.display = '';
+            console.log(`元素${index}重绘完成，内容: ${originalContent}`);
+          }
+        });
+      }, 50);
     }, 100); // 延迟100ms执行
   }
 
