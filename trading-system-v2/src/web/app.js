@@ -835,6 +835,43 @@ class SmartFlowApp {
               });
             }
           });
+          
+          // 检查父容器状态
+          console.log('=== 父容器检查 ===');
+          const statisticsGrid = document.querySelector('.statistics-grid');
+          if (statisticsGrid) {
+            const gridRect = statisticsGrid.getBoundingClientRect();
+            const gridStyle = window.getComputedStyle(statisticsGrid);
+            console.log('statistics-grid容器状态:', {
+              offsetWidth: statisticsGrid.offsetWidth,
+              offsetHeight: statisticsGrid.offsetHeight,
+              clientWidth: statisticsGrid.clientWidth,
+              clientHeight: statisticsGrid.clientHeight,
+              display: gridStyle.display,
+              visibility: gridStyle.visibility,
+              opacity: gridStyle.opacity,
+              rect: gridRect
+            });
+          } else {
+            console.log('未找到statistics-grid容器');
+          }
+          
+          // 检查父卡片状态
+          const parentCard = elements[0]?.closest('.card');
+          if (parentCard) {
+            const cardRect = parentCard.getBoundingClientRect();
+            const cardStyle = window.getComputedStyle(parentCard);
+            console.log('父卡片状态:', {
+              offsetWidth: parentCard.offsetWidth,
+              offsetHeight: parentCard.offsetHeight,
+              clientWidth: parentCard.clientWidth,
+              clientHeight: parentCard.clientHeight,
+              display: cardStyle.display,
+              visibility: cardStyle.visibility,
+              opacity: cardStyle.opacity,
+              rect: cardRect
+            });
+          }
         }, 100);
       }, 50);
     }, 100); // 延迟100ms执行
