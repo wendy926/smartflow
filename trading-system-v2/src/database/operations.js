@@ -435,7 +435,6 @@ class DatabaseOperations {
         return { success: false, message: 'No valid fields to update' };
       }
 
-      fields.push('updated_at = NOW()');
       values.push(tradeId);
 
       const [result] = await connection.execute(
