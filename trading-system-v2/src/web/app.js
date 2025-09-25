@@ -284,8 +284,10 @@ class SmartFlowApp {
    * 加载初始数据
    */
   async loadInitialData() {
+    console.log('开始加载初始数据...');
     await this.loadDashboardData();
     this.updateLastUpdateTime();
+    console.log('初始数据加载完成');
   }
 
   /**
@@ -604,16 +606,21 @@ class SmartFlowApp {
    */
   async loadStrategyStatistics() {
     try {
+      console.log('开始加载策略统计...');
       const response = await this.fetchData('/strategies/statistics');
+      console.log('策略统计API响应:', response);
       const stats = response.data;
 
       // 更新V3策略统计
+      console.log('更新V3策略统计:', stats.v3);
       this.updateStrategyStats('v3', stats.v3);
 
       // 更新ICT策略统计
+      console.log('更新ICT策略统计:', stats.ict);
       this.updateStrategyStats('ict', stats.ict);
 
       // 更新总体统计
+      console.log('更新总体统计:', stats.overall);
       this.updateOverallStats(stats.overall);
     } catch (error) {
       console.error('Error loading strategy statistics:', error);
