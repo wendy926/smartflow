@@ -463,14 +463,13 @@ class DatabaseOperations {
       const {
         symbol,
         strategy_type,
-        direction,
+        trade_type,
         entry_price,
         stop_loss,
         take_profit,
         leverage = 1,
-        margin_required,
-        risk_amount,
-        position_size,
+        margin_used,
+        quantity,
         entry_reason = '',
         created_at = new Date()
       } = tradeData;
@@ -489,12 +488,12 @@ class DatabaseOperations {
 
       const [result] = await connection.execute(
         `INSERT INTO simulation_trades 
-         (symbol_id, strategy_type, direction, entry_price, stop_loss, take_profit, 
-          leverage, margin_required, risk_amount, position_size, entry_reason, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (symbol_id, strategy_name, trade_type, entry_price, stop_loss, take_profit, 
+          leverage, margin_used, quantity, entry_reason, created_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          symbolId, strategy_type, direction, entry_price, stop_loss, take_profit,
-          leverage, margin_required, risk_amount, position_size, entry_reason, created_at
+          symbolId, strategy_type, trade_type, entry_price, stop_loss, take_profit,
+          leverage, margin_used, quantity, entry_reason, created_at
         ]
       );
 
