@@ -8,24 +8,24 @@ const TechnicalIndicators = require('./TechnicalIndicators');
 class ICTStrategy {
   constructor(config = {}) {
     this.config = {
-      // 1D趋势判断配置
+      // 1D趋势判断配置 - 放宽条件
       dailyTrend: {
-        lookbackPeriod: 20,             // 比较最近20根日线
-        trendThreshold: 2               // 3分制中≥2分确认趋势
+        lookbackPeriod: 15,             // 比较最近15根日线（从20减少）
+        trendThreshold: 1               // 3分制中≥1分确认趋势（从2分降低）
       },
-      // 4H OB/FVG检测配置
+      // 4H OB/FVG检测配置 - 放宽条件
       obDetection: {
-        minHeightATRRatio: 0.25,        // OB最小高度 = 0.25×ATR
-        maxAgeDays: 30,                 // OB最大年龄30天
-        sweepHTFThresholdATRRatio: 0.4, // 4H Sweep阈值 = 0.4×ATR
-        sweepHTFMaxBars: 2              // 4H Sweep最大收回bar数
+        minHeightATRRatio: 0.15,        // OB最小高度 = 0.15×ATR（从0.25降低）
+        maxAgeDays: 60,                 // OB最大年龄60天（从30天增加）
+        sweepHTFThresholdATRRatio: 0.25, // 4H Sweep阈值 = 0.25×ATR（从0.4降低）
+        sweepHTFMaxBars: 3              // 4H Sweep最大收回bar数（从2增加）
       },
-      // 15m入场确认配置
+      // 15m入场确认配置 - 放宽条件
       ltfConfirmation: {
-        maxAgeDays: 2,                  // OB/FVG最大年龄2天
-        sweepLTFThresholdATRRatio: 0.2, // 15m Sweep阈值 = 0.2×ATR
-        sweepLTFMaxBars: 3,             // 15m Sweep最大收回bar数
-        engulfingBodyRatio: 1.5         // 吞没形态实体比例
+        maxAgeDays: 7,                  // OB/FVG最大年龄7天（从2天增加）
+        sweepLTFThresholdATRRatio: 0.1, // 15m Sweep阈值 = 0.1×ATR（从0.2降低）
+        sweepLTFMaxBars: 5,             // 15m Sweep最大收回bar数（从3增加）
+        engulfingBodyRatio: 1.2         // 吞没形态实体比例（从1.5降低）
       },
       // 风险管理配置
       riskManagement: {

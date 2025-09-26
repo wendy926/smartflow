@@ -24,6 +24,12 @@ class SmartFlowApp {
     // 动态加载交易对列表
     await this.loadSymbolsList();
 
+    // 启动API错误监控
+    this.loadAPIErrorMonitoring();
+    setInterval(() => {
+      this.loadAPIErrorMonitoring();
+    }, 30000); // 每30秒检查一次API错误
+
     // 检查页面加载类型
     const urlParams = new URLSearchParams(window.location.search);
     const forceRefresh = urlParams.get('force') === '1' || urlParams.get('cleared') === '1' || urlParams.get('reset') === '1';
@@ -1091,5 +1097,230 @@ class SmartFlowApp {
     } finally {
       this.hideLoading();
     }
+  }
+
+  /**
+   * 加载API错误监控数据
+   */
+  async loadAPIErrorMonitoring() {
+    try {
+      const response = await window.apiClient.request('/api/api-errors');
+      if (response.success) {
+        this.displayAPIErrors(response.data);
+      }
+    } catch (error) {
+      console.error('❌ 加载API错误监控失败:', error);
+    }
+  }
+
+  /**
+   * 显示API错误信息
+   */
+  displayAPIErrors(errorData) {
+    // 创建或更新错误监控面板
+    let errorPanel = document.getElementById('api-error-panel');
+    if (!errorPanel) {
+      errorPanel = this.createAPIErrorPanel();
+      document.body.appendChild(errorPanel);
+    }
+
+    // 更新错误统计
+    const globalStats = errorData.globalStats;
+    const errorSymbols = errorData.errorSymbols;
+    const errorsByType = errorData.errorsByType;
+
+    // 更新全局统计
+    const successRateEl = errorPanel.querySelector('.api-success-rate');
+    const totalCallsEl = errorPanel.querySelector('.api-total-calls');
+    const failedCallsEl = errorPanel.querySelector('.api-failed-calls');
+
+    if (successRateEl) {
+      successRateEl.textContent = `${globalStats.successRate.toFixed(2)}%`;
+      successRateEl.className = `api-success-rate ${globalStats.successRate > 95 ? 'success' : globalStats.successRate > 90 ? 'warning' : 'error'}`;
+    }
+    if (totalCallsEl) totalCallsEl.textContent = globalStats.totalCalls;
+    if (failedCallsEl) failedCallsEl.textContent = globalStats.failedCalls;
+
+    // 更新错误交易对列表
+    const errorListEl = errorPanel.querySelector('.api-error-list');
+    if (errorListEl) {
+      errorListEl.innerHTML = '';
+      errorSymbols.forEach(symbol => {
+        const item = document.createElement('div');
+        item.className = 'api-error-item';
+        item.innerHTML = `
+          <span class="symbol">${symbol.symbol}</span>
+          <span class="success-rate ${symbol.successRate > 90 ? 'success' : 'error'}">${symbol.successRate.toFixed(1)}%</span>
+          <span class="failed-calls">${symbol.failedCalls}次失败</span>
+          <span class="last-error">${symbol.lastError || '无'}</span>
+        `;
+        errorListEl.appendChild(item);
+      });
+    }
+
+    // 更新错误类型统计
+    const errorTypesEl = errorPanel.querySelector('.api-error-types');
+    if (errorTypesEl) {
+      errorTypesEl.innerHTML = '';
+      Object.entries(errorsByType).forEach(([type, errors]) => {
+        const item = document.createElement('div');
+        item.className = 'api-error-type-item';
+        item.innerHTML = `
+          <span class="error-type">${type}</span>
+          <span class="error-count">${errors.length}次</span>
+        `;
+        errorTypesEl.appendChild(item);
+      });
+    }
+
+    // 显示或隐藏面板
+    if (errorSymbols.length > 0) {
+      errorPanel.style.display = 'block';
+    } else {
+      errorPanel.style.display = 'none';
+    }
+  }
+
+  /**
+   * 创建API错误监控面板
+   */
+  createAPIErrorPanel() {
+    const panel = document.createElement('div');
+    panel.id = 'api-error-panel';
+    panel.className = 'api-error-panel';
+    panel.innerHTML = `
+      <div class="api-error-header">
+        <h3>⚠️ API错误监控</h3>
+        <button class="close-btn" onclick="this.parentElement.parentElement.style.display='none'">×</button>
+      </div>
+      <div class="api-error-content">
+        <div class="api-error-stats">
+          <div class="stat-item">
+            <span class="label">成功率:</span>
+            <span class="api-success-rate">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">总调用:</span>
+            <span class="api-total-calls">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">失败次数:</span>
+            <span class="api-failed-calls">--</span>
+          </div>
+        </div>
+        <div class="api-error-details">
+          <h4>错误交易对</h4>
+          <div class="api-error-list"></div>
+        </div>
+        <div class="api-error-types-section">
+          <h4>错误类型</h4>
+          <div class="api-error-types"></div>
+        </div>
+      </div>
+    `;
+
+    // 添加样式
+    const style = document.createElement('style');
+    style.textContent = `
+      .api-error-panel {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 400px;
+        max-height: 500px;
+        background: #fff;
+        border: 2px solid #ff6b6b;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+      }
+      .api-error-panel.hidden { display: none; }
+      .api-error-header {
+        background: #ff6b6b;
+        color: white;
+        padding: 10px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 6px 6px 0 0;
+      }
+      .api-error-header h3 {
+        margin: 0;
+        font-size: 16px;
+      }
+      .close-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .api-error-content {
+        padding: 15px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      .api-error-stats {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+      }
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+      }
+      .stat-item .label {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 5px;
+      }
+      .api-success-rate.success { color: #28a745; font-weight: bold; }
+      .api-success-rate.warning { color: #ffc107; font-weight: bold; }
+      .api-success-rate.error { color: #dc3545; font-weight: bold; }
+      .api-error-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .api-error-item:last-child {
+        border-bottom: none;
+      }
+      .symbol { font-weight: bold; color: #333; }
+      .success-rate.success { color: #28a745; }
+      .success-rate.error { color: #dc3545; }
+      .failed-calls { color: #666; font-size: 12px; }
+      .last-error { color: #999; font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .api-error-types-section h4,
+      .api-error-details h4 {
+        margin: 15px 0 10px 0;
+        font-size: 14px;
+        color: #333;
+      }
+      .api-error-type-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        font-size: 12px;
+      }
+      .error-type { color: #666; }
+      .error-count { color: #dc3545; font-weight: bold; }
+    `;
+    document.head.appendChild(style);
+
+    return panel;
   }
 }

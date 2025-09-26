@@ -28,25 +28,25 @@ class ICTStrategyEngine {
     
     // 配置参数 (按ict.md文档)
     this.config = {
-      // 1D趋势判断
-      dailyTrendLookback: 20,           // 回看20天
-      dailyTrendThreshold: 2,           // 3分制中≥2分确认趋势
+      // 1D趋势判断 - 放宽条件
+      dailyTrendLookback: 15,           // 回看15天（从20天减少）
+      dailyTrendThreshold: 1,           // 3分制中≥1分确认趋势（从2分降低）
       
-      // 4H OB/FVG过滤
-      obMinHeightATRRatio: 0.25,        // OB最小高度 = 0.25×ATR(4H)
-      obMaxAgeDays: 30,                 // OB最大年龄30天
-      fvgMinSizeATRRatio: 0.5,          // FVG最小大小 = 0.5×ATR(4H)
+      // 4H OB/FVG过滤 - 放宽条件
+      obMinHeightATRRatio: 0.15,        // OB最小高度 = 0.15×ATR(4H)（从0.25降低）
+      obMaxAgeDays: 60,                 // OB最大年龄60天（从30天增加）
+      fvgMinSizeATRRatio: 0.3,          // FVG最小大小 = 0.3×ATR(4H)（从0.5降低）
       
-      // Sweep检测阈值
-      sweepHTFThresholdATRRatio: 0.4,   // 4H Sweep阈值 = 0.4×ATR(4H)
-      sweepHTFMaxBars: 2,               // 4H Sweep最大2根K线
-      sweepLTFThresholdATRRatio: 0.2,   // 15m Sweep阈值 = 0.2×ATR(15m)
-      sweepLTFMaxBars: 3,               // 15m Sweep最大3根K线
+      // Sweep检测阈值 - 放宽条件
+      sweepHTFThresholdATRRatio: 0.25,  // 4H Sweep阈值 = 0.25×ATR(4H)（从0.4降低）
+      sweepHTFMaxBars: 3,               // 4H Sweep最大3根K线（从2根增加）
+      sweepLTFThresholdATRRatio: 0.1,   // 15m Sweep阈值 = 0.1×ATR(15m)（从0.2降低）
+      sweepLTFMaxBars: 5,               // 15m Sweep最大5根K线（从3根增加）
       
-      // 15m入场确认
-      ltfMaxAgeDays: 2,                 // OB/FVG最大年龄2天
-      engulfingMinRatio: 1.5,           // 吞没最小比例1.5倍
-      volumeConfirmRatio: 1.2,          // 成交量确认比例
+      // 15m入场确认 - 放宽条件
+      ltfMaxAgeDays: 7,                 // OB/FVG最大年龄7天（从2天增加）
+      engulfingMinRatio: 1.2,           // 吞没最小比例1.2倍（从1.5倍降低）
+      volumeConfirmRatio: 1.1,          // 成交量确认比例（从1.2降低）
       
       // 风险管理
       defaultRiskRewardRatio: 3,        // 默认风险回报比3:1
