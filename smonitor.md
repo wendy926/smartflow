@@ -201,16 +201,11 @@ import fetch from "node-fetch";
 // === 地址标签库 ===
 const walletLabels = {
   BTC: {
-    binance: ["bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"],
-    coinbase: ["3Cbq7aT1tY8kMxWLbitaG7yT6bPbKChq64"],
-    kraken: ["3M219KRhuz2Q2DcbLNCgH3BeE4Y3H3w8sN"],
-    whales: ["1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF"],
+    "binance-coldwallet": ["34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo"],
   },
   ETH: {
-    binance: ["0x564286362092D8e7936f0549571a803B203aAceD".toLowerCase()],
-    coinbase: ["0x503828976D22510aad0201ac7EC88293211D23Da".toLowerCase()],
-    kraken: ["0x0a869d79a7052c7f1b55a8ebabbea3420f0d1e13".toLowerCase()],
-    whales: ["0x742d35Cc6634C0532925a3b844Bc454e4438f44e".toLowerCase()],
+    "binance-exchange": ["0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE".toLowerCase()],
+    "binance-14": ["0x28C6c06298d514Db089934071355E5743bf21d60".toLowerCase()],
   },
 };
 
@@ -224,7 +219,7 @@ function getAddressLabel(addr, chain = "BTC") {
 }
 
 // === BTC 大额转账监控 ===
-async function monitorBTC(threshold = 5_000_000) {
+async function monitorBTC(threshold = 10_000_000) {
   try {
     const url = `https://api.blockchair.com/bitcoin/transactions?q=value_usd(${threshold}..)`;
     const res = await fetch(url);
@@ -239,12 +234,12 @@ async function monitorBTC(threshold = 5_000_000) {
 
       console.log("📌 BTC 交易:", tx.transaction_hash, "金额(USD):", tx.value_usd);
 
-      if (inputLabels.includes("binance") && !outputLabels.includes("binance")) {
-        console.log(`🚨 Binance → 外部, 转出 ${tx.value_usd} USD`);
-      } else if (!inputLabels.includes("binance") && outputLabels.includes("binance")) {
-        console.log(`🚨 外部 → Binance, 转入 ${tx.value_usd} USD`);
-      } else if (inputLabels.includes("whales") || outputLabels.includes("whales")) {
-        console.log(`🐋 巨鲸转账: ${tx.value_usd} USD`);
+      if (inputLabels.includes("binance-coldwallet") && !outputLabels.includes("binance-coldwallet")) {
+        console.log(`🚨 Binance冷钱包 → 外部, 转出 ${tx.value_usd} USD`);
+      } else if (!inputLabels.includes("binance-coldwallet") && outputLabels.includes("binance-coldwallet")) {
+        console.log(`🚨 外部 → Binance冷钱包, 转入 ${tx.value_usd} USD`);
+      } else if (inputLabels.some(label => label !== "unknown") || outputLabels.some(label => label !== "unknown")) {
+        console.log(`🐋 大资金转账: ${tx.value_usd} USD`);
       }
     }
   } catch (err) {
@@ -253,7 +248,7 @@ async function monitorBTC(threshold = 5_000_000) {
 }
 
 // === ETH 大额转账监控 ===
-async function monitorETH(threshold = 10_000_000) {
+async function monitorETH(threshold = 1000) { // 1000 ETH ≈ $10M
   try {
     const url = `https://api.ethplorer.io/getTopTransactions?apiKey=freekey`;
     const res = await fetch(url);
@@ -274,8 +269,8 @@ async function monitorETH(threshold = 10_000_000) {
           console.log(`🚨 ${fromLabel} → 外部, 转出 ${valueUSD} USD`);
         } else if (fromLabel === "unknown" && toLabel !== "unknown") {
           console.log(`🚨 外部 → ${toLabel}, 转入 ${valueUSD} USD`);
-        } else if (fromLabel === "whales" || toLabel === "whales") {
-          console.log(`🐋 巨鲸转账: ${valueUSD} USD`);
+        } else if (fromLabel !== "unknown" || toLabel !== "unknown") {
+          console.log(`🐋 大资金转账: ${valueUSD} USD`);
         }
       }
     }
@@ -292,6 +287,12 @@ async function run() {
 
 setInterval(run, 60_000); // 每分钟检查一次
 ```
+**09-28 更新**
+| **区块链** | **地址** | **所属交易所 / 标签** | **来源 / 备注** |
+| --- | --- | --- | --- |
+| BTC | 34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo | Binance coldwallet | 在 BitInfoCharts “Bitcoin Rich List” 中标注为 Binance-coldwallet 地址 |
+| ETH | 0x3f5CE5FBFe3E9af3971dD833D26bA9b5C936f0bE | Binance Exchange | 在 Etherscan 上标记为 Binance 地址 |
+| ETH | 0x28C6c06298d514Db089934071355E5743bf21d60 | Binance 14 热钱包 | Etherscan 标识 “Binance 14” exchange 地址 |
 
 
 # **四、报警逻辑总结**
