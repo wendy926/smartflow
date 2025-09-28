@@ -19,6 +19,17 @@ class TelegramMonitoringService {
     this.monitoringChatId = process.env.TELEGRAM_MONITORING_CHAT_ID || config.telegram?.monitoringChatId;
     this.monitoringEnabled = this.monitoringBotToken && this.monitoringChatId;
 
+    // 宏观监控机器人配置
+    this.macroBotToken = process.env.TELEGRAM_MACRO_BOT_TOKEN || config.telegram?.macroBotToken;
+    this.macroChatId = process.env.TELEGRAM_MACRO_CHAT_ID || config.telegram?.macroChatId;
+    this.macroEnabled = this.macroBotToken && this.macroChatId;
+    this.macroThresholds = {
+      btcThreshold: 10000000,
+      ethThreshold: 1000,
+      fearGreedLow: 20,
+      fearGreedHigh: 80
+    };
+
     // 速率限制
     this.rateLimit = new Map();
     this.cooldown = 300000; // 5分钟冷却期
@@ -71,11 +82,28 @@ class TelegramMonitoringService {
   /**
    * 发送消息
    * @param {string} message - 消息内容
-   * @param {string} type - 消息类型：'trading' 或 'monitoring'
+   * @param {string} type - 消息类型：'trading'、'monitoring' 或 'macro'
    */
   async sendMessage(message, type = 'trading') {
-    const botToken = type === 'trading' ? this.tradingBotToken : this.monitoringBotToken;
-    const chatId = type === 'trading' ? this.tradingChatId : this.monitoringChatId;
+    let botToken, chatId;
+    
+    switch (type) {
+      case 'trading':
+        botToken = this.tradingBotToken;
+        chatId = this.tradingChatId;
+        break;
+      case 'monitoring':
+        botToken = this.monitoringBotToken;
+        chatId = this.monitoringChatId;
+        break;
+      case 'macro':
+        botToken = this.macroBotToken;
+        chatId = this.macroChatId;
+        break;
+      default:
+        botToken = this.tradingBotToken;
+        chatId = this.tradingChatId;
+    }
 
     try {
       const response = await axios.post(
@@ -238,11 +266,28 @@ class TelegramMonitoringService {
 
   /**
    * 测试Telegram连接
-   * @param {string} type - 测试类型：'trading' 或 'monitoring'
+   * @param {string} type - 测试类型：'trading'、'monitoring' 或 'macro'
    */
   async testConnection(type = 'trading') {
-    const botToken = type === 'trading' ? this.tradingBotToken : this.monitoringBotToken;
-    const chatId = type === 'trading' ? this.tradingChatId : this.monitoringChatId;
+    let botToken, chatId;
+    
+    switch (type) {
+      case 'trading':
+        botToken = this.tradingBotToken;
+        chatId = this.tradingChatId;
+        break;
+      case 'monitoring':
+        botToken = this.monitoringBotToken;
+        chatId = this.monitoringChatId;
+        break;
+      case 'macro':
+        botToken = this.macroBotToken;
+        chatId = this.macroChatId;
+        break;
+      default:
+        botToken = this.tradingBotToken;
+        chatId = this.tradingChatId;
+    }
 
     if (!botToken || !chatId) {
       return {
@@ -293,6 +338,12 @@ class TelegramMonitoringService {
         botToken: this.monitoringBotToken ? '已配置' : '未配置',
         chatId: this.monitoringChatId ? '已配置' : '未配置'
       },
+      macro: {
+        enabled: this.macroEnabled,
+        botToken: this.macroBotToken ? '已配置' : '未配置',
+        chatId: this.macroChatId ? '已配置' : '未配置',
+        thresholds: this.macroThresholds
+      },
       rateLimit: Object.fromEntries(this.rateLimit),
       cooldown: this.cooldown
     };
@@ -313,6 +364,19 @@ class TelegramMonitoringService {
       this.monitoringBotToken = config.monitoring.botToken;
       this.monitoringChatId = config.monitoring.chatId;
       this.monitoringEnabled = this.monitoringBotToken && this.monitoringChatId;
+    }
+
+    if (config.macro) {
+      this.macroBotToken = config.macro.botToken;
+      this.macroChatId = config.macro.chatId;
+      this.macroEnabled = this.macroBotToken && this.macroChatId;
+      
+      if (config.macro.thresholds) {
+        this.macroThresholds = {
+          ...this.macroThresholds,
+          ...config.macro.thresholds
+        };
+      }
     }
 
     logger.info('Telegram监控配置已更新');

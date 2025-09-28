@@ -151,42 +151,42 @@ class SmartFlowApp {
     const saveTradingTelegramBtn = document.getElementById('saveTradingTelegramBtn');
     if (saveTradingTelegramBtn) {
       saveTradingTelegramBtn.addEventListener('click', () => {
-        this.saveTradingTelegramSettings();
+        saveTradingTelegramSettings();
       });
     }
 
     const testTradingTelegramBtn = document.getElementById('testTradingTelegramBtn');
     if (testTradingTelegramBtn) {
       testTradingTelegramBtn.addEventListener('click', () => {
-        this.testTradingTelegram();
+        testTradingTelegram();
       });
     }
 
     const saveMonitoringTelegramBtn = document.getElementById('saveMonitoringTelegramBtn');
     if (saveMonitoringTelegramBtn) {
       saveMonitoringTelegramBtn.addEventListener('click', () => {
-        this.saveMonitoringTelegramSettings();
+        saveMonitoringTelegramSettings();
       });
     }
 
     const testMonitoringTelegramBtn = document.getElementById('testMonitoringTelegramBtn');
     if (testMonitoringTelegramBtn) {
       testMonitoringTelegramBtn.addEventListener('click', () => {
-        this.testMonitoringTelegram();
+        testMonitoringTelegram();
       });
     }
 
     const saveMacroTelegramBtn = document.getElementById('saveMacroTelegramBtn');
     if (saveMacroTelegramBtn) {
       saveMacroTelegramBtn.addEventListener('click', () => {
-        this.saveMacroTelegramSettings();
+        saveMacroTelegramSettings();
       });
     }
 
     const testMacroTelegramBtn = document.getElementById('testMacroTelegramBtn');
     if (testMacroTelegramBtn) {
       testMacroTelegramBtn.addEventListener('click', () => {
-        this.testMacroTelegram();
+        testMacroTelegram();
       });
     }
 

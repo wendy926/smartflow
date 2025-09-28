@@ -202,6 +202,85 @@ router.post('/send-trading-alert', async (req, res) => {
 });
 
 /**
+ * 配置宏观监控Telegram机器人
+ * POST /api/v1/telegram/macro-config
+ */
+router.post('/macro-config', (req, res) => {
+  try {
+    const { botToken, chatId, btcThreshold, ethThreshold, fearGreedLow, fearGreedHigh } = req.body;
+
+    if (!botToken || !chatId) {
+      return res.status(400).json({
+        success: false,
+        error: 'botToken和chatId不能为空'
+      });
+    }
+
+    telegramService.updateConfig({
+      macro: { 
+        botToken, 
+        chatId,
+        thresholds: {
+          btcThreshold: parseFloat(btcThreshold) || 10000000,
+          ethThreshold: parseFloat(ethThreshold) || 1000,
+          fearGreedLow: parseFloat(fearGreedLow) || 20,
+          fearGreedHigh: parseFloat(fearGreedHigh) || 80
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: '宏观监控Telegram配置已保存',
+      data: telegramService.getStatus()
+    });
+  } catch (error) {
+    logger.error('设置宏观监控Telegram配置失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 测试宏观监控Telegram连接
+ * POST /api/v1/telegram/test-macro
+ */
+router.post('/test-macro', async (req, res) => {
+  try {
+    const result = await telegramService.testConnection('macro');
+
+    if (result.success) {
+      // 发送测试消息
+      const testMessage = `🧪 <b>宏观监控测试消息</b>\n\n这是一条测试消息，用于验证宏观监控Telegram机器人配置是否正确。\n\n🕐 <b>时间:</b> ${new Date().toLocaleString('zh-CN')}\n🔗 <b>系统:</b> SmartFlow 宏观监控系统\n\n📊 <b>当前监控配置:</b>\n• BTC大额转账阈值: $10,000,000\n• ETH大额转账阈值: 1,000 ETH\n• 恐惧贪婪指数阈值: 20-80`;
+
+      const sendResult = await telegramService.sendMessage(testMessage, 'macro');
+
+      res.json({
+        success: true,
+        message: '宏观监控Telegram测试成功',
+        data: {
+          connection: result,
+          messageSent: sendResult
+        }
+      });
+    } else {
+      res.json({
+        success: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    logger.error('测试宏观监控Telegram失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * 发送系统监控告警
  * POST /api/v1/telegram/send-monitoring-alert
  */
