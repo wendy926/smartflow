@@ -574,6 +574,7 @@ class ICTStrategy {
       let signal = 'HOLD';
       if (score >= 45) {
         signal = dailyTrend.trend === 'UP' ? 'BUY' : 'SELL';
+        logger.info(`ICT策略 ${symbol} 触发交易信号: ${signal}, 分数: ${score}, 趋势: ${dailyTrend.trend}`);
       } else if (score >= 25) {
         signal = 'WATCH';
       }
