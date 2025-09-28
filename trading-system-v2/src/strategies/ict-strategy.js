@@ -572,9 +572,9 @@ class ICTStrategy {
 
       // 判断信号强度
       let signal = 'HOLD';
-      if (score >= 50) {
+      if (score >= 45) {
         signal = dailyTrend.trend === 'UP' ? 'BUY' : 'SELL';
-      } else if (score >= 30) {
+      } else if (score >= 25) {
         signal = 'WATCH';
       }
 

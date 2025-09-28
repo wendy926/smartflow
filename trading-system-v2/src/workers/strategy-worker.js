@@ -44,23 +44,23 @@ class StrategyWorker {
 
   async executeStrategies() {
     logger.info('开始执行策略分析和交易检查');
-    
+
     for (const symbol of this.symbols) {
       try {
         // 1. 检查现有交易的止盈止损条件
         await this.checkExistingTrades(symbol);
-        
+
         // 2. 执行V3策略分析
         const v3Result = await this.v3Strategy.execute(symbol);
         logger.info(`V3策略分析完成: ${symbol} - ${v3Result.signal}`);
-        
+
         // 3. 执行ICT策略分析
         const ictResult = await this.ictStrategy.execute(symbol);
         logger.info(`ICT策略分析完成: ${symbol} - ${ictResult.signal}`);
-        
+
         // 4. 根据策略信号创建交易
         await this.handleStrategySignals(symbol, v3Result, ictResult);
-        
+
       } catch (error) {
         logger.error(`策略分析失败 ${symbol}: ${error.message}`);
       }
@@ -84,7 +84,7 @@ class StrategyWorker {
         };
         await this.createTradeFromSignal(symbol, 'V3', convertedResult);
       }
-      
+
       // 检查ICT策略信号 (ICT策略返回BUY/SELL，需要转换为LONG/SHORT)
       if (ictResult.signal === 'BUY' || ictResult.signal === 'SELL') {
         // 转换信号格式
@@ -122,7 +122,7 @@ class StrategyWorker {
       }
 
       const currentPrice = parseFloat(ticker.lastPrice);
-      
+
       // 创建交易数据
       const tradeData = {
         symbol,
@@ -205,10 +205,10 @@ class StrategyWorker {
       }
 
       const currentPrice = parseFloat(ticker.lastPrice);
-      
+
       // 自动检查并关闭符合条件的交易
       const closedTrades = await this.tradeManager.autoCloseTrades(symbol, currentPrice);
-      
+
       if (closedTrades.length > 0) {
         logger.info(`自动关闭了 ${closedTrades.length} 个交易: ${symbol}`);
         for (const trade of closedTrades) {
