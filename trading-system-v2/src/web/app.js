@@ -213,7 +213,7 @@ class SmartFlowApp {
    */
   switchTab(tabName) {
     console.log('切换标签页到:', tabName);
-    
+
     // 更新导航状态
     document.querySelectorAll('.nav-link').forEach(link => {
       link.classList.remove('active');
@@ -225,7 +225,7 @@ class SmartFlowApp {
       content.classList.remove('active');
       content.style.display = 'none'; // 强制隐藏
     });
-    
+
     // 只显示当前标签页
     const currentTabElement = document.getElementById(tabName);
     if (currentTabElement) {
@@ -574,7 +574,7 @@ class SmartFlowApp {
         const oi = parseFloat(openInterestData.metric_value);
         const rawData = openInterestData.raw_data;
         let oiDisplay = `$${oi.toLocaleString()}`;
-        
+
         // 添加涨跌百分比显示
         if (rawData && rawData.oiChangePercent !== undefined) {
           const changePercent = parseFloat(rawData.oiChangePercent);
@@ -582,7 +582,7 @@ class SmartFlowApp {
           const changeColor = changePercent >= 0 ? '#00C851' : '#FF4444';
           oiDisplay += ` <span style="color: ${changeColor}; font-size: 0.9em;">${changeIcon} ${changePercent.toFixed(2)}%</span>`;
         }
-        
+
         openInterestElement.innerHTML = oiDisplay;
       } else {
         openInterestElement.textContent = '--';
@@ -774,7 +774,7 @@ class SmartFlowApp {
       console.log('仪表板页面：跳过总体统计更新（仪表板页面没有总体统计元素）');
       return;
     }
-    
+
     if (currentTab === 'statistics') {
       console.log('胜率统计页面：更新总体统计');
     } else if (currentTab === 'strategies') {

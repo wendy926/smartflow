@@ -85,9 +85,14 @@ class StrategyWorker {
         await this.createTradeFromSignal(symbol, 'V3', convertedResult);
       }
       
-      // 检查ICT策略信号 (ICT策略返回LONG/SHORT)
-      if (ictResult.signal === 'LONG' || ictResult.signal === 'SHORT') {
-        await this.createTradeFromSignal(symbol, 'ICT', ictResult);
+      // 检查ICT策略信号 (ICT策略返回BUY/SELL，需要转换为LONG/SHORT)
+      if (ictResult.signal === 'BUY' || ictResult.signal === 'SELL') {
+        // 转换信号格式
+        const convertedResult = {
+          ...ictResult,
+          signal: ictResult.signal === 'BUY' ? 'LONG' : 'SHORT'
+        };
+        await this.createTradeFromSignal(symbol, 'ICT', convertedResult);
       }
     } catch (error) {
       logger.error(`处理策略信号失败 ${symbol}: ${error.message}`);
