@@ -572,7 +572,18 @@ class SmartFlowApp {
 
       if (openInterestData) {
         const oi = parseFloat(openInterestData.metric_value);
-        openInterestElement.textContent = `$${oi.toLocaleString()}`;
+        const rawData = openInterestData.raw_data;
+        let oiDisplay = `$${oi.toLocaleString()}`;
+        
+        // 添加涨跌百分比显示
+        if (rawData && rawData.oiChangePercent !== undefined) {
+          const changePercent = parseFloat(rawData.oiChangePercent);
+          const changeIcon = changePercent >= 0 ? '↗️' : '↘️';
+          const changeColor = changePercent >= 0 ? '#00C851' : '#FF4444';
+          oiDisplay += ` <span style="color: ${changeColor}; font-size: 0.9em;">${changeIcon} ${changePercent.toFixed(2)}%</span>`;
+        }
+        
+        openInterestElement.innerHTML = oiDisplay;
       } else {
         openInterestElement.textContent = '--';
       }
