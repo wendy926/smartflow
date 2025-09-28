@@ -251,6 +251,117 @@ router.get('/alerts', async (req, res) => {
 });
 
 /**
+ * 获取未平仓合约涨跌数据
+ * GET /api/v1/macro-monitor/open-interest
+ */
+router.get('/open-interest', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    
+    // 获取未平仓合约数据，按交易所分组
+    const query = `
+      SELECT 
+        source,
+        metric_value as openInterest,
+        JSON_EXTRACT(raw_data, '$.oiChangePercent') as oiChangePercent,
+        created_at
+      FROM macro_monitoring_data 
+      WHERE data_type = 'FUTURES_MARKET' 
+      AND metric_name = '未平仓合约'
+      AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+      ORDER BY created_at DESC
+      LIMIT ?
+    `;
+    
+    const rows = await req.macroMonitor.database.query(query, [limit]);
+    
+    // 按交易所分组并计算统计数据
+    const exchangeData = {};
+    const summary = {
+      totalExchanges: 0,
+      averageChange: 0,
+      positiveChanges: 0,
+      negativeChanges: 0,
+      lastUpdate: null
+    };
+    
+    rows.forEach(row => {
+      const exchange = row.source;
+      const oiChangePercent = parseFloat(row.oiChangePercent) || 0;
+      
+      if (!exchangeData[exchange]) {
+        exchangeData[exchange] = {
+          name: exchange,
+          data: [],
+          latest: null,
+          averageChange: 0,
+          trend: 'stable'
+        };
+      }
+      
+      exchangeData[exchange].data.push({
+        openInterest: parseFloat(row.openInterest),
+        changePercent: oiChangePercent,
+        timestamp: row.created_at
+      });
+      
+      // 更新最新数据
+      if (!exchangeData[exchange].latest || row.created_at > exchangeData[exchange].latest.timestamp) {
+        exchangeData[exchange].latest = {
+          openInterest: parseFloat(row.openInterest),
+          changePercent: oiChangePercent,
+          timestamp: row.created_at
+        };
+      }
+      
+      // 更新汇总统计
+      if (!summary.lastUpdate || row.created_at > summary.lastUpdate) {
+        summary.lastUpdate = row.created_at;
+      }
+    });
+    
+    // 计算各交易所的平均变化和趋势
+    Object.keys(exchangeData).forEach(exchange => {
+      const data = exchangeData[exchange].data;
+      const changes = data.map(d => d.changePercent).filter(c => !isNaN(c));
+      
+      if (changes.length > 0) {
+        exchangeData[exchange].averageChange = changes.reduce((a, b) => a + b, 0) / changes.length;
+        exchangeData[exchange].trend = exchangeData[exchange].averageChange > 0.5 ? 'up' : 
+                                      exchangeData[exchange].averageChange < -0.5 ? 'down' : 'stable';
+      }
+    });
+    
+    // 计算总体统计
+    summary.totalExchanges = Object.keys(exchangeData).length;
+    const allChanges = Object.values(exchangeData)
+      .map(ex => ex.averageChange)
+      .filter(c => !isNaN(c));
+    
+    if (allChanges.length > 0) {
+      summary.averageChange = allChanges.reduce((a, b) => a + b, 0) / allChanges.length;
+      summary.positiveChanges = allChanges.filter(c => c > 0).length;
+      summary.negativeChanges = allChanges.filter(c => c < 0).length;
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        exchanges: exchangeData,
+        summary: summary,
+        lastUpdate: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    logger.error('获取未平仓合约涨跌数据失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * 获取监控数据概览
  * GET /api/v1/macro-monitor/overview
  */

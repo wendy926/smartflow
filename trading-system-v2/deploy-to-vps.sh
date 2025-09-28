@@ -6,7 +6,7 @@
 echo "🚀 开始部署SmartFlow交易系统..."
 
 # 1. 进入项目目录
-cd /home/admin/smartflow-vps-app/trading-system-v2
+cd /home/admin/trading-system-v2/trading-system-v2
 
 # 2. 停止当前服务
 echo "⏹️ 停止当前服务..."
@@ -75,3 +75,4 @@ echo "- 查看状态: pm2 status"
 echo "- 查看日志: pm2 logs"
 echo "- 重启服务: pm2 restart smartflow-trading"
 echo "- 停止服务: pm2 stop smartflow-trading"
+

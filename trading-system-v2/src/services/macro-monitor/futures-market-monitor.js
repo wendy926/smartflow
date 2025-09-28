@@ -75,11 +75,23 @@ class FuturesMarketMonitor {
         const latest = oiData[oiData.length - 1];
         const oi = parseFloat(latest.sumOpenInterest);
 
-        // 记录数据
+        // 计算4小时涨跌百分比
+        let oiChangePercent = 0;
+        if (oiData.length >= 2) {
+          const previous = parseFloat(oiData[oiData.length - 2].sumOpenInterest);
+          if (previous > 0) {
+            oiChangePercent = ((oi - previous) / previous) * 100;
+          }
+        }
+
+        // 记录数据，包含涨跌百分比
         await this.saveFuturesData('FUTURES_MARKET', 'Binance', '未平仓合约', oi, 'USD', 'NORMAL', {
           openInterest: oi,
+          oiChangePercent: oiChangePercent,
           timestamp: latest.timestamp
         });
+
+        logger.info(`Binance未平仓合约更新: ${oi.toFixed(2)} USD (${oiChangePercent >= 0 ? '+' : ''}${oiChangePercent.toFixed(2)}%)`);
       }
 
       return alerts;
@@ -171,11 +183,38 @@ class FuturesMarketMonitor {
       if (oiData.data && oiData.data.length > 0) {
         const oi = parseFloat(oiData.data[0].oi);
 
-        // 记录数据
+        // 获取历史数据计算涨跌百分比
+        let oiChangePercent = 0;
+        try {
+          const historicalQuery = `
+            SELECT metric_value FROM macro_monitoring_data 
+            WHERE data_type = 'FUTURES_MARKET' 
+            AND source = 'OKX' 
+            AND metric_name = '未平仓合约'
+            AND created_at >= DATE_SUB(NOW(), INTERVAL 5 HOUR)
+            ORDER BY created_at DESC 
+            LIMIT 1
+          `;
+          const historicalRows = await this.database.query(historicalQuery);
+          
+          if (historicalRows.length > 0) {
+            const previousOI = parseFloat(historicalRows[0].metric_value);
+            if (previousOI > 0) {
+              oiChangePercent = ((oi - previousOI) / previousOI) * 100;
+            }
+          }
+        } catch (error) {
+          logger.warn('获取OKX历史未平仓合约数据失败:', error.message);
+        }
+
+        // 记录数据，包含涨跌百分比
         await this.saveFuturesData('FUTURES_MARKET', 'OKX', '未平仓合约', oi, 'USD', 'NORMAL', {
           openInterest: oi,
+          oiChangePercent: oiChangePercent,
           timestamp: oiData.data[0].ts
         });
+
+        logger.info(`OKX未平仓合约更新: ${oi.toFixed(2)} USD (${oiChangePercent >= 0 ? '+' : ''}${oiChangePercent.toFixed(2)}%)`);
       }
 
       // 检查资金费率
