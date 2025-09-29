@@ -701,7 +701,7 @@ class SmartFlowApp {
       this.updateOverallStats(stats.overall);
       
       // 更新系统总览统计
-      this.updateSystemOverviewStats(stats.overall);
+      await this.updateSystemOverviewStats(stats.overall);
       console.log('策略统计加载完成');
     } catch (error) {
       console.error('Error loading strategy statistics:', error);
@@ -1042,49 +1042,89 @@ class SmartFlowApp {
    * 更新系统总览统计显示
    * @param {Object} stats - 系统总览统计数据
    */
-  updateSystemOverviewStats(stats) {
+  async updateSystemOverviewStats(stats) {
     console.log('更新系统总览统计:', stats);
 
-    if (!stats) {
-      console.warn('系统总览统计数据为空，使用默认值');
-      stats = {
-        activeTrades: 0,
-        todayTrades: 0
-      };
+    try {
+      // 获取活跃交易数据
+      const activeResponse = await this.fetchData('/trades/active');
+      const activeTrades = activeResponse.data || [];
+      
+      // 计算各策略的活跃交易数
+      const v3ActiveCount = activeTrades.filter(trade => trade.strategy_name === 'V3').length;
+      const ictActiveCount = activeTrades.filter(trade => trade.strategy_name === 'ICT').length;
+      
+      // 计算今日交易数（今天的交易）
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const v3TodayCount = activeTrades.filter(trade => 
+        trade.strategy_name === 'V3' && 
+        new Date(trade.created_at) >= today
+      ).length;
+      
+      const ictTodayCount = activeTrades.filter(trade => 
+        trade.strategy_name === 'ICT' && 
+        new Date(trade.created_at) >= today
+      ).length;
+
+      console.log('活跃交易统计:', {
+        total: activeTrades.length,
+        v3: v3ActiveCount,
+        ict: ictActiveCount,
+        v3Today: v3TodayCount,
+        ictToday: ictTodayCount
+      });
+
+      // 延迟执行以确保DOM元素已加载
+      setTimeout(() => {
+        console.log('开始更新系统总览DOM元素...');
+
+        // 更新V3策略的系统总览
+        const v3ActiveTradesElement = document.getElementById('v3-active-trades');
+        if (v3ActiveTradesElement) {
+          v3ActiveTradesElement.textContent = v3ActiveCount;
+          console.log('V3活跃交易已更新为:', v3ActiveCount);
+        }
+
+        const v3TodayTradesElement = document.getElementById('v3-today-trades');
+        if (v3TodayTradesElement) {
+          v3TodayTradesElement.textContent = v3TodayCount;
+          console.log('V3今日交易已更新为:', v3TodayCount);
+        }
+
+        // 更新ICT策略的系统总览
+        const ictActiveTradesElement = document.getElementById('ict-active-trades');
+        if (ictActiveTradesElement) {
+          ictActiveTradesElement.textContent = ictActiveCount;
+          console.log('ICT活跃交易已更新为:', ictActiveCount);
+        }
+
+        const ictTodayTradesElement = document.getElementById('ict-today-trades');
+        if (ictTodayTradesElement) {
+          ictTodayTradesElement.textContent = ictTodayCount;
+          console.log('ICT今日交易已更新为:', ictTodayCount);
+        }
+
+        console.log('系统总览统计DOM更新完成');
+      }, 100);
+    } catch (error) {
+      console.error('获取活跃交易数据失败:', error);
+      // 使用默认值
+      setTimeout(() => {
+        const v3ActiveTradesElement = document.getElementById('v3-active-trades');
+        if (v3ActiveTradesElement) v3ActiveTradesElement.textContent = '0';
+        
+        const v3TodayTradesElement = document.getElementById('v3-today-trades');
+        if (v3TodayTradesElement) v3TodayTradesElement.textContent = '0';
+        
+        const ictActiveTradesElement = document.getElementById('ict-active-trades');
+        if (ictActiveTradesElement) ictActiveTradesElement.textContent = '0';
+        
+        const ictTodayTradesElement = document.getElementById('ict-today-trades');
+        if (ictTodayTradesElement) ictTodayTradesElement.textContent = '0';
+      }, 100);
     }
-
-    // 延迟执行以确保DOM元素已加载
-    setTimeout(() => {
-      console.log('开始更新系统总览DOM元素...');
-
-      // 更新V3策略的系统总览
-      const v3ActiveTradesElement = document.getElementById('v3-active-trades');
-      if (v3ActiveTradesElement) {
-        v3ActiveTradesElement.textContent = stats.activeTrades || 0;
-        console.log('V3活跃交易已更新为:', stats.activeTrades || 0);
-      }
-
-      const v3TodayTradesElement = document.getElementById('v3-today-trades');
-      if (v3TodayTradesElement) {
-        v3TodayTradesElement.textContent = stats.todayTrades || 0;
-        console.log('V3今日交易已更新为:', stats.todayTrades || 0);
-      }
-
-      // 更新ICT策略的系统总览
-      const ictActiveTradesElement = document.getElementById('ict-active-trades');
-      if (ictActiveTradesElement) {
-        ictActiveTradesElement.textContent = stats.activeTrades || 0;
-        console.log('ICT活跃交易已更新为:', stats.activeTrades || 0);
-      }
-
-      const ictTodayTradesElement = document.getElementById('ict-today-trades');
-      if (ictTodayTradesElement) {
-        ictTodayTradesElement.textContent = stats.todayTrades || 0;
-        console.log('ICT今日交易已更新为:', stats.todayTrades || 0);
-      }
-
-      console.log('系统总览统计DOM更新完成');
-    }, 100);
   }
 
   /**
