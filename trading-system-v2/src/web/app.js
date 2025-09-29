@@ -48,6 +48,7 @@ class SmartFlowApp {
       '/strategies': 'strategies',
       '/monitoring': 'monitoring',
       '/statistics': 'statistics',
+      '/new-coin-monitor': 'new-coin-monitor',
       '/tools': 'tools',
       '/docs': 'docs'
     };
@@ -248,6 +249,7 @@ class SmartFlowApp {
       'strategies': '/strategies',
       'monitoring': '/monitoring',
       'statistics': '/statistics',
+      'new-coin-monitor': '/new-coin-monitor',
       'tools': '/tools'
     };
     const expectedPath = pathMap[tabName];
@@ -272,6 +274,9 @@ class SmartFlowApp {
         break;
       case 'statistics':
         this.loadStatistics();
+        break;
+      case 'new-coin-monitor':
+        this.loadNewCoinMonitorData();
         break;
       case 'tools':
         this.loadToolsData();
@@ -2596,6 +2601,447 @@ class SmartFlowApp {
   showError(message) {
     console.error(message);
     // 这里可以添加用户友好的错误提示
+  }
+
+  /**
+   * 加载新币监控数据
+   */
+  async loadNewCoinMonitorData() {
+    try {
+      console.log('加载新币监控数据...');
+      
+      // 加载监控状态
+      await this.loadMonitorStatus();
+      
+      // 加载新币概览
+      await this.loadCoinOverview();
+      
+      // 加载告警统计
+      await this.loadAlertStatistics();
+      
+      // 设置事件监听器
+      this.setupNewCoinMonitorEventListeners();
+      
+      console.log('新币监控数据加载完成');
+      
+    } catch (error) {
+      console.error('加载新币监控数据失败:', error);
+      this.showError('加载新币监控数据失败: ' + error.message);
+    }
+  }
+
+  /**
+   * 加载监控状态
+   */
+  async loadMonitorStatus() {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/status`);
+      const result = await response.json();
+      
+      if (result.success) {
+        const status = result.data;
+        document.getElementById('monitorStatus').textContent = 
+          status.isRunning ? '运行中' : '已停止';
+        document.getElementById('monitorStatus').className = 
+          status.isRunning ? 'status-value status-online' : 'status-value status-offline';
+        
+        // 加载监控币种数量
+        await this.loadMonitoredCoinsCount();
+      }
+      
+    } catch (error) {
+      console.error('加载监控状态失败:', error);
+      document.getElementById('monitorStatus').textContent = '错误';
+      document.getElementById('monitorStatus').className = 'status-value status-error';
+    }
+  }
+
+  /**
+   * 加载监控币种数量
+   */
+  async loadMonitoredCoinsCount() {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/coins`);
+      const result = await response.json();
+      
+      if (result.success) {
+        document.getElementById('monitoredCoinsCount').textContent = result.count;
+      }
+      
+    } catch (error) {
+      console.error('加载监控币种数量失败:', error);
+      document.getElementById('monitoredCoinsCount').textContent = '--';
+    }
+  }
+
+  /**
+   * 加载新币概览
+   */
+  async loadCoinOverview() {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/overview`);
+      const result = await response.json();
+      
+      if (result.success) {
+        this.renderCoinOverview(result.data);
+        
+        // 更新最后评估时间
+        if (result.data.length > 0) {
+          const latestEvaluation = result.data[0].evaluation_time;
+          if (latestEvaluation) {
+            document.getElementById('lastEvaluation').textContent = 
+              new Date(latestEvaluation).toLocaleString();
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.error('加载新币概览失败:', error);
+      this.renderCoinOverviewError();
+    }
+  }
+
+  /**
+   * 渲染新币概览表格
+   */
+  renderCoinOverview(coins) {
+    const tbody = document.getElementById('coinOverviewBody');
+    
+    if (!coins || coins.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center">暂无监控数据</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = coins.map(coin => `
+      <tr>
+        <td><strong>${coin.symbol}</strong></td>
+        <td>${coin.name}</td>
+        <td><span class="score-badge ${this.getScoreClass(coin.tech_score)}">${coin.tech_score || '--'}</span></td>
+        <td><span class="score-badge ${this.getScoreClass(coin.token_score)}">${coin.token_score || '--'}</span></td>
+        <td><span class="score-badge ${this.getScoreClass(coin.liquidity_score)}">${coin.liquidity_score || '--'}</span></td>
+        <td><span class="score-badge ${this.getScoreClass(coin.sentiment_score)}">${coin.sentiment_score || '--'}</span></td>
+        <td><span class="score-badge ${this.getScoreClass(coin.total_score)}">${coin.total_score || '--'}</span></td>
+        <td><span class="strategy-badge ${this.getStrategyClass(coin.total_score)}">${coin.strategy_recommendation || '--'}</span></td>
+        <td><span class="status-badge ${coin.status.toLowerCase()}">${this.getStatusText(coin.status)}</span></td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="smartFlowApp.showCoinDetail('${coin.symbol}')">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="smartFlowApp.removeCoin('${coin.symbol}')">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  /**
+   * 渲染新币概览错误状态
+   */
+  renderCoinOverviewError() {
+    const tbody = document.getElementById('coinOverviewBody');
+    tbody.innerHTML = '<tr><td colspan="10" class="text-center error">加载失败，请刷新重试</td></tr>';
+  }
+
+  /**
+   * 获取评分样式类
+   */
+  getScoreClass(score) {
+    if (!score) return 'score-neutral';
+    const numScore = parseFloat(score);
+    if (numScore >= 8) return 'score-high';
+    if (numScore >= 6) return 'score-medium';
+    return 'score-low';
+  }
+
+  /**
+   * 获取策略样式类
+   */
+  getStrategyClass(score) {
+    if (!score) return 'strategy-neutral';
+    const numScore = parseFloat(score);
+    if (numScore >= 9) return 'strategy-high';
+    if (numScore >= 7) return 'strategy-medium';
+    if (numScore >= 5) return 'strategy-low';
+    return 'strategy-risk';
+  }
+
+  /**
+   * 获取状态文本
+   */
+  getStatusText(status) {
+    const statusMap = {
+      'ACTIVE': '活跃',
+      'MONITORING': '监控中',
+      'INACTIVE': '非活跃'
+    };
+    return statusMap[status] || status;
+  }
+
+  /**
+   * 加载告警统计
+   */
+  async loadAlertStatistics() {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/alert-statistics`);
+      const result = await response.json();
+      
+      if (result.success) {
+        this.renderAlertStatistics(result.data);
+      }
+      
+    } catch (error) {
+      console.error('加载告警统计失败:', error);
+      this.renderAlertStatisticsError();
+    }
+  }
+
+  /**
+   * 渲染告警统计
+   */
+  renderAlertStatistics(statistics) {
+    let criticalCount = 0;
+    let warningCount = 0;
+    let infoCount = 0;
+    
+    statistics.forEach(stat => {
+      criticalCount += stat.critical_alerts || 0;
+      warningCount += stat.warning_alerts || 0;
+      infoCount += stat.info_alerts || 0;
+    });
+    
+    document.getElementById('criticalAlerts').textContent = criticalCount;
+    document.getElementById('warningAlerts').textContent = warningCount;
+    document.getElementById('infoAlerts').textContent = infoCount;
+  }
+
+  /**
+   * 渲染告警统计错误状态
+   */
+  renderAlertStatisticsError() {
+    document.getElementById('criticalAlerts').textContent = '--';
+    document.getElementById('warningAlerts').textContent = '--';
+    document.getElementById('infoAlerts').textContent = '--';
+  }
+
+  /**
+   * 设置新币监控事件监听器
+   */
+  setupNewCoinMonitorEventListeners() {
+    // 添加新币按钮
+    const addNewCoinBtn = document.getElementById('addNewCoin');
+    if (addNewCoinBtn) {
+      addNewCoinBtn.addEventListener('click', () => {
+        this.showAddCoinModal();
+      });
+    }
+
+    // 手动评估按钮
+    const manualEvaluateBtn = document.getElementById('manualEvaluate');
+    if (manualEvaluateBtn) {
+      manualEvaluateBtn.addEventListener('click', () => {
+        this.triggerManualEvaluation();
+      });
+    }
+
+    // 刷新数据按钮
+    const refreshBtn = document.getElementById('refreshMonitorData');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        this.loadNewCoinMonitorData();
+      });
+    }
+
+    // 筛选器
+    const scoreFilter = document.getElementById('scoreFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    
+    if (scoreFilter) {
+      scoreFilter.addEventListener('change', () => {
+        this.filterCoinOverview();
+      });
+    }
+    
+    if (statusFilter) {
+      statusFilter.addEventListener('change', () => {
+        this.filterCoinOverview();
+      });
+    }
+
+    // 模态框关闭按钮
+    const closeCoinDetail = document.getElementById('closeCoinDetail');
+    const closeAddCoin = document.getElementById('closeAddCoin');
+    const cancelAddCoin = document.getElementById('cancelAddCoin');
+    
+    if (closeCoinDetail) {
+      closeCoinDetail.addEventListener('click', () => {
+        this.hideCoinDetailModal();
+      });
+    }
+    
+    if (closeAddCoin) {
+      closeAddCoin.addEventListener('click', () => {
+        this.hideAddCoinModal();
+      });
+    }
+    
+    if (cancelAddCoin) {
+      cancelAddCoin.addEventListener('click', () => {
+        this.hideAddCoinModal();
+      });
+    }
+
+    // 添加新币表单
+    const addCoinForm = document.getElementById('addCoinForm');
+    if (addCoinForm) {
+      addCoinForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.submitAddCoinForm();
+      });
+    }
+  }
+
+  /**
+   * 显示添加新币模态框
+   */
+  showAddCoinModal() {
+    const modal = document.getElementById('addCoinModal');
+    if (modal) {
+      modal.style.display = 'block';
+    }
+  }
+
+  /**
+   * 隐藏添加新币模态框
+   */
+  hideAddCoinModal() {
+    const modal = document.getElementById('addCoinModal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.getElementById('addCoinForm').reset();
+    }
+  }
+
+  /**
+   * 提交添加新币表单
+   */
+  async submitAddCoinForm() {
+    try {
+      const form = document.getElementById('addCoinForm');
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      
+      // 处理数字字段
+      data.team_score = parseFloat(data.team_score) || 0;
+      data.vesting_lock_score = parseFloat(data.vesting_lock_score) || 0;
+      data.supply_total = parseInt(data.supply_total) || 0;
+      data.supply_circulation = parseInt(data.supply_circulation) || 0;
+      data.twitter_followers = parseInt(data.twitter_followers) || 0;
+      data.telegram_members = parseInt(data.telegram_members) || 0;
+      
+      const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/coins`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('新币添加成功！');
+        this.hideAddCoinModal();
+        this.loadNewCoinMonitorData();
+      } else {
+        alert('添加失败: ' + result.message);
+      }
+      
+    } catch (error) {
+      console.error('添加新币失败:', error);
+      alert('添加失败: ' + error.message);
+    }
+  }
+
+  /**
+   * 触发手动评估
+   */
+  async triggerManualEvaluation() {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/evaluate`, {
+        method: 'POST'
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('手动评估已启动，请稍后刷新查看结果');
+      } else {
+        alert('启动评估失败: ' + result.message);
+      }
+      
+    } catch (error) {
+      console.error('触发手动评估失败:', error);
+      alert('启动评估失败: ' + error.message);
+    }
+  }
+
+  /**
+   * 显示新币详情
+   */
+  async showCoinDetail(symbol) {
+    try {
+      // 这里可以实现新币详情模态框
+      alert(`查看 ${symbol} 详情功能待实现`);
+    } catch (error) {
+      console.error('显示新币详情失败:', error);
+    }
+  }
+
+  /**
+   * 删除新币
+   */
+  async removeCoin(symbol) {
+    if (!confirm(`确定要删除 ${symbol} 的监控吗？`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/coins/${symbol}`, {
+        method: 'DELETE'
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('删除成功！');
+        this.loadNewCoinMonitorData();
+      } else {
+        alert('删除失败: ' + result.message);
+      }
+      
+    } catch (error) {
+      console.error('删除新币失败:', error);
+      alert('删除失败: ' + error.message);
+    }
+  }
+
+  /**
+   * 筛选新币概览
+   */
+  filterCoinOverview() {
+    // 这里可以实现客户端筛选功能
+    console.log('筛选功能待实现');
+  }
+
+  /**
+   * 隐藏新币详情模态框
+   */
+  hideCoinDetailModal() {
+    const modal = document.getElementById('coinDetailModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
   }
 }
 

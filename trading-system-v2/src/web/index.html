@@ -34,6 +34,10 @@
           <i class="fas fa-chart-bar"></i>
           胜率统计
         </a>
+        <a href="/new-coin-monitor" class="nav-link" data-tab="new-coin-monitor">
+          <i class="fas fa-coins"></i>
+          新币监控
+        </a>
         <a href="/tools" class="nav-link" data-tab="tools">
           <i class="fas fa-tools"></i>
           工具
@@ -613,6 +617,217 @@
                   <!-- 数据将通过JavaScript动态加载 -->
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 新币监控页面 -->
+      <div id="new-coin-monitor" class="tab-content">
+        <div class="page-header">
+          <h2>新币监控中心</h2>
+          <div class="status-indicators">
+            <div class="status-item">
+              <span class="status-label">监控状态</span>
+              <span class="status-value" id="monitorStatus">--</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">监控币种</span>
+              <span class="status-value" id="monitoredCoinsCount">--</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">最后评估</span>
+              <span class="status-value" id="lastEvaluation">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="control-panel">
+          <div class="card">
+            <div class="card-header">
+              <h3>监控控制</h3>
+              <div class="card-actions">
+                <button class="btn btn-primary" id="addNewCoin">
+                  <i class="fas fa-plus"></i>
+                  添加新币
+                </button>
+                <button class="btn btn-secondary" id="manualEvaluate">
+                  <i class="fas fa-sync-alt"></i>
+                  手动评估
+                </button>
+                <button class="btn btn-secondary" id="refreshMonitorData">
+                  <i class="fas fa-refresh"></i>
+                  刷新数据
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 新币概览表格 -->
+        <div class="monitor-overview">
+          <div class="card">
+            <div class="card-header">
+              <h3>新币监控概览</h3>
+              <div class="card-actions">
+                <div class="filter-controls">
+                  <select id="scoreFilter" class="form-select">
+                    <option value="">全部评分</option>
+                    <option value="high">高评分 (≥8)</option>
+                    <option value="medium">中评分 (6-8)</option>
+                    <option value="low">低评分 (<6)</option>
+                  </select>
+                  <select id="statusFilter" class="form-select">
+                    <option value="">全部状态</option>
+                    <option value="ACTIVE">活跃</option>
+                    <option value="MONITORING">监控中</option>
+                    <option value="INACTIVE">非活跃</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="card-content">
+              <div class="table-container">
+                <table class="data-table" id="coinOverviewTable">
+                  <thead>
+                    <tr>
+                      <th>币种</th>
+                      <th>名称</th>
+                      <th>技术评分</th>
+                      <th>代币经济</th>
+                      <th>流动性</th>
+                      <th>市场情绪</th>
+                      <th>综合评分</th>
+                      <th>策略建议</th>
+                      <th>状态</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="coinOverviewBody">
+                    <tr>
+                      <td colspan="10" class="text-center">加载中...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 告警统计 -->
+        <div class="alert-statistics">
+          <div class="card">
+            <div class="card-header">
+              <h3>告警统计</h3>
+            </div>
+            <div class="card-content">
+              <div class="alert-cards-grid" id="alertStatisticsGrid">
+                <div class="alert-card">
+                  <div class="alert-card-icon critical">
+                    <i class="fas fa-exclamation-triangle"></i>
+                  </div>
+                  <div class="alert-card-content">
+                    <div class="alert-card-title">严重告警</div>
+                    <div class="alert-card-value" id="criticalAlerts">--</div>
+                  </div>
+                </div>
+                <div class="alert-card">
+                  <div class="alert-card-icon warning">
+                    <i class="fas fa-exclamation-circle"></i>
+                  </div>
+                  <div class="alert-card-content">
+                    <div class="alert-card-title">警告</div>
+                    <div class="alert-card-value" id="warningAlerts">--</div>
+                  </div>
+                </div>
+                <div class="alert-card">
+                  <div class="alert-card-icon info">
+                    <i class="fas fa-info-circle"></i>
+                  </div>
+                  <div class="alert-card-content">
+                    <div class="alert-card-title">信息</div>
+                    <div class="alert-card-value" id="infoAlerts">--</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 新币详情模态框 -->
+        <div id="coinDetailModal" class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 id="coinDetailTitle">新币详情</h3>
+              <span class="close" id="closeCoinDetail">&times;</span>
+            </div>
+            <div class="modal-body" id="coinDetailBody">
+              <!-- 详情内容将动态加载 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 添加新币模态框 -->
+        <div id="addCoinModal" class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>添加新币到监控</h3>
+              <span class="close" id="closeAddCoin">&times;</span>
+            </div>
+            <div class="modal-body">
+              <form id="addCoinForm">
+                <div class="form-group">
+                  <label for="coinSymbol">交易对符号 *</label>
+                  <input type="text" id="coinSymbol" name="symbol" placeholder="如: EXAMPLEUSDT" required>
+                </div>
+                <div class="form-group">
+                  <label for="coinName">代币名称 *</label>
+                  <input type="text" id="coinName" name="name" placeholder="如: Example Coin" required>
+                </div>
+                <div class="form-group">
+                  <label for="githubRepo">GitHub仓库</label>
+                  <input type="text" id="githubRepo" name="github_repo" placeholder="如: username/repo">
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="teamScore">团队经验分 (0-10)</label>
+                    <input type="number" id="teamScore" name="team_score" min="0" max="10" step="0.1" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="vestingLockScore">锁仓分 (0-10)</label>
+                    <input type="number" id="vestingLockScore" name="vesting_lock_score" min="0" max="10" step="0.1" value="0">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="supplyTotal">代币总量</label>
+                    <input type="number" id="supplyTotal" name="supply_total" min="0" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="supplyCirculation">流通量</label>
+                    <input type="number" id="supplyCirculation" name="supply_circulation" min="0" value="0">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="twitterFollowers">Twitter粉丝数</label>
+                    <input type="number" id="twitterFollowers" name="twitter_followers" min="0" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="telegramMembers">Telegram成员数</label>
+                    <input type="number" id="telegramMembers" name="telegram_members" min="0" value="0">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="listingDate">上线日期</label>
+                  <input type="date" id="listingDate" name="listing_date">
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="btn btn-secondary" id="cancelAddCoin">取消</button>
+                  <button type="submit" class="btn btn-primary">添加监控</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

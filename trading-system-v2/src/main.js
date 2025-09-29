@@ -17,6 +17,7 @@ const cache = require('./cache/redis');
 const monitoring = require('./monitoring/resource-monitor');
 const DataUpdater = require('./services/data-updater');
 const MacroMonitorController = require('./services/macro-monitor/macro-monitor-controller');
+const NewCoinMonitorController = require('./services/new-coin-monitor/new-coin-monitor-controller');
 
 class TradingSystemApp {
   constructor() {
@@ -24,6 +25,7 @@ class TradingSystemApp {
     this.port = process.env.PORT || 3000;
     this.dataUpdater = null;
     this.macroMonitor = null;
+    this.newCoinMonitor = null;
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -62,6 +64,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/trades', require('./api/routes/trades'));
     this.app.use('/api/v1/monitoring', require('./api/routes/monitoring'));
     this.app.use('/api/v1/macro-monitor', require('./api/routes/macro-monitor'));
+    this.app.use('/api/v1/new-coin-monitor', require('./api/routes/new-coin-monitor'));
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
@@ -83,7 +86,7 @@ class TradingSystemApp {
     });
 
     // 前端路由处理 - 支持SPA路由
-    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', '/tools', '/docs'], (req, res) => {
+    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', '/new-coin-monitor', '/tools', '/docs'], (req, res) => {
       res.sendFile('index.html', { root: 'src/web' });
     });
   }
@@ -130,6 +133,13 @@ class TradingSystemApp {
       await this.macroMonitor.start();
       logger.info('Macro monitoring started');
 
+      // 初始化新币监控
+      this.newCoinMonitor = new NewCoinMonitorController(database, cache);
+      this.app.set('newCoinMonitor', this.newCoinMonitor);
+      this.app.set('database', database); // 为API路由提供数据库连接
+      await this.newCoinMonitor.start();
+      logger.info('New coin monitoring started');
+
       // 暂时禁用数据更新服务以避免连接池问题
       // this.dataUpdater = new DataUpdater(database, cache);
       // this.dataUpdater.start();
@@ -160,6 +170,11 @@ class TradingSystemApp {
       // 停止宏观监控
       if (this.macroMonitor) {
         await this.macroMonitor.stop();
+      }
+
+      // 停止新币监控
+      if (this.newCoinMonitor) {
+        await this.newCoinMonitor.stop();
       }
 
       // 停止监控
