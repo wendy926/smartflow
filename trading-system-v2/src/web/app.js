@@ -3104,7 +3104,8 @@ async function loadTelegramStatus() {
       // 使用默认状态作为后备
       updateTelegramStatus({
         trading: { enabled: false, botToken: '未配置', chatId: '未配置' },
-        monitoring: { enabled: false, botToken: '未配置', chatId: '未配置' }
+        monitoring: { enabled: false, botToken: '未配置', chatId: '未配置' },
+        macro: { enabled: false, botToken: '未配置', chatId: '未配置', thresholds: {} }
       });
     }
   } catch (error) {
@@ -3112,7 +3113,8 @@ async function loadTelegramStatus() {
     // 使用默认状态作为后备
     updateTelegramStatus({
       trading: { enabled: false, botToken: '未配置', chatId: '未配置' },
-      monitoring: { enabled: false, botToken: '未配置', chatId: '未配置' }
+      monitoring: { enabled: false, botToken: '未配置', chatId: '未配置' },
+      macro: { enabled: false, botToken: '未配置', chatId: '未配置', thresholds: {} }
     });
   }
 }
@@ -3157,6 +3159,40 @@ function updateTelegramStatus(status) {
       <div class="status-item">
         <span class="status-label">Chat ID:</span>
         <span class="status-value">${status.monitoring.chatId}</span>
+      </div>
+    `;
+  }
+
+  // 更新宏观监控状态
+  const macroStatus = document.getElementById('macroTelegramStatus');
+  if (macroStatus && status.macro) {
+    const thresholds = status.macro.thresholds || {};
+    macroStatus.innerHTML = `
+      <div class="status-item">
+        <span class="status-label">状态:</span>
+        <span class="status-value ${status.macro.enabled ? 'enabled' : 'disabled'}">
+          ${status.macro.enabled ? '已启用' : '未启用'}
+        </span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Bot Token:</span>
+        <span class="status-value">${status.macro.botToken}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Chat ID:</span>
+        <span class="status-value">${status.macro.chatId}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">BTC阈值:</span>
+        <span class="status-value">$${thresholds.btcThreshold ? thresholds.btcThreshold.toLocaleString() : '10,000,000'}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">ETH阈值:</span>
+        <span class="status-value">${thresholds.ethThreshold || 1000} ETH</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">恐惧贪婪阈值:</span>
+        <span class="status-value">${thresholds.fearGreedLow || 20} - ${thresholds.fearGreedHigh || 80}</span>
       </div>
     `;
   }
