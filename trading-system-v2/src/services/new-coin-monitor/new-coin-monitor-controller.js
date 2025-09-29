@@ -108,8 +108,31 @@ class NewCoinMonitorController {
       logger.info('New coin monitor config loaded successfully');
       
     } catch (error) {
-      logger.error('Failed to load config:', error);
-      throw error;
+      logger.warn('Failed to load config from database, using default config:', error.message);
+      
+      // 使用默认配置
+      this.config = {
+        monitor_enabled: true,
+        evaluation_interval: 300,
+        market_data_interval: 60,
+        github_data_interval: 3600,
+        alert_score_threshold: 7.0,
+        alert_volatility_threshold: 0.20,
+        alert_liquidity_threshold: 3.0,
+        github_token: '',
+        telegram_bot_token: '',
+        telegram_chat_id: '',
+        binance_api_timeout: 10000,
+        github_api_timeout: 10000,
+        max_concurrent_requests: 5,
+        data_retention_days: 30,
+        weight_tech_team: 0.30,
+        weight_token_economics: 0.25,
+        weight_liquidity: 0.25,
+        weight_market_sentiment: 0.20
+      };
+      
+      logger.info('Using default config for new coin monitor');
     }
   }
 
@@ -163,8 +186,8 @@ class NewCoinMonitorController {
       return coins;
       
     } catch (error) {
-      logger.error('Failed to get monitored coins:', error);
-      throw error;
+      logger.warn('Failed to get monitored coins, returning empty array:', error.message);
+      return []; // 返回空数组而不是抛出错误
     }
   }
 
@@ -751,8 +774,8 @@ class NewCoinMonitorController {
       return overview;
       
     } catch (error) {
-      logger.error('Failed to get monitor overview:', error);
-      throw error;
+      logger.warn('Failed to get monitor overview, returning empty array:', error.message);
+      return []; // 返回空数组而不是抛出错误
     }
   }
 
@@ -770,8 +793,8 @@ class NewCoinMonitorController {
       return statistics;
       
     } catch (error) {
-      logger.error('Failed to get alert statistics:', error);
-      throw error;
+      logger.warn('Failed to get alert statistics, returning empty array:', error.message);
+      return []; // 返回空数组而不是抛出错误
     }
   }
 }
