@@ -369,8 +369,8 @@ class SmartFlowApp {
       // 加载策略数据
       await this.loadStrategySignals();
 
-      // 仪表板页面不加载策略统计，只加载策略当前状态
-      // await this.loadStrategyStatistics(); // 移除策略统计加载
+      // 加载策略统计信息
+      await this.loadStrategyStatistics();
 
       // 加载策略当前状态
       await this.loadStrategyCurrentStatus();
