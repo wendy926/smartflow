@@ -12,11 +12,12 @@ class FuturesMarketMonitor {
     this.longShortRatioHigh = config.longShortRatioHigh || 2.0;
     this.longShortRatioLow = config.longShortRatioLow || 0.5;
 
-    // API端点
+    // API端点 - 按照smonitor.md文档要求配置
     this.binanceLongShort = 'https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=5m';
     this.binanceOI = 'https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=5m';
+    this.binanceFunding = 'https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT';
     this.bybitLongShort = 'https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=BTCUSDT&period=5m';
-    this.bybitFunding = 'https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1';
+    this.bybitFunding = 'https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=1'; // 使用正确的v5 API
     this.okxOI = 'https://www.okx.com/api/v5/public/open-interest?instId=BTC-USDT-SWAP';
     this.okxFunding = 'https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP';
   }
@@ -94,6 +95,22 @@ class FuturesMarketMonitor {
         logger.info(`Binance未平仓合约更新: ${oi.toFixed(2)} USD (${oiChangePercent >= 0 ? '+' : ''}${oiChangePercent.toFixed(2)}%)`);
       }
 
+      // 检查资金费率 - 按照smonitor.md文档要求
+      const fundingResponse = await fetch(this.binanceFunding);
+      const fundingData = await fundingResponse.json();
+
+      if (fundingData && fundingData.lastFundingRate) {
+        const fundingRate = parseFloat(fundingData.lastFundingRate);
+
+        // 记录数据
+        await this.saveFuturesData('FUTURES_MARKET', 'Binance', '资金费率', fundingRate, '费率', 'NORMAL', {
+          fundingRate: fundingRate,
+          timestamp: fundingData.time
+        });
+
+        logger.info(`[Binance] 资金费率: ${fundingRate}`);
+      }
+
       return alerts;
     } catch (error) {
       logger.error('检查Binance合约市场数据失败:', error);
@@ -151,14 +168,17 @@ class FuturesMarketMonitor {
       const fundingResponse = await fetch(this.bybitFunding);
       const fundingData = await fundingResponse.json();
 
-      if (fundingData.result && fundingData.result.length > 0) {
-        const fundingRate = parseFloat(fundingData.result[0].fundingRate);
+      if (fundingData.result && fundingData.result.list && fundingData.result.list.length > 0) {
+        // 使用v5 API的正确字段结构
+        const fundingRate = parseFloat(fundingData.result.list[0].fundingRate);
 
         // 记录数据
         await this.saveFuturesData('FUTURES_MARKET', 'Bybit', '资金费率', fundingRate, '费率', 'NORMAL', {
           fundingRate: fundingRate,
-          timestamp: fundingData.result[0].fundingTime
+          timestamp: fundingData.result.list[0].fundingRateTimestamp
         });
+
+        logger.info(`[Bybit] 资金费率: ${fundingRate}`);
       }
 
       return alerts;
@@ -229,6 +249,8 @@ class FuturesMarketMonitor {
           fundingRate: fundingRate,
           timestamp: fundingData.data[0].fundingTime
         });
+
+        logger.info(`[OKX] 资金费率: ${fundingRate}`);
       }
 
       return alerts;
