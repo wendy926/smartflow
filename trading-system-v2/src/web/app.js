@@ -4022,7 +4022,7 @@ const trendCharts = {
 /**
  * 等待Chart.js库加载完成
  */
-function waitForChartJS(maxAttempts = 10, delay = 500) {
+function waitForChartJS(maxAttempts = 20, delay = 1000) {
   return new Promise((resolve, reject) => {
     let attempts = 0;
     
@@ -4030,12 +4030,14 @@ function waitForChartJS(maxAttempts = 10, delay = 500) {
       attempts++;
       console.log(`检查Chart.js加载状态 (${attempts}/${maxAttempts})...`);
       
-      if (typeof Chart !== 'undefined' && Chart.register) {
+      // 检查Chart对象是否存在
+      if (typeof Chart !== 'undefined') {
         console.log('Chart.js库已加载完成');
         resolve();
       } else if (attempts >= maxAttempts) {
-        console.error('Chart.js库加载超时');
-        reject(new Error('Chart.js库加载超时'));
+        console.error('Chart.js库加载超时，将跳过趋势图渲染');
+        // 不抛出错误，而是resolve，让程序继续运行
+        resolve();
       } else {
         setTimeout(checkChart, delay);
       }
@@ -4054,6 +4056,13 @@ async function loadMacroTrends() {
     
     // 等待Chart.js库加载完成
     await waitForChartJS();
+    
+    // 检查Chart.js是否可用
+    if (typeof Chart === 'undefined') {
+      console.warn('Chart.js库未加载，跳过趋势图渲染');
+      showTrendError('图表库未加载，无法显示趋势图');
+      return;
+    }
     
     const response = await fetch('/api/v1/macro-monitor/trends?days=7&interval=4h');
     const result = await response.json();
@@ -4076,6 +4085,13 @@ async function loadMacroTrends() {
  */
 function renderTrendCharts(trendData) {
   try {
+    // 检查Chart.js是否可用
+    if (typeof Chart === 'undefined') {
+      console.warn('Chart.js库未加载，无法渲染趋势图');
+      showTrendError('图表库未加载，无法显示趋势图');
+      return;
+    }
+    
     // 渲染市场情绪趋势图
     renderSentimentChart(trendData.trends.sentiment);
     
