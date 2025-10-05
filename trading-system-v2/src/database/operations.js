@@ -941,10 +941,10 @@ class DatabaseOperations {
       );
       const losingTrades = losingTradesResult[0].losing;
 
-      // 计算胜率（基于已完成交易）
+      // 计算胜率（基于已完成交易，保持一致性）
       const winRate = completedTrades > 0 ? (profitableTrades / completedTrades) * 100 : 0;
 
-      // 获取总盈亏
+      // 获取总盈亏（包含所有状态）
       const [totalPnlResult] = await connection.execute(
         'SELECT COALESCE(SUM(pnl), 0) as totalPnl FROM simulation_trades WHERE strategy_name = ?',
         [strategy.toUpperCase()]
@@ -955,11 +955,11 @@ class DatabaseOperations {
       const maxDrawdown = await this.calculateMaxDrawdown(connection, strategy.toUpperCase());
 
       return {
-        totalTrades,
+        totalTrades: completedTrades, // 只统计已完成的交易，保持逻辑一致
         profitableTrades,
         losingTrades,
         winRate: parseFloat(winRate.toFixed(2)),
-        totalPnl: parseFloat(Number(totalPnl).toFixed(2)),
+        totalPnl: parseFloat(Number(totalPnl).toFixed(2)), // 总盈亏包含所有状态
         maxDrawdown: parseFloat(Number(maxDrawdown).toFixed(2))
       };
     } catch (error) {
