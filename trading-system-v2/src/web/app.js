@@ -367,10 +367,12 @@ class SmartFlowApp {
       // 加载宏观监控数据
       await this.loadMacroMonitoringData();
 
-      // 加载宏观数据趋势图
-      if (typeof loadMacroTrends === 'function') {
-        await loadMacroTrends();
-      }
+      // 延迟加载宏观数据趋势图，确保Chart.js库已加载
+      setTimeout(async () => {
+        if (typeof loadMacroTrends === 'function') {
+          await loadMacroTrends();
+        }
+      }, 1000);
 
       // 加载交易对数据
       const symbols = await this.fetchData('/symbols');
@@ -4018,11 +4020,40 @@ const trendCharts = {
 };
 
 /**
+ * 等待Chart.js库加载完成
+ */
+function waitForChartJS(maxAttempts = 10, delay = 500) {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    
+    const checkChart = () => {
+      attempts++;
+      console.log(`检查Chart.js加载状态 (${attempts}/${maxAttempts})...`);
+      
+      if (typeof Chart !== 'undefined' && Chart.register) {
+        console.log('Chart.js库已加载完成');
+        resolve();
+      } else if (attempts >= maxAttempts) {
+        console.error('Chart.js库加载超时');
+        reject(new Error('Chart.js库加载超时'));
+      } else {
+        setTimeout(checkChart, delay);
+      }
+    };
+    
+    checkChart();
+  });
+}
+
+/**
  * 加载宏观数据趋势
  */
 async function loadMacroTrends() {
   try {
     console.log('开始加载宏观数据趋势...');
+    
+    // 等待Chart.js库加载完成
+    await waitForChartJS();
     
     const response = await fetch('/api/v1/macro-monitor/trends?days=7&interval=4h');
     const result = await response.json();
