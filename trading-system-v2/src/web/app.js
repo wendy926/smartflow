@@ -2134,7 +2134,18 @@ class SmartFlowApp {
     if (pnl === null || pnl === undefined) return '--';
     const amount = parseFloat(pnl);
     if (amount === 0) return '0.00';
-    return `${amount >= 0 ? '+' : ''}${amount.toFixed(2)}`;
+    
+    // 根据金额大小选择合适的精度
+    const absAmount = Math.abs(amount);
+    let precision = 2;
+    
+    if (absAmount < 0.01) {
+      precision = 6; // 对于小于0.01的金额，显示6位小数
+    } else if (absAmount < 1) {
+      precision = 4; // 对于小于1的金额，显示4位小数
+    }
+    
+    return `${amount >= 0 ? '+' : ''}${amount.toFixed(precision)}`;
   }
 
   /**
@@ -3892,7 +3903,18 @@ function formatProfitAmount(pnl) {
   if (pnl === null || pnl === undefined) return '--';
   const amount = parseFloat(pnl);
   if (amount === 0) return '0.00';
-  return `${amount >= 0 ? '+' : ''}${amount.toFixed(2)}`;
+  
+  // 根据金额大小选择合适的精度
+  const absAmount = Math.abs(amount);
+  let precision = 2;
+  
+  if (absAmount < 0.01) {
+    precision = 6; // 对于小于0.01的金额，显示6位小数
+  } else if (absAmount < 1) {
+    precision = 4; // 对于小于1的金额，显示4位小数
+  }
+  
+  return `${amount >= 0 ? '+' : ''}${amount.toFixed(precision)}`;
 }
 
 // 计算最大回撤
