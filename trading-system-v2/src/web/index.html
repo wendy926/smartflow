@@ -188,6 +188,85 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- 宏观数据趋势图卡片 -->
+                <div class="macro-card macro-trend-card" id="macroTrendCard">
+                  <div class="macro-card-header">
+                    <div class="macro-card-icon">
+                      <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="macro-card-title">
+                      <h4>7天趋势分析</h4>
+                      <span class="macro-card-subtitle">4小时时间单位</span>
+                    </div>
+                  </div>
+                  <div class="macro-card-content">
+                    <div class="trend-charts-container">
+                      <!-- 市场情绪趋势图 -->
+                      <div class="trend-chart-section">
+                        <div class="trend-chart-header">
+                          <h5>恐惧贪婪指数趋势</h5>
+                          <div class="trend-chart-controls">
+                            <button class="btn btn-sm btn-secondary" onclick="toggleChart('sentimentChart')">
+                              <i class="fas fa-eye"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="trend-chart-wrapper">
+                          <canvas id="sentimentChart" width="400" height="200"></canvas>
+                        </div>
+                      </div>
+
+                      <!-- 多空比趋势图 -->
+                      <div class="trend-chart-section">
+                        <div class="trend-chart-header">
+                          <h5>多空比趋势</h5>
+                          <div class="trend-chart-controls">
+                            <button class="btn btn-sm btn-secondary" onclick="toggleChart('longShortChart')">
+                              <i class="fas fa-eye"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="trend-chart-wrapper">
+                          <canvas id="longShortChart" width="400" height="200"></canvas>
+                        </div>
+                      </div>
+
+                      <!-- 资金费率趋势图 -->
+                      <div class="trend-chart-section">
+                        <div class="trend-chart-header">
+                          <h5>资金费率趋势</h5>
+                          <div class="trend-chart-controls">
+                            <button class="btn btn-sm btn-secondary" onclick="toggleChart('fundingRateChart')">
+                              <i class="fas fa-eye"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="trend-chart-wrapper">
+                          <canvas id="fundingRateChart" width="400" height="200"></canvas>
+                        </div>
+                      </div>
+
+                      <!-- 未平仓合约趋势图 -->
+                      <div class="trend-chart-section">
+                        <div class="trend-chart-header">
+                          <h5>未平仓合约趋势</h5>
+                          <div class="trend-chart-controls">
+                            <button class="btn btn-sm btn-secondary" onclick="toggleChart('openInterestChart')">
+                              <i class="fas fa-eye"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div class="trend-chart-wrapper">
+                          <canvas id="openInterestChart" width="400" height="200"></canvas>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="macro-status" id="trendStatus">
+                      <span class="status-indicator status-normal">正常</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1459,6 +1538,8 @@
     <i class="fas fa-arrow-up"></i>
   </button>
 
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
   <script src="app.js"></script>
 </body>
 

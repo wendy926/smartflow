@@ -2920,3 +2920,111 @@ html {
     flex-direction: column;
   }
 }
+
+/* 宏观数据趋势图样式 */
+.macro-trend-card {
+  grid-column: 1 / -1; /* 占满整行 */
+  margin-top: 1rem;
+}
+
+.trend-charts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.trend-chart-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.trend-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.trend-chart-header h5 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.trend-chart-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.trend-chart-wrapper {
+  position: relative;
+  height: 200px;
+  width: 100%;
+}
+
+.trend-chart-wrapper canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* 图表切换按钮样式 */
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+  border-color: #545b62;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .trend-charts-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .trend-chart-section {
+    padding: 0.75rem;
+  }
+  
+  .trend-chart-wrapper {
+    height: 150px;
+  }
+  
+  .trend-chart-header h5 {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .macro-trend-card {
+    margin-top: 0.5rem;
+  }
+  
+  .trend-charts-container {
+    gap: 0.75rem;
+  }
+  
+  .trend-chart-section {
+    padding: 0.5rem;
+  }
+  
+  .trend-chart-wrapper {
+    height: 120px;
+  }
+}

@@ -362,6 +362,162 @@ router.get('/open-interest', async (req, res) => {
 });
 
 /**
+ * 获取7天宏观数据趋势
+ * GET /api/v1/macro-monitor/trends
+ */
+router.get('/trends', async (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 7;
+    const interval = req.query.interval || '4h'; // 4小时间隔
+    
+    // 计算时间范围
+    const endTime = new Date();
+    const startTime = new Date(endTime.getTime() - (days * 24 * 60 * 60 * 1000));
+    
+    // 获取市场情绪数据（恐惧贪婪指数）
+    const sentimentQuery = `
+      SELECT 
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') as time_bucket,
+        AVG(CAST(metric_value AS DECIMAL(10,4))) as avg_value,
+        COUNT(*) as data_points
+      FROM macro_monitoring_data 
+      WHERE data_type = 'MARKET_SENTIMENT' 
+      AND metric_name = '恐惧贪婪指数'
+      AND created_at >= ? AND created_at <= ?
+      GROUP BY time_bucket
+      ORDER BY time_bucket ASC
+    `;
+    
+    // 获取多空比数据
+    const longShortQuery = `
+      SELECT 
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') as time_bucket,
+        source,
+        AVG(CAST(metric_value AS DECIMAL(10,4))) as avg_value,
+        COUNT(*) as data_points
+      FROM macro_monitoring_data 
+      WHERE data_type = 'FUTURES_MARKET' 
+      AND metric_name = '多空比'
+      AND created_at >= ? AND created_at <= ?
+      GROUP BY time_bucket, source
+      ORDER BY time_bucket ASC, source ASC
+    `;
+    
+    // 获取资金费率数据
+    const fundingRateQuery = `
+      SELECT 
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') as time_bucket,
+        source,
+        AVG(CAST(metric_value AS DECIMAL(10,6))) as avg_value,
+        COUNT(*) as data_points
+      FROM macro_monitoring_data 
+      WHERE data_type = 'FUTURES_MARKET' 
+      AND metric_name = '资金费率'
+      AND created_at >= ? AND created_at <= ?
+      GROUP BY time_bucket, source
+      ORDER BY time_bucket ASC, source ASC
+    `;
+    
+    // 获取未平仓合约数据
+    const openInterestQuery = `
+      SELECT 
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') as time_bucket,
+        source,
+        AVG(CAST(metric_value AS DECIMAL(15,2))) as avg_value,
+        COUNT(*) as data_points
+      FROM macro_monitoring_data 
+      WHERE data_type = 'FUTURES_MARKET' 
+      AND metric_name = '未平仓合约'
+      AND created_at >= ? AND created_at <= ?
+      GROUP BY time_bucket, source
+      ORDER BY time_bucket ASC, source ASC
+    `;
+    
+    // 并行执行查询
+    const [sentimentData, longShortData, fundingRateData, openInterestData] = await Promise.all([
+      req.macroMonitor.database.query(sentimentQuery, [startTime, endTime]),
+      req.macroMonitor.database.query(longShortQuery, [startTime, endTime]),
+      req.macroMonitor.database.query(fundingRateQuery, [startTime, endTime]),
+      req.macroMonitor.database.query(openInterestQuery, [startTime, endTime])
+    ]);
+    
+    // 处理市场情绪数据
+    const sentimentTrend = sentimentData.map(row => ({
+      time: row.time_bucket,
+      value: parseFloat(row.avg_value) || 0,
+      dataPoints: row.data_points
+    }));
+    
+    // 处理多空比数据，按交易所分组
+    const longShortTrend = {};
+    longShortData.forEach(row => {
+      const source = row.source;
+      if (!longShortTrend[source]) {
+        longShortTrend[source] = [];
+      }
+      longShortTrend[source].push({
+        time: row.time_bucket,
+        value: parseFloat(row.avg_value) || 0,
+        dataPoints: row.data_points
+      });
+    });
+    
+    // 处理资金费率数据，按交易所分组
+    const fundingRateTrend = {};
+    fundingRateData.forEach(row => {
+      const source = row.source;
+      if (!fundingRateTrend[source]) {
+        fundingRateTrend[source] = [];
+      }
+      fundingRateTrend[source].push({
+        time: row.time_bucket,
+        value: parseFloat(row.avg_value) || 0,
+        dataPoints: row.data_points
+      });
+    });
+    
+    // 处理未平仓合约数据，按交易所分组
+    const openInterestTrend = {};
+    openInterestData.forEach(row => {
+      const source = row.source;
+      if (!openInterestTrend[source]) {
+        openInterestTrend[source] = [];
+      }
+      openInterestTrend[source].push({
+        time: row.time_bucket,
+        value: parseFloat(row.avg_value) || 0,
+        dataPoints: row.data_points
+      });
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        period: `${days}天`,
+        interval: interval,
+        timeRange: {
+          start: startTime.toISOString(),
+          end: endTime.toISOString()
+        },
+        trends: {
+          sentiment: sentimentTrend,
+          longShortRatio: longShortTrend,
+          fundingRate: fundingRateTrend,
+          openInterest: openInterestTrend
+        },
+        lastUpdate: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    logger.error('获取宏观数据趋势失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * 获取监控数据概览
  * GET /api/v1/macro-monitor/overview
  */

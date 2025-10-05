@@ -367,6 +367,11 @@ class SmartFlowApp {
       // 加载宏观监控数据
       await this.loadMacroMonitoringData();
 
+      // 加载宏观数据趋势图
+      if (typeof loadMacroTrends === 'function') {
+        await loadMacroTrends();
+      }
+
       // 加载交易对数据
       const symbols = await this.fetchData('/symbols');
       await this.renderSymbolsTable(symbols.data || []);
@@ -4000,4 +4005,386 @@ function initSmoothScroll() {
       }
     });
   });
+}
+
+// ========== 宏观数据趋势图功能 ==========
+
+// 趋势图实例存储
+const trendCharts = {
+  sentimentChart: null,
+  longShortChart: null,
+  fundingRateChart: null,
+  openInterestChart: null
+};
+
+/**
+ * 加载宏观数据趋势
+ */
+async function loadMacroTrends() {
+  try {
+    console.log('开始加载宏观数据趋势...');
+    
+    const response = await fetch('/api/v1/macro-monitor/trends?days=7&interval=4h');
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('宏观趋势数据加载成功:', result.data);
+      renderTrendCharts(result.data);
+    } else {
+      console.error('加载宏观趋势数据失败:', result.error);
+      showTrendError('加载趋势数据失败: ' + result.error);
+    }
+  } catch (error) {
+    console.error('加载宏观趋势数据异常:', error);
+    showTrendError('加载趋势数据异常: ' + error.message);
+  }
+}
+
+/**
+ * 渲染趋势图
+ */
+function renderTrendCharts(trendData) {
+  try {
+    // 渲染市场情绪趋势图
+    renderSentimentChart(trendData.trends.sentiment);
+    
+    // 渲染多空比趋势图
+    renderLongShortChart(trendData.trends.longShortRatio);
+    
+    // 渲染资金费率趋势图
+    renderFundingRateChart(trendData.trends.fundingRate);
+    
+    // 渲染未平仓合约趋势图
+    renderOpenInterestChart(trendData.trends.openInterest);
+    
+    console.log('所有趋势图渲染完成');
+  } catch (error) {
+    console.error('渲染趋势图失败:', error);
+    showTrendError('渲染趋势图失败: ' + error.message);
+  }
+}
+
+/**
+ * 渲染市场情绪趋势图
+ */
+function renderSentimentChart(sentimentData) {
+  const ctx = document.getElementById('sentimentChart');
+  if (!ctx || !sentimentData || sentimentData.length === 0) return;
+  
+  // 销毁现有图表
+  if (trendCharts.sentimentChart) {
+    trendCharts.sentimentChart.destroy();
+  }
+  
+  const labels = sentimentData.map(item => formatChartTime(item.time));
+  const values = sentimentData.map(item => item.value);
+  
+  trendCharts.sentimentChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '恐惧贪婪指数',
+        data: values,
+        borderColor: '#e74c3c',
+        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointHoverRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            callback: function(value) {
+              return value + '';
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `恐惧贪婪指数: ${context.parsed.y.toFixed(1)}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * 渲染多空比趋势图
+ */
+function renderLongShortChart(longShortData) {
+  const ctx = document.getElementById('longShortChart');
+  if (!ctx || !longShortData || Object.keys(longShortData).length === 0) return;
+  
+  // 销毁现有图表
+  if (trendCharts.longShortChart) {
+    trendCharts.longShortChart.destroy();
+  }
+  
+  const datasets = [];
+  const colors = ['#3498db', '#e74c3c', '#f39c12', '#9b59b6'];
+  let colorIndex = 0;
+  
+  Object.keys(longShortData).forEach(source => {
+    const data = longShortData[source];
+    if (data && data.length > 0) {
+      const labels = data.map(item => formatChartTime(item.time));
+      const values = data.map(item => item.value);
+      
+      datasets.push({
+        label: source,
+        data: values,
+        borderColor: colors[colorIndex % colors.length],
+        backgroundColor: colors[colorIndex % colors.length] + '20',
+        borderWidth: 2,
+        fill: false,
+        tension: 0.4,
+        pointRadius: 2,
+        pointHoverRadius: 4
+      });
+      colorIndex++;
+    }
+  });
+  
+  if (datasets.length === 0) return;
+  
+  trendCharts.longShortChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: datasets[0].data ? datasets[0].data.map((_, index) => formatChartTime(longShortData[Object.keys(longShortData)[0]][index].time)) : [],
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return value.toFixed(2) + ':1';
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.parsed.y.toFixed(3)}:1`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * 渲染资金费率趋势图
+ */
+function renderFundingRateChart(fundingRateData) {
+  const ctx = document.getElementById('fundingRateChart');
+  if (!ctx || !fundingRateData || Object.keys(fundingRateData).length === 0) return;
+  
+  // 销毁现有图表
+  if (trendCharts.fundingRateChart) {
+    trendCharts.fundingRateChart.destroy();
+  }
+  
+  const datasets = [];
+  const colors = ['#27ae60', '#e67e22', '#8e44ad', '#1abc9c'];
+  let colorIndex = 0;
+  
+  Object.keys(fundingRateData).forEach(source => {
+    const data = fundingRateData[source];
+    if (data && data.length > 0) {
+      const labels = data.map(item => formatChartTime(item.time));
+      const values = data.map(item => (item.value * 100)); // 转换为百分比
+      
+      datasets.push({
+        label: source,
+        data: values,
+        borderColor: colors[colorIndex % colors.length],
+        backgroundColor: colors[colorIndex % colors.length] + '20',
+        borderWidth: 2,
+        fill: false,
+        tension: 0.4,
+        pointRadius: 2,
+        pointHoverRadius: 4
+      });
+      colorIndex++;
+    }
+  });
+  
+  if (datasets.length === 0) return;
+  
+  trendCharts.fundingRateChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: datasets[0].data ? datasets[0].data.map((_, index) => formatChartTime(fundingRateData[Object.keys(fundingRateData)[0]][index].time)) : [],
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          ticks: {
+            callback: function(value) {
+              return value.toFixed(4) + '%';
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.parsed.y.toFixed(6)}%`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * 渲染未平仓合约趋势图
+ */
+function renderOpenInterestChart(openInterestData) {
+  const ctx = document.getElementById('openInterestChart');
+  if (!ctx || !openInterestData || Object.keys(openInterestData).length === 0) return;
+  
+  // 销毁现有图表
+  if (trendCharts.openInterestChart) {
+    trendCharts.openInterestChart.destroy();
+  }
+  
+  const datasets = [];
+  const colors = ['#34495e', '#e74c3c', '#f39c12', '#2ecc71'];
+  let colorIndex = 0;
+  
+  Object.keys(openInterestData).forEach(source => {
+    const data = openInterestData[source];
+    if (data && data.length > 0) {
+      const labels = data.map(item => formatChartTime(item.time));
+      const values = data.map(item => item.value);
+      
+      datasets.push({
+        label: source,
+        data: values,
+        borderColor: colors[colorIndex % colors.length],
+        backgroundColor: colors[colorIndex % colors.length] + '20',
+        borderWidth: 2,
+        fill: false,
+        tension: 0.4,
+        pointRadius: 2,
+        pointHoverRadius: 4
+      });
+      colorIndex++;
+    }
+  });
+  
+  if (datasets.length === 0) return;
+  
+  trendCharts.openInterestChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: datasets[0].data ? datasets[0].data.map((_, index) => formatChartTime(openInterestData[Object.keys(openInterestData)[0]][index].time)) : [],
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '$' + (value / 1000000).toFixed(1) + 'M';
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: $${context.parsed.y.toLocaleString()}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * 格式化图表时间显示
+ */
+function formatChartTime(timeString) {
+  if (!timeString) return '';
+  const date = new Date(timeString);
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit'
+  });
+}
+
+/**
+ * 显示趋势图错误
+ */
+function showTrendError(message) {
+  const trendStatus = document.getElementById('trendStatus');
+  if (trendStatus) {
+    trendStatus.innerHTML = `<span class="status-indicator status-warning">${message}</span>`;
+  }
+}
+
+/**
+ * 切换图表显示/隐藏
+ */
+function toggleChart(chartId) {
+  const chartSection = document.querySelector(`#${chartId}`).closest('.trend-chart-section');
+  const chartWrapper = chartSection.querySelector('.trend-chart-wrapper');
+  const button = chartSection.querySelector('.trend-chart-controls button');
+  
+  if (chartWrapper.style.display === 'none') {
+    chartWrapper.style.display = 'block';
+    button.innerHTML = '<i class="fas fa-eye"></i>';
+  } else {
+    chartWrapper.style.display = 'none';
+    button.innerHTML = '<i class="fas fa-eye-slash"></i>';
+  }
 }
