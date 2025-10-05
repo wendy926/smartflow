@@ -557,22 +557,40 @@ class SmartFlowApp {
 
     if (futuresData.latest && futuresData.latest.length > 0) {
       // 获取最新的多空比、资金费率和未平仓合约数据
-      const ratioData = futuresData.latest.find(item => item.metric_name === '多空比');
-      const fundingData = futuresData.latest.find(item => item.metric_name === '资金费率');
-      const openInterestData = futuresData.latest.find(item => item.metric_name === '未平仓合约');
+      // 优先展示Binance的多空比数据
+      const ratioData = futuresData.latest.find(item =>
+        item.metric_name === '多空比' && item.source === 'Binance'
+      ) || futuresData.latest.find(item => item.metric_name === '多空比');
+
+      // 优先展示Binance的资金费率数据
+      const fundingData = futuresData.latest.find(item =>
+        item.metric_name === '资金费率' && item.source === 'Binance'
+      ) || futuresData.latest.find(item => item.metric_name === '资金费率');
+
+      // 优先展示Binance的未平仓合约数据
+      const openInterestData = futuresData.latest.find(item =>
+        item.metric_name === '未平仓合约' && item.source === 'Binance'
+      ) || futuresData.latest.find(item => item.metric_name === '未平仓合约');
 
       if (ratioData) {
         const ratio = parseFloat(ratioData.metric_value);
+        const source = ratioData.source || 'Unknown';
         ratioElement.textContent = `${ratio.toFixed(2)}:1`;
+        // 添加数据来源提示
+        ratioElement.title = `数据来源: ${source}`;
       } else {
         ratioElement.textContent = '--';
+        ratioElement.title = '';
       }
 
       if (fundingData) {
         const rate = parseFloat(fundingData.metric_value) * 100;
+        const source = fundingData.source || 'Unknown';
         fundingElement.textContent = `${rate.toFixed(4)}%`;
+        fundingElement.title = `数据来源: ${source}`;
       } else {
         fundingElement.textContent = '--';
+        fundingElement.title = '';
       }
 
       if (openInterestData) {
@@ -588,7 +606,9 @@ class SmartFlowApp {
           oiDisplay += ` <span style="color: ${changeColor}; font-size: 0.9em;">${changeIcon} ${changePercent.toFixed(2)}%</span>`;
         }
 
+        const source = openInterestData.source || 'Unknown';
         openInterestElement.innerHTML = oiDisplay;
+        openInterestElement.title = `数据来源: ${source}`;
       } else {
         openInterestElement.textContent = '--';
       }
@@ -704,7 +724,7 @@ class SmartFlowApp {
       // 更新总体统计
       console.log('更新总体统计:', stats.overall);
       this.updateOverallStats(stats.overall);
-      
+
       // 更新系统总览统计
       await this.updateSystemOverviewStats(stats.overall);
       console.log('策略统计加载完成');
@@ -1054,22 +1074,22 @@ class SmartFlowApp {
       // 获取活跃交易数据
       const activeResponse = await this.fetchData('/trades/active');
       const activeTrades = activeResponse.data || [];
-      
+
       // 计算各策略的活跃交易数
       const v3ActiveCount = activeTrades.filter(trade => trade.strategy_name === 'V3').length;
       const ictActiveCount = activeTrades.filter(trade => trade.strategy_name === 'ICT').length;
-      
+
       // 计算今日交易数（今天的交易）
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
-      const v3TodayCount = activeTrades.filter(trade => 
-        trade.strategy_name === 'V3' && 
+
+      const v3TodayCount = activeTrades.filter(trade =>
+        trade.strategy_name === 'V3' &&
         new Date(trade.created_at) >= today
       ).length;
-      
-      const ictTodayCount = activeTrades.filter(trade => 
-        trade.strategy_name === 'ICT' && 
+
+      const ictTodayCount = activeTrades.filter(trade =>
+        trade.strategy_name === 'ICT' &&
         new Date(trade.created_at) >= today
       ).length;
 
@@ -1119,13 +1139,13 @@ class SmartFlowApp {
       setTimeout(() => {
         const v3ActiveTradesElement = document.getElementById('v3-active-trades');
         if (v3ActiveTradesElement) v3ActiveTradesElement.textContent = '0';
-        
+
         const v3TodayTradesElement = document.getElementById('v3-today-trades');
         if (v3TodayTradesElement) v3TodayTradesElement.textContent = '0';
-        
+
         const ictActiveTradesElement = document.getElementById('ict-active-trades');
         if (ictActiveTradesElement) ictActiveTradesElement.textContent = '0';
-        
+
         const ictTodayTradesElement = document.getElementById('ict-today-trades');
         if (ictTodayTradesElement) ictTodayTradesElement.textContent = '0';
       }, 100);
@@ -2609,21 +2629,21 @@ class SmartFlowApp {
   async loadNewCoinMonitorData() {
     try {
       console.log('加载新币监控数据...');
-      
+
       // 加载监控状态
       await this.loadMonitorStatus();
-      
+
       // 加载新币概览
       await this.loadCoinOverview();
-      
+
       // 加载告警统计
       await this.loadAlertStatistics();
-      
+
       // 设置事件监听器
       this.setupNewCoinMonitorEventListeners();
-      
+
       console.log('新币监控数据加载完成');
-      
+
     } catch (error) {
       console.error('加载新币监控数据失败:', error);
       this.showError('加载新币监控数据失败: ' + error.message);
@@ -2637,18 +2657,18 @@ class SmartFlowApp {
     try {
       const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/status`);
       const result = await response.json();
-      
+
       if (result.success) {
         const status = result.data;
-        document.getElementById('monitorStatus').textContent = 
+        document.getElementById('monitorStatus').textContent =
           status.isRunning ? '运行中' : '已停止';
-        document.getElementById('monitorStatus').className = 
+        document.getElementById('monitorStatus').className =
           status.isRunning ? 'status-value status-online' : 'status-value status-offline';
-        
+
         // 加载监控币种数量
         await this.loadMonitoredCoinsCount();
       }
-      
+
     } catch (error) {
       console.error('加载监控状态失败:', error);
       document.getElementById('monitorStatus').textContent = '错误';
@@ -2663,11 +2683,11 @@ class SmartFlowApp {
     try {
       const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/coins`);
       const result = await response.json();
-      
+
       if (result.success) {
         document.getElementById('monitoredCoinsCount').textContent = result.count;
       }
-      
+
     } catch (error) {
       console.error('加载监控币种数量失败:', error);
       document.getElementById('monitoredCoinsCount').textContent = '--';
@@ -2681,20 +2701,20 @@ class SmartFlowApp {
     try {
       const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/overview`);
       const result = await response.json();
-      
+
       if (result.success) {
         this.renderCoinOverview(result.data);
-        
+
         // 更新最后评估时间
         if (result.data.length > 0) {
           const latestEvaluation = result.data[0].evaluation_time;
           if (latestEvaluation) {
-            document.getElementById('lastEvaluation').textContent = 
+            document.getElementById('lastEvaluation').textContent =
               new Date(latestEvaluation).toLocaleString();
           }
         }
       }
-      
+
     } catch (error) {
       console.error('加载新币概览失败:', error);
       this.renderCoinOverviewError();
@@ -2706,12 +2726,12 @@ class SmartFlowApp {
    */
   renderCoinOverview(coins) {
     const tbody = document.getElementById('coinOverviewBody');
-    
+
     if (!coins || coins.length === 0) {
       tbody.innerHTML = '<tr><td colspan="10" class="text-center">暂无监控数据</td></tr>';
       return;
     }
-    
+
     tbody.innerHTML = coins.map(coin => `
       <tr>
         <td><strong>${coin.symbol}</strong></td>
@@ -2785,11 +2805,11 @@ class SmartFlowApp {
     try {
       const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/alert-statistics`);
       const result = await response.json();
-      
+
       if (result.success) {
         this.renderAlertStatistics(result.data);
       }
-      
+
     } catch (error) {
       console.error('加载告警统计失败:', error);
       this.renderAlertStatisticsError();
@@ -2803,13 +2823,13 @@ class SmartFlowApp {
     let criticalCount = 0;
     let warningCount = 0;
     let infoCount = 0;
-    
+
     statistics.forEach(stat => {
       criticalCount += stat.critical_alerts || 0;
       warningCount += stat.warning_alerts || 0;
       infoCount += stat.info_alerts || 0;
     });
-    
+
     document.getElementById('criticalAlerts').textContent = criticalCount;
     document.getElementById('warningAlerts').textContent = warningCount;
     document.getElementById('infoAlerts').textContent = infoCount;
@@ -2855,13 +2875,13 @@ class SmartFlowApp {
     // 筛选器
     const scoreFilter = document.getElementById('scoreFilter');
     const statusFilter = document.getElementById('statusFilter');
-    
+
     if (scoreFilter) {
       scoreFilter.addEventListener('change', () => {
         this.filterCoinOverview();
       });
     }
-    
+
     if (statusFilter) {
       statusFilter.addEventListener('change', () => {
         this.filterCoinOverview();
@@ -2872,19 +2892,19 @@ class SmartFlowApp {
     const closeCoinDetail = document.getElementById('closeCoinDetail');
     const closeAddCoin = document.getElementById('closeAddCoin');
     const cancelAddCoin = document.getElementById('cancelAddCoin');
-    
+
     if (closeCoinDetail) {
       closeCoinDetail.addEventListener('click', () => {
         this.hideCoinDetailModal();
       });
     }
-    
+
     if (closeAddCoin) {
       closeAddCoin.addEventListener('click', () => {
         this.hideAddCoinModal();
       });
     }
-    
+
     if (cancelAddCoin) {
       cancelAddCoin.addEventListener('click', () => {
         this.hideAddCoinModal();
@@ -2930,7 +2950,7 @@ class SmartFlowApp {
       const form = document.getElementById('addCoinForm');
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
-      
+
       // 处理数字字段
       data.team_score = parseFloat(data.team_score) || 0;
       data.vesting_lock_score = parseFloat(data.vesting_lock_score) || 0;
@@ -2938,7 +2958,7 @@ class SmartFlowApp {
       data.supply_circulation = parseInt(data.supply_circulation) || 0;
       data.twitter_followers = parseInt(data.twitter_followers) || 0;
       data.telegram_members = parseInt(data.telegram_members) || 0;
-      
+
       const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/coins`, {
         method: 'POST',
         headers: {
@@ -2946,9 +2966,9 @@ class SmartFlowApp {
         },
         body: JSON.stringify(data)
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         alert('新币添加成功！');
         this.hideAddCoinModal();
@@ -2956,7 +2976,7 @@ class SmartFlowApp {
       } else {
         alert('添加失败: ' + result.message);
       }
-      
+
     } catch (error) {
       console.error('添加新币失败:', error);
       alert('添加失败: ' + error.message);
@@ -2971,15 +2991,15 @@ class SmartFlowApp {
       const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/evaluate`, {
         method: 'POST'
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         alert('手动评估已启动，请稍后刷新查看结果');
       } else {
         alert('启动评估失败: ' + result.message);
       }
-      
+
     } catch (error) {
       console.error('触发手动评估失败:', error);
       alert('启动评估失败: ' + error.message);
@@ -3005,21 +3025,21 @@ class SmartFlowApp {
     if (!confirm(`确定要删除 ${symbol} 的监控吗？`)) {
       return;
     }
-    
+
     try {
       const response = await fetch(`${this.apiBaseUrl}/new-coin-monitor/coins/${symbol}`, {
         method: 'DELETE'
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         alert('删除成功！');
         this.loadNewCoinMonitorData();
       } else {
         alert('删除失败: ' + result.message);
       }
-      
+
     } catch (error) {
       console.error('删除新币失败:', error);
       alert('删除失败: ' + error.message);

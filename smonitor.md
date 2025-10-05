@@ -42,7 +42,7 @@ const FEAR_GREED_API = "https://api.alternative.me/fng/?limit=1";
 const BINANCE_LONG_SHORT = "https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=5m";
 const BINANCE_OI = "https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=5m";
 
-const BYBIT_LONG_SHORT = "https://api.bybit.com/v2/public/position/list?symbol=BTCUSD";
+const BYBIT_LONG_SHORT = "https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=BTCUSDT&period=5m";
 const BYBIT_FUNDING = "https://api.bybit.com/v2/public/funding/prev-funding-rate?symbol=BTCUSD";
 
 const OKX_OI = "https://www.okx.com/api/v5/public/open-interest?instId=BTC-USDT-SWAP";
@@ -89,6 +89,10 @@ async function checkFearGreed() {
 }
 
 // ========== 合约市场指标（替代 Coinglass） ==========
+// 多空比计算说明：
+// - 多空比 = 多头持仓量 / 空头持仓量
+// - 数值 > 1 表示多头占优，数值 < 1 表示空头占优
+// - 前端展示格式：ratio:1 (如 1.5:1 表示多头是空头的1.5倍)
 async function checkFuturesMarkets() {
   try {
     // ----- Binance -----
@@ -112,12 +116,11 @@ async function checkFuturesMarkets() {
     r = await fetch(BYBIT_LONG_SHORT);
     data = await r.json();
     if(data.result && data.result.length>0){
-      const positions = data.result;
-      const long = positions.filter(p=>p.side==="Buy").length;
-      const short = positions.filter(p=>p.side==="Sell").length;
-      console.log(`[Bybit] 多:${long} 空:${short} 总:${positions.length}`);
-      if(long/short>2) console.warn("⚠ Bybit 多头过热");
-      if(long/short<0.5) console.warn("⚠ Bybit 空头过重");
+      const latest = data.result[data.result.length-1];
+      const ratio = parseFloat(latest.longShortRatio);
+      console.log("[Bybit] 多空比:", ratio);
+      if(ratio > 2) console.warn("⚠ Bybit 多头过热");
+      if(ratio < 0.5) console.warn("⚠ Bybit 空头过重");
     }
 
     r = await fetch(BYBIT_FUNDING);
@@ -299,9 +302,14 @@ setInterval(run, 60_000); // 每分钟检查一次
 
 - 大额转账：BTC > $10M / ETH > 1000 ETH → ⚠
 - 市场情绪：恐惧指数 <20 或 >80 → ⚠
-- 合约市场：多空比 >2（多头过热）或 <0.5（空头过重） → ⚠
+- 合约市场：多空比 >2（多头过热，多头持仓是空头的2倍以上）或 <0.5（空头过重，空头持仓是多头的2倍以上） → ⚠
 - 宏观利率：>5% 或 <2% → ⚠
 - 通胀率：>4%（高通胀）或 <1%（通缩） → ⚠
+
+**多空比说明：**
+- 多空比 = 多头持仓量 ÷ 空头持仓量
+- 前端显示格式：X:1（如 1.5:1 表示多头是空头的1.5倍）
+- 数值 > 1：多头占优；数值 < 1：空头占优
 
 # **五、需要申请 Key 的数据源清单（更新版）**
 

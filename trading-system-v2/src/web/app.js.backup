@@ -552,22 +552,40 @@ class SmartFlowApp {
 
     if (futuresData.latest && futuresData.latest.length > 0) {
       // 获取最新的多空比、资金费率和未平仓合约数据
-      const ratioData = futuresData.latest.find(item => item.metric_name === '多空比');
-      const fundingData = futuresData.latest.find(item => item.metric_name === '资金费率');
-      const openInterestData = futuresData.latest.find(item => item.metric_name === '未平仓合约');
+      // 优先展示Binance的多空比数据
+      const ratioData = futuresData.latest.find(item => 
+        item.metric_name === '多空比' && item.source === 'Binance'
+      ) || futuresData.latest.find(item => item.metric_name === '多空比');
+      
+      // 优先展示Binance的资金费率数据
+      const fundingData = futuresData.latest.find(item => 
+        item.metric_name === '资金费率' && item.source === 'Binance'
+      ) || futuresData.latest.find(item => item.metric_name === '资金费率');
+      
+      // 优先展示Binance的未平仓合约数据
+      const openInterestData = futuresData.latest.find(item => 
+        item.metric_name === '未平仓合约' && item.source === 'Binance'
+      ) || futuresData.latest.find(item => item.metric_name === '未平仓合约');
 
       if (ratioData) {
         const ratio = parseFloat(ratioData.metric_value);
+        const source = ratioData.source || 'Unknown';
         ratioElement.textContent = `${ratio.toFixed(2)}:1`;
+        // 添加数据来源提示
+        ratioElement.title = `数据来源: ${source}`;
       } else {
         ratioElement.textContent = '--';
+        ratioElement.title = '';
       }
 
       if (fundingData) {
         const rate = parseFloat(fundingData.metric_value) * 100;
+        const source = fundingData.source || 'Unknown';
         fundingElement.textContent = `${rate.toFixed(4)}%`;
+        fundingElement.title = `数据来源: ${source}`;
       } else {
         fundingElement.textContent = '--';
+        fundingElement.title = '';
       }
 
       if (openInterestData) {
@@ -583,7 +601,9 @@ class SmartFlowApp {
           oiDisplay += ` <span style="color: ${changeColor}; font-size: 0.9em;">${changeIcon} ${changePercent.toFixed(2)}%</span>`;
         }
 
+        const source = openInterestData.source || 'Unknown';
         openInterestElement.innerHTML = oiDisplay;
+        openInterestElement.title = `数据来源: ${source}`;
       } else {
         openInterestElement.textContent = '--';
       }
