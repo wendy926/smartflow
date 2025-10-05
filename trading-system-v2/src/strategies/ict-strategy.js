@@ -772,7 +772,7 @@ class ICTStrategy {
         stopLoss: tradeParams.stopLoss || 0,
         takeProfit: tradeParams.takeProfit || 0,
         leverage: tradeParams.leverage || 0,
-        margin: this.calculateMargin(tradeParams.entry || 0, tradeParams.stopLoss || 0, tradeParams.leverage || 1),
+        margin: tradeParams.margin || 0,
         timestamp: new Date().toISOString()
       };
 
