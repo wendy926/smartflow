@@ -272,26 +272,16 @@ class ICTStrategy {
    * 按照ICT文档：sweep发生在≤3根15m内收回，sweep幅度÷bar数≥0.2×ATR(15m)
    * @param {Array} klines - K线数据
    * @param {number} atr15 - 15分钟ATR值
+   * @param {number} extreme - 极值点（高点或低点）
    * @returns {Object} LTF Sweep检测结果
    */
-  detectSweepLTF(klines, atr15) {
+  detectSweepLTF(klines, atr15, extreme) {
     if (!klines || klines.length < 5) {
       return { detected: false, type: null, level: 0, confidence: 0, speed: 0 };
     }
 
     const currentATR = atr15 || 0;
     const recentBars = klines.slice(-5); // 最近5根K线，最多检查3根
-
-    // 寻找最近的高点和低点
-    let highestHigh = 0;
-    let lowestLow = Infinity;
-
-    recentBars.forEach(kline => {
-      const high = parseFloat(kline[2]); // 最高价
-      const low = parseFloat(kline[3]);   // 最低价
-      highestHigh = Math.max(highestHigh, high);
-      lowestLow = Math.min(lowestLow, low);
-    });
 
     let detected = false;
     let type = null;
@@ -306,21 +296,21 @@ class ICTStrategy {
       const low = parseFloat(bar[3]);
 
       // 检测上方流动性扫荡：最高价突破极值点
-      if (high > highestHigh) {
+      if (high > extreme) {
         // 检查是否在后续K线中收回
         let barsToReturn = 0;
         for (let j = i + 1; j < recentBars.length; j++) {
           barsToReturn++;
-          if (parseFloat(recentBars[j][4]) < highestHigh) {
+          if (parseFloat(recentBars[j][4]) < extreme) {
             // 计算扫荡速率：刺破幅度 ÷ bar数
-            const exceed = high - highestHigh;
+            const exceed = high - extreme;
             const sweepSpeed = exceed / barsToReturn;
 
             // 检查是否满足条件：sweep速率 ≥ 0.2 × ATR 且 bars数 ≤ 3
             if (sweepSpeed >= 0.2 * currentATR && barsToReturn <= 3) {
               detected = true;
               type = 'LTF_SWEEP_UP';
-              level = highestHigh;
+              level = extreme;
               confidence = Math.min(sweepSpeed / (0.2 * currentATR), 1);
               speed = sweepSpeed;
               break;
@@ -331,21 +321,21 @@ class ICTStrategy {
       }
 
       // 检测下方流动性扫荡：最低价跌破极值点
-      if (low < lowestLow) {
+      if (low < extreme) {
         // 检查是否在后续K线中收回
         let barsToReturn = 0;
         for (let j = i + 1; j < recentBars.length; j++) {
           barsToReturn++;
-          if (parseFloat(recentBars[j][4]) > lowestLow) {
+          if (parseFloat(recentBars[j][4]) > extreme) {
             // 计算扫荡速率：刺破幅度 ÷ bar数
-            const exceed = lowestLow - low;
+            const exceed = extreme - low;
             const sweepSpeed = exceed / barsToReturn;
 
             // 检查是否满足条件：sweep速率 ≥ 0.2 × ATR 且 bars数 ≤ 3
             if (sweepSpeed >= 0.2 * currentATR && barsToReturn <= 3) {
               detected = true;
               type = 'LTF_SWEEP_DOWN';
-              level = lowestLow;
+              level = extreme;
               confidence = Math.min(sweepSpeed / (0.2 * currentATR), 1);
               speed = sweepSpeed;
               break;
@@ -360,88 +350,197 @@ class ICTStrategy {
   }
 
   /**
-   * 计算保证金
+   * 检测成交量放大
+   * 按照ICT文档：成交量放大作为可选加强过滤
+   * @param {Array} klines - K线数据
+   * @param {number} period - 计算平均成交量的周期
+   * @returns {Object} 成交量放大检测结果
+   */
+  detectVolumeExpansion(klines, period = 20) {
+    if (!klines || klines.length < period + 1) {
+      return { detected: false, ratio: 0, currentVolume: 0, averageVolume: 0 };
+    }
+
+    const currentVolume = parseFloat(klines[klines.length - 1][5]); // 当前成交量
+    const recentVolumes = klines.slice(-period - 1, -1).map(k => parseFloat(k[5])); // 排除当前K线的历史成交量
+    const averageVolume = recentVolumes.reduce((sum, vol) => sum + vol, 0) / recentVolumes.length;
+    
+    const volumeRatio = averageVolume > 0 ? currentVolume / averageVolume : 0;
+    
+    // 成交量放大条件：当前成交量 ≥ 1.5倍平均成交量
+    const detected = volumeRatio >= 1.5;
+
+    return {
+      detected,
+      ratio: volumeRatio,
+      currentVolume,
+      averageVolume
+    };
+  }
+
+  /**
+   * 检查OB/FVG年龄过滤
+   * 按照ICT文档：OB/FVG年龄 ≤ 2天
+   * @param {Object} orderBlock - 订单块对象
+   * @returns {boolean} 是否满足年龄条件
+   */
+  checkOrderBlockAge(orderBlock) {
+    if (!orderBlock || !orderBlock.timestamp) return false;
+    
+    const currentTime = Date.now();
+    const obTime = orderBlock.timestamp;
+    const ageDays = (currentTime - obTime) / (1000 * 60 * 60 * 24); // 转换为天
+    
+    return ageDays <= 2; // 年龄 ≤ 2天
+  }
+
+  /**
+   * 计算止损价格
+   * 按照ICT文档：上升趋势：OB下沿-1.5×ATR(4H)或最近3根4H最低点
+   * 下降趋势：OB上沿+1.5×ATR(4H)或最近3根4H最高点
+   * @param {string} trend - 趋势方向
+   * @param {Object} orderBlock - 订单块
+   * @param {Array} klines4H - 4H K线数据
+   * @param {number} atr4H - 4H ATR值
+   * @returns {number} 止损价格
+   */
+  calculateStopLoss(trend, orderBlock, klines4H, atr4H) {
+    if (!orderBlock || !klines4H || klines4H.length < 3) return 0;
+
+    const currentPrice = parseFloat(klines4H[klines4H.length - 1][4]);
+    
+    if (trend === 'UP') {
+      // 上升趋势：OB下沿 - 1.5×ATR(4H) 或 最近3根4H的最低点
+      const obStopLoss = orderBlock.low - (1.5 * atr4H);
+      const recent3Lows = klines4H.slice(-3).map(k => parseFloat(k[3])); // 最低价
+      const minRecentLow = Math.min(...recent3Lows);
+      
+      return Math.max(obStopLoss, minRecentLow);
+    } else if (trend === 'DOWN') {
+      // 下降趋势：OB上沿 + 1.5×ATR(4H) 或 最近3根4H的最高点
+      const obStopLoss = orderBlock.high + (1.5 * atr4H);
+      const recent3Highs = klines4H.slice(-3).map(k => parseFloat(k[2])); // 最高价
+      const maxRecentHigh = Math.max(...recent3Highs);
+      
+      return Math.min(obStopLoss, maxRecentHigh);
+    }
+    
+    return currentPrice;
+  }
+
+  /**
+   * 计算止盈价格
+   * 按照ICT文档：RR = 3:1
    * @param {number} entryPrice - 入场价格
    * @param {number} stopLoss - 止损价格
-   * @param {number} leverage - 杠杆
-   * @returns {number} 保证金
+   * @param {string} trend - 趋势方向
+   * @returns {number} 止盈价格
    */
-  calculateMargin(entryPrice, stopLoss, leverage) {
-    if (!entryPrice || !stopLoss || !leverage) return 0;
+  calculateTakeProfit(entryPrice, stopLoss, trend) {
+    if (!entryPrice || !stopLoss) return 0;
 
-    // 计算止损距离百分比
-    const stopLossDistance = Math.abs(entryPrice - stopLoss) / entryPrice;
+    const stopDistance = Math.abs(entryPrice - stopLoss);
+    
+    if (trend === 'UP') {
+      // 上升趋势：入场价 + 3倍止损距离
+      return entryPrice + (3 * stopDistance);
+    } else if (trend === 'DOWN') {
+      // 下降趋势：入场价 - 3倍止损距离
+      return entryPrice - (3 * stopDistance);
+    }
+    
+    return entryPrice;
+  }
 
-    // 使用100 USDT作为默认最大损失金额
-    const maxLossAmount = 100;
+  /**
+   * 计算仓位大小
+   * 按照ICT文档：单位数 = 风险资金 ÷ 止损距离
+   * @param {number} equity - 资金总额
+   * @param {number} riskPct - 风险比例（如1%）
+   * @param {number} entryPrice - 入场价格
+   * @param {number} stopLoss - 止损价格
+   * @returns {Object} 仓位计算结果
+   */
+  calculatePositionSize(equity, riskPct, entryPrice, stopLoss) {
+    if (!equity || !riskPct || !entryPrice || !stopLoss) {
+      return { units: 0, notional: 0, margin: 0 };
+    }
 
-    // 计算保证金：M/(Y*X%) 数值向上取整
-    const margin = Math.ceil(maxLossAmount / (leverage * stopLossDistance));
+    // 风险资金 = Equity × 风险比例
+    const riskAmount = equity * riskPct;
+    
+    // 止损距离
+    const stopDistance = Math.abs(entryPrice - stopLoss);
+    
+    // 单位数 = 风险资金 ÷ 止损距离
+    const units = stopDistance > 0 ? riskAmount / stopDistance : 0;
+    
+    // 名义价值 = 单位数 × 入场价
+    const notional = units * entryPrice;
+    
+    // 计算杠杆：基于风险比例和止损距离
+    const stopLossDistancePct = stopDistance / entryPrice;
+    const maxLeverage = Math.floor(1 / (stopLossDistancePct + 0.005)); // 加0.5%缓冲
+    const leverage = Math.min(maxLeverage, 20); // 最大杠杆限制为20
+    
+    // 保证金 = 名义价值 ÷ 杠杆
+    const margin = notional / leverage;
 
-    return margin;
+    return {
+      units,
+      notional,
+      leverage,
+      margin,
+      riskAmount,
+      stopDistance
+    };
   }
 
   /**
    * 计算交易参数
+   * 按照ICT文档要求计算止损、止盈和仓位
    * @param {string} symbol - 交易对
    * @param {string} trend - 趋势方向
    * @param {Object} signals - 信号对象
+   * @param {Object} orderBlock - 订单块
+   * @param {Array} klines4H - 4H K线数据
+   * @param {number} atr4H - 4H ATR值
    * @returns {Object} 交易参数
    */
-  async calculateTradeParameters(symbol, trend, signals) {
+  async calculateTradeParameters(symbol, trend, signals, orderBlock, klines4H, atr4H) {
     try {
-      // 获取当前价格和ATR
-      const klines = await this.binanceAPI.getKlines(symbol, '15m', 50);
-      if (!klines || klines.length < 20) {
+      // 获取当前价格
+      const klines15m = await this.binanceAPI.getKlines(symbol, '15m', 50);
+      if (!klines15m || klines15m.length < 20) {
         return { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
       }
 
-      const currentPrice = parseFloat(klines[klines.length - 1][4]); // 收盘价
-      const atr = this.calculateATR(klines, 14);
-      const currentATR = atr[atr.length - 1];
+      const currentPrice = parseFloat(klines15m[klines15m.length - 1][4]); // 收盘价
+      const equity = 10000; // 默认资金总额
+      const riskPct = 0.01; // 1%风险
 
-      // 基础参数
-      let entry = currentPrice;
-      let stopLoss = 0;
-      let takeProfit = 0;
-      let leverage = 1;
-      let risk = 0.02; // 2%风险
+      // 计算入场价格（当前价格）
+      const entry = currentPrice;
 
-      // 根据趋势和信号调整参数
-      if (trend === 'UP') {
-        stopLoss = currentPrice - (currentATR * 2);
-        takeProfit = currentPrice + (currentATR * 4);
-      } else if (trend === 'DOWN') {
-        stopLoss = currentPrice + (currentATR * 2);
-        takeProfit = currentPrice - (currentATR * 4);
-      }
+      // 计算止损价格（按照文档要求）
+      const stopLoss = this.calculateStopLoss(trend, orderBlock, klines4H, atr4H);
 
-      // 按照文档计算杠杆和保证金
-      // 止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
-      const isLong = trend === 'UP';
-      const stopLossDistance = isLong
-        ? (currentPrice - stopLoss) / currentPrice  // 多头
-        : (stopLoss - currentPrice) / currentPrice; // 空头
-      const stopLossDistanceAbs = Math.abs(stopLossDistance);
+      // 计算止盈价格（RR = 3:1）
+      const takeProfit = this.calculateTakeProfit(entry, stopLoss, trend);
 
-      const maxLossAmount = 100; // 默认最大损失金额
-
-      // 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
-      const maxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
-
-      // 使用计算出的最大杠杆数
-      leverage = maxLeverage;
-
-      // 计算保证金Z：M/(Y*X%) 数值向上取整
-      const margin = stopLossDistanceAbs > 0 ? Math.ceil(maxLossAmount / (leverage * stopLossDistanceAbs)) : 0;
+      // 计算仓位大小
+      const positionSize = this.calculatePositionSize(equity, riskPct, entry, stopLoss);
 
       return {
-        entry,
+        entry: parseFloat(entry.toFixed(4)),
         stopLoss: parseFloat(stopLoss.toFixed(4)),
         takeProfit: parseFloat(takeProfit.toFixed(4)),
-        leverage: leverage,
-        margin: margin,
-        risk: Math.min(risk, 0.05)
+        leverage: positionSize.leverage,
+        margin: parseFloat(positionSize.margin.toFixed(2)),
+        risk: riskPct,
+        units: parseFloat(positionSize.units.toFixed(4)),
+        notional: parseFloat(positionSize.notional.toFixed(2)),
+        riskAmount: parseFloat(positionSize.riskAmount.toFixed(2))
       };
     } catch (error) {
       logger.error(`ICT Trade parameters calculation error for ${symbol}:`, error);
@@ -532,42 +631,51 @@ class ICTStrategy {
       // 选择有效的扫荡
       const sweepLTF = sweepLTFUp.detected ? sweepLTFUp : sweepLTFDown;
 
-      // 6. 综合评分
+      // 5. 检测成交量放大（可选加强过滤）
+      const volumeExpansion = this.detectVolumeExpansion(klines15m);
+
+      // 6. 检查订单块年龄过滤（≤2天）
+      const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob));
+      const hasValidOrderBlock = validOrderBlocks.length > 0;
+
+      // 7. 综合评分（按照ICT文档要求）
       let score = 0;
       let reasons = [];
 
-      // 趋势评分
+      // 趋势评分（必须）
       if (dailyTrend.trend !== 'RANGE') {
         score += dailyTrend.confidence * 30;
         reasons.push(`Daily trend: ${dailyTrend.trend} (${(dailyTrend.confidence * 100).toFixed(1)}%)`);
       }
 
-      // 订单块评分
-      if (orderBlocks.length > 0) {
-        const recentOrderBlocks = orderBlocks.filter(ob =>
-          Date.now() - ob.timestamp < 7 * 24 * 60 * 60 * 1000 // 7天内
-        );
-        if (recentOrderBlocks.length > 0) {
-          score += 20;
-          reasons.push(`Recent order blocks: ${recentOrderBlocks.length}`);
-        }
+      // 订单块评分（必须满足年龄过滤≤2天）
+      if (hasValidOrderBlock) {
+        score += 20;
+        reasons.push(`Valid order blocks (≤2 days): ${validOrderBlocks.length}`);
       }
 
-      // 吞没形态评分
+      // 吞没形态评分（必须）
       if (engulfing.detected) {
         score += engulfing.strength * 25;
         reasons.push(`Engulfing pattern: ${engulfing.type} (${(engulfing.strength * 100).toFixed(1)}%)`);
       }
 
-      // Sweep评分
+      // HTF Sweep评分（必须）
       if (sweepHTF.detected) {
         score += sweepHTF.confidence * 15;
         reasons.push(`HTF Sweep: ${sweepHTF.type} (${(sweepHTF.confidence * 100).toFixed(1)}%)`);
       }
 
+      // LTF Sweep评分（必须）
       if (sweepLTF.detected) {
         score += sweepLTF.confidence * 10;
         reasons.push(`LTF Sweep: ${sweepLTF.type} (${(sweepLTF.confidence * 100).toFixed(1)}%)`);
+      }
+
+      // 成交量放大评分（可选加强过滤）
+      if (volumeExpansion.detected) {
+        score += 5;
+        reasons.push(`Volume expansion: ${volumeExpansion.ratio.toFixed(2)}x`);
       }
 
       // 判断信号强度
@@ -579,7 +687,7 @@ class ICTStrategy {
         signal = 'WATCH';
       }
 
-      // 5. 计算交易参数（只在信号为BUY或SELL时计算）
+      // 8. 计算交易参数（只在信号为BUY或SELL时计算）
       let tradeParams = { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
       if (signal === 'BUY' || signal === 'SELL') {
         try {
@@ -587,19 +695,30 @@ class ICTStrategy {
           const cacheKey = `ict_trade_${symbol}`;
           const existingTrade = this.cache ? await this.cache.get(cacheKey) : null;
 
-          if (!existingTrade) {
-            // 没有现有交易，计算新的交易参数
-            tradeParams = await this.calculateTradeParameters(symbol, dailyTrend.trend, {
-              engulfing,
-              sweepHTF,
-              sweepLTF
-            });
+          if (!existingTrade && hasValidOrderBlock) {
+            // 使用最新的有效订单块
+            const latestOrderBlock = validOrderBlocks[validOrderBlocks.length - 1];
+            
+            // 计算新的交易参数（使用文档要求的方法）
+            tradeParams = await this.calculateTradeParameters(
+              symbol, 
+              dailyTrend.trend, 
+              {
+                engulfing,
+                sweepHTF,
+                sweepLTF,
+                volumeExpansion
+              },
+              latestOrderBlock,
+              klines4H,
+              atr4H[atr4H.length - 1]
+            );
 
             // 缓存交易参数（5分钟过期）
             if (this.cache && tradeParams.entry > 0) {
               await this.cache.set(cacheKey, JSON.stringify(tradeParams), 300);
             }
-          } else {
+          } else if (existingTrade) {
             // 使用现有交易参数
             tradeParams = JSON.parse(existingTrade);
           }
@@ -618,11 +737,12 @@ class ICTStrategy {
         confidence: dailyTrend.confidence,
         reasons: reasons.join('; '),
         tradeParams,
-        orderBlocks: orderBlocks.slice(-3), // 最近3个订单块
+        orderBlocks: validOrderBlocks.slice(-3), // 最近3个有效订单块
         signals: {
           engulfing,
           sweepHTF,
-          sweepLTF
+          sweepLTF,
+          volumeExpansion
         },
         // 添加timeframes结构以匹配API期望格式
         timeframes: {
@@ -632,7 +752,7 @@ class ICTStrategy {
             lookback: dailyTrend.lookback || 20
           },
           '4H': {
-            orderBlocks: orderBlocks.slice(-3),
+            orderBlocks: validOrderBlocks.slice(-3),
             atr: atr4H[atr4H.length - 1] || 0,
             sweepDetected: sweepHTF.detected || false,
             sweepRate: sweepHTF.speed || 0
@@ -642,7 +762,9 @@ class ICTStrategy {
             engulfing: engulfing.detected || false,
             atr: atr15m[atr15m.length - 1] || 0,
             sweepRate: sweepLTF.speed || 0,
-            volume: klines15m[klines15m.length - 1] ? parseFloat(klines15m[klines15m.length - 1][5]) : 0
+            volume: klines15m[klines15m.length - 1] ? parseFloat(klines15m[klines15m.length - 1][5]) : 0,
+            volumeExpansion: volumeExpansion.detected || false,
+            volumeRatio: volumeExpansion.ratio || 0
           }
         },
         // 添加交易参数
