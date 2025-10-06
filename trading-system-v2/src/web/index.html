@@ -34,10 +34,6 @@
           <i class="fas fa-chart-bar"></i>
           胜率统计
         </a>
-        <a href="/new-coin-monitor" class="nav-link" data-tab="new-coin-monitor">
-          <i class="fas fa-coins"></i>
-          新币监控
-        </a>
         <a href="/tools" class="nav-link" data-tab="tools">
           <i class="fas fa-tools"></i>
           工具
@@ -189,84 +185,6 @@
                   </div>
                 </div>
 
-                <!-- 宏观数据趋势图卡片 -->
-                <div class="macro-card macro-trend-card" id="macroTrendCard">
-                  <div class="macro-card-header">
-                    <div class="macro-card-icon">
-                      <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="macro-card-title">
-                      <h4>7天趋势分析</h4>
-                      <span class="macro-card-subtitle">4小时时间单位</span>
-                    </div>
-                  </div>
-                  <div class="macro-card-content">
-                    <div class="trend-charts-container">
-                      <!-- 市场情绪趋势图 -->
-                      <div class="trend-chart-section">
-                        <div class="trend-chart-header">
-                          <h5>恐惧贪婪指数趋势</h5>
-                          <div class="trend-chart-controls">
-                            <button class="btn btn-sm btn-secondary" onclick="toggleChart('sentimentChart')">
-                              <i class="fas fa-eye"></i>
-                            </button>
-                          </div>
-                        </div>
-                        <div class="trend-chart-wrapper">
-                          <canvas id="sentimentChart" width="400" height="200"></canvas>
-                        </div>
-                      </div>
-
-                      <!-- 多空比趋势图 -->
-                      <div class="trend-chart-section">
-                        <div class="trend-chart-header">
-                          <h5>多空比趋势</h5>
-                          <div class="trend-chart-controls">
-                            <button class="btn btn-sm btn-secondary" onclick="toggleChart('longShortChart')">
-                              <i class="fas fa-eye"></i>
-                            </button>
-                          </div>
-                        </div>
-                        <div class="trend-chart-wrapper">
-                          <canvas id="longShortChart" width="400" height="200"></canvas>
-                        </div>
-                      </div>
-
-                      <!-- 资金费率趋势图 -->
-                      <div class="trend-chart-section">
-                        <div class="trend-chart-header">
-                          <h5>资金费率趋势</h5>
-                          <div class="trend-chart-controls">
-                            <button class="btn btn-sm btn-secondary" onclick="toggleChart('fundingRateChart')">
-                              <i class="fas fa-eye"></i>
-                            </button>
-                          </div>
-                        </div>
-                        <div class="trend-chart-wrapper">
-                          <canvas id="fundingRateChart" width="400" height="200"></canvas>
-                        </div>
-                      </div>
-
-                      <!-- 未平仓合约趋势图 -->
-                      <div class="trend-chart-section">
-                        <div class="trend-chart-header">
-                          <h5>未平仓合约趋势</h5>
-                          <div class="trend-chart-controls">
-                            <button class="btn btn-sm btn-secondary" onclick="toggleChart('openInterestChart')">
-                              <i class="fas fa-eye"></i>
-                            </button>
-                          </div>
-                        </div>
-                        <div class="trend-chart-wrapper">
-                          <canvas id="openInterestChart" width="400" height="200"></canvas>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="macro-status" id="trendStatus">
-                      <span class="status-indicator status-normal">正常</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -701,217 +619,6 @@
         </div>
       </div>
 
-      <!-- 新币监控页面 -->
-      <div id="new-coin-monitor" class="tab-content">
-        <div class="page-header">
-          <h2>新币监控中心</h2>
-          <div class="status-indicators">
-            <div class="status-item">
-              <span class="status-label">监控状态</span>
-              <span class="status-value" id="monitorStatus">--</span>
-            </div>
-            <div class="status-item">
-              <span class="status-label">监控币种</span>
-              <span class="status-value" id="monitoredCoinsCount">--</span>
-            </div>
-            <div class="status-item">
-              <span class="status-label">最后评估</span>
-              <span class="status-value" id="lastEvaluation">--</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 控制面板 -->
-        <div class="control-panel">
-          <div class="card">
-            <div class="card-header">
-              <h3>监控控制</h3>
-              <div class="card-actions">
-                <button class="btn btn-primary" id="addNewCoin">
-                  <i class="fas fa-plus"></i>
-                  添加新币
-                </button>
-                <button class="btn btn-secondary" id="manualEvaluate">
-                  <i class="fas fa-sync-alt"></i>
-                  手动评估
-                </button>
-                <button class="btn btn-secondary" id="refreshMonitorData">
-                  <i class="fas fa-refresh"></i>
-                  刷新数据
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 新币概览表格 -->
-        <div class="monitor-overview">
-          <div class="card">
-            <div class="card-header">
-              <h3>新币监控概览</h3>
-              <div class="card-actions">
-                <div class="filter-controls">
-                  <select id="scoreFilter" class="form-select">
-                    <option value="">全部评分</option>
-                    <option value="high">高评分 (≥8)</option>
-                    <option value="medium">中评分 (6-8)</option>
-                    <option value="low">低评分 (<6)< /option>
-                  </select>
-                  <select id="statusFilter" class="form-select">
-                    <option value="">全部状态</option>
-                    <option value="ACTIVE">活跃</option>
-                    <option value="MONITORING">监控中</option>
-                    <option value="INACTIVE">非活跃</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="card-content">
-              <div class="table-container">
-                <table class="data-table" id="coinOverviewTable">
-                  <thead>
-                    <tr>
-                      <th>币种</th>
-                      <th>名称</th>
-                      <th>技术评分</th>
-                      <th>代币经济</th>
-                      <th>流动性</th>
-                      <th>市场情绪</th>
-                      <th>综合评分</th>
-                      <th>策略建议</th>
-                      <th>状态</th>
-                      <th>操作</th>
-                    </tr>
-                  </thead>
-                  <tbody id="coinOverviewBody">
-                    <tr>
-                      <td colspan="10" class="text-center">加载中...</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 告警统计 -->
-        <div class="alert-statistics">
-          <div class="card">
-            <div class="card-header">
-              <h3>告警统计</h3>
-            </div>
-            <div class="card-content">
-              <div class="alert-cards-grid" id="alertStatisticsGrid">
-                <div class="alert-card">
-                  <div class="alert-card-icon critical">
-                    <i class="fas fa-exclamation-triangle"></i>
-                  </div>
-                  <div class="alert-card-content">
-                    <div class="alert-card-title">严重告警</div>
-                    <div class="alert-card-value" id="criticalAlerts">--</div>
-                  </div>
-                </div>
-                <div class="alert-card">
-                  <div class="alert-card-icon warning">
-                    <i class="fas fa-exclamation-circle"></i>
-                  </div>
-                  <div class="alert-card-content">
-                    <div class="alert-card-title">警告</div>
-                    <div class="alert-card-value" id="warningAlerts">--</div>
-                  </div>
-                </div>
-                <div class="alert-card">
-                  <div class="alert-card-icon info">
-                    <i class="fas fa-info-circle"></i>
-                  </div>
-                  <div class="alert-card-content">
-                    <div class="alert-card-title">信息</div>
-                    <div class="alert-card-value" id="infoAlerts">--</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 新币详情模态框 -->
-        <div id="coinDetailModal" class="modal">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3 id="coinDetailTitle">新币详情</h3>
-              <span class="close" id="closeCoinDetail">&times;</span>
-            </div>
-            <div class="modal-body" id="coinDetailBody">
-              <!-- 详情内容将动态加载 -->
-            </div>
-          </div>
-        </div>
-
-        <!-- 添加新币模态框 -->
-        <div id="addCoinModal" class="modal">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3>添加新币到监控</h3>
-              <span class="close" id="closeAddCoin">&times;</span>
-            </div>
-            <div class="modal-body">
-              <form id="addCoinForm">
-                <div class="form-group">
-                  <label for="coinSymbol">交易对符号 *</label>
-                  <input type="text" id="coinSymbol" name="symbol" placeholder="如: EXAMPLEUSDT" required>
-                </div>
-                <div class="form-group">
-                  <label for="coinName">代币名称 *</label>
-                  <input type="text" id="coinName" name="name" placeholder="如: Example Coin" required>
-                </div>
-                <div class="form-group">
-                  <label for="githubRepo">GitHub仓库</label>
-                  <input type="text" id="githubRepo" name="github_repo" placeholder="如: username/repo">
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="teamScore">团队经验分 (0-10)</label>
-                    <input type="number" id="teamScore" name="team_score" min="0" max="10" step="0.1" value="0">
-                  </div>
-                  <div class="form-group">
-                    <label for="vestingLockScore">锁仓分 (0-10)</label>
-                    <input type="number" id="vestingLockScore" name="vesting_lock_score" min="0" max="10" step="0.1"
-                      value="0">
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="supplyTotal">代币总量</label>
-                    <input type="number" id="supplyTotal" name="supply_total" min="0" value="0">
-                  </div>
-                  <div class="form-group">
-                    <label for="supplyCirculation">流通量</label>
-                    <input type="number" id="supplyCirculation" name="supply_circulation" min="0" value="0">
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="twitterFollowers">Twitter粉丝数</label>
-                    <input type="number" id="twitterFollowers" name="twitter_followers" min="0" value="0">
-                  </div>
-                  <div class="form-group">
-                    <label for="telegramMembers">Telegram成员数</label>
-                    <input type="number" id="telegramMembers" name="telegram_members" min="0" value="0">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label for="listingDate">上线日期</label>
-                  <input type="date" id="listingDate" name="listing_date">
-                </div>
-                <div class="form-actions">
-                  <button type="button" class="btn btn-secondary" id="cancelAddCoin">取消</button>
-                  <button type="submit" class="btn btn-primary">添加监控</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- 工具页面 -->
       <div id="tools" class="tab-content">
@@ -970,6 +677,54 @@
                 <button class="btn btn-primary" id="calculateRollingBtn">计算动态滚仓</button>
               </div>
               <div class="calculator-result" id="rollingResult">
+                <!-- 计算结果将显示在这里 -->
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>保证金和杠杆计算器</h3>
+            </div>
+            <div class="card-content">
+              <div class="calculator-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>单笔最大损失金额 (USDT)</label>
+                    <input type="number" id="maxLossAmount" placeholder="100" class="form-input" value="100">
+                  </div>
+                  <div class="form-group">
+                    <label>开仓价格 (USDT)</label>
+                    <input type="number" id="entryPrice" placeholder="50000" step="0.01" class="form-input"
+                      value="50000">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>止损价格 (USDT)</label>
+                    <input type="number" id="stopLossPrice" placeholder="48000" step="0.01" class="form-input"
+                      value="48000">
+                  </div>
+                  <div class="form-group">
+                    <label>止盈价格 (USDT)</label>
+                    <input type="number" id="takeProfitPrice" placeholder="52000" step="0.01" class="form-input"
+                      value="52000">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>交易方向</label>
+                    <select id="tradeDirection" class="form-input">
+                      <option value="long">多头 (Long)</option>
+                      <option value="short">空头 (Short)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <button class="btn btn-primary" id="calculateMarginBtn">计算保证金和杠杆</button>
+                  </div>
+                </div>
+              </div>
+              <div class="calculator-result" id="marginResult">
                 <!-- 计算结果将显示在这里 -->
               </div>
             </div>
@@ -1065,49 +820,6 @@
                   </div>
                 </div>
 
-                <!-- 新币监控Telegram设置 -->
-                <div class="telegram-section">
-                  <h4>新币监控告警</h4>
-                  <div class="form-group">
-                    <label>Bot Token</label>
-                    <input type="text" id="newCoinTelegramBotToken" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-                      class="form-input">
-                  </div>
-                  <div class="form-group">
-                    <label>Chat ID</label>
-                    <input type="text" id="newCoinTelegramChatId" placeholder="123456789" class="form-input">
-                  </div>
-                  <div class="form-group">
-                    <label>告警阈值设置</label>
-                    <div class="threshold-settings">
-                      <div class="threshold-item">
-                        <label>高评分阈值 (≥8分)</label>
-                        <input type="checkbox" id="highScoreAlert" checked>
-                        <span class="checkbox-label">启用高评分新币告警</span>
-                      </div>
-                      <div class="threshold-item">
-                        <label>低评分阈值 (<6分)< /label>
-                            <input type="checkbox" id="lowScoreAlert" checked>
-                            <span class="checkbox-label">启用低评分新币告警</span>
-                      </div>
-                      <div class="threshold-item">
-                        <label>价格变动阈值 (%)</label>
-                        <input type="number" id="priceChangeThreshold" placeholder="10" class="form-input">
-                      </div>
-                      <div class="threshold-item">
-                        <label>流动性告警阈值</label>
-                        <input type="number" id="liquidityThreshold" placeholder="5" class="form-input">
-                      </div>
-                    </div>
-                  </div>
-                  <div class="form-group">
-                    <button class="btn btn-primary" id="saveNewCoinTelegramBtn">保存设置</button>
-                    <button class="btn btn-secondary" id="testNewCoinTelegramBtn">测试连接</button>
-                  </div>
-                  <div class="telegram-status" id="newCoinTelegramStatus">
-                    <!-- 状态信息将显示在这里 -->
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1198,39 +910,82 @@
             </div>
             <div class="doc-content">
               <h4>策略概述</h4>
-              <p>V3策略是一个基于多时间框架分析的量化交易策略，通过4H趋势判断、1H多因子评分和15M入场确认三个层次进行交易决策。</p>
+              <p>V3策略是一个基于多时间框架分析的量化交易策略，通过4H趋势判断、1H多因子评分和15M入场确认三个层次进行交易决策。策略采用并行计算和评分机制，确保交易信号的准确性和及时性。</p>
 
-              <h4>时间框架分析</h4>
+              <h4>核心实现逻辑</h4>
+              <div class="implementation-section">
+                <h5>数据获取与验证</h5>
+                <ul>
+                  <li><strong>并行数据获取</strong>：使用Promise.all同时获取4H、1H、15M K线数据</li>
+                  <li><strong>数据完整性检查</strong>：验证所有必需数据的有效性</li>
+                  <li><strong>错误处理</strong>：数据缺失时抛出详细错误信息</li>
+                </ul>
+
+                <h5>多时间框架并行分析</h5>
+                <ul>
+                  <li><strong>analyze4HTrend</strong>：4H趋势分析，返回趋势方向和强度</li>
+                  <li><strong>analyze1HFactors</strong>：1H多因子分析，包含ticker、资金费率、OI历史</li>
+                  <li><strong>analyze15mExecution</strong>：15M入场确认，最终执行信号</li>
+                </ul>
+              </div>
+
+              <h4>时间框架分析详解</h4>
               <div class="timeframe-section">
                 <div class="timeframe-item">
                   <h5>高时间框架 (4H) - 趋势判断</h5>
                   <ul>
-                    <li><strong>MA20/MA50交叉</strong>：判断趋势方向，金叉为上升，死叉为下跌</li>
+                    <li><strong>EMA20/EMA50交叉</strong>：判断趋势方向，金叉为上升，死叉为下跌</li>
                     <li><strong>ADX指标</strong>：衡量趋势强度，ADX > 25为强趋势</li>
                     <li><strong>BBW指标</strong>：布林带宽度，反映市场波动性</li>
-                    <li><strong>评分机制</strong>：0-10分，综合判断趋势强度和方向</li>
+                    <li><strong>趋势评分</strong>：0-10分，综合判断趋势强度和方向</li>
+                    <li><strong>实现函数</strong>：<code>analyze4HTrend(klines4H, {})</code></li>
                   </ul>
                 </div>
 
                 <div class="timeframe-item">
                   <h5>中时间框架 (1H) - 多因子评分</h5>
                   <ul>
-                    <li><strong>VWAP方向</strong>：成交量加权平均价格方向</li>
+                    <li><strong>VWAP方向</strong>：成交量加权平均价格方向确认</li>
                     <li><strong>OI变化</strong>：持仓量变化，反映资金流向</li>
-                    <li><strong>资金费率</strong>：市场情绪指标</li>
-                    <li><strong>Delta值</strong>：买卖压力差值</li>
+                    <li><strong>资金费率</strong>：市场情绪指标，异常值时调整评分</li>
+                    <li><strong>Delta值</strong>：买卖压力差值，>0.1多头优势，<-0.1空头优势< /li>
                     <li><strong>评分机制</strong>：0-6分，下边界3分+VWAP方向一致才有效</li>
+                    <li>
+                      <strong>实现函数</strong>：<code>analyze1HFactors(klines1H, {ticker24hr, fundingRate, oiHistory})</code>
+                    </li>
                   </ul>
                 </div>
 
                 <div class="timeframe-item">
                   <h5>低时间框架 (15M) - 入场确认</h5>
                   <ul>
-                    <li><strong>EMA20/EMA50</strong>：短期均线确认</li>
+                    <li><strong>EMA20/EMA50</strong>：短期均线确认入场时机</li>
                     <li><strong>ATR指标</strong>：平均真实波幅，用于止损计算</li>
-                    <li><strong>评分机制</strong>：0-2分，确认入场时机</li>
+                    <li><strong>入场评分</strong>：0-2分，确认入场时机</li>
+                    <li><strong>实现函数</strong>：<code>analyze15mExecution(klines15M, {})</code></li>
                   </ul>
                 </div>
+              </div>
+
+              <h4>信号生成与综合判断</h4>
+              <div class="signal-section">
+                <h5>combineSignals函数</h5>
+                <p>综合三个时间框架的分析结果：</p>
+                <ul>
+                  <li><strong>趋势一致性检查</strong>：确保4H趋势与1H因子方向一致</li>
+                  <li><strong>评分阈值判断</strong>：各时间框架评分需达到最低要求</li>
+                  <li><strong>信号优先级</strong>：ERROR > HOLD > BUY/SELL</li>
+                </ul>
+
+                <h5>入场信号判断</h5>
+                <p>determineEntrySignal函数基于多个因子：</p>
+                <ul>
+                  <li><strong>BUY条件</strong>：当前价格 > EMA20 且 ADX > 20 且 BBW > 0.02 且 VWAP > 当前价格 且 资金费率 < 0.01% 且 OI变化> 0
+                      且 Delta > 0.1</li>
+                  <li><strong>SELL条件</strong>：当前价格 < EMA20 且 ADX> 20 且 BBW > 0.02 且 VWAP < 当前价格 且 资金费率> -0.01% 且 OI变化 <
+                          0 且 Delta < -0.1</li>
+                  <li><strong>HOLD条件</strong>：其他所有情况</li>
+                </ul>
               </div>
 
               <h4>交易参数计算</h4>
@@ -1240,6 +995,7 @@
                 <ul>
                   <li>多头：<code>stopLoss = entryPrice - (ATR × 2)</code></li>
                   <li>空头：<code>stopLoss = entryPrice + (ATR × 2)</code></li>
+                  <li><strong>ATR计算</strong>：基于15M K线数据的平均真实波幅</li>
                 </ul>
 
                 <h5>杠杆和保证金计算</h5>
@@ -1248,17 +1004,20 @@
                   <li><strong>止损距离X%</strong>：<code>|entryPrice - stopLoss| / entryPrice</code></li>
                   <li><strong>最大杠杆数Y</strong>：<code>Math.floor(1 / (X% + 0.5%))</code></li>
                   <li><strong>最小保证金Z</strong>：<code>Math.ceil(M / (Y × X%))</code></li>
+                  <li><strong>杠杆限制</strong>：最大20倍，最小1倍</li>
                 </ul>
                 <p>其中M为最大损失金额（默认100 USDT）</p>
               </div>
 
-              <h4>交易信号生成</h4>
-              <p>当三个时间框架都判断有效时，生成交易信号：</p>
-              <ul>
-                <li><strong>BUY信号</strong>：4H上升趋势 + 1H多因子有效 + 15M入场确认</li>
-                <li><strong>SELL信号</strong>：4H下跌趋势 + 1H多因子有效 + 15M入场确认</li>
-                <li><strong>HOLD信号</strong>：任一时间框架判断无效</li>
-              </ul>
+              <h4>错误处理与日志</h4>
+              <div class="error-handling-section">
+                <ul>
+                  <li><strong>数据验证</strong>：检查K线数据的完整性和有效性</li>
+                  <li><strong>异常捕获</strong>：try-catch包装所有异步操作</li>
+                  <li><strong>详细日志</strong>：记录策略执行过程和决策依据</li>
+                  <li><strong>错误返回</strong>：返回ERROR信号而非抛出异常</li>
+                </ul>
+              </div>
             </div>
           </div>
 
@@ -1270,75 +1029,145 @@
             </div>
             <div class="doc-content">
               <h4>策略概述</h4>
-              <p>ICT（Inner Circle Trader）策略基于订单块理论，通过识别机构订单区域和价格扫荡行为进行交易决策。</p>
+              <p>ICT（Inner Circle Trader）策略基于订单块理论，通过识别机构订单区域和价格扫荡行为进行交易决策。策略采用多因子评分机制，结合趋势判断、订单块有效性、吞没形态和扫荡行为进行综合评分。
+              </p>
 
-              <h4>时间框架分析</h4>
+              <h4>核心实现逻辑</h4>
+              <div class="implementation-section">
+                <h5>评分系统架构</h5>
+                <ul>
+                  <li><strong>总分计算</strong>：基于多个因子的加权评分，总分≥45分触发交易信号</li>
+                  <li><strong>WATCH信号</strong>：总分25-44分时产生观望信号</li>
+                  <li><strong>HOLD信号</strong>：总分<25分时保持观望< /li>
+                  <li><strong>评分因子</strong>：日线趋势(30分) + 订单块(20分) + 吞没形态(25分) + HTF扫荡(15分) + LTF扫荡(10分) + 成交量放大(5分)</li>
+                </ul>
+
+                <h5>多时间框架分析</h5>
+                <ul>
+                  <li><strong>analyzeDailyTrend</strong>：1D趋势分析，计算20日价格变化率</li>
+                  <li><strong>analyzeOrderBlocks</strong>：4H订单块检测和有效性判断</li>
+                  <li><strong>analyzeEngulfing</strong>：15M吞没形态检测</li>
+                  <li><strong>analyzeSweeps</strong>：HTF和LTF扫荡行为分析</li>
+                  <li><strong>analyzeVolumeExpansion</strong>：成交量放大分析</li>
+                </ul>
+              </div>
+
+              <h4>时间框架分析详解</h4>
               <div class="timeframe-section">
                 <div class="timeframe-item">
                   <h5>高时间框架 (1D) - 趋势判断</h5>
                   <ul>
                     <li><strong>20日价格变化</strong>：计算20个交易日的价格变化率</li>
-                    <li><strong>趋势判断</strong>：基于价格变化幅度确定趋势方向</li>
-                    <li><strong>震荡市处理</strong>：震荡市不计算交易参数</li>
+                    <li><strong>趋势评分</strong>：上升趋势+30分，下跌趋势+30分，震荡市+0分</li>
+                    <li><strong>趋势置信度</strong>：基于价格变化幅度的置信度计算</li>
+                    <li><strong>实现函数</strong>：<code>analyzeDailyTrend(klines1D)</code></li>
                   </ul>
                 </div>
 
                 <div class="timeframe-item">
                   <h5>中时间框架 (4H) - 订单块检测</h5>
                   <ul>
-                    <li><strong>订单块识别</strong>：检测机构订单区域</li>
-                    <li><strong>ATR计算</strong>：用于订单块有效性判断</li>
+                    <li><strong>订单块识别</strong>：检测机构订单区域，年龄过滤≤2天</li>
+                    <li><strong>订单块评分</strong>：有效订单块+20分</li>
+                    <li><strong>ATR计算</strong>：用于订单块有效性判断和止损计算</li>
                     <li><strong>扫荡检测</strong>：检测价格是否扫荡订单块</li>
-                    <li><strong>扫荡速率</strong>：计算扫荡速度，反映市场动能</li>
+                    <li><strong>扫荡评分</strong>：HTF扫荡+15分，LTF扫荡+10分</li>
+                    <li><strong>实现函数</strong>：<code>analyzeOrderBlocks(klines4H)</code></li>
                   </ul>
                 </div>
 
                 <div class="timeframe-item">
                   <h5>低时间框架 (15M) - 入场确认</h5>
                   <ul>
-                    <li><strong>吞没形态</strong>：检测K线吞没模式</li>
+                    <li><strong>吞没形态</strong>：检测K线吞没模式，强度评分0-25分</li>
                     <li><strong>ATR指标</strong>：用于止损计算</li>
-                    <li><strong>成交量分析</strong>：确认入场时机</li>
-                    <li><strong>扫荡速率</strong>：低时间框架扫荡确认</li>
+                    <li><strong>成交量分析</strong>：成交量放大检测，额外+5分</li>
+                    <li><strong>扫荡确认</strong>：LTF扫荡行为确认</li>
+                    <li><strong>实现函数</strong>：<code>analyzeEngulfing(klines15M)</code></li>
                   </ul>
                 </div>
               </div>
 
-              <h4>订单块理论</h4>
+              <h4>订单块理论实现</h4>
               <div class="theory-section">
-                <h5>订单块识别</h5>
-                <p>订单块是机构大单集中的价格区域，具有以下特征：</p>
+                <h5>订单块识别算法</h5>
+                <p>订单块是机构大单集中的价格区域，实现特征：</p>
                 <ul>
-                  <li>价格在该区域停留时间较长</li>
-                  <li>成交量相对集中</li>
-                  <li>后续价格突破该区域时具有较强动能</li>
+                  <li><strong>价格停留检测</strong>：价格在特定区域停留时间≥3根K线</li>
+                  <li><strong>成交量集中</strong>：该区域成交量相对集中</li>
+                  <li><strong>年龄过滤</strong>：只考虑≤2天的订单块，确保时效性</li>
+                  <li><strong>有效性验证</strong>：订单块被扫荡后的回归行为验证</li>
                 </ul>
 
-                <h5>扫荡检测</h5>
+                <h5>扫荡检测算法</h5>
                 <p>扫荡是指价格快速穿越订单块区域的行为：</p>
                 <ul>
-                  <li>检测价格是否突破订单块边界</li>
-                  <li>计算扫荡速率，反映市场动能强度</li>
-                  <li>扫荡后价格回归为有效信号</li>
+                  <li><strong>边界突破检测</strong>：价格突破订单块上下边界</li>
+                  <li><strong>扫荡速率计算</strong>：计算扫荡速度，反映市场动能强度</li>
+                  <li><strong>回归确认</strong>：扫荡后价格回归为有效信号</li>
+                  <li><strong>置信度评分</strong>：基于扫荡速率和回归行为的置信度</li>
+                </ul>
+
+                <h5>吞没形态检测</h5>
+                <p>吞没形态是重要的反转信号：</p>
+                <ul>
+                  <li><strong>看涨吞没</strong>：阳线完全吞没前一根阴线</li>
+                  <li><strong>看跌吞没</strong>：阴线完全吞没前一根阳线</li>
+                  <li><strong>强度评分</strong>：基于吞没比例的强度计算(0-1)</li>
+                  <li><strong>权重计算</strong>：强度 × 25分 = 最终吞没评分</li>
+                </ul>
+              </div>
+
+              <h4>评分机制详解</h4>
+              <div class="scoring-section">
+                <h5>评分权重分配</h5>
+                <ul>
+                  <li><strong>日线趋势</strong>：30分 (必须条件)</li>
+                  <li><strong>有效订单块</strong>：20分 (必须条件)</li>
+                  <li><strong>吞没形态</strong>：强度×25分 (必须条件)</li>
+                  <li><strong>HTF扫荡</strong>：置信度×15分 (必须条件)</li>
+                  <li><strong>LTF扫荡</strong>：置信度×10分 (必须条件)</li>
+                  <li><strong>成交量放大</strong>：5分 (可选加强)</li>
+                </ul>
+
+                <h5>信号生成逻辑</h5>
+                <ul>
+                  <li><strong>BUY信号</strong>：总分≥45分 且 日线趋势为UP</li>
+                  <li><strong>SELL信号</strong>：总分≥45分 且 日线趋势为DOWN</li>
+                  <li><strong>WATCH信号</strong>：总分25-44分，接近触发条件</li>
+                  <li><strong>HOLD信号</strong>：总分<25分，条件不满足< /li>
                 </ul>
               </div>
 
               <h4>交易参数计算</h4>
               <div class="calculation-section">
                 <h5>止损距离计算</h5>
-                <p>同样使用2倍ATR作为止损距离，与V3策略保持一致。</p>
+                <p>与V3策略保持一致，使用2倍ATR：</p>
+                <ul>
+                  <li>多头：<code>stopLoss = entryPrice - (ATR × 2)</code></li>
+                  <li>空头：<code>stopLoss = entryPrice + (ATR × 2)</code></li>
+                  <li><strong>ATR计算</strong>：基于15M K线数据的平均真实波幅</li>
+                </ul>
 
                 <h5>杠杆和保证金计算</h5>
-                <p>使用与V3策略相同的计算公式，确保风险控制一致性。</p>
+                <p>使用与V3策略相同的计算公式：</p>
+                <ul>
+                  <li><strong>止损距离X%</strong>：<code>|entryPrice - stopLoss| / entryPrice</code></li>
+                  <li><strong>最大杠杆数Y</strong>：<code>Math.floor(1 / (X% + 0.5%))</code></li>
+                  <li><strong>最小保证金Z</strong>：<code>Math.ceil(M / (Y × X%))</code></li>
+                  <li><strong>风险控制</strong>：确保风险控制策略一致性</li>
+                </ul>
               </div>
 
-              <h4>交易信号生成</h4>
-              <p>基于订单块理论和扫荡行为：</p>
-              <ul>
-                <li><strong>BUY信号</strong>：1D上升趋势 + 4H订单块有效 + 15M入场确认</li>
-                <li><strong>SELL信号</strong>：1D下跌趋势 + 4H订单块有效 + 15M入场确认</li>
-                <li><strong>HOLD信号</strong>：震荡市或任一条件不满足</li>
-              </ul>
+              <h4>错误处理与日志</h4>
+              <div class="error-handling-section">
+                <ul>
+                  <li><strong>数据验证</strong>：检查各时间框架K线数据的完整性</li>
+                  <li><strong>评分记录</strong>：详细记录各因子的评分和决策依据</li>
+                  <li><strong>异常处理</strong>：数据缺失或计算错误时的降级处理</li>
+                  <li><strong>调试信息</strong>：输出详细的评分过程和信号生成逻辑</li>
+                </ul>
+              </div>
             </div>
           </div>
 
@@ -1350,9 +1179,29 @@
             </div>
             <div class="doc-content">
               <h4 id="macro-overview">监控概述</h4>
-              <p>宏观数据监控系统实时监控链上资金流、市场情绪、合约市场风险和宏观经济指标，为交易决策提供宏观层面的数据支持。</p>
+              <p>宏观数据监控系统是一个独立的监控模块，实时监控链上资金流、市场情绪、合约市场风险和宏观经济指标，为交易决策提供宏观层面的数据支持。系统严格按照性能优化要求设计，适配VPS 2C1G资源限制。</p>
 
-              <h4 id="fund-flow">资金流监控</h4>
+              <h4>系统架构实现</h4>
+              <div class="architecture-section">
+                <h5>模块结构</h5>
+                <ul>
+                  <li><strong>主控制器</strong>：MacroMonitorController - 统一调度和管理</li>
+                  <li><strong>资金流监控</strong>：FundFlowMonitor - BTC/ETH大额转账监控</li>
+                  <li><strong>市场情绪监控</strong>：MarketSentimentMonitor - 恐惧贪婪指数</li>
+                  <li><strong>合约市场监控</strong>：FuturesMarketMonitor - 多空比、资金费率、OI</li>
+                  <li><strong>宏观指标监控</strong>：MacroEconomicMonitor - 美联储利率、CPI</li>
+                  <li><strong>性能优化器</strong>：PerformanceOptimizer - VPS资源优化</li>
+                </ul>
+
+                <h5>数据库设计</h5>
+                <ul>
+                  <li><strong>macro_monitoring_data</strong>：存储监控数据</li>
+                  <li><strong>macro_monitoring_config</strong>：存储配置信息</li>
+                  <li><strong>macro_monitoring_alerts</strong>：存储告警记录</li>
+                </ul>
+              </div>
+
+              <h4 id="fund-flow">资金流监控实现</h4>
               <h5>监控指标</h5>
               <ul>
                 <li><strong>BTC大额交易</strong>：监控超过500万美元的BTC转账</li>
@@ -1361,34 +1210,38 @@
                 <li><strong>巨鲸活动</strong>：监控已知巨鲸地址的大额转账</li>
               </ul>
 
-              <h5>数据源</h5>
+              <h5>数据源与API</h5>
               <ul>
                 <li><strong>Blockchair API</strong>：BTC大额交易数据，支持API Key认证</li>
-                <li><strong>Ethplorer API</strong>：ETH大额转账数据，免费API</li>
+                <li><strong>Etherscan API</strong>：ETH大额转账数据，免费API</li>
                 <li><strong>地址标签库</strong>：内置交易所和巨鲸地址识别</li>
+                <li><strong>API限流控制</strong>：避免频繁调用，保护API配额</li>
               </ul>
 
-              <h5>计算逻辑</h5>
+              <h5>计算逻辑实现</h5>
               <ul>
                 <li><strong>阈值过滤</strong>：BTC > $5M，ETH > $10M</li>
                 <li><strong>地址识别</strong>：通过地址标签库识别交易所和巨鲸</li>
-                <li><strong>转账模式</strong>：检测交易所进出、巨鲸转账等特殊模式</li>
+                <li><strong>转账模式检测</strong>：检测交易所进出、巨鲸转账等特殊模式</li>
                 <li><strong>告警机制</strong>：超过阈值时触发告警通知</li>
+                <li><strong>数据缓存</strong>：Redis缓存减少重复API调用</li>
               </ul>
 
-              <h4 id="market-sentiment">市场情绪监控</h4>
+              <h4 id="market-sentiment">市场情绪监控实现</h4>
               <h5>监控指标</h5>
               <ul>
                 <li><strong>恐惧贪婪指数</strong>：0-100分，反映市场情绪状态</li>
                 <li><strong>情绪分类</strong>：极度恐惧、恐惧、中性、贪婪、极度贪婪</li>
               </ul>
 
-              <h5>数据源</h5>
+              <h5>数据源与API</h5>
               <ul>
                 <li><strong>Alternative.me API</strong>：恐惧贪婪指数数据，免费API</li>
+                <li><strong>API限流</strong>：每分钟最多1次调用，避免频繁请求</li>
+                <li><strong>错误处理</strong>：API失败时的降级处理和重试机制</li>
               </ul>
 
-              <h5>计算逻辑</h5>
+              <h5>计算逻辑实现</h5>
               <ul>
                 <li><strong>指数范围</strong>：0-100，数值越高越贪婪</li>
                 <li><strong>分类标准</strong>：
@@ -1403,7 +1256,7 @@
                 <li><strong>告警阈值</strong>：可配置低阈值（默认20）和高阈值（默认80）</li>
               </ul>
 
-              <h4 id="futures-market">合约市场监控</h4>
+              <h4 id="futures-market">合约市场监控实现</h4>
               <h5>监控指标</h5>
               <ul>
                 <li><strong>多空比</strong>：多头持仓与空头持仓的比例</li>
@@ -1411,30 +1264,32 @@
                 <li><strong>未平仓合约</strong>：当前未平仓的合约总价值</li>
               </ul>
 
-              <h5>数据源</h5>
+              <h5>数据源与API</h5>
               <ul>
                 <li><strong>Binance API</strong>：多空比、资金费率、未平仓合约数据</li>
                 <li><strong>OKX API</strong>：资金费率、未平仓合约数据</li>
                 <li><strong>Bybit API</strong>：多空比数据（v5版本）</li>
+                <li><strong>API聚合</strong>：多交易所数据聚合，提供更全面的市场视图</li>
               </ul>
 
-              <h5>计算逻辑</h5>
+              <h5>计算逻辑实现</h5>
               <ul>
-                <li><strong>多空比</strong>：多头持仓数量 / 空头持仓数量，显示为"1.27:1"格式</li>
+                <li><strong>多空比计算</strong>：多头持仓数量 / 空头持仓数量，显示为"1.27:1"格式</li>
                 <li><strong>资金费率</strong>：实时资金费率，转换为百分比显示</li>
-                <li><strong>未平仓合约</strong>：各交易所未平仓合约总和，以USD显示，包含4小时涨跌百分比</li>
-                <li><strong>涨跌百分比</strong>：与4小时前的数据对比，显示变化幅度</li>
+                <li><strong>未平仓合约</strong>：各交易所未平仓合约总和，以USD显示</li>
+                <li><strong>4小时变化</strong>：与4小时前的数据对比，显示变化幅度</li>
                 <li><strong>数据更新</strong>：每4小时更新一次宏观监控，每5分钟更新一次价格数据</li>
               </ul>
 
-              <h4 id="macro-indicators">宏观指标监控</h4>
+              <h4 id="macro-indicators">宏观指标监控实现</h4>
               <h5>监控指标</h5>
               <ul>
                 <li><strong>美联储利率</strong>：美国联邦基金利率</li>
                 <li><strong>CPI通胀率</strong>：消费者价格指数同比变化率</li>
+                <li><strong>利率变化趋势</strong>：利率变化的历史趋势分析</li>
               </ul>
 
-              <h5>数据源</h5>
+              <h5>数据源与API</h5>
               <ul>
                 <li><strong>FRED API</strong>：美联储经济数据，需要API Key认证</li>
                 <li><strong>数据系列</strong>：
@@ -1443,45 +1298,64 @@
                     <li>CPIAUCSL：消费者价格指数</li>
                   </ul>
                 </li>
+                <li><strong>API限流</strong>：FRED API每分钟最多120次调用</li>
+                <li><strong>数据频率</strong>：利率数据每日更新，CPI数据月度更新</li>
               </ul>
 
-              <h5>计算逻辑</h5>
+              <h5>计算逻辑实现</h5>
               <ul>
                 <li><strong>美联储利率</strong>：直接获取最新利率值</li>
                 <li><strong>CPI通胀率</strong>：计算同比变化率
                   <ul>
                     <li>公式：((当前CPI - 去年同期CPI) / 去年同期CPI) × 100%</li>
                     <li>数据频率：月度更新</li>
+                    <li>季节调整：自动处理季节性波动</li>
                   </ul>
                 </li>
                 <li><strong>告警阈值</strong>：可配置CPI通胀率高低阈值</li>
+                <li><strong>趋势分析</strong>：计算利率和通胀率的变化趋势</li>
               </ul>
 
-              <h4 id="monitoring-config">监控配置</h4>
-              <h5>更新频率</h5>
+              <h4 id="monitoring-config">监控配置与性能优化</h4>
+              <h5>更新频率控制</h5>
               <ul>
                 <li><strong>资金流监控</strong>：每4小时自动检查一次，支持手动刷新</li>
                 <li><strong>市场情绪</strong>：每4小时自动更新一次，支持手动刷新</li>
                 <li><strong>合约市场</strong>：每4小时自动更新一次，支持手动刷新</li>
                 <li><strong>宏观指标</strong>：每4小时自动检查一次（数据源更新频率较低），支持手动刷新</li>
                 <li><strong>手动刷新</strong>：点击刷新按钮会触发真实外部API调用，获取最新数据</li>
+                <li><strong>错峰更新</strong>：不同监控模块错峰执行，避免资源冲突</li>
               </ul>
 
-              <h5>告警设置</h5>
+              <h5>告警系统实现</h5>
               <ul>
                 <li><strong>Telegram通知</strong>：支持配置Bot Token和Chat ID</li>
                 <li><strong>告警阈值</strong>：可自定义各指标的告警阈值</li>
-                <li><strong>冷却机制</strong>：防止频繁告警</li>
+                <li><strong>冷却机制</strong>：防止频繁告警，同类型告警间隔至少1小时</li>
+                <li><strong>告警分级</strong>：严重、警告、信息三个级别</li>
+                <li><strong>告警历史</strong>：记录所有告警历史，支持查询和分析</li>
               </ul>
 
-              <h5>数据存储</h5>
+              <h5>数据存储与缓存</h5>
               <ul>
                 <li><strong>数据库表</strong>：macro_monitoring_data存储历史数据</li>
                 <li><strong>缓存机制</strong>：Redis缓存最新数据，提高响应速度</li>
-                <li><strong>数据保留</strong>：历史数据保留30天</li>
+                <li><strong>数据保留</strong>：历史数据保留30天，自动清理过期数据</li>
+                <li><strong>数据压缩</strong>：历史数据压缩存储，节省磁盘空间</li>
+                <li><strong>备份策略</strong>：定期备份重要监控数据</li>
+              </ul>
+
+              <h5>VPS性能优化</h5>
+              <ul>
+                <li><strong>内存管理</strong>：严格控制内存使用，避免内存泄漏</li>
+                <li><strong>CPU优化</strong>：异步处理，避免阻塞主线程</li>
+                <li><strong>网络优化</strong>：API调用超时控制，避免长时间等待</li>
+                <li><strong>错误恢复</strong>：API失败时的自动重试和降级处理</li>
+                <li><strong>监控告警</strong>：系统资源使用率监控和告警</li>
               </ul>
             </div>
           </div>
+
 
           <!-- 系统架构文档 -->
           <div class="strategy-doc" id="system-architecture">
@@ -1492,40 +1366,53 @@
             <div class="doc-content">
               <h4>技术栈</h4>
               <ul>
-                <li><strong>后端</strong>：Node.js + Express.js</li>
-                <li><strong>数据库</strong>：MySQL 8.0</li>
-                <li><strong>缓存</strong>：Redis</li>
-                <li><strong>前端</strong>：原生JavaScript + HTML5 + CSS3</li>
-                <li><strong>数据源</strong>：Binance API (REST + WebSocket)</li>
+                <li><strong>后端</strong>：Node.js + Express.js + PM2进程管理</li>
+                <li><strong>数据库</strong>：MySQL 8.0 + Redis 6.0缓存</li>
+                <li><strong>前端</strong>：原生JavaScript + HTML5 + CSS3 + Chart.js</li>
+                <li><strong>数据源</strong>：Binance Futures API (REST + WebSocket)</li>
+                <li><strong>外部API</strong>：Blockchair、Etherscan、Alternative.me、FRED</li>
+                <li><strong>部署</strong>：VPS 2C1G + Nginx反向代理</li>
               </ul>
 
-              <h4>核心组件</h4>
+              <h4>核心组件架构</h4>
               <ul>
-                <li><strong>策略引擎</strong>：V3和ICT策略实现</li>
-                <li><strong>交易管理器</strong>：交易创建、状态管理、去重逻辑</li>
-                <li><strong>数据更新器</strong>：实时数据获取和缓存</li>
-                <li><strong>监控系统</strong>：系统资源监控和告警</li>
-                <li><strong>通知系统</strong>：Telegram集成</li>
+                <li><strong>主应用</strong>：src/main.js - 应用入口和中间件配置</li>
+                <li><strong>策略引擎</strong>：src/strategies/ - V3多因子趋势策略和ICT订单块策略</li>
+                <li><strong>工作进程</strong>：src/workers/ - 策略执行和数据更新后台任务</li>
+                <li><strong>API路由</strong>：src/api/routes/ - RESTful API接口实现</li>
+                <li><strong>数据库层</strong>：src/database/ - MySQL操作和Redis缓存管理</li>
+                <li><strong>监控服务</strong>：src/services/ - 宏观监控、新币监控、系统监控</li>
+                <li><strong>工具模块</strong>：src/utils/ - 日志、配置、通用工具函数</li>
               </ul>
 
-              <h4>风险控制</h4>
+              <h4>策略实现细节</h4>
               <ul>
-                <li><strong>交易去重</strong>：同一交易对同时只能有一个活跃交易</li>
-                <li><strong>杠杆限制</strong>：最大杠杆20倍，基于止损距离动态计算</li>
-                <li><strong>保证金管理</strong>：基于最大损失金额计算最小保证金</li>
-                <li><strong>止损机制</strong>：基于ATR的动态止损</li>
+                <li><strong>V3策略</strong>：4H趋势判断 + 1H多因子分析 + 15M入场确认</li>
+                <li><strong>ICT策略</strong>：1D趋势 + 4H订单块 + 15M扫荡确认 + 吞没形态</li>
+                <li><strong>技术指标</strong>：EMA、ADX、BBW、ATR、VWAP、成交量分析</li>
+                <li><strong>评分机制</strong>：多因子加权评分，阈值触发交易信号</li>
+                <li><strong>风险参数</strong>：基于ATR动态止损，杠杆自适应计算</li>
               </ul>
 
-              <h4>数据流程</h4>
+              <h4>数据流程架构</h4>
               <ol>
-                <li>从Binance API获取实时市场数据</li>
-                <li>计算技术指标（MA、EMA、ADX、BBW、ATR等）</li>
-                <li>执行策略逻辑判断</li>
-                <li>生成交易信号和参数</li>
-                <li>检查交易条件和去重逻辑</li>
-                <li>创建交易记录并更新数据库</li>
-                <li>发送通知和更新前端显示</li>
+                <li><strong>数据采集</strong>：Binance API实时获取K线、ticker、资金费率等数据</li>
+                <li><strong>指标计算</strong>：并行计算多时间框架技术指标</li>
+                <li><strong>策略执行</strong>：多因子评分和信号生成</li>
+                <li><strong>风险控制</strong>：交易去重、杠杆限制、止损计算</li>
+                <li><strong>数据存储</strong>：MySQL持久化存储 + Redis缓存优化</li>
+                <li><strong>监控告警</strong>：宏观数据监控 + 系统资源监控 + Telegram通知</li>
+                <li><strong>前端展示</strong>：实时数据更新 + 图表可视化 + 交互式界面</li>
               </ol>
+
+              <h4>性能优化</h4>
+              <ul>
+                <li><strong>内存优化</strong>：针对VPS 2C1G限制的内存管理策略</li>
+                <li><strong>并发处理</strong>：Promise.all并行执行，减少等待时间</li>
+                <li><strong>缓存策略</strong>：Redis缓存热点数据，减少数据库查询</li>
+                <li><strong>数据压缩</strong>：gzip压缩响应，减少网络传输</li>
+                <li><strong>连接池</strong>：数据库连接池管理，提高并发性能</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -1543,4 +1430,5 @@
   <script src="app.js"></script>
 </body>
 
+</html>
 </html>
