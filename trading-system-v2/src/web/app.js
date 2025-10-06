@@ -3349,6 +3349,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // 初始化文档功能
   initBackToTop();
   initSmoothScroll();
+  
+  // 初始化保证金和杠杆计算器
+  initMarginCalculator();
 });
 
 // 获取方向文本
@@ -3451,4 +3454,98 @@ function initSmoothScroll() {
       }
     });
   });
+}
+
+// 保证金和杠杆计算器
+async function calculateMarginAndLeverage() {
+  try {
+    // 获取输入值
+    const maxLoss = parseFloat(document.getElementById('maxLossAmount').value);
+    const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+    const stopLossPrice = parseFloat(document.getElementById('stopLossPrice').value);
+    const takeProfitPrice = parseFloat(document.getElementById('takeProfitPrice').value);
+    const tradeDirection = document.getElementById('tradeDirection').value;
+    
+    // 验证输入
+    if (!maxLoss || !entryPrice || !stopLossPrice || !takeProfitPrice) {
+      showNotification('请填写所有必需字段', 'error');
+      return;
+    }
+    
+    if (entryPrice <= 0 || stopLossPrice <= 0 || takeProfitPrice <= 0) {
+      showNotification('价格必须大于0', 'error');
+      return;
+    }
+    
+    if (maxLoss <= 0) {
+      showNotification('最大损失金额必须大于0', 'error');
+      return;
+    }
+    
+    // 计算止损距离
+    let stopLossDistance;
+    if (tradeDirection === 'long') {
+      stopLossDistance = (entryPrice - stopLossPrice) / entryPrice;
+      if (stopLossDistance <= 0) {
+        showNotification('多头交易：止损价必须低于开仓价', 'error');
+        return;
+      }
+    } else {
+      stopLossDistance = (stopLossPrice - entryPrice) / entryPrice;
+      if (stopLossDistance <= 0) {
+        showNotification('空头交易：止损价必须高于开仓价', 'error');
+        return;
+      }
+    }
+    
+    // 计算盈亏比
+    let riskRewardRatio;
+    if (tradeDirection === 'long') {
+      const profitDistance = (takeProfitPrice - entryPrice) / entryPrice;
+      riskRewardRatio = profitDistance / stopLossDistance;
+      if (takeProfitPrice <= entryPrice) {
+        showNotification('多头交易：止盈价必须高于开仓价', 'error');
+        return;
+      }
+    } else {
+      const profitDistance = (entryPrice - takeProfitPrice) / entryPrice;
+      riskRewardRatio = profitDistance / stopLossDistance;
+      if (takeProfitPrice >= entryPrice) {
+        showNotification('空头交易：止盈价必须低于开仓价', 'error');
+        return;
+      }
+    }
+    
+    // 计算最大杠杆（基于最大损失限制）
+    const maxLeverage = Math.floor(maxLoss / (entryPrice * stopLossDistance));
+    
+    // 计算最小保证金
+    const minMargin = maxLoss / stopLossDistance;
+    
+    // 显示结果
+    document.getElementById('stopLossDistance').textContent = (stopLossDistance * 100).toFixed(2) + '%';
+    document.getElementById('maxLeverage').textContent = maxLeverage + 'x';
+    document.getElementById('minMargin').textContent = minMargin.toFixed(2) + ' USDT';
+    document.getElementById('riskRewardRatio').textContent = riskRewardRatio.toFixed(2) + ':1';
+    
+    // 显示结果区域
+    const resultSection = document.getElementById('marginResult');
+    if (resultSection) {
+      resultSection.style.display = 'block';
+    }
+    
+    showNotification('计算完成', 'success');
+    
+  } catch (error) {
+    console.error('计算保证金和杠杆时出错:', error);
+    showNotification('计算出错: ' + error.message, 'error');
+  }
+}
+
+// 初始化保证金和杠杆计算器
+function initMarginCalculator() {
+  const calculateBtn = document.getElementById('calculateMarginBtn');
+  if (calculateBtn) {
+    calculateBtn.addEventListener('click', calculateMarginAndLeverage);
+  }
 }

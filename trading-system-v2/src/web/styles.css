@@ -3028,3 +3028,66 @@ html {
     height: 120px;
   }
 }
+
+/* 保证金和杠杆计算器结果样式 */
+.calculator-result {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.calculator-result h4 {
+  margin-bottom: 1rem;
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.result-item label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.result-item span {
+  font-weight: 700;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .result-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .result-item {
+    padding: 0.5rem;
+  }
+  
+  .result-item label {
+    font-size: 0.9rem;
+  }
+  
+  .result-item span {
+    font-size: 1rem;
+  }
+}
