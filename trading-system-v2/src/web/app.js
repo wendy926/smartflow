@@ -3542,6 +3542,55 @@ async function calculateMarginAndLeverage() {
   }
 }
 
+// 显示通知函数
+function showNotification(message, type = 'info') {
+  // 创建通知元素
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.textContent = message;
+  
+  // 添加样式
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    z-index: 10000;
+    max-width: 300px;
+    word-wrap: break-word;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  `;
+  
+  // 根据类型设置背景色
+  switch (type) {
+    case 'success':
+      notification.style.backgroundColor = '#28a745';
+      break;
+    case 'error':
+      notification.style.backgroundColor = '#dc3545';
+      break;
+    case 'warning':
+      notification.style.backgroundColor = '#ffc107';
+      notification.style.color = '#000';
+      break;
+    default:
+      notification.style.backgroundColor = '#007bff';
+  }
+  
+  // 添加到页面
+  document.body.appendChild(notification);
+  
+  // 3秒后自动移除
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.parentNode.removeChild(notification);
+    }
+  }, 3000);
+}
+
 // 初始化保证金和杠杆计算器
 function initMarginCalculator() {
   const calculateBtn = document.getElementById('calculateMarginBtn');
