@@ -17,7 +17,6 @@ const cache = require('./cache/redis');
 const monitoring = require('./monitoring/resource-monitor');
 const DataUpdater = require('./services/data-updater');
 const MacroMonitorController = require('./services/macro-monitor/macro-monitor-controller');
-const NewCoinMonitorController = require('./services/new-coin-monitor/new-coin-monitor-controller');
 
 class TradingSystemApp {
   constructor() {
@@ -25,7 +24,6 @@ class TradingSystemApp {
     this.port = process.env.PORT || 3000;
     this.dataUpdater = null;
     this.macroMonitor = null;
-    this.newCoinMonitor = null;
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -133,12 +131,8 @@ class TradingSystemApp {
       await this.macroMonitor.start();
       logger.info('Macro monitoring started');
 
-      // 初始化新币监控
-      this.newCoinMonitor = new NewCoinMonitorController(database, cache);
-      this.app.set('newCoinMonitor', this.newCoinMonitor);
-      this.app.set('database', database); // 为API路由提供数据库连接
-      await this.newCoinMonitor.start();
-      logger.info('New coin monitoring started');
+      // 为API路由提供数据库连接
+      this.app.set('database', database);
 
       // 暂时禁用数据更新服务以避免连接池问题
       // this.dataUpdater = new DataUpdater(database, cache);
@@ -172,10 +166,6 @@ class TradingSystemApp {
         await this.macroMonitor.stop();
       }
 
-      // 停止新币监控
-      if (this.newCoinMonitor) {
-        await this.newCoinMonitor.stop();
-      }
 
       // 停止监控
       monitoring.stop();
