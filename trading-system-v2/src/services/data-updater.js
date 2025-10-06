@@ -15,7 +15,8 @@ class DataUpdater {
     this.isRunning = false;
     this.symbols = [
       'BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 
-      'PENDLEUSDT', 'LINKUSDT', 'LDOUSDT'
+      'PENDLEUSDT', 'LINKUSDT', 'LDOUSDT',
+      'ADAUSDT', 'BNBUSDT', 'SOLUSDT'
     ];
   }
 

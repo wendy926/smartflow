@@ -140,7 +140,13 @@ const config = {
     simulationTrades: 90, // 90天
     monitoringData: 30, // 30天
     logs: 7 // 7天
-  }
+  },
+
+  // 默认交易对配置
+  defaultSymbols: process.env.DEFAULT_SYMBOLS?.split(',') || [
+    'BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 'MKRUSDT', 'PENDLEUSDT', 
+    'MPLUSDT', 'LINKUSDT', 'LDOUSDT', 'ADAUSDT', 'BNBUSDT', 'SOLUSDT'
+  ]
 };
 
 module.exports = config;
