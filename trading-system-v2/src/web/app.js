@@ -48,7 +48,6 @@ class SmartFlowApp {
       '/strategies': 'strategies',
       '/monitoring': 'monitoring',
       '/statistics': 'statistics',
-      '/new-coin-monitor': 'new-coin-monitor',
       '/tools': 'tools',
       '/docs': 'docs'
     };
@@ -148,14 +147,6 @@ class SmartFlowApp {
       });
     }
 
-    // 保证金和杠杆计算器
-    const calculateMarginBtn = document.getElementById('calculateMarginBtn');
-    if (calculateMarginBtn) {
-      calculateMarginBtn.addEventListener('click', () => {
-        calculateMarginAndLeverage();
-      });
-    }
-
     // Telegram设置按钮
     const saveTradingTelegramBtn = document.getElementById('saveTradingTelegramBtn');
     if (saveTradingTelegramBtn) {
@@ -203,7 +194,7 @@ class SmartFlowApp {
     const runAllAPITestsBtn = document.getElementById('runAllAPITestsBtn');
     if (runAllAPITestsBtn) {
       runAllAPITestsBtn.addEventListener('click', () => {
-        runAllAPITests();
+        this.runAllAPITests();
       });
     }
 
@@ -211,7 +202,7 @@ class SmartFlowApp {
     document.querySelectorAll('[data-test]').forEach(button => {
       button.addEventListener('click', () => {
         const testType = button.getAttribute('data-test');
-        testAPI(testType);
+        this.testAPI(testType);
       });
     });
   }
@@ -257,7 +248,6 @@ class SmartFlowApp {
       'strategies': '/strategies',
       'monitoring': '/monitoring',
       'statistics': '/statistics',
-      'new-coin-monitor': '/new-coin-monitor',
       'tools': '/tools'
     };
     const expectedPath = pathMap[tabName];
@@ -282,9 +272,6 @@ class SmartFlowApp {
         break;
       case 'statistics':
         this.loadStatistics();
-        break;
-      case 'new-coin-monitor':
-        this.loadNewCoinMonitorData();
         break;
       case 'tools':
         this.loadToolsData();
@@ -374,7 +361,6 @@ class SmartFlowApp {
     try {
       // 加载宏观监控数据
       await this.loadMacroMonitoringData();
-
 
       // 加载交易对数据
       const symbols = await this.fetchData('/symbols');
@@ -567,17 +553,17 @@ class SmartFlowApp {
     if (futuresData.latest && futuresData.latest.length > 0) {
       // 获取最新的多空比、资金费率和未平仓合约数据
       // 优先展示Binance的多空比数据
-      const ratioData = futuresData.latest.find(item =>
+      const ratioData = futuresData.latest.find(item => 
         item.metric_name === '多空比' && item.source === 'Binance'
       ) || futuresData.latest.find(item => item.metric_name === '多空比');
-
+      
       // 优先展示Binance的资金费率数据
-      const fundingData = futuresData.latest.find(item =>
+      const fundingData = futuresData.latest.find(item => 
         item.metric_name === '资金费率' && item.source === 'Binance'
       ) || futuresData.latest.find(item => item.metric_name === '资金费率');
-
+      
       // 优先展示Binance的未平仓合约数据
-      const openInterestData = futuresData.latest.find(item =>
+      const openInterestData = futuresData.latest.find(item => 
         item.metric_name === '未平仓合约' && item.source === 'Binance'
       ) || futuresData.latest.find(item => item.metric_name === '未平仓合约');
 
@@ -733,9 +719,6 @@ class SmartFlowApp {
       // 更新总体统计
       console.log('更新总体统计:', stats.overall);
       this.updateOverallStats(stats.overall);
-
-      // 更新系统总览统计
-      await this.updateSystemOverviewStats(stats.overall);
       console.log('策略统计加载完成');
     } catch (error) {
       console.error('Error loading strategy statistics:', error);
@@ -1070,95 +1053,6 @@ class SmartFlowApp {
         }, 100);
       }, 50);
     }, 100); // 延迟100ms执行
-  }
-
-  /**
-   * 更新系统总览统计显示
-   * @param {Object} stats - 系统总览统计数据
-   */
-  async updateSystemOverviewStats(stats) {
-    console.log('更新系统总览统计:', stats);
-
-    try {
-      // 获取活跃交易数据
-      const activeResponse = await this.fetchData('/trades/active');
-      const activeTrades = activeResponse.data || [];
-
-      // 计算各策略的活跃交易数
-      const v3ActiveCount = activeTrades.filter(trade => trade.strategy_name === 'V3').length;
-      const ictActiveCount = activeTrades.filter(trade => trade.strategy_name === 'ICT').length;
-
-      // 计算今日交易数（今天的交易）
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const v3TodayCount = activeTrades.filter(trade =>
-        trade.strategy_name === 'V3' &&
-        new Date(trade.created_at) >= today
-      ).length;
-
-      const ictTodayCount = activeTrades.filter(trade =>
-        trade.strategy_name === 'ICT' &&
-        new Date(trade.created_at) >= today
-      ).length;
-
-      console.log('活跃交易统计:', {
-        total: activeTrades.length,
-        v3: v3ActiveCount,
-        ict: ictActiveCount,
-        v3Today: v3TodayCount,
-        ictToday: ictTodayCount
-      });
-
-      // 延迟执行以确保DOM元素已加载
-      setTimeout(() => {
-        console.log('开始更新系统总览DOM元素...');
-
-        // 更新V3策略的系统总览
-        const v3ActiveTradesElement = document.getElementById('v3-active-trades');
-        if (v3ActiveTradesElement) {
-          v3ActiveTradesElement.textContent = v3ActiveCount;
-          console.log('V3活跃交易已更新为:', v3ActiveCount);
-        }
-
-        const v3TodayTradesElement = document.getElementById('v3-today-trades');
-        if (v3TodayTradesElement) {
-          v3TodayTradesElement.textContent = v3TodayCount;
-          console.log('V3今日交易已更新为:', v3TodayCount);
-        }
-
-        // 更新ICT策略的系统总览
-        const ictActiveTradesElement = document.getElementById('ict-active-trades');
-        if (ictActiveTradesElement) {
-          ictActiveTradesElement.textContent = ictActiveCount;
-          console.log('ICT活跃交易已更新为:', ictActiveCount);
-        }
-
-        const ictTodayTradesElement = document.getElementById('ict-today-trades');
-        if (ictTodayTradesElement) {
-          ictTodayTradesElement.textContent = ictTodayCount;
-          console.log('ICT今日交易已更新为:', ictTodayCount);
-        }
-
-        console.log('系统总览统计DOM更新完成');
-      }, 100);
-    } catch (error) {
-      console.error('获取活跃交易数据失败:', error);
-      // 使用默认值
-      setTimeout(() => {
-        const v3ActiveTradesElement = document.getElementById('v3-active-trades');
-        if (v3ActiveTradesElement) v3ActiveTradesElement.textContent = '0';
-
-        const v3TodayTradesElement = document.getElementById('v3-today-trades');
-        if (v3TodayTradesElement) v3TodayTradesElement.textContent = '0';
-
-        const ictActiveTradesElement = document.getElementById('ict-active-trades');
-        if (ictActiveTradesElement) ictActiveTradesElement.textContent = '0';
-
-        const ictTodayTradesElement = document.getElementById('ict-today-trades');
-        if (ictTodayTradesElement) ictTodayTradesElement.textContent = '0';
-      }, 100);
-    }
   }
 
   /**
@@ -2143,17 +2037,17 @@ class SmartFlowApp {
     if (pnl === null || pnl === undefined) return '--';
     const amount = parseFloat(pnl);
     if (amount === 0) return '0.00';
-
+    
     // 根据金额大小选择合适的精度
     const absAmount = Math.abs(amount);
     let precision = 2;
-
+    
     if (absAmount < 0.01) {
       precision = 6; // 对于小于0.01的金额，显示6位小数
     } else if (absAmount < 1) {
       precision = 4; // 对于小于1的金额，显示4位小数
     }
-
+    
     return `${amount >= 0 ? '+' : ''}${amount.toFixed(precision)}`;
   }
 
@@ -2642,4 +2536,919 @@ class SmartFlowApp {
     console.error(message);
     // 这里可以添加用户友好的错误提示
   }
+}
 
+// 全局函数，供HTML调用
+function refreshData() {
+  if (window.smartFlowApp) {
+    window.smartFlowApp.loadDashboardData();
+  }
+}
+
+function refreshMonitoring() {
+  if (window.smartFlowApp) {
+    window.smartFlowApp.loadMonitoringData();
+  }
+}
+
+async function calculateRolling() {
+  const principal = parseFloat(document.getElementById('principal').value) || 200;
+  const initialLeverage = parseFloat(document.getElementById('initialLeverage').value) || 50;
+  const priceStart = parseFloat(document.getElementById('priceStart').value) || 4700;
+  const priceTarget = parseFloat(document.getElementById('priceTarget').value) || 5200;
+  const triggerRatio = parseFloat(document.getElementById('triggerRatio').value) || 1.0;
+  const leverageDecay = parseFloat(document.getElementById('leverageDecay').value) || 0.5;
+  const profitLockRatio = parseFloat(document.getElementById('profitLockRatio').value) || 0.5;
+  const minLeverage = parseFloat(document.getElementById('minLeverage').value) || 5;
+
+  const result = document.getElementById('rollingResult');
+  result.innerHTML = '<p>计算中...</p>';
+
+  try {
+    const response = await fetch('/api/v1/tools/dynamic-rolling-calculator', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        principal,
+        initialLeverage,
+        priceStart,
+        priceTarget,
+        triggerRatio,
+        leverageDecay,
+        profitLockRatio,
+        minLeverage
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      const calc = data.data;
+      result.innerHTML = `
+        <h4>动态杠杆滚仓计算结果</h4>
+        <div class="result-grid">
+          <div class="result-item">
+            <span class="result-label">初始本金:</span>
+            <span class="result-value">$${calc.summary.principal}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">最终净值:</span>
+            <span class="result-value">$${calc.finalEquity.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">总收益率:</span>
+            <span class="result-value ${calc.totalReturn >= 0 ? 'positive' : 'negative'}">${calc.totalReturn.toFixed(2)}%</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">已锁定利润:</span>
+            <span class="result-value">$${calc.totalLockedProfit.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">当前浮盈:</span>
+            <span class="result-value">$${calc.finalFloatingProfit.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">最终杠杆:</span>
+            <span class="result-value">${calc.finalLeverage.toFixed(2)}x</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">滚仓次数:</span>
+            <span class="result-value">${calc.summary.rollingCount}</span>
+          </div>
+        </div>
+        <div class="history-section">
+          <h5>滚仓历史（最近10步）</h5>
+          <div class="history-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>步骤</th>
+                  <th>价格</th>
+                  <th>仓位</th>
+                  <th>浮盈</th>
+                  <th>锁定利润</th>
+                  <th>净值</th>
+                  <th>杠杆</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${calc.history.slice(-10).map(h => `
+                  <tr>
+                    <td>${h.step}</td>
+                    <td>$${h.price}</td>
+                    <td>$${h.position}</td>
+                    <td class="${h.floatingProfit >= 0 ? 'positive' : 'negative'}">$${h.floatingProfit}</td>
+                    <td>$${h.lockedProfit}</td>
+                    <td>$${h.equity}</td>
+                    <td>${h.leverage}x</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    } else {
+      result.innerHTML = `<p class="error">计算失败: ${data.error}</p>`;
+    }
+  } catch (error) {
+    result.innerHTML = `<p class="error">计算失败: ${error.message}</p>`;
+  }
+}
+
+function saveTelegramSettings() {
+  const botToken = document.getElementById('botToken').value;
+  const chatId = document.getElementById('chatId').value;
+  const alertThreshold = document.getElementById('alertThreshold').value;
+
+  if (!botToken || !chatId) {
+    alert('请填写完整的Telegram设置');
+    return;
+  }
+
+  // 这里应该调用API保存设置
+  console.log('Saving Telegram settings:', { botToken, chatId, alertThreshold });
+  alert('Telegram设置已保存');
+}
+
+async function testAPI(type) {
+  const result = document.getElementById('apiTestResult');
+  result.innerHTML = '<p>测试中...</p>';
+
+  try {
+    let endpoint = '';
+    let method = 'GET';
+    let body = null;
+
+    switch (type) {
+      case 'health':
+        endpoint = '/health';
+        break;
+      case 'symbols':
+        endpoint = '/api/v1/symbols';
+        break;
+      case 'strategies':
+        endpoint = '/api/v1/strategies/status';
+        break;
+      case 'trades':
+        endpoint = '/api/v1/trades';
+        break;
+      case 'monitoring':
+        endpoint = '/api/v1/monitoring/health';
+        break;
+      case 'tools':
+        endpoint = '/api/v1/tools/rolling-parameters';
+        break;
+      case 'telegram':
+        endpoint = '/api/v1/telegram/status';
+        break;
+      case 'v3-analyze':
+        endpoint = '/api/v1/strategies/v3/analyze';
+        method = 'POST';
+        body = JSON.stringify({ symbol: 'BTCUSDT' });
+        break;
+      case 'ict-analyze':
+        endpoint = '/api/v1/strategies/ict/analyze';
+        method = 'POST';
+        body = JSON.stringify({ symbol: 'BTCUSDT' });
+        break;
+      case 'create-trade':
+        endpoint = '/api/v1/trades';
+        method = 'POST';
+        body = JSON.stringify({
+          symbol: 'BTCUSDT',
+          strategy_type: 'V3',
+          direction: 'LONG',
+          entry_price: 50000,
+          stop_loss: 49000,
+          take_profit: 52000,
+          leverage: 10,
+          position_size: 0.01,
+          entry_reason: 'API测试'
+        });
+        break;
+    }
+
+    const options = {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    if (body) {
+      options.body = body;
+    }
+
+    const response = await fetch(endpoint, options);
+    const data = await response.json();
+
+    const statusClass = response.ok ? 'success' : 'error';
+    const statusText = response.ok ? '成功' : '失败';
+
+    result.innerHTML = `
+      <div class="api-test-result">
+        <h4>API测试结果 - ${getAPITestName(type)}</h4>
+        <div class="test-info">
+          <div class="test-item">
+            <span class="test-label">端点:</span>
+            <span class="test-value">${endpoint}</span>
+          </div>
+          <div class="test-item">
+            <span class="test-label">方法:</span>
+            <span class="test-value">${method}</span>
+          </div>
+          <div class="test-item">
+            <span class="test-label">状态码:</span>
+            <span class="test-value status-${statusClass}">${response.status}</span>
+          </div>
+          <div class="test-item">
+            <span class="test-label">状态:</span>
+            <span class="test-value status-${statusClass}">${statusText}</span>
+          </div>
+          <div class="test-item">
+            <span class="test-label">响应时间:</span>
+            <span class="test-value">${Date.now() - window.testStartTime}ms</span>
+          </div>
+        </div>
+        <div class="test-response">
+          <h5>响应数据:</h5>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+        </div>
+      </div>
+        `;
+  } catch (error) {
+    result.innerHTML = `
+      <div class="api-test-result">
+        <h4>API测试结果 - ${getAPITestName(type)}</h4>
+        <div class="test-error">
+            <p><strong>错误:</strong> ${error.message}</p>
+          <p><strong>类型:</strong> ${error.name}</p>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// 获取API测试名称
+function getAPITestName(type) {
+  const names = {
+    'health': '健康检查',
+    'symbols': '交易对API',
+    'strategies': '策略状态API',
+    'trades': '交易记录API',
+    'monitoring': '系统监控API',
+    'tools': '工具API',
+    'telegram': 'Telegram API',
+    'v3-analyze': 'V3策略分析',
+    'ict-analyze': 'ICT策略分析',
+    'create-trade': '创建交易'
+  };
+  return names[type] || type;
+}
+
+// 运行所有API测试
+async function runAllAPITests() {
+  const result = document.getElementById('apiTestResult');
+  result.innerHTML = '<p>运行所有API测试中...</p>';
+
+  const tests = [
+    'health',
+    'symbols',
+    'strategies',
+    'trades',
+    'monitoring',
+    'tools',
+    'telegram',
+    'v3-analyze',
+    'ict-analyze'
+  ];
+
+  const results = [];
+
+  for (const test of tests) {
+    try {
+      window.testStartTime = Date.now();
+      const testResult = await runSingleAPITest(test);
+      results.push({ test, ...testResult });
+    } catch (error) {
+      results.push({
+        test,
+        success: false,
+        error: error.message,
+        status: 0
+      });
+    }
+  }
+
+  // 显示汇总结果
+  const successCount = results.filter(r => r.success).length;
+  const totalCount = results.length;
+
+  result.innerHTML = `
+    <div class="api-test-summary">
+      <h4>API测试汇总</h4>
+      <div class="summary-stats">
+        <div class="stat-item">
+          <span class="stat-label">总测试数:</span>
+          <span class="stat-value">${totalCount}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">成功数:</span>
+          <span class="stat-value success">${successCount}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">失败数:</span>
+          <span class="stat-value error">${totalCount - successCount}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">成功率:</span>
+          <span class="stat-value">${((successCount / totalCount) * 100).toFixed(1)}%</span>
+        </div>
+      </div>
+      <div class="test-results">
+        ${results.map(r => `
+          <div class="test-result-item ${r.success ? 'success' : 'error'}">
+            <span class="test-name">${getAPITestName(r.test)}</span>
+            <span class="test-status">${r.success ? '✓' : '✗'}</span>
+            <span class="test-code">${r.status || 0}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// 运行单个API测试
+async function runSingleAPITest(type) {
+  let endpoint = '';
+  let method = 'GET';
+  let body = null;
+
+  switch (type) {
+    case 'health':
+      endpoint = '/health';
+      break;
+    case 'symbols':
+      endpoint = '/api/v1/symbols';
+      break;
+    case 'strategies':
+      endpoint = '/api/v1/strategies/status';
+      break;
+    case 'trades':
+      endpoint = '/api/v1/trades';
+      break;
+    case 'monitoring':
+      endpoint = '/api/v1/monitoring/health';
+      break;
+    case 'tools':
+      endpoint = '/api/v1/tools/rolling-parameters';
+      break;
+    case 'telegram':
+      endpoint = '/api/v1/telegram/status';
+      break;
+    case 'v3-analyze':
+      endpoint = '/api/v1/strategies/v3/analyze';
+      method = 'POST';
+      body = JSON.stringify({ symbol: 'BTCUSDT' });
+      break;
+    case 'ict-analyze':
+      endpoint = '/api/v1/strategies/ict/analyze';
+      method = 'POST';
+      body = JSON.stringify({ symbol: 'BTCUSDT' });
+      break;
+  }
+
+  const options = {
+    method: method,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  if (body) {
+    options.body = body;
+  }
+
+  const response = await fetch(endpoint, options);
+  const data = await response.json();
+
+  return {
+    success: response.ok,
+    status: response.status,
+    data: data
+  };
+}
+
+// 加载交易记录
+async function loadTradingRecords() {
+  try {
+    const response = await fetch('/api/v1/trades');
+    const result = await response.json();
+
+    if (result.success) {
+      updateTradingRecordsTable(result.data);
+    } else {
+      console.error('加载交易记录失败:', result.error);
+      // 使用空数据作为后备
+      updateTradingRecordsTable([]);
+    }
+  } catch (error) {
+    console.error('加载交易记录失败:', error);
+    // 使用空数据作为后备
+    updateTradingRecordsTable([]);
+  }
+}
+
+// 更新交易记录表格
+function updateTradingRecordsTable(trades) {
+  const tbody = document.getElementById('tradingRecordsTableBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  if (!trades || trades.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="16" class="text-center">暂无交易记录</td></tr>';
+    return;
+  }
+
+  trades.forEach(trade => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${trade.symbol || '--'}</td>
+      <td><span class="strategy-badge ${(trade.strategy_name || '').toLowerCase()}">${trade.strategy_name || '--'}</span></td>
+      <td><span class="direction-badge ${(trade.trade_type || '').toLowerCase()}">${getDirectionText(trade.trade_type)}</span></td>
+      <td class="judgment-basis">${trade.entry_reason || '--'}</td>
+      <td>${formatDate(trade.entry_time)}</td>
+      <td>${trade.entry_price ? parseFloat(trade.entry_price).toFixed(4) : '--'}</td>
+      <td>${trade.take_profit ? parseFloat(trade.take_profit).toFixed(4) : '--'}</td>
+      <td>${trade.stop_loss ? parseFloat(trade.stop_loss).toFixed(4) : '--'}</td>
+      <td>${trade.leverage ? parseFloat(trade.leverage).toFixed(2) : '--'}</td>
+      <td>${trade.margin_used ? parseFloat(trade.margin_used).toFixed(2) : '--'}</td>
+      <td><span class="status-badge ${(trade.status || '').toLowerCase()}">${getStatusText(trade.status)}</span></td>
+      <td>${trade.exit_price ? parseFloat(trade.exit_price).toFixed(4) : '--'}</td>
+      <td class="judgment-basis">${trade.exit_reason || '--'}</td>
+      <td class="${getProfitClass(trade.pnl_percentage)}">${formatProfit(trade.pnl_percentage)}</td>
+      <td class="${getProfitClass(trade.pnl)}">${formatProfitAmount(trade.pnl)}</td>
+      <td>${calculateMaxDrawdown(trade)}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+// 获取状态文本
+function getStatusText(status) {
+  const statusMap = {
+    'OPEN': 'open',
+    'CLOSED': 'close',
+    'STOPPED': 'close'
+  };
+  return statusMap[status] || 'open';
+}
+
+// 关闭交易
+async function closeTrade(tradeId) {
+  if (!confirm('确定要关闭这个交易吗？')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/v1/trades/${tradeId}/close`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        exit_price: await getCurrentPrice(),
+        exit_reason: 'MANUAL'
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert('交易关闭成功');
+      loadTradingRecords();
+    } else {
+      alert('关闭交易失败: ' + result.error);
+    }
+  } catch (error) {
+    console.error('关闭交易失败:', error);
+    alert('关闭交易失败: ' + error.message);
+  }
+}
+
+// 获取当前价格
+async function getCurrentPrice() {
+  try {
+    const response = await fetch('/api/v1/binance/ticker/price?symbol=BTCUSDT');
+    const result = await response.json();
+    return result.success ? parseFloat(result.data.price) : 0;
+  } catch (error) {
+    console.error('获取当前价格失败:', error);
+    return 0;
+  }
+}
+
+// 格式化日期
+function formatDate(dateString) {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleString('zh-CN');
+}
+
+// 保存交易触发Telegram设置
+async function saveTradingTelegramSettings() {
+  const botToken = document.getElementById('tradingTelegramBotToken').value;
+  const chatId = document.getElementById('tradingTelegramChatId').value;
+
+  if (!botToken || !chatId) {
+    alert('请填写完整的交易触发Telegram配置信息');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/v1/telegram/trading-config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ botToken, chatId })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert('交易触发Telegram设置保存成功');
+      loadTelegramStatus();
+    } else {
+      alert('保存失败: ' + result.error);
+    }
+  } catch (error) {
+    console.error('保存交易触发Telegram设置失败:', error);
+    alert('保存失败: ' + error.message);
+  }
+}
+
+// 保存系统监控Telegram设置
+async function saveMonitoringTelegramSettings() {
+  const botToken = document.getElementById('monitoringTelegramBotToken').value;
+  const chatId = document.getElementById('monitoringTelegramChatId').value;
+
+  if (!botToken || !chatId) {
+    alert('请填写完整的系统监控Telegram配置信息');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/v1/telegram/monitoring-config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ botToken, chatId })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert('系统监控Telegram设置保存成功');
+      loadTelegramStatus();
+    } else {
+      alert('保存失败: ' + result.error);
+    }
+  } catch (error) {
+    console.error('保存系统监控Telegram设置失败:', error);
+    alert('保存失败: ' + error.message);
+  }
+}
+
+// 加载Telegram状态
+async function loadTelegramStatus() {
+  try {
+    const response = await fetch('/api/v1/telegram/status');
+    const result = await response.json();
+
+    if (result.success) {
+      updateTelegramStatus(result.data);
+    } else {
+      console.error('加载Telegram状态失败:', result.error);
+      // 使用默认状态作为后备
+      updateTelegramStatus({
+        trading: { enabled: false, botToken: '未配置', chatId: '未配置' },
+        monitoring: { enabled: false, botToken: '未配置', chatId: '未配置' },
+        macro: { enabled: false, botToken: '未配置', chatId: '未配置', thresholds: {} }
+      });
+    }
+  } catch (error) {
+    console.error('加载Telegram状态失败:', error);
+    // 使用默认状态作为后备
+    updateTelegramStatus({
+      trading: { enabled: false, botToken: '未配置', chatId: '未配置' },
+      monitoring: { enabled: false, botToken: '未配置', chatId: '未配置' },
+      macro: { enabled: false, botToken: '未配置', chatId: '未配置', thresholds: {} }
+    });
+  }
+}
+
+// 更新Telegram状态显示
+function updateTelegramStatus(status) {
+  // 更新交易触发状态
+  const tradingStatus = document.getElementById('tradingTelegramStatus');
+  if (tradingStatus) {
+    tradingStatus.innerHTML = `
+      <div class="status-item">
+        <span class="status-label">状态:</span>
+        <span class="status-value ${status.trading.enabled ? 'enabled' : 'disabled'}">
+          ${status.trading.enabled ? '已启用' : '未启用'}
+        </span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Bot Token:</span>
+        <span class="status-value">${status.trading.botToken}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Chat ID:</span>
+        <span class="status-value">${status.trading.chatId}</span>
+      </div>
+    `;
+  }
+
+  // 更新系统监控状态
+  const monitoringStatus = document.getElementById('monitoringTelegramStatus');
+  if (monitoringStatus) {
+    monitoringStatus.innerHTML = `
+      <div class="status-item">
+        <span class="status-label">状态:</span>
+        <span class="status-value ${status.monitoring.enabled ? 'enabled' : 'disabled'}">
+          ${status.monitoring.enabled ? '已启用' : '未启用'}
+        </span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Bot Token:</span>
+        <span class="status-value">${status.monitoring.botToken}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Chat ID:</span>
+        <span class="status-value">${status.monitoring.chatId}</span>
+      </div>
+    `;
+  }
+
+  // 更新宏观监控状态
+  const macroStatus = document.getElementById('macroTelegramStatus');
+  if (macroStatus && status.macro) {
+    const thresholds = status.macro.thresholds || {};
+    macroStatus.innerHTML = `
+      <div class="status-item">
+        <span class="status-label">状态:</span>
+        <span class="status-value ${status.macro.enabled ? 'enabled' : 'disabled'}">
+          ${status.macro.enabled ? '已启用' : '未启用'}
+        </span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Bot Token:</span>
+        <span class="status-value">${status.macro.botToken}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Chat ID:</span>
+        <span class="status-value">${status.macro.chatId}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">BTC阈值:</span>
+        <span class="status-value">$${thresholds.btcThreshold ? thresholds.btcThreshold.toLocaleString() : '10,000,000'}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">ETH阈值:</span>
+        <span class="status-value">${thresholds.ethThreshold || 1000} ETH</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">恐惧贪婪阈值:</span>
+        <span class="status-value">${thresholds.fearGreedLow || 20} - ${thresholds.fearGreedHigh || 80}</span>
+      </div>
+    `;
+  }
+}
+
+// 测试交易触发Telegram
+async function testTradingTelegram() {
+  try {
+    const response = await fetch('/api/v1/telegram/test-trading', {
+      method: 'POST'
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert('交易触发Telegram测试成功！请检查Telegram消息。');
+    } else {
+      alert('测试失败: ' + result.error);
+    }
+  } catch (error) {
+    console.error('测试交易触发Telegram失败:', error);
+    alert('测试失败: ' + error.message);
+  }
+}
+
+// 测试系统监控Telegram
+async function testMonitoringTelegram() {
+  try {
+    const response = await fetch('/api/v1/telegram/test-monitoring', {
+      method: 'POST'
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert('系统监控Telegram测试成功！请检查Telegram消息。');
+    } else {
+      alert('测试失败: ' + result.error);
+    }
+  } catch (error) {
+    console.error('测试系统监控Telegram失败:', error);
+    alert('测试失败: ' + error.message);
+  }
+}
+
+// 保存宏观监控Telegram设置
+async function saveMacroTelegramSettings() {
+  const botToken = document.getElementById('macroTelegramBotToken').value;
+  const chatId = document.getElementById('macroTelegramChatId').value;
+  const btcThreshold = document.getElementById('btcThreshold').value;
+  const ethThreshold = document.getElementById('ethThreshold').value;
+  const fearGreedLow = document.getElementById('fearGreedLow').value;
+  const fearGreedHigh = document.getElementById('fearGreedHigh').value;
+
+  if (!botToken || !chatId) {
+    alert('请填写完整的宏观监控Telegram配置信息');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/v1/telegram/macro-config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        botToken,
+        chatId,
+        btcThreshold: parseFloat(btcThreshold) || 10000000,
+        ethThreshold: parseFloat(ethThreshold) || 1000,
+        fearGreedLow: parseFloat(fearGreedLow) || 20,
+        fearGreedHigh: parseFloat(fearGreedHigh) || 80
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert('宏观监控Telegram设置保存成功');
+      loadTelegramStatus();
+    } else {
+      alert('保存失败: ' + result.error);
+    }
+  } catch (error) {
+    console.error('保存宏观监控Telegram设置失败:', error);
+    alert('保存失败: ' + error.message);
+  }
+}
+
+// 测试宏观监控Telegram
+async function testMacroTelegram() {
+  try {
+    const response = await fetch('/api/v1/telegram/test-macro', {
+      method: 'POST'
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert('宏观监控Telegram测试成功！请检查Telegram消息。');
+    } else {
+      alert('测试失败: ' + result.error);
+    }
+  } catch (error) {
+    console.error('测试宏观监控Telegram失败:', error);
+    alert('测试失败: ' + error.message);
+  }
+}
+
+// 初始化应用
+document.addEventListener('DOMContentLoaded', () => {
+  window.smartFlowApp = new SmartFlowApp();
+
+  // 加载交易记录
+  loadTradingRecords();
+
+  // 加载Telegram状态
+  loadTelegramStatus();
+
+  // 初始化文档功能
+  initBackToTop();
+  initSmoothScroll();
+});
+
+// 获取方向文本
+function getDirectionText(tradeType) {
+  const directionMap = {
+    'LONG': '做多',
+    'SHORT': '做空'
+  };
+  return directionMap[tradeType] || '--';
+}
+
+// 格式化盈亏金额
+function formatProfitAmount(pnl) {
+  if (pnl === null || pnl === undefined) return '--';
+  const amount = parseFloat(pnl);
+  if (amount === 0) return '0.00';
+  return `${amount >= 0 ? '+' : ''}${amount.toFixed(2)}`;
+}
+
+// 计算最大回撤
+function calculateMaxDrawdown(trade) {
+  // 对于已关闭的交易，最大回撤就是该交易的亏损金额
+  if (trade.status === 'CLOSED' && trade.pnl < 0) {
+    return `${Math.abs(parseFloat(trade.pnl)).toFixed(2)}`;
+  }
+  // 对于盈利的交易，最大回撤为0
+  if (trade.status === 'CLOSED' && trade.pnl >= 0) {
+    return '0.00';
+  }
+  // 对于未关闭的交易，显示--
+  return '--';
+}
+
+// 获取盈亏样式类
+function getProfitClass(pnl) {
+  if (pnl === null || pnl === undefined) return '';
+  const amount = parseFloat(pnl);
+  if (amount > 0) return 'profit';
+  if (amount < 0) return 'loss';
+  return '';
+}
+
+// 格式化盈亏百分比
+function formatProfit(pnlPercentage) {
+  if (pnlPercentage === null || pnlPercentage === undefined) return '--';
+  const amount = parseFloat(pnlPercentage);
+  if (amount === 0) return '0.00%';
+  return `${amount >= 0 ? '+' : ''}${amount.toFixed(2)}%`;
+}
+
+// 格式化日期时间
+function formatDate(dateString) {
+  if (!dateString) return '--';
+  const date = new Date(dateString);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// 返回顶部按钮功能
+function initBackToTop() {
+  const backToTopBtn = document.getElementById('backToTop');
+
+  if (!backToTopBtn) return;
+
+  // 监听滚动事件
+  window.addEventListener('scroll', () => {
+    if (window.pageYOffset > 300) {
+      backToTopBtn.classList.add('show');
+    } else {
+      backToTopBtn.classList.remove('show');
+    }
+  });
+
+  // 点击返回顶部
+  backToTopBtn.addEventListener('click', () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+}
+
+// 平滑滚动到锚点
+function initSmoothScroll() {
+  // 为所有锚点链接添加平滑滚动
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
+  });
+}
