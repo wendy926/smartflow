@@ -553,17 +553,17 @@ class SmartFlowApp {
     if (futuresData.latest && futuresData.latest.length > 0) {
       // 获取最新的多空比、资金费率和未平仓合约数据
       // 优先展示Binance的多空比数据
-      const ratioData = futuresData.latest.find(item => 
+      const ratioData = futuresData.latest.find(item =>
         item.metric_name === '多空比' && item.source === 'Binance'
       ) || futuresData.latest.find(item => item.metric_name === '多空比');
-      
+
       // 优先展示Binance的资金费率数据
-      const fundingData = futuresData.latest.find(item => 
+      const fundingData = futuresData.latest.find(item =>
         item.metric_name === '资金费率' && item.source === 'Binance'
       ) || futuresData.latest.find(item => item.metric_name === '资金费率');
-      
+
       // 优先展示Binance的未平仓合约数据
-      const openInterestData = futuresData.latest.find(item => 
+      const openInterestData = futuresData.latest.find(item =>
         item.metric_name === '未平仓合约' && item.source === 'Binance'
       ) || futuresData.latest.find(item => item.metric_name === '未平仓合约');
 
@@ -2037,17 +2037,17 @@ class SmartFlowApp {
     if (pnl === null || pnl === undefined) return '--';
     const amount = parseFloat(pnl);
     if (amount === 0) return '0.00';
-    
+
     // 根据金额大小选择合适的精度
     const absAmount = Math.abs(amount);
     let precision = 2;
-    
+
     if (absAmount < 0.01) {
       precision = 6; // 对于小于0.01的金额，显示6位小数
     } else if (absAmount < 1) {
       precision = 4; // 对于小于1的金额，显示4位小数
     }
-    
+
     return `${amount >= 0 ? '+' : ''}${amount.toFixed(precision)}`;
   }
 
@@ -3349,7 +3349,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 初始化文档功能
   initBackToTop();
   initSmoothScroll();
-  
+
   // 初始化保证金和杠杆计算器
   initMarginCalculator();
 });
@@ -3465,23 +3465,23 @@ async function calculateMarginAndLeverage() {
     const stopLossPrice = parseFloat(document.getElementById('stopLossPrice').value);
     const takeProfitPrice = parseFloat(document.getElementById('takeProfitPrice').value);
     const tradeDirection = document.getElementById('tradeDirection').value;
-    
+
     // 验证输入
     if (!maxLoss || !entryPrice || !stopLossPrice || !takeProfitPrice) {
       showNotification('请填写所有必需字段', 'error');
       return;
     }
-    
+
     if (entryPrice <= 0 || stopLossPrice <= 0 || takeProfitPrice <= 0) {
       showNotification('价格必须大于0', 'error');
       return;
     }
-    
+
     if (maxLoss <= 0) {
       showNotification('最大损失金额必须大于0', 'error');
       return;
     }
-    
+
     // 计算止损距离
     let stopLossDistance;
     if (tradeDirection === 'long') {
@@ -3497,7 +3497,7 @@ async function calculateMarginAndLeverage() {
         return;
       }
     }
-    
+
     // 计算盈亏比
     let riskRewardRatio;
     if (tradeDirection === 'long') {
@@ -3515,27 +3515,43 @@ async function calculateMarginAndLeverage() {
         return;
       }
     }
-    
-    // 计算最大杠杆（基于最大损失限制）
-    const maxLeverage = Math.floor(maxLoss / (entryPrice * stopLossDistance));
-    
+
+    // 计算最大杠杆（基于止损距离 + 0.5% 安全边际）
+    // 公式：最大杠杆数Y = 1/(X%+0.5%) 数值向下取整
+    const safetyMargin = 0.005; // 0.5% 安全边际
+    const maxLeverage = Math.floor(1 / (stopLossDistance + safetyMargin));
+
     // 计算最小保证金
-    const minMargin = maxLoss / stopLossDistance;
-    
+    // 公式：保证金Z = M/(Y*X%) 数值向上取整（M是最大损失金额）
+    const minMargin = Math.ceil(maxLoss / (maxLeverage * stopLossDistance));
+
+    // 调试信息
+    console.log('计算参数:', {
+      maxLoss,
+      entryPrice,
+      stopLossPrice,
+      takeProfitPrice,
+      tradeDirection,
+      stopLossDistance: (stopLossDistance * 100).toFixed(2) + '%',
+      safetyMargin: (safetyMargin * 100).toFixed(2) + '%',
+      maxLeverage,
+      minMargin
+    });
+
     // 显示结果
     document.getElementById('stopLossDistance').textContent = (stopLossDistance * 100).toFixed(2) + '%';
     document.getElementById('maxLeverage').textContent = maxLeverage + 'x';
     document.getElementById('minMargin').textContent = minMargin.toFixed(2) + ' USDT';
     document.getElementById('riskRewardRatio').textContent = riskRewardRatio.toFixed(2) + ':1';
-    
+
     // 显示结果区域
     const resultSection = document.getElementById('marginResult');
     if (resultSection) {
       resultSection.style.display = 'block';
     }
-    
+
     showNotification('计算完成', 'success');
-    
+
   } catch (error) {
     console.error('计算保证金和杠杆时出错:', error);
     showNotification('计算出错: ' + error.message, 'error');
@@ -3548,7 +3564,7 @@ function showNotification(message, type = 'info') {
   const notification = document.createElement('div');
   notification.className = `notification notification-${type}`;
   notification.textContent = message;
-  
+
   // 添加样式
   notification.style.cssText = `
     position: fixed;
@@ -3563,7 +3579,7 @@ function showNotification(message, type = 'info') {
     word-wrap: break-word;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   `;
-  
+
   // 根据类型设置背景色
   switch (type) {
     case 'success':
@@ -3579,10 +3595,10 @@ function showNotification(message, type = 'info') {
     default:
       notification.style.backgroundColor = '#007bff';
   }
-  
+
   // 添加到页面
   document.body.appendChild(notification);
-  
+
   // 3秒后自动移除
   setTimeout(() => {
     if (notification.parentNode) {
