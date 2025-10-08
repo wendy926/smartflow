@@ -5,6 +5,8 @@
 
 const TechnicalIndicators = require('../utils/technical-indicators');
 const BinanceAPI = require('../api/binance-api');
+const TokenClassifier = require('../utils/token-classifier');
+const { globalAdjuster } = require('./v3-dynamic-weights');
 const logger = require('../utils/logger');
 const config = require('../config');
 
@@ -42,6 +44,10 @@ class V3Strategy {
       const bbw = TechnicalIndicators.calculateBBW(prices);
       const vwap = TechnicalIndicators.calculateVWAP(klines);
 
+      // 优化：添加MACD Histogram用于动能确认
+      const macd = TechnicalIndicators.calculateMACDHistogram(prices, 12, 26, 9);
+      logger.info(`4H MACD: histogram=${macd.histogram.toFixed(4)}, trending=${macd.trending}`);
+
       // 判断趋势方向
       const currentPrice = prices[prices.length - 1];
       const trendDirection = this.determineTrendDirection(
@@ -49,10 +55,11 @@ class V3Strategy {
         ma200[ma200.length - 1], adx.adx
       );
 
-      // 计算10点评分系统
+      // 计算10点评分系统（优化：传入MACD）
       const score = this.calculate4HScore(
         currentPrice, ma20, ma50, ma200, adx, bbw, vwap,
-        0, 0, 0 // 这些参数将在1H分析中获取
+        0, 0, 0, // 这些参数将在1H分析中获取
+        macd // 新增MACD参数
       );
 
       return {
@@ -69,6 +76,8 @@ class V3Strategy {
         bbw: bbw.bbw || 0,
         vwap: vwap || 0,
         currentPrice: currentPrice || 0,
+        macdHistogram: macd.histogram || 0, // 新增
+        macdTrending: macd.trending || false, // 新增
         indicators: {
           ma20: ma20[ma20.length - 1],
           ma50: ma50[ma50.length - 1],
@@ -76,7 +85,8 @@ class V3Strategy {
           adx: adx.adx,
           bbw: bbw.bbw,
           vwap: vwap,
-          currentPrice: currentPrice
+          currentPrice: currentPrice,
+          macd: macd // 新增
         },
         timestamp: new Date()
       };
@@ -116,7 +126,7 @@ class V3Strategy {
    * @param {Array} oiHistory - 持仓量历史
    * @returns {Object} 1H因子分析结果
    */
-  analyze1HFactors(klines, data = {}) {
+  analyze1HFactors(symbol, klines, data = {}) {
     try {
       if (!klines || klines.length < 50) {
         logger.warn(`1H数据不足: ${klines?.length || 0}条`);
@@ -153,11 +163,31 @@ class V3Strategy {
       // 计算Delta（简化版本）
       const delta = this.calculateSimpleDelta(prices, volumes);
 
-      // 计算6个因子的详细评分
+      // 获取4H趋势方向，如果没有则根据当前价格和EMA判断
+      let trendDirection = data.trend4H || 'RANGE';
+      if (!data.trend4H) {
+        const currentPrice = prices[prices.length - 1];
+        const currentEma20 = ema20[ema20.length - 1];
+        const currentEma50 = ema50[ema50.length - 1];
+
+        if (currentPrice > currentEma20 && currentEma20 > currentEma50) {
+          trendDirection = 'UP';
+        } else if (currentPrice < currentEma20 && currentEma20 < currentEma50) {
+          trendDirection = 'DOWN';
+        } else {
+          trendDirection = 'RANGE';
+        }
+      }
+
+      // 调试信息
+      logger.info(`V3 1H趋势方向判断: ${trendDirection} (来自4H: ${data.trend4H || '无'})`);
+
+      // 计算6个因子的详细评分（传入symbol用于加权）
       const factors = this.calculate1HFactors(
+        symbol,
         prices[prices.length - 1], ema20[ema20.length - 1], ema50[ema50.length - 1],
         adx.adx, bbw.bbw, vwap, parseFloat(data.fundingRate?.lastFundingRate || 0),
-        oiChange, delta, 'UP'
+        oiChange, delta, trendDirection
       );
 
       return {
@@ -192,7 +222,7 @@ class V3Strategy {
    * @param {string} symbol - 交易对
    * @returns {Promise<Object>} 15M执行信号分析结果
    */
-  analyze15mExecution(klines, data = {}) {
+  analyze15mExecution(symbol, klines, data = {}) {
     try {
       if (!klines || klines.length < 15) {
         logger.warn(`15M K线数据不足: 实际长度 ${klines ? klines.length : 0}`);
@@ -246,17 +276,34 @@ class V3Strategy {
         bbw = { bbw: 0, upper: 0, middle: 0, lower: 0 };
       }
 
-      // 判断执行信号
-      const entrySignal = this.determineEntrySignal(
+      // 判断市场类型（从data中获取或默认为TREND）
+      const marketType = data.marketType || 'TREND';
+      const trend = data.trend || 'RANGE';
+
+      // 计算平均成交量
+      const avgVolume = volumes.length >= 20 ?
+        volumes.slice(-20).reduce((a, b) => a + b, 0) / 20 : 0;
+      const currentVolume = volumes[volumes.length - 1];
+      const oiChange = data.oiChange || 0;
+
+      // 优化：分析价格结构（HH/HL或LL/LH）
+      const structureScore = this.analyzeStructure(klines, trend);
+
+      // 判断执行信号（支持震荡市）
+      const entrySignalResult = this.determineEntrySignal(
         prices[prices.length - 1], ema20[ema20.length - 1],
-        adx.adx, bbw.bbw, vwap, 0, 0, delta
+        adx.adx, bbw.bbw, vwap, 0, 0, delta, marketType,
+        data.rangeBoundary, klines
       );
+
+      const entrySignal = entrySignalResult.signal || entrySignalResult;
 
       return {
         timeframe: '15M',
         signal: entrySignal,
         confidence: this.calculateTrendConfidence(adx.adx, bbw.bbw),
-        score: this.calculate15MScore(ema20[ema20.length - 1], adx.adx, bbw.bbw, vwap, delta),
+        score: this.calculate15MScore(symbol, marketType, ema20[ema20.length - 1], adx.adx, bbw.bbw, vwap, delta, currentVolume, avgVolume, oiChange, structureScore),
+        structureScore, // 新增
         // 将指标数据直接放在顶层，与API期望格式匹配
         ema20: ema20[ema20.length - 1] || 0,
         ema50: ema50[ema50.length - 1] || 0,
@@ -289,32 +336,217 @@ class V3Strategy {
   }
 
   /**
+   * 分析1H震荡市边界有效性（新增）
+   * 根据strategy-v3.md文档实现震荡市边界判断
+   * @param {Array} klines1H - 1H K线数据
+   * @param {number} delta - Delta值
+   * @param {Array} oiHistory - 持仓量历史
+   * @param {Object} thresholds - 阈值配置
+   * @returns {Object} 边界有效性判断结果
+   */
+  analyze1HRangeBoundary(klines1H, delta, oiHistory, thresholds = {}) {
+    try {
+      if (!klines1H || klines1H.length < 50) {
+        return { lowerValid: false, upperValid: false, error: 'Insufficient data' };
+      }
+
+      const closes = klines1H.map(k => parseFloat(k[4]));
+      const highs = klines1H.map(k => parseFloat(k[2]));
+      const lows = klines1H.map(k => parseFloat(k[3]));
+      const volumes = klines1H.map(k => parseFloat(k[5]));
+
+      // 1. 计算布林带
+      const bb = TechnicalIndicators.calculateBollingerBands(closes, 20, 2);
+      const latestBB = bb[bb.length - 1];
+      const upper = latestBB.upper;
+      const lower = latestBB.lower;
+      const middle = latestBB.middle;
+
+      // 2. 计算连续触碰边界
+      const last6Closes = closes.slice(-6);
+      const lowerTouches = last6Closes.filter(c => c <= lower * (1 + 0.015)).length;
+      const upperTouches = last6Closes.filter(c => c >= upper * (1 - 0.015)).length;
+
+      // 3. 计算多因子得分
+      let factorScore = 0;
+
+      // 3.1 成交量因子：最新1H成交量 ≤ 1.7 × 20期均量
+      const avgVolume = volumes.slice(-20).reduce((sum, v) => sum + v, 0) / 20;
+      const currentVolume = volumes[volumes.length - 1];
+      if (currentVolume <= avgVolume * (thresholds.volumeThreshold || 1.7)) {
+        factorScore += 1;
+      }
+
+      // 3.2 Delta因子：|Delta| ≤ 0.02
+      if (Math.abs(delta || 0) <= (thresholds.deltaThreshold || 0.02)) {
+        factorScore += 1;
+      }
+
+      // 3.3 OI因子：|6h OI变化| ≤ 2%
+      const oiChange = oiHistory && oiHistory.length >= 6 ?
+        (oiHistory[oiHistory.length - 1] - oiHistory[0]) / oiHistory[0] : 0;
+      if (Math.abs(oiChange) <= (thresholds.oiThreshold || 0.02)) {
+        factorScore += 1;
+      }
+
+      // 3.4 无突破因子：最近20根K线无新高/新低
+      const recent20Highs = highs.slice(-20);
+      const recent20Lows = lows.slice(-20);
+      const recentHigh = Math.max(...recent20Highs);
+      const recentLow = Math.min(...recent20Lows);
+      const lastHigh = highs[highs.length - 1];
+      const lastLow = lows[lows.length - 1];
+
+      const noNewHigh = lastHigh < recentHigh;
+      const noNewLow = lastLow > recentLow;
+      if (noNewHigh && noNewLow) {
+        factorScore += 1;
+      }
+
+      // 3.5 VWAP因子（简化处理）
+      const vwap = TechnicalIndicators.calculateVWAP(klines1H);
+      const currentPrice = closes[closes.length - 1];
+      const vwapDeviation = Math.abs(currentPrice - vwap) / vwap;
+      if (vwapDeviation < 0.02) { // 价格在VWAP 2%范围内
+        factorScore += 1;
+      }
+
+      // 4. 边界有效性判断
+      const scoreThreshold = thresholds.scoreThreshold || 3;
+      const lowerValid = lowerTouches >= 2 && factorScore >= scoreThreshold;
+      const upperValid = upperTouches >= 2 && factorScore >= scoreThreshold;
+
+      logger.info(`1H震荡市边界分析: 下轨触碰${lowerTouches}次, 上轨触碰${upperTouches}次, 因子得分${factorScore}/5, 下轨有效=${lowerValid}, 上轨有效=${upperValid}`);
+
+      return {
+        lowerValid,
+        upperValid,
+        upper,
+        lower,
+        middle,
+        factorScore,
+        lowerTouches,
+        upperTouches,
+        thresholds: {
+          volumeThreshold: thresholds.volumeThreshold || 1.7,
+          deltaThreshold: thresholds.deltaThreshold || 0.02,
+          oiThreshold: thresholds.oiThreshold || 0.02,
+          scoreThreshold: thresholds.scoreThreshold || 3
+        }
+      };
+    } catch (error) {
+      logger.error(`1H震荡市边界分析失败: ${error.message}`);
+      return { lowerValid: false, upperValid: false, error: error.message };
+    }
+  }
+
+  /**
+   * 分析价格结构（优化：新增）
+   * 根据strategy-v3-plus.md：检测HH/HL（上升）或LL/LH（下降）
+   * @param {Array} klines - K线数据
+   * @param {string} trend - 趋势方向
+   * @returns {number} 结构得分 0-2
+   */
+  analyzeStructure(klines, trend) {
+    if (!klines || klines.length < 24) return 0;
+
+    try {
+      let score = 0;
+
+      // 获取最近12根和之前12根的高低点
+      const recent12 = klines.slice(-12);
+      const prev12 = klines.slice(-24, -12);
+
+      const recentHigh = Math.max(...recent12.map(k => parseFloat(k[2])));
+      const recentLow = Math.min(...recent12.map(k => parseFloat(k[3])));
+      const prevHigh = Math.max(...prev12.map(k => parseFloat(k[2])));
+      const prevLow = Math.min(...prev12.map(k => parseFloat(k[3])));
+
+      // 计算变化幅度，降低检测阈值
+      const highChange = Math.abs(recentHigh - prevHigh) / prevHigh;
+      const lowChange = Math.abs(recentLow - prevLow) / prevLow;
+      const minChange = 0.001; // 0.1%的最小变化阈值
+
+      if (trend === 'UP') {
+        // 上升趋势：寻找Higher High (HH) - 降低阈值
+        if (recentHigh > prevHigh && highChange >= minChange) {
+          score += 1;
+          logger.debug(`检测到HH: recent=${recentHigh.toFixed(4)} > prev=${prevHigh.toFixed(4)} (${(highChange * 100).toFixed(2)}%)`);
+        }
+        // 上升趋势：寻找Higher Low (HL) - 降低阈值
+        if (recentLow > prevLow && lowChange >= minChange) {
+          score += 1;
+          logger.debug(`检测到HL: recent=${recentLow.toFixed(4)} > prev=${prevLow.toFixed(4)} (${(lowChange * 100).toFixed(2)}%)`);
+        }
+      } else if (trend === 'DOWN') {
+        // 下降趋势：寻找Lower Low (LL) - 降低阈值
+        if (recentLow < prevLow && lowChange >= minChange) {
+          score += 1;
+          logger.debug(`检测到LL: recent=${recentLow.toFixed(4)} < prev=${prevLow.toFixed(4)} (${(lowChange * 100).toFixed(2)}%)`);
+        }
+        // 下降趋势：寻找Lower High (LH) - 降低阈值
+        if (recentHigh < prevHigh && highChange >= minChange) {
+          score += 1;
+          logger.debug(`检测到LH: recent=${recentHigh.toFixed(4)} < prev=${prevHigh.toFixed(4)} (${(highChange * 100).toFixed(2)}%)`);
+        }
+      }
+
+      // 如果没有检测到明确的结构，但趋势明确，给予基础分
+      if (score === 0 && trend !== 'RANGE') {
+        score = 0.5; // 给予基础结构分
+        logger.debug(`趋势明确但结构不明显，给予基础分: ${score}`);
+      }
+
+      logger.info(`15M结构分析: ${trend}趋势，得分${score}/2, highChange=${(highChange * 100).toFixed(2)}%, lowChange=${(lowChange * 100).toFixed(2)}%`);
+      return score; // 0, 0.5, 1, 或 2
+    } catch (error) {
+      logger.error(`结构分析失败: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
    * 计算15M评分
+   * @param {string} symbol - 交易对
+   * @param {string} marketType - 市场类型 'TREND' 或 'RANGE'
    * @param {number} ema20 - EMA20值
    * @param {number} adx - ADX值
    * @param {number} bbw - 布林带宽度
    * @param {number} vwap - VWAP值
    * @param {number} delta - Delta值
+   * @param {number} volume - 成交量
+   * @param {number} avgVolume - 平均成交量
+   * @param {number} oiChange - OI变化
+   * @param {number} structureScore - 结构得分（优化：新增）
    * @returns {number} 15M评分
    */
-  calculate15MScore(ema20, adx, bbw, vwap, delta) {
+  calculate15MScore(symbol, marketType, ema20, adx, bbw, vwap, delta, volume, avgVolume, oiChange, structureScore = 0) {
+    const { calculate15MWeightedScore } = require('./v3-strategy-weighted');
+    const categoryInfo = TokenClassifier.getCategoryInfo(symbol);
+
+    // 评估各因子得分（0或1）
+    const factorScores = {
+      vwap: vwap !== null && vwap >= 0 ? 1 : 0,
+      delta: delta && Math.abs(delta) > 0.1 ? 1 : 0,
+      oi: oiChange && Math.abs(oiChange) > 0.02 ? 1 : 0,
+      volume: volume && avgVolume && volume >= avgVolume * 1.5 ? 1 : 0
+    };
+
+    // 计算加权得分
+    const weightedScore = calculate15MWeightedScore(symbol, marketType, factorScores);
+
+    // 传统评分（兼容旧逻辑）
     let score = 0;
-
-    // EMA20有效性 (1分) - 允许0值
     if (ema20 !== null && ema20 !== undefined && ema20 >= 0) score += 1;
-
-    // ADX强度 (1分)
     if (adx && adx > 20) score += 1;
-
-    // 布林带收窄 (1分)
     if (bbw && bbw < 0.1) score += 1;
+    if (factorScores.vwap) score += 1;
+    if (factorScores.delta) score += 1;
 
-    // VWAP有效性 (1分) - 允许0值
-    if (vwap !== null && vwap !== undefined && vwap >= 0) score += 1;
+    logger.info(`${symbol} (${categoryInfo.name}) 15M ${marketType}市 - 传统得分:${score}/5, 加权得分:${(weightedScore * 100).toFixed(1)}%`);
 
-    // Delta确认 (1分)
-    if (delta && Math.abs(delta) > 0.1) score += 1;
-
+    // 修复：使用>= (大于等于)，60%应该返回传统得分
+    // 优化：直接返回传统得分，让信号融合层判断阈值
     return score;
   }
 
@@ -363,10 +595,10 @@ class V3Strategy {
       const maxLossAmount = 100; // 默认最大损失金额
 
       // 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
-      const maxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
+      const calculatedMaxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
 
-      // 使用计算出的最大杠杆数
-      leverage = maxLeverage;
+      // 使用计算出的最大杠杆数，但不超过24倍
+      leverage = Math.min(calculatedMaxLeverage, 24);
 
       // 保证金Z：M/(Y*X%) 数值向上取整
       const margin = stopLossDistanceAbs > 0 ? Math.ceil(maxLossAmount / (leverage * stopLossDistanceAbs)) : 0;
@@ -396,8 +628,8 @@ class V3Strategy {
   determineTrendDirection(currentPrice, ma20, ma50, ma200, adx) {
     if (!ma20 || !ma50 || !ma200 || !adx) return 'RANGE';
 
-    // 强趋势判断
-    if (adx > 25) {
+    // 强趋势判断（提高ADX阈值到30，更保守）
+    if (adx > 30) {
       if (currentPrice > ma20 && ma20 > ma50 && ma50 > ma200) {
         return 'UP';
       } else if (currentPrice < ma20 && ma20 < ma50 && ma50 < ma200) {
@@ -514,13 +746,33 @@ class V3Strategy {
    * @param {number} delta - Delta值
    * @returns {string} 入场信号
    */
-  determineEntrySignal(currentPrice, ema20, adx, bbw, vwap, fundingRate, oiChange, delta) {
+  /**
+   * 判断15M入场信号（优化：支持震荡市假突破）
+   * @param {number} currentPrice - 当前价格
+   * @param {number} ema20 - EMA20
+   * @param {number} adx - ADX
+   * @param {number} bbw - 布林带宽度
+   * @param {number} vwap - VWAP
+   * @param {number} fundingRate - 资金费率
+   * @param {number} oiChange - OI变化
+   * @param {number} delta - Delta
+   * @param {string} marketType - 市场类型 'TREND' 或 'RANGE'
+   * @param {Object} rangeBoundary - 震荡市边界信息
+   * @param {Array} klines15m - 15M K线数据
+   * @returns {Object} 入场信号和参数
+   */
+  determineEntrySignal(currentPrice, ema20, adx, bbw, vwap, fundingRate, oiChange, delta, marketType = 'TREND', rangeBoundary = null, klines15m = null) {
     if (ema20 === null || ema20 === undefined || adx === null || adx === undefined ||
       bbw === null || bbw === undefined || vwap === null || vwap === undefined) {
-      return 'HOLD';
+      return { signal: 'HOLD', stopLoss: 0, takeProfit: 0, reason: 'Invalid indicators' };
     }
 
-    // 基础条件检查
+    // 震荡市假突破逻辑
+    if (marketType === 'RANGE' && rangeBoundary && klines15m) {
+      return this.determineRangeEntrySignal(currentPrice, rangeBoundary, klines15m, bbw);
+    }
+
+    // 趋势市逻辑（原有逻辑）
     const isTrending = adx > 15;
     const isVolatile = bbw > 0.02;
     const isAboveVWAP = currentPrice > vwap;
@@ -528,15 +780,88 @@ class V3Strategy {
 
     // 买入信号
     if (isTrending && isVolatile && isAboveVWAP && delta > 0.1) {
-      return 'BUY';
+      return { signal: 'BUY', stopLoss: 0, takeProfit: 0, reason: 'Trend long' };
     }
 
     // 卖出信号
     if (isTrending && isVolatile && isBelowVWAP && delta < -0.1) {
-      return 'SELL';
+      return { signal: 'SELL', stopLoss: 0, takeProfit: 0, reason: 'Trend short' };
     }
 
-    return 'HOLD';
+    return { signal: 'HOLD', stopLoss: 0, takeProfit: 0, reason: 'No trend signal' };
+  }
+
+  /**
+   * 震荡市假突破入场信号判断
+   * @param {number} currentPrice - 当前价格
+   * @param {Object} rangeBoundary - 边界信息
+   * @param {Array} klines15m - 15M K线数据
+   * @param {number} bbw - 布林带宽度
+   * @returns {Object} 入场信号和参数
+   */
+  determineRangeEntrySignal(currentPrice, rangeBoundary, klines15m, bbw) {
+    try {
+      // 1. 检查布林带宽收窄（15分钟布林带宽 < 5%）
+      if (bbw >= 0.05) {
+        return { signal: 'HOLD', stopLoss: 0, takeProfit: 0, reason: 'BBW not narrow enough' };
+      }
+
+      // 2. 检查边界有效性
+      if (!rangeBoundary.lowerValid && !rangeBoundary.upperValid) {
+        return { signal: 'HOLD', stopLoss: 0, takeProfit: 0, reason: 'No valid boundaries' };
+      }
+
+      // 3. 获取前一根和当前K线收盘价
+      if (klines15m.length < 2) {
+        return { signal: 'HOLD', stopLoss: 0, takeProfit: 0, reason: 'Insufficient 15M data' };
+      }
+
+      const prevClose = parseFloat(klines15m[klines15m.length - 2][4]);
+      const lastClose = parseFloat(klines15m[klines15m.length - 1][4]);
+
+      // 4. 计算ATR用于止损
+      const highs = klines15m.map(k => parseFloat(k[2]));
+      const lows = klines15m.map(k => parseFloat(k[3]));
+      const closes = klines15m.map(k => parseFloat(k[4]));
+      const atr = TechnicalIndicators.calculateATR(highs, lows, closes, 14);
+      const currentATR = atr[atr.length - 1] || (currentPrice * 0.01);
+
+      // 5. 假突破判断
+      // 多头假突破：prevClose < rangeLow 且 lastClose > rangeLow 且下轨有效
+      if (prevClose < rangeBoundary.lower && lastClose > rangeBoundary.lower && rangeBoundary.lowerValid) {
+        const stopLoss = rangeBoundary.lower - currentATR;
+        const takeProfit = lastClose + 2 * (lastClose - stopLoss);
+
+        logger.info(`震荡市多头假突破: 价格${lastClose}突破下轨${rangeBoundary.lower}, 止损${stopLoss}, 止盈${takeProfit}`);
+        return {
+          signal: 'BUY',
+          stopLoss,
+          takeProfit,
+          reason: 'Range fake breakout long',
+          entryPrice: lastClose
+        };
+      }
+
+      // 空头假突破：prevClose > rangeHigh 且 lastClose < rangeHigh 且上轨有效
+      if (prevClose > rangeBoundary.upper && lastClose < rangeBoundary.upper && rangeBoundary.upperValid) {
+        const stopLoss = rangeBoundary.upper + currentATR;
+        const takeProfit = lastClose - 2 * (stopLoss - lastClose);
+
+        logger.info(`震荡市空头假突破: 价格${lastClose}跌破上轨${rangeBoundary.upper}, 止损${stopLoss}, 止盈${takeProfit}`);
+        return {
+          signal: 'SELL',
+          stopLoss,
+          takeProfit,
+          reason: 'Range fake breakout short',
+          entryPrice: lastClose
+        };
+      }
+
+      return { signal: 'HOLD', stopLoss: 0, takeProfit: 0, reason: 'No range breakout detected' };
+    } catch (error) {
+      logger.error(`震荡市入场信号判断失败: ${error.message}`);
+      return { signal: 'HOLD', stopLoss: 0, takeProfit: 0, reason: 'Error in range analysis' };
+    }
   }
 
   /**
@@ -563,15 +888,54 @@ class V3Strategy {
         throw new Error(`无法获取 ${symbol} 的完整数据`);
       }
 
-      // 并行执行多时间级别分析
-      const [trend4H, factors1H, execution15M] = await Promise.all([
-        this.analyze4HTrend(klines4H, {}),
-        this.analyze1HFactors(klines1H, { ticker24hr, fundingRate, oiHistory }),
-        this.analyze15mExecution(klines15M, {})
-      ]);
+      // 优化：先执行4H分析，然后并行执行1H和15M分析
+      // 步骤1：执行4H分析
+      const trend4H = await this.analyze4HTrend(klines4H, {});
+
+      // 步骤2：根据4H趋势决定分析方式
+      let factors1H, execution15M, rangeBoundary = null;
+
+      if (trend4H?.trend === 'RANGE') {
+        // 震荡市：先分析1H边界，再分析15M假突破
+        logger.info(`[${symbol}] 震荡市模式：执行1H边界分析`);
+
+        // 计算Delta（简化版本）
+        const prices1H = klines1H.map(k => parseFloat(k[4]));
+        const volumes1H = klines1H.map(k => parseFloat(k[5]));
+        const delta = this.calculateSimpleDelta(prices1H, volumes1H);
+
+        // 分析1H震荡市边界
+        rangeBoundary = this.analyze1HRangeBoundary(klines1H, delta, oiHistory);
+
+        // 1H因子分析（震荡市）
+        factors1H = this.analyze1HFactors(symbol, klines1H, {
+          ticker24hr, fundingRate, oiHistory, trend4H: trend4H?.trend
+        });
+
+        // 15M执行分析（震荡市假突破）
+        execution15M = await this.analyze15mExecution(symbol, klines15M, {
+          trend: trend4H?.trend || 'RANGE',
+          marketType: 'RANGE',
+          rangeBoundary: rangeBoundary
+        });
+      } else {
+        // 趋势市：并行执行1H和15M分析
+        const [factors1HResult, execution15MResult] = await Promise.all([
+          this.analyze1HFactors(symbol, klines1H, { ticker24hr, fundingRate, oiHistory, trend4H: trend4H?.trend }),
+          this.analyze15mExecution(symbol, klines15M, {
+            trend: trend4H?.trend || 'RANGE',
+            marketType: 'TREND'
+          })
+        ]);
+
+        factors1H = factors1HResult;
+        execution15M = execution15MResult;
+      }
 
       // 综合判断
+      logger.info(`[${symbol}] 开始信号融合: 4H=${trend4H?.score}, 1H=${factors1H?.score}, 15M=${execution15M?.score}`);
       const finalSignal = this.combineSignals(trend4H, factors1H, execution15M);
+      logger.info(`[${symbol}] 信号融合结果: ${finalSignal}`);
 
       // 计算交易参数（如果有交易信号且没有现有交易）
       let tradeParams = { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
@@ -648,30 +1012,213 @@ class V3Strategy {
    * @param {Object} execution15M - 15M执行信号
    * @returns {string} 综合信号
    */
+  /**
+   * 计算动态权重
+   * @param {number} trendScore - 趋势得分
+   * @param {number} factorScore - 因子得分
+   * @param {number} entryScore - 入场得分
+   * @returns {Object} 动态权重
+   */
+  calculateDynamicWeights(trendScore, factorScore, entryScore) {
+    const baseWeights = { trend: 0.5, factor: 0.35, entry: 0.15 };
+
+    // 趋势很强时增加趋势权重
+    if (trendScore >= 8) {
+      baseWeights.trend = 0.6;
+      baseWeights.factor = 0.3;
+      baseWeights.entry = 0.1;
+    }
+    // 因子很强时增加因子权重
+    else if (factorScore >= 5) {
+      baseWeights.trend = 0.45;
+      baseWeights.factor = 0.4;
+      baseWeights.entry = 0.15;
+    }
+    // 入场很强时增加入场权重
+    else if (entryScore >= 4) {
+      baseWeights.trend = 0.5;
+      baseWeights.factor = 0.3;
+      baseWeights.entry = 0.2;
+    }
+    // 所有指标都很强时平衡权重
+    else if (trendScore >= 7 && factorScore >= 4 && entryScore >= 3) {
+      baseWeights.trend = 0.45;
+      baseWeights.factor = 0.35;
+      baseWeights.entry = 0.2;
+    }
+
+    return baseWeights;
+  }
+
+  /**
+   * 计算补偿机制
+   * @param {number} normalizedScore - 归一化总分
+   * @param {number} trendScore - 趋势得分
+   * @param {number} factorScore - 因子得分
+   * @param {number} entryScore - 入场得分
+   * @param {number} structureScore - 结构得分
+   * @returns {number} 补偿值
+   */
+  calculateCompensation(normalizedScore, trendScore, factorScore, entryScore, structureScore = 0) {
+    let compensation = 0;
+
+    // 总分很高时给予补偿
+    if (normalizedScore >= 80) {
+      compensation += 1;
+    } else if (normalizedScore >= 75) {
+      compensation += 0.5;
+    }
+
+    // 趋势很强时给予补偿
+    if (trendScore >= 8) {
+      compensation += 1;
+    } else if (trendScore >= 7) {
+      compensation += 0.5;
+    }
+
+    // 入场很强时给予补偿
+    if (entryScore >= 4) {
+      compensation += 0.5;
+    }
+
+    // 结构确认时给予补偿
+    if (structureScore >= 2) {
+      compensation += 0.5;
+    }
+
+    return Math.min(compensation, 2); // 最大补偿2分
+  }
+
+  /**
+   * 获取调整后的因子门槛
+   * @param {number} normalizedScore - 归一化总分
+   * @param {number} trendScore - 趋势得分
+   * @param {number} compensation - 补偿值
+   * @returns {Object} 调整后的门槛
+   */
+  getAdjustedFactorThreshold(normalizedScore, trendScore, compensation) {
+    // 基础门槛
+    let strongThreshold = 5;
+    let moderateThreshold = 4;
+    let weakThreshold = 3;
+
+    // 总分很高时降低门槛
+    if (normalizedScore >= 80) {
+      strongThreshold = Math.max(3, strongThreshold - 2);
+      moderateThreshold = Math.max(2, moderateThreshold - 2);
+      weakThreshold = Math.max(1, weakThreshold - 1);
+    } else if (normalizedScore >= 75) {
+      strongThreshold = Math.max(3, strongThreshold - 1);
+      moderateThreshold = Math.max(2, moderateThreshold - 1);
+    }
+
+    // 趋势很强时降低门槛
+    if (trendScore >= 8) {
+      strongThreshold = Math.max(3, strongThreshold - 1);
+      moderateThreshold = Math.max(2, moderateThreshold - 1);
+    }
+
+    // 应用补偿
+    strongThreshold = Math.max(1, strongThreshold - compensation);
+    moderateThreshold = Math.max(1, moderateThreshold - compensation);
+    weakThreshold = Math.max(1, weakThreshold - compensation);
+
+    return {
+      strong: Math.round(strongThreshold),
+      moderate: Math.round(moderateThreshold),
+      weak: Math.round(weakThreshold)
+    };
+  }
+
+  /**
+   * 综合判断信号（优化版：容忍度逻辑 + 补偿机制）
+   * 根据strategy-v3-plus.md：允许"强中短一致 + 弱偏差"容忍度
+   * 增加补偿机制和动态权重调整解决信号死区问题
+   * 
+   * @param {Object} trend4H - 4H趋势分析结果
+   * @param {Object} factors1H - 1H因子分析结果
+   * @param {Object} execution15M - 15M执行信号结果
+   * @returns {string} 最终交易信号
+   */
   combineSignals(trend4H, factors1H, execution15M) {
-    const trendDirection = trend4H.trendDirection;
-    const factorsScore = factors1H.factors?.totalScore || 0;
-    const executionSignal = execution15M.signal;
+    const trendDirection = trend4H.trendDirection || trend4H.trend;
+    const trendScore = trend4H.score || 0;
+    const factorScore = factors1H.totalScore || factors1H.score || 0;
+    const entryScore = execution15M.score || 0;
+    const structureScore = execution15M.structureScore || 0;
 
-    // 强趋势 + 高因子得分 + 明确执行信号
-    if (trendDirection !== 'RANGE' && factorsScore > 70 && executionSignal !== 'HOLD') {
-      return executionSignal;
-    }
+    logger.info(`combineSignals调试: factors1H.totalScore=${factors1H.totalScore}, factors1H.score=${factors1H.score}, factorScore=${factorScore}`);
 
-    // 中等条件
-    if (trendDirection !== 'RANGE' && factorsScore > 50 && executionSignal !== 'HOLD') {
-      return executionSignal;
-    }
+    // 计算动态权重
+    const weights = this.calculateDynamicWeights(trendScore, factorScore, entryScore);
+    logger.info(`动态权重: 趋势=${weights.trend}, 因子=${weights.factor}, 入场=${weights.entry}`);
 
-    // 根据文档要求：1H多因子确认（score≥3才有效）
-    if (trendDirection !== 'RANGE' && factorsScore >= 3) {
-      // 如果15M信号是HOLD，但有趋势，则根据趋势方向生成信号
-      if (executionSignal === 'HOLD') {
-        return trendDirection === 'UP' ? 'BUY' : 'SELL';
+    // 计算总分（使用动态权重）
+    const totalScore = (
+      (trendScore / 10) * weights.trend +      // 4H: 0-10分 → 0-0.6
+      (factorScore / 6) * weights.factor +     // 1H: 0-6分 → 0-0.4
+      (entryScore / 5) * weights.entry         // 15M: 0-5分 → 0-0.2
+    );
+
+    // 归一化到0-100
+    const normalizedScore = Math.round(totalScore * 100);
+
+    // 计算补偿值
+    const compensation = this.calculateCompensation(normalizedScore, trendScore, factorScore, entryScore, structureScore);
+    logger.info(`补偿值: ${compensation}`);
+
+    // 获取调整后的因子门槛
+    const adjustedThreshold = this.getAdjustedFactorThreshold(normalizedScore, trendScore, compensation);
+    logger.info(`调整后门槛: 强=${adjustedThreshold.strong}, 中=${adjustedThreshold.moderate}, 弱=${adjustedThreshold.weak}`);
+
+    logger.info(`V3信号融合: 4H=${trendScore}/10, 1H=${factorScore}/6, 15M=${entryScore}/5, 结构=${structureScore}/2, 总分=${normalizedScore}%, 补偿=${compensation}`);
+
+    // 如果趋势不明确，检查是否有震荡市假突破信号
+    if (trendDirection === 'RANGE') {
+      logger.info(`震荡市模式: 检查15M假突破信号`);
+      // 如果15M检测到假突破信号，返回对应的交易信号
+      if (execution15M.signal && (execution15M.signal === 'BUY' || execution15M.signal === 'SELL')) {
+        const reason = execution15M.reason || '';
+        if (reason.includes('Range fake breakout') || reason.includes('震荡市')) {
+          logger.info(`✅ 震荡市假突破信号: ${execution15M.signal}, 理由: ${reason}`);
+          return execution15M.signal;
+        }
       }
-      return executionSignal;
+      logger.info(`震荡市无有效假突破信号，HOLD`);
+      return 'HOLD';
     }
 
+    // 强信号：总分>=70 且 4H趋势强 且 1H因子强 且 15M有效（使用调整后门槛）
+    if (normalizedScore >= 70 &&
+      trendScore >= 6 &&
+      factorScore >= adjustedThreshold.strong &&
+      entryScore >= 1) {  // 15M必须有效，结构确认作为加分项
+      logger.info(`✅ 强信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}>=${adjustedThreshold.strong}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
+      return trendDirection === 'UP' ? 'BUY' : 'SELL';
+    }
+
+    // 中等信号：总分45-69 且 趋势>=5 且 1H因子强 且 15M有效（使用调整后门槛）
+    if (normalizedScore >= 45 &&
+      normalizedScore < 70 &&
+      trendScore >= 5 &&
+      factorScore >= adjustedThreshold.moderate &&  // 使用调整后门槛
+      entryScore >= 1) {   // 15M必须有效
+      logger.info(`⚠️ 中等信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}>=${adjustedThreshold.moderate}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
+      return trendDirection === 'UP' ? 'BUY' : 'SELL';
+    }
+
+    // 弱信号：总分35-44 且 趋势>=4 且 1H因子有效 且 15M有效（使用调整后门槛）
+    if (normalizedScore >= 35 &&
+      normalizedScore < 45 &&
+      trendScore >= 4 &&
+      factorScore >= adjustedThreshold.weak &&  // 使用调整后门槛
+      entryScore >= 1) {   // 15M必须有效
+      logger.info(`⚠️ 弱信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}>=${adjustedThreshold.weak}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
+      return trendDirection === 'UP' ? 'BUY' : 'SELL';
+    }
+
+    // 其他情况HOLD
+    logger.info(`信号不足: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}, 15M=${entryScore}, 补偿=${compensation}, HOLD`);
     return 'HOLD';
   }
 
@@ -970,14 +1517,18 @@ class V3Strategy {
    * @param {string} trendDirection - 趋势方向
    * @returns {Object} 因子评分结果
    */
-  calculate1HFactors(currentPrice, ema20, ema50, adx, bbw, vwap, fundingRate, oiChange, delta, trendDirection) {
+  calculate1HFactors(symbol, currentPrice, ema20, ema50, adx, bbw, vwap, fundingRate, oiChange, delta, trendDirection) {
+    // 获取代币分类信息
+    const categoryInfo = TokenClassifier.getCategoryInfo(symbol);
+    logger.info(`${symbol} 代币分类: ${categoryInfo.name}`);
+
     const factors = {
-      vwapDirection: 0,        // VWAP方向 (1分，权重20%)
-      breakoutConfirmation: 0, // 突破确认 (1分，权重20%)
-      volumeConfirmation: 0,   // 成交量双确认 (1分，权重20%)
-      oiChange: 0,             // OI变化 (1分，权重15%)
-      fundingRate: 0,          // 资金费率 (1分，权重15%)
-      deltaImbalance: 0        // Delta失衡 (1分，权重10%)
+      vwapDirection: 0,        // VWAP方向（必须满足，不计分）
+      breakoutConfirmation: 0, // 突破确认
+      volumeConfirmation: 0,   // 成交量双确认
+      oiChange: 0,             // OI变化
+      fundingRate: 0,          // 资金费率
+      deltaImbalance: 0        // Delta失衡
     };
 
     // 1. VWAP方向 (1分，权重20%，必须满足)
@@ -986,7 +1537,13 @@ class V3Strategy {
     } else if (trendDirection === 'DOWN' && currentPrice < vwap) {
       factors.vwapDirection = 1;
     } else if (trendDirection === 'RANGE') {
-      factors.vwapDirection = 0; // 震荡市场不满足VWAP方向要求
+      // 震荡市场：价格在VWAP附近波动也给予部分分数
+      const vwapDeviation = Math.abs(currentPrice - vwap) / vwap;
+      if (vwapDeviation < 0.01) { // 在VWAP 1%范围内
+        factors.vwapDirection = 1; // 震荡市场中价格贴近VWAP也算有效
+      } else {
+        factors.vwapDirection = 0;
+      }
     }
 
     // 2. 突破确认 (1分，权重20%)
@@ -994,6 +1551,14 @@ class V3Strategy {
       factors.breakoutConfirmation = 1;
     } else if (trendDirection === 'DOWN' && currentPrice < ema20 && ema20 < ema50) {
       factors.breakoutConfirmation = 1;
+    } else if (trendDirection === 'RANGE') {
+      // 震荡市场：价格在EMA20附近波动也算有效
+      const emaDeviation = Math.abs(currentPrice - ema20) / ema20;
+      if (emaDeviation < 0.02) { // 在EMA20 2%范围内
+        factors.breakoutConfirmation = 1;
+      } else {
+        factors.breakoutConfirmation = 0;
+      }
     } else if ((trendDirection === 'UP' && currentPrice > ema20) ||
       (trendDirection === 'DOWN' && currentPrice < ema20)) {
       factors.breakoutConfirmation = 0; // 部分确认不满足要求
@@ -1009,6 +1574,13 @@ class V3Strategy {
       factors.oiChange = 1; // 多头6h OI≥+2%
     } else if (trendDirection === 'DOWN' && oiChange < -0.03) {
       factors.oiChange = 1; // 空头6h OI≤-3%
+    } else if (trendDirection === 'RANGE') {
+      // 震荡市场：小幅OI变化也算有效
+      if (Math.abs(oiChange) > 0.01) { // 震荡市场OI变化≥±1%
+        factors.oiChange = 1;
+      } else {
+        factors.oiChange = 0;
+      }
     }
 
     // 5. 资金费率 (1分，权重15%)
@@ -1021,13 +1593,48 @@ class V3Strategy {
       factors.deltaImbalance = 1; // 主动买盘≥卖盘×1.2（多头）
     } else if (trendDirection === 'DOWN' && delta < -0.1) {
       factors.deltaImbalance = 1; // 主动卖盘≥买盘×1.2（空头）
+    } else if (trendDirection === 'RANGE') {
+      // 震荡市场：小幅Delta变化也算有效
+      if (Math.abs(delta) > 0.05) { // 震荡市场Delta变化≥±5%
+        factors.deltaImbalance = 1;
+      } else {
+        factors.deltaImbalance = 0;
+      }
     }
 
+    // 使用加权计算总分（根据代币类别）
+    const { calculate1HTrendWeightedScore } = require('./v3-strategy-weighted');
+
+    // VWAP方向是必须条件，不参与加权计算
+    if (!factors.vwapDirection) {
+      return {
+        totalScore: 0,
+        weightedScore: 0,
+        factors,
+        category: categoryInfo.name
+      };
+    }
+
+    // 计算加权得分
+    const factorScores = {
+      vwapDirection: factors.vwapDirection,
+      breakout: factors.breakoutConfirmation,
+      volume: factors.volumeConfirmation,
+      oiChange: factors.oiChange,
+      delta: factors.deltaImbalance,
+      fundingRate: factors.fundingRate
+    };
+
+    const weightedScore = calculate1HTrendWeightedScore(symbol, trendDirection, factorScores);
     const totalScore = Object.values(factors).reduce((sum, score) => sum + score, 0);
+
+    logger.info(`${symbol} 1H因子 - 原始得分:${totalScore}/6, 加权得分:${(weightedScore * 100).toFixed(1)}%`);
 
     return {
       totalScore,
-      factors
+      weightedScore,  // 新增：加权得分（0-1之间）
+      factors,
+      category: categoryInfo.name
     };
   }
 
@@ -1043,14 +1650,15 @@ class V3Strategy {
    * @param {number} fundingRate - 资金费率
    * @param {number} oiChange - 持仓量变化
    * @param {number} delta - Delta值
+   * @param {Object} macd - MACD Histogram（优化：新增）
    * @returns {Object} 评分结果
    */
-  calculate4HScore(currentPrice, ma20, ma50, ma200, adx, bbw, vwap, fundingRate, oiChange, delta) {
+  calculate4HScore(currentPrice, ma20, ma50, ma200, adx, bbw, vwap, fundingRate, oiChange, delta, macd = null) {
     const scores = {
       trendStability: 0,    // 趋势稳定性 (2分)
       trendStrength: 0,     // 趋势强度 (2分)
-      bbExpansion: 0,       // 布林带扩张 (2分)
-      momentumConfirmation: 0, // 动量确认 (2分)
+      macdMomentum: 0,      // MACD动能确认 (3分) - 优化：新增，权重增加
+      bbExpansion: 0,       // 布林带扩张 (1分) - 优化：权重降低
       volumeConfirmation: 0,   // 成交量确认 (1分)
       fundingConfirmation: 0   // 资金费率确认 (1分)
     };
@@ -1074,18 +1682,19 @@ class V3Strategy {
       scores.trendStrength = 1;
     }
 
-    // 3. 布林带扩张 (2分)
-    if (bbw.bbw > 0.02) {
-      scores.bbExpansion = 2; // 高波动
-    } else if (bbw.bbw > 0.01) {
-      scores.bbExpansion = 1; // 中等波动
+    // 3. MACD动能确认 (3分) - 优化：新增，用于减少假突破
+    if (macd && macd.histogram !== undefined) {
+      if (macd.trending && Math.abs(macd.histogram) > 0) {
+        scores.macdMomentum = 3; // MACD柱状图为正且持续上升
+        logger.info(`MACD动能强：histogram=${macd.histogram.toFixed(4)}`);
+      } else if (Math.abs(macd.histogram) > 0) {
+        scores.macdMomentum = 1; // 有动能但不强
+      }
     }
 
-    // 4. 动量确认 (2分)
-    if (currentPrice > vwap && oiChange > 0.02) {
-      scores.momentumConfirmation = 2; // 价格高于VWAP且持仓量增加
-    } else if (currentPrice > vwap || oiChange > 0.01) {
-      scores.momentumConfirmation = 1; // 部分确认
+    // 4. 布林带扩张 (1分) - 优化：权重降低，让位给MACD
+    if (bbw.bbw > 0.02) {
+      scores.bbExpansion = 1; // 高波动
     }
 
     // 5. 成交量确认 (1分)
@@ -1163,3 +1772,4 @@ class V3Strategy {
 }
 
 module.exports = V3Strategy;
+
