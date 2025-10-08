@@ -310,9 +310,9 @@ class SymbolTrendAnalyzer {
     else if (totalScore < 40) recommendation = 'caution';
 
     return {
-      4hTrend: Math.round(midScore / 10),
-      1hFactors: Math.round(shortScore / 10),
-      15mEntry: Math.round(totalScore / 20),
+      "4hTrend": Math.round(midScore / 10),
+      "1hFactors": Math.round(shortScore / 10),
+      "15mEntry": Math.round(totalScore / 20),
       totalScore,
       signalRecommendation: recommendation
     };
