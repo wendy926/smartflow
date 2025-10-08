@@ -1134,7 +1134,7 @@ class SmartFlowApp {
     const classifyToken = (symbol) => {
       const mainStreamTokens = ['BTCUSDT', 'ETHUSDT'];
       const highCapTokens = ['BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'DOTUSDT', 'LTCUSDT', 'TRXUSDT', 'BCHUSDT', 'ETCUSDT'];
-      const hotTokens = ['ONDOUSDT', 'PENDLEUSDT', 'MKRUSDT', 'LINKUSDT', 'LDOUSDT'];
+      const hotTokens = ['ONDOUSDT', 'PENDLEUSDT', 'MKRUSDT', 'LINKUSDT', 'LDOUSDT', 'SUIUSDT'];
 
       if (mainStreamTokens.includes(symbol)) return 'MAIN_STREAM';
       if (highCapTokens.includes(symbol)) return 'HIGH_CAP';

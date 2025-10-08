@@ -30,7 +30,7 @@ const TOKEN_CATEGORIES = {
   // 热点币（Trending）
   HOT: {
     name: '热点币',
-    symbols: ['PEPEUSDT', 'APTUSDT', 'PENDLEUSDT', 'LINKUSDT', 'MKRUSDT'],
+    symbols: ['PEPEUSDT', 'APTUSDT', 'PENDLEUSDT', 'LINKUSDT', 'MKRUSDT', 'SUIUSDT'],
     marketCapMin: 100000000, // 1亿美元以上
     marketCapMax: 5000000000, // 50亿美元以下
     description: '热点/中等市值币'
