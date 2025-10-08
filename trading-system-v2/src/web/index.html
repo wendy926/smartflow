@@ -291,7 +291,7 @@
             </div>
             <div class="card-content">
               <div class="macro-cards-grid">
-                <!-- 资金流监控卡片 -->
+                <!-- 资金流监控链接 -->
                 <div class="macro-card" id="fundFlowCard">
                   <div class="macro-card-header">
                     <div class="macro-card-icon">
@@ -299,20 +299,18 @@
                     </div>
                     <div class="macro-card-title">
                       <h4>资金流监控</h4>
-                      <span class="macro-card-subtitle">链上大额资金流</span>
+                      <span class="macro-card-subtitle">链上大额资金流 & 市场数据</span>
                     </div>
                   </div>
                   <div class="macro-card-content">
-                    <div class="macro-metric">
-                      <span class="macro-metric-label">BTC大额交易</span>
-                      <span class="macro-metric-value" id="btcLargeTx">--</span>
-                    </div>
-                    <div class="macro-metric">
-                      <span class="macro-metric-label">ETH大额转账</span>
-                      <span class="macro-metric-value" id="ethLargeTx">--</span>
-                    </div>
-                    <div class="macro-status" id="fundFlowStatus">
-                      <span class="status-indicator status-normal">正常</span>
+                    <div class="macro-metric" style="flex-direction: column; align-items: center; padding: 20px 0;">
+                      <a href="https://www.coinglass.com/zh" target="_blank" class="external-link-button" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>访问 CoinGlass 数据平台</span>
+                      </a>
+                      <p style="margin-top: 12px; font-size: 13px; color: #6c757d; text-align: center;">
+                        查看实时资金费率、爆仓数据、持仓量等市场指标
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -343,7 +341,7 @@
                   </div>
                 </div>
 
-                <!-- 合约市场监控卡片 -->
+                <!-- 合约市场监控链接 -->
                 <div class="macro-card" id="futuresCard">
                   <div class="macro-card-header">
                     <div class="macro-card-icon">
@@ -351,24 +349,18 @@
                     </div>
                     <div class="macro-card-title">
                       <h4>合约市场</h4>
-                      <span class="macro-card-subtitle">多空比 & 资金费率</span>
+                      <span class="macro-card-subtitle">多空比 & 资金费率 & 爆仓数据</span>
                     </div>
                   </div>
                   <div class="macro-card-content">
-                    <div class="macro-metric">
-                      <span class="macro-metric-label">多空比</span>
-                      <span class="macro-metric-value" id="longShortRatio">--</span>
-                    </div>
-                    <div class="macro-metric">
-                      <span class="macro-metric-label">资金费率</span>
-                      <span class="macro-metric-value" id="fundingRate">--</span>
-                    </div>
-                    <div class="macro-metric">
-                      <span class="macro-metric-label">未平仓合约 (4H对比)</span>
-                      <span class="macro-metric-value" id="openInterest">--</span>
-                    </div>
-                    <div class="macro-status" id="futuresStatus">
-                      <span class="status-indicator status-normal">正常</span>
+                    <div class="macro-metric" style="flex-direction: column; align-items: center; padding: 20px 0;">
+                      <a href="https://www.coinglass.com/zh" target="_blank" class="external-link-button" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>访问 CoinGlass 数据平台</span>
+                      </a>
+                      <p style="margin-top: 12px; font-size: 13px; color: #6c757d; text-align: center;">
+                        查看实时多空比、资金费率、爆仓数据、持仓量等合约市场指标
+                      </p>
                     </div>
                   </div>
                 </div>

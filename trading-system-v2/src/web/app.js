@@ -498,52 +498,24 @@ class SmartFlowApp {
    * 更新宏观监控卡片
    */
   updateMacroCards(data) {
-    // 更新资金流监控卡片
-    this.updateFundFlowCard(data.fundFlow);
+    // 资金流监控已改为外部链接，不再更新数据
 
     // 更新市场情绪卡片
     this.updateSentimentCard(data.sentiment);
 
-    // 更新合约市场卡片
-    this.updateFuturesCard(data.futures);
+    // 合约市场已改为外部链接，不再更新数据
 
     // 更新宏观指标卡片
     this.updateMacroCard(data.macro);
   }
 
   /**
-   * 更新资金流监控卡片
+   * 更新资金流监控卡片（已废弃，改用CoinGlass外部链接）
    */
   updateFundFlowCard(fundFlowData) {
-    const btcElement = document.getElementById('btcLargeTx');
-    const ethElement = document.getElementById('ethLargeTx');
-    const statusElement = document.getElementById('fundFlowStatus');
-
-    if (fundFlowData.latest && fundFlowData.latest.length > 0) {
-      // 获取最新的BTC和ETH数据
-      const btcData = fundFlowData.latest.find(item => item.metric_name === 'BTC大额交易');
-      const ethData = fundFlowData.latest.find(item => item.metric_name === 'ETH大额转账');
-
-      if (btcData) {
-        btcElement.textContent = `$${parseFloat(btcData.metric_value).toLocaleString()}`;
-      }
-
-      if (ethData) {
-        ethElement.textContent = `${parseFloat(ethData.metric_value).toFixed(2)} ETH`;
-      }
-
-      // 检查告警状态
-      const hasAlerts = fundFlowData.latest.some(item => item.alert_level === 'CRITICAL');
-      if (hasAlerts) {
-        statusElement.innerHTML = '<span class="status-indicator status-critical">告警</span>';
-      } else {
-        statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
-      }
-    } else {
-      btcElement.textContent = '无异常';
-      ethElement.textContent = '无异常';
-      statusElement.innerHTML = '<span class="status-indicator status-normal">无异常</span>';
-    }
+    // 资金流监控已改为外部链接到CoinGlass，不再更新数据
+    // 保留此方法以避免代码报错
+    return;
   }
 
   /**
@@ -577,85 +549,12 @@ class SmartFlowApp {
   }
 
   /**
-   * 更新合约市场卡片
+   * 更新合约市场卡片（已废弃，改用CoinGlass外部链接）
    */
   updateFuturesCard(futuresData) {
-    const ratioElement = document.getElementById('longShortRatio');
-    const fundingElement = document.getElementById('fundingRate');
-    const openInterestElement = document.getElementById('openInterest');
-    const statusElement = document.getElementById('futuresStatus');
-
-    if (futuresData.latest && futuresData.latest.length > 0) {
-      // 获取最新的多空比、资金费率和未平仓合约数据
-      // 优先展示Binance的多空比数据
-      const ratioData = futuresData.latest.find(item =>
-        item.metric_name === '多空比' && item.source === 'Binance'
-      ) || futuresData.latest.find(item => item.metric_name === '多空比');
-
-      // 优先展示Binance的资金费率数据
-      const fundingData = futuresData.latest.find(item =>
-        item.metric_name === '资金费率' && item.source === 'Binance'
-      ) || futuresData.latest.find(item => item.metric_name === '资金费率');
-
-      // 优先展示Binance的未平仓合约数据
-      const openInterestData = futuresData.latest.find(item =>
-        item.metric_name === '未平仓合约' && item.source === 'Binance'
-      ) || futuresData.latest.find(item => item.metric_name === '未平仓合约');
-
-      if (ratioData) {
-        const ratio = parseFloat(ratioData.metric_value);
-        const source = ratioData.source || 'Unknown';
-        ratioElement.textContent = `${ratio.toFixed(2)}:1`;
-        // 添加数据来源提示
-        ratioElement.title = `数据来源: ${source}`;
-      } else {
-        ratioElement.textContent = '--';
-        ratioElement.title = '';
-      }
-
-      if (fundingData) {
-        const rate = parseFloat(fundingData.metric_value) * 100;
-        const source = fundingData.source || 'Unknown';
-        fundingElement.textContent = `${rate.toFixed(4)}%`;
-        fundingElement.title = `数据来源: ${source}`;
-      } else {
-        fundingElement.textContent = '--';
-        fundingElement.title = '';
-      }
-
-      if (openInterestData) {
-        const oi = parseFloat(openInterestData.metric_value);
-        const rawData = openInterestData.raw_data;
-        let oiDisplay = `$${oi.toLocaleString()}`;
-
-        // 添加涨跌百分比显示
-        if (rawData && rawData.oiChangePercent !== undefined) {
-          const changePercent = parseFloat(rawData.oiChangePercent);
-          const changeIcon = changePercent >= 0 ? '↗️' : '↘️';
-          const changeColor = changePercent >= 0 ? '#00C851' : '#FF4444';
-          oiDisplay += ` <span style="color: ${changeColor}; font-size: 0.9em;">${changeIcon} ${changePercent.toFixed(2)}%</span>`;
-        }
-
-        const source = openInterestData.source || 'Unknown';
-        openInterestElement.innerHTML = oiDisplay;
-        openInterestElement.title = `数据来源: ${source}`;
-      } else {
-        openInterestElement.textContent = '--';
-      }
-
-      // 检查告警状态
-      const hasAlerts = futuresData.latest.some(item => item.alert_level === 'WARNING' || item.alert_level === 'CRITICAL');
-      if (hasAlerts) {
-        statusElement.innerHTML = '<span class="status-indicator status-warning">告警</span>';
-      } else {
-        statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
-      }
-    } else {
-      ratioElement.textContent = '--';
-      fundingElement.textContent = '--';
-      openInterestElement.textContent = '--';
-      statusElement.innerHTML = '<span class="status-indicator status-normal">正常</span>';
-    }
+    // 合约市场已改为外部链接到CoinGlass，不再更新数据
+    // 保留此方法以避免代码报错
+    return;
   }
 
   /**
