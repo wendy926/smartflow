@@ -1166,7 +1166,7 @@ class ICTStrategy {
       // 计算数值置信度（基于谐波形态和吞没形态强度）
       const harmonicScoreForConfidence = harmonicPattern.detected ? harmonicPattern.score : 0;
       const engulfStrength = engulfing.detected ? (engulfing.strength || 0) : 0;
-      const numericConfidence = Math.min(harmonicScoreForConfidence * 0.6 + engulfStrength * 0.4, 1);
+      numericConfidence = Math.min(harmonicScoreForConfidence * 0.6 + engulfStrength * 0.4, 1);
 
       // 生成信号（按照ict-plus.md综合评分系统）
       const signal = dailyTrend.trend === 'UP' ? 'BUY' : 'SELL';
