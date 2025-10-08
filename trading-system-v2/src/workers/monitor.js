@@ -6,6 +6,7 @@
 const os = require('os');
 const logger = require('../utils/logger');
 const config = require('../config');
+const TelegramMonitoringService = require('../services/telegram-monitoring');
 
 class SystemMonitor {
   constructor() {
@@ -13,6 +14,9 @@ class SystemMonitor {
     this.monitorInterval = 30 * 1000; // 30秒检查一次
     this.cpuThreshold = 60; // CPU使用率阈值
     this.memoryThreshold = 60; // 内存使用率阈值
+    this.telegramService = new TelegramMonitoringService(); // Telegram通知服务
+    this.alertCooldown = new Map(); // 告警冷却
+    this.cooldownPeriod = 300000; // 5分钟冷却期
   }
 
   async start() {
@@ -43,10 +47,34 @@ class SystemMonitor {
     // 检查是否超过阈值
     if (cpuUsage > this.cpuThreshold) {
       logger.warn(`CPU使用率过高: ${cpuUsage.toFixed(2)}% > ${this.cpuThreshold}%`);
+      await this.sendAlert('CPU_HIGH', `CPU使用率过高: ${cpuUsage.toFixed(2)}%`, { cpu: cpuUsage, threshold: this.cpuThreshold });
     }
 
     if (memoryUsage > this.memoryThreshold) {
       logger.warn(`内存使用率过高: ${memoryUsage.toFixed(2)}% > ${this.memoryThreshold}%`);
+      await this.sendAlert('MEMORY_HIGH', `内存使用率过高: ${memoryUsage.toFixed(2)}%`, { memory: memoryUsage, threshold: this.memoryThreshold });
+    }
+  }
+
+  /**
+   * 发送告警（带冷却机制）
+   */
+  async sendAlert(type, message, data = {}) {
+    const now = Date.now();
+    const lastSent = this.alertCooldown.get(type);
+    
+    // 检查冷却期
+    if (lastSent && (now - lastSent) < this.cooldownPeriod) {
+      logger.debug(`告警类型 ${type} 在冷却期内，跳过发送`);
+      return;
+    }
+
+    try {
+      await this.telegramService.sendMonitoringAlert(type, message, data);
+      this.alertCooldown.set(type, now);
+      logger.info(`系统监控Telegram告警已发送: ${type}`);
+    } catch (error) {
+      logger.error(`发送系统监控Telegram告警失败: ${error.message}`);
     }
   }
 

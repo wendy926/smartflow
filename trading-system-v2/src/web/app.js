@@ -211,19 +211,7 @@ class SmartFlowApp {
       });
     }
 
-    const saveMacroTelegramBtn = document.getElementById('saveMacroTelegramBtn');
-    if (saveMacroTelegramBtn) {
-      saveMacroTelegramBtn.addEventListener('click', () => {
-        saveMacroTelegramSettings();
-      });
-    }
-
-    const testMacroTelegramBtn = document.getElementById('testMacroTelegramBtn');
-    if (testMacroTelegramBtn) {
-      testMacroTelegramBtn.addEventListener('click', () => {
-        testMacroTelegram();
-      });
-    }
+    // 宏观数据监控告警已移除
 
     // API测试按钮
     const runAllAPITestsBtn = document.getElementById('runAllAPITestsBtn');
@@ -4103,69 +4091,7 @@ async function testMonitoringTelegram() {
   }
 }
 
-// 保存宏观监控Telegram设置
-async function saveMacroTelegramSettings() {
-  const botToken = document.getElementById('macroTelegramBotToken').value;
-  const chatId = document.getElementById('macroTelegramChatId').value;
-  const btcThreshold = document.getElementById('btcThreshold').value;
-  const ethThreshold = document.getElementById('ethThreshold').value;
-  const fearGreedLow = document.getElementById('fearGreedLow').value;
-  const fearGreedHigh = document.getElementById('fearGreedHigh').value;
-
-  if (!botToken || !chatId) {
-    alert('请填写完整的宏观监控Telegram配置信息');
-    return;
-  }
-
-  try {
-    const response = await fetch('/api/v1/telegram/macro-config', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        botToken,
-        chatId,
-        btcThreshold: parseFloat(btcThreshold) || 10000000,
-        ethThreshold: parseFloat(ethThreshold) || 1000,
-        fearGreedLow: parseFloat(fearGreedLow) || 20,
-        fearGreedHigh: parseFloat(fearGreedHigh) || 80
-      })
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      alert('宏观监控Telegram设置保存成功');
-      loadTelegramStatus();
-    } else {
-      alert('保存失败: ' + result.error);
-    }
-  } catch (error) {
-    console.error('保存宏观监控Telegram设置失败:', error);
-    alert('保存失败: ' + error.message);
-  }
-}
-
-// 测试宏观监控Telegram
-async function testMacroTelegram() {
-  try {
-    const response = await fetch('/api/v1/telegram/test-macro', {
-      method: 'POST'
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      alert('宏观监控Telegram测试成功！请检查Telegram消息。');
-    } else {
-      alert('测试失败: ' + result.error);
-    }
-  } catch (error) {
-    console.error('测试宏观监控Telegram失败:', error);
-    alert('测试失败: ' + error.message);
-  }
-}
+// 宏观数据监控告警已移除（已改用CoinGlass外部链接）
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', () => {
