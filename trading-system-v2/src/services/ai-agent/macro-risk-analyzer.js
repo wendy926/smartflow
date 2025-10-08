@@ -5,15 +5,15 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const ClaudeClient = require('./claude-client');
+const OpenAIClient = require('./openai-client');
 const logger = require('../../utils/logger');
 
 /**
  * 宏观风险分析器类
  */
 class MacroRiskAnalyzer {
-  constructor(claudeClient, aiOperations) {
-    this.claudeClient = claudeClient;
+  constructor(openaiClient, aiOperations) {
+    this.openaiClient = openaiClient;
     this.aiOps = aiOperations;
     this.promptTemplate = null;
   }
@@ -64,7 +64,7 @@ class MacroRiskAnalyzer {
    */
   async analyzeSymbolRisk(symbol, marketData = {}) {
     const startTime = Date.now();
-    logger.info(`开始分析 ${symbol} 的宏观风险`);
+      logger.info(`开始分析 ${symbol} 的宏观风险`);
 
     try {
       // 加载Prompt模板
@@ -73,15 +73,15 @@ class MacroRiskAnalyzer {
       // 构建用户Prompt
       const userPrompt = this.buildUserPrompt(symbol, marketData);
 
-      // 调用Claude API
-      const result = await this.claudeClient.analyze(
+      // 调用OpenAI API
+      const result = await this.openaiClient.analyze(
         userPrompt,
         promptTemplate,
         { maxTokens: 4000 }
       );
 
       if (!result.success) {
-        throw new Error(result.error || 'Claude API调用失败');
+        throw new Error(result.error || 'OpenAI API调用失败');
       }
 
       // 解析AI响应

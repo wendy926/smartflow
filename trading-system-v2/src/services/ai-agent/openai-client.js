@@ -1,20 +1,19 @@
 /**
- * Claude API客户端
- * 负责与Claude API的通信
+ * OpenAI API客户端
+ * 负责与OpenAI API的通信（ChatGPT）
  */
 
-const axios = require('axios');
 const logger = require('../../utils/logger');
 const encryption = require('../../utils/encryption');
 
 /**
- * Claude客户端类
+ * OpenAI客户端类
  */
-class ClaudeClient {
+class OpenAIClient {
   constructor(config = {}) {
     this.apiKey = config.apiKey || '';
-    this.proxyUrl = config.proxyUrl || 'https://api.anthropic.com';
-    this.model = config.model || 'claude-3-5-sonnet-20241022';
+    this.baseURL = config.baseURL || 'https://api.openai.com/v1';
+    this.model = config.model || 'gpt-4o-mini';
     this.maxTokens = config.maxTokens || 4000;
     this.temperature = config.temperature || 0.3;
     this.timeout = config.timeout || 60000; // 60秒超时
@@ -36,31 +35,31 @@ class ClaudeClient {
   async initialize(dbConfig) {
     try {
       // 从配置中提取和解密API Key
-      if (dbConfig.claude_api_key) {
+      if (dbConfig.openai_api_key) {
         try {
-          this.apiKey = encryption.decrypt(dbConfig.claude_api_key);
+          this.apiKey = encryption.decrypt(dbConfig.openai_api_key);
         } catch (error) {
-          logger.error('解密Claude API Key失败:', error);
-          this.apiKey = dbConfig.claude_api_key; // 如果解密失败，尝试直接使用
+          logger.error('解密OpenAI API Key失败:', error);
+          this.apiKey = dbConfig.openai_api_key; // 如果解密失败，尝试直接使用
         }
       }
 
       // 设置其他配置
-      this.proxyUrl = dbConfig.claude_api_proxy || this.proxyUrl;
-      this.model = dbConfig.claude_model || this.model;
-      this.maxTokens = parseInt(dbConfig.claude_max_tokens) || this.maxTokens;
-      this.temperature = parseFloat(dbConfig.claude_temperature) || this.temperature;
+      this.baseURL = dbConfig.openai_base_url || this.baseURL;
+      this.model = dbConfig.openai_model || this.model;
+      this.maxTokens = parseInt(dbConfig.openai_max_tokens) || this.maxTokens;
+      this.temperature = parseFloat(dbConfig.openai_temperature) || this.temperature;
 
-      logger.info(`Claude客户端初始化成功 - 模型: ${this.model}, Proxy: ${this.proxyUrl}`);
+      logger.info(`OpenAI客户端初始化成功 - 模型: ${this.model}, BaseURL: ${this.baseURL}`);
       return true;
     } catch (error) {
-      logger.error('Claude客户端初始化失败:', error);
+      logger.error('OpenAI客户端初始化失败:', error);
       return false;
     }
   }
 
   /**
-   * 发送分析请求到Claude API
+   * 发送分析请求到OpenAI API
    * @param {string} userPrompt - 用户提示词
    * @param {string} systemPrompt - 系统提示词
    * @param {Object} options - 可选参数
@@ -73,43 +72,48 @@ class ClaudeClient {
     try {
       // 验证API Key
       if (!this.apiKey) {
-        throw new Error('Claude API Key未配置');
+        throw new Error('OpenAI API Key未配置');
       }
 
-      // 构建请求体
-      const requestBody = {
-        model: options.model || this.model,
-        max_tokens: options.maxTokens || this.maxTokens,
-        temperature: options.temperature || this.temperature,
-        messages: [
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ]
-      };
+      // 动态导入OpenAI SDK
+      const OpenAI = require('openai');
+      const openai = new OpenAI({
+        apiKey: this.apiKey,
+        baseURL: this.baseURL,
+        timeout: options.timeout || this.timeout
+      });
 
-      // 如果有系统提示词，添加到消息开头
+      // 构建消息数组
+      const messages = [];
+      
+      // 添加系统提示词
       if (systemPrompt) {
-        requestBody.system = systemPrompt;
+        messages.push({
+          role: 'system',
+          content: systemPrompt
+        });
       }
 
-      logger.info(`发送Claude API请求 - 模型: ${requestBody.model}`);
+      // 添加用户提示词
+      messages.push({
+        role: 'user',
+        content: userPrompt
+      });
+
+      const model = options.model || this.model;
+      const maxTokens = options.maxTokens || this.maxTokens;
+      const temperature = options.temperature || this.temperature;
+
+      logger.info(`发送OpenAI API请求 - 模型: ${model}`);
       logger.debug(`用户提示词长度: ${userPrompt.length}字符`);
 
-      // 发送HTTP请求
-      const response = await axios.post(
-        `${this.proxyUrl}/v1/messages`,
-        requestBody,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': this.apiKey,
-            'anthropic-version': '2023-06-01'
-          },
-          timeout: options.timeout || this.timeout
-        }
-      );
+      // 调用OpenAI Chat Completion API
+      const response = await openai.chat.completions.create({
+        model: model,
+        messages: messages,
+        max_tokens: maxTokens,
+        temperature: temperature
+      });
 
       // 计算响应时间
       const responseTime = Date.now() - startTime;
@@ -117,20 +121,20 @@ class ClaudeClient {
       this.stats.totalResponseTime += responseTime;
 
       // 提取响应内容
-      const content = response.data.content?.[0]?.text || '';
-      const tokensUsed = response.data.usage?.input_tokens + response.data.usage?.output_tokens || 0;
+      const content = response.choices?.[0]?.message?.content || '';
+      const tokensUsed = response.usage?.total_tokens || 0;
       this.stats.totalTokens += tokensUsed;
 
-      logger.info(`Claude API响应成功 - 耗时: ${responseTime}ms, Token: ${tokensUsed}`);
+      logger.info(`OpenAI API响应成功 - 耗时: ${responseTime}ms, Token: ${tokensUsed}`);
 
       return {
         success: true,
         content,
         tokensUsed,
         responseTime,
-        model: response.data.model,
-        stopReason: response.data.stop_reason,
-        rawResponse: response.data
+        model: response.model,
+        finishReason: response.choices?.[0]?.finish_reason,
+        rawResponse: response
       };
 
     } catch (error) {
@@ -144,23 +148,22 @@ class ClaudeClient {
       if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
         errorType = 'TIMEOUT';
         errorMessage = `请求超时 (${this.timeout}ms)`;
-      } else if (error.response) {
-        // API返回错误
-        const status = error.response.status;
-        const data = error.response.data;
+      } else if (error.status) {
+        // OpenAI SDK错误
+        const status = error.status;
         
         if (status === 401) {
           errorMessage = 'API Key无效或已过期';
         } else if (status === 429) {
           errorMessage = 'API请求频率超限';
         } else if (status === 500) {
-          errorMessage = 'Claude API服务器错误';
+          errorMessage = 'OpenAI API服务器错误';
         } else {
-          errorMessage = data?.error?.message || `API错误 (${status})`;
+          errorMessage = error.message || `API错误 (${status})`;
         }
       }
 
-      logger.error(`Claude API请求失败 - ${errorType}: ${errorMessage}`);
+      logger.error(`OpenAI API请求失败 - ${errorType}: ${errorMessage}`);
 
       return {
         success: false,
@@ -185,7 +188,7 @@ class ClaudeClient {
       );
       return result.success;
     } catch (error) {
-      logger.error('Claude健康检查失败:', error);
+      logger.error('OpenAI健康检查失败:', error);
       return false;
     }
   }
@@ -227,7 +230,7 @@ class ClaudeClient {
       totalTokens: 0,
       totalResponseTime: 0
     };
-    logger.info('Claude客户端统计已重置');
+    logger.info('OpenAI客户端统计已重置');
   }
 
   /**
@@ -239,5 +242,5 @@ class ClaudeClient {
   }
 }
 
-module.exports = ClaudeClient;
+module.exports = OpenAIClient;
 

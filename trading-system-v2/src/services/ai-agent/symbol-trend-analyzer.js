@@ -5,15 +5,15 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const ClaudeClient = require('./claude-client');
+const OpenAIClient = require('./openai-client');
 const logger = require('../../utils/logger');
 
 /**
  * 交易对趋势分析器类
  */
 class SymbolTrendAnalyzer {
-  constructor(claudeClient, aiOperations) {
-    this.claudeClient = claudeClient;
+  constructor(openaiClient, aiOperations) {
+    this.openaiClient = openaiClient;
     this.aiOps = aiOperations;
     this.promptTemplate = null;
     this.analysisCache = new Map(); // 内存缓存
@@ -80,15 +80,15 @@ class SymbolTrendAnalyzer {
       // 构建用户Prompt
       const userPrompt = this.buildUserPrompt(symbol, strategyData);
 
-      // 调用Claude API
-      const result = await this.claudeClient.analyze(
+      // 调用OpenAI API
+      const result = await this.openaiClient.analyze(
         userPrompt,
         promptTemplate,
         { maxTokens: 3000 }
       );
 
       if (!result.success) {
-        throw new Error(result.error || 'Claude API调用失败');
+        throw new Error(result.error || 'OpenAI API调用失败');
       }
 
       // 解析AI响应
