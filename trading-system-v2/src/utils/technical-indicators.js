@@ -507,6 +507,52 @@ class TechnicalIndicators {
 
     return { isSweep: false, type: null, level: null };
   }
+
+  /**
+   * 计算布林带 (Bollinger Bands)
+   * @param {Array} prices - 收盘价数组
+   * @param {number} period - 周期（默认20）
+   * @param {number} stdDev - 标准差倍数（默认2）
+   * @returns {Array} 布林带数组 [{upper, middle, lower, bandwidth}]
+   */
+  static calculateBollingerBands(prices, period = 20, stdDev = 2) {
+    if (!prices || prices.length < period) {
+      return [];
+    }
+
+    const result = [];
+    
+    for (let i = 0; i < prices.length; i++) {
+      if (i < period - 1) {
+        result.push({ upper: null, middle: null, lower: null, bandwidth: null });
+        continue;
+      }
+
+      // 计算移动平均（中轨）
+      const slice = prices.slice(i - period + 1, i + 1);
+      const sma = slice.reduce((sum, p) => sum + p, 0) / period;
+
+      // 计算标准差
+      const variance = slice.reduce((sum, p) => sum + Math.pow(p - sma, 2), 0) / period;
+      const std = Math.sqrt(variance);
+
+      // 计算上下轨
+      const upper = sma + stdDev * std;
+      const lower = sma - stdDev * std;
+
+      // 计算带宽
+      const bandwidth = sma > 0 ? (upper - lower) / sma : 0;
+
+      result.push({
+        upper,
+        middle: sma,
+        lower,
+        bandwidth
+      });
+    }
+
+    return result;
+  }
 }
 
 module.exports = TechnicalIndicators;
