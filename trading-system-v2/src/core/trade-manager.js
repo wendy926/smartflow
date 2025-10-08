@@ -5,12 +5,14 @@
 
 const logger = require('../utils/logger');
 const dbOps = require('../database/operations');
+const TelegramMonitoringService = require('../services/telegram-monitoring');
 
 class TradeManager {
   constructor() {
     this.activeTrades = new Map(); // 存储活跃交易
     this.tradeCooldowns = new Map(); // 存储交易冷却时间
     this.minCooldownMinutes = 5; // 最小冷却时间（分钟）
+    this.telegramService = new TelegramMonitoringService(); // Telegram通知服务
   }
 
   /**
@@ -105,6 +107,15 @@ class TradeManager {
         this.activeTrades.set(result.id, trade);
 
         logger.info(`模拟交易创建成功: ${symbol} ${strategy_type} ID: ${result.id}`);
+
+        // 发送Telegram交易触发通知
+        try {
+          await this.telegramService.sendTradingAlert(trade);
+          logger.info(`Telegram交易通知已发送: ${symbol} ${strategy_type}`);
+        } catch (telegramError) {
+          logger.error(`发送Telegram交易通知失败: ${telegramError.message}`);
+          // 不影响交易创建，继续执行
+        }
 
         return {
           success: true,
