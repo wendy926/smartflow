@@ -74,7 +74,9 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public  # 注释掉，允许src/web/public目录
+# 但排除Gatsby的public目录
+/public
 
 # Storybook build outputs
 .out
