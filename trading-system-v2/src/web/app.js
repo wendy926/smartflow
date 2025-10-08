@@ -113,11 +113,17 @@ class SmartFlowApp {
       });
     }
 
-    // 信号筛选器
+    // 信号筛选器（使用缓存数据，客户端筛选）
     const signalFilterSelect = document.getElementById('signalFilter');
     if (signalFilterSelect) {
       signalFilterSelect.addEventListener('change', () => {
-        this.loadStrategyCurrentStatus();
+        // 使用缓存的数据进行客户端筛选，无需重新请求API
+        if (this.cachedStatusData && this.cachedTradesData) {
+          this.updateStrategyStatusTable(this.cachedStatusData, this.cachedTradesData);
+        } else {
+          // 如果没有缓存数据，则加载
+          this.loadStrategyCurrentStatus();
+        }
       });
     }
 
@@ -1043,6 +1049,10 @@ class SmartFlowApp {
       const tradesResponse = await this.fetchData('/trades?limit=100');
       const tradesData = tradesResponse.data || [];
 
+      // 缓存原始数据，用于客户端筛选
+      this.cachedStatusData = statusData;
+      this.cachedTradesData = tradesData;
+
       // 更新策略状态表格
       this.updateStrategyStatusTable(statusData, tradesData);
     } catch (error) {
@@ -1076,22 +1086,22 @@ class SmartFlowApp {
 
     // 获取信号筛选条件
     const signalFilter = document.getElementById('signalFilter')?.value || 'all';
-    
+
     // 应用信号筛选
     let filteredData = statusData;
     if (signalFilter !== 'all') {
       filteredData = statusData.filter(item => {
         const v3Signal = item.v3?.signal || 'HOLD';
         const ictSignal = item.ict?.signal || 'HOLD';
-        
+
         if (signalFilter === 'entry') {
           // 入场信号：BUY或SELL
-          return v3Signal === 'BUY' || v3Signal === 'SELL' || 
-                 ictSignal === 'BUY' || ictSignal === 'SELL';
+          return v3Signal === 'BUY' || v3Signal === 'SELL' ||
+            ictSignal === 'BUY' || ictSignal === 'SELL';
         } else if (signalFilter === 'watch') {
           // 观望信号：WATCH或HOLD
-          return (v3Signal === 'WATCH' || v3Signal === 'HOLD') && 
-                 (ictSignal === 'WATCH' || ictSignal === 'HOLD');
+          return (v3Signal === 'WATCH' || v3Signal === 'HOLD') &&
+            (ictSignal === 'WATCH' || ictSignal === 'HOLD');
         }
         return true;
       });
