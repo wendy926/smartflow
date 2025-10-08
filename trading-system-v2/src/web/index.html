@@ -1582,23 +1582,25 @@
                     style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">最新</span>
                 </div>
                 <div class="doc-content">
-                  
+
                   <h4>🚀 系统架构优化</h4>
-                  
+
                   <div class="fix-item"
                     style="background: #e7f3ff; border-left: 4px solid #0066cc; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>1. 宏观监控模块优化 ✅</h5>
                     <p><strong>优化内容：</strong>移除本地资金流和合约市场监控，改用专业数据平台</p>
-                    
+
                     <h6>变更详情：</h6>
                     <ul>
-                      <li>✅ <strong>资金流监控</strong>：改用 <a href="https://www.coinglass.com/zh" target="_blank">CoinGlass数据平台</a>
+                      <li>✅ <strong>资金流监控</strong>：改用 <a href="https://www.coinglass.com/zh"
+                          target="_blank">CoinGlass数据平台</a>
                         <ul>
                           <li>移除BTC/ETH大额交易本地监控</li>
                           <li>使用专业平台实时数据</li>
                         </ul>
                       </li>
-                      <li>✅ <strong>合约市场监控</strong>：改用 <a href="https://www.coinglass.com/zh" target="_blank">CoinGlass数据平台</a>
+                      <li>✅ <strong>合约市场监控</strong>：改用 <a href="https://www.coinglass.com/zh"
+                          target="_blank">CoinGlass数据平台</a>
                         <ul>
                           <li>移除多空比、资金费率、未平仓合约本地监控</li>
                           <li>访问CoinGlass查看更全面的合约数据</li>
@@ -1625,7 +1627,7 @@
                     style="background: #e7f3ff; border-left: 4px solid #0066cc; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>2. Telegram告警系统完善 ✅</h5>
                     <p><strong>功能增强：</strong>实现交易触发和系统监控的Telegram实时告警</p>
-                    
+
                     <h6>交易触发通知：</h6>
                     <ul>
                       <li>✅ <strong>自动通知</strong>：创建交易时自动发送Telegram通知</li>
@@ -1652,7 +1654,8 @@
                     </ol>
 
                     <h6>数据库表：</h6>
-                    <pre style="background: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; overflow-x: auto;">
+                    <pre
+                      style="background: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; overflow-x: auto;">
 CREATE TABLE telegram_config (
   id INT PRIMARY KEY AUTO_INCREMENT,
   config_type VARCHAR(50) NOT NULL,  -- 'trading' 或 'monitoring'
@@ -1669,41 +1672,42 @@ CREATE TABLE telegram_config (
                     style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>3. 低价币种ATR显示精度优化 ✅</h5>
                     <p><strong>问题：</strong>ONDOUSDT等低价币种（价格<1 USDT）的ATR值很小，保留2位小数显示为0.00</p>
-                    <p><strong>解决：</strong>实现动态精度显示</p>
-                    
-                    <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-                      <thead>
-                        <tr style="background: #f5f5f5;">
-                          <th style="padding: 8px; border: 1px solid #ddd;">币种</th>
-                          <th style="padding: 8px; border: 1px solid #ddd;">ATR原值</th>
-                          <th style="padding: 8px; border: 1px solid #ddd;">修复前</th>
-                          <th style="padding: 8px; border: 1px solid #ddd;">修复后</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td style="padding: 8px; border: 1px solid #ddd;">BTCUSDT</td>
-                          <td style="padding: 8px; border: 1px solid #ddd;">343.95</td>
-                          <td style="padding: 8px; border: 1px solid #ddd;">343.95 ✅</td>
-                          <td style="padding: 8px; border: 1px solid #ddd;">343.95 ✅</td>
-                        </tr>
-                        <tr>
-                          <td style="padding: 8px; border: 1px solid #ddd;">ONDOUSDT</td>
-                          <td style="padding: 8px; border: 1px solid #ddd;">0.004260</td>
-                          <td style="padding: 8px; border: 1px solid #ddd; color: #dc3545;">0.00 ❌</td>
-                          <td style="padding: 8px; border: 1px solid #ddd; color: #28a745;">0.0043 ✅</td>
-                        </tr>
-                        <tr>
-                          <td style="padding: 8px; border: 1px solid #ddd;">LDOUSDT</td>
-                          <td style="padding: 8px; border: 1px solid #ddd;">0.006754</td>
-                          <td style="padding: 8px; border: 1px solid #ddd; color: #ff9800;">0.01 ⚠️</td>
-                          <td style="padding: 8px; border: 1px solid #ddd; color: #28a745;">0.0068 ✅</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                        <p><strong>解决：</strong>实现动态精度显示</p>
 
-                    <p><strong>实现逻辑：</strong></p>
-                    <pre style="background: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                          <thead>
+                            <tr style="background: #f5f5f5;">
+                              <th style="padding: 8px; border: 1px solid #ddd;">币种</th>
+                              <th style="padding: 8px; border: 1px solid #ddd;">ATR原值</th>
+                              <th style="padding: 8px; border: 1px solid #ddd;">修复前</th>
+                              <th style="padding: 8px; border: 1px solid #ddd;">修复后</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td style="padding: 8px; border: 1px solid #ddd;">BTCUSDT</td>
+                              <td style="padding: 8px; border: 1px solid #ddd;">343.95</td>
+                              <td style="padding: 8px; border: 1px solid #ddd;">343.95 ✅</td>
+                              <td style="padding: 8px; border: 1px solid #ddd;">343.95 ✅</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px; border: 1px solid #ddd;">ONDOUSDT</td>
+                              <td style="padding: 8px; border: 1px solid #ddd;">0.004260</td>
+                              <td style="padding: 8px; border: 1px solid #ddd; color: #dc3545;">0.00 ❌</td>
+                              <td style="padding: 8px; border: 1px solid #ddd; color: #28a745;">0.0043 ✅</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px; border: 1px solid #ddd;">LDOUSDT</td>
+                              <td style="padding: 8px; border: 1px solid #ddd;">0.006754</td>
+                              <td style="padding: 8px; border: 1px solid #ddd; color: #ff9800;">0.01 ⚠️</td>
+                              <td style="padding: 8px; border: 1px solid #ddd; color: #28a745;">0.0068 ✅</td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        <p><strong>实现逻辑：</strong></p>
+                        <pre
+                          style="background: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; overflow-x: auto;">
 // ATR >= 1：保留2位小数（高价币）
 // ATR < 1：保留4位小数（低价币）
 ${atr >= 1 ? atr.toFixed(2) : atr.toFixed(4)}</pre>

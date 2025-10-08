@@ -9,6 +9,7 @@ const TradeManager = require('../core/trade-manager');
 const BinanceAPI = require('../api/binance-api');
 const logger = require('../utils/logger');
 const config = require('../config');
+const { getMaxLossAmount } = require('../api/routes/settings');
 
 class StrategyWorker {
   constructor() {
@@ -123,6 +124,23 @@ class StrategyWorker {
 
       const currentPrice = parseFloat(ticker.lastPrice);
 
+      // 计算止损止盈
+      const stopLoss = result.stopLoss !== undefined ? result.stopLoss : this.calculateStopLoss(currentPrice, result.signal);
+      const takeProfit = result.takeProfit !== undefined ? result.takeProfit : this.calculateTakeProfit(currentPrice, result.signal);
+
+      // 获取最大损失金额（从用户设置中获取）
+      const maxLossAmount = result.maxLossAmount || getMaxLossAmount();
+
+      // 计算仓位大小（基于止损距离和最大损失金额）
+      const quantity = this.calculatePositionSize(currentPrice, result.signal, stopLoss, maxLossAmount);
+
+      // 计算杠杆和保证金
+      const stopDistance = Math.abs(currentPrice - stopLoss);
+      const stopDistancePct = stopDistance / currentPrice;
+      const maxLeverage = Math.floor(1 / (stopDistancePct + 0.005)); // 加0.5%缓冲
+      const leverage = result.leverage || Math.min(maxLeverage, 20); // 最大20倍杠杆
+      const margin_used = result.margin || (quantity * currentPrice / leverage);
+
       // 创建交易数据
       const tradeData = {
         symbol,
@@ -130,11 +148,11 @@ class StrategyWorker {
         trade_type: result.signal, // 使用trade_type字段
         entry_price: currentPrice,
         entry_reason: result.reason || `${strategy}策略信号`,
-        quantity: this.calculatePositionSize(currentPrice, result.signal), // 使用quantity字段
-        leverage: result.leverage || 1.0,
-        margin_used: result.margin || (this.calculatePositionSize(currentPrice, result.signal) * currentPrice), // 使用margin_used字段
-        stop_loss: result.stopLoss !== undefined ? result.stopLoss : this.calculateStopLoss(currentPrice, result.signal),
-        take_profit: result.takeProfit !== undefined ? result.takeProfit : this.calculateTakeProfit(currentPrice, result.signal)
+        quantity: quantity, // 使用quantity字段
+        leverage: leverage,
+        margin_used: margin_used, // 使用margin_used字段
+        stop_loss: stopLoss,
+        take_profit: takeProfit
       };
 
       // 创建交易
@@ -153,12 +171,34 @@ class StrategyWorker {
    * 计算仓位大小
    * @param {number} price - 当前价格
    * @param {string} direction - 交易方向
+   * @param {number} stopLoss - 止损价格
+   * @param {number} maxLossAmount - 最大损失金额（USDT）
    * @returns {number} 仓位大小
    */
-  calculatePositionSize(price, direction) {
-    // 固定仓位大小，可以根据需要调整
-    const baseQuantity = 0.1; // 基础数量
-    return baseQuantity;
+  calculatePositionSize(price, direction, stopLoss, maxLossAmount = 50) {
+    if (!stopLoss || stopLoss <= 0) {
+      logger.warn('止损价格无效，使用默认仓位');
+      return 0.1; // 兜底默认值
+    }
+
+    // 计算止损距离（绝对值）
+    const stopDistance = Math.abs(price - stopLoss);
+
+    if (stopDistance === 0) {
+      logger.warn('止损距离为0，使用默认仓位');
+      return 0.1;
+    }
+
+    // 计算quantity：最大损失金额 / 止损距离
+    // 公式：quantity = maxLossAmount / (price × stopDistancePct)
+    //      = maxLossAmount / stopDistance
+    const quantity = maxLossAmount / stopDistance;
+
+    logger.info(`仓位计算: 价格=${price.toFixed(4)}, 止损=${stopLoss.toFixed(4)}, ` +
+      `止损距离=${stopDistance.toFixed(4)}, 最大损失=${maxLossAmount}U, ` +
+      `quantity=${quantity.toFixed(6)}`);
+
+    return quantity;
   }
 
   /**

@@ -25,7 +25,7 @@ class TelegramConfigOps {
       `;
 
       const result = await dbOps.executeQuery(sql, [configType, botToken, chatId]);
-      
+
       logger.info(`Telegram配置已保存: ${configType}`);
       return {
         success: true,
@@ -53,7 +53,7 @@ class TelegramConfigOps {
       `;
 
       const rows = await dbOps.executeQuery(sql, [configType]);
-      
+
       if (rows && rows.length > 0) {
         return {
           success: true,
@@ -87,7 +87,7 @@ class TelegramConfigOps {
       `;
 
       const rows = await dbOps.executeQuery(sql);
-      
+
       return {
         success: true,
         data: rows || []
@@ -115,7 +115,7 @@ class TelegramConfigOps {
       `;
 
       await dbOps.executeQuery(sql, [configType]);
-      
+
       logger.info(`Telegram配置已禁用: ${configType}`);
       return { success: true };
     } catch (error) {
@@ -139,7 +139,7 @@ class TelegramConfigOps {
       `;
 
       await dbOps.executeQuery(sql, [configType]);
-      
+
       logger.info(`Telegram配置已删除: ${configType}`);
       return { success: true };
     } catch (error) {

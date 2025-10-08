@@ -256,7 +256,7 @@ class RollingStrategy {
       // 处理参数：如果第一个参数是对象，则直接使用；否则使用第二个参数
       const actualParams = typeof symbolOrParams === 'object' ? symbolOrParams : (params || {});
 
-      console.log(`Rolling execute called with params=`, actualParams);
+      logger.debug(`Rolling execute called with params=`, actualParams);
 
       const {
         principal = 1000,
@@ -278,7 +278,7 @@ class RollingStrategy {
       const triggered = this.checkRollingTrigger(floatingProfit, actualPrincipal, triggerRatio);
 
       // 调试信息
-      console.log(`Rolling debug: currentPrice=${currentPrice}, entryPrice=${entryPrice}, principal=${principal}, floatingProfit=${floatingProfit}, triggered=${triggered}`);
+      logger.debug(`Rolling debug: currentPrice=${currentPrice}, entryPrice=${entryPrice}, principal=${principal}, floatingProfit=${floatingProfit}, triggered=${triggered}`);
 
       if (triggered) {
         // 执行滚仓模拟

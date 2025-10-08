@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartFlow 交易策略系统 - 最新优化文档</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .docs-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .update-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+
+    .fix-item {
+      background: #f8f9fa;
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .optimization-item {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .strategy-detail {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .code-block {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+      overflow-x: auto;
+    }
+
+    .highlight {
+      background: #fff3cd;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .status-fixed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-optimized {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .status-new {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 250px;
+      height: 100vh;
+      background: #2c3e50;
+      color: white;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    .main-content {
+      margin-left: 270px;
+      padding: 20px;
+    }
+
+    .sidebar h3 {
+      color: #ecf0f1;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar li {
+      margin: 5px 0;
+    }
+
+    .sidebar a {
+      color: #bdc3c7;
+      text-decoration: none;
+      display: block;
+      padding: 5px 0;
+      transition: color 0.3s;
+    }
+
+    .sidebar a:hover {
+      color: #3498db;
+    }
+
+    .strategy-section {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .technical-details {
+      background: #e8f4f8;
+      border-left: 4px solid #17a2b8;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sidebar">
+    <h2><i class="fas fa-book"></i> 文档目录</h2>
+
+    <h3>最新更新</h3>
+    <ul>
+      <li><a href="#latest-fixes">最新修复</a></li>
+      <li><a href="#strategy-optimizations">策略优化</a></li>
+      <li><a href="#technical-details">技术细节</a></li>
+    </ul>
+
+    <h3>策略说明</h3>
+    <ul>
+      <li><a href="#v3-strategy">V3多因子趋势策略</a></li>
+      <li><a href="#ict-strategy">ICT订单块策略</a></li>
+      <li><a href="#timeframe-comparison">时间框架对比</a></li>
+      <li><a href="#harmonic-patterns">谐波形态检测</a></li>
+    </ul>
+
+    <h3>系统架构</h3>
+    <ul>
+      <li><a href="#architecture">技术栈</a></li>
+      <li><a href="#components">核心组件</a></li>
+      <li><a href="#performance">性能优化</a></li>
+    </ul>
+
+    <h3>更新日志</h3>
+    <ul>
+      <li><a href="#changelog">版本历史</a></li>
+      <li><a href="#future">未来计划</a></li>
+    </ul>
+  </div>
+
+  <div class="main-content">
+    <div class="docs-content">
+      <div class="update-section">
+        <h1><i class="fas fa-rocket"></i> SmartFlow 交易策略系统</h1>
+        <h2>最新优化文档 - 2025年10月7日</h2>
+        <p>本文档详细记录了SmartFlow交易策略系统的最新修复和优化内容，包括ICT策略谐波形态检测、V3策略信号融合优化、扫荡检测修复等核心功能改进。</p>
+      </div>
+
+      <section id="latest-fixes">
+        <h2><i class="fas fa-wrench"></i> 最新修复 (2025-10-07)</h2>
+
+        <div class="fix-item">
+          <h3><span class="status-badge status-fixed">已修复</span> ICT策略谐波形态检测修复</h3>
+          <p><strong>问题描述：</strong>所有交易对的谐波形态都显示为"NONE"，得分为0.00分</p>
+          <p><strong>修复方案：</strong></p>
+          <ul>
+            <li><strong>比例计算逻辑修复</strong>：修正Cypher、Bat、Shark形态的Fibonacci比例计算</li>
+            <li><strong>关键点识别改进</strong>：使用动态摆动高低点识别替代固定位置</li>
+            <li><strong>调试信息完善</strong>：添加关键点信息返回，便于调试分析</li>
+            <li><strong>API数据完整性</strong>：修复API端点中缺少谐波形态信息的问题</li>
+          </ul>
+          <p><strong>修复效果：</strong>SOLUSDT成功检测到Cypher形态，置信度86%，得分0.77</p>
+        </div>
+
+        <div class="fix-item">
+          <h3><span class="status-badge status-fixed">已修复</span> ICT策略扫荡速率检测修复</h3>
+          <p><strong>问题描述：</strong>所有交易对低时间框架扫荡速率都为0.00</p>
+          <p><strong>修复方案：</strong></p>
+          <ul>
+            <li><strong>早期返回路径完善</strong>：为所有早期返回路径添加15M扫荡检测计算</li>
+            <li><strong>检测阈值优化</strong>：从0.2×ATR降低到0.01×ATR，提高检测灵敏度</li>
+            <li><strong>检测逻辑简化</strong>：直接使用刺破幅度作为扫荡速率</li>
+            <li><strong>原始逻辑恢复</strong>：最终恢复为需要价格突破极值点并在后续K线中收回的严格逻辑</li>
+          </ul>
+          <p><strong>修复效果：</strong>扫荡检测现在能正常工作，显示具体扫荡速率值</p>
+        </div>
+
+        <div class="fix-item">
+          <h3><span class="status-badge status-fixed">已修复</span> V3策略15M得分显示修复</h3>
+          <p><strong>问题描述：</strong>V3策略低时间框架得分显示为0，即使日志显示实际得分</p>
+          <p><strong>修复方案：</strong>修正<code>calculate15MScore</code>中的条件判断逻辑，移除过于严格的条件</p>
+          <p><strong>修复效果：</strong>15M得分现在正确显示实际计算值</p>
+        </div>
+
+        <div class="fix-item">
+          <h3><span class="status-badge status-fixed">已修复</span> 前端502错误修复</h3>
+          <p><strong>问题描述：</strong>Chart.js 404错误和API 502错误导致前端无法正常加载</p>
+          <p><strong>修复方案：</strong></p>
+          <ul>
+            <li>使用CDN版本的Chart.js替代本地引用</li>
+            <li>添加API重试机制和错误处理</li>
+            <li>优化浏览器缓存策略</li>
+          </ul>
+          <p><strong>修复效果：</strong>前端正常加载，无502错误，Chart.js正常显示图表</p>
+        </div>
+
+        <div class="fix-item">
+          <h3><span class="status-badge status-fixed">已修复</span> 信号一致性修复</h3>
+          <p><strong>问题描述：</strong>V3策略低时间框架信号与主信号列显示不一致</p>
+          <p><strong>修复方案：</strong>统一数据源，确保信号显示一致性</p>
+          <p><strong>修复效果：</strong>所有信号显示现在保持一致</p>
+        </div>
+      </section>
+
+      <section id="strategy-optimizations">
+        <h2><i class="fas fa-star"></i> 策略优化</h2>
+
+        <div class="optimization-item">
+          <h3><span class="status-badge status-optimized">已优化</span> ICT策略谐波形态共振集成</h3>
+          <p>根据<code>ict-plus.md</code>优化方案，实现了完整的谐波形态共振逻辑：</p>
+
+          <h4>谐波形态检测</h4>
+          <ul>
+            <li><strong>Cypher形态</strong>：AB: 35%-65%, BC: 105%-150%, CD: 75%-95%</li>
+            <li><strong>Bat形态</strong>：AB: 35%-55%, BC: 35%-95%, CD: 80%-95%</li>
+            <li><strong>Shark形态</strong>：AB: 105%-170%, BC: 105%-170%, CD: 80%-110%</li>
+          </ul>
+
+          <h4>综合评分系统</h4>
+          <ul>
+            <li>趋势(25%) + 订单块(20%) + 吞没(15%) + 扫荡(15%) + 成交量(5%) + 谐波(20%)</li>
+            <li>门槛式结构确认：总分≥45且谐波得分>0.6触发交易信号</li>
+          </ul>
+
+          <h4>顺序化确认逻辑</h4>
+          <p>日线趋势 → 有效订单块 → 扫荡方向匹配 → 吞没确认 → 谐波共振</p>
+          <p>替代线性加权评分，采用顺序化门槛式确认，显著降低逆势入场</p>
+        </div>
+
+        <div class="optimization-item">
+          <h3><span class="status-badge status-optimized">已优化</span> V3策略信号融合优化</h3>
+          <ul>
+            <li><strong>MACD Histogram集成</strong>：4H趋势确认增加MACD动能分析</li>
+            <li><strong>15M结构分析</strong>：检测Higher Highs/Lows和Lower Lows/Highs</li>
+            <li><strong>信号融合逻辑</strong>：4H(50%) + 1H(35%) + 15M(15%)加权评分</li>
+            <li><strong>容差机制</strong>：强信号(≥60%)和中等信号(45-59%)分级处理</li>
+            <li><strong>弱信号级别</strong>：新增35-44分弱信号级别，降低入场门槛</li>
+          </ul>
+        </div>
+
+        <div class="optimization-item">
+          <h3><span class="status-badge status-optimized">已优化</span> 动态仓位管理</h3>
+          <ul>
+            <li><strong>用户自定义</strong>：支持设置最大损失金额(20/50/100/200 USDT)</li>
+            <li><strong>动态杠杆计算</strong>：基于止损距离和最大损失金额自动计算杠杆</li>
+            <li><strong>风险控制</strong>：确保单笔交易损失不超过用户设定值</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="v3-strategy">
+        <div class="strategy-section">
+          <h2><i class="fas fa-chart-line"></i> V3多因子趋势策略</h2>
+
+          <h3>策略概述</h3>
+          <p>V3策略是一个基于多时间框架分析的综合趋势策略，通过4H趋势判断、1H因子分析和15M入场确认来生成交易信号。</p>
+
+          <h3>三个时间框架有效性判断逻辑</h3>
+
+          <div class="technical-details">
+            <h4>4H时间框架 - 趋势判断层 (权重50%)</h4>
+            <div class="code-block">
+              <strong>有效性条件：</strong>
+              1. EMA20 > EMA50 > EMA200 (上升趋势) 或 EMA20 < EMA50 < EMA200 (下降趋势) 2. ADX> 25 (趋势强度确认)
+                3. MACD Histogram > 0 (动能确认)
+
+                <strong>评分计算：</strong>
+                - 基础分：30分 (趋势方向正确)
+                - ADX加分：0-10分 (ADX值越高加分越多)
+                - MACD加分：0-10分 (MACD Histogram正值加分)
+                - 最高得分：50分
+            </div>
+
+            <h4>1H时间框架 - 多因子分析层 (权重35%)</h4>
+            <div class="code-block">
+              <strong>有效性条件：</strong>
+              1. 价格在VWAP上方(多头)或下方(空头)
+              2. OI变化与价格方向一致
+              3. 资金费率合理(不极端)
+              4. Delta值支持方向
+
+              <strong>评分计算：</strong>
+              - VWAP位置：0-10分 (价格与VWAP关系)
+              - OI变化：0-8分 (持仓量变化方向)
+              - 资金费率：0-7分 (费率合理性)
+              - Delta分析：0-10分 (买卖压力对比)
+              - 最高得分：35分
+            </div>
+
+            <h4>15M时间框架 - 入场确认层 (权重15%)</h4>
+            <div class="code-block">
+              <strong>有效性条件：</strong>
+              1. EMA20与EMA50排列正确
+              2. 结构分析：Higher Highs/Lows (上升) 或 Lower Lows/Highs (下降)
+              3. ATR值合理(波动性适中)
+              4. BBW宽度适中(不极端)
+
+              <strong>评分计算：</strong>
+              - EMA排列：0-5分 (短期均线排列)
+              - 结构分析：0-6分 (价格结构确认)
+              - ATR分析：0-2分 (波动性评估)
+              - BBW分析：0-2分 (布林带宽度)
+              - 最高得分：15分
+            </div>
+          </div>
+
+          <h3>综合信号生成逻辑</h3>
+          <div class="code-block">
+            <strong>总分计算：</strong>
+            总分 = 4H得分 × 0.5 + 1H得分 × 0.35 + 15M得分 × 0.15
+
+            <strong>有效性判断：</strong>
+            - 4H时间框架必须有效(得分≥20) → 否则不交易
+            - 1H时间框架建议有效(得分≥15) → 否则信号减弱
+            - 15M时间框架建议有效(得分≥8) → 否则信号减弱
+
+            <strong>信号级别：</strong>
+            - 强信号：总分≥60 且 三个时间框架都有效 → BUY/SELL
+            - 中等信号：45≤总分<60 且 4H+1H有效 → BUY/SELL - 弱信号：35≤总分<45 且 4H有效 → BUY/SELL - 观望：总分<35 或 4H无效 → HOLD </div>
+
+              <h3>技术指标详解</h3>
+              <ul>
+                <li><strong>4H时间框架</strong>：EMA20/50/200、ADX、BBW、MACD Histogram</li>
+                <li><strong>1H时间框架</strong>：VWAP、OI变化、资金费率、Delta</li>
+                <li><strong>15M时间框架</strong>：EMA20/50、ATR、BBW、结构分析</li>
+              </ul>
+
+              <h3>最新优化</h3>
+              <ul>
+                <li>✅ 增加MACD Histogram动能分析</li>
+                <li>✅ 优化15M结构分析算法</li>
+                <li>✅ 新增弱信号级别(35-44分)</li>
+                <li>✅ 修复得分计算和显示逻辑</li>
+                <li>✅ 统一信号显示一致性</li>
+              </ul>
+          </div>
+      </section>
+
+      <section id="ict-strategy">
+        <div class="strategy-section">
+          <h2><i class="fas fa-cube"></i> ICT订单块策略</h2>
+
+          <h3>策略概述</h3>
+          <p>ICT策略基于订单块、流动性扫荡和吞没形态的ICT概念，结合谐波形态共振进行精准入场确认。</p>
+
+          <h3>三个时间框架有效性判断逻辑</h3>
+
+          <div class="technical-details">
+            <h4>1D时间框架 - 趋势判断层 (权重25%)</h4>
+            <div class="code-block">
+              <strong>有效性条件：</strong>
+              1. EMA20与EMA50相对位置明确
+              2. 趋势强度足够(变化率>3%)
+              3. 趋势方向与交易方向一致
+
+              <strong>评分计算：</strong>
+              - 基础分：15分 (趋势方向正确)
+              - 强度加分：0-10分 (变化率越高加分越多)
+              - 最高得分：25分
+
+              <strong>判断标准：</strong>
+              - 上升趋势：EMA20 > EMA50 且 20日变化率 > 3%
+              - 下降趋势：EMA20 < EMA50 且 20日变化率 < -3% - 无效：变化率在-3%到3%之间 </div>
+
+                <h4>4H时间框架 - 订单块检测层 (权重20%)</h4>
+                <div class="code-block">
+                  <strong>有效性条件：</strong>
+                  1. 存在有效订单块(≤2天)
+                  2. 订单块未被完全扫荡
+                  3. 价格在订单块附近
+
+                  <strong>评分计算：</strong>
+                  - 订单块存在：10分 (基础分)
+                  - 订单块质量：0-5分 (停留时间、成交量集中度)
+                  - 距离加分：0-5分 (价格与订单块距离)
+                  - 最高得分：20分
+
+                  <strong>订单块识别：</strong>
+                  - 价格停留：连续3根K线价格变化 ≤ 0.6%
+                  - 成交量集中：最后一根K线成交量 ≥ 0.7 × 平均成交量
+                  - 年龄限制：创建时间 ≤ 2天
+                </div>
+
+                <h4>15M时间框架 - 入场确认层 (权重60%)</h4>
+                <div class="code-block">
+                  <strong>有效性条件：</strong>
+                  1. 扫荡检测有效(方向匹配趋势)
+                  2. 吞没形态确认(方向匹配)
+                  3. 成交量放大(可选)
+                  4. 谐波形态共振(可选加强)
+
+                  <strong>评分计算：</strong>
+                  - 扫荡检测：0-15分 (方向匹配+速率)
+                  - 吞没形态：0-15分 (类型匹配+强度)
+                  - 成交量：0-5分 (放大确认)
+                  - 谐波形态：0-20分 (类型+置信度)
+                  - 其他因子：0-5分 (ATR、波动性等)
+                  - 最高得分：60分
+                </div>
+            </div>
+
+            <h3>门槛式确认逻辑</h3>
+            <div class="code-block">
+              <strong>顺序化确认：</strong>
+              1. 日线趋势必须明确(必须条件) → 否则不交易
+              2. 存在有效订单块(≤2天) → 否则不交易
+              3. 扫荡方向匹配趋势 → 否则不交易
+              4. 吞没形态方向匹配 → 否则不交易
+              5. 谐波形态共振确认(可选加强) → 加分项
+
+              <strong>评分系统：</strong>
+              趋势(25%) + 订单块(20%) + 扫荡(15%) + 吞没(15%) + 成交量(5%) + 谐波(20%)
+
+              <strong>信号判定：</strong>
+              - 总分≥45 且 谐波得分>0.6 → BUY/SELL
+              - 总分≥25 → WATCH
+              - 其他 → HOLD
+            </div>
+
+            <h3>核心组件详解</h3>
+            <ul>
+              <li><strong>1D趋势判断</strong>：EMA20 vs EMA50相对位置分析</li>
+              <li><strong>4H订单块检测</strong>：价格停留+成交量集中识别</li>
+              <li><strong>15M扫荡检测</strong>：突破极值点+后续K线收回确认</li>
+              <li><strong>吞没形态</strong>：15M时间框架吞没确认</li>
+              <li><strong>谐波形态</strong>：Cypher/Bat/Shark形态共振</li>
+            </ul>
+
+            <h3>谐波形态检测</h3>
+            <div class="technical-details">
+              <h4>Cypher形态</h4>
+              <ul>
+                <li>AB比例：35%-65%</li>
+                <li>BC比例：105%-150%</li>
+                <li>CD比例：75%-95%</li>
+                <li>结构：X < A> B < C> D</li>
+              </ul>
+
+              <h4>Bat形态</h4>
+              <ul>
+                <li>AB比例：35%-55%</li>
+                <li>BC比例：35%-95%</li>
+                <li>CD比例：80%-95%</li>
+                <li>结构：X < A> B < C> D</li>
+              </ul>
+
+              <h4>Shark形态</h4>
+              <ul>
+                <li>AB比例：105%-170%</li>
+                <li>BC比例：105%-170%</li>
+                <li>CD比例：80%-110%</li>
+                <li>结构：X < A> B < C> D</li>
+              </ul>
+            </div>
+
+            <h3>最新优化</h3>
+            <ul>
+              <li>✅ 修复谐波形态检测算法</li>
+              <li>✅ 优化关键点识别逻辑</li>
+              <li>✅ 完善扫荡检测机制</li>
+              <li>✅ 添加调试信息支持</li>
+              <li>✅ 修复API数据完整性</li>
+            </ul>
+          </div>
+      </section>
+
+      <section id="timeframe-comparison">
+        <div class="strategy-section">
+          <h2><i class="fas fa-clock"></i> 两个策略时间框架有效性对比</h2>
+
+          <h3>V3策略 vs ICT策略时间框架对比</h3>
+
+          <div class="technical-details">
+            <h4>时间框架权重分配对比</h4>
+            <div class="code-block">
+              <strong>V3策略权重：</strong>
+              4H(50%) + 1H(35%) + 15M(15%) = 100%
+
+              <strong>ICT策略权重：</strong>
+              1D(25%) + 4H(20%) + 15M(60%) = 105% (谐波形态额外加分)
+            </div>
+
+            <h4>有效性判断标准对比</h4>
+            <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+              <thead>
+                <tr style="background: #f8f9fa;">
+                  <th style="border: 1px solid #ddd; padding: 10px;">策略</th>
+                  <th style="border: 1px solid #ddd; padding: 10px;">高时间框架</th>
+                  <th style="border: 1px solid #ddd; padding: 10px;">中时间框架</th>
+                  <th style="border: 1px solid #ddd; padding: 10px;">低时间框架</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 10px; font-weight: bold;">V3策略</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">
+                    <strong>4H趋势判断</strong><br>
+                    • EMA排列<br>
+                    • ADX强度<br>
+                    • MACD动能<br>
+                    <em>必须有效(≥20分)</em>
+                  </td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">
+                    <strong>1H多因子</strong><br>
+                    • VWAP位置<br>
+                    • OI变化<br>
+                    • 资金费率<br>
+                    • Delta分析<br>
+                    <em>建议有效(≥15分)</em>
+                  </td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">
+                    <strong>15M入场确认</strong><br>
+                    • EMA排列<br>
+                    • 结构分析<br>
+                    • ATR波动性<br>
+                    • BBW宽度<br>
+                    <em>建议有效(≥8分)</em>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 10px; font-weight: bold;">ICT策略</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">
+                    <strong>1D趋势判断</strong><br>
+                    • EMA相对位置<br>
+                    • 趋势强度(>3%)<br>
+                    • 方向一致性<br>
+                    <em>必须有效(≥15分)</em>
+                  </td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">
+                    <strong>4H订单块</strong><br>
+                    • 订单块存在<br>
+                    • 质量评估<br>
+                    • 距离分析<br>
+                    <em>必须有效(≥10分)</em>
+                  </td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">
+                    <strong>15M入场确认</strong><br>
+                    • 扫荡检测<br>
+                    • 吞没形态<br>
+                    • 成交量放大<br>
+                    • 谐波形态<br>
+                    <em>必须有效(≥15分)</em>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4>信号生成逻辑对比</h4>
+            <div class="code-block">
+              <strong>V3策略 - 加权评分制：</strong>
+              总分 = 4H得分×0.5 + 1H得分×0.35 + 15M得分×0.15
+
+              信号判定：
+              - 强信号：总分≥60 且 三个时间框架都有效
+              - 中等信号：45≤总分<60 且 4H+1H有效 - 弱信号：35≤总分<45 且 4H有效 - 观望：总分<35 或 4H无效 <strong>ICT策略 - 门槛式确认制：</strong>
+                顺序确认：1D趋势 → 4H订单块 → 15M扫荡+吞没 → 谐波共振
+
+                信号判定：
+                - 总分≥45 且 谐波得分>0.6 → BUY/SELL
+                - 总分≥25 → WATCH
+                - 其他 → HOLD
+            </div>
+
+            <h4>关键差异分析</h4>
+            <ul>
+              <li><strong>V3策略</strong>：更注重中短期趋势确认，4H和1H权重较高，适合趋势跟踪</li>
+              <li><strong>ICT策略</strong>：更注重结构确认，15M权重最高，适合精准入场</li>
+              <li><strong>V3策略</strong>：使用加权评分，允许部分时间框架失效</li>
+              <li><strong>ICT策略</strong>：使用门槛式确认，所有关键条件必须满足</li>
+              <li><strong>V3策略</strong>：信号级别更细分化(强/中/弱/观望)</li>
+              <li><strong>ICT策略</strong>：信号更简单(交易/观察/观望)，但条件更严格</li>
+            </ul>
+
+            <h4>数据更新间隔时间</h4>
+            <div class="code-block">
+              <strong>V3策略数据更新频率：</strong>
+              • 4H时间框架：每4小时更新一次 (00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
+              • 1H时间框架：每1小时更新一次 (整点时刻)
+              • 15M时间框架：每15分钟更新一次 (00, 15, 30, 45分)
+
+              <strong>ICT策略数据更新频率：</strong>
+              • 1D时间框架：每24小时更新一次 (00:00 UTC)
+              • 4H时间框架：每4小时更新一次 (00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
+              • 15M时间框架：每15分钟更新一次 (00, 15, 30, 45分)
+
+              <strong>实时监控频率：</strong>
+              • 策略信号计算：每15分钟执行一次
+              • 谐波形态检测：每15分钟重新计算
+              • 扫荡检测：每15分钟更新
+              • 订单块状态：每4小时重新评估
+            </div>
+
+            <h4>数据更新优先级</h4>
+            <div class="technical-details">
+              <h5>V3策略更新优先级</h5>
+              <ol>
+                <li><strong>15M数据</strong>：最高优先级，每15分钟强制更新</li>
+                <li><strong>1H数据</strong>：中等优先级，每1小时更新，影响多因子分析</li>
+                <li><strong>4H数据</strong>：基础优先级，每4小时更新，决定趋势方向</li>
+              </ol>
+
+              <h5>ICT策略更新优先级</h5>
+              <ol>
+                <li><strong>15M数据</strong>：最高优先级，每15分钟更新，包含扫荡、吞没、谐波检测</li>
+                <li><strong>4H数据</strong>：高优先级，每4小时更新，订单块检测和验证</li>
+                <li><strong>1D数据</strong>：基础优先级，每24小时更新，趋势判断基础</li>
+              </ol>
+
+              <h5>缓存策略</h5>
+              <ul>
+                <li><strong>Redis缓存</strong>：最新数据缓存5分钟，减少API调用</li>
+                <li><strong>数据库存储</strong>：历史数据持久化存储，支持回测分析</li>
+                <li><strong>增量更新</strong>：只更新变化的数据，提高效率</li>
+                <li><strong>错误重试</strong>：API失败时自动重试，最多3次</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="harmonic-patterns">
+        <div class="strategy-section">
+          <h2><i class="fas fa-wave-square"></i> 谐波形态检测系统</h2>
+
+          <h3>检测原理</h3>
+          <p>谐波形态检测基于Fibonacci比例关系，通过识别价格结构中的特定比例模式来预测潜在的反转点。</p>
+
+          <h3>关键点识别</h3>
+          <div class="code-block">
+            <strong>动态识别算法：</strong>
+            1. 在指定时间窗口内搜索摆动高低点
+            2. 验证基本结构：X < A> B < C> D
+                3. 计算各段Fibonacci比例
+                4. 匹配特定形态的比例要求
+                5. 计算置信度和得分
+          </div>
+
+          <h3>比例计算</h3>
+          <div class="technical-details">
+            <h4>正确的比例计算</h4>
+            <ul>
+              <li>XA = |A - X| (起始段长度)</li>
+              <li>AB = |B - X| (第一段长度)</li>
+              <li>BC = |C - B| (第二段长度)</li>
+              <li>CD = |D - X| (第三段长度)</li>
+            </ul>
+
+            <h4>比例关系</h4>
+            <ul>
+              <li>AB/XA：第一段相对于起始段的比例</li>
+              <li>BC/AB：第二段相对于第一段的比例</li>
+              <li>CD/XC：第三段相对于起始到C点的比例</li>
+            </ul>
+          </div>
+
+          <h3>检测结果</h3>
+          <ul>
+            <li><strong>检测状态</strong>：detected (true/false)</li>
+            <li><strong>形态类型</strong>：CYPHER/BAT/SHARK/NONE</li>
+            <li><strong>置信度</strong>：0-1之间的数值</li>
+            <li><strong>得分</strong>：用于综合评分的数值</li>
+            <li><strong>关键点</strong>：X、A、B、C、D五个关键价格点</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="technical-details">
+        <h2><i class="fas fa-cogs"></i> 技术实现细节</h2>
+
+        <h3>扫荡检测算法</h3>
+        <div class="technical-details">
+          <h4>检测条件</h4>
+          <ul>
+            <li><strong>突破确认</strong>：价格必须突破极值点(高点或低点)</li>
+            <li><strong>收回确认</strong>：必须在后续3根K线内收回</li>
+            <li><strong>速率阈值</strong>：扫荡速率 ≥ 0.2 × ATR</li>
+            <li><strong>时间限制</strong>：收回K线数 ≤ 3</li>
+          </ul>
+
+          <h4>计算公式</h4>
+          <div class="code-block">
+            扫荡速率 = 刺破幅度 ÷ 收回K线数
+            置信度 = min(扫荡速率 ÷ (0.2 × ATR), 1)
+          </div>
+        </div>
+
+        <h3>订单块检测</h3>
+        <div class="technical-details">
+          <h4>识别条件</h4>
+          <ul>
+            <li><strong>价格停留</strong>：连续3根K线价格变化 ≤ 0.6%</li>
+            <li><strong>成交量集中</strong>：最后一根K线成交量 ≥ 0.7 × 平均成交量</li>
+            <li><strong>年龄限制</strong>：订单块创建时间 ≤ 2天</li>
+          </ul>
+        </div>
+
+        <h3>信号融合逻辑</h3>
+        <div class="technical-details">
+          <h4>V3策略融合</h4>
+          <div class="code-block">
+            总分 = 4H得分 × 0.5 + 1H得分 × 0.35 + 15M得分 × 0.15
+
+            信号判定：
+            - 强信号：总分 ≥ 60 → BUY/SELL
+            - 中等信号：45 ≤ 总分 < 60 → BUY/SELL - 弱信号：35 ≤ 总分 < 45 → BUY/SELL - 观望：总分 < 35 → HOLD </div>
+
+              <h4>ICT策略融合</h4>
+              <div class="code-block">
+                总分 = 趋势(25%) + 订单块(20%) + 吞没(15%) + 扫荡(15%) + 成交量(5%) + 谐波(20%)
+
+                信号判定：
+                - 总分 ≥ 45 且 谐波得分 > 0.6 → BUY/SELL
+                - 总分 ≥ 25 → WATCH
+                - 其他 → HOLD
+              </div>
+          </div>
+
+          <h3>数据更新机制</h3>
+          <div class="technical-details">
+            <h4>更新调度系统</h4>
+            <div class="code-block">
+              <strong>定时任务配置：</strong>
+              • 15M更新：每15分钟执行 (cron: "0,15,30,45 * * * *")
+              • 1H更新：每1小时执行 (cron: "0 * * * *")
+              • 4H更新：每4小时执行 (cron: "0 0,4,8,12,16,20 * * * *")
+              • 1D更新：每24小时执行 (cron: "0 0 * * *")
+
+              <strong>数据源优先级：</strong>
+              1. Binance WebSocket (实时数据)
+              2. Binance REST API (历史数据)
+              3. Redis缓存 (临时数据)
+              4. MySQL数据库 (持久化数据)
+            </div>
+
+            <h4>更新策略</h4>
+            <ul>
+              <li><strong>增量更新</strong>：只获取和计算变化的数据，减少计算开销</li>
+              <li><strong>批量更新</strong>：多个交易对同时更新，提高效率</li>
+              <li><strong>异步处理</strong>：数据获取和指标计算异步执行，不阻塞主线程</li>
+              <li><strong>错误恢复</strong>：API失败时自动重试，使用缓存数据作为备用</li>
+              <li><strong>数据验证</strong>：更新前验证数据完整性，确保指标计算准确</li>
+            </ul>
+
+            <h4>性能优化</h4>
+            <ul>
+              <li><strong>缓存策略</strong>：热点数据缓存5分钟，减少重复计算</li>
+              <li><strong>并行计算</strong>：多时间框架指标并行计算，提高速度</li>
+              <li><strong>内存管理</strong>：及时清理过期数据，避免内存泄漏</li>
+              <li><strong>数据库优化</strong>：使用索引和连接池，提高查询效率</li>
+            </ul>
+          </div>
+      </section>
+
+      <section id="architecture">
+        <h2><i class="fas fa-sitemap"></i> 系统架构</h2>
+
+        <h3>技术栈</h3>
+        <ul>
+          <li><strong>后端</strong>：Node.js + Express.js + PM2进程管理</li>
+          <li><strong>数据库</strong>：MySQL 8.0 + Redis 6.0缓存</li>
+          <li><strong>前端</strong>：原生JavaScript + HTML5 + CSS3 + Chart.js</li>
+          <li><strong>数据源</strong>：Binance Futures API (REST + WebSocket)</li>
+          <li><strong>外部API</strong>：Blockchair、Etherscan、Alternative.me、FRED</li>
+          <li><strong>部署</strong>：VPS 2C1G + Nginx反向代理</li>
+        </ul>
+
+        <h3>核心组件</h3>
+        <ul>
+          <li><strong>主应用</strong>：src/main.js - 应用入口和中间件配置</li>
+          <li><strong>策略引擎</strong>：src/strategies/ - V3和ICT策略实现</li>
+          <li><strong>谐波检测</strong>：src/strategies/harmonic-patterns.js - Cypher/Bat/Shark检测</li>
+          <li><strong>扫荡过滤</strong>：src/strategies/ict-sweep-filter.js - 方向性扫荡过滤</li>
+          <li><strong>工作进程</strong>：src/workers/ - 策略执行和数据更新</li>
+          <li><strong>API路由</strong>：src/api/routes/ - RESTful API接口</li>
+          <li><strong>监控服务</strong>：src/services/ - 宏观监控和系统监控</li>
+        </ul>
+
+        <h3>数据流程</h3>
+        <ol>
+          <li><strong>数据采集</strong>：Binance API实时获取K线、ticker、资金费率等数据</li>
+          <li><strong>指标计算</strong>：并行计算多时间框架技术指标</li>
+          <li><strong>策略执行</strong>：多因子评分和信号生成</li>
+          <li><strong>风险控制</strong>：交易去重、杠杆限制、止损计算</li>
+          <li><strong>数据存储</strong>：MySQL持久化存储 + Redis缓存优化</li>
+          <li><strong>监控告警</strong>：宏观数据监控 + 系统资源监控 + Telegram通知</li>
+          <li><strong>前端展示</strong>：实时数据更新 + 图表可视化 + 交互式界面</li>
+        </ol>
+      </section>
+
+      <section id="performance">
+        <h2><i class="fas fa-tachometer-alt"></i> 性能优化</h2>
+
+        <h3>内存管理</h3>
+        <ul>
+          <li><strong>VPS限制</strong>：针对2C1G配置的内存管理策略</li>
+          <li><strong>缓存策略</strong>：Redis缓存热点数据，减少数据库查询</li>
+          <li><strong>数据压缩</strong>：gzip压缩响应，减少网络传输</li>
+          <li><strong>连接池</strong>：数据库连接池管理，提高并发性能</li>
+        </ul>
+
+        <h3>并发处理</h3>
+        <ul>
+          <li><strong>并行执行</strong>：Promise.all并行执行，减少等待时间</li>
+          <li><strong>异步处理</strong>：避免阻塞主线程</li>
+          <li><strong>错误恢复</strong>：API失败时的自动重试和降级处理</li>
+        </ul>
+
+        <h3>监控告警</h3>
+        <ul>
+          <li><strong>系统资源</strong>：CPU、内存、磁盘使用率监控</li>
+          <li><strong>API状态</strong>：Binance API、数据库、Redis连接状态</li>
+          <li><strong>策略执行</strong>：V3和ICT策略运行状态</li>
+          <li><strong>Telegram通知</strong>：支持配置Bot Token和Chat ID</li>
+        </ul>
+      </section>
+
+      <section id="changelog">
+        <h2><i class="fas fa-history"></i> 更新日志</h2>
+
+        <h3>v2025.10.07 (最新)</h3>
+        <ul>
+          <li>✅ 修复ICT策略谐波形态检测算法</li>
+          <li>✅ 修复ICT策略扫荡速率检测问题</li>
+          <li>✅ 修复V3策略15M得分显示</li>
+          <li>✅ 修复前端502错误和Chart.js 404</li>
+          <li>✅ 实现ICT策略谐波形态共振</li>
+          <li>✅ 优化V3策略信号融合逻辑</li>
+          <li>✅ 统一信号显示一致性</li>
+          <li>✅ 完善API数据完整性</li>
+          <li>✅ 更新在线文档</li>
+        </ul>
+
+        <h3>v2025.10.06</h3>
+        <ul>
+          <li>✅ 实现ICT策略基础功能</li>
+          <li>✅ 实现V3策略多因子分析</li>
+          <li>✅ 添加谐波形态检测模块</li>
+          <li>✅ 实现动态仓位管理</li>
+          <li>✅ 添加宏观数据监控</li>
+        </ul>
+
+        <h3>未来计划</h3>
+        <ul>
+          <li>🔄 谐波形态检测精度优化</li>
+          <li>🔄 动态权重回归算法</li>
+          <li>🔄 更多技术指标集成</li>
+          <li>🔄 机器学习信号优化</li>
+          <li>🔄 多币种组合策略</li>
+        </ul>
+      </section>
+
+      <footer style="margin-top: 50px; padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center;">
+        <p><i class="fas fa-info-circle"></i> 本文档最后更新：2025年10月7日</p>
+        <p><i class="fas fa-code"></i> SmartFlow 交易策略系统 v2.0</p>
+      </footer>
+    </div>
+  </div>
+</body>
+
+</html>

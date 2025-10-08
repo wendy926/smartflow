@@ -521,7 +521,7 @@ class TechnicalIndicators {
     }
 
     const result = [];
-    
+
     for (let i = 0; i < prices.length; i++) {
       if (i < period - 1) {
         result.push({ upper: null, middle: null, lower: null, bandwidth: null });

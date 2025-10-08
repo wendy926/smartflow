@@ -1443,26 +1443,26 @@ class V3Strategy {
         }
       } else if (trendDirection === 'RANGE') {
         // 震荡市场：布林带收窄 + 假突破策略
-        console.log('RANGE模式 - bbw:', bbw.bbw, 'currentPrice:', currentPrice);
+        logger.debug('RANGE模式 - bbw:', bbw.bbw, 'currentPrice:', currentPrice);
         if (bbw.bbw && bbw.bbw < 0.1) { // 布林带收窄（放宽条件）
           // 计算震荡区间（不包含当前价格）
           const recentHigh = Math.max(...prices.slice(-20, -1));
           const recentLow = Math.min(...prices.slice(-20, -1));
-          console.log('布林带收窄 - recentHigh:', recentHigh, 'recentLow:', recentLow, 'ATR:', currentATR);
+          logger.debug('布林带收窄 - recentHigh:', recentHigh, 'recentLow:', recentLow, 'ATR:', currentATR);
 
           if (currentPrice > recentHigh + (currentATR * 0.5)) {
             entry_signal = 'SELL'; // 假突破做空
             confidence_score = 70;
             is_fake_breakout = true;
-            console.log('假突破做空触发');
+            logger.debug('假突破做空触发');
           } else if (currentPrice < recentLow - (currentATR * 0.5)) {
             entry_signal = 'BUY'; // 假突破做多
             confidence_score = 70;
             is_fake_breakout = true;
-            console.log('假突破做多触发');
+            logger.debug('假突破做多触发');
           }
         } else {
-          console.log('布林带未收窄，bbw:', bbw.bbw);
+          logger.debug('布林带未收窄，bbw:', bbw.bbw);
         }
       }
 

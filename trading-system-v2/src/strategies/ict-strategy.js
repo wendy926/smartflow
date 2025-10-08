@@ -632,7 +632,7 @@ class ICTStrategy {
     // ==================== 变量声明（在方法开始定义所有变量，避免"is not defined"错误）====================
     let numericConfidence = 0;  // 默认置信度
     let score = 0;              // 默认总分
-    
+
     try {
       logger.info(`Executing ICT strategy for ${symbol}`);
 

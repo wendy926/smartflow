@@ -1,200 +1,83 @@
 /**
- * 用户设置API路由
- * 处理用户偏好设置，如最大损失金额等
+ * 系统设置API路由
  */
 
 const express = require('express');
 const router = express.Router();
 const logger = require('../../utils/logger');
 
-// 延迟初始化数据库操作
-let dbOps = null;
-const getDbOps = () => {
-  if (!dbOps) {
-    dbOps = require('../../database/operations');
-  }
-  return dbOps;
-};
+// 内存中存储最大损失金额设置（可以改为数据库存储）
+let maxLossAmountSetting = 100; // 默认100 USDT（与前端保持一致）
 
 /**
- * 获取用户设置
- * GET /api/v1/settings/:key
+ * 获取最大损失金额设置
+ * GET /api/v1/settings/maxLossAmount
  */
-router.get('/:key', async (req, res) => {
+router.get('/maxLossAmount', async (req, res) => {
   try {
-    const { key } = req.params;
-
-    // 从数据库获取用户设置
-    const value = await getUserSetting(key);
-
     res.json({
-      key,
-      value,
+      success: true,
+      value: maxLossAmountSetting,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logger.error(`获取用户设置失败 (${req.params.key}):`, error);
+    logger.error('获取最大损失金额失败:', error);
     res.status(500).json({
-      error: 'Failed to get user setting',
-      message: error.message
+      success: false,
+      error: error.message
     });
   }
 });
 
 /**
- * 设置用户设置
- * POST /api/v1/settings/:key
+ * 保存最大损失金额设置
+ * POST /api/v1/settings/maxLossAmount
  */
-router.post('/:key', async (req, res) => {
+router.post('/maxLossAmount', async (req, res) => {
   try {
-    const { key } = req.params;
     const { value } = req.body;
 
-    if (value === undefined) {
+    if (!value || typeof value !== 'number') {
       return res.status(400).json({
-        error: 'Value is required',
-        message: 'Please provide a value in the request body'
+        success: false,
+        error: '无效的最大损失金额'
       });
     }
 
-    // 保存用户设置到数据库
-    await setUserSetting(key, value);
+    // 验证值在允许范围内
+    const allowedValues = [20, 50, 100, 200];
+    if (!allowedValues.includes(value)) {
+      return res.status(400).json({
+        success: false,
+        error: '最大损失金额必须是20、50、100或200 USDT之一'
+      });
+    }
+
+    maxLossAmountSetting = value;
+
+    logger.info(`最大损失金额已更新为: ${value} USDT`);
 
     res.json({
-      key,
-      value,
-      message: 'Setting saved successfully',
+      success: true,
+      value: maxLossAmountSetting,
+      message: '最大损失金额已保存',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logger.error(`保存用户设置失败 (${req.params.key}):`, error);
+    logger.error('保存最大损失金额失败:', error);
     res.status(500).json({
-      error: 'Failed to save user setting',
-      message: error.message
+      success: false,
+      error: error.message
     });
   }
 });
 
 /**
- * 获取所有用户设置
- * GET /api/v1/settings
+ * 获取当前设置（供其他模块调用）
  */
-router.get('/', async (req, res) => {
-  try {
-    const settings = await getAllUserSettings();
-
-    res.json({
-      settings,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    logger.error('获取所有用户设置失败:', error);
-    res.status(500).json({
-      error: 'Failed to get user settings',
-      message: error.message
-    });
-  }
-});
-
-/**
- * 从数据库获取用户设置
- * @param {string} key - 设置键
- * @param {any} defaultValue - 默认值
- * @returns {any} 设置值
- */
-async function getUserSetting(key, defaultValue = null) {
-  try {
-    const connection = await getDbOps().getConnection();
-
-    try {
-      const [rows] = await connection.execute(
-        'SELECT value FROM user_settings WHERE setting_key = ?',
-        [key]
-      );
-
-      if (rows.length > 0) {
-        const value = rows[0].value;
-        // 尝试解析JSON值
-        try {
-          return JSON.parse(value);
-        } catch {
-          return value;
-        }
-      }
-
-      return defaultValue;
-    } finally {
-      connection.release();
-    }
-  } catch (error) {
-    logger.error(`获取用户设置失败 (${key}):`, error);
-    return defaultValue;
-  }
-}
-
-/**
- * 设置用户设置到数据库
- * @param {string} key - 设置键
- * @param {any} value - 设置值
- */
-async function setUserSetting(key, value) {
-  try {
-    const connection = await getDbOps().getConnection();
-
-    try {
-      // 将值转换为字符串存储
-      const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-
-      // 使用INSERT ... ON DUPLICATE KEY UPDATE
-      await connection.execute(
-        `INSERT INTO user_settings (setting_key, value, updated_at) 
-         VALUES (?, ?, NOW()) 
-         ON DUPLICATE KEY UPDATE 
-         value = VALUES(value), 
-         updated_at = NOW()`,
-        [key, stringValue]
-      );
-
-      logger.info(`用户设置已保存: ${key} = ${stringValue}`);
-    } finally {
-      connection.release();
-    }
-  } catch (error) {
-    logger.error(`保存用户设置失败 (${key}):`, error);
-    throw error;
-  }
-}
-
-/**
- * 获取所有用户设置
- * @returns {Object} 所有设置
- */
-async function getAllUserSettings() {
-  try {
-    const connection = await getDbOps().getConnection();
-
-    try {
-      const [rows] = await connection.execute(
-        'SELECT setting_key, value FROM user_settings ORDER BY setting_key'
-      );
-
-      const settings = {};
-      rows.forEach(row => {
-        try {
-          settings[row.setting_key] = JSON.parse(row.value);
-        } catch {
-          settings[row.setting_key] = row.value;
-        }
-      });
-
-      return settings;
-    } finally {
-      connection.release();
-    }
-  } catch (error) {
-    logger.error('获取所有用户设置失败:', error);
-    return {};
-  }
+function getMaxLossAmount() {
+  return maxLossAmountSetting;
 }
 
 module.exports = router;
+module.exports.getMaxLossAmount = getMaxLossAmount;

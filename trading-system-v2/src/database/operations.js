@@ -425,7 +425,7 @@ class DatabaseOperations {
       const values = [];
 
       Object.entries(updateData).forEach(([key, value]) => {
-        if (['exit_price', 'pnl', 'pnl_percentage', 'status', 'exit_time'].includes(key)) {
+        if (['exit_price', 'exit_reason', 'pnl', 'pnl_percentage', 'status', 'exit_time'].includes(key)) {
           fields.push(`${key} = ?`);
           values.push(value);
         }
