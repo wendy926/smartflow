@@ -1631,7 +1631,7 @@ class SmartFlowApp {
           </div>
           <div class="indicator-item">
             <span class="indicator-label">ATR:</span>
-            <span class="indicator-value">${atr.toFixed(2)}</span>
+            <span class="indicator-value">${atr >= 1 ? atr.toFixed(2) : atr.toFixed(4)}</span>
           </div>
           <div class="indicator-item">
             <span class="indicator-label">扫荡速率:</span>
