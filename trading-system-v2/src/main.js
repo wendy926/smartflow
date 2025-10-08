@@ -17,6 +17,8 @@ const cache = require('./cache/redis');
 const monitoring = require('./monitoring/resource-monitor');
 const DataUpdater = require('./services/data-updater');
 const MacroMonitorController = require('./services/macro-monitor/macro-monitor-controller');
+const AIAnalysisScheduler = require('./services/ai-agent/scheduler');
+const TelegramAlert = require('./services/telegram-alert');
 
 class TradingSystemApp {
   constructor() {
@@ -24,6 +26,7 @@ class TradingSystemApp {
     this.port = process.env.PORT || 3000;
     this.dataUpdater = null;
     this.macroMonitor = null;
+    this.aiScheduler = null;
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -66,6 +69,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
+    this.app.use('/api/v1/ai', require('./api/routes/ai-analysis'));
 
     // 健康检查
     this.app.get('/health', (req, res) => {
@@ -131,6 +135,27 @@ class TradingSystemApp {
       await this.macroMonitor.start();
       logger.info('Macro monitoring started');
 
+      // 初始化AI分析调度器
+      try {
+        const getAIOps = require('./database/ai-operations');
+        const aiOps = getAIOps();
+        const binanceAPI = require('./api/binance-api');
+        const telegramService = new TelegramAlert();
+
+        this.aiScheduler = new AIAnalysisScheduler(aiOps, binanceAPI, telegramService);
+        global.aiScheduler = this.aiScheduler; // 设置全局变量供API路由使用
+        
+        const aiStarted = await this.aiScheduler.start();
+        if (aiStarted) {
+          logger.info('AI Analysis Scheduler started successfully');
+        } else {
+          logger.warn('AI Analysis Scheduler not started (may be disabled in config)');
+        }
+      } catch (error) {
+        logger.error('Failed to start AI Analysis Scheduler:', error);
+        // AI调度器启动失败不影响主应用
+      }
+
       // 为API路由提供数据库连接
       this.app.set('database', database);
 
@@ -156,6 +181,11 @@ class TradingSystemApp {
     try {
       logger.info('Shutting down application...');
 
+      // 停止AI调度器
+      if (this.aiScheduler) {
+        this.aiScheduler.stop();
+      }
+
       // 停止数据更新服务
       if (this.dataUpdater) {
         this.dataUpdater.stop();
@@ -165,7 +195,6 @@ class TradingSystemApp {
       if (this.macroMonitor) {
         await this.macroMonitor.stop();
       }
-
 
       // 停止监控
       monitoring.stop();
