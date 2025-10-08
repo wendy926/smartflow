@@ -130,7 +130,9 @@ class AIOperations {
         id: row.id,
         symbol: row.symbol,
         analysisType: row.analysis_type,
-        analysisData: JSON.parse(row.analysis_data),
+        analysisData: typeof row.analysis_data === 'string' 
+          ? JSON.parse(row.analysis_data) 
+          : row.analysis_data,
         riskLevel: row.risk_level,
         confidenceScore: row.confidence_score,
         alertTriggered: row.alert_triggered,
@@ -165,7 +167,9 @@ class AIOperations {
       return rows.map(row => ({
         symbol: row.symbol,
         analysisType: row.analysis_type,
-        analysisData: JSON.parse(row.analysis_data),
+        analysisData: typeof row.analysis_data === 'string' 
+          ? JSON.parse(row.analysis_data) 
+          : row.analysis_data,
         riskLevel: row.risk_level,
         confidenceScore: row.confidence_score,
         alertTriggered: row.alert_triggered,
