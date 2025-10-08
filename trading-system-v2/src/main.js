@@ -135,8 +135,10 @@ class TradingSystemApp {
       await this.macroMonitor.start();
       logger.info('Macro monitoring started');
 
-      // 初始化AI分析调度器
+      // 初始化AI分析调度器（完全隔离，失败不影响策略执行）
       try {
+        logger.info('[AI模块] 开始初始化AI分析调度器...');
+        
         const getAIOps = require('./database/ai-operations');
         const aiOps = getAIOps();
         const binanceAPI = require('./api/binance-api');
@@ -147,13 +149,16 @@ class TradingSystemApp {
         
         const aiStarted = await this.aiScheduler.start();
         if (aiStarted) {
-          logger.info('AI Analysis Scheduler started successfully');
+          logger.info('[AI模块] ✅ AI分析调度器启动成功（独立运行，不影响策略）');
         } else {
-          logger.warn('AI Analysis Scheduler not started (may be disabled in config)');
+          logger.warn('[AI模块] ⚠️ AI分析调度器未启动（可能已禁用）');
         }
       } catch (error) {
-        logger.error('Failed to start AI Analysis Scheduler:', error);
-        // AI调度器启动失败不影响主应用
+        logger.error('[AI模块] ❌ AI调度器启动失败（不影响策略执行）:', error);
+        // AI调度器启动失败不影响主应用和策略执行
+        // 策略模块（V3/ICT）继续正常运行
+        this.aiScheduler = null;
+        global.aiScheduler = null;
       }
 
       // 为API路由提供数据库连接
@@ -181,9 +186,14 @@ class TradingSystemApp {
     try {
       logger.info('Shutting down application...');
 
-      // 停止AI调度器
+      // 停止AI调度器（隔离错误）
       if (this.aiScheduler) {
-        this.aiScheduler.stop();
+        try {
+          this.aiScheduler.stop();
+          logger.info('[AI模块] AI调度器已停止');
+        } catch (error) {
+          logger.error('[AI模块] AI调度器停止失败（不影响其他服务）:', error);
+        }
       }
 
       // 停止数据更新服务

@@ -270,16 +270,17 @@ class AIAnalysisScheduler {
   }
 
   /**
-   * 获取策略数据
+   * 获取策略数据（只读，不修改策略判断）
    * @param {Array<string>} symbols - 交易对数组
    * @returns {Promise<Object>}
    */
   async getStrategyData(symbols) {
     try {
+      logger.debug('[AI只读] 读取策略数据用于AI分析（不修改策略判断）');
       const dataMap = {};
 
       for (const symbol of symbols) {
-        // 获取最新策略判断
+        // 只读查询：获取最新策略判断快照
         const [rows] = await this.aiOps.pool.query(
           `SELECT sj.*, s.last_price 
           FROM strategy_judgments sj
@@ -314,7 +315,9 @@ class AIAnalysisScheduler {
       return dataMap;
 
     } catch (error) {
-      logger.error('获取策略数据失败:', error);
+      logger.error('[AI只读] 读取策略数据失败（不影响策略执行）:', error);
+      // 返回空对象，AI自行处理
+      // 策略执行不受影响
       return {};
     }
   }

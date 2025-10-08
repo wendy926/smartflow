@@ -312,12 +312,24 @@ class AIOperations {
   }
 
   /**
+   * @deprecated 未使用，保持策略与AI完全解耦
    * 关联AI分析到策略判断
+   * 
+   * ⚠️ 警告: 此方法不应被调用，以保持AI模块与策略模块完全解耦
+   * AI模块只读取策略数据，不修改策略数据
+   * 
    * @param {number} judgmentId - 策略判断ID
    * @param {number} analysisId - AI分析ID
    * @returns {Promise<boolean>}
    */
   async linkAnalysisToJudgment(judgmentId, analysisId) {
+    logger.warn('⚠️ linkAnalysisToJudgment被调用 - 此方法已废弃，为保持解耦不应使用');
+    logger.warn('AI模块应保持与策略模块完全独立，不修改strategy_judgments表');
+    
+    // 返回false，不执行关联操作
+    return false;
+    
+    /* 原始实现已禁用
     try {
       await this.pool.query(
         'UPDATE strategy_judgments SET ai_analysis_id = ? WHERE id = ?',
@@ -328,6 +340,7 @@ class AIOperations {
       logger.error(`关联AI分析失败 - 判断ID: ${judgmentId}, 分析ID: ${analysisId}:`, error);
       throw error;
     }
+    */
   }
 
   /**
