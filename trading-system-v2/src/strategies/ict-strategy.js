@@ -629,6 +629,10 @@ class ICTStrategy {
    * @returns {Object} 策略分析结果
    */
   async execute(symbol) {
+    // ==================== 变量声明（在方法开始定义所有变量，避免"is not defined"错误）====================
+    let numericConfidence = 0;  // 默认置信度
+    let score = 0;              // 默认总分
+    
     try {
       logger.info(`Executing ICT strategy for ${symbol}`);
 
@@ -820,7 +824,7 @@ class ICTStrategy {
         // 计算数值置信度（基于谐波形态和吞没形态强度）
         const harmonicScoreValue = harmonicPattern.detected ? harmonicPattern.score : 0;
         const engulfStrength = engulfing.detected ? (engulfing.strength || 0) : 0;
-        const numericConfidence = Math.min(harmonicScoreValue * 0.6 + engulfStrength * 0.4, 1);
+        numericConfidence = Math.min(harmonicScoreValue * 0.6 + engulfStrength * 0.4, 1);
 
         return {
           symbol,
@@ -909,7 +913,7 @@ class ICTStrategy {
         // 计算数值置信度（基于谐波形态和吞没形态强度）
         const harmonicScoreValue = harmonicPattern.detected ? harmonicPattern.score : 0;
         const engulfStrength = engulfing.detected ? (engulfing.strength || 0) : 0;
-        const numericConfidence = Math.min(harmonicScoreValue * 0.6 + engulfStrength * 0.4, 1);
+        numericConfidence = Math.min(harmonicScoreValue * 0.6 + engulfStrength * 0.4, 1);
 
         return {
           symbol,
@@ -997,7 +1001,7 @@ class ICTStrategy {
         // 计算数值置信度（基于谐波形态和吞没形态强度）
         const harmonicScoreValue = harmonicPattern.detected ? harmonicPattern.score : 0;
         const engulfStrength = engulfing.detected ? (engulfing.strength || 0) : 0;
-        const numericConfidence = Math.min(harmonicScoreValue * 0.6 + engulfStrength * 0.4, 1);
+        numericConfidence = Math.min(harmonicScoreValue * 0.6 + engulfStrength * 0.4, 1);
 
         // 计算基于组件的分数（替代硬编码30分）
         const trendScore = dailyTrend.confidence * 25;
@@ -1081,7 +1085,7 @@ class ICTStrategy {
         // 计算数值置信度（基于谐波形态和吞没形态强度）
         const harmonicScoreValue = harmonicPattern.detected ? harmonicPattern.score : 0;
         const engulfStrength = engulfing.detected ? (engulfing.strength || 0) : 0;
-        const numericConfidence = Math.min(harmonicScoreValue * 0.6 + engulfStrength * 0.4, 1);
+        numericConfidence = Math.min(harmonicScoreValue * 0.6 + engulfStrength * 0.4, 1);
 
         // 计算基于组件的分数（替代硬编码40分）
         const trendScore = dailyTrend.confidence * 25;
