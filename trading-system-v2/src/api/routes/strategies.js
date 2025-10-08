@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const V3Strategy = require('../../strategies/v3-strategy');
+const V3StrategyEnhanced = require('../../strategies/v3-strategy-enhanced');
 const ICTStrategy = require('../../strategies/ict-strategy');
 const RollingStrategy = require('../../strategies/rolling-strategy');
 const logger = require('../../utils/logger');
@@ -20,6 +21,7 @@ const getDbOps = () => {
 
 // 初始化策略实例
 const v3Strategy = new V3Strategy();
+const v3StrategyEnhanced = new V3StrategyEnhanced();
 const ictStrategy = new ICTStrategy();
 const rollingStrategy = new RollingStrategy();
 
@@ -132,7 +134,7 @@ router.post('/batch-analyze', async (req, res) => {
     for (const symbol of symbols) {
       try {
         const [v3Result, ictResult] = await Promise.all([
-          v3Strategy.execute(symbol),
+          v3Strategy.execute(symbol),  // 使用基础v3Strategy
           ictStrategy.execute(symbol)
         ]);
 
@@ -181,8 +183,8 @@ router.get('/v3/judgments', async (req, res) => {
     // 为每个交易对执行V3策略
     for (const sym of activeSymbols.slice(0, parseInt(limit))) {
       try {
-        logger.info(`执行V3策略分析: ${sym.symbol}`);
-        const result = await v3Strategy.execute(sym.symbol);
+        logger.info(`执行V3增强策略分析: ${sym.symbol}`);
+        const result = await v3StrategyEnhanced.execute(sym.symbol);
         logger.info(`V3策略分析完成: ${sym.symbol}`, result);
 
         results.push({
@@ -376,7 +378,7 @@ router.get('/current-status', async (req, res) => {
         const tickerData = await api.getTicker24hr(sym.symbol);
 
         const [v3Result, ictResult] = await Promise.all([
-          v3Strategy.execute(sym.symbol),
+          v3Strategy.execute(sym.symbol),  // 使用基础v3Strategy，与直接API调用一致
           ictStrategy.execute(sym.symbol)
         ]);
 
@@ -425,6 +427,7 @@ router.get('/current-status', async (req, res) => {
             signal: ictResult.signal || 'HOLD',
             trend: ictResult.trend || 'RANGE',
             score: ictResult.score || 0,
+            confidence: ictResult.confidence || 'MEDIUM',
             timeframes: {
               "1D": {
                 trend: ictResult.timeframes?.["1D"]?.trend || 'SIDEWAYS',
@@ -442,7 +445,16 @@ router.get('/current-status', async (req, res) => {
                 engulfing: ictResult.timeframes?.["15M"]?.engulfing || false,
                 atr: ictResult.timeframes?.["15M"]?.atr || 0,
                 sweepRate: ictResult.timeframes?.["15M"]?.sweepRate || 0,
-                volume: ictResult.timeframes?.["15M"]?.volume || 0
+                volume: ictResult.timeframes?.["15M"]?.volume || 0,
+                volumeExpansion: ictResult.timeframes?.["15M"]?.volumeExpansion || false,
+                volumeRatio: ictResult.timeframes?.["15M"]?.volumeRatio || 0,
+                harmonicPattern: ictResult.timeframes?.["15M"]?.harmonicPattern || {
+                  detected: false,
+                  type: 'NONE',
+                  confidence: 0,
+                  score: 0,
+                  points: null
+                }
               }
             },
             entryPrice: ictResult.entryPrice || 0,
@@ -472,6 +484,129 @@ router.get('/current-status', async (req, res) => {
     });
   } catch (error) {
     logger.error('获取策略当前状态失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 获取V3增强版策略状态
+ * GET /api/v1/strategies/v3-enhanced/current-status
+ */
+router.get('/v3-enhanced/current-status', async (req, res) => {
+  try {
+    const { limit = 10, symbol } = req.query;
+
+    // 获取交易对列表
+    const dbOps = getDbOps();
+    const symbols = await dbOps.getAllSymbols();
+
+    // 应用限制和过滤
+    let filteredSymbols = symbols;
+    if (symbol) {
+      filteredSymbols = symbols.filter(s => s.symbol === symbol);
+    }
+    if (limit) {
+      filteredSymbols = filteredSymbols.slice(0, parseInt(limit));
+    }
+
+    if (!filteredSymbols || filteredSymbols.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        count: 0,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const results = [];
+
+    for (const sym of filteredSymbols) {
+      try {
+        logger.info(`执行V3增强策略分析: ${sym.symbol}`);
+        const v3EnhancedResult = await v3StrategyEnhanced.execute(sym.symbol);
+
+        results.push({
+          symbol: sym.symbol,
+          v3Enhanced: {
+            signal: v3EnhancedResult.signal,
+            trend: v3EnhancedResult.trend,
+            score: v3EnhancedResult.score,
+            timeframes: v3EnhancedResult.timeframes,
+            entryPrice: v3EnhancedResult.entryPrice || 0,
+            stopLoss: v3EnhancedResult.stopLoss || 0,
+            takeProfit: v3EnhancedResult.takeProfit || 0,
+            leverage: v3EnhancedResult.leverage || 0,
+            margin: v3EnhancedResult.margin || 0,
+            enhanced: v3EnhancedResult.enhanced || false
+          }
+        });
+      } catch (error) {
+        logger.error(`获取${sym.symbol} V3增强策略状态失败:`, error);
+        results.push({
+          symbol: sym.symbol,
+          error: error.message,
+          v3Enhanced: null
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: results,
+      count: results.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('获取V3增强策略当前状态失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 获取单个交易对的V3增强版策略分析
+ * GET /api/v1/strategies/v3-enhanced/:symbol
+ */
+router.get('/v3-enhanced/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+
+    if (!symbol) {
+      return res.status(400).json({
+        success: false,
+        error: '交易对参数缺失'
+      });
+    }
+
+    logger.info(`执行V3增强策略分析: ${symbol}`);
+    const result = await v3StrategyEnhanced.execute(symbol);
+
+    res.json({
+      success: true,
+      data: {
+        symbol: symbol,
+        v3Enhanced: {
+          signal: result.signal,
+          trend: result.trend,
+          score: result.score,
+          timeframes: result.timeframes,
+          entryPrice: result.entryPrice || 0,
+          stopLoss: result.stopLoss || 0,
+          takeProfit: result.takeProfit || 0,
+          leverage: result.leverage || 0,
+          margin: result.margin || 0,
+          enhanced: result.enhanced || false
+        }
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error(`获取${req.params.symbol} V3增强策略分析失败:`, error);
     res.status(500).json({
       success: false,
       error: error.message
