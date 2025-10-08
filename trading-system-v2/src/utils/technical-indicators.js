@@ -62,6 +62,73 @@ class TechnicalIndicators {
   }
 
   /**
+   * 计算MACD Histogram
+   * @param {Array} prices - 价格数组
+   * @param {number} fast - 快线周期（默认12）
+   * @param {number} slow - 慢线周期（默认26）
+   * @param {number} signal - 信号线周期（默认9）
+   * @returns {Object} {histogram, macd, signal, trending}
+   */
+  static calculateMACDHistogram(prices, fast = 12, slow = 26, signal = 9) {
+    if (!prices || prices.length < slow + signal) {
+      logger.warn(`MACD计算数据不足: 需要${slow + signal}, 实际${prices.length}`);
+      return { histogram: 0, macd: 0, signal: 0, trending: false };
+    }
+
+    try {
+      // 计算快线和慢线EMA
+      const emaFast = this.calculateEMA(prices, fast);
+      const emaSlow = this.calculateEMA(prices, slow);
+
+      if (!emaFast || !emaSlow || emaFast.length === 0 || emaSlow.length === 0) {
+        return { histogram: 0, macd: 0, signal: 0, trending: false };
+      }
+
+      // 计算MACD线（快线 - 慢线）
+      const macdLine = [];
+      for (let i = 0; i < prices.length; i++) {
+        if (emaFast[i] !== null && emaFast[i] !== undefined &&
+          emaSlow[i] !== null && emaSlow[i] !== undefined) {
+          macdLine.push(emaFast[i] - emaSlow[i]);
+        }
+      }
+
+      if (macdLine.length === 0) {
+        return { histogram: 0, macd: 0, signal: 0, trending: false };
+      }
+
+      // 计算信号线（MACD线的EMA）
+      const signalLine = this.calculateEMA(macdLine, signal);
+
+      if (!signalLine || signalLine.length === 0) {
+        return { histogram: 0, macd: 0, signal: 0, trending: false };
+      }
+
+      // 获取最后一个值
+      const lastMacd = macdLine[macdLine.length - 1] || 0;
+      const lastSignal = signalLine[signalLine.length - 1] || 0;
+
+      // 计算柱状图（MACD - Signal）
+      const histogram = lastMacd - lastSignal;
+
+      // trending: histogram > 0 表示上升动能，< 0 表示下降动能
+      const trending = histogram > 0;
+
+      logger.info(`MACD计算成功: histogram=${histogram.toFixed(4)}, macd=${lastMacd.toFixed(4)}, signal=${lastSignal.toFixed(4)}, trending=${trending}`);
+
+      return {
+        histogram,
+        macd: lastMacd,
+        signal: lastSignal,
+        trending
+      };
+    } catch (error) {
+      logger.error(`MACD计算失败: ${error.message}`);
+      return { histogram: 0, macd: 0, signal: 0, trending: false };
+    }
+  }
+
+  /**
    * 计算ADX (Average Directional Index)
    * @param {Array} high - 最高价数组
    * @param {Array} low - 最低价数组
