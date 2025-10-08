@@ -1193,6 +1193,11 @@ class ICTStrategy {
       if (!isStrongSignal) {
         logger.info(`${symbol} ICT策略: 门槛式确认通过，但总分不足（${score}/100，需要≥60），信号强度不够`);
 
+        // 计算数值置信度（基于谐波形态和吞没形态强度）
+        const harmonicScoreForConfidence = harmonicPattern.detected ? harmonicPattern.score : 0;
+        const engulfStrength = engulfing.detected ? (engulfing.strength || 0) : 0;
+        const numericConfidence = Math.min(harmonicScoreForConfidence * 0.6 + engulfStrength * 0.4, 1);
+
         // 计算15M扫荡检测 - 基于4H订单块
         let sweepLTF = { detected: false, speed: 0, confidence: 0 };
 
