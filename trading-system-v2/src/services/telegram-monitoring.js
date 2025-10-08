@@ -6,6 +6,7 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
 const config = require('../config');
+const TelegramConfigOps = require('../database/telegram-config-ops');
 
 class TelegramMonitoringService {
   constructor() {
@@ -19,20 +20,44 @@ class TelegramMonitoringService {
     this.monitoringChatId = process.env.TELEGRAM_MONITORING_CHAT_ID || config.telegram?.monitoringChatId;
     this.monitoringEnabled = this.monitoringBotToken && this.monitoringChatId;
 
-    // 宏观监控机器人配置
-    this.macroBotToken = process.env.TELEGRAM_MACRO_BOT_TOKEN || config.telegram?.macroBotToken;
-    this.macroChatId = process.env.TELEGRAM_MACRO_CHAT_ID || config.telegram?.macroChatId;
-    this.macroEnabled = this.macroBotToken && this.macroChatId;
-    this.macroThresholds = {
-      btcThreshold: 10000000,
-      ethThreshold: 1000,
-      fearGreedLow: 20,
-      fearGreedHigh: 80
-    };
+    // 宏观监控机器人配置（已废弃）
+    this.macroBotToken = null;
+    this.macroChatId = null;
+    this.macroEnabled = false;
 
     // 速率限制
     this.rateLimit = new Map();
     this.cooldown = 300000; // 5分钟冷却期
+    
+    // 从数据库加载配置
+    this.loadConfigFromDatabase();
+  }
+
+  /**
+   * 从数据库加载配置
+   */
+  async loadConfigFromDatabase() {
+    try {
+      const result = await TelegramConfigOps.getAllConfigs();
+      
+      if (result.success && result.data.length > 0) {
+        result.data.forEach(cfg => {
+          if (cfg.config_type === 'trading') {
+            this.tradingBotToken = cfg.bot_token;
+            this.tradingChatId = cfg.chat_id;
+            this.tradingEnabled = cfg.enabled;
+            logger.info('已从数据库加载交易触发Telegram配置');
+          } else if (cfg.config_type === 'monitoring') {
+            this.monitoringBotToken = cfg.bot_token;
+            this.monitoringChatId = cfg.chat_id;
+            this.monitoringEnabled = cfg.enabled;
+            logger.info('已从数据库加载系统监控Telegram配置');
+          }
+        });
+      }
+    } catch (error) {
+      logger.warn(`从数据库加载Telegram配置失败，使用环境变量: ${error.message}`);
+    }
   }
 
   /**
@@ -353,33 +378,39 @@ class TelegramMonitoringService {
    * 更新配置
    * @param {Object} config - 配置对象
    */
-  updateConfig(config) {
-    if (config.trading) {
-      this.tradingBotToken = config.trading.botToken;
-      this.tradingChatId = config.trading.chatId;
-      this.tradingEnabled = this.tradingBotToken && this.tradingChatId;
-    }
-
-    if (config.monitoring) {
-      this.monitoringBotToken = config.monitoring.botToken;
-      this.monitoringChatId = config.monitoring.chatId;
-      this.monitoringEnabled = this.monitoringBotToken && this.monitoringChatId;
-    }
-
-    if (config.macro) {
-      this.macroBotToken = config.macro.botToken;
-      this.macroChatId = config.macro.chatId;
-      this.macroEnabled = this.macroBotToken && this.macroChatId;
-      
-      if (config.macro.thresholds) {
-        this.macroThresholds = {
-          ...this.macroThresholds,
-          ...config.macro.thresholds
-        };
+  /**
+   * 更新配置并保存到数据库
+   */
+  async updateConfig(config) {
+    try {
+      if (config.trading) {
+        this.tradingBotToken = config.trading.botToken;
+        this.tradingChatId = config.trading.chatId;
+        this.tradingEnabled = this.tradingBotToken && this.tradingChatId;
+        
+        // 保存到数据库
+        await TelegramConfigOps.saveConfig('trading', this.tradingBotToken, this.tradingChatId);
       }
-    }
 
-    logger.info('Telegram监控配置已更新');
+      if (config.monitoring) {
+        this.monitoringBotToken = config.monitoring.botToken;
+        this.monitoringChatId = config.monitoring.chatId;
+        this.monitoringEnabled = this.monitoringBotToken && this.monitoringChatId;
+        
+        // 保存到数据库
+        await TelegramConfigOps.saveConfig('monitoring', this.monitoringBotToken, this.monitoringChatId);
+      }
+
+      // 宏观监控已废弃，不再支持
+      if (config.macro) {
+        logger.warn('宏观监控Telegram配置已废弃，请使用CoinGlass外部链接');
+      }
+
+      logger.info('Telegram监控配置已更新并保存到数据库');
+    } catch (error) {
+      logger.error(`更新Telegram配置失败: ${error.message}`);
+      throw error;
+    }
   }
 }
 
