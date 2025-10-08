@@ -2,7 +2,7 @@
  * Telegram配置数据库操作
  */
 
-const db = require('./index');
+const dbOps = require('./operations');
 const logger = require('../utils/logger');
 
 class TelegramConfigOps {
@@ -24,7 +24,7 @@ class TelegramConfigOps {
           updated_at = CURRENT_TIMESTAMP
       `;
 
-      const [result] = await db.query(sql, [configType, botToken, chatId]);
+      const result = await dbOps.executeQuery(sql, [configType, botToken, chatId]);
       
       logger.info(`Telegram配置已保存: ${configType}`);
       return {
@@ -52,7 +52,7 @@ class TelegramConfigOps {
         WHERE config_type = ? AND enabled = TRUE
       `;
 
-      const [rows] = await db.query(sql, [configType]);
+      const rows = await dbOps.executeQuery(sql, [configType]);
       
       if (rows && rows.length > 0) {
         return {
@@ -86,7 +86,7 @@ class TelegramConfigOps {
         ORDER BY config_type
       `;
 
-      const [rows] = await db.query(sql);
+      const rows = await dbOps.executeQuery(sql);
       
       return {
         success: true,
@@ -114,7 +114,7 @@ class TelegramConfigOps {
         WHERE config_type = ?
       `;
 
-      await db.query(sql, [configType]);
+      await dbOps.executeQuery(sql, [configType]);
       
       logger.info(`Telegram配置已禁用: ${configType}`);
       return { success: true };
@@ -138,7 +138,7 @@ class TelegramConfigOps {
         WHERE config_type = ?
       `;
 
-      await db.query(sql, [configType]);
+      await dbOps.executeQuery(sql, [configType]);
       
       logger.info(`Telegram配置已删除: ${configType}`);
       return { success: true };
