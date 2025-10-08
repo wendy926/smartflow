@@ -13,6 +13,7 @@ class TelegramConfigOps {
    * @param {string} chatId - Chat ID
    */
   static async saveConfig(configType, botToken, chatId) {
+    const connection = await dbOps.getConnection();
     try {
       const sql = `
         INSERT INTO telegram_config (config_type, bot_token, chat_id, enabled)
@@ -24,7 +25,7 @@ class TelegramConfigOps {
           updated_at = CURRENT_TIMESTAMP
       `;
 
-      const result = await dbOps.executeQuery(sql, [configType, botToken, chatId]);
+      const [result] = await connection.execute(sql, [configType, botToken, chatId]);
 
       logger.info(`Telegram配置已保存: ${configType}`);
       return {
@@ -37,6 +38,8 @@ class TelegramConfigOps {
         success: false,
         error: error.message
       };
+    } finally {
+      if (connection) connection.release();
     }
   }
 
@@ -45,6 +48,7 @@ class TelegramConfigOps {
    * @param {string} configType - 配置类型
    */
   static async getConfig(configType) {
+    const connection = await dbOps.getConnection();
     try {
       const sql = `
         SELECT config_type, bot_token, chat_id, enabled, updated_at
@@ -52,7 +56,7 @@ class TelegramConfigOps {
         WHERE config_type = ? AND enabled = TRUE
       `;
 
-      const rows = await dbOps.executeQuery(sql, [configType]);
+      const [rows] = await connection.execute(sql, [configType]);
 
       if (rows && rows.length > 0) {
         return {
@@ -71,6 +75,8 @@ class TelegramConfigOps {
         success: false,
         error: error.message
       };
+    } finally {
+      if (connection) connection.release();
     }
   }
 
@@ -78,6 +84,7 @@ class TelegramConfigOps {
    * 获取所有Telegram配置
    */
   static async getAllConfigs() {
+    const connection = await dbOps.getConnection();
     try {
       const sql = `
         SELECT config_type, bot_token, chat_id, enabled, updated_at
@@ -86,7 +93,7 @@ class TelegramConfigOps {
         ORDER BY config_type
       `;
 
-      const rows = await dbOps.executeQuery(sql);
+      const [rows] = await connection.execute(sql);
 
       return {
         success: true,
@@ -99,6 +106,8 @@ class TelegramConfigOps {
         error: error.message,
         data: []
       };
+    } finally {
+      if (connection) connection.release();
     }
   }
 
@@ -107,6 +116,7 @@ class TelegramConfigOps {
    * @param {string} configType - 配置类型
    */
   static async disableConfig(configType) {
+    const connection = await dbOps.getConnection();
     try {
       const sql = `
         UPDATE telegram_config
@@ -114,7 +124,7 @@ class TelegramConfigOps {
         WHERE config_type = ?
       `;
 
-      await dbOps.executeQuery(sql, [configType]);
+      await connection.execute(sql, [configType]);
 
       logger.info(`Telegram配置已禁用: ${configType}`);
       return { success: true };
@@ -124,6 +134,8 @@ class TelegramConfigOps {
         success: false,
         error: error.message
       };
+    } finally {
+      if (connection) connection.release();
     }
   }
 
@@ -132,13 +144,14 @@ class TelegramConfigOps {
    * @param {string} configType - 配置类型
    */
   static async deleteConfig(configType) {
+    const connection = await dbOps.getConnection();
     try {
       const sql = `
         DELETE FROM telegram_config
         WHERE config_type = ?
       `;
 
-      await dbOps.executeQuery(sql, [configType]);
+      await connection.execute(sql, [configType]);
 
       logger.info(`Telegram配置已删除: ${configType}`);
       return { success: true };
@@ -148,6 +161,8 @@ class TelegramConfigOps {
         success: false,
         error: error.message
       };
+    } finally {
+      if (connection) connection.release();
     }
   }
 }
