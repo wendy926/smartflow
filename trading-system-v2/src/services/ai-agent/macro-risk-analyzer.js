@@ -5,15 +5,14 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const OpenAIClient = require('./openai-client');
 const logger = require('../../utils/logger');
 
 /**
  * 宏观风险分析器类
  */
 class MacroRiskAnalyzer {
-  constructor(openaiClient, aiOperations) {
-    this.openaiClient = openaiClient;
+  constructor(aiClient, aiOperations) {
+    this.aiClient = aiClient;
     this.aiOps = aiOperations;
     this.promptTemplate = null;
   }
@@ -73,15 +72,15 @@ class MacroRiskAnalyzer {
       // 构建用户Prompt
       const userPrompt = this.buildUserPrompt(symbol, marketData);
 
-      // 调用OpenAI API
-      const result = await this.openaiClient.analyze(
+      // 调用AI API
+      const result = await this.aiClient.analyze(
         userPrompt,
         promptTemplate,
         { maxTokens: 4000 }
       );
 
       if (!result.success) {
-        throw new Error(result.error || 'OpenAI API调用失败');
+        throw new Error(result.error || 'AI API调用失败');
       }
 
       // 解析AI响应

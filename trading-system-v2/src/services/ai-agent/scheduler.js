@@ -5,7 +5,7 @@
 
 const cron = require('node-cron');
 const logger = require('../../utils/logger');
-const OpenAIClient = require('./openai-client');
+const UnifiedAIClient = require('./unified-ai-client');
 const MacroRiskAnalyzer = require('./macro-risk-analyzer');
 const SymbolTrendAnalyzer = require('./symbol-trend-analyzer');
 const AIAlertService = require('./ai-alert-service');
@@ -20,7 +20,7 @@ class AIAnalysisScheduler {
     this.telegram = telegramService;
     
     // 初始化组件
-    this.openaiClient = new OpenAIClient();
+    this.aiClient = new UnifiedAIClient();
     this.macroAnalyzer = null;
     this.symbolAnalyzer = null;
     this.alertService = null;
@@ -51,16 +51,16 @@ class AIAnalysisScheduler {
         return false;
       }
 
-      // 初始化OpenAI客户端
-      const initialized = await this.openaiClient.initialize(config);
+      // 初始化AI客户端
+      const initialized = await this.aiClient.initialize(config);
       if (!initialized) {
-        logger.error('OpenAI客户端初始化失败');
+        logger.error('AI客户端初始化失败');
         return false;
       }
 
       // 初始化分析器
-      this.macroAnalyzer = new MacroRiskAnalyzer(this.openaiClient, this.aiOps);
-      this.symbolAnalyzer = new SymbolTrendAnalyzer(this.openaiClient, this.aiOps);
+      this.macroAnalyzer = new MacroRiskAnalyzer(this.aiClient, this.aiOps);
+      this.symbolAnalyzer = new SymbolTrendAnalyzer(this.aiClient, this.aiOps);
       this.alertService = new AIAlertService(this.aiOps, this.telegram);
 
       this.isInitialized = true;
@@ -350,7 +350,7 @@ class AIAnalysisScheduler {
     return {
       initialized: this.isInitialized,
       running: this.isRunning,
-      openaiStats: this.openaiClient ? this.openaiClient.getUsageStats() : null
+      aiStats: this.aiClient ? this.aiClient.getUsageStats() : null
     };
   }
 
