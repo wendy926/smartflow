@@ -113,6 +113,14 @@ class SmartFlowApp {
       });
     }
 
+    // 信号筛选器
+    const signalFilterSelect = document.getElementById('signalFilter');
+    if (signalFilterSelect) {
+      signalFilterSelect.addEventListener('change', () => {
+        this.loadStrategyCurrentStatus();
+      });
+    }
+
     // 最大损失金额选择器
     const maxLossAmountSelect = document.getElementById('maxLossAmount');
     if (maxLossAmountSelect) {
@@ -1065,6 +1073,44 @@ class SmartFlowApp {
       `;
       return;
     }
+
+    // 获取信号筛选条件
+    const signalFilter = document.getElementById('signalFilter')?.value || 'all';
+    
+    // 应用信号筛选
+    let filteredData = statusData;
+    if (signalFilter !== 'all') {
+      filteredData = statusData.filter(item => {
+        const v3Signal = item.v3?.signal || 'HOLD';
+        const ictSignal = item.ict?.signal || 'HOLD';
+        
+        if (signalFilter === 'entry') {
+          // 入场信号：BUY或SELL
+          return v3Signal === 'BUY' || v3Signal === 'SELL' || 
+                 ictSignal === 'BUY' || ictSignal === 'SELL';
+        } else if (signalFilter === 'watch') {
+          // 观望信号：WATCH或HOLD
+          return (v3Signal === 'WATCH' || v3Signal === 'HOLD') && 
+                 (ictSignal === 'WATCH' || ictSignal === 'HOLD');
+        }
+        return true;
+      });
+    }
+
+    // 如果筛选后无数据，显示提示
+    if (filteredData.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="12" style="text-align: center; color: #6c757d; padding: 2rem;">
+            当前筛选条件下暂无数据
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    // 使用筛选后的数据
+    statusData = filteredData;
 
     // 定义代币分类优先级
     const tokenPriority = {

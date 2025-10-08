@@ -403,6 +403,14 @@
           <div class="card-header">
             <h3>策略当前状态</h3>
             <div class="card-actions">
+              <div class="signal-filter" style="display: flex; gap: 10px; align-items: center;">
+                <label for="signalFilter">信号筛选:</label>
+                <select id="signalFilter" class="form-select">
+                  <option value="all">全部</option>
+                  <option value="entry">入场 (BUY/SELL)</option>
+                  <option value="watch">观望 (WATCH/HOLD)</option>
+                </select>
+              </div>
               <div class="risk-selector">
                 <label for="maxLossAmount">最大损失金额:</label>
                 <select id="maxLossAmount" class="form-select">
