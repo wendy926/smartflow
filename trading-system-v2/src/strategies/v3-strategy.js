@@ -417,6 +417,7 @@ class V3Strategy {
       const upperValid = upperTouches >= 2 && factorScore >= scoreThreshold;
 
       logger.info(`1H震荡市边界分析: 下轨触碰${lowerTouches}次, 上轨触碰${upperTouches}次, 因子得分${factorScore}/5, 下轨有效=${lowerValid}, 上轨有效=${upperValid}`);
+      logger.info(`1H边界值: 下轨=${lower.toFixed(2)}, 中轨=${middle.toFixed(2)}, 上轨=${upper.toFixed(2)}`);
 
       return {
         lowerValid,
