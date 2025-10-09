@@ -38,13 +38,13 @@
     "direction": "up/down/sideways",
     "confidence": 85,
     "reasoning": "brief explanation based on VWAP, OI, Funding Rate, Delta, ETF Flow, Position Size, etc.",
-    "priceRange": [120000, 123000]  // 如果是sideways或down，给出具体价格区间
+    "priceRange": [120000, 123000]  // 必须字段！sideways时给震荡区间，down时给下跌目标区间，up时给突破目标区间
   },
   "midTermTrend": {
     "direction": "up/down/sideways",
     "confidence": 75,
     "reasoning": "brief explanation based on 7-30 day data, macro funds, ETF flow, institutional activity",
-    "priceRange": [115000, 125000]  // 如果是sideways或down，给出具体价格区间
+    "priceRange": [115000, 125000]  // 必须字段！sideways时给震荡区间，down时给下跌目标区间，up时给突破目标区间
   },
   "factorAnalysis": {
     "VWAP": "up/down/neutral",
@@ -88,5 +88,13 @@
     "signalRecommendation": "strongBuy/mediumBuy/hold/caution"
   }
 }
+
+### ⚠️ 重要提示
+1. **priceRange是必须字段**：shortTermTrend和midTermTrend都必须包含priceRange数组
+2. **所有趋势都要给区间**：
+   - sideways（横盘）→ priceRange给出震荡上下限
+   - down（下跌）→ priceRange给出下跌目标区间
+   - up（上涨）→ priceRange给出上涨目标区间
+3. priceRange格式：[下限价格, 上限价格]，必须是数字，不能省略
 
 请保持专业简洁，不需要多余文字说明。
