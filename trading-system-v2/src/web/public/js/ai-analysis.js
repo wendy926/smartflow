@@ -537,8 +537,37 @@ class AIAnalysisModule {
     const midTrend = data.midTermTrend || {};
     const currentPrice = data.currentPrice || 0;
 
-    const scoreClass = this.getScoreClass(score.totalScore);
-    const signalClass = this.getSignalClass(score.signalRecommendation);
+    // 前端重新计算评分和信号，确保旧数据也能正确显示
+    const shortConfidence = shortTrend.confidence || 50;
+    const midConfidence = midTrend.confidence || 50;
+    const recalculatedScore = Math.round((shortConfidence + midConfidence) / 2);
+    
+    // 根据分数重新判断信号（与后端逻辑一致）
+    let recalculatedSignal = 'hold';
+    if (recalculatedScore >= 75) recalculatedSignal = 'strongBuy';
+    else if (recalculatedScore >= 60) recalculatedSignal = 'mediumBuy';
+    else if (recalculatedScore >= 55) recalculatedSignal = 'holdBullish';
+    else if (recalculatedScore >= 45) recalculatedSignal = 'hold';
+    else if (recalculatedScore >= 40) recalculatedSignal = 'holdBearish';
+    else recalculatedSignal = 'caution';
+
+    // 使用重新计算的分数和信号
+    const finalScore = recalculatedScore;
+    const finalSignal = recalculatedSignal;
+    
+    // 调试日志
+    if (score.totalScore !== recalculatedScore || score.signalRecommendation !== recalculatedSignal) {
+      console.log(`[AI前端校正] 评分校正`, {
+        symbol: data.symbol || data.tradingPair,
+        原始: { score: score.totalScore, signal: score.signalRecommendation },
+        校正: { score: recalculatedScore, signal: recalculatedSignal },
+        短期: shortConfidence,
+        中期: midConfidence
+      });
+    }
+
+    const scoreClass = this.getScoreClass(finalScore);
+    const signalClass = this.getSignalClass(finalSignal);
 
     return `
       <td class="ai-analysis-cell">
@@ -554,10 +583,10 @@ class AIAnalysisModule {
           </div>
           <div class="trend-score ${scoreClass}">
             <span class="score-label">评分:</span>
-            <span class="score-value">${score.totalScore || 0}/100</span>
+            <span class="score-value">${finalScore}/100</span>
           </div>
           <div class="strength-signal ${signalClass}">
-            ${this.getSignalBadge(score.signalRecommendation)}
+            ${this.getSignalBadge(finalSignal)}
           </div>
           <div class="predictions-compact">
             <small>短期: ${this.formatTrendIcon(shortTrend.direction)} (${shortTrend.confidence || 0}%)
