@@ -1320,7 +1320,7 @@ class SmartFlowApp {
           break;
         }
       }
-      
+
       if (typeof window.aiAnalysis === 'undefined') {
         console.warn('AI分析模块未加载，跳过AI列渲染');
         return;
@@ -1333,17 +1333,17 @@ class SmartFlowApp {
     const symbolsProcessed = new Set();
     let successCount = 0;
     let failCount = 0;
-    
+
     for (const item of statusData) {
       if (symbolsProcessed.has(item.symbol)) {
         continue;
       }
       symbolsProcessed.add(item.symbol);
-      
+
       try {
         console.log(`[AI表格] 加载 ${item.symbol} 分析...`);
         const analysis = await window.aiAnalysis.loadSymbolAnalysis(item.symbol);
-        
+
         if (!analysis) {
           console.warn(`[AI表格] ${item.symbol} 无分析数据`);
           failCount++;
@@ -1353,52 +1353,56 @@ class SmartFlowApp {
         console.log(`[AI表格] ${item.symbol} 分析数据:`, analysis);
         const cellHtml = window.aiAnalysis.renderSymbolAnalysisCell(analysis);
         console.log(`[AI表格] ${item.symbol} HTML片段:`, cellHtml.substring(0, 100) + '...');
-        
+
         // 找到该交易对的所有行（V3和ICT）
         const rows = document.querySelectorAll(`#strategyStatusTableBody tr`);
         console.log(`[AI表格] ${item.symbol} 表格总行数: ${rows.length}`);
-        
+
         // 记录所有行的symbol用于调试
         const allSymbols = Array.from(rows).map((row, idx) => {
           const cell = row.querySelector('td:first-child');
           return `[${idx}]"${cell ? cell.textContent.trim() : ''}"`;
         });
         console.log(`[AI表格] 所有行symbols: ${allSymbols.join(', ')}`);
-        
+
         let updatedRows = 0;
-        
+
         rows.forEach((row, index) => {
           const symbolCell = row.querySelector('td:first-child');
           const symbolText = symbolCell ? symbolCell.textContent.trim() : '';
-          
+
           if (symbolCell && symbolText === item.symbol) {
             console.log(`[AI表格] ${item.symbol} 匹配到第${index}行`);
-            
+
             // 找到AI分析列（最后一列）
             const aiCell = row.querySelector('td:last-child');
             console.log(`[AI表格] ${item.symbol} 第${index}行 aiCell存在:`, !!aiCell);
-            
+
             if (aiCell) {
               console.log(`[AI表格] ${item.symbol} 第${index}行 开始更新aiCell`);
-              const tempDiv = document.createElement('div');
-              tempDiv.innerHTML = cellHtml;
-              const newContent = tempDiv.querySelector('td');
-              console.log(`[AI表格] ${item.symbol} 第${index}行 newContent存在:`, !!newContent);
               
-              if (newContent) {
-                aiCell.innerHTML = newContent.innerHTML;
-                aiCell.className = newContent.className;
+              // 直接从cellHtml中提取内容，不使用querySelector
+              // 因为浏览器不允许在div中直接放置td元素
+              const tdMatch = cellHtml.match(/<td[^>]*>([\s\S]*)<\/td>/);
+              
+              if (tdMatch) {
+                const tdContent = tdMatch[1]; // 提取<td>标签内的内容
+                const classMatch = cellHtml.match(/class="([^"]*)"/);
+                const className = classMatch ? classMatch[1] : 'ai-analysis-cell';
+                
+                aiCell.innerHTML = tdContent;
+                aiCell.className = className;
                 updatedRows++;
                 console.log(`[AI表格] ${item.symbol} 第${index}行 更新成功，updatedRows=${updatedRows}`);
               } else {
-                console.error(`[AI表格] ${item.symbol} 第${index}行 newContent为null，cellHtml可能格式错误`);
+                console.error(`[AI表格] ${item.symbol} 第${index}行 无法解析cellHtml`);
               }
             } else {
               console.error(`[AI表格] ${item.symbol} 第${index}行 aiCell为null，可能没有最后一列`);
             }
           }
         });
-        
+
         if (updatedRows > 0) {
           console.log(`[AI表格] ${item.symbol} 成功更新 ${updatedRows} 行`);
           successCount++;
@@ -1411,7 +1415,7 @@ class SmartFlowApp {
         failCount++;
       }
     }
-    
+
     console.log(`[AI表格] 加载完成 - 成功: ${successCount}, 失败: ${failCount}`);
   }
 
