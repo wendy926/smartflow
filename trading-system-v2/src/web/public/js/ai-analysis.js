@@ -88,40 +88,161 @@ class AIAnalysisModule {
     
     // 告警级别颜色映射
     const colorMap = {
-      'safe': { bg: '#d4edda', border: '#28a745', text: '#155724', icon: '🟢' },
-      'warning': { bg: '#fff3cd', border: '#ffc107', text: '#856404', icon: '🟡' },
-      'danger': { bg: '#f8d7da', border: '#dc3545', text: '#721c24', icon: '🔴' },
-      'extreme': { bg: '#d6d6d6', border: '#343a40', text: '#1b1e21', icon: '⚫' }
+      'safe': { 
+        bg: 'linear-gradient(135deg, #d4edda 0%, #e8f5e9 100%)', 
+        border: '#28a745', 
+        text: '#155724', 
+        icon: '🟢',
+        shadow: '0 4px 12px rgba(40, 167, 69, 0.2)'
+      },
+      'warning': { 
+        bg: 'linear-gradient(135deg, #fff3cd 0%, #fffbea 100%)', 
+        border: '#ffc107', 
+        text: '#856404', 
+        icon: '🟡',
+        shadow: '0 4px 12px rgba(255, 193, 7, 0.2)'
+      },
+      'danger': { 
+        bg: 'linear-gradient(135deg, #f8d7da 0%, #fde8ea 100%)', 
+        border: '#dc3545', 
+        text: '#721c24', 
+        icon: '🔴',
+        shadow: '0 4px 12px rgba(220, 53, 69, 0.3)'
+      },
+      'extreme': { 
+        bg: 'linear-gradient(135deg, #d6d6d6 0%, #e8e8e8 100%)', 
+        border: '#343a40', 
+        text: '#1b1e21', 
+        icon: '⚫',
+        shadow: '0 4px 12px rgba(52, 58, 64, 0.3)'
+      }
     };
     
     const colors = colorMap[alertColor] || colorMap['warning'];
     const pulseClass = alertColor === 'danger' || alertColor === 'extreme' ? 'pulse-animation' : '';
 
     return `
-      <div class="risk-card ${pulseClass}" style="border-color: ${colors.border}; background: ${colors.bg};">
-        <div class="risk-header">
-          <h3>${colors.icon} ${coin} 市场监控</h3>
-          <span class="alert-badge" style="background: ${colors.border}; color: white;">
+      <div class="monitor-card ${pulseClass}" style="
+        background: ${colors.bg};
+        border: 2px solid ${colors.border};
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: ${colors.shadow};
+        transition: all 0.3s ease;
+      ">
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+          padding-bottom: 0.75rem;
+          border-bottom: 2px solid ${colors.border};
+        ">
+          <h3 style="
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: ${colors.text};
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          ">
+            <span style="font-size: 1.5rem;">${colors.icon}</span>
+            ${coin} 市场监控
+          </h3>
+          <span style="
+            background: ${colors.border};
+            color: white;
+            padding: 0.35rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+          ">
             ${alertLevel}
           </span>
         </div>
         
-        <div class="risk-content">
-          <div class="risk-section">
-            <strong>📊 交易建议:</strong>
-            <p>${tradingSuggestion}</p>
+        <div style="margin: 1rem 0;">
+          <div style="margin-bottom: 1rem;">
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              margin-bottom: 0.5rem;
+            ">
+              <strong style="
+                font-size: 1rem;
+                color: ${colors.text};
+                display: flex;
+                align-items: center;
+                gap: 0.25rem;
+              ">
+                <span style="font-size: 1.2rem;">📊</span> 交易建议
+              </strong>
+            </div>
+            <p style="
+              margin: 0;
+              color: #555;
+              font-size: 0.95rem;
+              line-height: 1.6;
+              padding-left: 1.75rem;
+            ">${tradingSuggestion}</p>
           </div>
           
-          <div class="risk-section">
-            <strong>⚠️ 风险提示:</strong>
-            <p>${riskWarning}</p>
+          <div>
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              margin-bottom: 0.5rem;
+            ">
+              <strong style="
+                font-size: 1rem;
+                color: ${colors.text};
+                display: flex;
+                align-items: center;
+                gap: 0.25rem;
+              ">
+                <span style="font-size: 1.2rem;">⚠️</span> 风险提示
+              </strong>
+            </div>
+            <p style="
+              margin: 0;
+              color: #555;
+              font-size: 0.95rem;
+              line-height: 1.6;
+              padding-left: 1.75rem;
+            ">${riskWarning}</p>
           </div>
         </div>
         
-        <div class="risk-footer">
-          <span class="update-time">更新: ${this.formatTime(updatedAt)}</span>
-          <a href="${artifactUrl}" target="_blank" class="detail-link">
-            查看详细分析 →
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 1.25rem;
+          padding-top: 0.75rem;
+          border-top: 1px solid rgba(0,0,0,0.1);
+        ">
+          <span style="
+            font-size: 0.85rem;
+            color: #666;
+          ">
+            更新: ${this.formatTime(updatedAt)}
+          </span>
+          <a href="${artifactUrl}" target="_blank" rel="noopener noreferrer" style="
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: all 0.2s ease;
+          " onmouseover="this.style.color='#0056b3'; this.style.textDecoration='underline';" 
+             onmouseout="this.style.color='#007bff'; this.style.textDecoration='none';">
+            查看详细分析 <span style="font-size: 1.1rem;">→</span>
           </a>
         </div>
       </div>
