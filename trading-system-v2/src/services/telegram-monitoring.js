@@ -394,15 +394,15 @@ class TelegramMonitoringService {
     }
 
     let message = `${emoji} <b>${title}</b>\n\n`;
-    message += `📊 <b>交易对:</b> ${symbol}\n`;
-    message += `🎯 <b>策略:</b> ${strategy_type}\n`;
-    message += `📈 <b>方向:</b> ${direction}\n`;
-    message += `💰 <b>入场价格:</b> ${entry_price}\n`;
-    message += `🛑 <b>止损价格:</b> ${stop_loss}\n`;
-    message += `🎯 <b>止盈价格:</b> ${take_profit}\n`;
-    message += `⚡ <b>杠杆:</b> ${leverage}x\n`;
-    message += `💵 <b>保证金:</b> ${margin_required.toFixed(2)}\n`;
-    message += `📝 <b>入场原因:</b> ${entry_reason}\n`;
+    message += `📊 <b>交易对:</b> ${symbol || 'N/A'}\n`;
+    message += `🎯 <b>策略:</b> ${strategy_type || tradeData.strategy_name || 'N/A'}\n`;
+    message += `📈 <b>方向:</b> ${direction || tradeData.trade_type || 'N/A'}\n`;
+    message += `💰 <b>入场价格:</b> ${entry_price || 'N/A'}\n`;
+    message += `🛑 <b>止损价格:</b> ${stop_loss || 'N/A'}\n`;
+    message += `🎯 <b>止盈价格:</b> ${take_profit || 'N/A'}\n`;
+    message += `⚡ <b>杠杆:</b> ${leverage || 1}x\n`;
+    message += `💵 <b>保证金:</b> ${margin_required ? margin_required.toFixed(2) : (tradeData.margin_used || 0)}\n`;
+    message += `📝 <b>入场原因:</b> ${entry_reason || tradeData.entry_reason || 'N/A'}\n`;
     message += `🕐 <b>时间:</b> ${timestamp}\n`;
     message += `\n🔗 <b>系统:</b> SmartFlow 交易系统 V2.0`;
 
