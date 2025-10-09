@@ -244,6 +244,123 @@ class TelegramMonitoringService {
   }
 
   /**
+   * 发送AI信号通知
+   * @param {Object} aiSignalData - AI信号数据
+   * @returns {Promise<boolean>}
+   */
+  async sendAISignalAlert(aiSignalData) {
+    logger.info('[Telegram AI信号] 收到发送请求', {
+      tradingEnabled: this.tradingEnabled,
+      symbol: aiSignalData.symbol,
+      signal: aiSignalData.signalRecommendation
+    });
+
+    if (!this.tradingEnabled) {
+      logger.warn('[Telegram AI信号] 交易触发Telegram未启用，跳过发送');
+      return false;
+    }
+
+    try {
+      const message = this.formatAISignalMessage(aiSignalData);
+      const result = await this.sendMessage(message, 'trading');
+      
+      if (result) {
+        logger.info('[Telegram AI信号] ✅ 消息发送成功', {
+          symbol: aiSignalData.symbol,
+          signal: aiSignalData.signalRecommendation
+        });
+      } else {
+        logger.warn('[Telegram AI信号] ⚠️ 消息发送失败', {
+          symbol: aiSignalData.symbol
+        });
+      }
+
+      return result;
+    } catch (error) {
+      logger.error('[Telegram AI信号] ❌ 发送消息异常', {
+        error: error.message,
+        symbol: aiSignalData.symbol
+      });
+      return false;
+    }
+  }
+
+  /**
+   * 格式化AI信号消息
+   * @param {Object} aiSignalData - AI信号数据
+   * @returns {string}
+   */
+  formatAISignalMessage(aiSignalData) {
+    const {
+      symbol,
+      signalRecommendation,
+      overallScore,
+      currentPrice,
+      shortTermTrend,
+      midTermTrend,
+      timestamp
+    } = aiSignalData;
+
+    const signalEmoji = {
+      'strongBuy': '🟢',
+      'caution': '🔴'
+    };
+
+    const signalText = {
+      'strongBuy': '强烈看多',
+      'caution': '谨慎'
+    };
+
+    const emoji = signalEmoji[signalRecommendation] || '⚠️';
+    const text = signalText[signalRecommendation] || signalRecommendation;
+
+    let message = `${emoji} <b>AI信号通知</b>\n\n`;
+    message += `📊 <b>交易对</b>: ${symbol}\n`;
+    message += `🎯 <b>信号</b>: ${text}\n`;
+    message += `📈 <b>评分</b>: ${overallScore?.totalScore || 'N/A'}/100\n`;
+    message += `💰 <b>当前价格</b>: $${currentPrice || 'N/A'}\n\n`;
+
+    // 短期趋势
+    if (shortTermTrend) {
+      const directionEmoji = {
+        'up': '↗️',
+        'down': '↘️',
+        'sideways': '↔️'
+      };
+      message += `📊 <b>短期趋势</b>: ${directionEmoji[shortTermTrend.direction] || ''} `;
+      message += `置信度 ${shortTermTrend.confidence}%\n`;
+      if (shortTermTrend.priceRange && shortTermTrend.priceRange.length === 2) {
+        message += `   区间: $${shortTermTrend.priceRange[0].toFixed(2)} - $${shortTermTrend.priceRange[1].toFixed(2)}\n`;
+      }
+    }
+
+    // 中期趋势
+    if (midTermTrend) {
+      const directionEmoji = {
+        'up': '↗️',
+        'down': '↘️',
+        'sideways': '↔️'
+      };
+      message += `📊 <b>中期趋势</b>: ${directionEmoji[midTermTrend.direction] || ''} `;
+      message += `置信度 ${midTermTrend.confidence}%\n`;
+      if (midTermTrend.priceRange && midTermTrend.priceRange.length === 2) {
+        message += `   区间: $${midTermTrend.priceRange[0].toFixed(2)} - $${midTermTrend.priceRange[1].toFixed(2)}\n`;
+      }
+    }
+
+    message += `\n⏰ <b>时间</b>: ${new Date(timestamp).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\n`;
+
+    // 添加操作建议
+    if (signalRecommendation === 'strongBuy') {
+      message += `\n💡 <b>建议</b>: 多因子共振，可考虑积极入场（仓位20-30%）`;
+    } else if (signalRecommendation === 'caution') {
+      message += `\n⚠️ <b>警告</b>: 趋势转弱，建议避免入场或减仓`;
+    }
+
+    return message;
+  }
+
+  /**
    * 格式化交易消息
    * @param {Object} tradeData - 交易数据
    */
