@@ -194,6 +194,12 @@ class AIAnalysisScheduler {
    */
   async runSymbolAnalysis() {
     try {
+      // 熔断检查：如果连续失败过多，暂停分析
+      if (this.circuitBreakerPaused) {
+        logger.warn('AI分析熔断中，跳过本次执行');
+        return;
+      }
+
       logger.info('执行交易对分析任务...');
 
       // 获取活跃交易对
@@ -205,8 +211,8 @@ class AIAnalysisScheduler {
       }
 
       // 限制分析数量（避免过多API调用）
-      // 增加到10个，覆盖所有活跃交易对
-      const maxSymbols = 10;
+      // 增加到13个，覆盖所有活跃交易对（包括XRPUSDT和SUIUSDT）
+      const maxSymbols = 13;
       const symbolsToAnalyze = symbols.slice(0, maxSymbols);
 
       logger.info(`将分析 ${symbolsToAnalyze.length} 个交易对: ${symbolsToAnalyze.join(', ')}`);
@@ -214,16 +220,47 @@ class AIAnalysisScheduler {
       // 获取策略数据
       const strategyDataMap = await this.getStrategyData(symbolsToAnalyze);
 
-      // 批量分析
+      // 批量分析（已优化为顺序执行，每个间隔3秒）
       const results = await this.symbolAnalyzer.analyzeSymbols(symbolsToAnalyze, strategyDataMap);
 
-      logger.info(`交易对分析任务完成 - 成功: ${results.filter(r => r.success).length}, 失败: ${results.filter(r => !r.success).length}`);
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      logger.info(`交易对分析任务完成 - 成功: ${successCount}, 失败: ${failCount}`);
+
+      // 错误熔断逻辑
+      if (successCount === 0 && failCount > 0) {
+        // 全部失败
+        this.consecutiveFailures++;
+        logger.warn(`连续失败 ${this.consecutiveFailures}/${this.maxConsecutiveFailures} 次`);
+
+        if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+          this.circuitBreakerPaused = true;
+          logger.error(`⚠️ AI分析熔断触发！连续失败${this.maxConsecutiveFailures}次，暂停分析30分钟`);
+
+          // 30分钟后自动恢复
+          setTimeout(() => {
+            this.circuitBreakerPaused = false;
+            this.consecutiveFailures = 0;
+            logger.info('✅ AI分析熔断恢复，重新启动');
+          }, this.circuitBreakerResetMs);
+        }
+      } else if (successCount > 0) {
+        // 有成功的，重置失败计数
+        if (this.consecutiveFailures > 0) {
+          logger.info(`✅ AI分析恢复正常，重置失败计数（之前${this.consecutiveFailures}次）`);
+          this.consecutiveFailures = 0;
+        }
+      }
 
       // 检查是否有需要通知的信号（强烈看多或谨慎）
       await this.checkAndSendSignalAlerts(results);
 
     } catch (error) {
       logger.error('交易对分析任务失败:', error);
+      
+      // 异常也算作失败
+      this.consecutiveFailures++;
     }
   }
 

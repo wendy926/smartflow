@@ -159,22 +159,29 @@ class SymbolTrendAnalyzer {
 
     const results = [];
     
-    // 为了避免API过载，分批处理
-    const batchSize = 3;
-    for (let i = 0; i < symbols.length; i += batchSize) {
-      const batch = symbols.slice(i, i + batchSize);
+    // 优化：改为顺序执行而非批量并行，更好地控制API频率
+    // 避免API限流：每个交易对之间有3秒延迟
+    for (let i = 0; i < symbols.length; i++) {
+      const symbol = symbols[i];
       
-      const batchResults = await Promise.all(
-        batch.map(symbol => 
-          this.analyzeSymbol(symbol, strategyDataMap[symbol] || {})
-        )
-      );
-
-      results.push(...batchResults);
-
-      // 批次间延迟，避免API限流
-      if (i + batchSize < symbols.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        const result = await this.analyzeSymbol(symbol, strategyDataMap[symbol] || {});
+        results.push(result);
+        
+        logger.info(`[${i + 1}/${symbols.length}] ${symbol} 分析完成 - ${result.success ? '成功' : '失败'}`);
+        
+        // 延迟3秒再分析下一个，避免API限流（优化：从1秒增加到3秒）
+        if (i < symbols.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      } catch (error) {
+        logger.error(`${symbol} 分析异常:`, error.message);
+        results.push({
+          success: false,
+          symbol,
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
       }
     }
 
