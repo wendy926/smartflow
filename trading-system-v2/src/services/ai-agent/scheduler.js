@@ -306,65 +306,108 @@ class AIAnalysisScheduler {
   }
 
   /**
-   * 获取策略数据（只读，不修改策略判断）
+   * 获取策略数据（AI分析完全独立，不依赖策略判断）
    * @param {Array<string>} symbols - 交易对数组
    * @returns {Promise<Object>}
    */
   async getStrategyData(symbols) {
     try {
-      logger.debug('[AI只读] 读取策略数据用于AI分析（不修改策略判断）');
+      logger.debug('[AI独立] AI分析使用独立数据源，不依赖策略判断');
       const dataMap = {};
 
       for (const symbol of symbols) {
-        // 只读查询：获取最新策略判断快照
-        const [rows] = await this.aiOps.pool.query(
-          `SELECT sj.*, s.last_price 
-          FROM strategy_judgments sj
-          INNER JOIN symbols s ON sj.symbol_id = s.id
-          WHERE s.symbol = ?
-          ORDER BY sj.created_at DESC
-          LIMIT 1`,
-          [symbol]
-        );
-
-        if (rows.length > 0) {
-          const row = rows[0];
-          const indicators = row.indicators_data ? JSON.parse(row.indicators_data) : {};
-
-          // 获取实时价格（而不是数据库旧价格）
-          let currentPrice = parseFloat(row.last_price);
+        // 第一步：总是获取Binance实时价格（AI分析的核心数据）
+        let currentPrice = 0;
+        try {
+          const ticker = await this.binanceAPI.getTicker24hr(symbol);
+          currentPrice = parseFloat(ticker.lastPrice || 0);
+          logger.info(`[AI独立] ${symbol} Binance实时价格: $${currentPrice}`);
+        } catch (priceError) {
+          logger.error(`[AI独立] ${symbol} 获取Binance实时价格失败:`, priceError.message);
+          // 降级：尝试从symbols表获取
           try {
-            const ticker = await this.binanceAPI.getTicker24hr(symbol);
-            currentPrice = parseFloat(ticker.lastPrice || 0);
-            logger.info(`[AI只读] ${symbol} 实时价格: $${currentPrice}`);
-          } catch (priceError) {
-            logger.warn(`[AI只读] ${symbol} 获取实时价格失败，使用数据库价格: $${currentPrice}`);
+            const [symbolRows] = await this.aiOps.pool.query(
+              'SELECT last_price FROM symbols WHERE symbol = ?',
+              [symbol]
+            );
+            if (symbolRows.length > 0) {
+              currentPrice = parseFloat(symbolRows[0].last_price);
+              logger.warn(`[AI独立] ${symbol} 降级使用symbols表价格: $${currentPrice}`);
+            }
+          } catch (dbError) {
+            logger.error(`[AI独立] ${symbol} 从数据库获取价格也失败`);
           }
-
-          dataMap[symbol] = {
-            currentPrice: currentPrice,
-            trend4h: row.trend_direction,
-            trend1h: row.trend_direction,
-            signal15m: row.entry_signal,
-            score: {
-              trend4h: Math.round(parseFloat(row.confidence_score) / 10),
-              factors1h: Math.round(parseFloat(row.confidence_score) / 15),
-              entry15m: Math.round(parseFloat(row.confidence_score) / 30)
-            },
-            indicators
-          };
-        } else {
-          dataMap[symbol] = {};
         }
+
+        // 第二步：尝试获取策略数据作为参考（可选，不影响AI分析）
+        let strategyData = {
+          trend4h: 'RANGE',
+          trend1h: 'RANGE',
+          signal15m: 'HOLD',
+          score: {
+            trend4h: 5,
+            factors1h: 5,
+            entry15m: 5
+          },
+          indicators: {}
+        };
+
+        try {
+          const [rows] = await this.aiOps.pool.query(
+            `SELECT sj.*, s.last_price 
+            FROM strategy_judgments sj
+            INNER JOIN symbols s ON sj.symbol_id = s.id
+            WHERE s.symbol = ?
+            ORDER BY sj.created_at DESC
+            LIMIT 1`,
+            [symbol]
+          );
+
+          if (rows.length > 0) {
+            const row = rows[0];
+            strategyData = {
+              trend4h: row.trend_direction || 'RANGE',
+              trend1h: row.trend_direction || 'RANGE',
+              signal15m: row.entry_signal || 'HOLD',
+              score: {
+                trend4h: Math.round(parseFloat(row.confidence_score || 50) / 10),
+                factors1h: Math.round(parseFloat(row.confidence_score || 50) / 15),
+                entry15m: Math.round(parseFloat(row.confidence_score || 50) / 30)
+              },
+              indicators: row.indicators_data ? JSON.parse(row.indicators_data) : {}
+            };
+            logger.debug(`[AI独立] ${symbol} 找到策略参考数据（可选）`);
+          } else {
+            logger.debug(`[AI独立] ${symbol} 无策略数据，使用默认值（不影响AI分析）`);
+          }
+        } catch (strategyError) {
+          logger.warn(`[AI独立] ${symbol} 读取策略数据失败，继续使用默认值:`, strategyError.message);
+        }
+
+        // 组合数据：实时价格 + 策略参考
+        dataMap[symbol] = {
+          currentPrice: currentPrice,  // ← AI分析的核心：总是实时价格
+          ...strategyData
+        };
       }
 
       return dataMap;
 
     } catch (error) {
-      logger.error('[AI只读] 读取策略数据失败（不影响策略执行）:', error);
-      // 返回空对象，AI自行处理
-      // 策略执行不受影响
-      return {};
+      logger.error('[AI独立] AI数据获取失败（不影响策略执行）:', error);
+      // 即使失败，也返回基本结构而不是空对象
+      const fallbackMap = {};
+      for (const symbol of symbols) {
+        fallbackMap[symbol] = {
+          currentPrice: 0,
+          trend4h: 'RANGE',
+          trend1h: 'RANGE',
+          signal15m: 'HOLD',
+          score: { trend4h: 5, factors1h: 5, entry15m: 5 },
+          indicators: {}
+        };
+      }
+      return fallbackMap;
     }
   }
 
