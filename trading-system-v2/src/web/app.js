@@ -2700,12 +2700,13 @@ class SmartFlowApp {
         labels.push(`第${Math.ceil((now - date) / (7 * 24 * 60 * 60 * 1000))}周`);
       }
 
-      // 使用当前统计数据的胜率作为基础，添加一些随机变化
+      // ✅ 使用当前统计数据的胜率（真实数据，不添加随机变化）
       const v3BaseRate = v3Stats.winRate || 0;
       const ictBaseRate = ictStats.winRate || 0;
 
-      v3WinRates.push(Math.max(0, Math.min(100, v3BaseRate + (Math.random() - 0.5) * 20)));
-      ictWinRates.push(Math.max(0, Math.min(100, ictBaseRate + (Math.random() - 0.5) * 20)));
+      // ✅ 直接使用真实胜率，不使用Math.random()
+      v3WinRates.push(v3BaseRate);
+      ictWinRates.push(ictBaseRate);
     }
 
     let tableHTML = `
@@ -2726,8 +2727,9 @@ class SmartFlowApp {
     for (let i = 0; i < labels.length; i++) {
       const v3Rate = Math.round(v3WinRates[i]);
       const ictRate = Math.round(ictWinRates[i]);
-      const v3Trades = Math.max(1, Math.floor(v3Stats.totalTrades / period) + Math.floor(Math.random() * 3));
-      const ictTrades = Math.max(1, Math.floor(ictStats.totalTrades / period) + Math.floor(Math.random() * 3));
+      // ✅ 使用真实交易数量，不使用Math.random()
+      const v3Trades = Math.max(0, Math.floor(v3Stats.totalTrades / period));
+      const ictTrades = Math.max(0, Math.floor(ictStats.totalTrades / period));
 
       tableHTML += `
         <tr>
@@ -2780,9 +2782,10 @@ class SmartFlowApp {
         labels.push(`第${Math.ceil((now - date) / (7 * 24 * 60 * 60 * 1000))}周`);
       }
 
-      // 生成模拟胜率数据（实际应用中应该从API获取）
-      v3WinRates.push(Math.round(60 + Math.random() * 30)); // 60-90%
-      ictWinRates.push(Math.round(50 + Math.random() * 35)); // 50-85%
+      // ✅ 使用固定胜率（等待后端提供历史胜率API）
+      // TODO: 实现后端历史胜率API后改用真实数据
+      v3WinRates.push(0); // 暂时使用0，等待真实数据
+      ictWinRates.push(0);
     }
 
     return { labels, v3WinRates, ictWinRates };
@@ -3268,27 +3271,39 @@ class SmartFlowApp {
    */
   async loadMonitoringData() {
     try {
-      // 模拟监控数据
-      const monitoringData = {
-        cpu: Math.random() * 40 + 20, // 20-60%
-        memory: Math.random() * 30 + 50, // 50-80%
-        disk: Math.random() * 20 + 30, // 30-50%
-        apis: {
-          binanceRest: 'online',
-          binanceWs: 'online',
-          database: 'online',
-          redis: 'online'
-        },
-        strategies: {
-          v3: 'running',
-          ict: 'running',
-          rolling: 'running'
-        }
-      };
-
-      this.updateMonitoringDisplay(monitoringData);
+      // ✅ 调用真实监控API
+      const response = await this.fetchData('/monitoring/system');
+      
+      if (response.success && response.data) {
+        const resources = response.data.resources || {};
+        const monitoringData = {
+          cpu: resources.cpuUsage || 0,
+          memory: resources.memoryUsage || 0,
+          disk: resources.diskUsage || 0,
+          apis: {
+            binanceRest: resources.binanceApiStatus || 'unknown',
+            binanceWs: resources.websocketStatus || 'unknown',
+            database: resources.databaseStatus || 'online',
+            redis: resources.redisStatus || 'unknown'
+          },
+          strategies: {
+            v3: 'running',
+            ict: 'running'
+          }
+        };
+        
+        this.updateMonitoringDisplay(monitoringData);
+      }
     } catch (error) {
       console.error('Error loading monitoring data:', error);
+      // 降级显示
+      this.updateMonitoringDisplay({
+        cpu: 0,
+        memory: 0,
+        disk: 0,
+        apis: { binanceRest: 'unknown', binanceWs: 'unknown', database: 'unknown', redis: 'unknown' },
+        strategies: { v3: 'unknown', ict: 'unknown' }
+      });
     }
   }
 
