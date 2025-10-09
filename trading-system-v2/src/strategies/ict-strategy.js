@@ -1145,10 +1145,10 @@ class ICTStrategy {
       // 要求：吞没形态强度>=60% 或 谐波形态分数>=60%
       const minEngulfStrength = 0.6;  // 60%
       const minHarmonicScore = 0.6;   // 60%
-      
+
       const engulfStrength = engulfing.strength || 0;
       const harmonicScore = harmonicPattern.detected ? harmonicPattern.score : 0;
-      
+
       const entryValid = (engulfStrength >= minEngulfStrength) || (harmonicScore >= minHarmonicScore);
 
       if (!entryValid) {
@@ -1162,7 +1162,7 @@ class ICTStrategy {
         const volumeScore = volumeExpansion.detected ? 5 : 0;
         const harmonicScoreValue = harmonicPattern.detected ? harmonicPattern.score * 20 : 0;
         const calculatedScore = Math.round(trendScore + orderBlockScore + engulfingScore + sweepScore + volumeScore + harmonicScoreValue);
-        
+
         numericConfidence = Math.min(harmonicScore * 0.6 + engulfStrength * 0.4, 1);
 
         return {
@@ -1238,9 +1238,8 @@ class ICTStrategy {
       }
 
       // 计算数值置信度（基于谐波形态和吞没形态强度）
-      const harmonicScoreForConfidence = harmonicPattern.detected ? harmonicPattern.score : 0;
-      const engulfStrength = engulfing.detected ? (engulfing.strength || 0) : 0;
-      numericConfidence = Math.min(harmonicScoreForConfidence * 0.6 + engulfStrength * 0.4, 1);
+      // engulfStrength 和 harmonicScore 已在line 1149-1150定义，直接使用
+      numericConfidence = Math.min(harmonicScore * 0.6 + engulfStrength * 0.4, 1);
 
       // 生成信号（按照ict-plus.md综合评分系统）
       const signal = dailyTrend.trend === 'UP' ? 'BUY' : 'SELL';
