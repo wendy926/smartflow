@@ -317,14 +317,14 @@ class SymbolTrendAnalyzer {
     const midScore = data.midTermTrend?.confidence || 50;
     const totalScore = Math.round((shortScore + midScore) / 2);
 
-    // 根据分数段判断信号（忽略AI返回的错误判断）
+    // 优化后的评分阈值 - 提升信号多样性
     let recommendation = 'hold';
-    if (totalScore >= 75) recommendation = 'strongBuy';
-    else if (totalScore >= 60) recommendation = 'mediumBuy';    // 60-74分: 适度买入
-    else if (totalScore >= 55) recommendation = 'holdBullish';  // 55-59分: 持有偏多
-    else if (totalScore >= 45) recommendation = 'hold';         // 45-54分: 持有观望
-    else if (totalScore >= 40) recommendation = 'holdBearish'; // 40-44分: 持有偏空
-    else recommendation = 'caution';                            // <40分: 谨慎
+    if (totalScore >= 78) recommendation = 'strongBuy';       // 78-100分: 强烈看多
+    else if (totalScore >= 68) recommendation = 'mediumBuy';  // 68-77分: 看多
+    else if (totalScore >= 58) recommendation = 'holdBullish'; // 58-67分: 持有偏多
+    else if (totalScore >= 48) recommendation = 'hold';       // 48-57分: 持有观望
+    else if (totalScore >= 38) recommendation = 'holdBearish'; // 38-47分: 持有偏空
+    else recommendation = 'caution';                          // <38分: 谨慎
 
     return {
       "4hTrend": Math.round(midScore / 10),
