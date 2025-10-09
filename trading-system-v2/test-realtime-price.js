@@ -2,12 +2,17 @@
  * 测试AI分析是否使用实时价格
  */
 
-const { pool } = require('./src/database/connection');
+const mysql = require('mysql2/promise');
 const BinanceAPI = require('./src/api/binance-api');
+const config = require('./src/config');
 
 async function testRealtimePrice() {
+  let connection;
   try {
     console.log('=== 测试AI分析实时价格获取 ===\n');
+    
+    // 创建数据库连接
+    connection = await mysql.createConnection(config.database);
     
     const binanceAPI = new BinanceAPI();
     const symbol = 'ETHUSDT';
@@ -20,7 +25,7 @@ async function testRealtimePrice() {
     
     // 2. 查询strategy_judgments表的价格
     console.log('2. 查询strategy_judgments表...');
-    const [rows] = await pool.query(
+    const [rows] = await connection.query(
       `SELECT sj.*, s.last_price 
        FROM strategy_judgments sj
        INNER JOIN symbols s ON sj.symbol_id = s.id
@@ -39,7 +44,7 @@ async function testRealtimePrice() {
     
     // 3. 查询AI分析使用的价格
     console.log('3. 查询AI分析使用的价格...');
-    const [aiRows] = await pool.query(
+    const [aiRows] = await connection.query(
       `SELECT 
         symbol,
         JSON_EXTRACT(analysis_data, '$.currentPrice') as ai_price,
@@ -88,11 +93,12 @@ async function testRealtimePrice() {
       console.log('\n❌ 代码逻辑有问题：无法获取实时价格');
     }
     
-    await pool.end();
+    if (connection) await connection.end();
     process.exit(0);
     
   } catch (error) {
     console.error('测试失败:', error);
+    if (connection) await connection.end();
     process.exit(1);
   }
 }
