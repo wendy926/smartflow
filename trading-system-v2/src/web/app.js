@@ -1739,30 +1739,16 @@ class SmartFlowApp {
       const harmonicDetected = harmonicPattern.detected || false;
       const harmonicType = harmonicPattern.type || 'NONE';
       const harmonicScore = harmonicPattern.score || 0;
-      // ICT策略15M入场判断：门槛式结构确认 + 总分强信号
-      // 门槛式条件：
-      // 1. 日线趋势确认（非RANGE）
-      // 2. 4H订单块存在
-      // 3. 4H扫荡确认  
-      // 4. 吞没形态方向匹配
-      // 强信号条件：
-      // 5. 总分 >= 60分
-      const trend = strategyInfo.trend || 'RANGE';
-      const hasOrderBlock = (strategyInfo.timeframes?.["4H"]?.orderBlocks?.length > 0) || false;
-      const hasSweepHTF = (strategyInfo.timeframes?.["4H"]?.sweepDetected) || false;
-      const engulfingType = entry15m.engulfingType || 'NONE';
-      const engulfingDirectionMatch = (trend === 'UP' && engulfingType === 'BULLISH_ENGULFING') ||
-        (trend === 'DOWN' && engulfingType === 'BEARISH_ENGULFING');
 
       // 获取总分和置信度（从策略顶层数据）
       const totalScore = strategyInfo.score || 0;
-      const isStrongSignal = totalScore >= 60;
-
-      // 门槛式确认 + 总分强信号：所有条件都满足
-      const valid = (trend !== 'RANGE') && hasOrderBlock && hasSweepHTF && engulfing && engulfingDirectionMatch && isStrongSignal;
       const confidence = strategyInfo.confidence || 'MEDIUM';
       const confidenceText = this.getConfidenceText(confidence);
       const confidenceClass = typeof confidence === 'string' ? confidence.toLowerCase() : 'medium';
+
+      // ✅ 直接使用后端返回的信号判断有效性，不在前端重复判断
+      const signal = entry15m.signal || strategyInfo.signal || 'HOLD';
+      const valid = (signal === 'BUY' || signal === 'SELL');
 
       return `
         <div class="indicator-group">
