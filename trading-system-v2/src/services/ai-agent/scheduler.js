@@ -128,11 +128,21 @@ class AIAnalysisScheduler {
   startMacroAnalysisTask(intervalSeconds) {
     // 计算cron表达式（每N秒转换为分钟）
     const intervalMinutes = Math.max(1, Math.floor(intervalSeconds / 60));
-    const cronExpression = intervalMinutes >= 60
-      ? `0 */${Math.floor(intervalMinutes / 60)} * * *` // 小时级
-      : `*/${intervalMinutes} * * * *`; // 分钟级
+    
+    // 修复Cron表达式生成逻辑
+    // 分钟字段范围是0-59，小时字段范围是0-23
+    let cronExpression;
+    if (intervalMinutes >= 60) {
+      // 小时级：每N小时的第0分钟执行
+      const hours = Math.floor(intervalMinutes / 60);
+      cronExpression = hours === 1 ? `0 * * * *` : `0 */${hours} * * *`;
+    } else {
+      // 分钟级：每N分钟执行（N必须<=59）
+      const validMinutes = Math.min(59, intervalMinutes);
+      cronExpression = `*/${validMinutes} * * * *`;
+    }
 
-    logger.info(`宏观风险分析任务设置 - 间隔: ${intervalSeconds}秒, Cron: ${cronExpression}`);
+    logger.info(`宏观风险分析任务设置 - 间隔: ${intervalSeconds}秒 (${intervalMinutes}分钟), Cron: ${cronExpression}`);
 
     this.macroTask = cron.schedule(cronExpression, async () => {
       await this.runMacroAnalysis();
@@ -145,9 +155,21 @@ class AIAnalysisScheduler {
    */
   startSymbolAnalysisTask(intervalSeconds) {
     const intervalMinutes = Math.max(1, Math.floor(intervalSeconds / 60));
-    const cronExpression = `*/${intervalMinutes} * * * *`;
+    
+    // 修复Cron表达式生成逻辑
+    // 分钟字段范围是0-59，当intervalMinutes>=60时需要转换为小时表达式
+    let cronExpression;
+    if (intervalMinutes >= 60) {
+      // 小时级：每N小时的第0分钟执行
+      const hours = Math.floor(intervalMinutes / 60);
+      cronExpression = hours === 1 ? `0 * * * *` : `0 */${hours} * * *`;
+    } else {
+      // 分钟级：每N分钟执行（N必须<=59）
+      const validMinutes = Math.min(59, intervalMinutes);
+      cronExpression = `*/${validMinutes} * * * *`;
+    }
 
-    logger.info(`交易对分析任务设置 - 间隔: ${intervalSeconds}秒, Cron: ${cronExpression}`);
+    logger.info(`交易对分析任务设置 - 间隔: ${intervalSeconds}秒 (${intervalMinutes}分钟), Cron: ${cronExpression}`);
 
     this.symbolTask = cron.schedule(cronExpression, async () => {
       await this.runSymbolAnalysis();
@@ -258,7 +280,7 @@ class AIAnalysisScheduler {
 
     } catch (error) {
       logger.error('交易对分析任务失败:', error);
-      
+
       // 异常也算作失败
       this.consecutiveFailures++;
     }
@@ -287,7 +309,7 @@ class AIAnalysisScheduler {
 
         const { symbol, analysisData } = result;
         const { overallScore } = analysisData;
-        
+
         if (!overallScore || !overallScore.signalRecommendation) {
           continue;
         }
