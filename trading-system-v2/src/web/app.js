@@ -1440,6 +1440,74 @@ class SmartFlowApp {
   }
 
   /**
+   * 使用缓存的AI分析数据填充表格
+   * @param {Array} statusData - 状态数据
+   */
+  async loadCachedAIAnalysis(statusData) {
+    if (Object.keys(this.cachedAIAnalysis).length === 0) {
+      console.log('[AI表格] 无缓存数据，跳过填充');
+      return;
+    }
+
+    console.log('[AI表格] 使用缓存数据填充，交易对数量:', statusData.length);
+    
+    const symbolsProcessed = new Set();
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of statusData) {
+      if (symbolsProcessed.has(item.symbol)) {
+        continue;
+      }
+      symbolsProcessed.add(item.symbol);
+
+      const cachedAnalysis = this.cachedAIAnalysis[item.symbol];
+      if (!cachedAnalysis) {
+        failCount++;
+        continue;
+      }
+
+      try {
+        const cellHtml = window.aiAnalysis.renderSymbolAnalysisCell(cachedAnalysis);
+        const rows = document.querySelectorAll(`#strategyStatusTableBody tr`);
+
+        let updatedRows = 0;
+        rows.forEach((row) => {
+          const symbolCell = row.querySelector('td:first-child');
+          const symbolText = symbolCell ? symbolCell.textContent.trim() : '';
+
+          if (symbolCell && symbolText === item.symbol) {
+            const aiCell = row.querySelector('td:last-child');
+            if (aiCell) {
+              const tdMatch = cellHtml.match(/<td[^>]*>([\s\S]*)<\/td>/);
+              if (tdMatch) {
+                const tdContent = tdMatch[1];
+                const classMatch = cellHtml.match(/class="([^"]*)"/);
+                const className = classMatch ? classMatch[1] : 'ai-analysis-cell';
+                
+                aiCell.innerHTML = tdContent;
+                aiCell.className = className;
+                updatedRows++;
+              }
+            }
+          }
+        });
+
+        if (updatedRows > 0) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        console.error(`[AI表格] 填充 ${item.symbol} 缓存失败:`, error);
+        failCount++;
+      }
+    }
+
+    console.log(`[AI表格] 缓存填充完成 - 成功: ${successCount}, 失败: ${failCount}`);
+  }
+
+  /**
    * 格式化高时间框架判断（趋势判断）
    * @param {Object} strategyInfo - 策略信息
    * @param {string} strategyType - 策略类型 ('V3' 或 'ICT')
