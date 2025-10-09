@@ -232,10 +232,11 @@ class AIAnalysisScheduler {
       const binanceAPI = this.binanceAPI;
       
       // 获取24小时价格统计
-      const ticker = await binanceAPI.get24hrPriceStats(symbol);
+      const ticker = await binanceAPI.getTicker24hr(symbol);
       
       // 获取资金费率
-      const fundingRate = await binanceAPI.getFundingRate(symbol);
+      const fundingRateData = await binanceAPI.getFundingRate(symbol);
+      const fundingRate = parseFloat(fundingRateData.lastFundingRate || 0);
       
       const marketData = {
         currentPrice: parseFloat(ticker.lastPrice || 0),
