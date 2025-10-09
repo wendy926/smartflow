@@ -23,14 +23,11 @@ class SymbolTrendAnalyzer {
    * @returns {Promise<string>}
    */
   async loadPromptTemplate() {
-    if (this.promptTemplate) {
-      return this.promptTemplate;
-    }
-
+    // 移除缓存，每次都重新加载以确保使用最新prompt
     try {
       const promptPath = path.join(__dirname, '../../../prompt-analyst.md');
       this.promptTemplate = await fs.readFile(promptPath, 'utf-8');
-      logger.info('交易对趋势分析Prompt模板加载成功');
+      logger.info('交易对趋势分析Prompt模板加载成功（最新版本）');
       return this.promptTemplate;
     } catch (error) {
       logger.error('加载Prompt模板失败:', error);
