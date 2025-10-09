@@ -1303,6 +1303,9 @@ class ICTStrategy {
         }
       }
 
+      // 计算置信度等级（MEDIUM或HIGH）
+      const confidenceLevel = numericConfidence >= 0.7 ? 'HIGH' : 'MEDIUM';
+
       const result = {
         symbol,
         strategy: 'ICT',
@@ -1311,6 +1314,7 @@ class ICTStrategy {
         score: Math.min(score, 100),
         trend: dailyTrend.trend,
         confidence: numericConfidence,
+        confidenceLevel, // 新增：置信度等级（MEDIUM或HIGH）
         reasons: reasons.join('; '),
         tradeParams,
         orderBlocks: validOrderBlocks.slice(-3), // 最近3个有效订单块
@@ -1321,7 +1325,6 @@ class ICTStrategy {
           volumeExpansion,
           harmonicPattern // 新增：谐波形态
         },
-        confidence, // 新增：置信度（MEDIUM或HIGH）
         // 添加timeframes结构以匹配API期望格式
         timeframes: {
           '1D': {
