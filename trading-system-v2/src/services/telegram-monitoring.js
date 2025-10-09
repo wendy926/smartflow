@@ -393,6 +393,10 @@ class TelegramMonitoringService {
       title = '交易关闭';
     }
 
+    // 安全获取保证金值
+    const marginValue = margin_required || tradeData.margin_used || 0;
+    const marginDisplay = typeof marginValue === 'number' ? marginValue.toFixed(2) : marginValue;
+
     let message = `${emoji} <b>${title}</b>\n\n`;
     message += `📊 <b>交易对:</b> ${symbol || 'N/A'}\n`;
     message += `🎯 <b>策略:</b> ${strategy_type || tradeData.strategy_name || 'N/A'}\n`;
@@ -401,7 +405,7 @@ class TelegramMonitoringService {
     message += `🛑 <b>止损价格:</b> ${stop_loss || 'N/A'}\n`;
     message += `🎯 <b>止盈价格:</b> ${take_profit || 'N/A'}\n`;
     message += `⚡ <b>杠杆:</b> ${leverage || 1}x\n`;
-    message += `💵 <b>保证金:</b> ${margin_required ? margin_required.toFixed(2) : (tradeData.margin_used || 0)}\n`;
+    message += `💵 <b>保证金:</b> ${marginDisplay} USDT\n`;
     message += `📝 <b>入场原因:</b> ${entry_reason || tradeData.entry_reason || 'N/A'}\n`;
     message += `🕐 <b>时间:</b> ${timestamp}\n`;
     message += `\n🔗 <b>系统:</b> SmartFlow 交易系统 V2.0`;
