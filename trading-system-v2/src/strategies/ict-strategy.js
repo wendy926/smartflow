@@ -1251,9 +1251,9 @@ class ICTStrategy {
       const engulfingScore = engulfing.detected ? 15 : 0;
       const sweepScore = (validSweepHTF.detected ? 10 : 0) + (sweepLTF.detected ? 5 : 0);
       const volumeScore = volumeExpansion.detected ? 5 : 0;
-      const harmonicScore = harmonicPattern.detected ? harmonicPattern.score * 20 : 0;
+      const harmonicScorePoints = harmonicPattern.detected ? harmonicPattern.score * 20 : 0; // 重命名避免冲突
 
-      score = Math.round(trendScore + orderBlockScore + engulfingScore + sweepScore + volumeScore + harmonicScore);
+      score = Math.round(trendScore + orderBlockScore + engulfingScore + sweepScore + volumeScore + harmonicScorePoints);
 
       // 谐波共振额外加分
       if (harmonicPattern.detected && harmonicPattern.score > 0.6) {
@@ -1261,7 +1261,7 @@ class ICTStrategy {
         reasons.push(`🎯 谐波共振加分: +10分`);
       }
 
-      logger.info(`${symbol} ICT评分详情: 趋势=${trendScore.toFixed(1)}, 订单块=${orderBlockScore}, 吞没=${engulfingScore}, 扫荡=${sweepScore}, 成交量=${volumeScore}, 谐波=${harmonicScore.toFixed(1)}, 总分=${score}`);
+      logger.info(`${symbol} ICT评分详情: 趋势=${trendScore.toFixed(1)}, 订单块=${orderBlockScore}, 吞没=${engulfingScore}, 扫荡=${sweepScore}, 成交量=${volumeScore}, 谐波=${harmonicScorePoints.toFixed(1)}, 总分=${score}`);
 
       // 门槛式结构确认 + 总分强信号要求
       // 强信号定义：总分 >= 60分
