@@ -1141,6 +1141,80 @@ class ICTStrategy {
       }
       reasons.push(`✅ 确认通过: 吞没形态${engulfing.type} (强度${(engulfing.strength * 100).toFixed(1)}%)`);
 
+      // ========== 15M入场有效性检查（容忍逻辑）==========
+      // 要求：吞没形态强度>=60% 或 谐波形态分数>=60%
+      const minEngulfStrength = 0.6;  // 60%
+      const minHarmonicScore = 0.6;   // 60%
+      
+      const engulfStrength = engulfing.strength || 0;
+      const harmonicScore = harmonicPattern.detected ? harmonicPattern.score : 0;
+      
+      const entryValid = (engulfStrength >= minEngulfStrength) || (harmonicScore >= minHarmonicScore);
+
+      if (!entryValid) {
+        logger.info(`${symbol} ICT策略: 15M入场有效性不足 - 吞没强度${(engulfStrength * 100).toFixed(1)}%（需≥60%），谐波分数${(harmonicScore * 100).toFixed(1)}%（需≥60%）`);
+
+        // 计算分数用于显示（即使无效也显示分析结果）
+        const trendScore = dailyTrend.confidence * 25;
+        const orderBlockScore = hasValidOrderBlock ? 20 : 0;
+        const engulfingScore = engulfing.detected ? 15 : 0;
+        const sweepScore = (validSweepHTF.detected ? 10 : 0) + (sweepLTF.detected ? 5 : 0);
+        const volumeScore = volumeExpansion.detected ? 5 : 0;
+        const harmonicScoreValue = harmonicPattern.detected ? harmonicPattern.score * 20 : 0;
+        const calculatedScore = Math.round(trendScore + orderBlockScore + engulfingScore + sweepScore + volumeScore + harmonicScoreValue);
+        
+        numericConfidence = Math.min(harmonicScore * 0.6 + engulfStrength * 0.4, 1);
+
+        return {
+          symbol,
+          strategy: 'ICT',
+          timeframe: '15m',
+          signal: 'WATCH',  // 15M入场无效，观望
+          score: calculatedScore,
+          trend: dailyTrend.trend,
+          confidence: numericConfidence,
+          reasons: [
+            `❌ 15M入场无效: 吞没强度${(engulfStrength * 100).toFixed(1)}%（需≥60%），谐波分数${(harmonicScore * 100).toFixed(1)}%（需≥60%）`,
+            `门槛已通过，但入场确认条件不足`
+          ],
+          signals: { engulfing, sweepHTF: sweepValidation },
+          timeframes: {
+            '1D': {
+              trend: dailyTrend.trend,
+              closeChange: dailyTrend.closeChange || 0,
+              lookback: dailyTrend.lookback || 20
+            },
+            '4H': timeframes4H,
+            '15M': {
+              signal: 'WATCH',
+              engulfing: engulfing.detected || false,
+              engulfingType: engulfing.type || 'NONE',
+              engulfingStrength: engulfStrength,
+              atr: currentATR || 0,
+              sweepRate: sweepLTF.speed || 0,
+              volume: klines15m[klines15m.length - 1] ? parseFloat(klines15m[klines15m.length - 1][5]) : 0,
+              volumeExpansion: volumeExpansion.detected || false,
+              volumeRatio: volumeExpansion.ratio || 0,
+              harmonicPattern: {
+                detected: harmonicPattern.detected || false,
+                type: harmonicPattern.type || 'NONE',
+                confidence: harmonicPattern.confidence || 0,
+                score: harmonicPattern.score || 0,
+                points: harmonicPattern.points || null
+              }
+            }
+          },
+          entryPrice: 0,
+          stopLoss: 0,
+          takeProfit: 0,
+          leverage: 0,
+          margin: 0,
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      logger.info(`${symbol} ✅ 15M入场有效: 吞没强度${(engulfStrength * 100).toFixed(1)}% 或 谐波分数${(harmonicScore * 100).toFixed(1)}% 满足要求（≥60%）`);
+
       // 可选加强: LTF扫荡和成交量放大
       if (sweepLTF.detected) {
         reasons.push(`+ LTF Sweep: ${sweepLTF.type} (${(sweepLTF.confidence * 100).toFixed(1)}%)`);
