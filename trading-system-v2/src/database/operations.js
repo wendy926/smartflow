@@ -203,24 +203,49 @@ class DatabaseOperations {
   }
 
   /**
-   * 获取所有交易对
+   * 获取所有交易对（包含AI分析数据）
    * @returns {Array} 交易对列表
    */
   async getAllSymbols() {
     try {
-      logger.info('开始查询数据库获取交易对列表');
+      logger.info('开始查询数据库获取交易对列表（含AI分析）');
 
       const connection = await this.getConnection();
 
       try {
         logger.info('数据库连接获取成功，开始执行查询');
 
-        const [rows] = await connection.execute(
-          'SELECT * FROM symbols WHERE status = "active" ORDER BY symbol'
-        );
+        // 关联AI分析数据
+        const [rows] = await connection.execute(`
+          SELECT 
+            s.*,
+            ai.analysis_data as aiAnalysis,
+            ai.confidence_score as aiConfidence,
+            ai.created_at as aiAnalyzedAt
+          FROM symbols s
+          LEFT JOIN (
+            SELECT 
+              symbol,
+              analysis_data,
+              confidence_score,
+              created_at,
+              ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY created_at DESC) as rn
+            FROM ai_market_analysis
+            WHERE analysis_type = 'SYMBOL_TREND'
+          ) ai ON s.symbol = ai.symbol AND ai.rn = 1
+          WHERE s.status = "active"
+          ORDER BY s.symbol
+        `);
 
-        logger.info(`数据库查询成功，获取到 ${rows.length} 个交易对`);
-        return rows;
+        logger.info(`数据库查询成功，获取到 ${rows.length} 个交易对（含AI分析）`);
+        
+        // 解析AI分析数据
+        const result = rows.map(row => ({
+          ...row,
+          aiAnalysis: row.aiAnalysis ? (typeof row.aiAnalysis === 'string' ? JSON.parse(row.aiAnalysis) : row.aiAnalysis) : null
+        }));
+        
+        return result;
       } finally {
         if (connection) {
           connection.release();
@@ -228,7 +253,7 @@ class DatabaseOperations {
         }
       }
     } catch (error) {
-      logger.error('Error getting all symbols:', error);
+      logger.error('Error getting all symbols with AI analysis:', error);
       throw error;
     }
   }
