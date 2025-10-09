@@ -88,7 +88,7 @@ class SymbolTrendAnalyzer {
       }
 
       // 解析AI响应
-      const analysisData = this.parseResponse(result.content, symbol);
+      let analysisData = this.parseResponse(result.content, symbol);
 
       // 检测并修正固定置信度问题（AI多样性不足时的补救措施）
       analysisData = this.adjustConfidenceIfNeeded(analysisData, symbol);
@@ -440,33 +440,33 @@ class SymbolTrendAnalyzer {
   adjustConfidenceIfNeeded(data, symbol) {
     const shortConf = data.shortTermTrend?.confidence || 50;
     const midConf = data.midTermTrend?.confidence || 50;
-    
+
     // 检测是否为常见的固定值（65, 70, 72, 75）
     const isFixedShort = [65, 70, 72, 75].includes(shortConf);
     const isFixedMid = [65, 70, 72, 75].includes(midConf);
-    
+
     if (isFixedShort || isFixedMid) {
       logger.warn(`${symbol} 检测到AI使用固定置信度 - 短期:${shortConf}, 中期:${midConf}，应用智能调整`);
-      
+
       // 基于符号哈希生成确定性但不同的偏移量
       const hash = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const shortOffset = (hash % 11) - 5; // -5 到 +5
       const midOffset = ((hash * 7) % 13) - 6; // -6 到 +6
-      
+
       if (isFixedShort) {
         data.shortTermTrend.confidence = Math.max(20, Math.min(95, shortConf + shortOffset));
         logger.info(`${symbol} 短期置信度调整: ${shortConf} → ${data.shortTermTrend.confidence}`);
       }
-      
+
       if (isFixedMid) {
         data.midTermTrend.confidence = Math.max(20, Math.min(95, midConf + midOffset));
         logger.info(`${symbol} 中期置信度调整: ${midConf} → ${data.midTermTrend.confidence}`);
       }
-      
+
       // 重新计算总分和推荐信号
       data.overallScore = this.calculateDefaultScore(data);
     }
-    
+
     return data;
   }
 }
