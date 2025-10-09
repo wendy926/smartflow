@@ -65,13 +65,64 @@ class TelegramMonitoringService {
    * @param {Object} tradeData - 交易数据
    */
   async sendTradingAlert(tradeData) {
+    logger.info('[Telegram交易] 收到发送请求', {
+      tradingEnabled: this.tradingEnabled,
+      hasBotToken: !!this.tradingBotToken,
+      hasChatId: !!this.tradingChatId,
+      tradeSymbol: tradeData.symbol,
+      tradeId: tradeData.id
+    });
+
     if (!this.tradingEnabled) {
-      logger.warn('交易触发Telegram未配置，跳过发送');
+      logger.warn('[Telegram交易] 交易触发Telegram未启用，跳过发送', {
+        botToken: this.tradingBotToken ? `已设置(${this.tradingBotToken.substring(0, 10)}...)` : '未设置',
+        chatId: this.tradingChatId ? `已设置(${this.tradingChatId})` : '未设置'
+      });
       return false;
     }
 
-    const message = this.formatTradingMessage(tradeData);
-    return await this.sendMessage(message, 'trading');
+    try {
+      logger.debug('[Telegram交易] 开始格式化消息', {
+        tradeData: {
+          symbol: tradeData.symbol,
+          strategy_type: tradeData.strategy_type || tradeData.strategy_name,
+          direction: tradeData.direction || tradeData.trade_type,
+          entry_price: tradeData.entry_price,
+          id: tradeData.id
+        }
+      });
+
+      const message = this.formatTradingMessage(tradeData);
+      
+      logger.debug('[Telegram交易] 消息格式化完成', {
+        messageLength: message.length,
+        messagePreview: message.substring(0, 100) + '...'
+      });
+
+      const result = await this.sendMessage(message, 'trading');
+      
+      if (result) {
+        logger.info('[Telegram交易] ✅ 消息发送成功', {
+          tradeSymbol: tradeData.symbol,
+          tradeId: tradeData.id
+        });
+      } else {
+        logger.warn('[Telegram交易] ⚠️ 消息发送失败（返回false）', {
+          tradeSymbol: tradeData.symbol,
+          tradeId: tradeData.id
+        });
+      }
+
+      return result;
+    } catch (error) {
+      logger.error('[Telegram交易] ❌ 发送消息异常', {
+        error: error.message,
+        stack: error.stack,
+        tradeSymbol: tradeData.symbol,
+        tradeId: tradeData.id
+      });
+      return false;
+    }
   }
 
   /**
@@ -130,29 +181,64 @@ class TelegramMonitoringService {
         chatId = this.tradingChatId;
     }
 
+    logger.debug(`[Telegram发送] 准备发送${type}消息`, {
+      type,
+      hasBotToken: !!botToken,
+      botTokenPrefix: botToken ? botToken.substring(0, 10) + '...' : 'null',
+      chatId: chatId || 'null',
+      messageLength: message.length
+    });
+
+    if (!botToken || !chatId) {
+      logger.error(`[Telegram发送] ❌ Bot配置不完整`, {
+        type,
+        botToken: botToken ? '已设置' : '未设置',
+        chatId: chatId ? '已设置' : '未设置'
+      });
+      return false;
+    }
+
     try {
-      const response = await axios.post(
-        `https://api.telegram.org/bot${botToken}/sendMessage`,
-        {
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'HTML',
-          disable_web_page_preview: true
-        },
-        {
-          timeout: 10000
-        }
-      );
+      const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      const payload = {
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      };
+
+      logger.debug(`[Telegram发送] 调用Telegram API`, {
+        type,
+        url: `https://api.telegram.org/bot${botToken.substring(0, 10)}...`,
+        chatId,
+        textLength: message.length
+      });
+
+      const response = await axios.post(apiUrl, payload, { timeout: 10000 });
 
       if (response.data.ok) {
-        logger.info(`Telegram ${type} 消息发送成功`);
+        logger.info(`[Telegram发送] ✅ ${type} 消息发送成功`, {
+          messageId: response.data.result.message_id,
+          chatId: response.data.result.chat.id
+        });
         return true;
       } else {
-        logger.error(`Telegram ${type} 消息发送失败:`, response.data);
+        logger.error(`[Telegram发送] ❌ ${type} 消息发送失败（API返回非ok）`, {
+          ok: response.data.ok,
+          error_code: response.data.error_code,
+          description: response.data.description
+        });
         return false;
       }
     } catch (error) {
-      logger.error(`Telegram ${type} 消息发送异常:`, error.message);
+      logger.error(`[Telegram发送] ❌ ${type} 消息发送异常`, {
+        error: error.message,
+        errorName: error.name,
+        errorCode: error.code,
+        responseStatus: error.response?.status,
+        responseData: error.response?.data,
+        stack: error.stack
+      });
       return false;
     }
   }
