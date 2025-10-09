@@ -1197,13 +1197,17 @@
               <div class="strategy-doc" id="ai-overview">
                 <div class="doc-header">
                   <h3>🤖 AI辅助分析系统</h3>
-                  <span class="strategy-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">NEW</span>
+                  <span class="strategy-badge"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">NEW</span>
                 </div>
                 <div class="doc-content">
                   <h4>概述</h4>
-                  <p>AI辅助分析系统使用DeepSeek模型，通过分析链上数据、市场情绪、资金流向等多维度信息，为交易决策提供参考建议。<strong>AI分析是辅助工具，不直接触发交易</strong>，最终决策仍由V3和ICT策略判断。</p>
-                  
-                  <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
+                  <p>
+                    AI辅助分析系统使用DeepSeek模型，通过分析链上数据、市场情绪、资金流向等多维度信息，为交易决策提供参考建议。<strong>AI分析是辅助工具，不直接触发交易</strong>，最终决策仍由V3和ICT策略判断。
+                  </p>
+
+                  <div
+                    style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
                     <h5 style="margin: 0 0 10px 0; color: #856404;">⚠️ 重要说明</h5>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #856404;">
                       <li>AI分析用于<strong>辅助参考</strong>，不作为唯一交易依据</li>
@@ -1293,7 +1297,7 @@
                   <h4>置信度说明</h4>
                   <p><strong>短期趋势置信度</strong>（1h-4h）：基于VWAP、资金费率、持仓量变化、Delta、成交量等因子</p>
                   <p><strong>中期趋势置信度</strong>（1d-3d）：基于链上活跃度、ETF资金流、市场结构、鲸鱼持仓等因子</p>
-                  
+
                   <h4>示例</h4>
                   <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 10px 0;">
                     <p style="margin: 0;"><strong>BTCUSDT - 看多 (69分)</strong></p>
@@ -1389,7 +1393,8 @@
                     </tbody>
                   </table>
 
-                  <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
+                  <div
+                    style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
                     <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 性能优化</h5>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
                       <li>Dashboard每30秒刷新，但AI分析使用<strong>缓存机制</strong></li>
@@ -1682,9 +1687,25 @@
                         </tr>
                       </table>
 
+                      <div style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 15px 0; border-radius: 5px;">
+                        <h6 style="color: #0c5460; margin: 0 0 10px 0;">
+                          <strong>🆕 15M入场有效性检查（2025-10-09新增）</strong>
+                        </h6>
+                        <p style="margin: 5px 0; color: #0c5460;">
+                          即使门槛式5个条件全部通过，还需要验证15M入场强度（容忍逻辑）：
+                        </p>
+                        <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
+                          <li><strong>吞没形态强度 ≥ 60%</strong> 或 <strong>谐波形态分数 ≥ 60%</strong>（二选一）</li>
+                          <li>不满足时信号为<strong>WATCH</strong>（观望），不触发交易</li>
+                          <li><strong>效果</strong>：防止低质量吞没形态（如23.1%、38.5%强度）触发无效交易</li>
+                          <li><strong>示例</strong>：ONDOUSDT吞没强度23.1%，谐波0% → WATCH（不触发）</li>
+                        </ul>
+                      </div>
+
                       <h6>可选加强条件：</h6>
                       <ul>
-                        <li><strong>15M扫荡检测</strong>：LTF扫荡行为确认（阈值0.02×ATR），额外+5分</li>
+                        <li><strong>HTF扫荡检测</strong>：4H扫荡行为确认（阈值0.2×ATR，已从ICT标准0.4×ATR放宽），额外+10分</li>
+                        <li><strong>LTF扫荡检测</strong>：15M扫荡行为确认（阈值0.02×ATR，已从ICT标准0.2×ATR放宽），额外+5分</li>
                         <li><strong>成交量放大</strong>：成交量 > 1.5倍平均，额外+5分</li>
                         <li><strong>谐波形态共振</strong>：Cypher/Bat/Shark形态检测，额外+20分</li>
                         <li><strong>谐波共振加分</strong>：谐波得分>0.6时，额外+10分</li>
@@ -1719,8 +1740,11 @@
                     <ul>
                       <li><strong>边界突破检测</strong>：价格突破订单块上下边界</li>
                       <li><strong>扫荡速率计算</strong>：计算扫荡速度，反映市场动能强度</li>
+                      <li><strong>HTF扫荡阈值</strong>：速率≥0.2×ATR(4H)，检查最近5根K线（已从ICT标准0.4×ATR放宽）</li>
+                      <li><strong>LTF扫荡阈值</strong>：速率≥0.02×ATR(15M)，≤3根K线内收回（已从ICT标准0.2×ATR放宽）</li>
                       <li><strong>回归确认</strong>：扫荡后价格回归为有效信号</li>
                       <li><strong>置信度评分</strong>：基于扫荡速率和回归行为的置信度</li>
+                      <li><strong>方向化过滤</strong>：上升趋势只接受下方扫荡，下降趋势只接受上方扫荡</li>
                     </ul>
 
                     <h5>吞没形态检测</h5>
@@ -2484,12 +2508,31 @@ ${atr >= 1 ? atr.toFixed(2) : atr.toFixed(4)}</pre>
                       <li><strong>价格区间预测</strong>：所有趋势都提供明确价格区间</li>
                     </ul>
                   </div>
-                  
+
+                  <h4>最新优化 (2025-10-09)</h4>
+                  <div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5 style="color: #155724;">🆕 15M入场有效性检查</h5>
+                    <ul style="color: #155724;">
+                      <li><strong>容忍逻辑实现</strong>：吞没强度≥60% 或 谐波分数≥60%（二选一）</li>
+                      <li><strong>防止无效交易</strong>：LDOUSDT、LINKUSDT、ONDOUSDT、SUIUSDT等低强度吞没(23-44%)不再触发交易</li>
+                      <li><strong>提高信号质量</strong>：只有高质量入场信号才会触发交易</li>
+                      <li><strong>效果显著</strong>：预期减少30-40%的无效交易，提升整体胜率</li>
+                    </ul>
+                  </div>
+
                   <h4>历史优化 (2025-10-07)</h4>
                   <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
                     <h5>🔧 核心修复</h5>
                     <ul>
-                      <li><strong>ICT策略扫荡检测优化</strong>：放宽检测条件，降低阈值，现在能正常检测扫荡信号</li>
+                      <li><strong>ICT策略扫荡检测优化</strong>：放宽检测条件，降低阈值，提高信号触发率
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>HTF Sweep阈值: 0.4×ATR → 0.2×ATR（降低50%）</li>
+                          <li>LTF Sweep阈值: 0.2×ATR → 0.02×ATR（降低90%）</li>
+                          <li>订单块年龄: 2天 → 5天（扩大候选范围）</li>
+                          <li>订单块高度: 0.25×ATR → 0.15×ATR（降低筛选门槛）</li>
+                          <li><strong>效果</strong>：信号触发率显著提升，配合门槛式确认机制保持质量</li>
+                        </ul>
+                      </li>
                       <li><strong>V3策略15M得分修复</strong>：修正得分计算逻辑，正确显示实际得分</li>
                       <li><strong>前端502错误修复</strong>：使用CDN版本Chart.js，解决404错误</li>
                       <li><strong>信号一致性修复</strong>：统一数据源，确保信号显示一致</li>
@@ -2558,7 +2601,7 @@ ${atr >= 1 ? atr.toFixed(2) : atr.toFixed(4)}</pre>
         });
       </script>
       <script src="public/js/ai-analysis.js?v=20251009"></script>
-      <script src="app.js?v=20251009v13"></script>
+      <script src="app.js?v=20251009v14"></script>
 </body>
 
 </html>
