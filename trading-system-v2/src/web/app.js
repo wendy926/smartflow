@@ -1373,20 +1373,28 @@ class SmartFlowApp {
           
           if (symbolCell && symbolText === item.symbol) {
             console.log(`[AI表格] ${item.symbol} 匹配到第${index}行`);
-          }
-          
-          if (symbolCell && symbolText === item.symbol) {
+            
             // 找到AI分析列（最后一列）
             const aiCell = row.querySelector('td:last-child');
+            console.log(`[AI表格] ${item.symbol} 第${index}行 aiCell存在:`, !!aiCell);
+            
             if (aiCell) {
+              console.log(`[AI表格] ${item.symbol} 第${index}行 开始更新aiCell`);
               const tempDiv = document.createElement('div');
               tempDiv.innerHTML = cellHtml;
               const newContent = tempDiv.querySelector('td');
+              console.log(`[AI表格] ${item.symbol} 第${index}行 newContent存在:`, !!newContent);
+              
               if (newContent) {
                 aiCell.innerHTML = newContent.innerHTML;
                 aiCell.className = newContent.className;
                 updatedRows++;
+                console.log(`[AI表格] ${item.symbol} 第${index}行 更新成功，updatedRows=${updatedRows}`);
+              } else {
+                console.error(`[AI表格] ${item.symbol} 第${index}行 newContent为null，cellHtml可能格式错误`);
               }
+            } else {
+              console.error(`[AI表格] ${item.symbol} 第${index}行 aiCell为null，可能没有最后一列`);
             }
           }
         });
