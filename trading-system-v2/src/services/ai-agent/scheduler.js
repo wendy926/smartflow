@@ -228,16 +228,16 @@ class AIAnalysisScheduler {
   async getMarketData(symbol) {
     try {
       logger.debug(`[AI] 获取 ${symbol} 实时市场数据`);
-      
+
       // 确保binanceAPI存在
       if (!this.binanceAPI) {
         logger.error('[AI] binanceAPI未初始化！');
         throw new Error('binanceAPI未初始化');
       }
-      
+
       // 从Binance API获取实时数据
       const binanceAPI = this.binanceAPI;
-      
+
       // 获取24小时价格统计
       const ticker = await binanceAPI.getTicker24hr(symbol);
 

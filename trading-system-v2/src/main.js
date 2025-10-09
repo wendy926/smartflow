@@ -138,7 +138,7 @@ class TradingSystemApp {
       // 初始化AI分析调度器（完全隔离，失败不影响策略执行）
       try {
         logger.info('[AI模块] 开始初始化AI分析调度器...');
-        
+
         const getAIOps = require('./database/ai-operations');
         const aiOps = getAIOps();
         const BinanceAPI = require('./api/binance-api');
@@ -147,7 +147,7 @@ class TradingSystemApp {
 
         this.aiScheduler = new AIAnalysisScheduler(aiOps, binanceAPI, telegramService);
         global.aiScheduler = this.aiScheduler; // 设置全局变量供API路由使用
-        
+
         const aiStarted = await this.aiScheduler.start();
         if (aiStarted) {
           logger.info('[AI模块] ✅ AI分析调度器启动成功（独立运行，不影响策略）');
