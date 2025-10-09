@@ -16,13 +16,17 @@
 
 请为每个交易对提供以下内容：
 1. **短期趋势（1h-4h）**：判断为上涨 / 下跌 / 震荡，并给出主要数据支持（例如资金费率、持仓变化、CVD 等）。
+   - 如果是**下跌**：明确指出下跌幅度和目标支撑位（如"下跌至$118,000-$120,000支撑区"）
+   - 如果是**震荡**：明确给出震荡区间（如"在$120,000-$123,000区间震荡"）
 2. **中期趋势（1d-3d）**：基于链上活跃度、资金流、市场结构进行判断。
-3. **多因子共振情况**：当短期与中期趋势方向一致时，标注为“共振看多”或“共振看空”。
+   - 如果是**下跌**：给出下跌目标位和关键支撑
+   - 如果是**震荡**：给出震荡区间上下轨
+3. **多因子共振情况**：当短期与中期趋势方向一致时，标注为"共振看多"或"共振看空"。
 4. **ICT 视角分析**：是否出现流动性诱导（liquidity grab）、公平价位缺口（FVG）、或平衡区（EQH/EQL）等信号。
 5. **策略建议**：
-   - 若信号强一致：建议“可考虑入场”
-   - 若信号弱或相互抵触：建议“观望”
-   - 若有明显反转迹象：建议“等待反转确认”
+   - 若信号强一致：建议"可考虑入场"，并给出具体入场价位
+   - 若信号弱或相互抵触：建议"观望"，并给出等待确认的价位
+   - 若有明显反转迹象：建议"等待反转确认"，并给出反转确认价位
 
 ### 输出格式（JSON）：
 
@@ -33,12 +37,14 @@
   "shortTermTrend": {
     "direction": "up/down/sideways",
     "confidence": 85,
-    "reasoning": "brief explanation based on VWAP, OI, Funding Rate, Delta, ETF Flow, Position Size, etc."
+    "reasoning": "brief explanation based on VWAP, OI, Funding Rate, Delta, ETF Flow, Position Size, etc.",
+    "priceRange": [120000, 123000]  // 如果是sideways或down，给出具体价格区间
   },
   "midTermTrend": {
     "direction": "up/down/sideways",
     "confidence": 75,
-    "reasoning": "brief explanation based on 7-30 day data, macro funds, ETF flow, institutional activity"
+    "reasoning": "brief explanation based on 7-30 day data, macro funds, ETF flow, institutional activity",
+    "priceRange": [115000, 125000]  // 如果是sideways或down，给出具体价格区间
   },
   "factorAnalysis": {
     "VWAP": "up/down/neutral",
