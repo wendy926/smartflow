@@ -141,7 +141,8 @@ class TradingSystemApp {
         
         const getAIOps = require('./database/ai-operations');
         const aiOps = getAIOps();
-        const binanceAPI = require('./api/binance-api');
+        const BinanceAPI = require('./api/binance-api');
+        const binanceAPI = new BinanceAPI();  // 创建实例
         const telegramService = new TelegramAlert();
 
         this.aiScheduler = new AIAnalysisScheduler(aiOps, binanceAPI, telegramService);
