@@ -544,6 +544,7 @@ class AIAnalysisModule {
     const score = data.overallScore || {};
     const shortTrend = data.shortTermTrend || {};
     const midTrend = data.midTermTrend || {};
+    const currentPrice = data.currentPrice || 0;
 
     const scoreClass = this.getScoreClass(score.totalScore);
     const signalClass = this.getSignalClass(score.signalRecommendation);
@@ -551,6 +552,15 @@ class AIAnalysisModule {
     return `
       <td class="ai-analysis-cell">
         <div class="ai-mini-card">
+          <div class="price-display" style="
+            font-size: 0.85rem;
+            color: #007bff;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+            text-align: center;
+          ">
+            $${this.formatNumber(currentPrice)}
+          </div>
           <div class="trend-score ${scoreClass}">
             <span class="score-label">评分:</span>
             <span class="score-value">${score.totalScore || 0}/100</span>
