@@ -1184,6 +1184,216 @@
             </div>
 
             <div class="docs-container">
+              <!-- AI辅助分析文档 (NEW) -->
+              <div class="strategy-doc" id="ai-overview">
+                <div class="doc-header">
+                  <h3>🤖 AI辅助分析系统</h3>
+                  <span class="strategy-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">NEW</span>
+                </div>
+                <div class="doc-content">
+                  <h4>概述</h4>
+                  <p>AI辅助分析系统使用DeepSeek模型，通过分析链上数据、市场情绪、资金流向等多维度信息，为交易决策提供参考建议。<strong>AI分析是辅助工具，不直接触发交易</strong>，最终决策仍由V3和ICT策略判断。</p>
+                  
+                  <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
+                    <h5 style="margin: 0 0 10px 0; color: #856404;">⚠️ 重要说明</h5>
+                    <ul style="margin: 5px 0; padding-left: 20px; color: #856404;">
+                      <li>AI分析用于<strong>辅助参考</strong>，不作为唯一交易依据</li>
+                      <li>实际交易由V3/ICT策略触发，AI提供<strong>多维度视角</strong></li>
+                      <li>建议结合AI信号和策略信号综合判断</li>
+                    </ul>
+                  </div>
+
+                  <h4>分析模块</h4>
+                  <ul>
+                    <li><strong>AI市场风险分析</strong>：针对BTC和ETH的宏观风险评估，每1小时更新</li>
+                    <li><strong>AI符号趋势分析</strong>：针对10个活跃交易对的趋势和信号分析，每1小时更新</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- AI评分逻辑 -->
+              <div class="strategy-doc" id="ai-scoring">
+                <div class="doc-header">
+                  <h3>📊 AI评分逻辑说明</h3>
+                </div>
+                <div class="doc-content">
+                  <h4>评分计算公式</h4>
+                  <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                    <code style="font-size: 14px; color: #495057;">
+                      总分 = (短期趋势置信度 + 中期趋势置信度) ÷ 2
+                    </code>
+                  </div>
+
+                  <h4>信号分级标准</h4>
+                  <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                    <thead>
+                      <tr style="background: #f8f9fa;">
+                        <th style="padding: 10px; text-align: left; border: 1px solid #dee2e6;">分数段</th>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #dee2e6;">信号类型</th>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #dee2e6;">标识</th>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #dee2e6;">含义</th>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #dee2e6;">操作建议</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>75-100分</strong></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">强烈看多</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">🟢 strongBuy</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">多因子共振，趋势明确</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">可积极入场，仓位20-30%</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>60-74分</strong></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">看多</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">🟡 mediumBuy</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">趋势较好，需控制仓位</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">可谨慎入场，仓位10-15%</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>55-59分</strong></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">持有偏多</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">🔵 holdBullish</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">略偏多但信号不强</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">小仓位试探5-10%</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>45-54分</strong></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">持有观望</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">⚪ hold</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">方向不明，横盘震荡</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">观望不入场</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>40-44分</strong></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">持有偏空</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">🟠 holdBearish</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">略偏空，注意风险</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">观望，注意风险</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>0-39分</strong></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">谨慎</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">🔴 caution</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">趋势转弱，风险上升</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">避免入场或减仓</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <h4>置信度说明</h4>
+                  <p><strong>短期趋势置信度</strong>（1h-4h）：基于VWAP、资金费率、持仓量变化、Delta、成交量等因子</p>
+                  <p><strong>中期趋势置信度</strong>（1d-3d）：基于链上活跃度、ETF资金流、市场结构、鲸鱼持仓等因子</p>
+                  
+                  <h4>示例</h4>
+                  <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                    <p style="margin: 0;"><strong>BTCUSDT - 看多 (69分)</strong></p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                      <li>短期置信度: 65% (横盘)</li>
+                      <li>中期置信度: 72% (上涨)</li>
+                      <li>总分: (65+72)÷2 = 68.5 ≈ 69分</li>
+                      <li>信号: 69 >= 60 → <span style="color: #ffc107; font-weight: 600;">看多 🟡</span></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- AI数据来源 -->
+              <div class="strategy-doc" id="ai-data-source">
+                <div class="doc-header">
+                  <h3>📡 AI数据来源</h3>
+                </div>
+                <div class="doc-content">
+                  <h4>外部数据源</h4>
+                  <ul>
+                    <li><strong>Coinglass</strong>：资金费率、多空比、持仓量、清算数据</li>
+                    <li><strong>Santiment</strong>：链上活跃地址数、社交热度、鲸鱼钱包变动</li>
+                    <li><strong>ETF Flow</strong>：BTC/ETH ETF资金流入流出数据</li>
+                    <li><strong>Binance API</strong>：实时价格、24h成交量、持仓量历史</li>
+                  </ul>
+
+                  <h4>分析因子</h4>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                      <h5 style="margin: 0 0 10px 0; color: #495057;">短期因子（1h-4h）</h5>
+                      <ul style="margin: 0; padding-left: 20px; font-size: 13px;">
+                        <li>VWAP位置</li>
+                        <li>持仓量变化（OI）</li>
+                        <li>资金费率</li>
+                        <li>Delta（买卖压力）</li>
+                        <li>成交量趋势</li>
+                      </ul>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                      <h5 style="margin: 0 0 10px 0; color: #495057;">中期因子（1d-3d）</h5>
+                      <ul style="margin: 0; padding-left: 20px; font-size: 13px;">
+                        <li>链上活跃地址</li>
+                        <li>鲸鱼钱包持仓</li>
+                        <li>社交热度</li>
+                        <li>ETF资金流</li>
+                        <li>市场结构</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <h4>AI模型</h4>
+                  <p><strong>当前使用</strong>：DeepSeek API（成本优化，~$1/月）</p>
+                  <p><strong>备用模型</strong>：OpenAI GPT、Grok</p>
+                </div>
+              </div>
+
+              <!-- AI更新频率 -->
+              <div class="strategy-doc" id="ai-update-frequency">
+                <div class="doc-header">
+                  <h3>⏱️ AI更新频率</h3>
+                </div>
+                <div class="doc-content">
+                  <h4>更新间隔</h4>
+                  <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                    <thead>
+                      <tr style="background: #f8f9fa;">
+                        <th style="padding: 10px; text-align: left; border: 1px solid #dee2e6;">分析模块</th>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #dee2e6;">后端更新</th>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #dee2e6;">前端刷新</th>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #dee2e6;">说明</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">AI符号趋势分析</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>1小时</strong></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">1小时（使用缓存）</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">策略表格AI列</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">AI市场风险分析</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>1小时</strong></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">1小时（自动更新）</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">BTC/ETH风险卡片</td>
+                      </tr>
+                      <tr style="background: #f8f9fa;">
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">Dashboard整体</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">-</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">30秒</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">策略状态表格</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
+                    <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 性能优化</h5>
+                    <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
+                      <li>Dashboard每30秒刷新，但AI分析使用<strong>缓存机制</strong></li>
+                      <li>只有超过1小时才重新请求AI数据，避免频繁API调用</li>
+                      <li>减少98.3%的不必要请求，提升用户体验</li>
+                    </ul>
+                  </div>
+
+                  <h4>数据存储</h4>
+                  <p>所有AI分析结果存储在MySQL数据库中，前端从数据库读取，不重复调用AI API。</p>
+                </div>
+              </div>
+
               <!-- V3策略文档 -->
               <div class="strategy-doc" id="v3-strategy">
                 <div class="doc-header">
@@ -2254,8 +2464,20 @@ ${atr >= 1 ? atr.toFixed(2) : atr.toFixed(4)}</pre>
                     <li><strong>工具模块</strong>：src/utils/ - 日志、配置、通用工具函数</li>
                   </ul>
 
-                  <h4>最新优化 (2025-10-07)</h4>
+                  <h4>最新优化 (2025-10-09)</h4>
                   <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                    <h5 style="margin: 0 0 10px 0;">🤖 AI辅助分析系统上线</h5>
+                    <ul style="margin: 5px 0; padding-left: 20px;">
+                      <li><strong>AI市场风险分析</strong>：BTC/ETH宏观风险评估，每1小时更新</li>
+                      <li><strong>AI符号趋势分析</strong>：10个交易对的6档评分体系</li>
+                      <li><strong>DeepSeek模型</strong>：成本优化，集成Coinglass、Santiment、ETF Flow数据</li>
+                      <li><strong>6档信号分级</strong>：强烈看多/看多/持有偏多/持有观望/持有偏空/谨慎</li>
+                      <li><strong>价格区间预测</strong>：所有趋势都提供明确价格区间</li>
+                    </ul>
+                  </div>
+                  
+                  <h4>历史优化 (2025-10-07)</h4>
+                  <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
                     <h5>🔧 核心修复</h5>
                     <ul>
                       <li><strong>ICT策略扫荡检测优化</strong>：放宽检测条件，降低阈值，现在能正常检测扫荡信号</li>
