@@ -603,37 +603,7 @@ class SmartFlowApp {
     console.log('Strategy cards removed, skipping signal loading');
   }
 
-  /**
-   * 获取模拟信号数据
-   * @param {string} strategy - 策略名称
-   * @returns {Object} 模拟信号数据
-   */
-  getMockSignal(strategy) {
-    const mockSignals = {
-      v3: {
-        signal: 'BUY',
-        trend: 'UP',
-        score: 85,
-        confidence: 0.8
-      },
-      ict: {
-        signal: 'SELL',
-        trend: 'DOWN',
-        score: 72,
-        confidence: 0.7
-      }
-    };
-    return mockSignals[strategy] || { signal: 'HOLD', trend: 'RANGE', score: 50, confidence: 0.5 };
-  }
-
-  /**
-   * 更新策略卡片 - 已移除策略卡片，此方法不再需要
-   * @param {Object} signals - 策略信号数据
-   */
-  updateStrategyCards(signals) {
-    // 策略卡片已移除，此方法保留为空以避免错误
-    console.log('Strategy cards removed, skipping card updates');
-  }
+  // Mock函数和废弃方法已删除
 
   /**
    * 加载策略统计信息
@@ -1915,95 +1885,7 @@ class SmartFlowApp {
    * @param {Object} strategyInfo - 策略信息
    * @returns {string} 格式化后的杠杆信息
    */
-  formatLeverage(strategyInfo) {
-    if (!strategyInfo) return '--';
-
-    const entryPrice = parseFloat(strategyInfo.entryPrice) || 0;
-    const stopLoss = parseFloat(strategyInfo.stopLoss) || 0;
-    const maxLossAmount = this.maxLossAmount; // 使用用户选择的最大损失金额
-
-    if (entryPrice === 0 || stopLoss === 0) return '--';
-
-    // 计算止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
-    const isLong = entryPrice < stopLoss; // 如果入场价格 < 止损价格，说明是空头
-    const stopLossDistance = isLong
-      ? (entryPrice - stopLoss) / entryPrice  // 多头
-      : (stopLoss - entryPrice) / entryPrice; // 空头
-    const stopLossDistanceAbs = Math.abs(stopLossDistance);
-
-    // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
-    const maxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
-
-    // 计算保证金Z：M/(Y*X%) 数值向上取整
-    const margin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistanceAbs));
-
-    return `
-      <div class="leverage-info">
-        <div class="leverage-item">
-          <span class="leverage-label">最大杠杆:</span>
-          <span class="leverage-value">${maxLeverage}x</span>
-        </div>
-        <div class="leverage-item">
-          <span class="leverage-label">止损距离:</span>
-          <span class="leverage-value">${(stopLossDistanceAbs * 100).toFixed(2)}%</span>
-        </div>
-        <div class="leverage-item">
-          <span class="leverage-label">建议杠杆:</span>
-          <span class="leverage-value">${Math.min(maxLeverage, 20)}x</span>
-        </div>
-      </div>
-    `;
-  }
-
-  /**
-   * 格式化保证金显示
-   * @param {Object} strategyInfo - 策略信息
-   * @returns {string} 格式化后的保证金信息
-   */
-  formatMargin(strategyInfo) {
-    if (!strategyInfo) return '--';
-
-    const entryPrice = parseFloat(strategyInfo.entryPrice) || 0;
-    const stopLoss = parseFloat(strategyInfo.stopLoss) || 0;
-    const maxLossAmount = this.maxLossAmount; // 使用用户选择的最大损失金额
-    const positionSize = parseFloat(strategyInfo.positionSize) || 0;
-
-    if (entryPrice === 0 || stopLoss === 0) return '--';
-
-    // 计算止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
-    const isLong = entryPrice < stopLoss; // 如果入场价格 < 止损价格，说明是空头
-    const stopLossDistance = isLong
-      ? (entryPrice - stopLoss) / entryPrice  // 多头
-      : (stopLoss - entryPrice) / entryPrice; // 空头
-    const stopLossDistanceAbs = Math.abs(stopLossDistance);
-
-    // 计算最大杠杆数Y：1/(X%+0.5%) 数值向下取整
-    const maxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
-
-    // 计算最小保证金Z：M/(Y*X%) 数值向上取整
-    const minMargin = Math.ceil(maxLossAmount / (maxLeverage * stopLossDistanceAbs));
-
-    // 计算实际保证金：基于最大杠杆数
-    const suggestedLeverage = maxLeverage;
-    const actualMargin = Math.ceil(maxLossAmount / (suggestedLeverage * stopLossDistanceAbs));
-
-    return `
-      <div class="margin-info">
-        <div class="margin-item">
-          <span class="margin-label">最小保证金:</span>
-          <span class="margin-value">$${minMargin.toFixed(2)}</span>
-        </div>
-        <div class="margin-item">
-          <span class="margin-label">建议保证金:</span>
-          <span class="margin-value">$${actualMargin.toFixed(2)}</span>
-        </div>
-        <div class="margin-item">
-          <span class="margin-label">最大损失:</span>
-          <span class="margin-value">$${maxLossAmount.toFixed(2)}</span>
-        </div>
-      </div>
-    `;
-  }
+  // formatLeverage() 和 formatMargin() 已删除 - 直接使用后端返回的leverage和margin字段
 
   /**
    * 保存最大损失金额到数据库
@@ -3124,75 +3006,7 @@ class SmartFlowApp {
     return '--';
   }
 
-  /**
-   * 获取模拟交易记录数据
-   * @param {string} strategy - 策略名称
-   * @returns {Array} 模拟交易记录
-   */
-  getMockTradingRecords(strategy) {
-    const mockTrades = {
-      v3: [
-        {
-          symbol: 'BTCUSDT',
-          entry_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          entry_price: 112500.00,
-          entry_reason: '4H趋势向上，1H因子评分85，15m突破信号',
-          take_profit: 115000.00,
-          stop_loss: 110000.00,
-          leverage: 10,
-          margin: 1000.00,
-          status: 'open',
-          pnl: 250.00
-        },
-        {
-          symbol: 'ETHUSDT',
-          entry_time: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          entry_price: 4200.00,
-          entry_reason: '4H趋势向上，1H因子评分78，15m回调入场',
-          take_profit: 4400.00,
-          stop_loss: 4000.00,
-          leverage: 8,
-          margin: 800.00,
-          status: 'closed',
-          exit_time: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          exit_price: 4350.00,
-          exit_reason: '达到止盈目标',
-          pnl: 150.00
-        }
-      ],
-      ict: [
-        {
-          symbol: 'ONDOUSDT',
-          entry_time: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          entry_price: 0.9450,
-          entry_reason: '检测到看涨订单块，HTF扫荡确认，吞没形态',
-          take_profit: 0.9800,
-          stop_loss: 0.9200,
-          leverage: 15,
-          margin: 500.00,
-          status: 'open',
-          pnl: 25.00
-        },
-        {
-          symbol: 'LINKUSDT',
-          entry_time: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-          entry_price: 21.50,
-          entry_reason: '订单块支撑，流动性扫荡确认',
-          take_profit: 22.50,
-          stop_loss: 20.80,
-          leverage: 12,
-          margin: 600.00,
-          status: 'stopped',
-          exit_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          exit_price: 20.90,
-          exit_reason: '触发止损',
-          pnl: -60.00
-        }
-      ]
-    };
-
-    return mockTrades[strategy] || [];
-  }
+  // getMockTradingRecords() 已删除 - 改用真实API数据
 
   /**
    * 格式化成交量
