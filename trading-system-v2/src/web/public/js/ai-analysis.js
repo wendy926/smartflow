@@ -59,18 +59,18 @@ class AIAnalysisModule {
 
     let html = '';
 
-    // 渲染BTC分析
-    if (data.BTCUSDT) {
-      html += this.renderSimplifiedRiskCard('BTC', data.BTCUSDT, data.artifactUrl);
+    // 渲染BTC分析（使用AI Agent分析数据）
+    if (data.BTCUSDT && data.BTCUSDT.analysisData) {
+      html += this.renderRiskCard('BTC', data.BTCUSDT);
     }
 
-    // 渲染ETH分析
-    if (data.ETHUSDT) {
-      html += this.renderSimplifiedRiskCard('ETH', data.ETHUSDT, data.artifactUrl);
+    // 渲染ETH分析（使用AI Agent分析数据）
+    if (data.ETHUSDT && data.ETHUSDT.analysisData) {
+      html += this.renderRiskCard('ETH', data.ETHUSDT);
     }
 
     if (html === '') {
-      html = '<p class="no-data">暂无监控数据</p>';
+      html = '<p class="no-data">暂无AI分析数据，请等待分析完成...</p>';
     }
 
     container.innerHTML = html;
