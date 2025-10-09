@@ -324,8 +324,18 @@ class AIAnalysisScheduler {
           const row = rows[0];
           const indicators = row.indicators_data ? JSON.parse(row.indicators_data) : {};
 
+          // 获取实时价格（而不是数据库旧价格）
+          let currentPrice = parseFloat(row.last_price);
+          try {
+            const ticker = await this.binanceAPI.getTicker24hr(symbol);
+            currentPrice = parseFloat(ticker.lastPrice || 0);
+            logger.info(`[AI只读] ${symbol} 实时价格: $${currentPrice}`);
+          } catch (priceError) {
+            logger.warn(`[AI只读] ${symbol} 获取实时价格失败，使用数据库价格: $${currentPrice}`);
+          }
+
           dataMap[symbol] = {
-            currentPrice: parseFloat(row.last_price),
+            currentPrice: currentPrice,
             trend4h: row.trend_direction,
             trend1h: row.trend_direction,
             signal15m: row.entry_signal,
