@@ -443,6 +443,8 @@ router.get('/current-status', async (req, res) => {
               "15M": {
                 signal: ictResult.timeframes?.["15M"]?.signal || 'HOLD',
                 engulfing: ictResult.timeframes?.["15M"]?.engulfing || false,
+                engulfingType: ictResult.timeframes?.["15M"]?.engulfingType || 'NONE',
+                engulfingStrength: ictResult.timeframes?.["15M"]?.engulfingStrength || 0,
                 atr: ictResult.timeframes?.["15M"]?.atr || 0,
                 sweepRate: ictResult.timeframes?.["15M"]?.sweepRate || 0,
                 volume: ictResult.timeframes?.["15M"]?.volume || 0,
