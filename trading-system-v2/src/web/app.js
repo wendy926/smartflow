@@ -1556,9 +1556,11 @@ class SmartFlowApp {
     } else if (strategyType === 'ICT') {
       // ICT策略：1D趋势判断（20日收盘价比较）
       const trend1D = strategyInfo.timeframes?.["1D"] || {};
-      const trend = trend1D.trend || 'SIDEWAYS';
+      const trend = trend1D.trend || 'RANGE'; // ✅ 统一使用RANGE而非SIDEWAYS
       const closeChange = trend1D.closeChange || 0;
       const lookback = trend1D.lookback || 20;
+      // ✅ 优先使用后端返回的valid字段，降级到trend判断
+      const valid = trend1D.valid !== undefined ? trend1D.valid : (trend === 'UP' || trend === 'DOWN');
 
       return `
         <div class="indicator-group">
@@ -1572,7 +1574,7 @@ class SmartFlowApp {
           </div>
           <div class="indicator-item">
             <span class="indicator-label">判断:</span>
-            <span class="indicator-value ${trend !== 'SIDEWAYS' ? 'positive' : 'negative'}">${trend !== 'SIDEWAYS' ? '有效' : '忽略'}</span>
+            <span class="indicator-value ${valid ? 'positive' : 'negative'}">${valid ? '有效' : '忽略'}</span>
           </div>
         </div>
       `;
@@ -1595,7 +1597,8 @@ class SmartFlowApp {
       const funding = factors1H.funding || 0;
       const delta = factors1H.delta || 0;
       const score = factors1H.score || 0;
-      const valid = score >= 3;
+      // ✅ 优先使用后端返回的valid字段，降级到简单判断
+      const valid = factors1H.valid !== undefined ? factors1H.valid : (score >= 3);
 
       return `
         <div class="indicator-group">
@@ -1632,7 +1635,8 @@ class SmartFlowApp {
       const atr = ob4H.atr || 0;
       const sweepDetected = ob4H.sweepDetected || false;
       const sweepRate = ob4H.sweepRate || 0;
-      const valid = orderBlocks.length > 0 && sweepDetected;
+      // ✅ 优先使用后端返回的valid字段，降级到简单判断
+      const valid = ob4H.valid !== undefined ? ob4H.valid : (orderBlocks.length > 0 && sweepDetected);
 
       return `
         <div class="indicator-group">
@@ -1700,7 +1704,8 @@ class SmartFlowApp {
       const atr = entry15m.atr || 0;
       const bbw = entry15m.bbw || 0;
       const score = entry15m.score || 0;
-      const valid = score >= 2; // V3策略要求15M得分≥2才显示"有效"
+      // ✅ 优先使用后端信号判断有效性，降级到score判断
+      const valid = (signal === 'BUY' || signal === 'SELL') || (entry15m.valid !== undefined ? entry15m.valid : (score >= 2));
 
       // 15M层只显示技术指标，不显示信号（信号由顶层统一显示）
 
