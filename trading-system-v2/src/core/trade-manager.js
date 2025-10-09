@@ -33,16 +33,7 @@ class TradeManager {
         };
       }
 
-      // 检查是否有其他策略的活跃交易（跨策略检查）
-      const otherStrategy = strategy === 'V3' ? 'ICT' : 'V3';
-      const otherActiveTrade = await this.getActiveTrade(symbol, otherStrategy);
-      if (otherActiveTrade) {
-        return {
-          canCreate: false,
-          reason: `该交易对已有${otherStrategy}策略的活跃交易`,
-          activeTrade: otherActiveTrade
-        };
-      }
+      // ✅ 移除跨策略互斥检查 - V3和ICT策略完全独立，可以同时持仓
 
       // 检查冷却时间
       const cooldownKey = `${symbol}_${strategy}`;
