@@ -1076,7 +1076,7 @@ class SmartFlowApp {
     if (statusData.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="12" style="text-align: center; color: #6c757d; padding: 2rem;">
+          <td colspan="14" style="text-align: center; color: #6c757d; padding: 2rem;">
             暂无策略状态数据
           </td>
         </tr>
@@ -1111,7 +1111,7 @@ class SmartFlowApp {
     if (filteredData.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="12" style="text-align: center; color: #6c757d; padding: 2rem;">
+          <td colspan="14" style="text-align: center; color: #6c757d; padding: 2rem;">
             当前筛选条件下暂无数据
           </td>
         </tr>
@@ -1234,6 +1234,7 @@ class SmartFlowApp {
         <td class="price-cell">${this.formatPrice(v3TakeProfit)}</td>
         <td class="leverage-cell">${this.formatLeverage({ entryPrice: v3EntryPrice, stopLoss: v3StopLoss })}</td>
         <td class="margin-cell">${this.formatMargin({ entryPrice: v3EntryPrice, stopLoss: v3StopLoss, positionSize: v3Margin })}</td>
+        <td class="ai-analysis-cell"><span class="loading" style="font-size: 12px; color: #6c757d;">加载中...</span></td>
       `;
       tbody.appendChild(v3Row);
 
@@ -1292,9 +1293,62 @@ class SmartFlowApp {
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictTakeProfit) : '--'}</td>
         <td class="leverage-cell">${showTradeParams ? this.formatLeverage({ entryPrice: ictEntryPrice, stopLoss: ictStopLoss }) : '--'}</td>
         <td class="margin-cell">${showTradeParams ? this.formatMargin({ entryPrice: ictEntryPrice, stopLoss: ictStopLoss, positionSize: ictMargin }) : '--'}</td>
+        <td class="ai-analysis-cell"><span class="loading" style="font-size: 12px; color: #6c757d;">加载中...</span></td>
       `;
       tbody.appendChild(ictRow);
     });
+
+    // 异步加载AI分析数据
+    this.loadAIAnalysisForTable(sortedStatusData);
+  }
+
+  /**
+   * 加载表格的AI分析数据
+   * @param {Array} statusData - 状态数据
+   */
+  async loadAIAnalysisForTable(statusData) {
+    // 检查AI模块是否存在
+    if (typeof window.aiAnalysis === 'undefined') {
+      console.warn('AI分析模块未加载，跳过AI列渲染');
+      return;
+    }
+
+    // 对每个交易对只加载一次AI分析
+    const symbolsProcessed = new Set();
+    
+    for (const item of statusData) {
+      if (symbolsProcessed.has(item.symbol)) {
+        continue;
+      }
+      symbolsProcessed.add(item.symbol);
+      
+      try {
+        const analysis = await window.aiAnalysis.loadSymbolAnalysis(item.symbol);
+        if (!analysis) continue;
+
+        const cellHtml = window.aiAnalysis.renderSymbolAnalysisCell(analysis);
+        
+        // 找到该交易对的所有行（V3和ICT）
+        const rows = document.querySelectorAll(`#strategyStatusTableBody tr`);
+        rows.forEach(row => {
+          const symbolCell = row.querySelector('td:first-child');
+          if (symbolCell && symbolCell.textContent === item.symbol) {
+            // 找到AI分析列（最后一列）
+            const aiCell = row.querySelector('td:last-child');
+            if (aiCell) {
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = cellHtml;
+              const newContent = tempDiv.querySelector('td');
+              if (newContent) {
+                aiCell.innerHTML = newContent.innerHTML;
+              }
+            }
+          }
+        });
+      } catch (error) {
+        console.error(`加载${item.symbol}的AI分析失败:`, error);
+      }
+    }
   }
 
   /**
@@ -4470,7 +4524,7 @@ async function saveTradingTelegramSettings() {
  */
 async function testTradingTelegram() {
   const statusEl = document.getElementById('tradingTelegramStatus');
-  
+
   try {
     const response = await fetch('/api/v1/telegram/test-trading', {
       method: 'POST',
@@ -4532,7 +4586,7 @@ async function saveMonitoringTelegramSettings() {
  */
 async function testMonitoringTelegram() {
   const statusEl = document.getElementById('monitoringTelegramStatus');
-  
+
   try {
     const response = await fetch('/api/v1/telegram/test-monitoring', {
       method: 'POST',

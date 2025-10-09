@@ -27,7 +27,7 @@ async function testTelegramConfig() {
     console.log('1. 访问 https://smart.aimaventop.com/tools');
     console.log('2. 在"Telegram监控设置"中配置机器人');
     console.log('3. 测试配置是否成功');
-    
+
     process.exit(0);
   } catch (error) {
     console.error('测试失败:', error);

@@ -220,32 +220,60 @@ class AIAnalysisScheduler {
   }
 
   /**
-   * 获取市场数据
+   * 获取市场数据（实时从Binance API获取）
    * @param {string} symbol - 交易对符号
    * @returns {Promise<Object>}
    */
   async getMarketData(symbol) {
     try {
-      // 从数据库获取
-      const [rows] = await this.aiOps.pool.query(
-        'SELECT last_price, price_change_24h, volume_24h, funding_rate FROM symbols WHERE symbol = ?',
-        [symbol]
-      );
-
-      if (rows.length === 0) {
-        return {};
-      }
-
-      const data = rows[0];
-      return {
-        currentPrice: parseFloat(data.last_price),
-        priceChange24h: parseFloat(data.price_change_24h),
-        volume24h: parseFloat(data.volume_24h),
-        fundingRate: parseFloat(data.funding_rate)
+      logger.debug(`[AI] 获取 ${symbol} 实时市场数据`);
+      
+      // 从Binance API获取实时数据
+      const binanceAPI = this.binanceAPI;
+      
+      // 获取24小时价格统计
+      const ticker = await binanceAPI.get24hrPriceStats(symbol);
+      
+      // 获取资金费率
+      const fundingRate = await binanceAPI.getFundingRate(symbol);
+      
+      const marketData = {
+        currentPrice: parseFloat(ticker.lastPrice || 0),
+        priceChange24h: parseFloat(ticker.priceChangePercent || 0),
+        volume24h: parseFloat(ticker.quoteVolume || 0),
+        fundingRate: parseFloat(fundingRate || 0),
+        high24h: parseFloat(ticker.highPrice || 0),
+        low24h: parseFloat(ticker.lowPrice || 0)
       };
+      
+      logger.info(`[AI] ${symbol} 实时数据 - 价格: $${marketData.currentPrice}, 24H变化: ${marketData.priceChange24h}%`);
+      
+      return marketData;
 
     } catch (error) {
-      logger.error(`获取 ${symbol} 市场数据失败:`, error);
+      logger.error(`获取 ${symbol} 实时市场数据失败:`, error);
+      
+      // 降级：从数据库获取
+      try {
+        logger.warn(`[AI] 降级使用数据库数据`);
+        const [rows] = await this.aiOps.pool.query(
+          'SELECT last_price, price_change_24h, volume_24h, funding_rate FROM symbols WHERE symbol = ?',
+          [symbol]
+        );
+
+        if (rows.length > 0) {
+          const data = rows[0];
+          return {
+            currentPrice: parseFloat(data.last_price),
+            priceChange24h: parseFloat(data.price_change_24h),
+            volume24h: parseFloat(data.volume_24h),
+            fundingRate: parseFloat(data.funding_rate)
+          };
+        }
+      } catch (dbError) {
+        logger.error('从数据库获取数据也失败:', dbError);
+      }
+      
       return {};
     }
   }
