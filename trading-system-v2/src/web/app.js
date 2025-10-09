@@ -1318,7 +1318,7 @@ class SmartFlowApp {
           break;
         }
       }
-      
+
       if (typeof window.aiAnalysis === 'undefined') {
         console.warn('AI分析模块未加载，跳过AI列渲染');
         return;

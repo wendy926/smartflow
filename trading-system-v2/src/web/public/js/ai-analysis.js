@@ -15,7 +15,7 @@ class AIAnalysisModule {
    */
   async init() {
     console.log('初始化AI分析模块...');
-    
+
     // 加载宏观风险分析
     await this.loadMacroRiskAnalysis();
 
@@ -60,24 +60,76 @@ class AIAnalysisModule {
     let html = '';
 
     // 渲染BTC分析
-    if (data.BTCUSDT && data.BTCUSDT.analysisData) {
-      html += this.renderRiskCard('BTC', data.BTCUSDT);
+    if (data.BTCUSDT) {
+      html += this.renderSimplifiedRiskCard('BTC', data.BTCUSDT, data.artifactUrl);
     }
 
     // 渲染ETH分析
-    if (data.ETHUSDT && data.ETHUSDT.analysisData) {
-      html += this.renderRiskCard('ETH', data.ETHUSDT);
+    if (data.ETHUSDT) {
+      html += this.renderSimplifiedRiskCard('ETH', data.ETHUSDT, data.artifactUrl);
     }
 
     if (html === '') {
-      html = '<p class="no-data">暂无AI分析数据，请等待分析完成...</p>';
+      html = '<p class="no-data">暂无监控数据</p>';
     }
 
     container.innerHTML = html;
   }
 
   /**
-   * 渲染风险分析卡片
+   * 渲染简化的风险监控卡片
+   * @param {string} coin - 币种
+   * @param {Object} data - 监控数据
+   * @param {string} artifactUrl - Artifact链接
+   * @returns {string} HTML
+   */
+  renderSimplifiedRiskCard(coin, data, artifactUrl) {
+    const { alertLevel, alertColor, tradingSuggestion, riskWarning, updatedAt } = data;
+    
+    // 告警级别颜色映射
+    const colorMap = {
+      'safe': { bg: '#d4edda', border: '#28a745', text: '#155724', icon: '🟢' },
+      'warning': { bg: '#fff3cd', border: '#ffc107', text: '#856404', icon: '🟡' },
+      'danger': { bg: '#f8d7da', border: '#dc3545', text: '#721c24', icon: '🔴' },
+      'extreme': { bg: '#d6d6d6', border: '#343a40', text: '#1b1e21', icon: '⚫' }
+    };
+    
+    const colors = colorMap[alertColor] || colorMap['warning'];
+    const pulseClass = alertColor === 'danger' || alertColor === 'extreme' ? 'pulse-animation' : '';
+
+    return `
+      <div class="risk-card ${pulseClass}" style="border-color: ${colors.border}; background: ${colors.bg};">
+        <div class="risk-header">
+          <h3>${colors.icon} ${coin} 市场监控</h3>
+          <span class="alert-badge" style="background: ${colors.border}; color: white;">
+            ${alertLevel}
+          </span>
+        </div>
+        
+        <div class="risk-content">
+          <div class="risk-section">
+            <strong>📊 交易建议:</strong>
+            <p>${tradingSuggestion}</p>
+          </div>
+          
+          <div class="risk-section">
+            <strong>⚠️ 风险提示:</strong>
+            <p>${riskWarning}</p>
+          </div>
+        </div>
+        
+        <div class="risk-footer">
+          <span class="update-time">更新: ${this.formatTime(updatedAt)}</span>
+          <a href="${artifactUrl}" target="_blank" class="detail-link">
+            查看详细分析 →
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 渲染风险分析卡片（旧版，保留以防需要）
    * @param {string} symbol - 币种符号
    * @param {Object} analysis - 分析数据
    * @returns {string} HTML字符串
@@ -171,9 +223,9 @@ class AIAnalysisModule {
    */
   formatShortTermPrediction(scenarios) {
     if (!scenarios || scenarios.length === 0) return '--';
-    
+
     // 找到概率最高的场景
-    const topScenario = scenarios.reduce((max, s) => 
+    const topScenario = scenarios.reduce((max, s) =>
       s.probability > max.probability ? s : max, scenarios[0]
     );
 
@@ -538,7 +590,7 @@ class AIAnalysisModule {
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         alert('AI分析已触发，请稍候刷新查看结果');
         // 10秒后自动刷新

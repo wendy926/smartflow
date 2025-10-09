@@ -27,43 +27,43 @@ const getScheduler = () => {
 };
 
 /**
- * 获取宏观风险分析
+ * 获取宏观风险分析（从配置文件读取）
  * GET /api/v1/ai/macro-risk?symbols=BTCUSDT,ETHUSDT
  */
 router.get('/macro-risk', async (req, res) => {
   try {
-    const { symbols } = req.query;
-    const symbolList = symbols ? symbols.split(',') : ['BTCUSDT', 'ETHUSDT'];
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    // 读取市场监控配置文件
+    const configPath = path.join(__dirname, '../../../config/market-monitor.json');
+    const configData = await fs.readFile(configPath, 'utf8');
+    const monitorData = JSON.parse(configData);
 
-    const operations = getAIOps();
-    const results = {};
-
-    for (const symbol of symbolList) {
-      const analysis = await operations.getLatestAnalysis(symbol, 'MACRO_RISK');
-      
-      if (analysis) {
-        results[symbol] = {
-          symbol: analysis.symbol,
-          riskLevel: analysis.riskLevel,
-          analysisData: analysis.analysisData,
-          confidence: analysis.confidenceScore,
-          updatedAt: analysis.updatedAt,
-          createdAt: analysis.createdAt
-        };
-      } else {
-        results[symbol] = {
-          symbol,
-          riskLevel: null,
-          analysisData: null,
-          message: '暂无分析数据'
-        };
+    const results = {
+      BTCUSDT: {
+        symbol: 'BTCUSDT',
+        alertLevel: monitorData.BTC.alertLevel,
+        alertColor: monitorData.BTC.alertColor,
+        tradingSuggestion: monitorData.BTC.tradingSuggestion,
+        riskWarning: monitorData.BTC.riskWarning,
+        updatedAt: monitorData.lastUpdate
+      },
+      ETHUSDT: {
+        symbol: 'ETHUSDT',
+        alertLevel: monitorData.ETH.alertLevel,
+        alertColor: monitorData.ETH.alertColor,
+        tradingSuggestion: monitorData.ETH.tradingSuggestion,
+        riskWarning: monitorData.ETH.riskWarning,
+        updatedAt: monitorData.lastUpdate
       }
-    }
+    };
 
     res.json({
       success: true,
       data: results,
-      lastUpdate: new Date().toISOString()
+      lastUpdate: monitorData.lastUpdate,
+      artifactUrl: monitorData.artifactUrl
     });
 
   } catch (error) {
