@@ -1318,33 +1318,47 @@ class SmartFlowApp {
           break;
         }
       }
-
+      
       if (typeof window.aiAnalysis === 'undefined') {
         console.warn('AI分析模块未加载，跳过AI列渲染');
         return;
       }
     }
 
+    console.log('[AI表格] 开始加载AI分析，交易对数量:', statusData.length);
+
     // 对每个交易对只加载一次AI分析
     const symbolsProcessed = new Set();
-
+    let successCount = 0;
+    let failCount = 0;
+    
     for (const item of statusData) {
       if (symbolsProcessed.has(item.symbol)) {
         continue;
       }
       symbolsProcessed.add(item.symbol);
-
+      
       try {
+        console.log(`[AI表格] 加载 ${item.symbol} 分析...`);
         const analysis = await window.aiAnalysis.loadSymbolAnalysis(item.symbol);
-        if (!analysis) continue;
+        
+        if (!analysis) {
+          console.warn(`[AI表格] ${item.symbol} 无分析数据`);
+          failCount++;
+          continue;
+        }
 
+        console.log(`[AI表格] ${item.symbol} 分析数据:`, analysis);
         const cellHtml = window.aiAnalysis.renderSymbolAnalysisCell(analysis);
-
+        console.log(`[AI表格] ${item.symbol} HTML片段:`, cellHtml.substring(0, 100) + '...');
+        
         // 找到该交易对的所有行（V3和ICT）
         const rows = document.querySelectorAll(`#strategyStatusTableBody tr`);
+        let updatedRows = 0;
+        
         rows.forEach(row => {
           const symbolCell = row.querySelector('td:first-child');
-          if (symbolCell && symbolCell.textContent === item.symbol) {
+          if (symbolCell && symbolCell.textContent.trim() === item.symbol) {
             // 找到AI分析列（最后一列）
             const aiCell = row.querySelector('td:last-child');
             if (aiCell) {
@@ -1353,14 +1367,27 @@ class SmartFlowApp {
               const newContent = tempDiv.querySelector('td');
               if (newContent) {
                 aiCell.innerHTML = newContent.innerHTML;
+                aiCell.className = newContent.className;
+                updatedRows++;
               }
             }
           }
         });
+        
+        if (updatedRows > 0) {
+          console.log(`[AI表格] ${item.symbol} 成功更新 ${updatedRows} 行`);
+          successCount++;
+        } else {
+          console.warn(`[AI表格] ${item.symbol} 未找到匹配的表格行`);
+          failCount++;
+        }
       } catch (error) {
-        console.error(`加载${item.symbol}的AI分析失败:`, error);
+        console.error(`[AI表格] ${item.symbol} 加载失败:`, error);
+        failCount++;
       }
     }
+    
+    console.log(`[AI表格] 加载完成 - 成功: ${successCount}, 失败: ${failCount}`);
   }
 
   /**
