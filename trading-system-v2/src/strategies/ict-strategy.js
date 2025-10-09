@@ -139,12 +139,12 @@ class ICTStrategy {
         const currentPrice = parseFloat(klines[klines.length - 1][4]);
         const type = currentPrice > (windowHigh + windowLow) / 2 ? 'BULLISH' : 'BEARISH';
 
-        orderBlocks.push({
+          orderBlocks.push({
           type: type,
           high: windowHigh,
           low: windowLow,
           timestamp: timestamp,
-          height: obHeight,
+            height: obHeight,
           strength: obHeight / atr4H,
           age: (Date.now() - timestamp) / (24 * 60 * 60 * 1000),
           center: (windowHigh + windowLow) / 2,
@@ -195,7 +195,7 @@ class ICTStrategy {
 
       // 检测上方流动性扫荡：价格快速上涨后回落
       if (high > extreme * 0.98) { // 放宽到98%的极值点
-        const exceed = high - extreme;
+            const exceed = high - extreme;
         const barsToReturn = 1; // 简化：假设下一根K线收回
 
         // 计算扫荡速率
@@ -203,18 +203,18 @@ class ICTStrategy {
 
         // 降低阈值：sweep速率 ≥ 0.2 × ATR（从0.4降低到0.2）
         if (sweepSpeed >= 0.2 * currentATR) {
-          detected = true;
-          type = 'LIQUIDITY_SWEEP_UP';
-          level = extreme;
+              detected = true;
+              type = 'LIQUIDITY_SWEEP_UP';
+              level = extreme;
           confidence = Math.min(sweepSpeed / (0.2 * currentATR), 1);
-          speed = sweepSpeed;
-          break;
-        }
+              speed = sweepSpeed;
+              break;
+            }
       }
 
       // 检测下方流动性扫荡：价格快速下跌后反弹
       if (low < extreme * 1.02) { // 放宽到102%的极值点
-        const exceed = extreme - low;
+            const exceed = extreme - low;
         const barsToReturn = 1; // 简化：假设下一根K线收回
 
         // 计算扫荡速率
@@ -222,15 +222,15 @@ class ICTStrategy {
 
         // 降低阈值：sweep速率 ≥ 0.2 × ATR（从0.4降低到0.2）
         if (sweepSpeed >= 0.2 * currentATR) {
-          detected = true;
-          type = 'LIQUIDITY_SWEEP_DOWN';
-          level = extreme;
+              detected = true;
+              type = 'LIQUIDITY_SWEEP_DOWN';
+              level = extreme;
           confidence = Math.min(sweepSpeed / (0.2 * currentATR), 1);
-          speed = sweepSpeed;
-          break;
+              speed = sweepSpeed;
+              break;
+            }
+          }
         }
-      }
-    }
 
     // 调试信息
     if (detected) {
@@ -272,7 +272,7 @@ class ICTStrategy {
 
       // 如果吞没程度超过50%，认为有效
       if (engulfRatio >= 0.5) {
-        return { detected: true, type: 'BULLISH_ENGULFING', strength };
+      return { detected: true, type: 'BULLISH_ENGULFING', strength };
       }
     }
 
@@ -287,7 +287,7 @@ class ICTStrategy {
 
       // 如果吞没程度超过50%，认为有效
       if (engulfRatio >= 0.5) {
-        return { detected: true, type: 'BEARISH_ENGULFING', strength };
+      return { detected: true, type: 'BEARISH_ENGULFING', strength };
       }
     }
 
@@ -413,9 +413,9 @@ class ICTStrategy {
     const currentVolume = parseFloat(klines[klines.length - 1][5]); // 当前成交量
     const recentVolumes = klines.slice(-period - 1, -1).map(k => parseFloat(k[5])); // 排除当前K线的历史成交量
     const averageVolume = recentVolumes.reduce((sum, vol) => sum + vol, 0) / recentVolumes.length;
-
+    
     const volumeRatio = averageVolume > 0 ? currentVolume / averageVolume : 0;
-
+    
     // 成交量放大条件：当前成交量 ≥ 1.5倍平均成交量
     const detected = volumeRatio >= 1.5;
 
@@ -435,11 +435,11 @@ class ICTStrategy {
    */
   checkOrderBlockAge(orderBlock) {
     if (!orderBlock || !orderBlock.timestamp) return false;
-
+    
     const currentTime = Date.now();
     const obTime = orderBlock.timestamp;
     const ageDays = (currentTime - obTime) / (1000 * 60 * 60 * 24); // 转换为天
-
+    
     return ageDays <= 5; // 年龄 ≤ 5天（从2天放宽到5天）
   }
 
@@ -457,7 +457,7 @@ class ICTStrategy {
     if (!klines4H || klines4H.length < 6) {
       return 0;
     }
-
+    
     if (trend === 'UP') {
       // 优化：上升趋势使用扫荡低点或最近6根4H的最低点（从3根改为6根）
       const recent6Lows = klines4H.slice(-6).map(k => parseFloat(k[3])); // 最低价
@@ -510,7 +510,7 @@ class ICTStrategy {
     if (!entryPrice || !stopLoss) return 0;
 
     const stopDistance = Math.abs(entryPrice - stopLoss);
-
+    
     if (trend === 'UP') {
       // 上升趋势：入场价 + 3倍止损距离
       return entryPrice + (3 * stopDistance);
@@ -518,7 +518,7 @@ class ICTStrategy {
       // 下降趋势：入场价 - 3倍止损距离
       return entryPrice - (3 * stopDistance);
     }
-
+    
     return entryPrice;
   }
 
@@ -538,21 +538,21 @@ class ICTStrategy {
 
     // 风险资金 = Equity × 风险比例
     const riskAmount = equity * riskPct;
-
+    
     // 止损距离
     const stopDistance = Math.abs(entryPrice - stopLoss);
-
+    
     // 单位数 = 风险资金 ÷ 止损距离
     const units = stopDistance > 0 ? riskAmount / stopDistance : 0;
-
+    
     // 名义价值 = 单位数 × 入场价
     const notional = units * entryPrice;
-
+    
     // 计算杠杆：基于风险比例和止损距离
     const stopLossDistancePct = stopDistance / entryPrice;
     const calculatedMaxLeverage = Math.floor(1 / (stopLossDistancePct + 0.005)); // 加0.5%缓冲
     const leverage = Math.min(calculatedMaxLeverage, 24); // 最大杠杆限制为24
-
+    
     // 保证金 = 名义价值 ÷ 杠杆
     const margin = notional / leverage;
 
@@ -683,22 +683,22 @@ class ICTStrategy {
         logger.info(`ICT HTF Sweep调试 - 订单块: 高=${latestOrderBlock.high}, 低=${latestOrderBlock.low}, 扫荡检测: ${JSON.stringify(sweepHTF)}`);
       } else {
         // 没有订单块时，使用最近的关键swing点（作为备选方案）
-        const recentKlines = klines4H.slice(-10);
-        let recentHigh = 0;
-        let recentLow = Infinity;
-        recentKlines.forEach(kline => {
-          const high = parseFloat(kline[2]);
-          const low = parseFloat(kline[3]);
-          if (high > recentHigh) recentHigh = high;
-          if (low < recentLow) recentLow = low;
-        });
+      const recentKlines = klines4H.slice(-10);
+      let recentHigh = 0;
+      let recentLow = Infinity;
+      recentKlines.forEach(kline => {
+        const high = parseFloat(kline[2]);
+        const low = parseFloat(kline[3]);
+        if (high > recentHigh) recentHigh = high;
+        if (low < recentLow) recentLow = low;
+      });
 
-        // 检测上方扫荡（突破最近高点）
-        const sweepHTFUp = this.detectSweepHTF(recentHigh, klines4H, atr4H[atr4H.length - 1]);
-        // 检测下方扫荡（跌破最近低点）
-        const sweepHTFDown = this.detectSweepHTF(recentLow, klines4H, atr4H[atr4H.length - 1]);
+      // 检测上方扫荡（突破最近高点）
+      const sweepHTFUp = this.detectSweepHTF(recentHigh, klines4H, atr4H[atr4H.length - 1]);
+      // 检测下方扫荡（跌破最近低点）
+      const sweepHTFDown = this.detectSweepHTF(recentLow, klines4H, atr4H[atr4H.length - 1]);
 
-        // 选择有效的扫荡
+      // 选择有效的扫荡
         sweepHTF = sweepHTFUp.detected ? sweepHTFUp : sweepHTFDown;
 
         logger.info(`ICT HTF Sweep调试 - 无订单块，使用最近极值: 高=${recentHigh}, 低=${recentLow}, 扫荡检测: ${JSON.stringify(sweepHTF)}`);
@@ -1347,11 +1347,11 @@ class ICTStrategy {
           if (!existingTrade && hasValidOrderBlock) {
             // 使用最新的有效订单块
             const latestOrderBlock = validOrderBlocks[validOrderBlocks.length - 1];
-
+            
             // 计算新的交易参数（使用文档要求的方法）
             tradeParams = await this.calculateTradeParameters(
-              symbol,
-              dailyTrend.trend,
+              symbol, 
+              dailyTrend.trend, 
               {
                 engulfing,
                 sweepHTF,
