@@ -1357,14 +1357,22 @@ class SmartFlowApp {
         // 找到该交易对的所有行（V3和ICT）
         const rows = document.querySelectorAll(`#strategyStatusTableBody tr`);
         console.log(`[AI表格] ${item.symbol} 表格总行数: ${rows.length}`);
+        
+        // 记录所有行的symbol用于调试
+        const allSymbols = Array.from(rows).map((row, idx) => {
+          const cell = row.querySelector('td:first-child');
+          return `[${idx}]"${cell ? cell.textContent.trim() : ''}"`;
+        });
+        console.log(`[AI表格] 所有行symbols: ${allSymbols.join(', ')}`);
+        
         let updatedRows = 0;
         
         rows.forEach((row, index) => {
           const symbolCell = row.querySelector('td:first-child');
           const symbolText = symbolCell ? symbolCell.textContent.trim() : '';
           
-          if (index < 3) { // 只记录前3行用于调试
-            console.log(`[AI表格] 第${index}行 symbol: "${symbolText}"`);
+          if (symbolCell && symbolText === item.symbol) {
+            console.log(`[AI表格] ${item.symbol} 匹配到第${index}行`);
           }
           
           if (symbolCell && symbolText === item.symbol) {
