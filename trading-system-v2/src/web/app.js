@@ -10,6 +10,8 @@ class SmartFlowApp {
     this.currentStrategy = 'v3';
     this.refreshInterval = null;
     this.maxLossAmount = 100; // 默认最大损失金额100 USDT
+    this.lastAIAnalysisLoad = 0; // 记录AI分析上次加载时间
+    this.aiAnalysisInterval = 60 * 60 * 1000; // AI分析刷新间隔：1小时
     this.init();
     this.initRouting();
   }
@@ -1299,9 +1301,20 @@ class SmartFlowApp {
     });
 
     // 延迟加载AI分析数据，确保DOM已完全渲染
-    setTimeout(() => {
-      this.loadAIAnalysisForTable(sortedStatusData);
-    }, 100);
+    // 只有距离上次加载超过1小时，或者首次加载时才重新加载
+    const now = Date.now();
+    const timeSinceLastLoad = now - this.lastAIAnalysisLoad;
+    
+    if (timeSinceLastLoad >= this.aiAnalysisInterval || this.lastAIAnalysisLoad === 0) {
+      console.log(`[AI表格] 距离上次加载${Math.round(timeSinceLastLoad / 60000)}分钟，开始刷新AI分析`);
+      setTimeout(() => {
+        this.loadAIAnalysisForTable(sortedStatusData);
+        this.lastAIAnalysisLoad = Date.now();
+      }, 100);
+    } else {
+      const remainingMinutes = Math.round((this.aiAnalysisInterval - timeSinceLastLoad) / 60000);
+      console.log(`[AI表格] 跳过刷新，距离下次更新还有${remainingMinutes}分钟`);
+    }
   }
 
   /**
