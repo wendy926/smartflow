@@ -12,7 +12,13 @@ async function testRealtimePrice() {
     console.log('=== 测试AI分析实时价格获取 ===\n');
     
     // 创建数据库连接
-    connection = await mysql.createConnection(config.database);
+    const dbConfig = {
+      host: config.database.host,
+      user: config.database.user,
+      password: config.database.password,
+      database: config.database.database || 'trading_system'
+    };
+    connection = await mysql.createConnection(dbConfig);
     
     const binanceAPI = new BinanceAPI();
     const symbol = 'ETHUSDT';
