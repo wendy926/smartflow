@@ -20,7 +20,6 @@ const getDbOps = () => {
 
 // 初始化策略实例
 const v3Strategy = new V3Strategy();
-const v3StrategyEnhanced = new V3StrategyEnhanced();
 const ictStrategy = new ICTStrategy();
 const rollingStrategy = new RollingStrategy();
 
