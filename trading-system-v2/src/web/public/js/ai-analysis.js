@@ -286,7 +286,14 @@ class AIAnalysisModule {
             ${shortTerm.length > 0 ? `
               <div class="detail-row">
                 <span class="label">短期预测:</span>
-                <span class="value">${this.formatShortTermPrediction(shortTerm)}</span>
+                <div class="value" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  ${shortTerm.map(s => `
+                    <span style="font-size: 0.9rem;">
+                      ${this.formatScenarioType(s.type)} (${s.probability}%)
+                      ${s.priceRange ? `: $${this.formatNumber(s.priceRange[0])} - $${this.formatNumber(s.priceRange[1])}` : ''}
+                    </span>
+                  `).join('')}
+                </div>
               </div>
             ` : ''}
             ${suggestions.length > 0 ? `
@@ -569,8 +576,12 @@ class AIAnalysisModule {
             ${this.getSignalBadge(score.signalRecommendation)}
           </div>
           <div class="predictions-compact">
-            <small>短期: ${this.formatTrendIcon(shortTrend.direction)} (${shortTrend.confidence || 0}%)</small>
-            <small>中期: ${this.formatTrendIcon(midTrend.direction)} (${midTrend.confidence || 0}%)</small>
+            <small>短期: ${this.formatTrendIcon(shortTrend.direction)} (${shortTrend.confidence || 0}%)
+              ${shortTrend.priceRange ? `<br>区间: $${this.formatNumber(shortTrend.priceRange[0])}-$${this.formatNumber(shortTrend.priceRange[1])}` : ''}
+            </small>
+            <small>中期: ${this.formatTrendIcon(midTrend.direction)} (${midTrend.confidence || 0}%)
+              ${midTrend.priceRange ? `<br>区间: $${this.formatNumber(midTrend.priceRange[0])}-$${this.formatNumber(midTrend.priceRange[1])}` : ''}
+            </small>
           </div>
         </div>
       </td>
