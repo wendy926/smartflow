@@ -28,7 +28,7 @@ class TelegramMonitoringService {
     // 速率限制
     this.rateLimit = new Map();
     this.cooldown = 300000; // 5分钟冷却期
-    
+
     // 从数据库加载配置
     this.loadConfigFromDatabase();
   }
@@ -39,7 +39,7 @@ class TelegramMonitoringService {
   async loadConfigFromDatabase() {
     try {
       const result = await TelegramConfigOps.getAllConfigs();
-      
+
       if (result.success && result.data.length > 0) {
         result.data.forEach(cfg => {
           if (cfg.config_type === 'trading') {
@@ -93,14 +93,14 @@ class TelegramMonitoringService {
       });
 
       const message = this.formatTradingMessage(tradeData);
-      
+
       logger.debug('[Telegram交易] 消息格式化完成', {
         messageLength: message.length,
         messagePreview: message.substring(0, 100) + '...'
       });
 
       const result = await this.sendMessage(message, 'trading');
-      
+
       if (result) {
         logger.info('[Telegram交易] ✅ 消息发送成功', {
           tradeSymbol: tradeData.symbol,
@@ -162,7 +162,7 @@ class TelegramMonitoringService {
    */
   async sendMessage(message, type = 'trading') {
     let botToken, chatId;
-    
+
     switch (type) {
       case 'trading':
         botToken = this.tradingBotToken;
@@ -381,7 +381,7 @@ class TelegramMonitoringService {
    */
   async testConnection(type = 'trading') {
     let botToken, chatId;
-    
+
     switch (type) {
       case 'trading':
         botToken = this.tradingBotToken;
@@ -473,7 +473,7 @@ class TelegramMonitoringService {
         this.tradingBotToken = config.trading.botToken;
         this.tradingChatId = config.trading.chatId;
         this.tradingEnabled = this.tradingBotToken && this.tradingChatId;
-        
+
         // 保存到数据库
         await TelegramConfigOps.saveConfig('trading', this.tradingBotToken, this.tradingChatId);
       }
@@ -482,7 +482,7 @@ class TelegramMonitoringService {
         this.monitoringBotToken = config.monitoring.botToken;
         this.monitoringChatId = config.monitoring.chatId;
         this.monitoringEnabled = this.monitoringBotToken && this.monitoringChatId;
-        
+
         // 保存到数据库
         await TelegramConfigOps.saveConfig('monitoring', this.monitoringBotToken, this.monitoringChatId);
       }

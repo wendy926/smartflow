@@ -1305,7 +1305,7 @@ class SmartFlowApp {
     // 只有距离上次加载超过1小时，或者首次加载时才重新加载
     const now = Date.now();
     const timeSinceLastLoad = now - this.lastAIAnalysisLoad;
-    
+
     if (timeSinceLastLoad >= this.aiAnalysisInterval || this.lastAIAnalysisLoad === 0) {
       console.log(`[AI表格] 距离上次加载${Math.round(timeSinceLastLoad / 60000)}分钟，开始刷新AI分析`);
       setTimeout(() => {
@@ -1450,7 +1450,7 @@ class SmartFlowApp {
     }
 
     console.log('[AI表格] 使用缓存数据填充，交易对数量:', statusData.length);
-    
+
     const symbolsProcessed = new Set();
     let successCount = 0;
     let failCount = 0;
@@ -1484,7 +1484,7 @@ class SmartFlowApp {
                 const tdContent = tdMatch[1];
                 const classMatch = cellHtml.match(/class="([^"]*)"/);
                 const className = classMatch ? classMatch[1] : 'ai-analysis-cell';
-                
+
                 aiCell.innerHTML = tdContent;
                 aiCell.className = className;
                 updatedRows++;

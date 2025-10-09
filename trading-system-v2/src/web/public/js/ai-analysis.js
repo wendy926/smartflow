@@ -589,7 +589,9 @@ class AIAnalysisModule {
     const mapping = {
       'strongBuy': 'signal-strong-buy',
       'mediumBuy': 'signal-medium-buy',
+      'holdBullish': 'signal-hold-bullish',
       'hold': 'signal-hold',
+      'holdBearish': 'signal-hold-bearish',
       'caution': 'signal-caution'
     };
     return mapping[signal] || 'signal-hold';
@@ -602,7 +604,9 @@ class AIAnalysisModule {
     const badges = {
       'strongBuy': '<span class="signal-badge strong-buy">强烈看多</span>',
       'mediumBuy': '<span class="signal-badge medium-buy">看多</span>',
-      'hold': '<span class="signal-badge hold">持有</span>',
+      'holdBullish': '<span class="signal-badge hold-bullish">持有偏多</span>',
+      'hold': '<span class="signal-badge hold">持有观望</span>',
+      'holdBearish': '<span class="signal-badge hold-bearish">持有偏空</span>',
       'caution': '<span class="signal-badge caution">谨慎</span>'
     };
     return badges[signal] || badges.hold;

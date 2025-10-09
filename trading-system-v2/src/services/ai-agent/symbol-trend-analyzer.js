@@ -269,14 +269,21 @@ class SymbolTrendAnalyzer {
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         
-        // 验证和补充必要字段
+          // 验证和补充必要字段
         if (!parsed.tradingPair) {
           parsed.tradingPair = symbol;
         }
 
-        if (!parsed.overallScore) {
-          parsed.overallScore = this.calculateDefaultScore(parsed);
-        }
+        // 始终重新计算评分，因为AI经常返回错误的signalRecommendation
+        const originalScore = parsed.overallScore;
+        parsed.overallScore = this.calculateDefaultScore(parsed);
+        
+        logger.debug(`${symbol} 评分校正`, {
+          AI原始: originalScore,
+          重新计算: parsed.overallScore,
+          短期置信度: parsed.shortTermTrend?.confidence,
+          中期置信度: parsed.midTermTrend?.confidence
+        });
 
         return parsed;
       }
@@ -300,10 +307,14 @@ class SymbolTrendAnalyzer {
     const midScore = data.midTermTrend?.confidence || 50;
     const totalScore = Math.round((shortScore + midScore) / 2);
 
+    // 根据分数段判断信号（忽略AI返回的错误判断）
     let recommendation = 'hold';
     if (totalScore >= 75) recommendation = 'strongBuy';
-    else if (totalScore >= 60) recommendation = 'mediumBuy';
-    else if (totalScore < 40) recommendation = 'caution';
+    else if (totalScore >= 60) recommendation = 'mediumBuy';    // 60-74分: 适度买入
+    else if (totalScore >= 55) recommendation = 'holdBullish';  // 55-59分: 持有偏多
+    else if (totalScore >= 45) recommendation = 'hold';         // 45-54分: 持有观望
+    else if (totalScore >= 40) recommendation = 'holdBearish'; // 40-44分: 持有偏空
+    else recommendation = 'caution';                            // <40分: 谨慎
 
     return {
       "4hTrend": Math.round(midScore / 10),

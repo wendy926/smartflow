@@ -287,9 +287,19 @@
   opacity: 0.8;
 }
 
+.signal-badge.hold-bullish {
+  background: #17a2b8;
+  color: white;
+}
+
 .signal-badge.hold {
   background: #ffc107;
   color: #333;
+}
+
+.signal-badge.hold-bearish {
+  background: #fd7e14;
+  color: white;
 }
 
 .signal-badge.caution {

@@ -83,7 +83,7 @@ class TradeManager {
   async createTrade(tradeData) {
     const startTime = Date.now();
     const { symbol, strategy_type } = tradeData;
-    
+
     try {
       logger.info(`[交易创建] 开始创建交易: ${symbol} ${strategy_type}`, {
         tradeData: {
@@ -99,7 +99,7 @@ class TradeManager {
       // 检查是否可以创建交易
       logger.debug(`[交易创建] 检查是否可以创建交易: ${symbol} ${strategy_type}`);
       const canCreate = await this.canCreateTrade(symbol, strategy_type);
-      
+
       if (!canCreate.canCreate) {
         logger.warn(`[交易创建] 无法创建交易: ${symbol} ${strategy_type} - ${canCreate.reason}`);
         return {
@@ -108,12 +108,12 @@ class TradeManager {
           data: canCreate
         };
       }
-      
+
       logger.debug(`[交易创建] 检查通过，开始添加到数据库: ${symbol} ${strategy_type}`);
 
       // 创建交易记录
       const result = await dbOps.addTrade(tradeData);
-      
+
       logger.info(`[交易创建] 数据库记录创建结果: ${symbol} ${strategy_type}`, {
         success: result.success,
         tradeId: result.id
@@ -128,7 +128,7 @@ class TradeManager {
         // 添加到活跃交易列表
         const trade = await dbOps.getTradeById(result.id);
         this.activeTrades.set(result.id, trade);
-        
+
         logger.info(`[交易创建] ✅ 模拟交易创建成功: ${symbol} ${strategy_type} ID: ${result.id}`, {
           tradeId: result.id,
           entryPrice: trade.entry_price,
@@ -155,9 +155,9 @@ class TradeManager {
               tradeSymbol: trade.symbol,
               tradeStrategyName: trade.strategy_name
             });
-            
+
             const telegramResult = await this.telegramService.sendTradingAlert(trade);
-            
+
             if (telegramResult) {
               logger.info(`[Telegram] ✅ 交易通知发送成功: ${symbol} ${strategy_type} ID: ${result.id}`);
             } else {
