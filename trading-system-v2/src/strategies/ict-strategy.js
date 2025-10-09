@@ -817,9 +817,9 @@ class ICTStrategy {
         const engulfingScore = engulfing.detected ? 15 : 0;
         const sweepScore = sweepLTF.detected ? 15 : 0;
         const volumeScore = volumeExpansion.detected ? 5 : 0;
-        const harmonicScore = harmonicPattern.detected ? harmonicPattern.score * 20 : 0;
+        const harmonicScorePoints = harmonicPattern.detected ? harmonicPattern.score * 20 : 0;
 
-        const calculatedScore = Math.round(trendScore + orderBlockScore + engulfingScore + sweepScore + volumeScore + harmonicScore);
+        const calculatedScore = Math.round(trendScore + orderBlockScore + engulfingScore + sweepScore + volumeScore + harmonicScorePoints);
 
         // 计算数值置信度（基于谐波形态和吞没形态强度）
         const harmonicScoreValue = harmonicPattern.detected ? harmonicPattern.score : 0;
