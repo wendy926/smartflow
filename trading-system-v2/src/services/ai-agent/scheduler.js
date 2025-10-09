@@ -18,17 +18,17 @@ class AIAnalysisScheduler {
     this.aiOps = aiOperations;
     this.binanceAPI = binanceAPI;
     this.telegram = telegramService;
-    
+
     // 初始化组件
     this.aiClient = new UnifiedAIClient();
     this.macroAnalyzer = null;
     this.symbolAnalyzer = null;
     this.alertService = null;
-    
+
     // 定时任务
     this.macroTask = null;
     this.symbolTask = null;
-    
+
     // 状态
     this.isInitialized = false;
     this.isRunning = false;
@@ -103,7 +103,7 @@ class AIAnalysisScheduler {
 
       this.isRunning = true;
       logger.info('AI分析调度器已启动');
-      
+
       // 立即执行一次
       setTimeout(() => {
         this.runMacroAnalysis();
@@ -194,7 +194,7 @@ class AIAnalysisScheduler {
 
       // 获取活跃交易对
       const symbols = await this.getActiveSymbols();
-      
+
       if (symbols.length === 0) {
         logger.warn('没有活跃的交易对需要分析');
         return;
@@ -227,17 +227,17 @@ class AIAnalysisScheduler {
   async getMarketData(symbol) {
     try {
       logger.debug(`[AI] 获取 ${symbol} 实时市场数据`);
-      
+
       // 从Binance API获取实时数据
       const binanceAPI = this.binanceAPI;
-      
+
       // 获取24小时价格统计
       const ticker = await binanceAPI.getTicker24hr(symbol);
-      
+
       // 获取资金费率
       const fundingRateData = await binanceAPI.getFundingRate(symbol);
       const fundingRate = parseFloat(fundingRateData.lastFundingRate || 0);
-      
+
       const marketData = {
         currentPrice: parseFloat(ticker.lastPrice || 0),
         priceChange24h: parseFloat(ticker.priceChangePercent || 0),
@@ -246,14 +246,14 @@ class AIAnalysisScheduler {
         high24h: parseFloat(ticker.highPrice || 0),
         low24h: parseFloat(ticker.lowPrice || 0)
       };
-      
+
       logger.info(`[AI] ${symbol} 实时数据 - 价格: $${marketData.currentPrice}, 24H变化: ${marketData.priceChange24h}%`);
-      
+
       return marketData;
 
     } catch (error) {
       logger.error(`获取 ${symbol} 实时市场数据失败:`, error);
-      
+
       // 降级：从数据库获取
       try {
         logger.warn(`[AI] 降级使用数据库数据`);
@@ -274,7 +274,7 @@ class AIAnalysisScheduler {
       } catch (dbError) {
         logger.error('从数据库获取数据也失败:', dbError);
       }
-      
+
       return {};
     }
   }

@@ -1307,27 +1307,39 @@ class SmartFlowApp {
    * @param {Array} statusData - 状态数据
    */
   async loadAIAnalysisForTable(statusData) {
-    // 检查AI模块是否存在
+    // 检查AI模块是否存在，如果不存在则等待
     if (typeof window.aiAnalysis === 'undefined') {
-      console.warn('AI分析模块未加载，跳过AI列渲染');
-      return;
+      console.log('等待AI分析模块加载...');
+      // 等待最多3秒
+      for (let i = 0; i < 30; i++) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (typeof window.aiAnalysis !== 'undefined') {
+          console.log('AI分析模块已加载');
+          break;
+        }
+      }
+      
+      if (typeof window.aiAnalysis === 'undefined') {
+        console.warn('AI分析模块未加载，跳过AI列渲染');
+        return;
+      }
     }
 
     // 对每个交易对只加载一次AI分析
     const symbolsProcessed = new Set();
-    
+
     for (const item of statusData) {
       if (symbolsProcessed.has(item.symbol)) {
         continue;
       }
       symbolsProcessed.add(item.symbol);
-      
+
       try {
         const analysis = await window.aiAnalysis.loadSymbolAnalysis(item.symbol);
         if (!analysis) continue;
 
         const cellHtml = window.aiAnalysis.renderSymbolAnalysisCell(analysis);
-        
+
         // 找到该交易对的所有行（V3和ICT）
         const rows = document.querySelectorAll(`#strategyStatusTableBody tr`);
         rows.forEach(row => {

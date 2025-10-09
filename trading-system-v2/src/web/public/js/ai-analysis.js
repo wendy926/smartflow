@@ -562,13 +562,21 @@ class AIAnalysisModule {
   }
 }
 
-// 创建全局实例
-const aiAnalysis = new AIAnalysisModule();
+// 创建全局实例（立即创建，不等待DOMContentLoaded）
+window.aiAnalysis = new AIAnalysisModule();
 
 // 页面加载完成后初始化
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => aiAnalysis.init());
+  document.addEventListener('DOMContentLoaded', () => {
+    window.aiAnalysis.init();
+  });
 } else {
-  aiAnalysis.init();
+  // 如果DOM已加载，立即初始化
+  window.aiAnalysis.init();
+}
+
+// 导出供其他脚本使用
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = window.aiAnalysis;
 }
 
