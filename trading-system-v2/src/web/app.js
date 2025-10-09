@@ -1235,8 +1235,8 @@ class SmartFlowApp {
         <td class="price-cell">${this.formatPrice(v3EntryPrice)}</td>
         <td class="price-cell">${this.formatPrice(v3StopLoss)}</td>
         <td class="price-cell">${this.formatPrice(v3TakeProfit)}</td>
-        <td class="leverage-cell">${this.formatLeverage({ entryPrice: v3EntryPrice, stopLoss: v3StopLoss })}</td>
-        <td class="margin-cell">${this.formatMargin({ entryPrice: v3EntryPrice, stopLoss: v3StopLoss, positionSize: v3Margin })}</td>
+        <td class="leverage-cell">${v3Leverage > 0 ? v3Leverage.toFixed(0) + 'x' : '--'}</td>
+        <td class="margin-cell">${v3Margin > 0 ? '$' + v3Margin.toFixed(2) : '--'}</td>
         <td class="ai-analysis-cell"><span class="loading" style="font-size: 12px; color: #6c757d;">加载中...</span></td>
       `;
       tbody.appendChild(v3Row);
@@ -1294,8 +1294,8 @@ class SmartFlowApp {
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictEntryPrice) : '--'}</td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictStopLoss) : '--'}</td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictTakeProfit) : '--'}</td>
-        <td class="leverage-cell">${showTradeParams ? this.formatLeverage({ entryPrice: ictEntryPrice, stopLoss: ictStopLoss }) : '--'}</td>
-        <td class="margin-cell">${showTradeParams ? this.formatMargin({ entryPrice: ictEntryPrice, stopLoss: ictStopLoss, positionSize: ictMargin }) : '--'}</td>
+        <td class="leverage-cell">${showTradeParams && ictLeverage > 0 ? ictLeverage.toFixed(0) + 'x' : '--'}</td>
+        <td class="margin-cell">${showTradeParams && ictMargin > 0 ? '$' + ictMargin.toFixed(2) : '--'}</td>
         <td class="ai-analysis-cell"><span class="loading" style="font-size: 12px; color: #6c757d;">加载中...</span></td>
       `;
       tbody.appendChild(ictRow);
