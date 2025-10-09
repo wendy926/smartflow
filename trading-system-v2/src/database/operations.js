@@ -377,7 +377,7 @@ class DatabaseOperations {
         let query = `
           SELECT st.*, s.symbol,
                  st.strategy_name as strategy_type,
-                 st.trade_type as signal
+                 st.trade_type as \`signal\`
           FROM simulation_trades st 
           JOIN symbols s ON st.symbol_id = s.id 
           ORDER BY st.created_at DESC LIMIT ${limitNum}
@@ -393,7 +393,7 @@ class DatabaseOperations {
       let query = `
         SELECT st.*, s.symbol,
                st.strategy_name as strategy_type,
-               st.trade_type as signal
+               st.trade_type as \`signal\`
         FROM simulation_trades st 
         JOIN symbols s ON st.symbol_id = s.id 
         WHERE st.strategy_name = '${strategyUpper}'
