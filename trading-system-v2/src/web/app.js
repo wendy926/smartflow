@@ -200,28 +200,28 @@ class SmartFlowApp {
     const saveTradingTelegramBtn = document.getElementById('saveTradingTelegramBtn');
     if (saveTradingTelegramBtn) {
       saveTradingTelegramBtn.addEventListener('click', () => {
-        saveTradingTelegramSettings();
+        this.saveTradingTelegramSettings();
       });
     }
 
     const testTradingTelegramBtn = document.getElementById('testTradingTelegramBtn');
     if (testTradingTelegramBtn) {
       testTradingTelegramBtn.addEventListener('click', () => {
-        testTradingTelegram();
+        this.testTradingTelegram();
       });
     }
 
     const saveMonitoringTelegramBtn = document.getElementById('saveMonitoringTelegramBtn');
     if (saveMonitoringTelegramBtn) {
       saveMonitoringTelegramBtn.addEventListener('click', () => {
-        saveMonitoringTelegramSettings();
+        this.saveMonitoringTelegramSettings();
       });
     }
 
     const testMonitoringTelegramBtn = document.getElementById('testMonitoringTelegramBtn');
     if (testMonitoringTelegramBtn) {
       testMonitoringTelegramBtn.addEventListener('click', () => {
-        testMonitoringTelegram();
+        this.testMonitoringTelegram();
       });
     }
 
@@ -4427,5 +4427,129 @@ function initMarginCalculator() {
   const calculateBtn = document.getElementById('calculateMarginBtn');
   if (calculateBtn) {
     calculateBtn.addEventListener('click', calculateMarginAndLeverage);
+  }
+}
+
+/**
+ * 保存交易触发Telegram配置
+ */
+async function saveTradingTelegramSettings() {
+  const botToken = document.getElementById('tradingTelegramBotToken').value.trim();
+  const chatId = document.getElementById('tradingTelegramChatId').value.trim();
+  const statusEl = document.getElementById('tradingTelegramStatus');
+
+  if (!botToken || !chatId) {
+    statusEl.innerHTML = '<span style="color: red;">❌ 请填写Bot Token和Chat ID</span>';
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/v1/telegram/trading-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ botToken, chatId })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      statusEl.innerHTML = '<span style="color: green;">✅ 配置保存成功</span>';
+      showNotification('交易触发Telegram配置保存成功', 'success');
+    } else {
+      statusEl.innerHTML = `<span style="color: red;">❌ ${result.error || '保存失败'}</span>`;
+      showNotification(`保存失败: ${result.error}`, 'error');
+    }
+  } catch (error) {
+    statusEl.innerHTML = `<span style="color: red;">❌ ${error.message}</span>`;
+    showNotification(`保存失败: ${error.message}`, 'error');
+  }
+}
+
+/**
+ * 测试交易触发Telegram连接
+ */
+async function testTradingTelegram() {
+  const statusEl = document.getElementById('tradingTelegramStatus');
+  
+  try {
+    const response = await fetch('/api/v1/telegram/test-trading', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      statusEl.innerHTML = '<span style="color: green;">✅ 测试消息已发送</span>';
+      showNotification('测试消息已发送，请检查Telegram', 'success');
+    } else {
+      statusEl.innerHTML = `<span style="color: red;">❌ ${result.error || '发送失败'}</span>`;
+      showNotification(`发送失败: ${result.error}`, 'error');
+    }
+  } catch (error) {
+    statusEl.innerHTML = `<span style="color: red;">❌ ${error.message}</span>`;
+    showNotification(`发送失败: ${error.message}`, 'error');
+  }
+}
+
+/**
+ * 保存系统监控Telegram配置
+ */
+async function saveMonitoringTelegramSettings() {
+  const botToken = document.getElementById('monitoringTelegramBotToken').value.trim();
+  const chatId = document.getElementById('monitoringTelegramChatId').value.trim();
+  const statusEl = document.getElementById('monitoringTelegramStatus');
+
+  if (!botToken || !chatId) {
+    statusEl.innerHTML = '<span style="color: red;">❌ 请填写Bot Token和Chat ID</span>';
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/v1/telegram/monitoring-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ botToken, chatId })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      statusEl.innerHTML = '<span style="color: green;">✅ 配置保存成功</span>';
+      showNotification('系统监控Telegram配置保存成功', 'success');
+    } else {
+      statusEl.innerHTML = `<span style="color: red;">❌ ${result.error || '保存失败'}</span>`;
+      showNotification(`保存失败: ${result.error}`, 'error');
+    }
+  } catch (error) {
+    statusEl.innerHTML = `<span style="color: red;">❌ ${error.message}</span>`;
+    showNotification(`保存失败: ${error.message}`, 'error');
+  }
+}
+
+/**
+ * 测试系统监控Telegram连接
+ */
+async function testMonitoringTelegram() {
+  const statusEl = document.getElementById('monitoringTelegramStatus');
+  
+  try {
+    const response = await fetch('/api/v1/telegram/test-monitoring', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      statusEl.innerHTML = '<span style="color: green;">✅ 测试消息已发送</span>';
+      showNotification('测试消息已发送，请检查Telegram', 'success');
+    } else {
+      statusEl.innerHTML = `<span style="color: red;">❌ ${result.error || '发送失败'}</span>`;
+      showNotification(`发送失败: ${result.error}`, 'error');
+    }
+  } catch (error) {
+    statusEl.innerHTML = `<span style="color: red;">❌ ${error.message}</span>`;
+    showNotification(`发送失败: ${error.message}`, 'error');
   }
 }
