@@ -1368,7 +1368,9 @@ class SmartFlowApp {
           continue;
         }
 
-        console.log(`[AI表格] ${item.symbol} 分析数据:`, analysis);
+        // 缓存分析结果
+        this.cachedAIAnalysis[item.symbol] = analysis;
+        console.log(`[AI表格] ${item.symbol} 分析数据已缓存`);
         const cellHtml = window.aiAnalysis.renderSymbolAnalysisCell(analysis);
         console.log(`[AI表格] ${item.symbol} HTML片段:`, cellHtml.substring(0, 100) + '...');
 
