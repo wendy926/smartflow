@@ -1045,7 +1045,7 @@ class SmartFlowApp {
    */
   async loadStrategyCurrentStatus() {
     try {
-      const response = await this.fetchData('/strategies/current-status?limit=10');
+      const response = await this.fetchData('/strategies/current-status?limit=20');
       const statusData = response.data;
 
       // 加载交易记录数据
