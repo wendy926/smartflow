@@ -7,7 +7,7 @@ class AIAnalysisModule {
   constructor() {
     this.apiBase = '/api/v1/ai';
     this.updateInterval = null;
-    this.macroUpdateInterval = 2 * 60 * 60 * 1000; // 2小时
+    this.macroUpdateInterval = 60 * 60 * 1000; // 1小时
   }
 
   /**
@@ -85,39 +85,39 @@ class AIAnalysisModule {
    */
   renderSimplifiedRiskCard(coin, data, artifactUrl) {
     const { alertLevel, alertColor, tradingSuggestion, riskWarning, updatedAt } = data;
-    
+
     // 告警级别颜色映射
     const colorMap = {
-      'safe': { 
-        bg: 'linear-gradient(135deg, #d4edda 0%, #e8f5e9 100%)', 
-        border: '#28a745', 
-        text: '#155724', 
+      'safe': {
+        bg: 'linear-gradient(135deg, #d4edda 0%, #e8f5e9 100%)',
+        border: '#28a745',
+        text: '#155724',
         icon: '🟢',
         shadow: '0 4px 12px rgba(40, 167, 69, 0.2)'
       },
-      'warning': { 
-        bg: 'linear-gradient(135deg, #fff3cd 0%, #fffbea 100%)', 
-        border: '#ffc107', 
-        text: '#856404', 
+      'warning': {
+        bg: 'linear-gradient(135deg, #fff3cd 0%, #fffbea 100%)',
+        border: '#ffc107',
+        text: '#856404',
         icon: '🟡',
         shadow: '0 4px 12px rgba(255, 193, 7, 0.2)'
       },
-      'danger': { 
-        bg: 'linear-gradient(135deg, #f8d7da 0%, #fde8ea 100%)', 
-        border: '#dc3545', 
-        text: '#721c24', 
+      'danger': {
+        bg: 'linear-gradient(135deg, #f8d7da 0%, #fde8ea 100%)',
+        border: '#dc3545',
+        text: '#721c24',
         icon: '🔴',
         shadow: '0 4px 12px rgba(220, 53, 69, 0.3)'
       },
-      'extreme': { 
-        bg: 'linear-gradient(135deg, #d6d6d6 0%, #e8e8e8 100%)', 
-        border: '#343a40', 
-        text: '#1b1e21', 
+      'extreme': {
+        bg: 'linear-gradient(135deg, #d6d6d6 0%, #e8e8e8 100%)',
+        border: '#343a40',
+        text: '#1b1e21',
         icon: '⚫',
         shadow: '0 4px 12px rgba(52, 58, 64, 0.3)'
       }
     };
-    
+
     const colors = colorMap[alertColor] || colorMap['warning'];
     const pulseClass = alertColor === 'danger' || alertColor === 'extreme' ? 'pulse-animation' : '';
 
@@ -667,7 +667,7 @@ class AIAnalysisModule {
    * 开始自动更新
    */
   startAutoUpdate() {
-    // 每2小时更新一次宏观风险分析
+    // 每1小时更新一次宏观风险分析
     this.updateInterval = setInterval(() => {
       this.loadMacroRiskAnalysis();
     }, this.macroUpdateInterval);
