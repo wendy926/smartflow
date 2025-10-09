@@ -231,19 +231,6 @@ class AIAnalysisModule {
           ">
             更新: ${this.formatTime(updatedAt)}
           </span>
-          <a href="${artifactUrl}" target="_blank" rel="noopener noreferrer" style="
-            color: #007bff;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            transition: all 0.2s ease;
-          " onmouseover="this.style.color='#0056b3'; this.style.textDecoration='underline';" 
-             onmouseout="this.style.color='#007bff'; this.style.textDecoration='none';">
-            查看详细分析 <span style="font-size: 1.1rem;">→</span>
-          </a>
         </div>
       </div>
     `;
