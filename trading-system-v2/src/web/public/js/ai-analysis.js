@@ -304,9 +304,6 @@ class AIAnalysisModule {
             ` : ''}
           </div>
           <div class="ai-card-footer">
-            <button class="btn-expand" onclick="aiAnalysis.showDetailModal('${symbol}')">
-              查看详细分析
-            </button>
             <span class="update-time">更新于: ${this.formatTime(updatedAt)}</span>
           </div>
         </div>
