@@ -81,41 +81,100 @@ class TradeManager {
    * @returns {Object} 创建结果
    */
   async createTrade(tradeData) {
+    const startTime = Date.now();
+    const { symbol, strategy_type } = tradeData;
+    
     try {
-      const { symbol, strategy_type } = tradeData;
+      logger.info(`[交易创建] 开始创建交易: ${symbol} ${strategy_type}`, {
+        tradeData: {
+          symbol,
+          strategy_type,
+          entry_price: tradeData.entry_price,
+          stop_loss: tradeData.stop_loss,
+          take_profit: tradeData.take_profit,
+          leverage: tradeData.leverage
+        }
+      });
 
       // 检查是否可以创建交易
+      logger.debug(`[交易创建] 检查是否可以创建交易: ${symbol} ${strategy_type}`);
       const canCreate = await this.canCreateTrade(symbol, strategy_type);
+      
       if (!canCreate.canCreate) {
+        logger.warn(`[交易创建] 无法创建交易: ${symbol} ${strategy_type} - ${canCreate.reason}`);
         return {
           success: false,
           error: canCreate.reason,
           data: canCreate
         };
       }
+      
+      logger.debug(`[交易创建] 检查通过，开始添加到数据库: ${symbol} ${strategy_type}`);
 
       // 创建交易记录
       const result = await dbOps.addTrade(tradeData);
+      
+      logger.info(`[交易创建] 数据库记录创建结果: ${symbol} ${strategy_type}`, {
+        success: result.success,
+        tradeId: result.id
+      });
 
       if (result.success) {
         // 更新冷却时间
         const cooldownKey = `${symbol}_${strategy_type}`;
         this.tradeCooldowns.set(cooldownKey, Date.now());
+        logger.debug(`[交易创建] 冷却时间已更新: ${cooldownKey}`);
 
         // 添加到活跃交易列表
         const trade = await dbOps.getTradeById(result.id);
         this.activeTrades.set(result.id, trade);
-
-        logger.info(`模拟交易创建成功: ${symbol} ${strategy_type} ID: ${result.id}`);
+        
+        logger.info(`[交易创建] ✅ 模拟交易创建成功: ${symbol} ${strategy_type} ID: ${result.id}`, {
+          tradeId: result.id,
+          entryPrice: trade.entry_price,
+          stopLoss: trade.stop_loss,
+          takeProfit: trade.take_profit,
+          leverage: trade.leverage,
+          marginUsed: trade.margin_used,
+          elapsedMs: Date.now() - startTime
+        });
 
         // 发送Telegram交易触发通知
+        logger.info(`[Telegram] 开始发送交易通知: ${symbol} ${strategy_type} ID: ${result.id}`, {
+          telegramServiceExists: !!this.telegramService,
+          telegramServiceType: this.telegramService ? this.telegramService.constructor.name : 'null',
+          tradeDataKeys: Object.keys(trade)
+        });
+
         try {
-          await this.telegramService.sendTradingAlert(trade);
-          logger.info(`Telegram交易通知已发送: ${symbol} ${strategy_type}`);
+          if (!this.telegramService) {
+            logger.error(`[Telegram] ❌ Telegram服务未初始化！${symbol} ${strategy_type} ID: ${result.id}`);
+          } else {
+            logger.debug(`[Telegram] 调用sendTradingAlert: ${symbol} ${strategy_type}`, {
+              tradeId: result.id,
+              tradeSymbol: trade.symbol,
+              tradeStrategyName: trade.strategy_name
+            });
+            
+            const telegramResult = await this.telegramService.sendTradingAlert(trade);
+            
+            if (telegramResult) {
+              logger.info(`[Telegram] ✅ 交易通知发送成功: ${symbol} ${strategy_type} ID: ${result.id}`);
+            } else {
+              logger.warn(`[Telegram] ⚠️ 交易通知发送失败（返回false）: ${symbol} ${strategy_type} ID: ${result.id}`);
+            }
+          }
         } catch (telegramError) {
-          logger.error(`发送Telegram交易通知失败: ${telegramError.message}`);
+          logger.error(`[Telegram] ❌ 发送交易通知异常: ${symbol} ${strategy_type} ID: ${result.id}`, {
+            error: telegramError.message,
+            stack: telegramError.stack,
+            errorName: telegramError.name,
+            errorCode: telegramError.code
+          });
           // 不影响交易创建，继续执行
         }
+
+        logger.info(`[交易创建] 交易创建流程完成: ${symbol} ${strategy_type} ID: ${result.id}, 总耗时: ${Date.now() - startTime}ms`);
 
         return {
           success: true,
@@ -123,13 +182,22 @@ class TradeManager {
           message: '模拟交易创建成功'
         };
       } else {
+        logger.error(`[交易创建] ❌ 创建交易记录失败: ${symbol} ${strategy_type}`, {
+          result
+        });
         return {
           success: false,
           error: '创建交易记录失败'
         };
       }
     } catch (error) {
-      logger.error('创建模拟交易失败:', error);
+      logger.error(`[交易创建] ❌ 创建模拟交易失败: ${symbol} ${strategy_type}`, {
+        error: error.message,
+        stack: error.stack,
+        errorName: error.name,
+        tradeData,
+        elapsedMs: Date.now() - startTime
+      });
       return {
         success: false,
         error: error.message
