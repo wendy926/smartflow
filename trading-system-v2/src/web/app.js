@@ -1298,8 +1298,10 @@ class SmartFlowApp {
       tbody.appendChild(ictRow);
     });
 
-    // 异步加载AI分析数据
-    this.loadAIAnalysisForTable(sortedStatusData);
+    // 延迟加载AI分析数据，确保DOM已完全渲染
+    setTimeout(() => {
+      this.loadAIAnalysisForTable(sortedStatusData);
+    }, 100);
   }
 
   /**
@@ -1354,11 +1356,18 @@ class SmartFlowApp {
         
         // 找到该交易对的所有行（V3和ICT）
         const rows = document.querySelectorAll(`#strategyStatusTableBody tr`);
+        console.log(`[AI表格] ${item.symbol} 表格总行数: ${rows.length}`);
         let updatedRows = 0;
         
-        rows.forEach(row => {
+        rows.forEach((row, index) => {
           const symbolCell = row.querySelector('td:first-child');
-          if (symbolCell && symbolCell.textContent.trim() === item.symbol) {
+          const symbolText = symbolCell ? symbolCell.textContent.trim() : '';
+          
+          if (index < 3) { // 只记录前3行用于调试
+            console.log(`[AI表格] 第${index}行 symbol: "${symbolText}"`);
+          }
+          
+          if (symbolCell && symbolText === item.symbol) {
             // 找到AI分析列（最后一列）
             const aiCell = row.querySelector('td:last-child');
             if (aiCell) {
