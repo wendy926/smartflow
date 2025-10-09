@@ -32,6 +32,10 @@ class AIAnalysisScheduler {
     // 状态
     this.isInitialized = false;
     this.isRunning = false;
+
+    // AI信号通知冷却期（每个交易对+信号类型组合，1小时）
+    this.signalAlertCooldowns = new Map();
+    this.signalAlertCooldownMs = 60 * 60 * 1000; // 1小时
   }
 
   /**
@@ -215,8 +219,89 @@ class AIAnalysisScheduler {
 
       logger.info(`交易对分析任务完成 - 成功: ${results.filter(r => r.success).length}, 失败: ${results.filter(r => !r.success).length}`);
 
+      // 检查是否有需要通知的信号（强烈看多或谨慎）
+      await this.checkAndSendSignalAlerts(results);
+
     } catch (error) {
       logger.error('交易对分析任务失败:', error);
+    }
+  }
+
+  /**
+   * 检查并发送AI信号通知
+   * @param {Array} analysisResults - 分析结果数组
+   * @returns {Promise<void>}
+   */
+  async checkAndSendSignalAlerts(analysisResults) {
+    if (!this.telegram) {
+      logger.debug('[AI信号通知] Telegram服务未配置，跳过');
+      return;
+    }
+
+    const targetSignals = ['strongBuy', 'caution'];
+    let alertsSent = 0;
+    let alertsSkipped = 0;
+
+    for (const result of analysisResults) {
+      try {
+        if (!result.success || !result.analysisData) {
+          continue;
+        }
+
+        const { symbol, analysisData } = result;
+        const { overallScore } = analysisData;
+        
+        if (!overallScore || !overallScore.signalRecommendation) {
+          continue;
+        }
+
+        const signal = overallScore.signalRecommendation;
+
+        // 检查是否是需要通知的信号
+        if (!targetSignals.includes(signal)) {
+          continue;
+        }
+
+        // 检查冷却期
+        const cooldownKey = `${symbol}_${signal}`;
+        const lastAlertTime = this.signalAlertCooldowns.get(cooldownKey);
+        const now = Date.now();
+
+        if (lastAlertTime && (now - lastAlertTime) < this.signalAlertCooldownMs) {
+          const remainingMinutes = Math.ceil((this.signalAlertCooldownMs - (now - lastAlertTime)) / 60000);
+          logger.debug(`[AI信号通知] ${symbol} ${signal} 在冷却期内，剩余${remainingMinutes}分钟`);
+          alertsSkipped++;
+          continue;
+        }
+
+        // 发送Telegram通知
+        logger.info(`[AI信号通知] 触发通知 - ${symbol} ${signal}`);
+        const alertSent = await this.telegram.sendAISignalAlert({
+          symbol: analysisData.symbol || symbol,
+          signalRecommendation: signal,
+          overallScore: overallScore,
+          currentPrice: analysisData.currentPrice,
+          shortTermTrend: analysisData.shortTermTrend,
+          midTermTrend: analysisData.midTermTrend,
+          timestamp: analysisData.timestamp || new Date().toISOString()
+        });
+
+        if (alertSent) {
+          // 更新冷却期
+          this.signalAlertCooldowns.set(cooldownKey, now);
+          alertsSent++;
+          logger.info(`[AI信号通知] ✅ ${symbol} ${signal} 通知已发送`);
+        } else {
+          logger.warn(`[AI信号通知] ⚠️ ${symbol} ${signal} 通知发送失败`);
+        }
+
+      } catch (error) {
+        logger.error(`[AI信号通知] 处理 ${result.symbol} 通知时异常:`, error);
+      }
+    }
+
+    if (alertsSent > 0 || alertsSkipped > 0) {
+      logger.info(`[AI信号通知] 通知统计 - 已发送: ${alertsSent}, 跳过(冷却期): ${alertsSkipped}`);
     }
   }
 
