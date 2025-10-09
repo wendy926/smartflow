@@ -375,7 +375,9 @@ class DatabaseOperations {
       if (!strategy) {
         const limitNum = parseInt(limit, 10);
         let query = `
-          SELECT st.*, s.symbol 
+          SELECT st.*, s.symbol,
+                 st.strategy_name as strategy_type,
+                 st.trade_type as signal
           FROM simulation_trades st 
           JOIN symbols s ON st.symbol_id = s.id 
           ORDER BY st.created_at DESC LIMIT ${limitNum}
@@ -389,7 +391,9 @@ class DatabaseOperations {
       const limitNum = parseInt(limit, 10);
 
       let query = `
-        SELECT st.*, s.symbol 
+        SELECT st.*, s.symbol,
+               st.strategy_name as strategy_type,
+               st.trade_type as signal
         FROM simulation_trades st 
         JOIN symbols s ON st.symbol_id = s.id 
         WHERE st.strategy_name = '${strategyUpper}'
