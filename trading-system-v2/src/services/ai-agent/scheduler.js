@@ -201,7 +201,8 @@ class AIAnalysisScheduler {
       }
 
       // 限制分析数量（避免过多API调用）
-      const maxSymbols = 5;
+      // 增加到10个，覆盖所有活跃交易对
+      const maxSymbols = 10;
       const symbolsToAnalyze = symbols.slice(0, maxSymbols);
 
       logger.info(`将分析 ${symbolsToAnalyze.length} 个交易对: ${symbolsToAnalyze.join(', ')}`);
