@@ -542,14 +542,14 @@ class AIAnalysisModule {
     const midConfidence = midTrend.confidence || 50;
     const recalculatedScore = Math.round((shortConfidence + midConfidence) / 2);
     
-    // 根据分数重新判断信号（与后端逻辑一致）
+    // 根据分数重新判断信号（与后端逻辑一致 - 优化后的阈值）
     let recalculatedSignal = 'hold';
-    if (recalculatedScore >= 75) recalculatedSignal = 'strongBuy';
-    else if (recalculatedScore >= 60) recalculatedSignal = 'mediumBuy';
-    else if (recalculatedScore >= 55) recalculatedSignal = 'holdBullish';
-    else if (recalculatedScore >= 45) recalculatedSignal = 'hold';
-    else if (recalculatedScore >= 40) recalculatedSignal = 'holdBearish';
-    else recalculatedSignal = 'caution';
+    if (recalculatedScore >= 78) recalculatedSignal = 'strongBuy';       // 78-100分
+    else if (recalculatedScore >= 68) recalculatedSignal = 'mediumBuy';  // 68-77分
+    else if (recalculatedScore >= 58) recalculatedSignal = 'holdBullish'; // 58-67分
+    else if (recalculatedScore >= 48) recalculatedSignal = 'hold';       // 48-57分
+    else if (recalculatedScore >= 38) recalculatedSignal = 'holdBearish'; // 38-47分
+    else recalculatedSignal = 'caution';                                 // <38分
 
     // 使用重新计算的分数和信号
     const finalScore = recalculatedScore;
