@@ -12,6 +12,7 @@ class SmartFlowApp {
     this.maxLossAmount = 100; // 默认最大损失金额100 USDT
     this.lastAIAnalysisLoad = 0; // 记录AI分析上次加载时间
     this.aiAnalysisInterval = 60 * 60 * 1000; // AI分析刷新间隔：1小时
+    this.cachedAIAnalysis = {}; // 缓存AI分析结果
     this.init();
     this.initRouting();
   }
@@ -1313,7 +1314,11 @@ class SmartFlowApp {
       }, 100);
     } else {
       const remainingMinutes = Math.round((this.aiAnalysisInterval - timeSinceLastLoad) / 60000);
-      console.log(`[AI表格] 跳过刷新，距离下次更新还有${remainingMinutes}分钟`);
+      console.log(`[AI表格] 跳过刷新，使用缓存数据，距离下次更新还有${remainingMinutes}分钟`);
+      // 使用缓存数据立即填充AI列
+      setTimeout(() => {
+        this.loadCachedAIAnalysis(sortedStatusData);
+      }, 100);
     }
   }
 
@@ -1393,16 +1398,16 @@ class SmartFlowApp {
 
             if (aiCell) {
               console.log(`[AI表格] ${item.symbol} 第${index}行 开始更新aiCell`);
-              
+
               // 直接从cellHtml中提取内容，不使用querySelector
               // 因为浏览器不允许在div中直接放置td元素
               const tdMatch = cellHtml.match(/<td[^>]*>([\s\S]*)<\/td>/);
-              
+
               if (tdMatch) {
                 const tdContent = tdMatch[1]; // 提取<td>标签内的内容
                 const classMatch = cellHtml.match(/class="([^"]*)"/);
                 const className = classMatch ? classMatch[1] : 'ai-analysis-cell';
-                
+
                 aiCell.innerHTML = tdContent;
                 aiCell.className = className;
                 updatedRows++;
