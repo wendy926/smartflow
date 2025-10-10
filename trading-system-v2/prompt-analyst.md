@@ -191,12 +191,38 @@
   }
 }
 
-### ⚠️ 重要提示
-1. **priceRange是必须字段**：shortTermTrend和midTermTrend都必须包含priceRange数组
-2. **所有趋势都要给区间**：
-   - sideways（横盘）→ priceRange给出震荡上下限
-   - down（下跌）→ priceRange给出下跌目标区间
-   - up（上涨）→ priceRange给出上涨目标区间
-3. priceRange格式：[下限价格, 上限价格]，必须是数字，不能省略
+### 🚨 严格要求（必须遵守，否则响应无效）
 
-请保持专业简洁，不需要多余文字说明。
+**1. priceRange是强制必须字段！绝对不能省略！**
+- shortTermTrend **必须包含** priceRange: [下限, 上限]
+- midTermTrend **必须包含** priceRange: [下限, 上限]
+- 格式：数字数组，如 [1240, 1280]
+
+**2. 所有趋势方向都必须给出价格区间**：
+- sideways（横盘）→ priceRange = 震荡区间的上下限
+- down（下跌）→ priceRange = 下跌后的目标支撑区间
+- up（上涨）→ priceRange = 上涨后的目标阻力区间
+
+**3. 缺少priceRange的响应将被视为无效！**
+
+**示例（正确格式）**：
+```json
+"shortTermTrend": {
+  "direction": "sideways",
+  "confidence": 60,
+  "reasoning": "...",
+  "priceRange": [1240, 1280]  ← 必须有！
+}
+```
+
+**示例（错误格式 - 将被拒绝）**：
+```json
+"shortTermTrend": {
+  "direction": "sideways",
+  "confidence": 60,
+  "reasoning": "..."
+  // 缺少priceRange ← 无效！
+}
+```
+
+请保持专业简洁，不需要多余文字说明。**确保每次响应都包含完整的priceRange字段！**
