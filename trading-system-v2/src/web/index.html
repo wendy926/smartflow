@@ -1403,20 +1403,22 @@
                         <td style="padding: 8px; border: 1px solid #dee2e6;">BTC/ETH风险卡片</td>
                       </tr>
                       <tr style="background: #f8f9fa;">
-                        <td style="padding: 8px; border: 1px solid #dee2e6;">Dashboard整体</td>
-                        <td style="padding: 8px; border: 1px solid #dee2e6;">-</td>
-                        <td style="padding: 8px; border: 1px solid #dee2e6;">30秒</td>
-                        <td style="padding: 8px; border: 1px solid #dee2e6;">策略状态表格</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">策略状态数据</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;"><strong>5分钟</strong></td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">5分钟</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">策略状态表格（实时计算，不存储）</td>
                       </tr>
                     </tbody>
                   </table>
 
-                  <div
-                    style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
-                    <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 性能优化</h5>
-                    <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
-                      <li>Dashboard每30秒刷新，但AI分析使用<strong>缓存机制</strong></li>
-                      <li>只有超过1小时才重新请求AI数据，避免频繁API调用</li>
+                    <div
+                      style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
+                      <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 更新机制优化 (2025-10-10)</h5>
+                      <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
+                        <li><strong>前后端统一5分钟刷新</strong>：Dashboard与strategy-worker完全同步</li>
+                        <li><strong>策略判断不存储</strong>：实时计算，用完即弃，只有交易触发时才保存</li>
+                        <li><strong>前端不做计算</strong>：所有数据统一使用后端计算结果</li>
+                        <li>AI分析使用<strong>数据库缓存</strong>：每小时更新，避免频繁AI API调用</li>
                       <li>减少98.3%的不必要请求，提升用户体验</li>
                     </ul>
                   </div>
@@ -2516,15 +2518,28 @@ ${atr >= 1 ? atr.toFixed(2) : atr.toFixed(4)}</pre>
                     <li><strong>工具模块</strong>：src/utils/ - 日志、配置、通用工具函数</li>
                   </ul>
 
-                  <h4>最新优化 (2025-10-09)</h4>
+                  <h4>最新优化 (2025-10-10)</h4>
+                  <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #2196f3;">
+                    <h5 style="margin: 0 0 10px 0; color: #0d47a1;">🔄 前后端数据同步优化</h5>
+                    <ul style="margin: 5px 0; padding-left: 20px; color: #1565c0;">
+                      <li><strong>统一刷新频率</strong>：前端Dashboard与后端strategy-worker都为5分钟</li>
+                      <li><strong>实时价格显示</strong>：AI分析同时显示实时价格和分析时价格</li>
+                      <li><strong>单例模式</strong>：Binance API使用单例，准确统计调用情况</li>
+                      <li><strong>API监控</strong>：REST API和WebSocket成功率实时监控</li>
+                      <li><strong>自动告警</strong>：API成功率<80%自动Telegram通知</li>
+                    </ul>
+                  </div>
+
+                  <h4>AI辅助分析系统 (2025-10-09)</h4>
                   <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 10px 0;">
-                    <h5 style="margin: 0 0 10px 0;">🤖 AI辅助分析系统上线</h5>
+                    <h5 style="margin: 0 0 10px 0;">🤖 功能特性</h5>
                     <ul style="margin: 5px 0; padding-left: 20px;">
                       <li><strong>AI市场风险分析</strong>：BTC/ETH宏观风险评估，每1小时更新</li>
-                      <li><strong>AI符号趋势分析</strong>：10个交易对的6档评分体系</li>
-                      <li><strong>DeepSeek模型</strong>：成本优化，集成Coinglass、Santiment、ETF Flow数据</li>
-                      <li><strong>6档信号分级</strong>：强烈看多/看多/持有偏多/持有观望/持有偏空/谨慎</li>
+                      <li><strong>AI符号趋势分析</strong>：11个交易对的6档评分体系</li>
+                      <li><strong>OpenAI GPT-4o-mini</strong>：集成Coinglass、Santiment、ETF Flow数据</li>
+                      <li><strong>6档信号分级</strong>：强烈看多/看多/持有偏多/持有观望/持有偏空/强烈看跌</li>
                       <li><strong>价格区间预测</strong>：所有趋势都提供明确价格区间</li>
+                      <li><strong>双向交易支持</strong>：同时支持做多和做空信号判断</li>
                     </ul>
                   </div>
 
