@@ -24,12 +24,12 @@ class MacroRiskAnalyzer {
   async loadPromptTemplate() {
     // 移除缓存，每次都重新加载以确保使用最新prompt
     try {
-      const promptPath = path.join(__dirname, '../../../prompt-monitor.md');
+      const promptPath = path.join(__dirname, '../../../docs/prompt-analyst.md');
       this.promptTemplate = await fs.readFile(promptPath, 'utf-8');
-      logger.info('宏观风险分析Prompt模板加载成功（最新版本）');
+      logger.info('宏观风险分析Prompt模板加载成功（使用prompt-analyst.md）');
       return this.promptTemplate;
     } catch (error) {
-      logger.error('加载Prompt模板失败:', error);
+      logger.warn('加载Prompt模板失败，使用默认模板:', error.message);
       // 使用默认模板
       this.promptTemplate = this.getDefaultPrompt();
       return this.promptTemplate;
