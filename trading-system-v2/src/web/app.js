@@ -1261,12 +1261,12 @@ class SmartFlowApp {
         <td class="timeframe-cell">${this.formatHighTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatMidTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatLowTimeframe(ictInfo, 'ICT')}</td>
+        <td class="ai-analysis-cell"><span class="loading" style="font-size: 12px; color: #6c757d;">加载中...</span></td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictEntryPrice) : '--'}</td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictStopLoss) : '--'}</td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictTakeProfit) : '--'}</td>
         <td class="leverage-cell">${showTradeParams && ictLeverage > 0 ? ictLeverage.toFixed(0) + 'x' : '--'}</td>
         <td class="margin-cell">${showTradeParams && ictMargin > 0 ? '$' + ictMargin.toFixed(2) : '--'}</td>
-        <td class="ai-analysis-cell"><span class="loading" style="font-size: 12px; color: #6c757d;">加载中...</span></td>
       `;
       tbody.appendChild(ictRow);
     });
@@ -1364,8 +1364,8 @@ class SmartFlowApp {
           if (symbolCell && symbolText === item.symbol) {
             console.log(`[AI表格] ${item.symbol} 匹配到第${index}行`);
 
-            // 找到AI分析列（最后一列）
-            const aiCell = row.querySelector('td:last-child');
+            // 找到AI分析列（第9列，索引8）
+            const aiCell = row.querySelector('td:nth-child(9)');
             console.log(`[AI表格] ${item.symbol} 第${index}行 aiCell存在:`, !!aiCell);
 
             if (aiCell) {
@@ -1447,7 +1447,7 @@ class SmartFlowApp {
           const symbolText = symbolCell ? symbolCell.textContent.trim() : '';
 
           if (symbolCell && symbolText === item.symbol) {
-            const aiCell = row.querySelector('td:last-child');
+            const aiCell = row.querySelector('td:nth-child(9)');
             if (aiCell) {
               const tdMatch = cellHtml.match(/<td[^>]*>([\s\S]*)<\/td>/);
               if (tdMatch) {
