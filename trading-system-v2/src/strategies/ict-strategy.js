@@ -1,5 +1,5 @@
 const TechnicalIndicators = require('../utils/technical-indicators');
-const BinanceAPI = require('../api/binance-api');
+const { getBinanceAPI } = require('../api/binance-api-singleton');
 const SweepDirectionFilter = require('./ict-sweep-filter');
 const HarmonicPatterns = require('./harmonic-patterns');
 const logger = require('../utils/logger');
@@ -13,7 +13,7 @@ class ICTStrategy {
   constructor() {
     this.name = 'ICT';
     this.timeframes = ['1D', '4H', '15m'];
-    this.binanceAPI = new BinanceAPI();
+    this.binanceAPI = getBinanceAPI();  // 使用单例
   }
 
   /**
