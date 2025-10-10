@@ -102,8 +102,9 @@ CREATE TABLE IF NOT EXISTS v3_1_signal_logs (
     INDEX idx_filter_result (fake_breakout_filter_result),
     INDEX idx_confidence (confidence),
     INDEX idx_final_signal (final_signal),
-    INDEX idx_executed (executed),
-    FOREIGN KEY (symbol_id) REFERENCES symbols(id) ON DELETE CASCADE
+    INDEX idx_executed (executed)
+    -- 注意：分区表不支持外键，外键检查在应用层实现
+    -- FOREIGN KEY (symbol_id) REFERENCES symbols(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='V3.1策略信号详细日志表';
 
 -- 3. 创建V3.1策略配置表（存储策略参数）
