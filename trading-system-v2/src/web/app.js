@@ -3396,7 +3396,7 @@ class SmartFlowApp {
       } else if (this.currentTab === 'monitoring') {
         this.loadMonitoringData();
       }
-    }, 30000); // 30秒刷新一次
+    }, 300000); // 5分钟刷新一次（与后端strategy-worker保持一致）
   }
 
   /**

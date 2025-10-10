@@ -537,52 +537,9 @@ class AIAnalysisModule {
     const midTrend = data.midTermTrend || {};
     const currentPrice = data.currentPrice || 0;
 
-    // 前端重新计算评分和信号，确保旧数据也能正确显示（考虑趋势方向）
-    const shortConfidence = shortTrend.confidence || 50;
-    const midConfidence = midTrend.confidence || 50;
-    const shortDir = (shortTrend.direction || 'sideways').toLowerCase();
-    const midDir = (midTrend.direction || 'sideways').toLowerCase();
-    
-    // 计算基础评分
-    const baseScore = Math.round((shortConfidence + midConfidence) / 2);
-    
-    // 判断趋势偏向
-    const upCount = (shortDir === 'up' ? 1 : 0) + (midDir === 'up' ? 1 : 0);
-    const downCount = (shortDir === 'down' ? 1 : 0) + (midDir === 'down' ? 1 : 0);
-    let trendBias = 'neutral';
-    if (upCount > downCount) trendBias = 'bullish';
-    else if (downCount > upCount) trendBias = 'bearish';
-    
-    // 根据趋势调整分数
-    let recalculatedScore = baseScore;
-    if (trendBias === 'bearish') {
-      // 下跌趋势：反转分数
-      recalculatedScore = 100 - baseScore;
-    }
-    
-    // 根据分数重新判断信号（与后端逻辑一致，支持双向交易）
-    let recalculatedSignal = 'hold';
-    if (recalculatedScore >= 78) recalculatedSignal = 'strongBuy';       // 78-100分
-    else if (recalculatedScore >= 68) recalculatedSignal = 'mediumBuy';  // 68-77分
-    else if (recalculatedScore >= 58) recalculatedSignal = 'holdBullish'; // 58-67分
-    else if (recalculatedScore >= 48) recalculatedSignal = 'hold';       // 48-57分
-    else if (recalculatedScore >= 38) recalculatedSignal = 'holdBearish'; // 38-47分
-    else recalculatedSignal = 'strongSell';                              // <38分: 强烈看跌
-
-    // 使用重新计算的分数和信号
-    const finalScore = recalculatedScore;
-    const finalSignal = recalculatedSignal;
-    
-    // 调试日志
-    if (score.totalScore !== recalculatedScore || score.signalRecommendation !== recalculatedSignal) {
-      console.log(`[AI前端校正] 评分校正`, {
-        symbol: data.symbol || data.tradingPair,
-        原始: { score: score.totalScore, signal: score.signalRecommendation },
-        校正: { score: recalculatedScore, signal: recalculatedSignal },
-        短期: shortConfidence,
-        中期: midConfidence
-      });
-    }
+    // 直接使用后端返回的评分和信号（统一使用后端计算逻辑）
+    const finalScore = score.totalScore || 50;
+    const finalSignal = score.signalRecommendation || 'hold';
 
     const scoreClass = this.getScoreClass(finalScore);
     const signalClass = this.getSignalClass(finalSignal);
