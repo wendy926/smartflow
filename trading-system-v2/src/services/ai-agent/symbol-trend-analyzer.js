@@ -92,6 +92,9 @@ class SymbolTrendAnalyzer {
 
       // 检测并修正固定置信度问题（AI多样性不足时的补救措施）
       analysisData = this.adjustConfidenceIfNeeded(analysisData, symbol);
+      
+      // 检测并补充缺失的价格区间
+      analysisData = this.ensurePriceRange(analysisData, symbol);
 
       // 保存分析记录
       const analysisId = await this.aiOps.saveAnalysis({
@@ -503,6 +506,58 @@ class SymbolTrendAnalyzer {
       data.overallScore = this.calculateDefaultScore(data);
     }
 
+    return data;
+  }
+
+  /**
+   * 确保价格区间存在（补充缺失的priceRange）
+   * @param {Object} data - 分析数据
+   * @param {string} symbol - 交易对符号
+   * @returns {Object}
+   */
+  ensurePriceRange(data, symbol) {
+    const currentPrice = data.currentPrice || 0;
+    
+    // 检查短期趋势的priceRange
+    if (!data.shortTermTrend?.priceRange || data.shortTermTrend.priceRange.length === 0) {
+      const shortDir = (data.shortTermTrend?.direction || 'sideways').toLowerCase();
+      let priceRange;
+      
+      if (shortDir === 'up') {
+        // 上涨：当前价格 到 +5%
+        priceRange = [currentPrice * 0.98, currentPrice * 1.05];
+      } else if (shortDir === 'down') {
+        // 下跌：-5% 到 当前价格
+        priceRange = [currentPrice * 0.95, currentPrice * 1.02];
+      } else {
+        // 震荡：±3%
+        priceRange = [currentPrice * 0.97, currentPrice * 1.03];
+      }
+      
+      data.shortTermTrend.priceRange = priceRange.map(p => Math.round(p * 100) / 100);
+      logger.warn(`${symbol} 短期趋势缺少价格区间，自动生成: [${data.shortTermTrend.priceRange[0]}, ${data.shortTermTrend.priceRange[1]}]`);
+    }
+    
+    // 检查中期趋势的priceRange
+    if (!data.midTermTrend?.priceRange || data.midTermTrend.priceRange.length === 0) {
+      const midDir = (data.midTermTrend?.direction || 'sideways').toLowerCase();
+      let priceRange;
+      
+      if (midDir === 'up') {
+        // 上涨：当前价格 到 +8%
+        priceRange = [currentPrice * 0.95, currentPrice * 1.08];
+      } else if (midDir === 'down') {
+        // 下跌：-8% 到 当前价格
+        priceRange = [currentPrice * 0.92, currentPrice * 1.05];
+      } else {
+        // 震荡：±5%
+        priceRange = [currentPrice * 0.95, currentPrice * 1.05];
+      }
+      
+      data.midTermTrend.priceRange = priceRange.map(p => Math.round(p * 100) / 100);
+      logger.warn(`${symbol} 中期趋势缺少价格区间，自动生成: [${data.midTermTrend.priceRange[0]}, ${data.midTermTrend.priceRange[1]}]`);
+    }
+    
     return data;
   }
 }
