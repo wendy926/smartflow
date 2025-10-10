@@ -429,15 +429,27 @@
             <h3>策略当前状态</h3>
             <div class="card-actions">
               <div class="signal-filter" style="display: flex; gap: 10px; align-items: center;">
-                <label for="signalFilter">信号筛选:</label>
+                <label for="signalFilter">策略信号:</label>
                 <select id="signalFilter" class="form-select">
                   <option value="all">全部</option>
                   <option value="entry">入场 (BUY/SELL)</option>
                   <option value="watch">观望 (WATCH/HOLD)</option>
                 </select>
               </div>
+              <div class="ai-signal-filter" style="display: flex; gap: 10px; align-items: center;">
+                <label for="aiSignalFilter">AI信号:</label>
+                <select id="aiSignalFilter" class="form-select">
+                  <option value="all">全部</option>
+                  <option value="strongBuy">强烈看多</option>
+                  <option value="mediumBuy">看多</option>
+                  <option value="holdBullish">持有偏多</option>
+                  <option value="hold">持有观望</option>
+                  <option value="holdBearish">持有偏空</option>
+                  <option value="strongSell">强烈看跌</option>
+                </select>
+              </div>
               <div class="risk-selector">
-                <label for="maxLossAmount">最大损失金额:</label>
+                <label for="maxLossAmount">最大损失:</label>
                 <select id="maxLossAmount" class="form-select">
                   <option value="20">20 USDT</option>
                   <option value="50">50 USDT</option>

@@ -116,7 +116,7 @@ class SmartFlowApp {
       });
     }
 
-    // 信号筛选器（使用缓存数据，客户端筛选）
+    // 策略信号筛选器（使用缓存数据，客户端筛选）
     const signalFilterSelect = document.getElementById('signalFilter');
     if (signalFilterSelect) {
       signalFilterSelect.addEventListener('change', () => {
@@ -125,6 +125,19 @@ class SmartFlowApp {
           this.updateStrategyStatusTable(this.cachedStatusData, this.cachedTradesData);
         } else {
           // 如果没有缓存数据，则加载
+          this.loadStrategyCurrentStatus();
+        }
+      });
+    }
+
+    // AI信号筛选器
+    const aiSignalFilterSelect = document.getElementById('aiSignalFilter');
+    if (aiSignalFilterSelect) {
+      aiSignalFilterSelect.addEventListener('change', () => {
+        // 使用缓存的数据进行客户端筛选
+        if (this.cachedStatusData && this.cachedTradesData) {
+          this.updateStrategyStatusTable(this.cachedStatusData, this.cachedTradesData);
+        } else {
           this.loadStrategyCurrentStatus();
         }
       });
@@ -1057,10 +1070,10 @@ class SmartFlowApp {
       return;
     }
 
-    // 获取信号筛选条件
+    // 获取策略信号筛选条件
     const signalFilter = document.getElementById('signalFilter')?.value || 'all';
 
-    // 应用信号筛选
+    // 应用策略信号筛选
     let filteredData = statusData;
     if (signalFilter !== 'all') {
       filteredData = statusData.filter(item => {
@@ -1077,6 +1090,21 @@ class SmartFlowApp {
             (ictSignal === 'WATCH' || ictSignal === 'HOLD');
         }
         return true;
+      });
+    }
+
+    // 获取AI信号筛选条件
+    const aiSignalFilter = document.getElementById('aiSignalFilter')?.value || 'all';
+
+    // 应用AI信号筛选
+    if (aiSignalFilter !== 'all') {
+      filteredData = filteredData.filter(item => {
+        const aiSignal = item.aiAnalysis?.overallScore?.signalRecommendation;
+        // 兼容旧数据的caution信号
+        if (aiSignalFilter === 'strongSell') {
+          return aiSignal === 'strongSell' || aiSignal === 'caution';
+        }
+        return aiSignal === aiSignalFilter;
       });
     }
 
