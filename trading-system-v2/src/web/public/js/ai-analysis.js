@@ -740,48 +740,12 @@ class AIAnalysisModule {
    * 绑定事件
    */
   bindEvents() {
-    // 手动刷新按钮
+    // 刷新按钮
     const refreshBtn = document.getElementById('refreshAIAnalysis');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => {
         this.loadMacroRiskAnalysis();
       });
-    }
-
-    // 手动触发分析按钮
-    const triggerBtn = document.getElementById('triggerAIAnalysis');
-    if (triggerBtn) {
-      triggerBtn.addEventListener('click', () => {
-        this.triggerManualAnalysis();
-      });
-    }
-  }
-
-  /**
-   * 手动触发分析
-   */
-  async triggerManualAnalysis() {
-    try {
-      const response = await fetch(`${this.apiBase}/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'macro_risk' })
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        alert('AI分析已触发，请稍候刷新查看结果');
-        // 10秒后自动刷新
-        setTimeout(() => {
-          this.loadMacroRiskAnalysis();
-        }, 10000);
-      } else {
-        alert(`触发分析失败: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('触发分析失败:', error);
-      alert('触发分析失败');
     }
   }
 
