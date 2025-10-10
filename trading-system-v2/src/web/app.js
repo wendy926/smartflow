@@ -2582,9 +2582,12 @@ class SmartFlowApp {
           <tbody>
     `;
 
-    // 显示累计数据（按日期正序）
-    v3Data.forEach((v3Item, index) => {
-      const ictItem = ictData[index] || {};
+    // 显示累计数据（按日期倒序，最新的在上面）
+    const reversedV3Data = [...v3Data].reverse();
+    const reversedIctData = [...ictData].reverse();
+    
+    reversedV3Data.forEach((v3Item, index) => {
+      const ictItem = reversedIctData[index] || {};
       
       // 格式化日期
       const dateObj = new Date(v3Item.date);
@@ -2602,8 +2605,8 @@ class SmartFlowApp {
       const ictCumulativeTrades = ictItem.cumulativeTrades || 0;
       const ictCumulativeWinRate = ictItem.cumulativeWinRate || 0;
 
-      // 高亮最新数据
-      const isLatest = index === v3Data.length - 1;
+      // 高亮最新数据（倒序后第一行）
+      const isLatest = index === 0;
       const rowStyle = isLatest ? 'background: #e3f2fd;' : '';
 
       tableHTML += `
@@ -2626,7 +2629,7 @@ class SmartFlowApp {
         </table>
         <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
           <p style="margin: 0; color: #666; font-size: 14px;">
-            <strong>💡 说明：</strong>${timeframe === 'daily' ? '每日' : '每周'}累计数据，交易数和胜率为截止到该日期的累计统计（蓝色背景行为最新数据）
+            <strong>💡 说明：</strong>${timeframe === 'daily' ? '每日' : '每周'}累计数据，按日期倒序排列（最新数据在最上方，蓝色背景行）
           </p>
         </div>
       </div>
