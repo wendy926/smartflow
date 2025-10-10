@@ -725,6 +725,31 @@ class AIAnalysisModule {
   }
 
   /**
+   * 获取时间差描述
+   * @param {string} timestamp - 时间戳
+   * @returns {string} 时间差描述
+   */
+  getTimeAgo(timestamp) {
+    if (!timestamp) return '未知';
+    
+    try {
+      const now = new Date();
+      const past = new Date(timestamp);
+      const diffMs = now - past;
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) return '刚刚';
+      if (diffMins < 60) return `${diffMins}分钟前`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}小时前`;
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays}天前`;
+    } catch (error) {
+      return '未知';
+    }
+  }
+
+  /**
    * 销毁模块
    */
   destroy() {
