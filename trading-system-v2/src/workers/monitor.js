@@ -54,6 +54,52 @@ class SystemMonitor {
       logger.warn(`内存使用率过高: ${memoryUsage.toFixed(2)}% > ${this.memoryThreshold}%`);
       await this.sendAlert('MEMORY_HIGH', `内存使用率过高: ${memoryUsage.toFixed(2)}%`, { memory: memoryUsage, threshold: this.memoryThreshold });
     }
+    
+    // 检查API成功率
+    await this.checkAPIStatus();
+  }
+  
+  /**
+   * 检查API状态
+   */
+  async checkAPIStatus() {
+    try {
+      const BinanceAPI = require('../api/binance-api');
+      const binanceAPI = new BinanceAPI();
+      const apiStats = binanceAPI.getStats();
+      
+      // REST API成功率检查
+      const restSuccessRate = apiStats.rest.successRate;
+      if (restSuccessRate < 80 && apiStats.rest.totalRequests > 10) {
+        logger.warn(`Binance REST API成功率过低: ${restSuccessRate}%`);
+        await this.sendAlert(
+          'API_REST_LOW', 
+          `Binance REST API成功率过低: ${restSuccessRate}%`,
+          { 
+            successRate: restSuccessRate,
+            totalRequests: apiStats.rest.totalRequests,
+            failedRequests: apiStats.rest.failedRequests
+          }
+        );
+      }
+      
+      // WebSocket成功率检查
+      const wsSuccessRate = apiStats.ws.successRate;
+      if (wsSuccessRate < 80 && apiStats.ws.totalConnections > 5) {
+        logger.warn(`Binance WebSocket成功率过低: ${wsSuccessRate}%`);
+        await this.sendAlert(
+          'API_WS_LOW',
+          `Binance WebSocket成功率过低: ${wsSuccessRate}%`,
+          {
+            successRate: wsSuccessRate,
+            totalConnections: apiStats.ws.totalConnections,
+            failedConnections: apiStats.ws.failedConnections
+          }
+        );
+      }
+    } catch (error) {
+      logger.error(`检查API状态失败: ${error.message}`);
+    }
   }
 
   /**

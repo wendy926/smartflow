@@ -41,10 +41,10 @@ router.get('/macro-risk', async (req, res) => {
     // 获取实时价格（与AI分析数据并行）
     const BinanceAPI = require('../../api/binance-api');
     const binanceAPI = new BinanceAPI();
-    
+
     for (const symbol of symbolList) {
       const analysis = await operations.getLatestAnalysis(symbol, 'MACRO_RISK');
-      
+
       // 获取实时价格
       let realtimePrice = null;
       let realtimeTimestamp = null;
@@ -55,7 +55,7 @@ router.get('/macro-risk', async (req, res) => {
       } catch (priceError) {
         logger.warn(`获取${symbol}实时价格失败:`, priceError.message);
       }
-      
+
       if (analysis) {
         results[symbol] = {
           symbol: analysis.symbol,
@@ -185,7 +185,7 @@ router.post('/analyze', async (req, res) => {
     }
 
     const aiScheduler = getScheduler();
-    
+
     if (!aiScheduler) {
       return res.status(503).json({
         success: false,
@@ -297,7 +297,7 @@ router.get('/alerts/stats', async (req, res) => {
 
     const operations = getAIOps();
     const aiScheduler = getScheduler();
-    
+
     if (!aiScheduler || !aiScheduler.alertService) {
       return res.status(503).json({
         success: false,
@@ -328,7 +328,7 @@ router.get('/alerts/stats', async (req, res) => {
 router.get('/health', async (req, res) => {
   try {
     const aiScheduler = getScheduler();
-    
+
     const health = {
       ai_enabled: false,
       scheduler_running: false,
@@ -339,7 +339,7 @@ router.get('/health', async (req, res) => {
       const status = aiScheduler.getStatus();
       health.ai_enabled = status.initialized;
       health.scheduler_running = status.running;
-      
+
       if (aiScheduler.claudeClient) {
         health.claude_available = await aiScheduler.claudeClient.healthCheck();
       }

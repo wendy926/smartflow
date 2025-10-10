@@ -24,12 +24,18 @@ router.get('/system', async (req, res) => {
   try {
     const systemInfo = resourceMonitor.getSystemInfo();
     const currentResources = resourceMonitor.checkResources();
+    
+    // 获取Binance API统计
+    const BinanceAPI = require('../../api/binance-api');
+    const binanceAPI = new BinanceAPI();
+    const apiStats = binanceAPI.getStats();
 
     res.json({
       success: true,
       data: {
         system: systemInfo,
         resources: currentResources,
+        apiStats: apiStats,  // 添加API统计数据
         timestamp: new Date().toISOString()
       }
     });

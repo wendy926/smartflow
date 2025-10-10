@@ -253,9 +253,9 @@ class AIAnalysisModule {
     const currentPrice = data.currentPrice || 0;
     const suggestions = data.suggestions || [];
     const shortTerm = data.shortTermPrediction?.scenarios || [];
-    
+
     // 计算价格变化
-    const priceChange = realtimePrice && analysisPrice ? 
+    const priceChange = realtimePrice && analysisPrice ?
       ((realtimePrice - analysisPrice) / analysisPrice * 100).toFixed(2) : null;
     const priceChangeClass = priceChange > 0 ? 'positive' : priceChange < 0 ? 'negative' : 'neutral';
 

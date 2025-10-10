@@ -674,11 +674,22 @@ body {
   border-radius: 6px;
 }
 
+.api-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .api-name,
 .strategy-name {
   font-size: 0.9rem;
   color: #2c3e50;
   font-weight: 500;
+}
+
+.api-detail {
+  font-size: 0.75rem;
+  color: #6c757d;
 }
 
 .api-status-value,
@@ -699,6 +710,11 @@ body {
 .status-stopped {
   background: #fadbd8;
   color: #e74c3c;
+}
+
+.status-warning {
+  background: #fff3cd;
+  color: #856404;
 }
 
 /* 统计网格 */

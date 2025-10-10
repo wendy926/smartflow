@@ -15,6 +15,70 @@ class BinanceAPI {
     this.rateLimit = 1200; // 每分钟请求限制
     this.requestCount = 0;
     this.lastResetTime = Date.now();
+    
+    // API调用统计
+    this.stats = {
+      rest: {
+        totalRequests: 0,
+        successRequests: 0,
+        failedRequests: 0,
+        lastResetTime: Date.now()
+      },
+      ws: {
+        totalConnections: 0,
+        activeConnections: 0,
+        failedConnections: 0,
+        lastResetTime: Date.now()
+      }
+    };
+  }
+  
+  /**
+   * 获取API统计信息
+   */
+  getStats() {
+    const restSuccessRate = this.stats.rest.totalRequests > 0
+      ? ((this.stats.rest.successRequests / this.stats.rest.totalRequests) * 100).toFixed(2)
+      : 100;
+    
+    const wsSuccessRate = this.stats.ws.totalConnections > 0
+      ? ((this.stats.ws.activeConnections / this.stats.ws.totalConnections) * 100).toFixed(2)
+      : 100;
+    
+    return {
+      rest: {
+        ...this.stats.rest,
+        successRate: parseFloat(restSuccessRate)
+      },
+      ws: {
+        ...this.stats.ws,
+        successRate: parseFloat(wsSuccessRate)
+      }
+    };
+  }
+  
+  /**
+   * 重置统计（每小时重置一次）
+   */
+  resetStatsIfNeeded() {
+    const now = Date.now();
+    // 每小时重置一次统计
+    if (now - this.stats.rest.lastResetTime >= 3600000) {
+      this.stats.rest = {
+        totalRequests: 0,
+        successRequests: 0,
+        failedRequests: 0,
+        lastResetTime: now
+      };
+    }
+    if (now - this.stats.ws.lastResetTime >= 3600000) {
+      this.stats.ws = {
+        totalConnections: 0,
+        activeConnections: 0,
+        failedConnections: 0,
+        lastResetTime: now
+      };
+    }
   }
 
   /**
@@ -44,6 +108,9 @@ class BinanceAPI {
    * @returns {Promise<Array>} K线数据
    */
   async getKlines(symbol, interval, limit = 100, startTime = null, endTime = null) {
+    this.resetStatsIfNeeded();
+    this.stats.rest.totalRequests++;
+    
     try {
       this.checkRateLimit();
 
@@ -58,10 +125,12 @@ class BinanceAPI {
 
       const response = await axios.get(`${this.baseURL}/fapi/v1/klines`, { params });
 
+      this.stats.rest.successRequests++;
       logger.info(`获取K线数据成功: ${symbol} ${interval} ${limit}条`);
       // 处理mock数据和真实数据
       return response.data || response;
     } catch (error) {
+      this.stats.rest.failedRequests++;
       logger.error(`获取K线数据失败: ${error.message}`);
       throw error;
     }
@@ -73,6 +142,9 @@ class BinanceAPI {
    * @returns {Promise<Object>} 价格统计
    */
   async getTicker24hr(symbol) {
+    this.resetStatsIfNeeded();
+    this.stats.rest.totalRequests++;
+    
     try {
       this.checkRateLimit();
 
@@ -80,9 +152,11 @@ class BinanceAPI {
         params: { symbol: symbol.toUpperCase() }
       });
 
+      this.stats.rest.successRequests++;
       logger.info(`获取24小时价格统计成功: ${symbol}`);
       return response.data;
     } catch (error) {
+      this.stats.rest.failedRequests++;
       logger.error(`获取24小时价格统计失败: ${error.message}`);
       throw error;
     }
@@ -94,6 +168,9 @@ class BinanceAPI {
    * @returns {Promise<Object>} 资金费率
    */
   async getFundingRate(symbol) {
+    this.resetStatsIfNeeded();
+    this.stats.rest.totalRequests++;
+    
     try {
       this.checkRateLimit();
 
@@ -101,9 +178,11 @@ class BinanceAPI {
         params: { symbol: symbol.toUpperCase() }
       });
 
+      this.stats.rest.successRequests++;
       logger.info(`获取资金费率成功: ${symbol}`);
       return response.data;
     } catch (error) {
+      this.stats.rest.failedRequests++;
       logger.error(`获取资金费率失败: ${error.message}`);
       throw error;
     }
@@ -196,9 +275,13 @@ class BinanceAPI {
    * @returns {WebSocket} WebSocket连接
    */
   createWebSocket(stream, onMessage, onError) {
+    this.resetStatsIfNeeded();
+    this.stats.ws.totalConnections++;
+    
     const ws = new WebSocket(`${this.wsBaseURL}/ws/${stream}`);
 
     ws.on('open', () => {
+      this.stats.ws.activeConnections++;
       logger.info(`WebSocket连接已建立: ${stream}`);
     });
 
@@ -213,11 +296,15 @@ class BinanceAPI {
     });
 
     ws.on('error', (error) => {
+      this.stats.ws.failedConnections++;
       logger.error(`WebSocket错误: ${error.message}`);
-      onError(error);
+      if (onError) onError(error);
     });
 
     ws.on('close', () => {
+      if (this.stats.ws.activeConnections > 0) {
+        this.stats.ws.activeConnections--;
+      }
       logger.info(`WebSocket连接已关闭: ${stream}`);
     });
 

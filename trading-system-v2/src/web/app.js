@@ -3083,6 +3083,7 @@ class SmartFlowApp {
       if (response.success && response.data) {
         const system = response.data.system || {};
         const resources = response.data.resources || {};
+        const apiStats = response.data.apiStats || {};
 
         // 计算真实资源使用率
         const totalMemory = system.totalMemory || 1;
@@ -3094,8 +3095,18 @@ class SmartFlowApp {
           memory: memoryUsage,
           disk: resources.disk || 45, // 默认45%（需要后端补充真实磁盘数据）
           apis: {
-            binanceRest: 'online',
-            binanceWs: 'online',
+            binanceRest: {
+              status: 'online',
+              successRate: apiStats.rest?.successRate || 100,
+              totalRequests: apiStats.rest?.totalRequests || 0,
+              failedRequests: apiStats.rest?.failedRequests || 0
+            },
+            binanceWs: {
+              status: 'online',
+              successRate: apiStats.ws?.successRate || 100,
+              activeConnections: apiStats.ws?.activeConnections || 0,
+              failedConnections: apiStats.ws?.failedConnections || 0
+            },
             database: 'online',
             redis: 'online'
           },
@@ -3114,7 +3125,12 @@ class SmartFlowApp {
         cpu: 0,
         memory: 0,
         disk: 0,
-        apis: { binanceRest: 'unknown', binanceWs: 'unknown', database: 'unknown', redis: 'unknown' },
+        apis: { 
+          binanceRest: { status: 'unknown', successRate: 0 }, 
+          binanceWs: { status: 'unknown', successRate: 0 }, 
+          database: 'unknown', 
+          redis: 'unknown' 
+        },
         strategies: { v3: 'unknown', ict: 'unknown' }
       });
     }
