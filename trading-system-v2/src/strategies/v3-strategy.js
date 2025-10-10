@@ -4,7 +4,7 @@
  */
 
 const TechnicalIndicators = require('../utils/technical-indicators');
-const BinanceAPI = require('../api/binance-api');
+const { getBinanceAPI } = require('../api/binance-api-singleton');
 const TokenClassifier = require('../utils/token-classifier');
 const { globalAdjuster } = require('./v3-dynamic-weights');
 const logger = require('../utils/logger');
@@ -13,7 +13,7 @@ const config = require('../config');
 class V3Strategy {
   constructor() {
     this.name = 'V3';
-    this.binanceAPI = new BinanceAPI();
+    this.binanceAPI = getBinanceAPI();  // 使用单例
     this.timeframes = ['4H', '1H', '15M'];
   }
 

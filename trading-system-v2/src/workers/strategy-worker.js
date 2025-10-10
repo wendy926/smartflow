@@ -6,7 +6,7 @@
 const V3Strategy = require('../strategies/v3-strategy');
 const ICTStrategy = require('../strategies/ict-strategy');
 const TradeManager = require('../core/trade-manager');
-const BinanceAPI = require('../api/binance-api');
+const { getBinanceAPI } = require('../api/binance-api-singleton');
 const logger = require('../utils/logger');
 const config = require('../config');
 const { getMaxLossAmount } = require('../api/routes/settings');
@@ -16,7 +16,7 @@ class StrategyWorker {
     this.v3Strategy = new V3Strategy();
     this.ictStrategy = new ICTStrategy();
     this.tradeManager = TradeManager;
-    this.binanceAPI = new BinanceAPI();
+    this.binanceAPI = getBinanceAPI();  // 使用单例
     this.isRunning = false;
     this.symbols = config.defaultSymbols || ['BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 'MKRUSDT', 'PENDLEUSDT', 'MPLUSDT', 'LINKUSDT', 'LDOUSDT'];
   }

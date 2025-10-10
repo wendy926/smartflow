@@ -64,8 +64,8 @@ class SystemMonitor {
    */
   async checkAPIStatus() {
     try {
-      const BinanceAPI = require('../api/binance-api');
-      const binanceAPI = new BinanceAPI();
+      const { getBinanceAPI } = require('../api/binance-api-singleton');
+      const binanceAPI = getBinanceAPI();
       const apiStats = binanceAPI.getStats();
       
       // REST API成功率检查

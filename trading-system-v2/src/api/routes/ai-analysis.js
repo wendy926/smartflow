@@ -38,9 +38,9 @@ router.get('/macro-risk', async (req, res) => {
     const operations = getAIOps();
     const results = {};
 
-    // 获取实时价格（与AI分析数据并行）
-    const BinanceAPI = require('../../api/binance-api');
-    const binanceAPI = new BinanceAPI();
+    // 获取实时价格（与AI分析数据并行，使用单例）
+    const { getBinanceAPI } = require('../../api/binance-api-singleton');
+    const binanceAPI = getBinanceAPI();
 
     for (const symbol of symbolList) {
       const analysis = await operations.getLatestAnalysis(symbol, 'MACRO_RISK');

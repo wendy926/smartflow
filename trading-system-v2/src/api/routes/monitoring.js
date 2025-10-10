@@ -25,9 +25,9 @@ router.get('/system', async (req, res) => {
     const systemInfo = resourceMonitor.getSystemInfo();
     const currentResources = resourceMonitor.checkResources();
     
-    // 获取Binance API统计
-    const BinanceAPI = require('../../api/binance-api');
-    const binanceAPI = new BinanceAPI();
+    // 获取Binance API统计（使用单例，确保统计数据共享）
+    const { getBinanceAPI } = require('../../api/binance-api-singleton');
+    const binanceAPI = getBinanceAPI();
     const apiStats = binanceAPI.getStats();
 
     res.json({

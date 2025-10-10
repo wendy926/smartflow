@@ -370,9 +370,9 @@ router.get('/current-status', async (req, res) => {
     // 为每个交易对执行两个策略
     for (const sym of activeSymbols) {
       try {
-        // 获取实时价格数据
-        const BinanceAPI = require('../../api/binance-api');
-        const api = new BinanceAPI();
+        // 获取实时价格数据（使用单例）
+        const { getBinanceAPI } = require('../../api/binance-api-singleton');
+        const api = getBinanceAPI();
         const tickerData = await api.getTicker24hr(sym.symbol);
 
         const [v3Result, ictResult] = await Promise.all([
