@@ -13,6 +13,7 @@ class SmartFlowApp {
     this.lastAIAnalysisLoad = 0; // 记录AI分析上次加载时间
     this.aiAnalysisInterval = 60 * 60 * 1000; // AI分析刷新间隔：1小时
     this.cachedAIAnalysis = {}; // 缓存AI分析结果
+    this.aiAnalysisModule = null; // AI分析模块实例
     this.init();
     this.initRouting();
   }
@@ -74,6 +75,13 @@ class SmartFlowApp {
   async init() {
     this.setupEventListeners();
     await this.loadMaxLossAmount(); // 加载最大损失金额设置
+    
+    // 初始化AI分析模块
+    if (typeof AIAnalysisModule !== 'undefined') {
+      this.aiAnalysisModule = new AIAnalysisModule();
+      await this.aiAnalysisModule.init();
+    }
+    
     this.loadInitialData();
     this.startAutoRefresh();
   }
