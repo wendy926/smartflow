@@ -38,8 +38,23 @@ router.get('/macro-risk', async (req, res) => {
     const operations = getAIOps();
     const results = {};
 
+    // 获取实时价格（与AI分析数据并行）
+    const BinanceAPI = require('../../api/binance-api');
+    const binanceAPI = new BinanceAPI();
+    
     for (const symbol of symbolList) {
       const analysis = await operations.getLatestAnalysis(symbol, 'MACRO_RISK');
+      
+      // 获取实时价格
+      let realtimePrice = null;
+      let realtimeTimestamp = null;
+      try {
+        const ticker = await binanceAPI.getTicker24hr(symbol);
+        realtimePrice = parseFloat(ticker.lastPrice);
+        realtimeTimestamp = new Date().toISOString();
+      } catch (priceError) {
+        logger.warn(`获取${symbol}实时价格失败:`, priceError.message);
+      }
       
       if (analysis) {
         results[symbol] = {
@@ -48,13 +63,19 @@ router.get('/macro-risk', async (req, res) => {
           analysisData: analysis.analysisData,
           confidence: analysis.confidenceScore,
           updatedAt: analysis.updatedAt,
-          createdAt: analysis.createdAt
+          createdAt: analysis.createdAt,
+          // 添加实时价格信息
+          realtimePrice: realtimePrice,
+          realtimeTimestamp: realtimeTimestamp,
+          analysisPrice: analysis.analysisData?.currentPrice || null
         };
       } else {
         results[symbol] = {
           symbol,
           riskLevel: null,
           analysisData: null,
+          realtimePrice: realtimePrice,
+          realtimeTimestamp: realtimeTimestamp,
           message: '暂无分析数据'
         };
       }

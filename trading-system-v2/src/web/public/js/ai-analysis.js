@@ -243,7 +243,7 @@ class AIAnalysisModule {
    * @returns {string} HTML字符串
    */
   renderRiskCard(symbol, analysis) {
-    const { riskLevel, analysisData, confidence, updatedAt } = analysis;
+    const { riskLevel, analysisData, confidence, updatedAt, realtimePrice, realtimeTimestamp, analysisPrice } = analysis;
     const riskClass = this.getRiskClass(riskLevel);
     const riskBadge = this.getRiskBadge(riskLevel);
     const emoji = symbol === 'BTC' ? '🟠' : '🟣';
@@ -253,6 +253,11 @@ class AIAnalysisModule {
     const currentPrice = data.currentPrice || 0;
     const suggestions = data.suggestions || [];
     const shortTerm = data.shortTermPrediction?.scenarios || [];
+    
+    // 计算价格变化
+    const priceChange = realtimePrice && analysisPrice ? 
+      ((realtimePrice - analysisPrice) / analysisPrice * 100).toFixed(2) : null;
+    const priceChangeClass = priceChange > 0 ? 'positive' : priceChange < 0 ? 'negative' : 'neutral';
 
     return `
       <div class="ai-risk-card ${riskClass}" data-symbol="${symbol}">
@@ -266,9 +271,22 @@ class AIAnalysisModule {
             <div class="confidence-score">置信度: <strong>${confidence || 0}%</strong></div>
           </div>
           <div class="risk-details">
+            ${realtimePrice ? `
+            <div class="detail-row highlight-row">
+              <span class="label">💰 实时价格:</span>
+              <span class="value realtime-price">
+                $${this.formatNumber(realtimePrice)}
+                <span class="live-badge">LIVE</span>
+                ${priceChange ? `<span class="price-change ${priceChangeClass}">(${priceChange > 0 ? '+' : ''}${priceChange}%)</span>` : ''}
+              </span>
+            </div>
+            ` : ''}
             <div class="detail-row">
-              <span class="label">当前价格:</span>
-              <span class="value">$${this.formatNumber(currentPrice)}</span>
+              <span class="label">📊 分析时价格:</span>
+              <span class="value">
+                $${this.formatNumber(currentPrice)}
+                <span class="time-ago">(${this.getTimeAgo(updatedAt)})</span>
+              </span>
             </div>
             ${shortTerm.length > 0 ? `
               <div class="detail-row">
