@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../../utils/logger');
+const { toBeijingISO } = require('../../utils/time-helper');
 const tradeManager = require('../../core/trade-manager');
 
 // 延迟初始化数据库操作
@@ -30,7 +31,7 @@ router.get('/', async (req, res) => {
       success: true,
       data: trades,
       count: trades.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取模拟交易记录失败:', error);
@@ -89,7 +90,7 @@ router.post('/', async (req, res) => {
         success: true,
         data: result.data,
         message: result.message,
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     } else {
       res.status(400).json({
@@ -122,7 +123,7 @@ router.put('/:id', async (req, res) => {
       success: true,
       data: result,
       message: '模拟交易更新成功',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('更新模拟交易失败:', error);
@@ -159,7 +160,7 @@ router.post('/:id/close', async (req, res) => {
         success: true,
         data: result.data,
         message: result.message,
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     } else {
       res.status(400).json({
@@ -189,7 +190,7 @@ router.get('/statistics', async (req, res) => {
     res.json({
       success: true,
       data: stats,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取交易统计失败:', error);
@@ -220,7 +221,7 @@ router.get('/check-creation', async (req, res) => {
     res.json({
       success: true,
       data: result,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('检查交易创建条件失败:', error);
@@ -251,7 +252,7 @@ router.get('/active', async (req, res) => {
       success: true,
       data: activeTrades,
       count: activeTrades.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取活跃交易失败:', error);
@@ -282,7 +283,7 @@ router.get('/cooldown-status', async (req, res) => {
     res.json({
       success: true,
       data: status,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取冷却时间状态失败:', error);
@@ -315,7 +316,7 @@ router.post('/auto-close', async (req, res) => {
       data: closedTrades,
       count: closedTrades.length,
       message: `自动关闭了 ${closedTrades.length} 个交易`,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('自动关闭交易失败:', error);

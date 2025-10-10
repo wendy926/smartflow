@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const resourceMonitor = require('../../monitoring/resource-monitor');
 const logger = require('../../utils/logger');
+const { toBeijingISO } = require('../../utils/time-helper');
 
 // 延迟初始化数据库操作
 let dbOps = null;
@@ -36,7 +37,7 @@ router.get('/system', async (req, res) => {
         system: systemInfo,
         resources: currentResources,
         apiStats: apiStats,  // 添加API统计数据
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       }
     });
   } catch (error) {
@@ -62,7 +63,7 @@ router.get('/metrics', async (req, res) => {
       success: true,
       data: metrics,
       count: metrics.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取监控指标失败:', error);
@@ -117,7 +118,7 @@ router.post('/metrics', async (req, res) => {
       success: true,
       data: result,
       message: '监控指标记录成功',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('记录监控指标失败:', error);
@@ -142,7 +143,7 @@ router.get('/symbols', async (req, res) => {
       success: true,
       data: stats,
       count: stats.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取交易对统计失败:', error);
@@ -205,7 +206,7 @@ router.post('/:symbol/statistics', async (req, res) => {
       success: true,
       data: result,
       message: '交易对统计更新成功',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('更新交易对统计失败:', error);
@@ -224,7 +225,7 @@ router.get('/health', async (req, res) => {
   try {
     const health = {
       status: 'healthy',
-      timestamp: new Date().toISOString(),
+      timestamp: toBeijingISO(),
       services: {
         database: 'connected',
         cache: 'connected',
@@ -244,7 +245,7 @@ router.get('/health', async (req, res) => {
       error: error.message,
       data: {
         status: 'unhealthy',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       }
     });
   }

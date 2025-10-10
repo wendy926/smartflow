@@ -32,7 +32,7 @@ router.get('/status', async (req, res) => {
     const status = {
       v3: { name: 'V3趋势交易策略', status: 'active' },
       ict: { name: 'ICT订单块策略', status: 'active' },
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     };
 
     res.json({
@@ -61,7 +61,7 @@ router.post('/v3/analyze', async (req, res) => {
     res.json({
       success: true,
       data: result,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('V3策略分析失败:', error);
@@ -85,7 +85,7 @@ router.post('/ict/analyze', async (req, res) => {
     res.json({
       success: true,
       data: result,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('ICT策略分析失败:', error);
@@ -109,7 +109,7 @@ router.post('/rolling/calculate', async (req, res) => {
     res.json({
       success: true,
       data: result,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('滚仓计算失败:', error);
@@ -153,7 +153,7 @@ router.post('/batch-analyze', async (req, res) => {
     res.json({
       success: true,
       data: results,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('批量策略分析失败:', error);
@@ -194,7 +194,7 @@ router.get('/v3/judgments', async (req, res) => {
           confidence: result.timeframes?.["4H"]?.confidence || 0,
           score: result.timeframes?.["4H"]?.score || 0,
           factors: result.timeframes?.["1H"]?.factors || {},
-          timestamp: new Date().toISOString()
+          timestamp: toBeijingISO()
         });
       } catch (error) {
         logger.error(`V3 strategy error for ${sym.symbol}:`, error);
@@ -208,7 +208,7 @@ router.get('/v3/judgments', async (req, res) => {
           confidence: 0,
           score: 0,
           factors: {},
-          timestamp: new Date().toISOString(),
+          timestamp: toBeijingISO(),
           error: error.message
         });
       }
@@ -218,7 +218,7 @@ router.get('/v3/judgments', async (req, res) => {
       success: true,
       data: results,
       count: results.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('V3 judgments error:', error);
@@ -259,7 +259,7 @@ router.get('/ict/judgments', async (req, res) => {
           confidence: result.confidence || 0,
           score: result.score || 0,
           reasons: result.reasons || [],
-          timestamp: new Date().toISOString()
+          timestamp: toBeijingISO()
         });
       } catch (error) {
         logger.error(`ICT strategy error for ${sym.symbol}:`, error);
@@ -273,7 +273,7 @@ router.get('/ict/judgments', async (req, res) => {
           confidence: 0,
           score: 0,
           reasons: [],
-          timestamp: new Date().toISOString(),
+          timestamp: toBeijingISO(),
           error: error.message
         });
       }
@@ -283,7 +283,7 @@ router.get('/ict/judgments', async (req, res) => {
       success: true,
       data: results,
       count: results.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('ICT judgments error:', error);
@@ -341,7 +341,7 @@ router.get('/statistics', async (req, res) => {
     res.json({
       success: true,
       data: statistics,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取策略统计失败:', error);
@@ -387,7 +387,7 @@ router.get('/cumulative-statistics', async (req, res) => {
           v3: v3Data,
           ict: ictData
         },
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     } finally {
       connection.release();
@@ -433,7 +433,7 @@ router.get('/current-status', async (req, res) => {
           symbol: sym.symbol,
           lastPrice: tickerData.lastPrice || sym.last_price || 0,
           priceChange24h: tickerData.priceChangePercent ? parseFloat(tickerData.priceChangePercent) / 100 : sym.price_change_24h || 0,
-          timestamp: new Date().toISOString(),
+          timestamp: toBeijingISO(),
           aiAnalysis: sym.aiAnalysis || null,  // 添加AI分析数据
           v3: {
             signal: v3Result.signal || 'HOLD',
@@ -530,7 +530,7 @@ router.get('/current-status', async (req, res) => {
       success: true,
       data: results,
       count: results.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取策略当前状态失败:', error);
@@ -567,7 +567,7 @@ router.get('/v3-enhanced/current-status', async (req, res) => {
         success: true,
         data: [],
         count: 0,
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
 
@@ -607,7 +607,7 @@ router.get('/v3-enhanced/current-status', async (req, res) => {
       success: true,
       data: results,
       count: results.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取V3增强策略当前状态失败:', error);
@@ -653,7 +653,7 @@ router.get('/v3-enhanced/:symbol', async (req, res) => {
           enhanced: result.enhanced || false
         }
       },
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error(`获取${req.params.symbol} V3增强策略分析失败:`, error);

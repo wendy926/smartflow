@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../../utils/logger');
+const { toBeijingISO } = require('../../utils/time-helper');
 
 // 内存中存储最大损失金额设置（可以改为数据库存储）
 let maxLossAmountSetting = 100; // 默认100 USDT（与前端保持一致）
@@ -18,7 +19,7 @@ router.get('/maxLossAmount', async (req, res) => {
     res.json({
       success: true,
       value: maxLossAmountSetting,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取最大损失金额失败:', error);
@@ -61,7 +62,7 @@ router.post('/maxLossAmount', async (req, res) => {
       success: true,
       value: maxLossAmountSetting,
       message: '最大损失金额已保存',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('保存最大损失金额失败:', error);

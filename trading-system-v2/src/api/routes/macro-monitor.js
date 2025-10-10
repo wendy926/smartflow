@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../../utils/logger');
+const { toBeijingISO } = require('../../utils/time-helper');
 
 // 中间件：获取宏观监控控制器
 const getMacroMonitorController = (req, res, next) => {

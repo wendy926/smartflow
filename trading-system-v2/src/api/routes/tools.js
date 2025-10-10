@@ -7,6 +7,7 @@ const router = express.Router();
 const RollingStrategy = require('../../strategies/rolling-strategy');
 const resourceMonitor = require('../../monitoring/resource-monitor');
 const logger = require('../../utils/logger');
+const { toBeijingISO } = require('../../utils/time-helper');
 
 const rollingStrategy = new RollingStrategy();
 
@@ -37,7 +38,7 @@ router.post('/rolling-calculator', async (req, res) => {
     res.json({
       success: true,
       data: result,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('滚仓计算失败:', error);
@@ -85,7 +86,7 @@ router.post('/risk-calculator', async (req, res) => {
     res.json({
       success: true,
       data: result,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('风险计算失败:', error);
@@ -140,7 +141,7 @@ router.post('/leverage-calculator', async (req, res) => {
     res.json({
       success: true,
       data: result,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('杠杆计算失败:', error);
@@ -227,7 +228,7 @@ router.post('/system-test', async (req, res) => {
           successRate: (successCount / totalCount) * 100
         }
       },
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('系统测试失败:', error);
@@ -251,7 +252,7 @@ router.post('/dynamic-rolling-calculator', async (req, res) => {
     res.json({
       success: true,
       data: result,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('动态杠杆滚仓计算失败:', error);
@@ -304,7 +305,7 @@ router.get('/rolling-parameters', async (req, res) => {
     res.json({
       success: true,
       data: parameters,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取滚仓参数失败:', error);

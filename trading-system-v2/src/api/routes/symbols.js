@@ -5,6 +5,8 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../../utils/logger');
+const { toBeijingISO } = require('../../utils/time-helper');
+const { toBeijingISO } = require('../../utils/time-helper');
 
 // 延迟初始化数据库操作
 let dbOps = null;
@@ -29,7 +31,7 @@ router.get('/', async (req, res) => {
       success: true,
       data: symbols,
       count: symbols.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     };
 
     logger.info('准备发送响应');
@@ -63,7 +65,7 @@ router.get('/:symbol', async (req, res) => {
     res.json({
       success: true,
       data: symbolInfo,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取交易对信息失败:', error);
@@ -102,7 +104,7 @@ router.post('/', async (req, res) => {
       success: true,
       data: result,
       message: '交易对添加成功',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('添加交易对失败:', error);
@@ -128,7 +130,7 @@ router.put('/:symbol', async (req, res) => {
       success: true,
       data: result,
       message: '交易对更新成功',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('更新交易对失败:', error);
@@ -152,7 +154,7 @@ router.delete('/:symbol', async (req, res) => {
     res.json({
       success: true,
       message: '交易对删除成功',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('删除交易对失败:', error);
@@ -175,7 +177,7 @@ router.get('/active', async (req, res) => {
       success: true,
       data: activeSymbols,
       count: activeSymbols.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取活跃交易对失败:', error);
@@ -197,7 +199,7 @@ router.post('/update', async (req, res) => {
     res.json({
       success: true,
       message: '数据更新已触发',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('Error updating symbols:', error);

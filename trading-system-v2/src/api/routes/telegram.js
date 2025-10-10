@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const TelegramMonitoringService = require('../../services/telegram-monitoring');
 const logger = require('../../utils/logger');
+const { toBeijingISO } = require('../../utils/time-helper');
 
 const telegramService = new TelegramMonitoringService();
 
@@ -19,7 +20,7 @@ router.get('/status', (req, res) => {
     res.json({
       success: true,
       data: status,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   } catch (error) {
     logger.error('获取Telegram状态失败:', error);

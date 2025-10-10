@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../../utils/logger');
+const { toBeijingISO } = require('../../utils/time-helper');
 const Joi = require('joi');
 
 // 验证中间件
@@ -16,7 +17,7 @@ const validateRequest = (schema) => {
       return res.status(400).json({
         error: 'Validation Error',
         message: error.details[0].message,
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
     next();
@@ -62,7 +63,7 @@ router.get('/overview', async (req, res) => {
       return res.status(503).json({
         error: 'Service Unavailable',
         message: 'New coin monitor service is not available',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
     
@@ -71,7 +72,7 @@ router.get('/overview', async (req, res) => {
     res.json({
       success: true,
       data: overview,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -82,7 +83,7 @@ router.get('/overview', async (req, res) => {
       success: true,
       data: [],
       message: 'Database tables not initialized yet',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -99,7 +100,7 @@ router.get('/coins', async (req, res) => {
       return res.status(503).json({
         error: 'Service Unavailable',
         message: 'New coin monitor service is not available',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
     
@@ -109,7 +110,7 @@ router.get('/coins', async (req, res) => {
       success: true,
       data: coins,
       count: coins.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -117,7 +118,7 @@ router.get('/coins', async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to get monitored coins',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -134,7 +135,7 @@ router.post('/coins', validateRequest(addCoinSchema), async (req, res) => {
       return res.status(503).json({
         error: 'Service Unavailable',
         message: 'New coin monitor service is not available',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
     
@@ -144,7 +145,7 @@ router.post('/coins', validateRequest(addCoinSchema), async (req, res) => {
       success: true,
       data: { id: coinId, ...req.body },
       message: 'Coin added to monitoring successfully',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -154,13 +155,13 @@ router.post('/coins', validateRequest(addCoinSchema), async (req, res) => {
       res.status(409).json({
         error: 'Conflict',
         message: 'Coin symbol already exists',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     } else {
       res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to add coin to monitoring',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
   }
@@ -189,7 +190,7 @@ router.put('/coins/:symbol', validateRequest(updateCoinSchema), async (req, res)
       return res.status(400).json({
         error: 'Bad Request',
         message: 'No fields to update',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
     
@@ -207,14 +208,14 @@ router.put('/coins/:symbol', validateRequest(updateCoinSchema), async (req, res)
       return res.status(404).json({
         error: 'Not Found',
         message: 'Coin not found',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
     
     res.json({
       success: true,
       message: 'Coin updated successfully',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -222,7 +223,7 @@ router.put('/coins/:symbol', validateRequest(updateCoinSchema), async (req, res)
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to update coin',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -243,14 +244,14 @@ router.delete('/coins/:symbol', async (req, res) => {
       return res.status(404).json({
         error: 'Not Found',
         message: 'Coin not found',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
     
     res.json({
       success: true,
       message: 'Coin removed from monitoring successfully',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -258,7 +259,7 @@ router.delete('/coins/:symbol', async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to delete coin',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -288,7 +289,7 @@ router.get('/coins/:symbol/scores', async (req, res) => {
       success: true,
       data: scores,
       count: scores.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -296,7 +297,7 @@ router.get('/coins/:symbol/scores', async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to get coin scores',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -326,7 +327,7 @@ router.get('/coins/:symbol/market-data', async (req, res) => {
       success: true,
       data: marketData,
       count: marketData.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -334,7 +335,7 @@ router.get('/coins/:symbol/market-data', async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to get market data',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -377,7 +378,7 @@ router.get('/alerts', async (req, res) => {
       success: true,
       data: alerts,
       count: alerts.length,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -385,7 +386,7 @@ router.get('/alerts', async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to get alerts',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -402,7 +403,7 @@ router.get('/alert-statistics', async (req, res) => {
       return res.status(503).json({
         error: 'Service Unavailable',
         message: 'New coin monitor service is not available',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
     
@@ -411,7 +412,7 @@ router.get('/alert-statistics', async (req, res) => {
     res.json({
       success: true,
       data: statistics,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -419,7 +420,7 @@ router.get('/alert-statistics', async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to get alert statistics',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -436,7 +437,7 @@ router.post('/evaluate', async (req, res) => {
       return res.status(503).json({
         error: 'Service Unavailable',
         message: 'New coin monitor service is not available',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
     
@@ -448,7 +449,7 @@ router.post('/evaluate', async (req, res) => {
     res.json({
       success: true,
       message: 'Evaluation started',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -456,7 +457,7 @@ router.post('/evaluate', async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to start evaluation',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -480,7 +481,7 @@ router.get('/config', async (req, res) => {
     res.json({
       success: true,
       data: configs,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -488,7 +489,7 @@ router.get('/config', async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to get config',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -506,7 +507,7 @@ router.put('/config', async (req, res) => {
       return res.status(400).json({
         error: 'Bad Request',
         message: 'Configs must be an array',
-        timestamp: new Date().toISOString()
+        timestamp: toBeijingISO()
       });
     }
     
@@ -524,7 +525,7 @@ router.put('/config', async (req, res) => {
     res.json({
       success: true,
       message: 'Config updated successfully',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -532,7 +533,7 @@ router.put('/config', async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to update config',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
@@ -556,7 +557,7 @@ router.get('/status', async (req, res) => {
     res.json({
       success: true,
       data: status,
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
     
   } catch (error) {
@@ -564,7 +565,7 @@ router.get('/status', async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to get status',
-      timestamp: new Date().toISOString()
+      timestamp: toBeijingISO()
     });
   }
 });
