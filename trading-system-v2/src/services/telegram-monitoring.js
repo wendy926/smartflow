@@ -303,22 +303,25 @@ class TelegramMonitoringService {
 
     const signalEmoji = {
       'strongBuy': '🟢',
-      'caution': '🔴'
+      'strongSell': '🔴',
+      'caution': '🔴'  // 兼容旧数据
     };
 
     const signalText = {
       'strongBuy': '强烈看多',
-      'caution': '谨慎'
+      'strongSell': '强烈看跌',
+      'caution': '强烈看跌'  // 兼容旧数据
     };
 
     const emoji = signalEmoji[signalRecommendation] || '⚠️';
     const text = signalText[signalRecommendation] || signalRecommendation;
 
-    let message = `${emoji} <b>AI信号通知</b>\n\n`;
+    let message = `${emoji} <b>AI市场分析提醒</b>\n`;
+    message += `━━━━━━━━━━━━━\n`;
     message += `📊 <b>交易对</b>: ${symbol}\n`;
     message += `🎯 <b>信号</b>: ${text}\n`;
-    message += `📈 <b>评分</b>: ${overallScore?.totalScore || 'N/A'}/100\n`;
-    message += `💰 <b>当前价格</b>: $${currentPrice || 'N/A'}\n\n`;
+    message += `📈 <b>评分</b>: ${overallScore?.totalScore || 'N/A'}分\n`;
+    message += `💰 <b>价格</b>: $${currentPrice || 'N/A'}\n\n`;
 
     // 短期趋势
     if (shortTermTrend) {
@@ -327,8 +330,13 @@ class TelegramMonitoringService {
         'down': '↘️',
         'sideways': '↔️'
       };
-      message += `📊 <b>短期趋势</b>: ${directionEmoji[shortTermTrend.direction] || ''} `;
-      message += `置信度 ${shortTermTrend.confidence}%\n`;
+      const directionText = {
+        'up': '上涨',
+        'down': '下跌',
+        'sideways': '震荡'
+      };
+      message += `📊 <b>短期</b>: ${directionText[shortTermTrend.direction] || shortTermTrend.direction} `;
+      message += `(${shortTermTrend.confidence}%)\n`;
       if (shortTermTrend.priceRange && shortTermTrend.priceRange.length === 2) {
         message += `   区间: $${shortTermTrend.priceRange[0].toFixed(2)} - $${shortTermTrend.priceRange[1].toFixed(2)}\n`;
       }
@@ -341,8 +349,13 @@ class TelegramMonitoringService {
         'down': '↘️',
         'sideways': '↔️'
       };
-      message += `📊 <b>中期趋势</b>: ${directionEmoji[midTermTrend.direction] || ''} `;
-      message += `置信度 ${midTermTrend.confidence}%\n`;
+      const directionText = {
+        'up': '上涨',
+        'down': '下跌',
+        'sideways': '震荡'
+      };
+      message += `📊 <b>中期</b>: ${directionText[midTermTrend.direction] || midTermTrend.direction} `;
+      message += `(${midTermTrend.confidence}%)\n`;
       if (midTermTrend.priceRange && midTermTrend.priceRange.length === 2) {
         message += `   区间: $${midTermTrend.priceRange[0].toFixed(2)} - $${midTermTrend.priceRange[1].toFixed(2)}\n`;
       }
@@ -352,9 +365,9 @@ class TelegramMonitoringService {
 
     // 添加操作建议
     if (signalRecommendation === 'strongBuy') {
-      message += `\n💡 <b>建议</b>: 多因子共振，可考虑积极入场（仓位20-30%）`;
-    } else if (signalRecommendation === 'caution') {
-      message += `\n⚠️ <b>警告</b>: 趋势转弱，建议避免入场或减仓`;
+      message += `\n💡 <b>建议</b>: 多因子共振，可考虑做多入场（仓位20-30%）`;
+    } else if (signalRecommendation === 'strongSell' || signalRecommendation === 'caution') {
+      message += `\n⚠️ <b>警告</b>: 强烈看跌信号，可考虑做空入场或避免做多`;
     }
 
     return message;
