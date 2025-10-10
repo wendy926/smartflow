@@ -1235,7 +1235,7 @@ class SmartFlowApp {
         <td class="price-cell">${this.formatPrice(v3TakeProfit)}</td>
         <td class="leverage-cell">${v3Leverage > 0 ? v3Leverage.toFixed(0) + 'x' : '--'}</td>
         <td class="margin-cell">${v3Margin > 0 ? '$' + v3Margin.toFixed(2) : '--'}</td>
-        <td class="ai-analysis-cell"><span class="loading" style="font-size: 12px; color: #6c757d;">加载中...</span></td>
+        <td class="ai-analysis-cell"><span style="font-size: 12px; color: #999;">--</span></td>
       `;
       tbody.appendChild(v3Row);
 
@@ -1289,7 +1289,7 @@ class SmartFlowApp {
         <td class="timeframe-cell">${this.formatHighTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatMidTimeframe(ictInfo, 'ICT')}</td>
         <td class="timeframe-cell">${this.formatLowTimeframe(ictInfo, 'ICT')}</td>
-        <td class="ai-analysis-cell"><span class="loading" style="font-size: 12px; color: #6c757d;">加载中...</span></td>
+        <td class="ai-analysis-cell"><span style="font-size: 12px; color: #999;">--</span></td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictEntryPrice) : '--'}</td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictStopLoss) : '--'}</td>
         <td class="price-cell">${showTradeParams ? this.formatPrice(ictTakeProfit) : '--'}</td>
