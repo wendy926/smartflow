@@ -243,7 +243,13 @@ class AIAnalysisScheduler {
       const strategyDataMap = await this.getStrategyData(symbolsToAnalyze);
 
       // 批量分析（已优化为顺序执行，每个间隔3秒）
-      const results = await this.symbolAnalyzer.analyzeSymbols(symbolsToAnalyze, strategyDataMap);
+      let results = [];
+      try {
+        results = await this.symbolAnalyzer.analyzeSymbols(symbolsToAnalyze, strategyDataMap);
+      } catch (analysisError) {
+        logger.error('AI分析过程出错:', analysisError);
+        // 继续处理已完成的结果（如果有）
+      }
 
       const successCount = results.filter(r => r.success).length;
       const failCount = results.filter(r => !r.success).length;
@@ -275,8 +281,15 @@ class AIAnalysisScheduler {
         }
       }
 
-      // 检查是否有需要通知的信号（强烈看多或谨慎）
-      await this.checkAndSendSignalAlerts(results);
+      // 检查是否有需要通知的信号（强烈看多或强烈看跌）
+      // 即使任务部分完成，也检查已完成的结果
+      if (results && results.length > 0) {
+        try {
+          await this.checkAndSendSignalAlerts(results);
+        } catch (notifyError) {
+          logger.error('发送AI信号通知失败:', notifyError);
+        }
+      }
 
     } catch (error) {
       logger.error('交易对分析任务失败:', error);
