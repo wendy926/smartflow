@@ -146,7 +146,8 @@ class TradingSystemApp {
         const telegramService = new TelegramAlert();
 
         this.aiScheduler = new AIAnalysisScheduler(aiOps, binanceAPI, telegramService);
-        global.aiScheduler = this.aiScheduler; // 设置全局变量供API路由使用
+        global.aiScheduler = this.aiScheduler; // 设置全局变量供API路由使用（向后兼容）
+        this.app.set('aiScheduler', this.aiScheduler);  // 注册到Express app
 
         const aiStarted = await this.aiScheduler.start();
         if (aiStarted) {
