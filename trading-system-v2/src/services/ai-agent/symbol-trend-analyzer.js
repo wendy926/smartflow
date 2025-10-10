@@ -164,30 +164,43 @@ class SymbolTrendAnalyzer {
     logger.info(`开始批量分析 ${symbols.length} 个交易对`);
 
     const results = [];
+    const batchSize = 3;  // 每批并行3个，平衡速度和内存
+    const batchDelay = 3000;  // 批次间隔3秒
 
-    // 优化：改为顺序执行而非批量并行，更好地控制API频率
-    // 避免API限流：每个交易对之间有3秒延迟
-    for (let i = 0; i < symbols.length; i++) {
-      const symbol = symbols[i];
+    // 分批并行执行
+    for (let i = 0; i < symbols.length; i += batchSize) {
+      const batch = symbols.slice(i, i + batchSize);
+      const batchNum = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(symbols.length / batchSize);
 
-      try {
-        const result = await this.analyzeSymbol(symbol, strategyDataMap[symbol] || {});
-        results.push(result);
+      logger.info(`执行第 ${batchNum}/${totalBatches} 批分析: ${batch.join(', ')}`);
 
-        logger.info(`[${i + 1}/${symbols.length}] ${symbol} 分析完成 - ${result.success ? '成功' : '失败'}`);
-
-        // 延迟3秒再分析下一个，避免API限流（优化：从1秒增加到3秒）
-        if (i < symbols.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 3000));
+      // 并行分析当前批次
+      const batchPromises = batch.map(async (symbol, idx) => {
+        const globalIdx = i + idx;
+        try {
+          const result = await this.analyzeSymbol(symbol, strategyDataMap[symbol] || {});
+          logger.info(`[${globalIdx + 1}/${symbols.length}] ${symbol} 分析完成 - ${result.success ? '成功' : '失败'}`);
+          return result;
+        } catch (error) {
+          logger.error(`${symbol} 分析异常:`, error.message);
+          return {
+            success: false,
+            symbol,
+            error: error.message,
+            timestamp: new Date().toISOString()
+          };
         }
-      } catch (error) {
-        logger.error(`${symbol} 分析异常:`, error.message);
-        results.push({
-          success: false,
-          symbol,
-          error: error.message,
-          timestamp: new Date().toISOString()
-        });
+      });
+
+      // 等待当前批次完成
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+
+      // 批次间延迟（最后一批不延迟）
+      if (i + batchSize < symbols.length) {
+        logger.debug(`批次完成，等待${batchDelay / 1000}秒后继续...`);
+        await new Promise(resolve => setTimeout(resolve, batchDelay));
       }
     }
 
