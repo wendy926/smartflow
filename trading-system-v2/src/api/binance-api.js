@@ -429,16 +429,23 @@ class BinanceAPI {
    * @returns {Promise<Object>} 订单簿数据 {bids: [[price, qty]], asks: [[price, qty]]}
    */
   async getDepth(symbol, limit = 100) {
+    this.resetStatsIfNeeded();
+    this.stats.rest.totalRequests++;
+    
     try {
-      const response = await this._request('/fapi/v1/depth', {
-        symbol,
+      this.checkRateLimit();
+
+      const params = {
+        symbol: symbol.toUpperCase(),
         limit
-      });
+      };
+
+      const response = await axios.get(`${this.baseURL}/fapi/v1/depth`, { params });
       
       this.stats.rest.successRequests++;
       return {
-        bids: response.bids || [],
-        asks: response.asks || []
+        bids: response.data.bids || [],
+        asks: response.data.asks || []
       };
     } catch (error) {
       this.stats.rest.failedRequests++;
@@ -453,13 +460,20 @@ class BinanceAPI {
    * @returns {Promise<number>} 当前资金费率
    */
   async getFundingRate(symbol) {
+    this.resetStatsIfNeeded();
+    this.stats.rest.totalRequests++;
+    
     try {
-      const response = await this._request('/fapi/v1/premiumIndex', {
-        symbol
-      });
+      this.checkRateLimit();
+
+      const params = {
+        symbol: symbol.toUpperCase()
+      };
+
+      const response = await axios.get(`${this.baseURL}/fapi/v1/premiumIndex`, { params });
       
       this.stats.rest.successRequests++;
-      const rate = parseFloat(response.lastFundingRate || 0);
+      const rate = parseFloat(response.data.lastFundingRate || 0);
       return rate;
     } catch (error) {
       this.stats.rest.failedRequests++;
@@ -474,16 +488,23 @@ class BinanceAPI {
    * @returns {Promise<Object>} 持仓量数据 {openInterest: number, symbol: string, time: number}
    */
   async getOpenInterest(symbol) {
+    this.resetStatsIfNeeded();
+    this.stats.rest.totalRequests++;
+    
     try {
-      const response = await this._request('/fapi/v1/openInterest', {
-        symbol
-      });
+      this.checkRateLimit();
+
+      const params = {
+        symbol: symbol.toUpperCase()
+      };
+
+      const response = await axios.get(`${this.baseURL}/fapi/v1/openInterest`, { params });
       
       this.stats.rest.successRequests++;
       return {
-        openInterest: parseFloat(response.openInterest || 0),
-        symbol: response.symbol,
-        time: response.time
+        openInterest: parseFloat(response.data.openInterest || 0),
+        symbol: response.data.symbol,
+        time: response.data.time
       };
     } catch (error) {
       this.stats.rest.failedRequests++;
