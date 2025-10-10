@@ -2502,13 +2502,6 @@ html {
   padding: 8px;
 }
 
-/* 杠杆信息样式 */
-.leverage-cell {
-  padding: 8px;
-  vertical-align: top;
-  min-width: 150px;
-}
-
 .leverage-info {
   display: flex;
   flex-direction: column;
