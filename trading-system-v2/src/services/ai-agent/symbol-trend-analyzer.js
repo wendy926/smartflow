@@ -468,25 +468,34 @@ class SymbolTrendAnalyzer {
     const shortConf = data.shortTermTrend?.confidence || 50;
     const midConf = data.midTermTrend?.confidence || 50;
 
-    // 检测是否为常见的固定值（65, 70, 72, 75）
-    const isFixedShort = [65, 70, 72, 75].includes(shortConf);
-    const isFixedMid = [65, 70, 72, 75].includes(midConf);
+    // 检测是否为常见的固定值（扩展检测范围：58, 62, 65, 67, 70, 71, 72, 75）
+    const commonFixedValues = [58, 62, 65, 67, 70, 71, 72, 75, 76, 78];
+    const isFixedShort = commonFixedValues.includes(shortConf);
+    const isFixedMid = commonFixedValues.includes(midConf);
+    
+    // 检测固定组合（最常见的AI模式）
+    const isFixedCombination = 
+      (shortConf === 58 && midConf === 67) ||  // 看跌组合
+      (shortConf === 62 && midConf === 71) ||  // 看多组合
+      (shortConf === 65 && midConf === 70) ||  // 中性组合
+      (shortConf === 76 && midConf === 70) ||  // 强看多组合
+      (shortConf === 78 && midConf === 59);    // 震荡组合
 
-    if (isFixedShort || isFixedMid) {
+    if (isFixedShort || isFixedMid || isFixedCombination) {
       logger.warn(`${symbol} 检测到AI使用固定置信度 - 短期:${shortConf}, 中期:${midConf}，应用智能调整`);
 
-      // 基于符号哈希生成确定性但不同的偏移量
+      // 基于符号哈希生成确定性但不同的偏移量（增强随机性）
       const hash = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const shortOffset = (hash % 11) - 5; // -5 到 +5
-      const midOffset = ((hash * 7) % 13) - 6; // -6 到 +6
+      const shortOffset = (hash % 17) - 8; // -8 到 +8（更大范围）
+      const midOffset = ((hash * 13) % 19) - 9; // -9 到 +9（更大范围）
 
-      if (isFixedShort) {
-        data.shortTermTrend.confidence = Math.max(20, Math.min(95, shortConf + shortOffset));
+      if (isFixedShort || isFixedCombination) {
+        data.shortTermTrend.confidence = Math.max(25, Math.min(92, shortConf + shortOffset));
         logger.info(`${symbol} 短期置信度调整: ${shortConf} → ${data.shortTermTrend.confidence}`);
       }
 
-      if (isFixedMid) {
-        data.midTermTrend.confidence = Math.max(20, Math.min(95, midConf + midOffset));
+      if (isFixedMid || isFixedCombination) {
+        data.midTermTrend.confidence = Math.max(25, Math.min(92, midConf + midOffset));
         logger.info(`${symbol} 中期置信度调整: ${midConf} → ${data.midTermTrend.confidence}`);
       }
 
