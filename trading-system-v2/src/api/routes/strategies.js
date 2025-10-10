@@ -353,6 +353,55 @@ router.get('/statistics', async (req, res) => {
 });
 
 /**
+ * 获取累计统计数据（每日/每周）
+ * GET /api/v1/strategies/cumulative-statistics?timeframe=daily&period=30
+ */
+router.get('/cumulative-statistics', async (req, res) => {
+  try {
+    const { timeframe = 'daily', period = '30' } = req.query;
+    const periodNum = parseInt(period);
+    
+    const dbOps = getDbOps();
+    const connection = await dbOps.getConnection();
+    
+    try {
+      const { getDailyCumulativeStatistics, getWeeklyCumulativeStatistics } = require('../../database/cumulative-statistics');
+      
+      let v3Data, ictData;
+      
+      if (timeframe === 'daily') {
+        v3Data = await getDailyCumulativeStatistics(connection, 'V3', periodNum);
+        ictData = await getDailyCumulativeStatistics(connection, 'ICT', periodNum);
+      } else {
+        // 周级别：period表示周数
+        const weeks = Math.ceil(periodNum / 7);
+        v3Data = await getWeeklyCumulativeStatistics(connection, 'V3', weeks);
+        ictData = await getWeeklyCumulativeStatistics(connection, 'ICT', weeks);
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          timeframe,
+          period: periodNum,
+          v3: v3Data,
+          ict: ictData
+        },
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    logger.error('获取累计统计失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * 获取策略当前状态（包含所有交易对的判断信息）
  * GET /api/v1/strategies/current-status
  */
