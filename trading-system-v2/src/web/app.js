@@ -460,10 +460,11 @@ class SmartFlowApp {
    * 手动刷新宏观监控数据（触发真实API调用）
    */
   async refreshMacroMonitoringData() {
+    // 显示加载状态（在try之外定义，确保finally可以访问）
+    const refreshBtn = document.getElementById('refreshMacroData');
+    const originalText = refreshBtn ? refreshBtn.textContent : '刷新';
+    
     try {
-      // 显示加载状态
-      const refreshBtn = document.getElementById('refreshMacroData');
-      const originalText = refreshBtn ? refreshBtn.textContent : '';
       if (refreshBtn) {
         refreshBtn.textContent = '刷新中...';
         refreshBtn.disabled = true;
@@ -471,42 +472,19 @@ class SmartFlowApp {
 
       console.log('开始手动刷新宏观监控数据...');
 
-      // 先触发真实API调用获取最新数据
-      const triggerResponse = await this.fetchData('/macro-monitor/trigger', {
-        method: 'POST'
-      });
+      // 直接加载现有数据（不触发外部API）
+      // 宏观监控数据由后台定时任务自动更新，前端只需加载最新数据
+      await this.loadMacroMonitoringData();
 
-      if (triggerResponse.success) {
-        console.log('外部API调用成功，正在加载最新数据...');
-
-        // 等待一小段时间确保数据已保存到数据库
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // 然后加载数据
-        await this.loadMacroMonitoringData();
-
-        console.log('宏观监控数据刷新完成');
-      } else {
-        console.warn('外部API调用失败，加载现有数据:', triggerResponse.message);
-        // 即使API调用失败，也尝试加载现有数据
-        await this.loadMacroMonitoringData();
-      }
+      console.log('宏观监控数据刷新完成');
 
     } catch (error) {
       console.error('手动刷新宏观监控数据失败:', error);
-
-      // 即使刷新失败，也尝试加载现有数据
-      try {
-        await this.loadMacroMonitoringData();
-      } catch (loadError) {
-        console.error('加载现有数据也失败:', loadError);
-        this.showError('刷新失败，请稍后重试');
-      }
+      this.showError('刷新失败，请稍后重试');
     } finally {
       // 恢复按钮状态
-      const refreshBtn = document.getElementById('refreshMacroData');
       if (refreshBtn) {
-        refreshBtn.textContent = originalText || '刷新';
+        refreshBtn.textContent = originalText;
         refreshBtn.disabled = false;
       }
     }
@@ -3093,16 +3071,16 @@ class SmartFlowApp {
     try {
       // ✅ 调用真实监控API
       const response = await this.fetchData('/monitoring/system');
-      
+
       if (response.success && response.data) {
         const system = response.data.system || {};
         const resources = response.data.resources || {};
-        
+
         // 计算真实资源使用率
         const totalMemory = system.totalMemory || 1;
         const freeMemory = system.freeMemory || 0;
         const memoryUsage = ((totalMemory - freeMemory) / totalMemory) * 100;
-        
+
         const monitoringData = {
           cpu: resources.cpu || (system.loadAverage ? system.loadAverage[0] * 50 : 0), // 使用load average估算
           memory: memoryUsage,
@@ -3118,7 +3096,7 @@ class SmartFlowApp {
             ict: 'running'
           }
         };
-        
+
         this.updateMonitoringDisplay(monitoringData);
       }
     } catch (error) {
