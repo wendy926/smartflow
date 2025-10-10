@@ -19,6 +19,7 @@ const DataUpdater = require('./services/data-updater');
 const MacroMonitorController = require('./services/macro-monitor/macro-monitor-controller');
 const AIAnalysisScheduler = require('./services/ai-agent/scheduler');
 const TelegramAlert = require('./services/telegram-alert');
+const TelegramMonitoringService = require('./services/telegram-monitoring');
 
 class TradingSystemApp {
   constructor() {
@@ -143,7 +144,10 @@ class TradingSystemApp {
         const aiOps = getAIOps();
         const BinanceAPI = require('./api/binance-api');
         const binanceAPI = new BinanceAPI();  // 创建实例
-        const telegramService = new TelegramAlert();
+        
+        // 使用TelegramMonitoringService（支持从数据库加载配置）
+        const telegramService = new TelegramMonitoringService();
+        logger.info('[AI模块] 使用TelegramMonitoringService（支持数据库配置）');
 
         this.aiScheduler = new AIAnalysisScheduler(aiOps, binanceAPI, telegramService);
         global.aiScheduler = this.aiScheduler; // 设置全局变量供API路由使用（向后兼容）
