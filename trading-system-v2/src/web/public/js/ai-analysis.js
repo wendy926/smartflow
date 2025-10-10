@@ -731,13 +731,13 @@ class AIAnalysisModule {
    */
   getTimeAgo(timestamp) {
     if (!timestamp) return '未知';
-    
+
     try {
       const now = new Date();
       const past = new Date(timestamp);
       const diffMs = now - past;
       const diffMins = Math.floor(diffMs / 60000);
-      
+
       if (diffMins < 1) return '刚刚';
       if (diffMins < 60) return `${diffMins}分钟前`;
       const diffHours = Math.floor(diffMins / 60);
