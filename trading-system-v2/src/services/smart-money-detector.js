@@ -513,31 +513,46 @@ class SmartMoneyDetector {
 
   /**
    * 将分数映射到动作（只返回4类庄家动作）
+   * 核心逻辑：以价格变化为主要依据，CVD/OBI为辅助判断
    * @private
    */
   _mapScoreToAction(score, priceChange, cvdZ, oiChange, obiZ) {
-    // 买方主导（score > 0 或 cvdZ > 0 或 obiZ > 0）
-    const isBullish = score > 0 || cvdZ > 0 || obiZ > 0;
+    // 计算价格变化的相对幅度（需要传入当前价格）
+    const priceChangeAbs = Math.abs(priceChange);
     
-    if (isBullish) {
-      // 价格上涨明显 = 拉升
-      if (priceChange > 0 && (cvdZ > 0.5 || obiZ > 0.5)) {
+    // 判断买卖压力（综合CVD和OBI）
+    const buyPressure = (cvdZ > 0 ? 1 : 0) + (obiZ > 0 ? 1 : 0);
+    const sellPressure = (cvdZ < 0 ? 1 : 0) + (obiZ < 0 ? 1 : 0);
+    
+    // 价格明显上涨（priceChange > 0）
+    if (priceChange > 0) {
+      // 强势上涨 + 买盘主导 = 拉升
+      if (priceChangeAbs > 50 || buyPressure >= 1 || score > 0.3) {
         return '拉升'; // MARKUP - 持续推高价格，成交量放大
       }
-      // 价格不涨或小涨 + 持仓增加 = 吸筹
+      // 弱势上涨 或 卖盘主导 = 吸筹（反弹中吸筹）
       else {
-        return '吸筹'; // ACCUMULATE - 低价买入，价格不涨，OI增加
+        return '吸筹'; // ACCUMULATE - 低价买入，价格小涨，缓慢建仓
       }
     }
-    // 卖方主导（score < 0 或 cvdZ < 0 或 obiZ < 0）
-    else {
-      // 价格下跌明显 = 砸盘
-      if (priceChange < 0 && (cvdZ < -0.5 || obiZ < -0.5)) {
+    // 价格明显下跌（priceChange < 0）
+    else if (priceChange < 0) {
+      // 强势下跌 + 卖盘主导 = 砸盘
+      if (priceChangeAbs > 50 || sellPressure >= 1 || score < -0.3) {
         return '砸盘'; // MARKDOWN - 打压价格，快速下跌
       }
-      // 价格不跌或小跌 + 持仓增加 = 派发
+      // 弱势下跌 或 买盘主导 = 派发（下跌中出货）
       else {
-        return '派发'; // DISTRIBUTION - 高位出货，价格滞涨，OI增加
+        return '派发'; // DISTRIBUTION - 高位出货，价格小跌，缓慢减仓
+      }
+    }
+    // 价格横盘（priceChange ≈ 0）
+    else {
+      // 横盘时看买卖压力
+      if (buyPressure > sellPressure || score > 0.2) {
+        return '吸筹'; // 横盘吸筹
+      } else {
+        return '派发'; // 横盘派发
       }
     }
   }
@@ -611,5 +626,6 @@ class SmartMoneyDetector {
 }
 
 module.exports = SmartMoneyDetector;
+
 
 
