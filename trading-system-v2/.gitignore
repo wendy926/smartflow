@@ -126,3 +126,6 @@ coverage/
 # Build files
 build/
 dist/
+backup_cleanup_*.sql
+*.backup
+CODE_CHANGES_TEMPLATE.md

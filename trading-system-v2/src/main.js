@@ -66,7 +66,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/trades', require('./api/routes/trades'));
     this.app.use('/api/v1/monitoring', require('./api/routes/monitoring'));
     this.app.use('/api/v1/macro-monitor', require('./api/routes/macro-monitor'));
-    this.app.use('/api/v1/new-coin-monitor', require('./api/routes/new-coin-monitor'));
+    // this.app.use('/api/v1/new-coin-monitor', require('./api/routes/new-coin-monitor')); // V2.0禁用：功能未使用
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
@@ -89,7 +89,7 @@ class TradingSystemApp {
     });
 
     // 前端路由处理 - 支持SPA路由
-    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', '/new-coin-monitor', '/tools', '/docs'], (req, res) => {
+    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', /* '/new-coin-monitor', */ '/tools', '/docs'], (req, res) => {
       res.sendFile('index.html', { root: 'src/web' });
     });
   }
