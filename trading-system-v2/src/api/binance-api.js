@@ -421,6 +421,76 @@ class BinanceAPI {
       throw error;
     }
   }
+
+  /**
+   * 获取订单簿深度
+   * @param {string} symbol - 交易对
+   * @param {number} limit - 档位数 (5, 10, 20, 50, 100, 500, 1000)
+   * @returns {Promise<Object>} 订单簿数据 {bids: [[price, qty]], asks: [[price, qty]]}
+   */
+  async getDepth(symbol, limit = 100) {
+    try {
+      const response = await this._request('/fapi/v1/depth', {
+        symbol,
+        limit
+      });
+      
+      this.stats.rest.successRequests++;
+      return {
+        bids: response.bids || [],
+        asks: response.asks || []
+      };
+    } catch (error) {
+      this.stats.rest.failedRequests++;
+      logger.error(`获取订单簿深度失败 (${symbol}):`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取资金费率
+   * @param {string} symbol - 交易对
+   * @returns {Promise<number>} 当前资金费率
+   */
+  async getFundingRate(symbol) {
+    try {
+      const response = await this._request('/fapi/v1/premiumIndex', {
+        symbol
+      });
+      
+      this.stats.rest.successRequests++;
+      const rate = parseFloat(response.lastFundingRate || 0);
+      return rate;
+    } catch (error) {
+      this.stats.rest.failedRequests++;
+      logger.error(`获取资金费率失败 (${symbol}):`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取未平仓合约
+   * @param {string} symbol - 交易对
+   * @returns {Promise<Object>} 持仓量数据 {openInterest: number, symbol: string, time: number}
+   */
+  async getOpenInterest(symbol) {
+    try {
+      const response = await this._request('/fapi/v1/openInterest', {
+        symbol
+      });
+      
+      this.stats.rest.successRequests++;
+      return {
+        openInterest: parseFloat(response.openInterest || 0),
+        symbol: response.symbol,
+        time: response.time
+      };
+    } catch (error) {
+      this.stats.rest.failedRequests++;
+      logger.error(`获取持仓量失败 (${symbol}):`, error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = BinanceAPI;
