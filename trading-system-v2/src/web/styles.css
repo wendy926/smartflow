@@ -2488,6 +2488,8 @@ html {
   font-weight: 600;
   color: #2c3e50;
   min-width: 100px;
+  vertical-align: middle;
+  padding: 8px;
 }
 
 /* 杠杆单元格样式 */
@@ -2496,6 +2498,8 @@ html {
   font-weight: 600;
   color: #2c3e50;
   min-width: 80px;
+  vertical-align: middle;
+  padding: 8px;
 }
 
 /* 杠杆信息样式 */
