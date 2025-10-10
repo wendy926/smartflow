@@ -315,9 +315,31 @@ class SymbolTrendAnalyzer {
   calculateDefaultScore(data) {
     const shortScore = data.shortTermTrend?.confidence || 50;
     const midScore = data.midTermTrend?.confidence || 50;
-    const totalScore = Math.round((shortScore + midScore) / 2);
-
-    // 优化后的评分阈值 - 提升信号多样性
+    const shortDir = (data.shortTermTrend?.direction || 'sideways').toLowerCase();
+    const midDir = (data.midTermTrend?.direction || 'sideways').toLowerCase();
+    
+    // 计算基础评分（置信度平均值）
+    const baseScore = Math.round((shortScore + midScore) / 2);
+    
+    // 根据趋势方向调整评分和信号
+    // 统计up/down/sideways的数量
+    const upCount = (shortDir === 'up' ? 1 : 0) + (midDir === 'up' ? 1 : 0);
+    const downCount = (shortDir === 'down' ? 1 : 0) + (midDir === 'down' ? 1 : 0);
+    
+    // 判断主导趋势
+    let trendBias = 'neutral';
+    if (upCount > downCount) trendBias = 'bullish';      // 偏多
+    else if (downCount > upCount) trendBias = 'bearish'; // 偏空
+    
+    // 根据趋势偏向调整最终分数
+    let totalScore = baseScore;
+    if (trendBias === 'bearish') {
+      // 下跌趋势：置信度越高，分数越低（反向）
+      totalScore = 100 - baseScore;
+    }
+    // 看多或中性：保持原分数
+    
+    // 根据调整后的分数判断信号
     let recommendation = 'hold';
     if (totalScore >= 78) recommendation = 'strongBuy';       // 78-100分: 强烈看多
     else if (totalScore >= 68) recommendation = 'mediumBuy';  // 68-77分: 看多
@@ -325,6 +347,11 @@ class SymbolTrendAnalyzer {
     else if (totalScore >= 48) recommendation = 'hold';       // 48-57分: 持有观望
     else if (totalScore >= 38) recommendation = 'holdBearish'; // 38-47分: 持有偏空
     else recommendation = 'caution';                          // <38分: 谨慎
+    
+    // 调试日志
+    if (trendBias === 'bearish') {
+      logger.info(`${data.symbol || ''} 检测到看跌趋势 - 短期:${shortDir}(${shortScore}%), 中期:${midDir}(${midScore}%), 基础分:${baseScore} → 反转后:${totalScore}, 信号:${recommendation}`);
+    }
 
     return {
       "4hTrend": Math.round(midScore / 10),

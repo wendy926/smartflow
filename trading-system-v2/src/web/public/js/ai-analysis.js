@@ -537,12 +537,30 @@ class AIAnalysisModule {
     const midTrend = data.midTermTrend || {};
     const currentPrice = data.currentPrice || 0;
 
-    // 前端重新计算评分和信号，确保旧数据也能正确显示
+    // 前端重新计算评分和信号，确保旧数据也能正确显示（考虑趋势方向）
     const shortConfidence = shortTrend.confidence || 50;
     const midConfidence = midTrend.confidence || 50;
-    const recalculatedScore = Math.round((shortConfidence + midConfidence) / 2);
+    const shortDir = (shortTrend.direction || 'sideways').toLowerCase();
+    const midDir = (midTrend.direction || 'sideways').toLowerCase();
     
-    // 根据分数重新判断信号（与后端逻辑一致 - 优化后的阈值）
+    // 计算基础评分
+    const baseScore = Math.round((shortConfidence + midConfidence) / 2);
+    
+    // 判断趋势偏向
+    const upCount = (shortDir === 'up' ? 1 : 0) + (midDir === 'up' ? 1 : 0);
+    const downCount = (shortDir === 'down' ? 1 : 0) + (midDir === 'down' ? 1 : 0);
+    let trendBias = 'neutral';
+    if (upCount > downCount) trendBias = 'bullish';
+    else if (downCount > upCount) trendBias = 'bearish';
+    
+    // 根据趋势调整分数
+    let recalculatedScore = baseScore;
+    if (trendBias === 'bearish') {
+      // 下跌趋势：反转分数
+      recalculatedScore = 100 - baseScore;
+    }
+    
+    // 根据分数重新判断信号（与后端逻辑一致）
     let recalculatedSignal = 'hold';
     if (recalculatedScore >= 78) recalculatedSignal = 'strongBuy';       // 78-100分
     else if (recalculatedScore >= 68) recalculatedSignal = 'mediumBuy';  // 68-77分
