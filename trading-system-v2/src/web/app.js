@@ -76,13 +76,13 @@ class SmartFlowApp {
   async init() {
     this.setupEventListeners();
     await this.loadMaxLossAmount(); // 加载最大损失金额设置
-    
+
     // 初始化AI分析模块
     if (typeof AIAnalysisModule !== 'undefined') {
       this.aiAnalysisModule = new AIAnalysisModule();
       await this.aiAnalysisModule.init();
     }
-    
+
     this.loadInitialData();
     this.startAutoRefresh();
   }
@@ -478,7 +478,7 @@ class SmartFlowApp {
     // 显示加载状态（在try之外定义，确保finally可以访问）
     const refreshBtn = document.getElementById('refreshMacroData');
     const originalText = refreshBtn ? refreshBtn.textContent : '刷新';
-    
+
     try {
       if (refreshBtn) {
         refreshBtn.textContent = '刷新中...';
@@ -2521,11 +2521,11 @@ class SmartFlowApp {
     try {
       // 调用真实的累计统计API
       const response = await this.fetchData(`/strategies/cumulative-statistics?timeframe=${timeframe}&period=${period}`);
-      
+
       if (response.success && response.data) {
         const { v3, ict } = response.data;
         console.log('📊 累计统计数据:', { v3, ict });
-        
+
         // 生成真实累计数据表格
         const tableHTML = this.generateCumulativeWinRateTable(v3, ict, timeframe);
         container.innerHTML = tableHTML;
@@ -2592,10 +2592,10 @@ class SmartFlowApp {
     // 显示累计数据（按日期倒序，最新的在上面）
     const reversedV3Data = [...v3Data].reverse();
     const reversedIctData = [...ictData].reverse();
-    
+
     reversedV3Data.forEach((v3Item, index) => {
       const ictItem = reversedIctData[index] || {};
-      
+
       // 格式化日期
       const dateObj = new Date(v3Item.date);
       let dateLabel;
@@ -3223,11 +3223,11 @@ class SmartFlowApp {
         cpu: 0,
         memory: 0,
         disk: 0,
-        apis: { 
-          binanceRest: { status: 'unknown', successRate: 0 }, 
-          binanceWs: { status: 'unknown', successRate: 0 }, 
-          database: 'unknown', 
-          redis: 'unknown' 
+        apis: {
+          binanceRest: { status: 'unknown', successRate: 0 },
+          binanceWs: { status: 'unknown', successRate: 0 },
+          database: 'unknown',
+          redis: 'unknown'
         },
         strategies: { v3: 'unknown', ict: 'unknown' }
       });

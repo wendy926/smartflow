@@ -209,10 +209,10 @@ class SmartMoneyDetector {
       const obi = this._calculateOBI(depth, this.params.obiTopN);
       const cvd = this._calculateCVD(klines15m);
       const volume = parseFloat(klines15m[klines15m.length - 1][5]);
-      const currentOI = oi ? parseFloat(oi.openInterest || oi) : null;
+      const currentOI = oi ? parseFloat(oi.openInterest) : null;
 
-      // 更新状态序列
-      this._updateSeriesState(state, obi, volume, currentOI);
+      // 更新状态序列 - 传入klines15m用于CVD计算
+      this._updateSeriesState(state, obi, volume, currentOI, cvd);
 
       // 4. 计算短期趋势
       const trend = this._computeShortTermTrend(klines15m, klines1h);
@@ -500,7 +500,7 @@ class SmartMoneyDetector {
         oiChange: parseFloat(oiChange.toFixed(2)),
         oiZ: parseFloat(oiZ.toFixed(2)),
         volZ: parseFloat(volZ.toFixed(2)),
-        fundingRate: funding ? parseFloat(funding.lastFundingRate) : null
+        fundingRate: funding ? parseFloat(funding) : null  // funding直接是数字
       },
       trend: {
         short: trend.shortTrend,
@@ -512,41 +512,33 @@ class SmartMoneyDetector {
   }
 
   /**
-   * 将分数映射到动作
+   * 将分数映射到动作（只返回4类庄家动作）
    * @private
    */
   _mapScoreToAction(score, priceChange, cvdZ, oiChange, obiZ) {
-    // 强多头信号 (score > 0.5)
-    if (score > 0.5) {
-      // 价格上涨 + CVD正 + OI增 + OBI正 = 拉升
-      if (priceChange > 0 && cvdZ > 0 && oiChange > 0 && obiZ > 0) {
-        return '拉升'; // MARKUP
+    // 买方主导（score > 0 或 cvdZ > 0 或 obiZ > 0）
+    const isBullish = score > 0 || cvdZ > 0 || obiZ > 0;
+    
+    if (isBullish) {
+      // 价格上涨明显 = 拉升
+      if (priceChange > 0 && (cvdZ > 0.5 || obiZ > 0.5)) {
+        return '拉升'; // MARKUP - 持续推高价格，成交量放大
       }
-      // 价格不涨或小跌 + CVD正 + OI增 = 吸筹
-      else if (priceChange <= 0 && cvdZ > 0 && oiChange > 0) {
-        return '吸筹'; // ACCUMULATE
-      }
+      // 价格不涨或小涨 + 持仓增加 = 吸筹
       else {
-        return '拉升';
+        return '吸筹'; // ACCUMULATE - 低价买入，价格不涨，OI增加
       }
     }
-    // 强空头信号 (score < -0.5)
-    else if (score < -0.5) {
-      // 价格下跌 + CVD负 + OI增 + OBI负 = 砸盘
-      if (priceChange < 0 && cvdZ < 0 && oiChange > 0 && obiZ < 0) {
-        return '砸盘'; // MARKDOWN
-      }
-      // 价格不跌或小涨 + CVD负 + OI增 = 派发
-      else if (priceChange >= 0 && cvdZ < 0 && oiChange > 0) {
-        return '派发'; // DISTRIBUTION
-      }
-      else {
-        return '砸盘';
-      }
-    }
-    // 中性
+    // 卖方主导（score < 0 或 cvdZ < 0 或 obiZ < 0）
     else {
-      return '观望'; // UNKNOWN
+      // 价格下跌明显 = 砸盘
+      if (priceChange < 0 && (cvdZ < -0.5 || obiZ < -0.5)) {
+        return '砸盘'; // MARKDOWN - 打压价格，快速下跌
+      }
+      // 价格不跌或小跌 + 持仓增加 = 派发
+      else {
+        return '派发'; // DISTRIBUTION - 高位出货，价格滞涨，OI增加
+      }
     }
   }
 
@@ -554,7 +546,7 @@ class SmartMoneyDetector {
    * 更新状态序列
    * @private
    */
-  _updateSeriesState(state, obi, volume, currentOI) {
+  _updateSeriesState(state, obi, volume, currentOI, cvd) {
     // 更新OBI序列
     state.obiSeries.push(obi);
     if (state.obiSeries.length > this.params.dynWindow) {
@@ -575,8 +567,7 @@ class SmartMoneyDetector {
       }
     }
 
-    // 更新CVD序列（简化版，使用计算值）
-    const cvd = this._calculateCVD([]);
+    // 更新CVD序列
     state.cvdSeries.push(cvd);
     if (state.cvdSeries.length > this.params.dynWindow) {
       state.cvdSeries.shift();
@@ -620,4 +611,5 @@ class SmartMoneyDetector {
 }
 
 module.exports = SmartMoneyDetector;
+
 
