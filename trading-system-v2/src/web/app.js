@@ -53,6 +53,7 @@ class SmartFlowApp {
       '/monitoring': 'monitoring',
       '/statistics': 'statistics',
       '/tools': 'tools',
+      '/smart-money': 'smart-money',
       '/docs': 'docs'
     };
 

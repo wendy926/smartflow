@@ -92,7 +92,7 @@ class TradingSystemApp {
     });
 
     // 前端路由处理 - 支持SPA路由
-    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', /* '/new-coin-monitor', */ '/tools', '/docs'], (req, res) => {
+    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', /* '/new-coin-monitor', */ '/tools', '/smart-money', '/docs'], (req, res) => {
       res.sendFile('index.html', { root: 'src/web' });
     });
   }
