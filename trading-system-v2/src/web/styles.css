@@ -2490,6 +2490,14 @@ html {
   min-width: 100px;
 }
 
+/* 杠杆单元格样式 */
+.leverage-cell {
+  text-align: center;
+  font-weight: 600;
+  color: #2c3e50;
+  min-width: 80px;
+}
+
 /* 杠杆信息样式 */
 .leverage-cell {
   padding: 8px;
@@ -2522,7 +2530,7 @@ html {
 .leverage-value {
   font-weight: 600;
   color: #1976d2;
-  text-align: right;
+  text-align: center;
 }
 
 /* 保证金信息样式 */
@@ -2557,7 +2565,7 @@ html {
 .margin-value {
   font-weight: 600;
   color: #388e3c;
-  text-align: right;
+  text-align: center;
 }
 
 /* 风险选择器样式 */
