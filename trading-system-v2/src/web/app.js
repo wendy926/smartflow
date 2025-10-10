@@ -341,6 +341,12 @@ class SmartFlowApp {
       case 'tools':
         this.loadToolsData();
         break;
+      case 'smart-money':
+        // 启动聪明钱跟踪自动刷新
+        if (typeof smartMoneyTracker !== 'undefined') {
+          smartMoneyTracker.startAutoRefresh();
+        }
+        break;
     }
   }
 

@@ -1,7 +1,7 @@
 {
   "name": "trading-system-v2",
-  "version": "2.0.0",
-  "description": "基于V3.1优化策略的高性能交易系统 - Release 2.0 (早期趋势探测 + 假突破过滤 + 动态止损)",
+  "version": "2.0.1",
+  "description": "基于V3.1优化策略的高性能交易系统 - Release 2.0.1 (V3.1优化 + 聪明钱跟踪)",
   "main": "src/main.js",
   "scripts": {
     "start": "node src/main.js",

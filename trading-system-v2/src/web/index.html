@@ -249,6 +249,10 @@
           <i class="fas fa-tools"></i>
           工具
         </a>
+        <a href="/smart-money" class="nav-link" data-tab="smart-money">
+          <i class="fas fa-money-bill-trend-up"></i>
+          💰 聪明钱
+        </a>
         <a href="/monitoring" class="nav-link" data-tab="monitoring">
           <i class="fas fa-monitor-heart-rate"></i>
           系统监控
@@ -1140,6 +1144,78 @@
                 </div>
                 <div class="test-result" id="apiTestResult">
                   <!-- API测试结果将显示在这里 -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 聪明钱跟踪页面 -->
+      <div id="smart-money" class="tab-content">
+        <div class="page-header">
+          <h2>💰 聪明钱跟踪</h2>
+          <button class="btn btn-primary" id="refresh-smart-money-btn">
+            <i class="fas fa-sync-alt"></i>
+            刷新数据
+          </button>
+        </div>
+
+        <div class="smart-money-container">
+          <!-- 添加监控交易对 -->
+          <div class="card add-symbol-section">
+            <div class="card-header">
+              <h3>添加监控交易对</h3>
+            </div>
+            <div class="card-content">
+              <div class="add-symbol-form">
+                <input type="text" id="new-symbol-input" placeholder="例如: ADAUSDT" class="form-input" />
+                <button id="add-symbol-btn" class="btn btn-success">
+                  <i class="fas fa-plus"></i> 添加
+                </button>
+              </div>
+              <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                💡 提示：默认监控 BTCUSDT、ETHUSDT、SOLUSDT，每15分钟自动更新
+              </p>
+            </div>
+          </div>
+
+          <!-- 监控结果展示 -->
+          <div class="card smart-money-results">
+            <div class="card-header">
+              <h3>实时监控结果 <span id="sm-last-update" class="last-update"></span></h3>
+            </div>
+            <div class="card-content">
+              <div id="smart-money-table-container">
+                <table id="smart-money-table" class="data-table">
+                  <thead>
+                    <tr>
+                      <th>交易对</th>
+                      <th>当前价格</th>
+                      <th>庄家动作</th>
+                      <th>置信度</th>
+                      <th>OBI</th>
+                      <th>CVD</th>
+                      <th>OI变化</th>
+                      <th>成交量</th>
+                      <th>趋势</th>
+                      <th>原因</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="smart-money-tbody">
+                    <tr><td colspan="11" class="loading">加载中...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="smart-money-legend" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px;">庄家动作说明：</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 12px;">
+                  <div><span class="badge badge-accumulate">吸筹</span> 低价买入，价格不涨，OI增加</div>
+                  <div><span class="badge badge-markup">拉升</span> 持续推高价格，成交量放大</div>
+                  <div><span class="badge badge-distribution">派发</span> 高位出货，价格滞涨，OI增加</div>
+                  <div><span class="badge badge-markdown">砸盘</span> 打压价格，快速下跌</div>
                 </div>
               </div>
             </div>
@@ -2752,6 +2828,8 @@ ${atr >= 1 ? atr.toFixed(2) : atr.toFixed(4)}</pre>
         });
       </script>
       <script src="public/js/ai-analysis.js?v=20251009"></script>
+      <script src="public/js/smart-money.js?v=20251010"></script>
+      <link rel="stylesheet" href="public/css/smart-money.css">
       <script src="app.js?v=20251009v14"></script>
 </body>
 

@@ -20,6 +20,7 @@ const MacroMonitorController = require('./services/macro-monitor/macro-monitor-c
 const AIAnalysisScheduler = require('./services/ai-agent/scheduler');
 const TelegramAlert = require('./services/telegram-alert');
 const TelegramMonitoringService = require('./services/telegram-monitoring');
+const SmartMoneyDetector = require('./services/smart-money-detector');
 
 class TradingSystemApp {
   constructor() {
@@ -28,6 +29,7 @@ class TradingSystemApp {
     this.dataUpdater = null;
     this.macroMonitor = null;
     this.aiScheduler = null;
+    this.smartMoneyDetector = null;
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -67,6 +69,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/monitoring', require('./api/routes/monitoring'));
     this.app.use('/api/v1/macro-monitor', require('./api/routes/macro-monitor'));
     // this.app.use('/api/v1/new-coin-monitor', require('./api/routes/new-coin-monitor')); // V2.0禁用：功能未使用
+    this.app.use('/api/v1/smart-money', require('./api/routes/smart-money')); // V2.0.1新增：聪明钱跟踪
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
@@ -144,7 +147,7 @@ class TradingSystemApp {
         const aiOps = getAIOps();
         const BinanceAPI = require('./api/binance-api');
         const binanceAPI = new BinanceAPI();  // 创建实例
-        
+
         // 使用TelegramMonitoringService（支持从数据库加载配置）
         const telegramService = new TelegramMonitoringService();
         logger.info('[AI模块] 使用TelegramMonitoringService（支持数据库配置）');
@@ -169,6 +172,18 @@ class TradingSystemApp {
 
       // 为API路由提供数据库连接
       this.app.set('database', database);
+
+      // 初始化聪明钱检测器（V2.0.1新增）
+      try {
+        logger.info('[聪明钱] 初始化聪明钱检测器...');
+        this.smartMoneyDetector = new SmartMoneyDetector(database);
+        await this.smartMoneyDetector.initialize();
+        this.app.set('smartMoneyDetector', this.smartMoneyDetector);
+        logger.info('[聪明钱] ✅ 聪明钱检测器启动成功');
+      } catch (error) {
+        logger.error('[聪明钱] ❌ 检测器启动失败:', error);
+        this.smartMoneyDetector = null;
+      }
 
       // 暂时禁用数据更新服务以避免连接池问题
       // this.dataUpdater = new DataUpdater(database, cache);
