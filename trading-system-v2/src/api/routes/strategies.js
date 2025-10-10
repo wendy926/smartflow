@@ -8,6 +8,7 @@ const V3Strategy = require('../../strategies/v3-strategy');
 const ICTStrategy = require('../../strategies/ict-strategy');
 const RollingStrategy = require('../../strategies/rolling-strategy');
 const logger = require('../../utils/logger');
+const { toBeijingISO } = require('../../utils/time-helper');
 
 // 延迟初始化数据库操作
 let dbOps = null;
