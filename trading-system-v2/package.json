@@ -1,7 +1,7 @@
 {
   "name": "trading-system-v2",
-  "version": "2.0.0",
-  "description": "基于V3和ICT策略的高性能交易系统",
+  "version": "1.0.0",
+  "description": "基于V3和ICT策略的高性能交易系统 - Release 1.0",
   "main": "src/main.js",
   "scripts": {
     "start": "node src/main.js",
