@@ -339,14 +339,14 @@ class SymbolTrendAnalyzer {
     }
     // 看多或中性：保持原分数
     
-    // 根据调整后的分数判断信号
+    // 根据调整后的分数判断信号（支持双向交易）
     let recommendation = 'hold';
     if (totalScore >= 78) recommendation = 'strongBuy';       // 78-100分: 强烈看多
     else if (totalScore >= 68) recommendation = 'mediumBuy';  // 68-77分: 看多
     else if (totalScore >= 58) recommendation = 'holdBullish'; // 58-67分: 持有偏多
     else if (totalScore >= 48) recommendation = 'hold';       // 48-57分: 持有观望
     else if (totalScore >= 38) recommendation = 'holdBearish'; // 38-47分: 持有偏空
-    else recommendation = 'caution';                          // <38分: 谨慎
+    else recommendation = 'strongSell';                       // <38分: 强烈看跌（支持做空入场）
     
     // 调试日志
     if (trendBias === 'bearish') {

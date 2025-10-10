@@ -560,14 +560,14 @@ class AIAnalysisModule {
       recalculatedScore = 100 - baseScore;
     }
     
-    // 根据分数重新判断信号（与后端逻辑一致）
+    // 根据分数重新判断信号（与后端逻辑一致，支持双向交易）
     let recalculatedSignal = 'hold';
     if (recalculatedScore >= 78) recalculatedSignal = 'strongBuy';       // 78-100分
     else if (recalculatedScore >= 68) recalculatedSignal = 'mediumBuy';  // 68-77分
     else if (recalculatedScore >= 58) recalculatedSignal = 'holdBullish'; // 58-67分
     else if (recalculatedScore >= 48) recalculatedSignal = 'hold';       // 48-57分
     else if (recalculatedScore >= 38) recalculatedSignal = 'holdBearish'; // 38-47分
-    else recalculatedSignal = 'caution';                                 // <38分
+    else recalculatedSignal = 'strongSell';                              // <38分: 强烈看跌
 
     // 使用重新计算的分数和信号
     const finalScore = recalculatedScore;
@@ -639,7 +639,8 @@ class AIAnalysisModule {
       'holdBullish': 'signal-hold-bullish',
       'hold': 'signal-hold',
       'holdBearish': 'signal-hold-bearish',
-      'caution': 'signal-caution'
+      'strongSell': 'signal-strong-sell',
+      'caution': 'signal-strong-sell'  // 兼容旧数据
     };
     return mapping[signal] || 'signal-hold';
   }
@@ -654,7 +655,8 @@ class AIAnalysisModule {
       'holdBullish': '<span class="signal-badge hold-bullish">持有偏多</span>',
       'hold': '<span class="signal-badge hold">持有观望</span>',
       'holdBearish': '<span class="signal-badge hold-bearish">持有偏空</span>',
-      'caution': '<span class="signal-badge caution">谨慎</span>'
+      'strongSell': '<span class="signal-badge strong-sell">强烈看跌</span>',
+      'caution': '<span class="signal-badge strong-sell">强烈看跌</span>'  // 兼容旧数据
     };
     return badges[signal] || badges.hold;
   }

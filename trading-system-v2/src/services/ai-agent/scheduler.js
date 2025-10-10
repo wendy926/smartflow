@@ -297,7 +297,7 @@ class AIAnalysisScheduler {
       return;
     }
 
-    const targetSignals = ['strongBuy', 'caution'];
+    const targetSignals = ['strongBuy', 'strongSell', 'caution'];  // strongSell和caution都触发通知
     let alertsSent = 0;
     let alertsSkipped = 0;
 
