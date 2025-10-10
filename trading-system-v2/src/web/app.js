@@ -2497,9 +2497,9 @@ class SmartFlowApp {
   }
 
   /**
-   * 更新胜率变化表格
+   * 更新胜率变化表格（加载真实累计数据）
    */
-  updateWinRateChart() {
+  async updateWinRateChart() {
     const container = document.getElementById('winRateTableContainer');
     if (!container) {
       console.log('❌ 未找到胜率表格容器');
@@ -2511,16 +2511,24 @@ class SmartFlowApp {
     const timeframe = document.getElementById('chartTimeframe')?.value || 'daily';
     const period = parseInt(document.getElementById('chartPeriod')?.value || '7');
 
-    // 获取当前统计数据
-    const v3Stats = this.getStrategyStats('v3');
-    const ictStats = this.getStrategyStats('ict');
-
-    console.log('📊 V3策略统计:', v3Stats);
-    console.log('📊 ICT策略统计:', ictStats);
-
-    // 生成表格HTML
-    const tableHTML = this.generateWinRateTable(v3Stats, ictStats, timeframe, period);
-    container.innerHTML = tableHTML;
+    try {
+      // 调用真实的累计统计API
+      const response = await this.fetchData(`/strategies/cumulative-statistics?timeframe=${timeframe}&period=${period}`);
+      
+      if (response.success && response.data) {
+        const { v3, ict } = response.data;
+        console.log('📊 累计统计数据:', { v3, ict });
+        
+        // 生成真实累计数据表格
+        const tableHTML = this.generateCumulativeWinRateTable(v3, ict, timeframe);
+        container.innerHTML = tableHTML;
+      } else {
+        throw new Error('Failed to load cumulative statistics');
+      }
+    } catch (error) {
+      console.error('❌ 加载累计统计失败:', error);
+      container.innerHTML = '<p style="text-align: center; padding: 20px; color: #dc3545;">加载累计统计数据失败</p>';
+    }
   }
 
   /**
@@ -2548,7 +2556,87 @@ class SmartFlowApp {
   }
 
   /**
-   * 生成胜率趋势表格HTML
+   * 生成累计胜率趋势表格HTML（使用真实累计数据）
+   * @param {Array} v3Data - V3策略每日/周累计数据
+   * @param {Array} ictData - ICT策略每日/周累计数据
+   * @param {string} timeframe - 时间框架
+   * @returns {string} 表格HTML
+   */
+  generateCumulativeWinRateTable(v3Data, ictData, timeframe) {
+    if (!v3Data || !ictData || v3Data.length === 0) {
+      return '<p style="text-align: center; padding: 20px; color: #999;">暂无累计统计数据</p>';
+    }
+
+    let tableHTML = `
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; margin: 0 auto;">
+          <thead>
+            <tr style="background: #f8f9fa;">
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: left;">${timeframe === 'daily' ? '日期' : '周期'}</th>
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: center;">V3累计交易数</th>
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: center; color: #007bff;">V3累计胜率</th>
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: center;">ICT累计交易数</th>
+              <th style="padding: 12px; border: 1px solid #ddd; text-align: center; color: #dc3545;">ICT累计胜率</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    // 显示累计数据（按日期正序）
+    v3Data.forEach((v3Item, index) => {
+      const ictItem = ictData[index] || {};
+      
+      // 格式化日期
+      const dateObj = new Date(v3Item.date);
+      let dateLabel;
+      if (timeframe === 'daily') {
+        dateLabel = dateObj.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+      } else {
+        const weekEnd = new Date(v3Item.weekEnd || v3Item.date);
+        dateLabel = `${dateObj.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}`;
+      }
+
+      // ✅ 使用真实累计数据
+      const v3CumulativeTrades = v3Item.cumulativeTrades || 0;
+      const v3CumulativeWinRate = v3Item.cumulativeWinRate || 0;
+      const ictCumulativeTrades = ictItem.cumulativeTrades || 0;
+      const ictCumulativeWinRate = ictItem.cumulativeWinRate || 0;
+
+      // 高亮最新数据
+      const isLatest = index === v3Data.length - 1;
+      const rowStyle = isLatest ? 'background: #e3f2fd;' : '';
+
+      tableHTML += `
+        <tr style="${rowStyle}">
+          <td style="padding: 10px; border: 1px solid #ddd; font-weight: ${isLatest ? '600' : 'normal'};">${dateLabel}</td>
+          <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: ${isLatest ? '600' : 'normal'};">${v3CumulativeTrades}</td>
+          <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: ${isLatest ? '600' : 'normal'};">
+            <span style="color: ${v3CumulativeWinRate >= 50 ? '#28a745' : '#dc3545'}; font-weight: bold;">${v3CumulativeWinRate.toFixed(2)}%</span>
+          </td>
+          <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: ${isLatest ? '600' : 'normal'};">${ictCumulativeTrades}</td>
+          <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: ${isLatest ? '600' : 'normal'};">
+            <span style="color: ${ictCumulativeWinRate >= 50 ? '#28a745' : '#dc3545'}; font-weight: bold;">${ictCumulativeWinRate.toFixed(2)}%</span>
+          </td>
+        </tr>
+      `;
+    });
+
+    tableHTML += `
+          </tbody>
+        </table>
+        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+          <p style="margin: 0; color: #666; font-size: 14px;">
+            <strong>💡 说明：</strong>${timeframe === 'daily' ? '每日' : '每周'}累计数据，交易数和胜率为截止到该日期的累计统计（蓝色背景行为最新数据）
+          </p>
+        </div>
+      </div>
+    `;
+
+    return tableHTML;
+  }
+
+  /**
+   * 生成胜率趋势表格HTML（旧方法，保留兼容）
    * @param {Object} v3Stats - V3策略统计
    * @param {Object} ictStats - ICT策略统计
    * @param {string} timeframe - 时间框架
