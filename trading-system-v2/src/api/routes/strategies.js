@@ -385,6 +385,7 @@ router.get('/current-status', async (req, res) => {
           lastPrice: tickerData.lastPrice || sym.last_price || 0,
           priceChange24h: tickerData.priceChangePercent ? parseFloat(tickerData.priceChangePercent) / 100 : sym.price_change_24h || 0,
           timestamp: new Date().toISOString(),
+          aiAnalysis: sym.aiAnalysis || null,  // 添加AI分析数据
           v3: {
             signal: v3Result.signal || 'HOLD',
             trend: v3Result.timeframes?.["4H"]?.trend || 'RANGE',
