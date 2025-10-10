@@ -222,9 +222,25 @@ class AIAnalysisScheduler {
         return;
       }
 
+      // 内存检查：如果内存使用率过高，减少分析数量
+      const memUsage = process.memoryUsage();
+      const memPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
+      
+      let maxSymbols = 13;  // 默认分析所有13个
+      
+      if (memPercent > 85) {
+        maxSymbols = 8;  // 内存紧张时只分析8个
+        logger.warn(`⚠️ 内存使用率${memPercent.toFixed(1)}%，减少分析数量至${maxSymbols}个`);
+      } else if (memPercent > 75) {
+        maxSymbols = 10;  // 内存偏高时分析10个
+        logger.info(`内存使用率${memPercent.toFixed(1)}%，分析${maxSymbols}个交易对`);
+      } else {
+        logger.info(`内存使用率${memPercent.toFixed(1)}%，分析全部${maxSymbols}个交易对`);
+      }
+
       logger.info('执行交易对分析任务...');
 
-      // 获取活跃交易对
+      // 获取活跃交易对（按数据新鲜度排序，最旧的优先）
       const symbols = await this.getActiveSymbols();
 
       if (symbols.length === 0) {
@@ -232,12 +248,10 @@ class AIAnalysisScheduler {
         return;
       }
 
-      // 限制分析数量（避免过多API调用）
-      // 增加到13个，覆盖所有活跃交易对（包括XRPUSDT和SUIUSDT）
-      const maxSymbols = 13;
+      // 根据内存情况动态调整分析数量
       const symbolsToAnalyze = symbols.slice(0, maxSymbols);
 
-      logger.info(`将分析 ${symbolsToAnalyze.length} 个交易对: ${symbolsToAnalyze.join(', ')}`);
+      logger.info(`将分析 ${symbolsToAnalyze.length} 个交易对（共${symbols.length}个活跃）: ${symbolsToAnalyze.join(', ')}`);
 
       // 获取策略数据
       const strategyDataMap = await this.getStrategyData(symbolsToAnalyze);
@@ -444,17 +458,43 @@ class AIAnalysisScheduler {
   }
 
   /**
-   * 获取活跃交易对
+   * 获取活跃交易对（按AI分析新鲜度排序）
    * @returns {Promise<Array<string>>}
    */
   async getActiveSymbols() {
     try {
-      const [rows] = await this.aiOps.pool.query(
-        'SELECT symbol FROM symbols WHERE status = ? ORDER BY volume_24h DESC LIMIT 10',
-        ['ACTIVE']
-      );
+      // 获取所有活跃交易对及其最新AI分析时间
+      const [rows] = await this.aiOps.pool.query(`
+        SELECT 
+          s.symbol,
+          s.volume_24h,
+          MAX(ai.created_at) as last_analysis_time
+        FROM symbols s
+        LEFT JOIN ai_market_analysis ai 
+          ON s.symbol = ai.symbol AND ai.analysis_type = 'SYMBOL_TREND'
+        WHERE s.status = ?
+        GROUP BY s.symbol, s.volume_24h
+        ORDER BY 
+          last_analysis_time ASC NULLS FIRST,  -- 最旧的数据优先（NULL最优先）
+          s.volume_24h DESC                     -- 相同时间则按成交量排序
+        LIMIT 13
+      `, ['ACTIVE']);
 
-      return rows.map(row => row.symbol);
+      const symbols = rows.map(row => row.symbol);
+      
+      if (symbols.length > 0) {
+        logger.info(`获取到 ${symbols.length} 个活跃交易对（按数据新鲜度排序）`);
+        
+        // 记录每个交易对的数据年龄
+        rows.forEach(row => {
+          const ageHours = row.last_analysis_time 
+            ? Math.floor((Date.now() - new Date(row.last_analysis_time).getTime()) / (1000 * 60 * 60))
+            : 999;
+          logger.debug(`  ${row.symbol}: ${ageHours === 999 ? '无数据' : ageHours + '小时前'}`);
+        });
+      }
+
+      return symbols;
 
     } catch (error) {
       logger.error('获取活跃交易对失败:', error);
