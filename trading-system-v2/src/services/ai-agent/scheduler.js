@@ -479,8 +479,9 @@ class AIAnalysisScheduler {
         WHERE s.status = ?
         GROUP BY s.symbol, s.volume_24h
         ORDER BY 
-          last_analysis_time ASC NULLS FIRST,  -- 最旧的数据优先（NULL最优先）
-          s.volume_24h DESC                     -- 相同时间则按成交量排序
+          last_analysis_time IS NULL DESC,     -- NULL值优先（MySQL语法）
+          last_analysis_time ASC,              -- 最旧的数据优先
+          s.volume_24h DESC                    -- 相同时间则按成交量排序
         LIMIT 13
       `, ['ACTIVE']);
 
