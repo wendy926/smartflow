@@ -191,7 +191,9 @@ class TradingSystemApp {
       // 初始化大额挂单检测器（V2.1.0新增）
       try {
         logger.info('[大额挂单] 初始化大额挂单检测器...');
-        this.largeOrderDetector = new LargeOrderDetector(binanceAPI, database);
+        const BinanceAPI = require('./api/binance-api');
+        const binanceAPIInstance = new BinanceAPI();
+        this.largeOrderDetector = new LargeOrderDetector(binanceAPIInstance, database);
         await this.largeOrderDetector.loadConfig();
         
         // 注册API路由（需要detector实例）
