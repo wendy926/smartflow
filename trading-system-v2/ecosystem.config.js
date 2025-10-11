@@ -5,11 +5,11 @@ module.exports = {
       script: './src/main.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '100M',
-      node_args: '--max-old-space-size=100',
+      max_memory_restart: '150M',  // 提升内存限制（WebSocket需要更多内存）
+      node_args: '--max-old-space-size=150',
       env: {
         NODE_ENV: 'production',
-        MEMORY_LIMIT: '120',
+        MEMORY_LIMIT: '150',  // 更新环境变量
         PORT: 8080
       },
       error_file: './logs/main-app-error.log',
