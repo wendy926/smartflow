@@ -72,7 +72,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/macro-monitor', require('./api/routes/macro-monitor'));
     // this.app.use('/api/v1/new-coin-monitor', require('./api/routes/new-coin-monitor')); // V2.0禁用：功能未使用
     this.app.use('/api/v1/smart-money', require('./api/routes/smart-money')); // V2.0.1新增：聪明钱跟踪
-    // V2.1.0新增：大额挂单监控 - 延迟注册（需要在start中初始化detector）
+    this.app.use('/api/v1/large-orders', require('./api/routes/large-orders')()); // V2.1.0新增：大额挂单监控
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
@@ -196,9 +196,8 @@ class TradingSystemApp {
         this.largeOrderDetector = new LargeOrderDetector(binanceAPIInstance, database);
         await this.largeOrderDetector.loadConfig();
         
-        // 注册API路由（需要detector实例）
-        const largeOrderRoutes = require('./api/routes/large-orders')(this.largeOrderDetector, database);
-        this.app.use('/api/v1/large-orders', largeOrderRoutes);
+        // 注册到app（供API路由使用）
+        this.app.set('largeOrderDetector', this.largeOrderDetector);
         
         // 获取活跃监控交易对并启动监控
         const sql = 'SELECT symbol FROM smart_money_watch_list WHERE is_active = 1 LIMIT 5';
@@ -211,8 +210,6 @@ class TradingSystemApp {
         } else {
           logger.warn('[大额挂单] ⚠️ 没有活跃的监控交易对');
         }
-        
-        this.app.set('largeOrderDetector', this.largeOrderDetector);
       } catch (error) {
         logger.error('[大额挂单] ❌ 检测器启动失败:', error);
         this.largeOrderDetector = null;

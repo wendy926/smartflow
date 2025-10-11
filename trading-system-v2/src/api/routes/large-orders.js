@@ -11,10 +11,9 @@ const logger = require('../../utils/logger');
 
 /**
  * 初始化路由
- * @param {LargeOrderDetector} detector - 大额挂单检测器实例
- * @param {Object} database - 数据库实例
+ * 延迟获取detector实例（从app.get('largeOrderDetector')）
  */
-function initRoutes(detector, database) {
+function initRoutes() {
   /**
    * GET /api/v1/large-orders/detect
    * 获取指定交易对的大额挂单检测结果
@@ -24,6 +23,16 @@ function initRoutes(detector, database) {
    */
   router.get('/detect', async (req, res) => {
     try {
+      const detector = req.app.get('largeOrderDetector');
+      const database = req.app.get('database');
+      
+      if (!detector) {
+        return res.status(503).json({
+          success: false,
+          error: '大额挂单检测器未初始化'
+        });
+      }
+      
       const { symbols } = req.query;
       let targetSymbols = [];
       
@@ -73,6 +82,14 @@ function initRoutes(detector, database) {
    */
   router.get('/status', async (req, res) => {
     try {
+      const detector = req.app.get('largeOrderDetector');
+      if (!detector) {
+        return res.status(503).json({
+          success: false,
+          error: '大额挂单检测器未初始化'
+        });
+      }
+      
       const status = detector.getMonitoringStatus();
       res.json({
         success: true,
@@ -98,6 +115,7 @@ function initRoutes(detector, database) {
    */
   router.get('/history', async (req, res) => {
     try {
+      const database = req.app.get('database');
       const { symbol, limit = 20 } = req.query;
       
       if (!symbol) {
@@ -142,6 +160,14 @@ function initRoutes(detector, database) {
    */
   router.post('/monitor/start', async (req, res) => {
     try {
+      const detector = req.app.get('largeOrderDetector');
+      if (!detector) {
+        return res.status(503).json({
+          success: false,
+          error: '大额挂单检测器未初始化'
+        });
+      }
+      
       const { symbol } = req.body;
       
       if (!symbol) {
@@ -176,6 +202,14 @@ function initRoutes(detector, database) {
    */
   router.post('/monitor/stop', async (req, res) => {
     try {
+      const detector = req.app.get('largeOrderDetector');
+      if (!detector) {
+        return res.status(503).json({
+          success: false,
+          error: '大额挂单检测器未初始化'
+        });
+      }
+      
       const { symbol } = req.body;
       
       if (symbol) {
@@ -210,6 +244,7 @@ function initRoutes(detector, database) {
    */
   router.get('/config', async (req, res) => {
     try {
+      const database = req.app.get('database');
       const sql = 'SELECT * FROM large_order_config';
       const rows = await database.query(sql);
       
