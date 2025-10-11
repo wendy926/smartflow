@@ -1265,14 +1265,18 @@
                     </tr>
                   </thead>
                   <tbody id="smart-money-tbody">
-                    <tr><td colspan="11" class="loading">加载中...</td></tr>
+                    <tr>
+                      <td colspan="11" class="loading">加载中...</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
 
-              <div class="smart-money-legend" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+              <div class="smart-money-legend"
+                style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
                 <h4 style="margin: 0 0 10px 0; font-size: 14px;">庄家动作说明：</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 12px;">
+                <div
+                  style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 12px;">
                   <div><span class="badge badge-accumulate">吸筹</span> 低价买入，价格不涨，OI增加</div>
                   <div><span class="badge badge-markup">拉升</span> 持续推高价格，成交量放大</div>
                   <div><span class="badge badge-distribution">派发</span> 高位出货，价格滞涨，OI增加</div>
@@ -1450,7 +1454,8 @@
                     </tbody>
                   </table>
 
-                  <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
+                  <div
+                    style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
                     <h5 style="margin: 0 0 10px 0; color: #0c5460;">🎯 评分逻辑详解</h5>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
                       <li><strong>基础评分</strong>：(短期置信度 + 中期置信度) ÷ 2</li>
@@ -1494,12 +1499,14 @@
               <div class="strategy-doc" id="telegram-notifications">
                 <div class="doc-header">
                   <h3>📱 Telegram通知系统</h3>
-                  <span class="strategy-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">NEW</span>
+                  <span class="strategy-badge"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">NEW</span>
                 </div>
                 <div class="doc-content">
                   <h4>通知类型</h4>
-                  
-                  <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
+
+                  <div
+                    style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
                     <h5 style="margin: 0 0 10px 0; color: #155724;">1. 交易触发通知</h5>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #155724;">
                       <li><strong>Bot</strong>: @smartflow_excute_bot</li>
@@ -1510,22 +1517,24 @@
                     </ul>
                   </div>
 
-                  <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
+                  <div
+                    style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
                     <h5 style="margin: 0 0 10px 0; color: #0c5460;">2. AI分析信号通知</h5>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
                       <li><strong>Bot</strong>: @smartflow_excute_bot（与交易触发共用）</li>
-                      <li><strong>触发条件</strong>: AI评分为strongBuy（≥78分）或strongSell（<38分）</li>
+                      <li><strong>触发条件</strong>: AI评分为strongBuy（≥78分）或strongSell（<38分）< /li>
                       <li><strong>发送频率</strong>: 每小时AI分析后自动检查</li>
                       <li><strong>冷却期</strong>: 1小时/每个交易对+信号组合</li>
                       <li><strong>通知内容</strong>: 交易对、信号、评分、价格、短期/中期趋势、价格区间、操作建议</li>
                     </ul>
                   </div>
 
-                  <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
+                  <div
+                    style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
                     <h5 style="margin: 0 0 10px 0; color: #856404;">3. 系统监控告警</h5>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #856404;">
                       <li><strong>Bot</strong>: @smartflow11_bot</li>
-                      <li><strong>触发条件</strong>: CPU>60%, 内存>60%, Binance API成功率<80%</li>
+                      <li><strong>触发条件</strong>: CPU>60%, 内存>60%, Binance API成功率<80%< /li>
                       <li><strong>检查频率</strong>: 30秒检查一次系统状态</li>
                       <li><strong>冷却期</strong>: 5分钟/每种告警类型</li>
                       <li><strong>通知内容</strong>: 告警类型、当前值、阈值、严重程度、处理建议</li>
@@ -1570,7 +1579,8 @@
                     <li>配置保存到数据库，重启后自动恢复</li>
                   </ol>
 
-                  <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #0066cc;">
+                  <div
+                    style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #0066cc;">
                     <h5 style="margin: 0 0 10px 0; color: #004085;">💡 容错优化 (2025-10-10)</h5>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #004085;">
                       <li><strong>部分完成也通知</strong>：即使AI分析任务部分完成，已完成的信号也会发送通知</li>
@@ -1664,14 +1674,14 @@
                     </tbody>
                   </table>
 
-                    <div
-                      style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
-                      <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 更新机制优化 (2025-10-10)</h5>
-                      <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
-                        <li><strong>前后端统一5分钟刷新</strong>：Dashboard与strategy-worker完全同步</li>
-                        <li><strong>策略判断不存储</strong>：实时计算，用完即弃，只有交易触发时才保存</li>
-                        <li><strong>前端不做计算</strong>：所有数据统一使用后端计算结果</li>
-                        <li>AI分析使用<strong>数据库缓存</strong>：每小时更新，避免频繁AI API调用</li>
+                  <div
+                    style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
+                    <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 更新机制优化 (2025-10-10)</h5>
+                    <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
+                      <li><strong>前后端统一5分钟刷新</strong>：Dashboard与strategy-worker完全同步</li>
+                      <li><strong>策略判断不存储</strong>：实时计算，用完即弃，只有交易触发时才保存</li>
+                      <li><strong>前端不做计算</strong>：所有数据统一使用后端计算结果</li>
+                      <li>AI分析使用<strong>数据库缓存</strong>：每小时更新，避免频繁AI API调用</li>
                       <li>减少98.3%的不必要请求，提升用户体验</li>
                     </ul>
                   </div>
@@ -2772,14 +2782,15 @@ ${atr >= 1 ? atr.toFixed(2) : atr.toFixed(4)}</pre>
                   </ul>
 
                   <h4>最新优化 (2025-10-10)</h4>
-                  <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #2196f3;">
+                  <div
+                    style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #2196f3;">
                     <h5 style="margin: 0 0 10px 0; color: #0d47a1;">🔄 前后端数据同步优化</h5>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #1565c0;">
                       <li><strong>统一刷新频率</strong>：前端Dashboard与后端strategy-worker都为5分钟</li>
                       <li><strong>实时价格显示</strong>：AI分析同时显示实时价格和分析时价格</li>
                       <li><strong>单例模式</strong>：Binance API使用单例，准确统计调用情况</li>
                       <li><strong>API监控</strong>：REST API和WebSocket成功率实时监控</li>
-                      <li><strong>自动告警</strong>：API成功率<80%自动Telegram通知</li>
+                      <li><strong>自动告警</strong>：API成功率<80%自动Telegram通知< /li>
                     </ul>
                   </div>
 

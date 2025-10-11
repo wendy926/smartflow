@@ -367,10 +367,10 @@ router.get('/health', async (req, res) => {
 router.post('/trigger-symbol-analysis', async (req, res) => {
   try {
     const { symbol } = req.body;  // 可选：指定单个交易对
-    
+
     // 获取scheduler实例（需要从main.js传入）
     const scheduler = req.app.get('aiScheduler');
-    
+
     if (!scheduler) {
       return res.status(503).json({
         success: false,
@@ -382,7 +382,7 @@ router.post('/trigger-symbol-analysis', async (req, res) => {
       // 分析单个交易对
       logger.info(`手动触发 ${symbol} AI分析`);
       const result = await scheduler.triggerSymbolAnalysis(symbol);
-      
+
       res.json({
         success: true,
         message: `${symbol} AI分析已完成`,
@@ -392,12 +392,12 @@ router.post('/trigger-symbol-analysis', async (req, res) => {
     } else {
       // 触发所有交易对分析
       logger.info('手动触发所有交易对AI分析');
-      
+
       // 异步执行，不阻塞响应
       scheduler.runSymbolAnalysis().catch(err => {
         logger.error('手动触发AI分析失败:', err);
       });
-      
+
       res.json({
         success: true,
         message: 'AI分析任务已触发，预计3-5分钟完成',
@@ -420,7 +420,7 @@ router.post('/trigger-symbol-analysis', async (req, res) => {
 router.get('/monitoring/status', async (req, res) => {
   try {
     const operations = getAIOps();
-    
+
     // 获取宏观风险分析状态
     const [macroAnalysis] = await operations.pool.query(`
       SELECT 

@@ -344,8 +344,15 @@ class SmartFlowApp {
         break;
       case 'smart-money':
         // 启动聪明钱跟踪自动刷新
-        if (typeof smartMoneyTracker !== 'undefined') {
+        if (typeof smartMoneyTracker !== 'undefined' && smartMoneyTracker) {
           smartMoneyTracker.startAutoRefresh();
+        } else {
+          // 如果smartMoneyTracker未初始化，延迟500ms后重试
+          setTimeout(() => {
+            if (typeof smartMoneyTracker !== 'undefined' && smartMoneyTracker) {
+              smartMoneyTracker.startAutoRefresh();
+            }
+          }, 500);
         }
         break;
     }
@@ -3219,7 +3226,7 @@ class SmartFlowApp {
 
       // 加载AI分析监控状态
       await this.loadAIMonitoringStatus();
-      
+
     } catch (error) {
       console.error('Error loading monitoring data:', error);
       // 降级显示
@@ -3244,7 +3251,7 @@ class SmartFlowApp {
   async loadAIMonitoringStatus() {
     try {
       const response = await this.fetchData('/ai/monitoring/status');
-      
+
       if (response.success && response.data) {
         this.updateAIMonitoringDisplay(response.data);
       }
@@ -3273,11 +3280,11 @@ class SmartFlowApp {
         macroStatus.textContent = isHealthy ? '正常' : '过期';
         macroStatus.className = `ai-status-badge ${isHealthy ? 'status-healthy' : 'status-stale'}`;
       }
-      
+
       if (macroSymbols) {
         macroSymbols.textContent = macro.symbols ? macro.symbols.join(', ') : '--';
       }
-      
+
       if (macroUpdated) {
         if (macro.lastUpdate) {
           const age = this.formatTimeAge(macro.ageMinutes);
@@ -3287,15 +3294,15 @@ class SmartFlowApp {
           macroUpdated.textContent = '未运行';
         }
       }
-      
+
       if (macroSuccessRate) {
         macroSuccessRate.textContent = `${macro.successRate}% (24h: ${macro.total24h}次)`;
         macroSuccessRate.className = macro.successRate >= 80 ? 'ai-detail-value text-success' : 'ai-detail-value text-danger';
       }
-      
+
       if (macroNext) {
-        macroNext.textContent = macro.nextUpdateMinutes > 0 
-          ? `${macro.nextUpdateMinutes}分钟后` 
+        macroNext.textContent = macro.nextUpdateMinutes > 0
+          ? `${macro.nextUpdateMinutes}分钟后`
           : '即将更新';
       }
     }
@@ -3313,11 +3320,11 @@ class SmartFlowApp {
         symbolStatus.textContent = isHealthy ? '正常' : '过期';
         symbolStatus.className = `ai-status-badge ${isHealthy ? 'status-healthy' : 'status-stale'}`;
       }
-      
+
       if (symbolCount) {
         symbolCount.textContent = `${symbol.count}个`;
       }
-      
+
       if (symbolUpdated) {
         if (symbol.lastUpdate) {
           const age = this.formatTimeAge(symbol.ageMinutes);
@@ -3327,15 +3334,15 @@ class SmartFlowApp {
           symbolUpdated.textContent = '未运行';
         }
       }
-      
+
       if (symbolSuccessRate) {
         symbolSuccessRate.textContent = `${symbol.successRate}% (24h: ${symbol.total24h}次)`;
         symbolSuccessRate.className = symbol.successRate >= 80 ? 'ai-detail-value text-success' : 'ai-detail-value text-danger';
       }
-      
+
       if (symbolNext) {
-        symbolNext.textContent = symbol.nextUpdateMinutes > 0 
-          ? `${symbol.nextUpdateMinutes}分钟后` 
+        symbolNext.textContent = symbol.nextUpdateMinutes > 0
+          ? `${symbol.nextUpdateMinutes}分钟后`
           : '即将更新';
       }
     }

@@ -52,6 +52,13 @@ class SmartMoneyTracker {
       const priceChange = result.indicators?.priceChange || 0;
       const priceChangeClass = priceChange >= 0 ? 'positive' : 'negative';
 
+      // 格式化指标显示
+      const obi = result.indicators?.obi || 0;
+      const cvd = result.indicators?.cvd || 0;
+      const oiChange = result.indicators?.oiChange || 0;
+      const volume = result.indicators?.volZ || 0;
+      const fundingRate = result.indicators?.fundingRate || 0;
+
       return `
         <tr class="action-${actionClass}">
           <td><strong>${result.symbol}</strong></td>
@@ -63,10 +70,21 @@ class SmartMoneyTracker {
           </td>
           <td><span class="badge badge-${actionClass}">${result.action}</span></td>
           <td><span class="badge badge-${confidenceClass}">${(result.confidence * 100).toFixed(0)}%</span></td>
-          <td title="Order Book Imbalance">${result.indicators?.obiZ?.toFixed(2) || '-'}σ</td>
-          <td title="Cumulative Volume Delta">${result.indicators?.cvdZ?.toFixed(2) || '-'}σ</td>
-          <td title="Open Interest Change">${result.indicators?.oiZ?.toFixed(2) || '-'}σ</td>
-          <td title="Volume Spike">${result.indicators?.volZ?.toFixed(2) || '-'}σ</td>
+          <td title="Order Book Imbalance - 订单簿失衡">
+            <div>${obi.toFixed(2)}</div>
+            <small style="color: #999;">(${result.indicators?.obiZ?.toFixed(2) || '0.00'}σ)</small>
+          </td>
+          <td title="Cumulative Volume Delta - 累计成交量差">
+            <div>${this.formatNumber(cvd)}</div>
+            <small style="color: #999;">(${result.indicators?.cvdZ?.toFixed(2) || '0.00'}σ)</small>
+          </td>
+          <td title="Open Interest Change - 持仓量变化">
+            <div class="${oiChange >= 0 ? 'positive' : 'negative'}">${this.formatNumber(oiChange)}</div>
+            <small style="color: #999;">(${result.indicators?.oiZ?.toFixed(2) || '0.00'}σ)</small>
+          </td>
+          <td title="Volume - 成交量异常">
+            <div>${volume.toFixed(2)}σ</div>
+          </td>
           <td>${trendIcon}</td>
           <td class="reason-cell" title="${result.reason}">${this.truncateReason(result.reason)}</td>
           <td>
@@ -208,6 +226,20 @@ class SmartMoneyTracker {
         second: '2-digit'
       });
       elem.textContent = `(最后更新: ${formatted})`;
+    }
+  }
+
+  /**
+   * 格式化数字显示（带千分位）
+   */
+  formatNumber(num) {
+    const absNum = Math.abs(num);
+    if (absNum >= 1000000) {
+      return (num / 1000000).toFixed(2) + 'M';
+    } else if (absNum >= 1000) {
+      return (num / 1000).toFixed(2) + 'K';
+    } else {
+      return num.toFixed(2);
     }
   }
 
