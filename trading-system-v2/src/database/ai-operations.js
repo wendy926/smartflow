@@ -83,6 +83,24 @@ class AIOperations {
     try {
       const { symbol, analysisType, analysisData, riskLevel, confidenceScore, alertTriggered, rawResponse } = data;
 
+      // 紧急优化：保存前清理旧数据，只保留最近30条（降低磁盘IO）
+      await this.pool.query(
+        `DELETE FROM ai_market_analysis 
+         WHERE symbol = ? AND analysis_type = ?
+         AND id NOT IN (
+           SELECT id FROM (
+             SELECT id FROM ai_market_analysis 
+             WHERE symbol = ? AND analysis_type = ?
+             ORDER BY created_at DESC 
+             LIMIT 30
+           ) tmp
+         )`,
+        [symbol, analysisType, symbol, analysisType]
+      ).catch(err => {
+        // 清理失败不影响保存
+        logger.warn(`清理AI历史数据失败: ${err.message}`);
+      });
+
       const [result] = await this.pool.query(
         `INSERT INTO ai_market_analysis 
         (symbol, analysis_type, analysis_data, risk_level, confidence_score, alert_triggered, raw_response)
@@ -98,7 +116,7 @@ class AIOperations {
         ]
       );
 
-      logger.info(`AI分析记录已保存 - ID: ${result.insertId}, 交易对: ${symbol}, 类型: ${analysisType}`);
+      logger.debug(`AI分析记录已保存 - ID: ${result.insertId}, 交易对: ${symbol}, 类型: ${analysisType}`);
       return result.insertId;
     } catch (error) {
       logger.error('保存AI分析记录失败:', error);
