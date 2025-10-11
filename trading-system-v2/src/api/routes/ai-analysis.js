@@ -413,5 +413,100 @@ router.post('/trigger-symbol-analysis', async (req, res) => {
   }
 });
 
+/**
+ * 获取AI分析监控状态（用于系统监控页面）
+ * GET /api/v1/ai/monitoring/status
+ */
+router.get('/monitoring/status', async (req, res) => {
+  try {
+    const operations = getAIOps();
+    
+    // 获取宏观风险分析状态
+    const [macroAnalysis] = await operations.pool.query(`
+      SELECT 
+        symbol,
+        risk_level,
+        created_at,
+        TIMESTAMPDIFF(MINUTE, created_at, NOW()) as age_minutes
+      FROM ai_market_analysis
+      WHERE analysis_type = 'MACRO_RISK'
+      ORDER BY created_at DESC
+      LIMIT 10
+    `);
+
+    // 获取交易对趋势分析状态
+    const [symbolAnalysis] = await operations.pool.query(`
+      SELECT 
+        symbol,
+        created_at,
+        TIMESTAMPDIFF(MINUTE, created_at, NOW()) as age_minutes
+      FROM ai_market_analysis
+      WHERE analysis_type = 'SYMBOL_TREND'
+      ORDER BY created_at DESC
+      LIMIT 20
+    `);
+
+    // 获取最近24小时的成功率统计
+    const [stats] = await operations.pool.query(`
+      SELECT 
+        analysis_type,
+        COUNT(*) as total,
+        SUM(CASE WHEN risk_level IS NOT NULL OR analysis_data IS NOT NULL THEN 1 ELSE 0 END) as success
+      FROM ai_market_analysis
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+      GROUP BY analysis_type
+    `);
+
+    // 处理宏观分析状态
+    const macroSymbols = [...new Set(macroAnalysis.map(a => a.symbol))];
+    const macroLatest = macroAnalysis.length > 0 ? macroAnalysis[0] : null;
+    const macroStats = stats.find(s => s.analysis_type === 'MACRO_RISK');
+    const macroSuccessRate = macroStats ? ((macroStats.success / macroStats.total) * 100).toFixed(1) : '100.0';
+
+    // 处理交易对分析状态
+    const symbolCount = [...new Set(symbolAnalysis.map(a => a.symbol))].length;
+    const symbolLatest = symbolAnalysis.length > 0 ? symbolAnalysis[0] : null;
+    const symbolStats = stats.find(s => s.analysis_type === 'SYMBOL_TREND');
+    const symbolSuccessRate = symbolStats ? ((symbolStats.success / symbolStats.total) * 100).toFixed(1) : '100.0';
+
+    // 获取配置
+    const config = await operations.getConfig();
+    const macroInterval = parseInt(config.macro_update_interval || 3600);
+    const symbolInterval = parseInt(config.symbol_update_interval || 900);
+
+    res.json({
+      success: true,
+      data: {
+        macro: {
+          symbols: macroSymbols,
+          lastUpdate: macroLatest ? macroLatest.created_at : null,
+          ageMinutes: macroLatest ? macroLatest.age_minutes : null,
+          successRate: parseFloat(macroSuccessRate),
+          nextUpdateMinutes: macroLatest ? Math.max(0, Math.floor(macroInterval / 60) - macroLatest.age_minutes) : 0,
+          intervalMinutes: Math.floor(macroInterval / 60),
+          total24h: macroStats ? macroStats.total : 0
+        },
+        symbol: {
+          count: symbolCount,
+          lastUpdate: symbolLatest ? symbolLatest.created_at : null,
+          ageMinutes: symbolLatest ? symbolLatest.age_minutes : null,
+          successRate: parseFloat(symbolSuccessRate),
+          nextUpdateMinutes: symbolLatest ? Math.max(0, Math.floor(symbolInterval / 60) - symbolLatest.age_minutes) : 0,
+          intervalMinutes: Math.floor(symbolInterval / 60),
+          total24h: symbolStats ? symbolStats.total : 0
+        }
+      },
+      timestamp: toBeijingISO()
+    });
+
+  } catch (error) {
+    logger.error('获取AI监控状态失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 
