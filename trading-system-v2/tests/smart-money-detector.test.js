@@ -108,11 +108,12 @@ describe('SmartMoneyDetector', () => {
   describe('_mapScoreToAction', () => {
     test('应该检测拉升动作', () => {
       const action = detector._mapScoreToAction(
-        0.7,        // score > 0.5
-        10,         // priceChange > 0
-        1.5,        // cvdZ > 0
+        0.7,        // score
+        100,        // priceChange (>30涨幅>0.5%)
+        1.5,        // cvdZ > 0.5
         1000,       // oiChange > 0
-        2.0         // obiZ > 0
+        2.0,        // obiZ
+        10000       // currentPrice
       );
 
       expect(action).toBe('拉升');
@@ -120,11 +121,12 @@ describe('SmartMoneyDetector', () => {
 
     test('应该检测吸筹动作', () => {
       const action = detector._mapScoreToAction(
-        0.6,        // score > 0.5
-        -1,         // priceChange <= 0
-        1.5,        // cvdZ > 0
-        1000,       // oiChange > 0
-        1.0         // obiZ
+        0.6,        // score
+        -5,         // priceChange（小跌）
+        1.5,        // cvdZ > 0.5（CVD上升）
+        1000,       // oiChange > 0（OI上升）
+        1.0,        // obiZ
+        10000       // currentPrice
       );
 
       expect(action).toBe('吸筹');
@@ -132,11 +134,12 @@ describe('SmartMoneyDetector', () => {
 
     test('应该检测砸盘动作', () => {
       const action = detector._mapScoreToAction(
-        -0.7,       // score < -0.5
-        -10,        // priceChange < 0
-        -1.5,       // cvdZ < 0
-        500,        // oiChange > 0
-        -2.0        // obiZ < 0
+        -0.7,       // score
+        -100,       // priceChange（明显下跌>0.5%）
+        -1.5,       // cvdZ < -0.5（CVD下降）
+        -500,       // oiChange < 0（OI下降）
+        -2.0,       // obiZ
+        10000       // currentPrice
       );
 
       expect(action).toBe('砸盘');
@@ -144,18 +147,19 @@ describe('SmartMoneyDetector', () => {
 
     test('应该检测派发动作', () => {
       const action = detector._mapScoreToAction(
-        -0.6,       // score < -0.5
-        1,          // priceChange >= 0
-        -1.5,       // cvdZ < 0
-        500,        // oiChange > 0
-        -1.0        // obiZ
+        -0.6,       // score
+        10,         // priceChange（小涨）
+        -1.5,       // cvdZ < -0.5（CVD下降）
+        500,        // oiChange > 0（OI上升）
+        -1.0,       // obiZ
+        10000       // currentPrice
       );
 
       expect(action).toBe('派发');
     });
 
     test('应该返回无动作当不符合四象限', () => {
-      const action = detector._mapScoreToAction(0.2, 0, 0, 0, 0);
+      const action = detector._mapScoreToAction(0.2, 0, 0, 0, 0, 10000);
       expect(action).toBe('无动作');
     });
   });

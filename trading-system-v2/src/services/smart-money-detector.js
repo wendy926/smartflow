@@ -479,15 +479,37 @@ class SmartMoneyDetector {
     }
 
     // 根据分数和市场状态判断动作
-    const action = this._mapScoreToAction(score, priceChange, cvdZ, oiChange, obiZ);
-    const confidence = Math.min(1, Math.max(0, Math.abs(score)));
+    const currentPrice = parseFloat(last[4]); // 当前价格
+    const actionResult = this._mapScoreToAction(score, priceChange, cvdZ, oiChange, obiZ, currentPrice);
+    
+    // 置信度计算（基于四象限条件满足程度）
+    let confidence = 0;
+    
+    if (actionResult !== '无动作') {
+      // 符合四象限时，根据条件强度计算置信度
+      const cvdStrength = Math.min(1, Math.abs(cvdZ) / 2); // CVD强度（2σ=100%）
+      const oiStrength = Math.min(1, Math.abs(oiChange) / 10000); // OI变化强度（10000=100%）
+      const priceChangeAbs = Math.abs(priceChange);
+      const priceStrength = Math.min(1, priceChangeAbs / 100); // 价格变化强度（100=100%）
+      
+      // 综合置信度（CVD权重最高）
+      confidence = cvdStrength * 0.5 + oiStrength * 0.3 + priceStrength * 0.2;
+      confidence = Math.min(0.95, Math.max(0.3, confidence)); // 限制在30%-95%范围
+      
+      // 趋势对齐时提升置信度
+      if (trend.aligned) {
+        confidence = Math.min(0.95, confidence * 1.2);
+      }
+    } else {
+      // 无动作时，置信度基于score绝对值
+      confidence = Math.min(0.3, Math.abs(score));
+    }
 
-    // 趋势不对齐时降低置信度
-    const finalConfidence = trend.aligned ? confidence : confidence * 0.6;
+    const finalConfidence = confidence;
 
     return {
       symbol,
-      action,
+      action: actionResult,
       confidence: parseFloat(finalConfidence.toFixed(2)),
       reason: reasons.join(', '),
       indicators: {
@@ -522,7 +544,7 @@ class SmartMoneyDetector {
    * 如果不符合任何四象限，返回"无动作"
    * @private
    */
-  _mapScoreToAction(score, priceChange, cvdZ, oiChange, obiZ) {
+  _mapScoreToAction(score, priceChange, cvdZ, oiChange, obiZ, currentPrice) {
     // 判断CVD方向（使用Z-score，更准确）
     // 需要明显的Z-score才算"上升"或"下降"
     const cvdRising = cvdZ > 0.5;   // CVD明显上升
@@ -532,13 +554,15 @@ class SmartMoneyDetector {
     const oiRising = oiChange > 0;   // OI上升
     const oiFalling = oiChange < 0;  // OI下降
     
-    // 判断价格趋势（参考文档示例）
-    const priceChangeAbs = Math.abs(priceChange);
-    const priceUp = priceChange > 30;         // 价格明显上行（涨幅>30）
-    const priceDown = priceChange < -30;      // 价格明显下行（跌幅>30）
-    const priceFlat = priceChangeAbs <= 10;   // 价格横盘（波动<=10）
-    const priceSmallUp = priceChange > 0 && priceChange <= 30;   // 价格小涨
-    const priceSmallDown = priceChange < 0 && priceChange >= -30; // 价格小跌
+    // 判断价格趋势（使用百分比，适用所有价格区间）
+    const priceChangePct = (priceChange / (currentPrice - priceChange)) * 100; // 涨跌幅百分比
+    const priceChangeAbs = Math.abs(priceChangePct);
+    
+    const priceUp = priceChangePct > 0.5;        // 价格明显上行（涨幅>0.5%）
+    const priceDown = priceChangePct < -0.5;     // 价格明显下行（跌幅>0.5%）
+    const priceFlat = priceChangeAbs <= 0.2;     // 价格横盘（波动<=0.2%）
+    const priceSmallUp = priceChangePct > 0 && priceChangePct <= 0.5;   // 价格小涨（0-0.5%）
+    const priceSmallDown = priceChangePct < 0 && priceChangePct >= -0.5; // 价格小跌（0-0.5%）
     
     // 严格四象限判断（必须同时满足3个条件）
     
