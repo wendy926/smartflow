@@ -25,17 +25,17 @@ function initRoutes() {
     try {
       const detector = req.app.get('largeOrderDetector');
       const database = req.app.get('database');
-      
+
       if (!detector) {
         return res.status(503).json({
           success: false,
           error: '大额挂单检测器未初始化'
         });
       }
-      
+
       const { symbols } = req.query;
       let targetSymbols = [];
-      
+
       if (symbols) {
         targetSymbols = symbols.split(',').map(s => s.trim().toUpperCase());
       } else {
@@ -44,7 +44,7 @@ function initRoutes() {
         const rows = await database.query(sql);
         targetSymbols = rows.map(row => row.symbol);
       }
-      
+
       const results = [];
       for (const symbol of targetSymbols) {
         try {
@@ -59,7 +59,7 @@ function initRoutes() {
           });
         }
       }
-      
+
       res.json({
         success: true,
         data: results,
@@ -89,7 +89,7 @@ function initRoutes() {
           error: '大额挂单检测器未初始化'
         });
       }
-      
+
       const status = detector.getMonitoringStatus();
       res.json({
         success: true,
@@ -117,23 +117,23 @@ function initRoutes() {
     try {
       const database = req.app.get('database');
       const { symbol, limit = 20 } = req.query;
-      
+
       if (!symbol) {
         return res.status(400).json({
           success: false,
           error: 'symbol参数必填'
         });
       }
-      
+
       const sql = `
         SELECT * FROM large_order_detection_results 
         WHERE symbol = ? 
         ORDER BY timestamp DESC 
         LIMIT ?
       `;
-      
+
       const rows = await database.query(sql, [symbol.toUpperCase(), parseInt(limit)]);
-      
+
       res.json({
         success: true,
         data: rows.map(row => ({
@@ -167,18 +167,18 @@ function initRoutes() {
           error: '大额挂单检测器未初始化'
         });
       }
-      
+
       const { symbol } = req.body;
-      
+
       if (!symbol) {
         return res.status(400).json({
           success: false,
           error: 'symbol参数必填'
         });
       }
-      
+
       detector.startMonitoring(symbol.toUpperCase());
-      
+
       res.json({
         success: true,
         message: `已启动 ${symbol} 的监控`,
@@ -209,9 +209,9 @@ function initRoutes() {
           error: '大额挂单检测器未初始化'
         });
       }
-      
+
       const { symbol } = req.body;
-      
+
       if (symbol) {
         detector.stopMonitoring(symbol.toUpperCase());
         res.json({
@@ -247,7 +247,7 @@ function initRoutes() {
       const database = req.app.get('database');
       const sql = 'SELECT * FROM large_order_config';
       const rows = await database.query(sql);
-      
+
       res.json({
         success: true,
         data: rows,
