@@ -1274,14 +1274,18 @@
 
               <div class="smart-money-legend"
                 style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
-                <h4 style="margin: 0 0 10px 0; font-size: 14px;">庄家动作说明：</h4>
+                <h4 style="margin: 0 0 10px 0; font-size: 14px;">庄家动作说明（严格四象限模型）：</h4>
                 <div
-                  style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 12px;">
-                  <div><span class="badge badge-accumulate">吸筹</span> 低价买入，价格不涨，OI增加</div>
-                  <div><span class="badge badge-markup">拉升</span> 持续推高价格，成交量放大</div>
-                  <div><span class="badge badge-distribution">派发</span> 高位出货，价格滞涨，OI增加</div>
-                  <div><span class="badge badge-markdown">砸盘</span> 打压价格，快速下跌</div>
+                  style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; font-size: 12px;">
+                  <div><span class="badge badge-accumulate">吸筹</span> 价格横盘/小跌 + CVD↑ + OI↑</div>
+                  <div><span class="badge badge-markup">拉升</span> 价格上行 + CVD↑ + OI↑</div>
+                  <div><span class="badge badge-distribution">派发</span> 价格横盘/小涨 + CVD↓ + OI↑</div>
+                  <div><span class="badge badge-markdown">砸盘</span> 价格下行 + CVD↓ + OI↓</div>
+                  <div><span class="badge badge-none">无动作</span> 不符合四象限条件</div>
                 </div>
+                <p style="margin-top: 10px; font-size: 11px; color: #666;">
+                  💡 说明：必须同时满足价格、CVD、OI三个条件才判定为庄家动作，否则显示"无动作"
+                </p>
               </div>
             </div>
           </div>

@@ -106,6 +106,7 @@ class SmartMoneyTracker {
       '拉升': 'markup',
       '派发': 'distribution',
       '砸盘': 'markdown',
+      '无动作': 'none',
       '观望': 'unknown',
       'ERROR': 'error'
     };

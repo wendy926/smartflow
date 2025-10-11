@@ -154,9 +154,9 @@ describe('SmartMoneyDetector', () => {
       expect(action).toBe('派发');
     });
 
-    test('应该返回观望当分数中性', () => {
+    test('应该返回无动作当不符合四象限', () => {
       const action = detector._mapScoreToAction(0.2, 0, 0, 0, 0);
-      expect(action).toBe('观望');
+      expect(action).toBe('无动作');
     });
   });
 

@@ -257,3 +257,17 @@ tr.action-markdown {
     font-size: 11px;
   }
 }
+/* 无动作状态样式 */
+.badge-none {
+  background: #e9ecef;
+  color: #6c757d;
+  border: 1px dashed #adb5bd;
+}
+
+.action-none {
+  background: #f8f9fa !important;
+}
+
+.action-none:hover {
+  background: #e9ecef !important;
+}
