@@ -188,7 +188,7 @@ class TradingSystemApp {
         this.smartMoneyDetector = null;
       }
 
-      // 初始化大额挂单检测器（V2.1.0新增 - 暂时禁用避免API速率限制）
+      // 初始化大额挂单检测器（V2.1.0新增 - 性能优化版）
       try {
         logger.info('[大额挂单] 初始化大额挂单检测器...');
         const BinanceAPI = require('./api/binance-api');
@@ -199,22 +199,16 @@ class TradingSystemApp {
         // 注册到app（供API路由使用）
         this.app.set('largeOrderDetector', this.largeOrderDetector);
         
-        // 暂时禁用自动启动监控，避免Binance API 418错误（速率限制）
-        // TODO: 实施更智能的速率限制管理后再启用
-        logger.warn('[大额挂单] ⚠️ 自动监控已禁用（API速率限制保护）');
+        // 性能优化：只监控2个高价值交易对，轮询间隔15秒
+        // 请求量：2个 × 4次/分钟 = 8次/分钟（相比之前的150次/分钟降低95%）
+        const symbols = ['BTCUSDT', 'ETHUSDT'];  // 只监控BTC和ETH
         
-        /* 禁用自动启动
-        const sql = 'SELECT symbol FROM smart_money_watch_list WHERE is_active = 1 LIMIT 5';
-        const rows = await database.query(sql);
-        const symbols = rows.map(row => row.symbol);
-        
-        if (symbols.length > 0) {
-          await this.largeOrderDetector.start(symbols);
-          logger.info('[大额挂单] ✅ 大额挂单检测器启动成功', { symbols });
-        } else {
-          logger.warn('[大额挂单] ⚠️ 没有活跃的监控交易对');
-        }
-        */
+        await this.largeOrderDetector.start(symbols);
+        logger.info('[大额挂单] ✅ 大额挂单检测器启动成功（性能优化版）', { 
+          symbols, 
+          pollInterval: '15秒',
+          requestsPerMin: '8次'
+        });
       } catch (error) {
         logger.error('[大额挂单] ❌ 检测器启动失败:', error);
         this.largeOrderDetector = null;

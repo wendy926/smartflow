@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS large_order_config (
 -- 4. 插入默认配置
 INSERT INTO large_order_config (config_key, config_value, config_type, description) VALUES
 ('LARGE_USD_THRESHOLD', '100000000', 'NUMBER', '大额挂单阈值(USD)'),
-('POLL_INTERVAL_MS', '2000', 'NUMBER', '深度轮询间隔(ms)'),
+('POLL_INTERVAL_MS', '15000', 'NUMBER', '深度轮询间隔(ms) - 优化后15秒'),
 ('DEPTH_LIMIT', '1000', 'NUMBER', 'REST depth limit'),
 ('TOPN', '50', 'NUMBER', '计算影响力的深度档位数'),
 ('PERSIST_SNAPSHOTS', '3', 'NUMBER', '持续挂单最小检测次数'),
