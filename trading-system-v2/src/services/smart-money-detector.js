@@ -519,6 +519,7 @@ class SmartMoneyDetector {
         obiZ: parseFloat(obiZ.toFixed(2)),
         cvd: parseFloat(cvdNow.toFixed(2)),
         cvdZ: parseFloat(cvdZ.toFixed(2)),
+        oi: currentOI,  // 添加持仓量本身
         oiChange: parseFloat(oiChange.toFixed(2)),
         oiZ: parseFloat(oiZ.toFixed(2)),
         volZ: parseFloat(volZ.toFixed(2)),
