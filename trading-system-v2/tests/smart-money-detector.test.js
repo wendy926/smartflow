@@ -31,7 +31,7 @@ describe('SmartMoneyDetector', () => {
       };
 
       const obi = detector._calculateOBI(mockDepth, 3);
-      
+
       // bids: 10+20+15=45, asks: 5+10+8=23
       expect(obi).toBe(22);
     });
@@ -235,14 +235,14 @@ function generateMockKlines(count, startPrice, endPrice, increasing = true) {
   for (let i = 0; i < count; i++) {
     const basePrice = startPrice + (priceStep * i);
     const randomVar = basePrice * 0.01 * (Math.random() - 0.5);
-    
+
     const open = basePrice + randomVar;
-    const close = increasing 
-      ? basePrice + Math.abs(randomVar) 
+    const close = increasing
+      ? basePrice + Math.abs(randomVar)
       : basePrice - Math.abs(randomVar);
     const high = Math.max(open, close) * 1.01;
     const low = Math.min(open, close) * 0.99;
-    
+
     const volume = 1000000 * (1 + (increasing ? 0.5 : -0.5) * (i / count));
 
     klines.push([

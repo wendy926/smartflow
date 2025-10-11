@@ -54,6 +54,7 @@ class SmartFlowApp {
       '/statistics': 'statistics',
       '/tools': 'tools',
       '/smart-money': 'smart-money',
+      '/large-orders': 'large-orders',
       '/docs': 'docs'
     };
 
@@ -351,6 +352,18 @@ class SmartFlowApp {
           setTimeout(() => {
             if (typeof smartMoneyTracker !== 'undefined' && smartMoneyTracker) {
               smartMoneyTracker.startAutoRefresh();
+            }
+          }, 500);
+        }
+        break;
+      case 'large-orders':
+        // V2.1.0: 启动大额挂单监控自动刷新
+        if (typeof largeOrdersTracker !== 'undefined' && largeOrdersTracker) {
+          largeOrdersTracker.startAutoRefresh();
+        } else {
+          setTimeout(() => {
+            if (typeof largeOrdersTracker !== 'undefined' && largeOrdersTracker) {
+              largeOrdersTracker.startAutoRefresh();
             }
           }, 500);
         }

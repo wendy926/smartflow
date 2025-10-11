@@ -21,6 +21,7 @@ const AIAnalysisScheduler = require('./services/ai-agent/scheduler');
 const TelegramAlert = require('./services/telegram-alert');
 const TelegramMonitoringService = require('./services/telegram-monitoring');
 const SmartMoneyDetector = require('./services/smart-money-detector');
+const LargeOrderDetector = require('./services/large-order/detector'); // V2.1.0新增：大额挂单监控
 
 class TradingSystemApp {
   constructor() {
@@ -30,6 +31,7 @@ class TradingSystemApp {
     this.macroMonitor = null;
     this.aiScheduler = null;
     this.smartMoneyDetector = null;
+    this.largeOrderDetector = null; // V2.1.0新增
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -70,6 +72,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/macro-monitor', require('./api/routes/macro-monitor'));
     // this.app.use('/api/v1/new-coin-monitor', require('./api/routes/new-coin-monitor')); // V2.0禁用：功能未使用
     this.app.use('/api/v1/smart-money', require('./api/routes/smart-money')); // V2.0.1新增：聪明钱跟踪
+    // V2.1.0新增：大额挂单监控 - 延迟注册（需要在start中初始化detector）
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
@@ -92,7 +95,7 @@ class TradingSystemApp {
     });
 
     // 前端路由处理 - 支持SPA路由
-    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', /* '/new-coin-monitor', */ '/tools', '/smart-money', '/docs'], (req, res) => {
+    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', /* '/new-coin-monitor', */ '/tools', '/smart-money', '/large-orders', '/docs'], (req, res) => {
       res.sendFile('index.html', { root: 'src/web' });
     });
   }
@@ -183,6 +186,34 @@ class TradingSystemApp {
       } catch (error) {
         logger.error('[聪明钱] ❌ 检测器启动失败:', error);
         this.smartMoneyDetector = null;
+      }
+
+      // 初始化大额挂单检测器（V2.1.0新增）
+      try {
+        logger.info('[大额挂单] 初始化大额挂单检测器...');
+        this.largeOrderDetector = new LargeOrderDetector(binanceAPI, database);
+        await this.largeOrderDetector.loadConfig();
+        
+        // 注册API路由（需要detector实例）
+        const largeOrderRoutes = require('./api/routes/large-orders')(this.largeOrderDetector, database);
+        this.app.use('/api/v1/large-orders', largeOrderRoutes);
+        
+        // 获取活跃监控交易对并启动监控
+        const sql = 'SELECT symbol FROM smart_money_watch_list WHERE is_active = 1 LIMIT 5';
+        const rows = await database.query(sql);
+        const symbols = rows.map(row => row.symbol);
+        
+        if (symbols.length > 0) {
+          await this.largeOrderDetector.start(symbols);
+          logger.info('[大额挂单] ✅ 大额挂单检测器启动成功', { symbols });
+        } else {
+          logger.warn('[大额挂单] ⚠️ 没有活跃的监控交易对');
+        }
+        
+        this.app.set('largeOrderDetector', this.largeOrderDetector);
+      } catch (error) {
+        logger.error('[大额挂单] ❌ 检测器启动失败:', error);
+        this.largeOrderDetector = null;
       }
 
       // 暂时禁用数据更新服务以避免连接池问题

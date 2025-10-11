@@ -481,21 +481,21 @@ class SmartMoneyDetector {
     // 根据分数和市场状态判断动作
     const currentPrice = parseFloat(last[4]); // 当前价格
     const actionResult = this._mapScoreToAction(score, priceChange, cvdZ, oiChange, obiZ, currentPrice);
-    
+
     // 置信度计算（基于四象限条件满足程度）
     let confidence = 0;
-    
+
     if (actionResult !== '无动作') {
       // 符合四象限时，根据条件强度计算置信度
       const cvdStrength = Math.min(1, Math.abs(cvdZ) / 2); // CVD强度（2σ=100%）
       const oiStrength = Math.min(1, Math.abs(oiChange) / 10000); // OI变化强度（10000=100%）
       const priceChangeAbs = Math.abs(priceChange);
       const priceStrength = Math.min(1, priceChangeAbs / 100); // 价格变化强度（100=100%）
-      
+
       // 综合置信度（CVD权重最高）
       confidence = cvdStrength * 0.5 + oiStrength * 0.3 + priceStrength * 0.2;
       confidence = Math.min(0.95, Math.max(0.3, confidence)); // 限制在30%-95%范围
-      
+
       // 趋势对齐时提升置信度
       if (trend.aligned) {
         confidence = Math.min(0.95, confidence * 1.2);
@@ -549,43 +549,43 @@ class SmartMoneyDetector {
     // 需要明显的Z-score才算"上升"或"下降"
     const cvdRising = cvdZ > 0.5;   // CVD明显上升
     const cvdFalling = cvdZ < -0.5; // CVD明显下降
-    
+
     // 判断OI方向（使用原始值）
     const oiRising = oiChange > 0;   // OI上升
     const oiFalling = oiChange < 0;  // OI下降
-    
+
     // 判断价格趋势（使用百分比，适用所有价格区间）
     const priceChangePct = (priceChange / (currentPrice - priceChange)) * 100; // 涨跌幅百分比
     const priceChangeAbs = Math.abs(priceChangePct);
-    
+
     const priceUp = priceChangePct > 0.5;        // 价格明显上行（涨幅>0.5%）
     const priceDown = priceChangePct < -0.5;     // 价格明显下行（跌幅>0.5%）
     const priceFlat = priceChangeAbs <= 0.2;     // 价格横盘（波动<=0.2%）
     const priceSmallUp = priceChangePct > 0 && priceChangePct <= 0.5;   // 价格小涨（0-0.5%）
     const priceSmallDown = priceChangePct < 0 && priceChangePct >= -0.5; // 价格小跌（0-0.5%）
-    
+
     // 严格四象限判断（必须同时满足3个条件）
-    
+
     // 1. 拉升：价格上行 + CVD上升 + OI上升
     if (priceUp && cvdRising && oiRising) {
       return '拉升'; // MARKUP
     }
-    
+
     // 2. 吸筹：(价格横盘 OR 小跌) + CVD上升 + OI上升
     if ((priceFlat || priceSmallDown) && cvdRising && oiRising) {
       return '吸筹'; // ACCUMULATE
     }
-    
+
     // 3. 派发：(价格横盘 OR 小涨) + CVD下降 + OI上升
     if ((priceFlat || priceSmallUp) && cvdFalling && oiRising) {
       return '派发'; // DISTRIBUTION
     }
-    
+
     // 4. 砸盘：价格下行 + CVD下降 + OI下降
     if (priceDown && cvdFalling && oiFalling) {
       return '砸盘'; // MARKDOWN
     }
-    
+
     // 不符合任何四象限模型 → 无动作
     return '无动作';
   }
