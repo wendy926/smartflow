@@ -512,49 +512,84 @@ class SmartMoneyDetector {
   }
 
   /**
-   * 将分数映射到动作（只返回4类庄家动作）
-   * 核心逻辑：以价格变化为主要依据，CVD/OBI为辅助判断
+   * 将分数映射到动作（严格按照文档四象限模型）
+   * 判断逻辑：
+   *   吸筹：价格横盘 or 小跌 + CVD上升 + OI上升
+   *   拉升：价格上行 + CVD上升 + OI上升
+   *   派发：价格横盘 or 小涨 + CVD下降 + OI上升
+   *   砸盘：价格下行 + CVD下降 + OI下降
    * @private
    */
   _mapScoreToAction(score, priceChange, cvdZ, oiChange, obiZ) {
-    // 计算价格变化的相对幅度（需要传入当前价格）
+    // 判断CVD方向（正=上升，负=下降）
+    const cvdRising = cvdZ > 0 || score > 0.2;  // CVD上升：cvdZ正值或综合评分正
+    const cvdFalling = cvdZ < 0 || score < -0.2; // CVD下降：cvdZ负值或综合评分负
+    
+    // 判断OI方向（正=上升，负=下降）
+    const oiRising = oiChange > 0;   // OI上升
+    const oiFalling = oiChange < 0;  // OI下降
+    
+    // 判断价格趋势
     const priceChangeAbs = Math.abs(priceChange);
-
-    // 判断买卖压力（综合CVD和OBI）
-    const buyPressure = (cvdZ > 0 ? 1 : 0) + (obiZ > 0 ? 1 : 0);
-    const sellPressure = (cvdZ < 0 ? 1 : 0) + (obiZ < 0 ? 1 : 0);
-
-    // 价格明显上涨（priceChange > 0）
-    if (priceChange > 0) {
-      // 强势上涨 + 买盘主导 = 拉升
-      if (priceChangeAbs > 50 || buyPressure >= 1 || score > 0.3) {
-        return '拉升'; // MARKUP - 持续推高价格，成交量放大
-      }
-      // 弱势上涨 或 卖盘主导 = 吸筹（反弹中吸筹）
-      else {
-        return '吸筹'; // ACCUMULATE - 低价买入，价格小涨，缓慢建仓
-      }
+    const priceUp = priceChange > 30;         // 价格明显上行（涨幅>30）
+    const priceDown = priceChange < -30;      // 价格明显下行（跌幅>30）
+    const priceFlat = priceChangeAbs <= 30;   // 价格横盘或小幅波动
+    const priceSmallUp = priceChange > 0 && priceChange <= 30;   // 价格小涨
+    const priceSmallDown = priceChange < 0 && priceChange >= -30; // 价格小跌
+    
+    // 四象限模型判断（严格按照文档）
+    
+    // 1. 拉升：价格上行 + CVD上升 + OI上升
+    if (priceUp && cvdRising && oiRising) {
+      return '拉升'; // MARKUP - 主力推动趋势，多头趋势确立
     }
-    // 价格明显下跌（priceChange < 0）
-    else if (priceChange < 0) {
-      // 强势下跌 + 卖盘主导 = 砸盘
-      if (priceChangeAbs > 50 || sellPressure >= 1 || score < -0.3) {
-        return '砸盘'; // MARKDOWN - 打压价格，快速下跌
-      }
-      // 弱势下跌 或 买盘主导 = 派发（下跌中出货）
-      else {
-        return '派发'; // DISTRIBUTION - 高位出货，价格小跌，缓慢减仓
-      }
+    
+    // 2. 吸筹：价格横盘 or 小跌 + CVD上升 + OI上升
+    if ((priceFlat || priceSmallDown) && cvdRising && oiRising) {
+      return '吸筹'; // ACCUMULATE - 庄家悄悄建多单
     }
-    // 价格横盘（priceChange ≈ 0）
-    else {
-      // 横盘时看买卖压力
-      if (buyPressure > sellPressure || score > 0.2) {
-        return '吸筹'; // 横盘吸筹
-      } else {
-        return '派发'; // 横盘派发
-      }
+    
+    // 3. 派发：价格横盘 or 小涨 + CVD下降 + OI上升
+    if ((priceFlat || priceSmallUp) && cvdFalling && oiRising) {
+      return '派发'; // DISTRIBUTION - 庄家在出货
     }
+    
+    // 4. 砸盘：价格下行 + CVD下降 + OI下降
+    if (priceDown && cvdFalling && oiFalling) {
+      return '砸盘'; // MARKDOWN - 主力平仓砸盘，空头趋势确立
+    }
+    
+    // 辅助判断（条件不完全满足时的兜底逻辑）
+    
+    // CVD上升但价格下跌 → 吸筹（庄家逆势吸筹）
+    if (cvdRising && priceDown) {
+      return '吸筹';
+    }
+    
+    // CVD下降但价格上涨 → 派发（庄家顺势派发）
+    if (cvdFalling && priceUp) {
+      return '派发';
+    }
+    
+    // 价格大涨 → 默认拉升
+    if (priceUp) {
+      return '拉升';
+    }
+    
+    // 价格大跌 → 默认砸盘
+    if (priceDown) {
+      return '砸盘';
+    }
+    
+    // 横盘时看CVD方向
+    if (cvdRising) {
+      return '吸筹'; // 横盘吸筹
+    } else if (cvdFalling) {
+      return '派发'; // 横盘派发
+    }
+    
+    // 兜底：根据综合评分
+    return score > 0 ? '吸筹' : '派发';
   }
 
   /**
