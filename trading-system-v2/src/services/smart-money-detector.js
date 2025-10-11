@@ -519,11 +519,11 @@ class SmartMoneyDetector {
   _mapScoreToAction(score, priceChange, cvdZ, oiChange, obiZ) {
     // 计算价格变化的相对幅度（需要传入当前价格）
     const priceChangeAbs = Math.abs(priceChange);
-    
+
     // 判断买卖压力（综合CVD和OBI）
     const buyPressure = (cvdZ > 0 ? 1 : 0) + (obiZ > 0 ? 1 : 0);
     const sellPressure = (cvdZ < 0 ? 1 : 0) + (obiZ < 0 ? 1 : 0);
-    
+
     // 价格明显上涨（priceChange > 0）
     if (priceChange > 0) {
       // 强势上涨 + 买盘主导 = 拉升

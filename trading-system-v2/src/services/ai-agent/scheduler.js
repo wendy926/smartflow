@@ -108,10 +108,14 @@ class AIAnalysisScheduler {
       this.isRunning = true;
       logger.info('AI分析调度器已启动');
 
-      // 立即执行一次
+      // 立即执行一次宏观分析和交易对分析
       setTimeout(() => {
         this.runMacroAnalysis();
       }, 5000);
+      
+      setTimeout(() => {
+        this.runSymbolAnalysis();
+      }, 10000);  // 10秒后执行交易对分析，避免同时执行
 
       return true;
 
