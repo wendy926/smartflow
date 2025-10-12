@@ -11,6 +11,7 @@ const OrderTracker = require('./tracker');
 const { OrderClassifier } = require('./classifier');
 const { SignalAggregator } = require('./aggregator');
 const WebSocketManager = require('./websocket-manager');
+const { SwanDetector } = require('./swan-detector');
 
 class LargeOrderDetector {
   /**
@@ -40,9 +41,10 @@ class LargeOrderDetector {
     this.classifier = new OrderClassifier(this.config);
     this.aggregator = new SignalAggregator(this.config);
     this.wsManager = new WebSocketManager(); // 新增WebSocket管理器
+    this.swanDetector = null; // 黑天鹅检测器（延迟初始化）
     
     // 状态存储（按symbol）
-    this.state = new Map(); // symbol -> { cvdSeries, cvdCum, prevOI, oi }
+    this.state = new Map(); // symbol -> { cvdSeries, cvdCum, prevOI, oi, priceHistory: [] }
     
     // CVD/OI更新定时器（低频）
     this.updateIntervals = new Map(); // symbol -> intervalId
@@ -128,7 +130,8 @@ class LargeOrderDetector {
         cvdSeries: [],
         cvdCum: 0,
         prevOI: null,
-        oi: null
+        oi: null,
+        priceHistory: []  // 价格历史（5分钟窗口）
       });
     }
     
@@ -197,6 +200,16 @@ class LargeOrderDetector {
       if (!currentPrice || currentPrice === 0) {
         logger.warn('[LargeOrderDetector] 无效的价格数据', { symbol });
         return;
+      }
+
+      // 更新价格历史（5分钟窗口Swan检测用）
+      const state = this.state.get(symbol);
+      if (state) {
+        state.priceHistory.push({ ts: timestamp, price: currentPrice });
+        // 保留5分钟窗口数据
+        const windowMs = this.config.SWAN_WINDOW_MS || 300000;
+        const cutoff = timestamp - windowMs;
+        state.priceHistory = state.priceHistory.filter(p => p.ts >= cutoff);
       }
       
       // 2. 转换为统一格式
@@ -293,12 +306,14 @@ class LargeOrderDetector {
    * 保存检测结果到数据库
    * @private
    */
-  async _saveDetectionResult(symbol, timestamp, aggregateResult, trackedEntries) {
+  async _saveDetectionResult(symbol, timestamp, aggregateResult, trackedEntries, swanResult = null) {
     try {
       const sql = `
         INSERT INTO large_order_detection_results 
-        (symbol, timestamp, final_action, buy_score, sell_score, cvd_cum, oi, oi_change_pct, spoof_count, tracked_entries_count, detection_data)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (symbol, timestamp, final_action, buy_score, sell_score, cvd_cum, oi, oi_change_pct, spoof_count, tracked_entries_count, detection_data,
+         swan_alert_level, price_drop_pct, volume_24h, max_order_to_vol24h_ratio, max_order_to_oi_ratio, 
+         sweep_detected, sweep_pct, alert_triggers)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
       const detectionData = JSON.stringify({
@@ -325,7 +340,16 @@ class LargeOrderDetector {
         aggregateResult.oiChangePct,
         aggregateResult.spoofCount,
         aggregateResult.trackedEntriesCount,
-        detectionData
+        detectionData,
+        // Swan扩展字段
+        swanResult?.swan_alert_level || 'NONE',
+        swanResult?.price_drop_pct || null,
+        swanResult?.volume_24h || null,
+        swanResult?.max_order_to_vol24h_ratio || null,
+        swanResult?.max_order_to_oi_ratio || null,
+        swanResult?.sweep_detected || false,
+        swanResult?.sweep_pct || null,
+        swanResult?.alert_triggers || null
       ]);
       
     } catch (error) {
@@ -353,11 +377,49 @@ class LargeOrderDetector {
         state.oi,
         state.prevOI
       );
+
+      // Swan黑天鹅检测（新增）
+      let swanResult = null;
+      if (this.swanDetector && trackedEntries.length > 0) {
+        try {
+          // 获取24h成交额
+          const ticker24hr = await this.binanceAPI.getTicker24hr(symbol);
+          const volume24h = ticker24hr ? parseFloat(ticker24hr.quoteVolume) : null;
+
+          swanResult = this.swanDetector.detect({
+            trackedEntries,
+            volume24h,
+            oi: state.oi,
+            prevOI: state.prevOI,
+            priceHistory: state.priceHistory || []
+          });
+
+          // 如果有高危告警，立即记录
+          if (swanResult.level === 'CRITICAL' || swanResult.level === 'HIGH') {
+            logger.warn(`[SwanDetector] ${swanResult.level}告警`, {
+              symbol,
+              level: swanResult.level,
+              triggers: swanResult.triggers,
+              score: swanResult.score
+            });
+          }
+        } catch (error) {
+          logger.error('[SwanDetector] 检测失败', { symbol, error: error.message });
+        }
+      }
+      
+      // 保存到数据库（包含Swan结果）
+      await this._saveDetectionResult(symbol, Date.now(), aggregateResult, trackedEntries, swanResult);
       
       return {
         symbol,
         timestamp: Date.now(),
         ...aggregateResult,
+        swan: swanResult ? {
+          level: swanResult.level,
+          triggers: swanResult.triggers,
+          score: swanResult.score
+        } : null,
         trackedEntries: trackedEntries.map(e => ({
           side: e.side,
           price: e.price,
