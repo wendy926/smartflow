@@ -582,7 +582,7 @@ class DatabaseOperations {
           AVG(pnl_percentage) as avg_pnl_percentage
         FROM simulation_trades st
         JOIN symbols s ON st.symbol_id = s.id
-        WHERE st.strategy_type = ?
+        WHERE st.strategy_name = ? AND st.status = 'CLOSED'
       `;
 
       const params = [strategy.toUpperCase()];
