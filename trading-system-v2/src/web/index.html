@@ -1753,28 +1753,85 @@
               <!-- V3策略文档 -->
               <div class="strategy-doc" id="v3-strategy">
                 <div class="doc-header">
-                  <h3>V3多因子趋势策略</h3>
-                  <span class="strategy-badge v3">V3</span>
+                  <h3>V3.1多因子趋势策略（最新版）</h3>
+                  <span class="strategy-badge v3">V3.1</span>
                 </div>
                 <div class="doc-content">
                   <h4>策略概述</h4>
-                  <p>V3策略是一个基于多时间框架分析的量化交易策略，通过4H趋势判断、1H多因子评分和15M入场确认三个层次进行交易决策。策略采用加权评分机制和信号融合逻辑，确保交易信号的准确性和及时性。</p>
+                  <p>V3.1策略是V3策略的增强版本，在原有基础上新增<strong>早期趋势探测</strong>、<strong>假突破过滤器</strong>和<strong>动态止损</strong>机制。通过4H趋势判断、1H多因子评分和15M入场确认三个层次，结合早期趋势预警和严格的假突破过滤，实现更早捕捉趋势、更高信号质量和更灵活的风险管理。</p>
+                  
+                  <div style="background: #e7f3ff; padding: 12px; border-left: 4px solid #2196f3; margin: 15px 0;">
+                    <strong>🆕 V3.1核心升级</strong>
+                    <ul style="margin: 5px 0 0 20px;">
+                      <li>早期趋势探测：提前1-4小时捕捉趋势起点</li>
+                      <li>假突破过滤器：多因子过滤假突破信号</li>
+                      <li>动态止损：基于ATR和置信度的自适应止损</li>
+                      <li>置信度分层：High/Med/Low三档风险管理</li>
+                    </ul>
+                  </div>
 
                   <h4>核心实现逻辑</h4>
                   <div class="implementation-section">
-                    <h5>数据获取与验证</h5>
-                    <ul>
-                      <li><strong>并行数据获取</strong>：使用Promise.all同时获取4H、1H、15M K线数据</li>
-                      <li><strong>数据完整性检查</strong>：验证所有必需数据的有效性</li>
-                      <li><strong>错误处理</strong>：数据缺失时抛出详细错误信息</li>
-                    </ul>
+                    <h5>V3.1执行流程</h5>
+                    <ol>
+                      <li><strong>数据获取</strong>：并行获取4H、1H、15M K线 + 24h ticker + 资金费率 + OI历史</li>
+                      <li><strong>🆕 早期趋势探测</strong>：在1H/4H上提前捕捉趋势起点（预警信号）</li>
+                      <li><strong>4H趋势分析</strong>：EMA、ADX、BBW、MACD Histogram综合判断</li>
+                      <li><strong>1H多因子分析</strong>：VWAP、OI、资金费率、Delta多维度评分</li>
+                      <li><strong>15M入场分析</strong>：结构确认和短期均线对齐</li>
+                      <li><strong>🆕 信号融合V3.1</strong>：整合早期趋势 + 三个时间框架</li>
+                      <li><strong>🆕 假突破过滤</strong>：成交量、Delta、确认K线、边界检查</li>
+                      <li><strong>🆕 置信度评定</strong>：High/Med/Low三档（影响止损和仓位）</li>
+                      <li><strong>🆕 动态止损计算</strong>：ATR × 置信度系数（1.5/2.0/2.6）</li>
+                    </ol>
 
-                    <h5>多时间框架分析</h5>
-                    <ul>
-                      <li><strong>analyze4HTrend</strong>：4H趋势分析，包含EMA、ADX、BBW、MACD Histogram</li>
-                      <li><strong>analyze1HFactors</strong>：1H多因子分析，包含VWAP、OI变化、资金费率、Delta值</li>
-                      <li><strong>analyze15mExecution</strong>：15M入场确认，包含结构分析和EMA短期对齐</li>
-                    </ul>
+                    <h5>🆕 早期趋势探测器（earlyTrendDetector）</h5>
+                    <div style="background: #f0f8ff; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                      <p><strong>目标</strong>：比4H趋势确认提前1-4小时发现趋势起点</p>
+                      <p><strong>检测条件</strong>（需同时满足）：</p>
+                      <ul style="margin-left: 20px;">
+                        <li>1H MACD Histogram > 0.5（连续2根）</li>
+                        <li>1H Delta > 0.05（买）或 < -0.05（卖）</li>
+                        <li>1H价格 > VWAP（买）或 < VWAP（卖）</li>
+                        <li>1H ADX > 20（弱趋势门槛）</li>
+                        <li>4H ADX < 40（不强反向）</li>
+                      </ul>
+                      <p><strong>效果</strong>：检测到早期趋势时，提升4H趋势权重10%，进入候选池等待确认</p>
+                    </div>
+
+                    <h5>🆕 假突破过滤器（fakeBreakoutFilter）</h5>
+                    <div style="background: #fff9e6; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                      <p><strong>目标</strong>：剔除区间边界或低量能的假突破信号</p>
+                      <p><strong>多因子过滤规则</strong>：</p>
+                      <table style="width:100%; font-size: 13px; margin: 10px 0;">
+                        <tr style="background: #ffc107;">
+                          <th style="padding:8px;">因子</th>
+                          <th style="padding:8px;">条件</th>
+                          <th style="padding:8px;">默认参数</th>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px; border:1px solid #ddd;">量能确认</td>
+                          <td style="padding:6px; border:1px solid #ddd;">当前量 ≥ 均量 × volFactor</td>
+                          <td style="padding:6px; border:1px solid #ddd;">1.2倍</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px; border:1px solid #ddd;">Delta同向</td>
+                          <td style="padding:6px; border:1px solid #ddd;">15M Delta与1H Delta同向</td>
+                          <td style="padding:6px; border:1px solid #ddd;">|Delta|≥0.04</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px; border:1px solid #ddd;">突破确认</td>
+                          <td style="padding:6px; border:1px solid #ddd;">突破后1根K线收盘不回撤</td>
+                          <td style="padding:6px; border:1px solid #ddd;">回撤<0.3%</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px; border:1px solid #ddd;">边界过滤</td>
+                          <td style="padding:6px; border:1px solid #ddd;">4H区间边界需量能支持</td>
+                          <td style="padding:6px; border:1px solid #ddd;">回看10根4H</td>
+                        </tr>
+                      </table>
+                      <p><strong>通过条件</strong>：所有过滤器通过 → confidence=high；部分通过 → med/low；不通过 → 拒绝信号</p>
+                    </div>
                   </div>
 
                   <h4>时间框架分析详解</h4>
@@ -1901,18 +1958,74 @@
                     </ul>
                   </div>
 
-                  <h4>交易参数计算</h4>
+                  <h4>🆕 V3.1动态止损与风险管理</h4>
                   <div class="calculation-section">
-                    <h5>止损距离计算</h5>
-                    <p>使用2倍ATR作为止损距离：</p>
-                    <ul>
-                      <li>多头：<code>stopLoss = entryPrice - (ATR × 2)</code></li>
-                      <li>空头：<code>stopLoss = entryPrice + (ATR × 2)</code></li>
-                      <li><strong>ATR计算</strong>：基于15M K线数据的平均真实波幅</li>
-                    </ul>
+                    <h5>置信度分层建仓</h5>
+                    <table style="width:100%; border-collapse: collapse; margin: 10px 0;">
+                      <tr style="background: #667eea; color: white;">
+                        <th style="padding:10px; border:1px solid #ddd;">置信度</th>
+                        <th style="padding:10px; border:1px solid #ddd;">触发条件</th>
+                        <th style="padding:10px; border:1px solid #ddd;">初始止损系数</th>
+                        <th style="padding:10px; border:1px solid #ddd;">风险特征</th>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px; border:1px solid #ddd;"><strong>High</strong></td>
+                        <td style="padding:8px; border:1px solid #ddd;">所有过滤器通过 + 早期趋势确认</td>
+                        <td style="padding:8px; border:1px solid #ddd;">ATR × <strong>1.5</strong></td>
+                        <td style="padding:8px; border:1px solid #ddd;">止损紧 + 高确定性</td>
+                      </tr>
+                      <tr style="background:#f8f9fa;">
+                        <td style="padding:8px; border:1px solid #ddd;"><strong>Med</strong></td>
+                        <td style="padding:8px; border:1px solid #ddd;">部分过滤器通过 或 无早期趋势</td>
+                        <td style="padding:8px; border:1px solid #ddd;">ATR × <strong>2.0</strong></td>
+                        <td style="padding:8px; border:1px solid #ddd;">标准止损</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px; border:1px solid #ddd;"><strong>Low</strong></td>
+                        <td style="padding:8px; border:1px solid #ddd;">信号边缘通过</td>
+                        <td style="padding:8px; border:1px solid #ddd;">ATR × <strong>2.6</strong></td>
+                        <td style="padding:8px; border:1px solid #ddd;">止损宽 + 保守</td>
+                      </tr>
+                      <tr style="background:#ffe6e6;">
+                        <td style="padding:8px; border:1px solid #ddd;"><strong>Reject</strong></td>
+                        <td style="padding:8px; border:1px solid #ddd;">假突破过滤器未通过</td>
+                        <td style="padding:8px; border:1px solid #ddd;">-</td>
+                        <td style="padding:8px; border:1px solid #ddd;">拒绝信号</td>
+                      </tr>
+                    </table>
+
+                    <h5>动态止损机制</h5>
+                    <div style="background: #f0f8ff; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                      <p><strong>初始止损</strong>（入场时）：</p>
+                      <ul style="margin-left: 20px;">
+                        <li>多头：stopLoss = entryPrice - (ATR15 × K_entry)</li>
+                        <li>空头：stopLoss = entryPrice + (ATR15 × K_entry)</li>
+                        <li>K_entry由置信度决定：1.5/2.0/2.6</li>
+                      </ul>
+                      
+                      <p><strong>动态调整</strong>（趋势确认后）：</p>
+                      <ul style="margin-left: 20px;">
+                        <li>若1H/4H动量进一步确认（MACD增幅>30% + ADX上升）</li>
+                        <li>扩大止损到ATR × 2.8或移至盈亏平衡+缓冲</li>
+                        <li>避免被市场噪音止损出局</li>
+                      </ul>
+                      
+                      <p><strong>时间止损</strong>（60分钟）：</p>
+                      <ul style="margin-left: 20px;">
+                        <li>持仓超过60分钟且未盈利 → 平仓</li>
+                        <li>避免长时间占用资金</li>
+                      </ul>
+                      
+                      <p><strong>追踪止盈</strong>：</p>
+                      <ul style="margin-left: 20px;">
+                        <li>盈利达到1×初始SL时启动追踪</li>
+                        <li>每波动0.5×ATR提升止损</li>
+                        <li>锁定利润，让利润奔跑</li>
+                      </ul>
+                    </div>
 
                     <h5>杠杆和保证金计算</h5>
-                    <p>严格按照文档公式计算：</p>
+                    <p>根据止损距离和最大损失金额动态计算：</p>
                     <ul>
                       <li><strong>止损距离X%</strong>：<code>|entryPrice - stopLoss| / entryPrice</code></li>
                       <li><strong>最大杠杆数Y</strong>：<code>Math.floor(1 / (X% + 0.5%))</code></li>
