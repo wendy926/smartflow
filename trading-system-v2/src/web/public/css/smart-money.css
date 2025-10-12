@@ -271,3 +271,26 @@ tr.action-markdown {
 .action-none:hover {
   background: #e9ecef !important;
 }
+
+/* 陷阱标记（smartmoney.md文档规范行670-678） */
+.trap-bull {
+  background: #fef3c7;
+  border: 2px solid #f59e0b;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.trap-bear {
+  background: #fee2e2;
+  border: 2px solid #ef4444;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+}
