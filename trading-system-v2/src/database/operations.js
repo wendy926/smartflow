@@ -601,15 +601,15 @@ class DatabaseOperations {
         : 0;
 
       return {
-        total_trades: stats.total_trades || 0,
-        winning_trades: stats.winning_trades || 0,
-        losing_trades: stats.losing_trades || 0,
+        total_trades: parseInt(stats.total_trades) || 0,
+        winning_trades: parseInt(stats.winning_trades) || 0,
+        losing_trades: parseInt(stats.losing_trades) || 0,
         win_rate: parseFloat(winRate.toFixed(2)),
-        total_pnl: parseFloat((stats.total_pnl || 0).toFixed(2)),
-        avg_pnl: parseFloat((stats.avg_pnl || 0).toFixed(2)),
-        best_trade: parseFloat((stats.best_trade || 0).toFixed(2)),
-        worst_trade: parseFloat((stats.worst_trade || 0).toFixed(2)),
-        avg_pnl_percentage: parseFloat((stats.avg_pnl_percentage || 0).toFixed(2))
+        total_pnl: parseFloat((parseFloat(stats.total_pnl) || 0).toFixed(2)),
+        avg_pnl: parseFloat((parseFloat(stats.avg_pnl) || 0).toFixed(2)),
+        best_trade: parseFloat((parseFloat(stats.best_trade) || 0).toFixed(2)),
+        worst_trade: parseFloat((parseFloat(stats.worst_trade) || 0).toFixed(2)),
+        avg_pnl_percentage: parseFloat((parseFloat(stats.avg_pnl_percentage) || 0).toFixed(2))
       };
     } catch (error) {
       logger.error('Error getting trade statistics:', error);
