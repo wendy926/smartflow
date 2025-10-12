@@ -23,18 +23,24 @@ class LargeOrdersTracker {
 
   async loadData() {
     try {
+      console.log('[LargeOrders] 开始加载数据...');
       const response = await fetch('/api/v1/large-orders/detect');
       const result = await response.json();
+      console.log('[LargeOrders] API响应:', result);
 
       if (result.success && result.data && result.data.length > 0) {
-        this.render(result.data[0]); // 默认显示第一个交易对
+        // 优先显示BTCUSDT，如果没有则显示第一个
+        const btcData = result.data.find(d => d.symbol === 'BTCUSDT') || result.data[0];
+        console.log('[LargeOrders] 显示数据:', btcData);
+        this.render(btcData);
         this.updateLastUpdate();
       } else {
+        console.warn('[LargeOrders] 无数据返回');
         this.showError('暂无数据');
       }
     } catch (error) {
       console.error('[LargeOrders] 加载失败', error);
-      this.showError(error.message);
+      this.showError('加载失败: ' + error.message);
     }
   }
 
@@ -45,16 +51,21 @@ class LargeOrdersTracker {
 
   renderSummary(data) {
     const container = document.getElementById('large-order-summary-content');
-    if (!container) return;
+    if (!container) {
+      console.error('[LargeOrders] Summary容器未找到');
+      return;
+    }
 
-    const actionClass = this.getActionClass(data.finalAction);
     const actionColor = this.getActionColor(data.finalAction);
+    const buyScore = (data.buyScore !== undefined && data.buyScore !== null) ? data.buyScore.toFixed(2) : '0.00';
+    const sellScore = (data.sellScore !== undefined && data.sellScore !== null) ? data.sellScore.toFixed(2) : '0.00';
+    const oiChangePct = (data.oiChangePct !== undefined && data.oiChangePct !== null) ? data.oiChangePct.toFixed(2) : '0.00';
 
     container.innerHTML = `
       <div class="summary-grid">
         <div class="summary-item">
           <div class="summary-label">交易对</div>
-          <div class="summary-value">${data.symbol}</div>
+          <div class="summary-value">${data.symbol || 'N/A'}</div>
         </div>
         <div class="summary-item">
           <div class="summary-label">最终动作</div>
@@ -64,11 +75,11 @@ class LargeOrdersTracker {
         </div>
         <div class="summary-item">
           <div class="summary-label">买入得分</div>
-          <div class="summary-value">${data.buyScore?.toFixed(2) || 0}</div>
+          <div class="summary-value">${buyScore}</div>
         </div>
         <div class="summary-item">
           <div class="summary-label">卖出得分</div>
-          <div class="summary-value">${data.sellScore?.toFixed(2) || 0}</div>
+          <div class="summary-value">${sellScore}</div>
         </div>
         <div class="summary-item">
           <div class="summary-label">CVD累积</div>
@@ -76,7 +87,7 @@ class LargeOrdersTracker {
         </div>
         <div class="summary-item">
           <div class="summary-label">OI变化</div>
-          <div class="summary-value">${data.oiChangePct?.toFixed(2) || 0}%</div>
+          <div class="summary-value">${oiChangePct}%</div>
         </div>
         <div class="summary-item">
           <div class="summary-label">Spoof数量</div>
@@ -87,7 +98,12 @@ class LargeOrdersTracker {
           <div class="summary-value">${data.trackedEntriesCount || 0}</div>
         </div>
       </div>
+      <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; font-size: 13px;">
+        💡 说明：大额挂单监控采用按需检测模式，点击"刷新数据"按钮可获取最新数据。当前没有追踪挂单表示市场上暂无>100M USD的大额挂单（正常现象）。
+      </div>
     `;
+    
+    console.log('[LargeOrders] Summary渲染完成');
   }
 
   renderTable(data) {
