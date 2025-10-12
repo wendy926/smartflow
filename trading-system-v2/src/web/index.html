@@ -1379,9 +1379,8 @@
               <div class="doc-nav-section">
                 <h4>🎯 交易策略</h4>
                 <ul>
-                  <li><a href="#v3-strategy">V3多因子趋势策略</a></li>
+                  <li><a href="#v3-strategy">V3.1多因子趋势策略</a></li>
                   <li><a href="#ict-strategy">ICT订单块策略</a></li>
-                  <li><a href="#strategy-updates">策略优化更新 (2025-10-08)</a></li>
                 </ul>
               </div>
               <div class="doc-nav-section">
@@ -2045,6 +2044,15 @@
                       <li><strong>错误返回</strong>：返回ERROR信号而非抛出异常</li>
                     </ul>
                   </div>
+                  
+                  <h4>🆕 V3.1优化历史 (2025-10-08)</h4>
+                  <div class="fix-item" style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5>震荡市交易逻辑修复</h5>
+                    <p><strong>问题</strong>：震荡市模式下，即使15M检测到假突破信号，combineSignals也直接返回HOLD</p>
+                    <p><strong>修复</strong>：增加震荡市假突破信号检查逻辑</p>
+                    <p><strong>条件</strong>：4H趋势为RANGE + 1H边界有效 + 布林带收窄 + 价格假突破后快速回归</p>
+                    <p><strong>效果</strong>：震荡市假突破信号现在能够正确触发交易</p>
+                  </div>
                 </div>
               </div>
 
@@ -2179,24 +2187,23 @@
 
                   <h4>订单块理论实现</h4>
                   <div class="theory-section">
-                    <h5>订单块识别算法（2025-10-08更新）</h5>
+                    <h5>订单块识别算法</h5>
                     <p>订单块是机构大单集中的价格区域，实现特征：</p>
                     <ul>
                       <li><strong>价格盘整检测</strong>：价格在5根K线窗口内盘整</li>
-                      <li><strong>高度要求</strong>：高度 >= 0.15 × ATR(4H)</li>
+                      <li><strong>高度要求</strong>：高度 >= 0.15 × ATR(4H)（🆕 已从0.25放宽，2025-10-07）</li>
                       <li><strong>价格稳定性</strong>：range / avgPrice <= 0.03</li>
                       <li><strong>成交量集中</strong>：最后2根K线成交量 >= 60%平均成交量</li>
-                      <li><strong>年龄过滤</strong>：<span
-                          style="color: #28a745; font-weight: bold;">只考虑≤5天的订单块</span>（已从2天放宽），确保时效性</li>
+                      <li><strong>年龄过滤</strong>：<span style="color: #28a745; font-weight: bold;">只考虑≤5天的订单块</span>（🆕 已从2天放宽，2025-10-07），确保时效性</li>
                       <li><strong>有效性验证</strong>：订单块被扫荡后的回归行为验证</li>
                     </ul>
 
-                    <h5>扫荡检测算法</h5>
+                    <h5>扫荡检测算法（2025-10-07优化）</h5>
                     <p>扫荡是指价格快速穿越订单块区域的行为：</p>
                     <ul>
                       <li><strong>边界突破检测</strong>：价格突破订单块上下边界</li>
                       <li><strong>扫荡速率计算</strong>：计算扫荡速度，反映市场动能强度</li>
-                      <li><strong>HTF扫荡阈值</strong>：速率≥0.2×ATR(4H)，检查最近5根K线（已从ICT标准0.4×ATR放宽）</li>
+                      <li><strong>HTF扫荡阈值</strong>：速率≥0.2×ATR(4H)，检查最近5根K线（🆕 已从ICT标准0.4×ATR放宽50%）</li>
                       <li><strong>LTF扫荡阈值</strong>：速率≥0.02×ATR(15M)，≤3根K线内收回（已从ICT标准0.2×ATR放宽）</li>
                       <li><strong>回归确认</strong>：扫荡后价格回归为有效信号</li>
                       <li><strong>置信度评分</strong>：基于扫荡速率和回归行为的置信度</li>
@@ -2308,437 +2315,59 @@
                       <li><strong>调试信息</strong>：输出详细的评分过程和信号生成逻辑</li>
                     </ul>
                   </div>
-                </div>
-              </div>
 
-              <!-- 策略优化更新文档 -->
-              <div class="strategy-doc" id="strategy-updates">
-                <div class="doc-header">
-                  <h3>策略优化更新 (2025-10-08)</h3>
-                  <span class="strategy-badge"
-                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">最新</span>
-                </div>
-                <div class="doc-content">
-
-                  <h4>🚀 系统架构优化</h4>
-
-                  <div class="fix-item"
-                    style="background: #e7f3ff; border-left: 4px solid #0066cc; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <h5>1. 宏观监控模块优化 ✅</h5>
-                    <p><strong>优化内容：</strong>移除本地资金流和合约市场监控，改用专业数据平台</p>
-
-                    <h6>变更详情：</h6>
-                    <ul>
-                      <li>✅ <strong>资金流监控</strong>：改用 <a href="https://www.coinglass.com/zh"
-                          target="_blank">CoinGlass数据平台</a>
-                        <ul>
-                          <li>移除BTC/ETH大额交易本地监控</li>
-                          <li>使用专业平台实时数据</li>
-                        </ul>
-                      </li>
-                      <li>✅ <strong>合约市场监控</strong>：改用 <a href="https://www.coinglass.com/zh"
-                          target="_blank">CoinGlass数据平台</a>
-                        <ul>
-                          <li>移除多空比、资金费率、未平仓合约本地监控</li>
-                          <li>访问CoinGlass查看更全面的合约数据</li>
-                        </ul>
-                      </li>
-                      <li>✅ <strong>保留监控模块</strong>：
-                        <ul>
-                          <li>市场情绪监控（恐惧贪婪指数）- Alternative.me API</li>
-                          <li>宏观指标监控（美联储利率、CPI）- FRED API</li>
-                        </ul>
-                      </li>
-                    </ul>
-
-                    <h6>优势：</h6>
-                    <ul>
-                      <li>🎯 数据更全面：CoinGlass提供多交易所聚合数据</li>
-                      <li>⚡ 性能优化：减少5个外部API调用，降低CPU/内存占用</li>
-                      <li>🔧 维护简化：减少代码复杂度约139行</li>
-                      <li>📊 专业平台：更好的数据可视化和分析工具</li>
+                  <h4>🆕 ICT策略优化历史</h4>
+                  
+                  <div class="fix-item" style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5>2025-10-09优化</h5>
+                    
+                    <h6>15M入场强度检查（容忍逻辑）✅</h6>
+                    <p><strong>问题</strong>：即使门槛式5个条件全部通过，低质量吞没形态（如23.1%强度）仍触发交易</p>
+                    <p><strong>修复</strong>：新增15M入场强度验证</p>
+                    <ul style="margin-left: 20px;">
+                      <li><strong>条件</strong>：吞没形态强度≥60% 或 谐波形态分数≥60%（二选一）</li>
+                      <li><strong>不满足</strong>：信号为WATCH（观望），不触发交易</li>
+                      <li><strong>效果</strong>：防止低质量信号触发无效交易</li>
+                      <li><strong>示例</strong>：ONDOUSDT吞没强度23.1%，谐波0% → WATCH（不触发）</li>
                     </ul>
                   </div>
-
-                  <div class="fix-item"
-                    style="background: #e7f3ff; border-left: 4px solid #0066cc; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <h5>2. Telegram告警系统完善 ✅</h5>
-                    <p><strong>功能增强：</strong>实现交易触发和系统监控的Telegram实时告警</p>
-
-                    <h6>交易触发通知：</h6>
-                    <ul>
-                      <li>✅ <strong>自动通知</strong>：创建交易时自动发送Telegram通知</li>
-                      <li>✅ <strong>通知内容</strong>：交易对、策略类型、方向、入场价、止损、止盈、杠杆等</li>
-                      <li>✅ <strong>配置持久化</strong>：Bot Token和Chat ID保存到数据库</li>
-                      <li>✅ <strong>VPS重启后自动恢复</strong>：从数据库加载配置，无需重新设置</li>
-                    </ul>
-
-                    <h6>系统监控告警：</h6>
-                    <ul>
-                      <li>✅ <strong>CPU告警</strong>：CPU使用率 > 60% 时发送告警</li>
-                      <li>✅ <strong>内存告警</strong>：内存使用率 > 60% 时发送告警</li>
-                      <li>✅ <strong>冷却机制</strong>：同类型告警间隔5分钟，防止频繁推送</li>
-                      <li>✅ <strong>配置持久化</strong>：配置保存到数据库，重启后自动恢复</li>
-                    </ul>
-
-                    <h6>配置方法：</h6>
-                    <ol>
-                      <li>访问 <a href="https://smart.aimaventop.com/tools" target="_blank">工具页面</a></li>
-                      <li>找到"Telegram监控设置"区域</li>
-                      <li>分别配置"交易触发通知"和"系统监控告警"</li>
-                      <li>点击"保存设置"→ 自动保存到数据库</li>
-                      <li>点击"测试连接"→ 验证配置是否正确</li>
-                    </ol>
-
-                    <h6>数据库表：</h6>
-                    <pre
-                      style="background: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; overflow-x: auto;">
-CREATE TABLE telegram_config (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  config_type VARCHAR(50) NOT NULL,  -- 'trading' 或 'monitoring'
-  bot_token VARCHAR(255) NOT NULL,
-  chat_id VARCHAR(100) NOT NULL,
-  enabled BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  UNIQUE KEY uk_config_type (config_type)
-);</pre>
+                  
+                  <div class="fix-item" style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5>2025-10-08优化</h5>
+                    
+                    <h6>1. 前后端15M入场逻辑一致性修复 ✅</h6>
+                    <p><strong>问题</strong>：前端15M入场判断过于简化，只检查吞没形态，未检查方向匹配和其他必须条件</p>
+                    <p><strong>修复</strong>：统一前后端15M入场判断逻辑，实现门槛式确认 + 总分强信号（≥60分）</p>
+                    
+                    <h6>2. 硬编码分数问题修复 ✅</h6>
+                    <p><strong>问题</strong>：不同执行路径使用硬编码分数（30分、40分），不反映实际组件检测结果</p>
+                    <p><strong>修复</strong>：统一使用基于组件的动态分数计算</p>
+                    
+                    <h6>3. 置信度计算统一化 ✅</h6>
+                    <p><strong>问题</strong>：部分路径使用字符串置信度（'MEDIUM', 'HIGH'），部分使用数值置信度</p>
+                    <p><strong>修复</strong>：所有路径统一使用数值置信度计算（公式：harmonicScore × 0.6 + engulfingStrength × 0.4）</p>
+                    
+                    <h6>4. 强信号阈值设定 ✅</h6>
+                    <p><strong>新增</strong>：15分钟入场增加总分强信号要求（总分≥60分）</p>
+                    <p><strong>效果</strong>：提高交易信号可靠性，避免弱信号触发交易</p>
                   </div>
-
-                  <div class="fix-item"
-                    style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <h5>3. 低价币种ATR显示精度优化 ✅</h5>
-                    <p><strong>问题：</strong>ONDOUSDT等低价币种（价格<1 USDT）的ATR值很小，保留2位小数显示为0.00</p>
-                        <p><strong>解决：</strong>实现动态精度显示</p>
-
-                        <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-                          <thead>
-                            <tr style="background: #f5f5f5;">
-                              <th style="padding: 8px; border: 1px solid #ddd;">币种</th>
-                              <th style="padding: 8px; border: 1px solid #ddd;">ATR原值</th>
-                              <th style="padding: 8px; border: 1px solid #ddd;">修复前</th>
-                              <th style="padding: 8px; border: 1px solid #ddd;">修复后</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr>
-                              <td style="padding: 8px; border: 1px solid #ddd;">BTCUSDT</td>
-                              <td style="padding: 8px; border: 1px solid #ddd;">343.95</td>
-                              <td style="padding: 8px; border: 1px solid #ddd;">343.95 ✅</td>
-                              <td style="padding: 8px; border: 1px solid #ddd;">343.95 ✅</td>
-                            </tr>
-                            <tr>
-                              <td style="padding: 8px; border: 1px solid #ddd;">ONDOUSDT</td>
-                              <td style="padding: 8px; border: 1px solid #ddd;">0.004260</td>
-                              <td style="padding: 8px; border: 1px solid #ddd; color: #dc3545;">0.00 ❌</td>
-                              <td style="padding: 8px; border: 1px solid #ddd; color: #28a745;">0.0043 ✅</td>
-                            </tr>
-                            <tr>
-                              <td style="padding: 8px; border: 1px solid #ddd;">LDOUSDT</td>
-                              <td style="padding: 8px; border: 1px solid #ddd;">0.006754</td>
-                              <td style="padding: 8px; border: 1px solid #ddd; color: #ff9800;">0.01 ⚠️</td>
-                              <td style="padding: 8px; border: 1px solid #ddd; color: #28a745;">0.0068 ✅</td>
-                            </tr>
-                          </tbody>
-                        </table>
-
-                        <p><strong>实现逻辑：</strong></p>
-                        <pre
-                          style="background: #2d2d2d; color: #f8f8f2; padding: 10px; border-radius: 5px; overflow-x: auto;">
-// ATR >= 1：保留2位小数（高价币）
-// ATR < 1：保留4位小数（低价币）
-${atr >= 1 ? atr.toFixed(2) : atr.toFixed(4)}</pre>
-                  </div>
-
-                  <h4>🔧 ICT策略关键修复</h4>
-
-                  <div class="fix-item"
-                    style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <h5>1. 前后端15分钟入场判断逻辑一致性修复 ✅</h5>
-                    <p><strong>问题：</strong>前端15M入场判断过于简化，只检查吞没形态，未检查方向匹配和其他必须条件</p>
-                    <p><strong>修复：</strong>统一前后端15M入场判断逻辑，实现门槛式确认 + 总分强信号</p>
-
-                    <h6>后端必须条件（5个门槛）：</h6>
-                    <ul>
-                      <li>✅ 门槛1：日线趋势确认（UP或DOWN，非RANGE）</li>
-                      <li>✅ 门槛2：4H订单块存在（有效且未过期）</li>
-                      <li>✅ 门槛3：4H扫荡确认（方向匹配趋势）</li>
-                      <li>✅ 门槛4：吞没形态方向匹配（BULLISH↔UP，BEARISH↔DOWN）</li>
-                      <li>✅ 门槛5：总分 >= 60分（强信号）</li>
+                  
+                  <div class="fix-item" style="background: #e7f3ff; border-left: 4px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5>2025-10-07优化</h5>
+                    
+                    <h6>订单块和扫荡阈值放宽 ✅</h6>
+                    <ul style="margin-left: 20px;">
+                      <li><strong>订单块高度</strong>：0.25×ATR → 0.15×ATR（放宽40%）</li>
+                      <li><strong>订单块年龄</strong>：≤2天 → ≤5天（增加信号数量）</li>
+                      <li><strong>HTF扫荡阈值</strong>：0.4×ATR → 0.2×ATR（放宽50%）</li>
+                      <li><strong>LTF扫荡阈值</strong>：0.2×ATR → 0.02×ATR（放宽90%）</li>
                     </ul>
-
-                    <h6>前端判断逻辑：</h6>
-                    <div class="code-block"
-                      style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; font-family: 'Courier New', monospace; margin: 10px 0;">
-                      const valid = (trend !== 'RANGE') &&
-                      hasOrderBlock &&
-                      hasSweepHTF &&
-                      engulfing &&
-                      engulfingDirectionMatch &&
-                      totalScore >= 60; // 强信号要求
-                    </div>
-
-                    <p><strong>影响：</strong>前端显示的15M入场有效性现在与后端策略逻辑完全一致，只有强信号才会触发交易</p>
-                  </div>
-
-                  <div class="fix-item"
-                    style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <h5>2. 硬编码分数问题修复 ✅</h5>
-                    <p><strong>问题：</strong>在不同执行路径中使用硬编码分数（30分、40分），不反映实际组件检测结果</p>
-                    <p><strong>修复：</strong>统一使用基于组件的动态分数计算</p>
-
-                    <h6>分数计算公式（满分100分）：</h6>
-                    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-                      <tr style="background-color: #667eea; color: white;">
-                        <th style="border: 1px solid #ddd; padding: 12px;">组件</th>
-                        <th style="border: 1px solid #ddd; padding: 12px;">权重</th>
-                        <th style="border: 1px solid #ddd; padding: 12px;">计算方式</th>
-                      </tr>
-                      <tr>
-                        <td style="border: 1px solid #ddd; padding: 12px;">趋势</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">25%</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">dailyTrend.confidence × 25</td>
-                      </tr>
-                      <tr style="background-color: #f8f9fa;">
-                        <td style="border: 1px solid #ddd; padding: 12px;">订单块</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">20%</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">检测到=20分</td>
-                      </tr>
-                      <tr>
-                        <td style="border: 1px solid #ddd; padding: 12px;">吞没形态</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">15%</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">检测到=15分</td>
-                      </tr>
-                      <tr style="background-color: #f8f9fa;">
-                        <td style="border: 1px solid #ddd; padding: 12px;">4H扫荡</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">10%</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">检测到=10分</td>
-                      </tr>
-                      <tr>
-                        <td style="border: 1px solid #ddd; padding: 12px;">15M扫荡</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">5%</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">检测到=5分</td>
-                      </tr>
-                      <tr style="background-color: #f8f9fa;">
-                        <td style="border: 1px solid #ddd; padding: 12px;">成交量</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">5%</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">放大=5分</td>
-                      </tr>
-                      <tr>
-                        <td style="border: 1px solid #ddd; padding: 12px;">谐波形态</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">20%</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">harmonicPattern.score × 20</td>
-                      </tr>
-                      <tr style="background-color: #f8f9fa;">
-                        <td style="border: 1px solid #ddd; padding: 12px;">谐波共振加分</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">+10分</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">谐波得分>0.6时</td>
-                      </tr>
-                    </table>
-
-                    <p><strong>影响：</strong>总分真实反映策略组件的检测状态，消除了硬编码导致的分数失真</p>
-                  </div>
-
-                  <div class="fix-item"
-                    style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <h5>3. 置信度计算统一化 ✅</h5>
-                    <p><strong>问题：</strong>部分执行路径使用字符串置信度（'MEDIUM', 'HIGH'），部分使用数值置信度</p>
-                    <p><strong>修复：</strong>所有路径统一使用数值置信度计算</p>
-
-                    <h6>置信度计算公式：</h6>
-                    <div class="code-block"
-                      style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; font-family: 'Courier New', monospace; margin: 10px 0;">
-                      numericConfidence = harmonicScore × 0.6 + engulfingStrength × 0.4
-                    </div>
-
-                    <h6>前端转换规则：</h6>
-                    <ul>
-                      <li>confidence ≥ 0.6 → '高'</li>
-                      <li>0.3 ≤ confidence < 0.6 → '中' </li>
-                      <li>confidence < 0.3 → '低' </li>
-                    </ul>
-
-                    <p><strong>影响：</strong>置信度与总分逻辑一致，前端统一处理数值类型</p>
-                  </div>
-
-                  <div class="fix-item"
-                    style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <h5>4. 强信号阈值设定 ✅</h5>
-                    <p><strong>新增：</strong>15分钟入场增加总分强信号要求</p>
-
-                    <h6>强信号定义：</h6>
-                    <ul>
-                      <li><strong>总分 >= 60分：</strong>确保信号质量</li>
-                      <li><strong>组成示例：</strong>趋势(7.5) + 订单块(20) + 吞没(15) + 4H扫荡(10) + 谐波(7.5) = 60分</li>
-                      <li><strong>最低要求：</strong>至少检测到趋势+订单块+吞没+扫荡+部分可选组件</li>
-                    </ul>
-
-                    <div class="warning-box"
-                      style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                      <p><strong>⚠️ 重要：</strong>只有同时满足门槛式条件（4个必须条件）+ 总分≥60分，才会触发BUY/SELL信号</p>
-                    </div>
-
-                    <p><strong>影响：</strong>提高交易信号的可靠性和胜率，避免弱信号触发交易</p>
-                  </div>
-
-                  <h4>🚀 V3策略关键修复</h4>
-
-                  <div class="fix-item"
-                    style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <h5>1. 震荡市交易逻辑修复 ✅</h5>
-                    <p><strong>问题：</strong>震荡市模式下，即使15M检测到假突破信号，combineSignals也直接返回HOLD</p>
-                    <p><strong>修复：</strong>增加震荡市假突破信号检查逻辑</p>
-
-                    <h6>修复后的震荡市逻辑：</h6>
-                    <div class="code-block"
-                      style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; font-family: 'Courier New', monospace; margin: 10px 0;">
-                      if (trendDirection === 'RANGE') {
-                      // 检查15M假突破信号
-                      if (execution15M.signal === 'BUY' || 'SELL') {
-                      if (reason.includes('Range fake breakout')) {
-                      return execution15M.signal;
-                      }
-                      }
-                      return 'HOLD';
-                      }
-                    </div>
-
-                    <h6>震荡市假突破条件：</h6>
-                    <ul>
-                      <li>✅ 4H趋势判断为RANGE</li>
-                      <li>✅ 1H边界有效（上轨/下轨）</li>
-                      <li>✅ 布林带宽度收窄（波动率降低）</li>
-                      <li>✅ 价格假突破边界后快速回归</li>
-                    </ul>
-
-                    <p><strong>影响：</strong>震荡市假突破信号现在能够正确触发交易</p>
-                  </div>
-
-                  <h4>📊 修复总结</h4>
-
-                  <div class="success-box"
-                    style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <h5>ICT策略修复 ✅</h5>
-                    <ul>
-                      <li>✅ 前后端15分钟入场判断逻辑完全一致</li>
-                      <li>✅ 增加总分强信号要求（≥60分）</li>
-                      <li>✅ 消除硬编码分数，真实反映组件检测结果</li>
-                      <li>✅ 统一置信度计算，所有路径使用数值置信度</li>
-                      <li>✅ 总分与置信度逻辑一致</li>
-                    </ul>
-
-                    <h5>V3策略修复 ✅</h5>
-                    <ul>
-                      <li>✅ 震荡市假突破信号能够正确触发交易</li>
-                      <li>✅ combineSignals方法检查震荡市信号</li>
-                      <li>✅ 15M假突破逻辑完整实现</li>
-                    </ul>
-
-                    <h5>系统优化 ✅</h5>
-                    <ul>
-                      <li>✅ 评分系统更加透明和一致</li>
-                      <li>✅ 信号判断逻辑更加合理</li>
-                      <li>✅ 提高交易信号质量和可靠性</li>
-                      <li>✅ 文档更新完整详细</li>
-                    </ul>
-                  </div>
-
-                  <h4>🎯 ICT策略15分钟入场条件详解</h4>
-
-                  <div class="strategy-detail"
-                    style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <h5>必须同时满足的5个条件：</h5>
-
-                    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-                      <tr style="background-color: #667eea; color: white;">
-                        <th style="border: 1px solid #ddd; padding: 12px;">门槛</th>
-                        <th style="border: 1px solid #ddd; padding: 12px;">条件</th>
-                        <th style="border: 1px solid #ddd; padding: 12px;">说明</th>
-                      </tr>
-                      <tr>
-                        <td style="border: 1px solid #ddd; padding: 12px;">门槛1</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">日线趋势明确</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">trend = UP 或 DOWN（非RANGE）</td>
-                      </tr>
-                      <tr style="background-color: #f8f9fa;">
-                        <td style="border: 1px solid #ddd; padding: 12px;">门槛2</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">4H订单块存在</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">hasValidOrderBlock = true</td>
-                      </tr>
-                      <tr>
-                        <td style="border: 1px solid #ddd; padding: 12px;">门槛3</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">4H扫荡有效</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">方向匹配趋势（UP→下方扫荡，DOWN→上方扫荡）</td>
-                      </tr>
-                      <tr style="background-color: #f8f9fa;">
-                        <td style="border: 1px solid #ddd; padding: 12px;">门槛4</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">吞没形态匹配</td>
-                        <td style="border: 1px solid #ddd; padding: 12px;">BULLISH_ENGULFING ↔ UP，BEARISH_ENGULFING ↔
-                          DOWN</td>
-                      </tr>
-                      <tr>
-                        <td style="border: 1px solid #ddd; padding: 12px;"><strong>门槛5</strong></td>
-                        <td style="border: 1px solid #ddd; padding: 12px;"><strong>总分 >= 60分</strong></td>
-                        <td style="border: 1px solid #ddd; padding: 12px;"><strong>强信号要求（新增）</strong></td>
-                      </tr>
-                    </table>
-
-                    <h6>可选加强条件：</h6>
-                    <ul>
-                      <li>15M扫荡检测（LTF Sweep，阈值 0.02 × ATR）</li>
-                      <li>成交量放大（> 1.5倍平均成交量）</li>
-                      <li>谐波形态共振（Cypher/Bat/Shark）</li>
-                    </ul>
-                  </div>
-
-                  <h4>📈 修复效果对比</h4>
-
-                  <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-                    <tr style="background-color: #667eea; color: white;">
-                      <th style="border: 1px solid #ddd; padding: 12px;">对比项</th>
-                      <th style="border: 1px solid #ddd; padding: 12px;">修复前</th>
-                      <th style="border: 1px solid #ddd; padding: 12px;">修复后</th>
-                    </tr>
-                    <tr>
-                      <td style="border: 1px solid #ddd; padding: 12px;">15M入场判断</td>
-                      <td style="border: 1px solid #ddd; padding: 12px;">只检查吞没形态</td>
-                      <td style="border: 1px solid #ddd; padding: 12px;">门槛式5个条件</td>
-                    </tr>
-                    <tr style="background-color: #f8f9fa;">
-                      <td style="border: 1px solid #ddd; padding: 12px;">总分计算</td>
-                      <td style="border: 1px solid #ddd; padding: 12px;">部分路径硬编码（30/40分）</td>
-                      <td style="border: 1px solid #ddd; padding: 12px;">所有路径动态计算</td>
-                    </tr>
-                    <tr>
-                      <td style="border: 1px solid #ddd; padding: 12px;">置信度类型</td>
-                      <td style="border: 1px solid #ddd; padding: 12px;">混用字符串和数值</td>
-                      <td style="border: 1px solid #ddd; padding: 12px;">统一使用数值</td>
-                    </tr>
-                    <tr style="background-color: #f8f9fa;">
-                      <td style="border: 1px solid #ddd; padding: 12px;">强信号阈值</td>
-                      <td style="border: 1px solid #ddd; padding: 12px;">无</td>
-                      <td style="border: 1px solid #ddd; padding: 12px;">总分 >= 60分</td>
-                    </tr>
-                    <tr>
-                      <td style="border: 1px solid #ddd; padding: 12px;">V3震荡市交易</td>
-                      <td style="border: 1px solid #ddd; padding: 12px;">直接返回HOLD</td>
-                      <td style="border: 1px solid #ddd; padding: 12px;">检查假突破信号</td>
-                    </tr>
-                  </table>
-
-                  <div class="success-box"
-                    style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                    <p><strong>✅ 修复成果：</strong></p>
-                    <ul>
-                      <li>信号质量显著提升，只触发高质量强信号</li>
-                      <li>前后端逻辑完全一致，用户体验更好</li>
-                      <li>评分系统更加透明和可解释</li>
-                      <li>震荡市交易逻辑完整实现</li>
-                    </ul>
+                    <p><strong>效果</strong>：增加信号捕捉灵敏度，提升交易机会</p>
                   </div>
                 </div>
               </div>
 
+              <!-- 宏观数据监控文档 -->
               <!-- 宏观数据监控文档 -->
               <div class="strategy-doc" id="macro-monitoring">
                 <div class="doc-header">
