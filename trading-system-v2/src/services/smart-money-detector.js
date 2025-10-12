@@ -15,9 +15,10 @@ const logger = require('../utils/logger');
  * 检测吸筹、拉升、派发、砸盘四种庄家动作
  */
 class SmartMoneyDetector {
-  constructor(database) {
+  constructor(database, largeOrderDetector = null) {
     this.database = database;
     this.binanceAPI = getBinanceAPI();
+    this.largeOrderDetector = largeOrderDetector; // 可选：大额挂单检测器
 
     // 状态存储（内存，实时计算，不存数据库）
     this.state = new Map();
@@ -35,7 +36,23 @@ class SmartMoneyDetector {
         cvdZ: 0.8,
         oiZ: 0.8,
         volZ: 0.8
+      },
+      // 新增：信号整合权重
+      weights: {
+        order: 0.4,
+        cvd: 0.3,
+        oi: 0.2,
+        delta: 0.1
       }
+    };
+
+    // 动作映射（中文 → 英文，对齐文档）
+    this.actionMapping = {
+      '吸筹': 'ACCUMULATE',
+      '拉升': 'MARKUP',
+      '派发': 'DISTRIBUTION',
+      '砸盘': 'MARKDOWN',
+      '无动作': 'UNKNOWN'
     };
   }
 
@@ -248,6 +265,128 @@ class SmartMoneyDetector {
         timestamp: new Date()
       };
     }
+  }
+
+  /**
+   * 检测单个交易对的聪明钱动作（V2整合版）
+   * 整合大额挂单信号，按smartmoney.md文档要求输出6种动作
+   * 
+   * @param {string} symbol - 交易对
+   * @returns {Promise<Object>} 检测结果
+   */
+  async detectSmartMoneyV2(symbol) {
+    try {
+      // 1. 执行基础检测
+      const baseResult = await this.detectSmartMoney(symbol);
+
+      // 2. 如果有大额挂单检测器，获取大额挂单信号
+      let largeOrderSignal = null;
+      if (this.largeOrderDetector) {
+        try {
+          // 获取该symbol的最新检测结果
+          const [rows] = await this.database.pool.query(`
+            SELECT * FROM large_order_detection_results
+            WHERE symbol = ?
+            ORDER BY timestamp DESC
+            LIMIT 1
+          `, [symbol]);
+
+          if (rows.length > 0) {
+            const row = rows[0];
+            largeOrderSignal = {
+              finalAction: row.final_action,
+              buyScore: parseFloat(row.buy_score),
+              sellScore: parseFloat(row.sell_score),
+              cvdCum: parseFloat(row.cvd_cum),
+              oiChangePct: parseFloat(row.oi_change_pct),
+              spoofCount: row.spoof_count,
+              trackedEntriesCount: row.tracked_entries_count,
+              timestamp: row.timestamp
+            };
+          }
+        } catch (error) {
+          logger.warn(`获取大额挂单信号失败 [${symbol}]: ${error.message}`);
+        }
+      }
+
+      // 3. 整合信号
+      const integrated = this._integrateSignalsV2(baseResult, largeOrderSignal);
+
+      return integrated;
+    } catch (error) {
+      logger.error(`聪明钱V2检测失败 [${symbol}]: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 整合信号V2（将中文转英文 + 大额挂单整合）
+   * @private
+   */
+  _integrateSignalsV2(baseResult, largeOrderSignal) {
+    // 将中文动作转换为英文
+    const baseActionEn = this.actionMapping[baseResult.action] || baseResult.action;
+
+    // 如果没有大额挂单信号，直接返回英文版基础结果
+    if (!largeOrderSignal || largeOrderSignal.trackedEntriesCount === 0) {
+      return {
+        ...baseResult,
+        action: baseActionEn,
+        source: 'indicators_only',
+        largeOrder: null
+      };
+    }
+
+    // 有大额挂单信号，进行整合
+    const largeOrderAction = largeOrderSignal.finalAction;
+
+    // 如果大额挂单动作明确（非UNKNOWN）且与基础判断一致，提升置信度
+    if (largeOrderAction !== 'UNKNOWN' && largeOrderAction === baseActionEn) {
+      return {
+        ...baseResult,
+        action: largeOrderAction,
+        confidence: Math.min(0.95, baseResult.confidence * 1.3),
+        reason: baseResult.reason + ' + 大额挂单确认',
+        source: 'integrated_confirmed',
+        largeOrder: largeOrderSignal
+      };
+    }
+
+    // 如果大额挂单动作明确但与基础判断不一致
+    if (largeOrderAction !== 'UNKNOWN') {
+      // 判断哪个信号更强
+      const largeOrderStrength = largeOrderSignal.buyScore + largeOrderSignal.sellScore;
+      
+      // 如果大额挂单信号很强（>5分）或有Spoof，优先采用
+      if (largeOrderStrength > 5 || largeOrderSignal.spoofCount > 0) {
+        return {
+          ...baseResult,
+          action: largeOrderAction,
+          confidence: 0.75,
+          reason: `大额挂单主导 (score=${largeOrderStrength.toFixed(1)}, spoof=${largeOrderSignal.spoofCount})`,
+          source: 'large_order_dominant',
+          largeOrder: largeOrderSignal
+        };
+      }
+
+      // 信号不一致且都不强，标记为UNKNOWN
+      return {
+        ...baseResult,
+        action: 'UNKNOWN',
+        confidence: 0.45,
+        reason: `信号矛盾: 基础=${baseActionEn}, 挂单=${largeOrderAction}`,
+        source: 'conflict',
+        largeOrder: largeOrderSignal
+      };
+    }
+
+    // 大额挂单无明确信号，使用基础判断（英文版）
+    return {
+      ...baseResult,
+      action: baseActionEn,
+      source: 'base_with_large_order_unknown',
+      largeOrder: largeOrderSignal
+    };
   }
 
   /**

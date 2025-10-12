@@ -33,7 +33,7 @@
   * 若消失：记录 `canceledAt = now`（并用 `canceledAt - createdAt` 判断是否为 spoof）
 * **持续挂单**判定：`seenCount >= persistSnapshots` 且 `now - createdAt >= persistSnapshots * pollIntervalMs`
 
-## 3) 偷奸/诱导（spoofing）识别
+## 3) 诱导（spoofing）识别
 
 * 若 `canceledAt - createdAt < spoofWindowMs` → classify **SPOOF**（诱导、虚假挂单）
 * 若同一价位多次快速挂出/撤出 → 增加 spoof 概率

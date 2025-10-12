@@ -12,12 +12,14 @@ const { Classification } = require('./classifier');
  * 最终动作类型
  * @enum {string}
  */
+// 按smartmoney.md文档要求的6种动作分类
 const FinalAction = {
-  ACCUMULATE_MARKUP: 'ACCUMULATE/MARKUP',   // 吸筹/拉升（看多）
-  DISTRIBUTION_MARKDOWN: 'DISTRIBUTION/MARKDOWN', // 派发/砸盘（看空）
-  MANIPULATION: 'MANIPULATION',             // 操纵（警惕）
-  NEUTRAL: 'NEUTRAL',                       // 中性
-  UNKNOWN: 'UNKNOWN'                        // 未知
+  ACCUMULATE: 'ACCUMULATE',       // 吸筹/防守
+  DISTRIBUTION: 'DISTRIBUTION',   // 派发/出货  
+  MARKUP: 'MARKUP',               // 拉升
+  MARKDOWN: 'MARKDOWN',           // 砸盘
+  MANIPULATION: 'MANIPULATION',   // 操纵/诱导
+  UNKNOWN: 'UNKNOWN'              // 未知/无明确信号
 };
 
 class SignalAggregator {
@@ -111,51 +113,65 @@ class SignalAggregator {
   }
 
   /**
-   * 决定最终动作
+   * 决定最终动作（按smartmoney.md文档要求）
    * @private
    */
   _decideFinalAction({ buyScore, sellScore, cvdDirection, oiChangePct, spoofCount }) {
-    // 1. Spoof过多 → MANIPULATION
-    if (spoofCount >= 3) {
+    // 1. MANIPULATION（操纵/诱导）
+    // 条件：频繁Spoof（>=2个）
+    if (spoofCount >= 2) {
       return FinalAction.MANIPULATION;
     }
 
-    // 2. 买卖得分差异明显
     const scoreDiff = buyScore - sellScore;
-    const scoreThreshold = 2.0;
+    const oiRising = oiChangePct > 1; // OI上升阈值1%
+    const oiFalling = oiChangePct < -1;
 
-    if (Math.abs(scoreDiff) < scoreThreshold) {
-      // 得分相近，看 CVD + OI
-      if (cvdDirection === 'positive' && oiChangePct > 2) {
-        return FinalAction.ACCUMULATE_MARKUP;
-      } else if (cvdDirection === 'negative' && oiChangePct < -2) {
-        return FinalAction.DISTRIBUTION_MARKDOWN;
+    // 2. MARKDOWN（砸盘）
+    // 条件：大额ask被吃掉 + 价格下破 OR 大量ask + CVD负 + OI上升
+    if (sellScore > buyScore + 2) {
+      if (cvdDirection === 'negative') {
+        // 有明显卖压
+        if (oiRising) {
+          // OI上升说明有杠杆空头进场或多头被迫平仓
+          return FinalAction.MARKDOWN;
+        } else if (oiFalling) {
+          // OI下降说明多头被清算
+          return FinalAction.MARKDOWN;
+        }
       }
-      return FinalAction.NEUTRAL;
     }
 
-    // 3. 买方占优
-    if (scoreDiff > scoreThreshold) {
-      // CVD 确认
+    // 3. MARKUP（拉升）
+    // 条件：大额bid被吃 + 价格上破 + CVD正 + OI上升
+    if (buyScore > sellScore + 2) {
+      if (cvdDirection === 'positive' && oiRising) {
+        return FinalAction.MARKUP;
+      }
+    }
+
+    // 4. ACCUMULATE（吸筹）
+    // 条件：大额bid持续存在但未被吃掉 + CVD正或OI上升
+    if (buyScore > sellScore) {
+      // 买方占优但不是明显优势（说明防守而非进攻）
       if (cvdDirection === 'positive' || cvdDirection === 'neutral') {
-        return FinalAction.ACCUMULATE_MARKUP;
-      } else {
-        // CVD矛盾 → 可能操纵
-        return FinalAction.MANIPULATION;
+        return FinalAction.ACCUMULATE;
       }
     }
 
-    // 4. 卖方占优
-    if (scoreDiff < -scoreThreshold) {
-      // CVD 确认
+    // 5. DISTRIBUTION（派发）
+    // 条件：大额ask持续但未被吃掉 + OI上升 + CVD负
+    if (sellScore > buyScore) {
+      // 卖方占优但不是明显优势
       if (cvdDirection === 'negative' || cvdDirection === 'neutral') {
-        return FinalAction.DISTRIBUTION_MARKDOWN;
-      } else {
-        // CVD矛盾 → 可能操纵
-        return FinalAction.MANIPULATION;
+        if (oiRising) {
+          return FinalAction.DISTRIBUTION;
+        }
       }
     }
 
+    // 6. UNKNOWN（无明确信号）
+    // 条件：指标冲突或无持续大单或得分差距小
     return FinalAction.UNKNOWN;
   }
 }
