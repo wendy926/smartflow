@@ -59,6 +59,20 @@ class SmartMoneyTracker {
       const volume = result.indicators?.volZ || 0;
       const fundingRate = result.indicators?.fundingRate || 0;
 
+      // Trap和Swan标记
+      const trapIndicator = result.trap && result.trap.detected
+        ? `<span class="trap-${result.trap.type === 'BULL_TRAP' ? 'bull' : 'bear'}">
+             ⚠️ ${result.trap.type === 'BULL_TRAP' ? '诱多' : '诱空'} 
+             (${result.trap.confidence.toFixed(0)}%)
+           </span>`
+        : '';
+      
+      const swanIndicator = result.swan && result.swan.level !== 'NONE'
+        ? `<span style="color:#ef4444; font-weight:bold; margin-left:5px;">
+             🦢 ${result.swan.level}
+           </span>`
+        : '';
+
       return `
         <tr class="action-${actionClass}">
           <td><strong>${result.symbol}</strong></td>
@@ -68,7 +82,11 @@ class SmartMoneyTracker {
               ${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(4)}
             </div>
           </td>
-          <td><span class="badge badge-${actionClass}">${result.action}</span></td>
+          <td>
+            <span class="badge badge-${actionClass}">${result.action}</span>
+            ${trapIndicator}
+            ${swanIndicator}
+          </td>
           <td><span class="badge badge-${confidenceClass}">${(result.confidence * 100).toFixed(0)}%</span></td>
           <td title="Order Book Imbalance - 订单簿失衡">
             <div>${obi.toFixed(2)}</div>
