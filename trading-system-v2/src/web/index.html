@@ -2045,6 +2045,238 @@
                     </ul>
                   </div>
                   
+                  <h4>🆕 V3.1-Plus 重大优化 (2025-10-12)</h4>
+                  
+                  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h5 style="color: white; margin-top: 0;">🎯 优化目标</h5>
+                    <table style="width:100%; color: white;">
+                      <tr>
+                        <td><strong>胜率</strong></td>
+                        <td>27.74% → 45-55%</td>
+                        <td>(+62-98%)</td>
+                      </tr>
+                      <tr>
+                        <td><strong>盈亏比</strong></td>
+                        <td>1.5 → 2.0-2.5</td>
+                        <td>(+33-67%)</td>
+                      </tr>
+                      <tr>
+                        <td><strong>交易次数</strong></td>
+                        <td>减少20-40%</td>
+                        <td>(减少噪音)</td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <div class="fix-item" style="background: #e7f3ff; border-left: 4px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5>A. 入场时机优化（延迟确认 + 回撤分步入场）</h5>
+                    
+                    <h6>1. 突破确认等待 ✅</h6>
+                    <ul style="margin-left: 20px;">
+                      <li>突破后等待<strong>1根15M K线收盘</strong>确认</li>
+                      <li>避免假突破当根噪音</li>
+                      <li>参数: <code>confirmationWait = 1</code></li>
+                    </ul>
+                    
+                    <h6>2. 多因子确认（至少2项）✅</h6>
+                    <table style="width:100%; font-size: 13px; margin: 10px 0; border-collapse: collapse;">
+                      <tr style="background: #f0f8ff;">
+                        <th style="padding:6px; border:1px solid #ddd;">因子</th>
+                        <th style="padding:6px; border:1px solid #ddd;">条件</th>
+                        <th style="padding:6px; border:1px solid #ddd;">参数</th>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">成交量</td>
+                        <td style="padding:6px; border:1px solid #ddd;">≥ 均量 × volFactor</td>
+                        <td style="padding:6px; border:1px solid #ddd;">1.2倍</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">Delta同向</td>
+                        <td style="padding:6px; border:1px solid #ddd;">15M与1H同向且|Δ|≥阈值</td>
+                        <td style="padding:6px; border:1px solid #ddd;">0.04</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">早期趋势</td>
+                        <td style="padding:6px; border:1px solid #ddd;">earlyTrendDetector检测到</td>
+                        <td style="padding:6px; border:1px solid #ddd;">布尔值</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">SmartMoney</td>
+                        <td style="padding:6px; border:1px solid #ddd;">分数≥阈值</td>
+                        <td style="padding:6px; border:1px solid #ddd;">0.6</td>
+                      </tr>
+                    </table>
+                    <p><strong>规则</strong>：确认项数≥2才允许入场（全部通过更佳）</p>
+                    
+                    <h6>3. Pullback入场模式 ✅</h6>
+                    <ul style="margin-left: 20px;">
+                      <li>突破后价格回撤到<strong>突破价±1.5%</strong>或<strong>EMA20</strong></li>
+                      <li>在回撤位形成支撑/阻力（V形反转、W底、上升支撑）</li>
+                      <li>分批建仓：<strong>首仓50%</strong>，确认后补仓50%</li>
+                      <li>补仓后移动止损到<strong>盈亏平衡+0.1%缓冲</strong></li>
+                    </ul>
+                  </div>
+
+                  <div class="fix-item" style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5>B. 止损/仓位优化（动态止损Plus + 分批建仓）</h5>
+                    
+                    <h6>1. 置信度分层止损（优化版）✅</h6>
+                    <table style="width:100%; border-collapse: collapse; margin: 10px 0;">
+                      <tr style="background: #ff9800; color: white;">
+                        <th style="padding:8px; border:1px solid #ddd;">置信度</th>
+                        <th style="padding:8px; border:1px solid #ddd;">V3.1</th>
+                        <th style="padding:8px; border:1px solid #ddd;">V3.1-Plus</th>
+                        <th style="padding:8px; border:1px solid #ddd;">变化</th>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">High</td>
+                        <td style="padding:6px; border:1px solid #ddd;">1.5×ATR</td>
+                        <td style="padding:6px; border:1px solid #ddd;"><strong>1.4×ATR</strong></td>
+                        <td style="padding:6px; border:1px solid #ddd;">-6.7% (更紧)</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">Med</td>
+                        <td style="padding:6px; border:1px solid #ddd;">2.0×ATR</td>
+                        <td style="padding:6px; border:1px solid #ddd;">2.0×ATR</td>
+                        <td style="padding:6px; border:1px solid #ddd;">不变</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">Low</td>
+                        <td style="padding:6px; border:1px solid #ddd;">2.6×ATR</td>
+                        <td style="padding:6px; border:1px solid #ddd;"><strong>3.0×ATR</strong></td>
+                        <td style="padding:6px; border:1px solid #ddd;">+15.4% (更宽)</td>
+                      </tr>
+                    </table>
+                    
+                    <h6>2. 入场模式调整 ✅</h6>
+                    <ul style="margin-left: 20px;">
+                      <li><strong>Breakout模式</strong>: K × 1.25 (突破风险高，放宽止损)</li>
+                      <li><strong>Pullback模式</strong>: K × 0.9 (回撤风险低，收紧止损)</li>
+                      <li><strong>Momentum模式</strong>: K不变 (标准止损)</li>
+                    </ul>
+                    
+                    <h6>3. 追踪止盈优化 ✅</h6>
+                    <ul style="margin-left: 20px;">
+                      <li><strong>步长</strong>: 0.5×ATR → <strong>0.4×ATR</strong> (更敏感，-20%)</li>
+                      <li><strong>目标</strong>: 1.3×ATR → <strong>2.0×ATR</strong> (更高，+53.8%)</li>
+                      <li><strong>触发</strong>: 盈利≥1×止损距离时启用</li>
+                    </ul>
+                    
+                    <h6>4. 时间止损优化 ✅</h6>
+                    <ul style="margin-left: 20px;">
+                      <li><strong>基准</strong>: 60分钟未盈利 + 1H动量反转 → 平仓</li>
+                      <li><strong>扩展</strong>: 120分钟未盈利 → 减仓50%</li>
+                      <li><strong>动量反转</strong>: MACD Hist减少>30% 或 EMA交叉</li>
+                    </ul>
+                  </div>
+
+                  <div class="fix-item" style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5>C. 交易节律/频率控制（冷却 + 胜率驱动）</h5>
+                    
+                    <h6>1. 冷却机制 ✅</h6>
+                    <ul style="margin-left: 20px;">
+                      <li><strong>单次冷却</strong>: 每次入场后<strong>45分钟</strong>内不再入场同一交易对</li>
+                      <li><strong>每日限制</strong>: 每个交易对每日最多<strong>6笔</strong>交易</li>
+                      <li><strong>实现</strong>: 内存缓存 + 数据库持久化</li>
+                      <li><strong>自动重置</strong>: 每日0点重置计数</li>
+                    </ul>
+                    
+                    <h6>2. 胜率跟踪保护 ✅</h6>
+                    <ul style="margin-left: 20px;">
+                      <li><strong>跟踪窗口</strong>: 最近<strong>12笔</strong>已平仓交易</li>
+                      <li><strong>保护阈值</strong>: 胜率<strong>30%</strong>时启动保护</li>
+                      <li><strong>调整措施</strong>:
+                        <ul>
+                          <li>总分惩罚: -10到-20分（根据胜率低程度）</li>
+                          <li>仓位缩减: ×0.3到×1.0（胜率越低缩减越多）</li>
+                        </ul>
+                      </li>
+                      <li><strong>恢复条件</strong>: 胜率回到≥30%时自动解除</li>
+                    </ul>
+                    
+                    <h6>3. 趋势过滤 ✅</h6>
+                    <ul style="margin-left: 20px;">
+                      <li><strong>下降趋势</strong>: 拒绝LONG弱信号（<70分）</li>
+                      <li><strong>上升趋势</strong>: 拒绝SHORT弱信号（<70分）</li>
+                      <li><strong>逆势交易要求更严格</strong></li>
+                    </ul>
+                  </div>
+
+                  <div class="fix-item" style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5>📊 V3.1-Plus 关键参数对比</h5>
+                    
+                    <table style="width:100%; border-collapse: collapse; margin: 10px 0;">
+                      <tr style="background: #0c5460; color: white;">
+                        <th style="padding:8px; border:1px solid #ddd;">参数</th>
+                        <th style="padding:8px; border:1px solid #ddd;">V3.1</th>
+                        <th style="padding:8px; border:1px solid #ddd;">V3.1-Plus</th>
+                        <th style="padding:8px; border:1px solid #ddd;">改进</th>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">入场确认</td>
+                        <td style="padding:6px; border:1px solid #ddd;">即时</td>
+                        <td style="padding:6px; border:1px solid #ddd;">等待1根+多因子</td>
+                        <td style="padding:6px; border:1px solid #ddd;">减少假突破</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">K_high</td>
+                        <td style="padding:6px; border:1px solid #ddd;">1.5</td>
+                        <td style="padding:6px; border:1px solid #ddd;">1.4</td>
+                        <td style="padding:6px; border:1px solid #ddd;">-6.7% (提高胜率)</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">K_low</td>
+                        <td style="padding:6px; border:1px solid #ddd;">2.6</td>
+                        <td style="padding:6px; border:1px solid #ddd;">3.0</td>
+                        <td style="padding:6px; border:1px solid #ddd;">+15.4% (避免扫损)</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">追踪步长</td>
+                        <td style="padding:6px; border:1px solid #ddd;">0.5×ATR</td>
+                        <td style="padding:6px; border:1px solid #ddd;">0.4×ATR</td>
+                        <td style="padding:6px; border:1px solid #ddd;">-20% (更敏感)</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">止盈目标</td>
+                        <td style="padding:6px; border:1px solid #ddd;">1.3×ATR</td>
+                        <td style="padding:6px; border:1px solid #ddd;">2.0×ATR</td>
+                        <td style="padding:6px; border:1px solid #ddd;">+53.8% (让利润奔跑)</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">冷却时间</td>
+                        <td style="padding:6px; border:1px solid #ddd;">无</td>
+                        <td style="padding:6px; border:1px solid #ddd;">45分钟</td>
+                        <td style="padding:6px; border:1px solid #ddd;">避免频繁交易</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px; border:1px solid #ddd;">胜率保护</td>
+                        <td style="padding:6px; border:1px solid #ddd;">无</td>
+                        <td style="padding:6px; border:1px solid #ddd;"><30%启动</td>
+                        <td style="padding:6px; border:1px solid #ddd;">自适应调整</td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <div class="fix-item" style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5>💡 实现亮点</h5>
+                    <ul style="margin-left: 20px;">
+                      <li>✅ <strong>零冗余</strong>: 无新建表，完全复用现有表结构</li>
+                      <li>✅ <strong>高性能</strong>: 内存缓存冷却状态，单表查询胜率</li>
+                      <li>✅ <strong>6个核心模块</strong>:
+                        <ul>
+                          <li>CooldownCache - 冷却缓存管理</li>
+                          <li>WinRateTracker - 胜率跟踪</li>
+                          <li>EntryConfirmationManager - 入场确认</li>
+                          <li>PullbackDetector - 回撤检测</li>
+                          <li>StagedEntryManager - 分批建仓</li>
+                          <li>DynamicStopLossPlus - 动态止损Plus</li>
+                        </ul>
+                      </li>
+                      <li>✅ <strong>37个单元测试</strong>: 100%通过</li>
+                      <li>✅ <strong>24个可调参数</strong>: strategy_params表配置</li>
+                    </ul>
+                  </div>
+                  
                   <h4>🆕 V3.1优化历史 (2025-10-08)</h4>
                   <div class="fix-item" style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>震荡市交易逻辑修复</h5>
