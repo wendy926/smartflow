@@ -301,7 +301,20 @@ class SmartMoneyDetector {
               oiChangePct: parseFloat(row.oi_change_pct),
               spoofCount: row.spoof_count,
               trackedEntriesCount: row.tracked_entries_count,
-              timestamp: row.timestamp
+              timestamp: row.timestamp,
+              // Trap字段
+              trap: row.trap_detected ? {
+                detected: Boolean(row.trap_detected),
+                type: row.trap_type,
+                confidence: parseFloat(row.trap_confidence),
+                flashCount: row.flash_orders_count,
+                persistentCount: row.persistent_orders_count
+              } : null,
+              // Swan字段
+              swan: row.swan_alert_level && row.swan_alert_level !== 'NONE' ? {
+                level: row.swan_alert_level,
+                priceDrop: parseFloat(row.price_drop_pct)
+              } : null
             };
           }
         } catch (error) {
@@ -333,7 +346,9 @@ class SmartMoneyDetector {
         ...baseResult,
         action: baseActionEn,
         source: 'indicators_only',
-        largeOrder: null
+        largeOrder: null,
+        trap: null,
+        swan: null
       };
     }
 
@@ -348,7 +363,9 @@ class SmartMoneyDetector {
         confidence: Math.min(0.95, baseResult.confidence * 1.3),
         reason: baseResult.reason + ' + 大额挂单确认',
         source: 'integrated_confirmed',
-        largeOrder: largeOrderSignal
+        largeOrder: largeOrderSignal,
+        trap: largeOrderSignal.trap,
+        swan: largeOrderSignal.swan
       };
     }
 
@@ -365,7 +382,9 @@ class SmartMoneyDetector {
           confidence: 0.75,
           reason: `大额挂单主导 (score=${largeOrderStrength.toFixed(1)}, spoof=${largeOrderSignal.spoofCount})`,
           source: 'large_order_dominant',
-          largeOrder: largeOrderSignal
+          largeOrder: largeOrderSignal,
+          trap: largeOrderSignal.trap,
+          swan: largeOrderSignal.swan
         };
       }
 
@@ -376,7 +395,9 @@ class SmartMoneyDetector {
         confidence: 0.45,
         reason: `信号矛盾: 基础=${baseActionEn}, 挂单=${largeOrderAction}`,
         source: 'conflict',
-        largeOrder: largeOrderSignal
+        largeOrder: largeOrderSignal,
+        trap: largeOrderSignal.trap,
+        swan: largeOrderSignal.swan
       };
     }
 
@@ -385,7 +406,9 @@ class SmartMoneyDetector {
       ...baseResult,
       action: baseActionEn,
       source: 'base_with_large_order_unknown',
-      largeOrder: largeOrderSignal
+      largeOrder: largeOrderSignal,
+      trap: largeOrderSignal.trap,
+      swan: largeOrderSignal.swan
     };
   }
 
