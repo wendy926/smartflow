@@ -12,6 +12,7 @@ const { OrderClassifier } = require('./classifier');
 const { SignalAggregator } = require('./aggregator');
 const WebSocketManager = require('./websocket-manager');
 const { SwanDetector } = require('./swan-detector');
+const { TrapDetector } = require('../smart-money/trap-detector');
 
 class LargeOrderDetector {
   /**
@@ -42,6 +43,7 @@ class LargeOrderDetector {
     this.aggregator = new SignalAggregator(this.config);
     this.wsManager = new WebSocketManager(); // 新增WebSocket管理器
     this.swanDetector = null; // 黑天鹅检测器（延迟初始化）
+    this.trapDetector = new TrapDetector(); // 诱多诱空检测器
     
     // 状态存储（按symbol）
     this.state = new Map(); // symbol -> { cvdSeries, cvdCum, prevOI, oi, priceHistory: [] }
@@ -306,14 +308,15 @@ class LargeOrderDetector {
    * 保存检测结果到数据库
    * @private
    */
-  async _saveDetectionResult(symbol, timestamp, aggregateResult, trackedEntries, swanResult = null) {
+  async _saveDetectionResult(symbol, timestamp, aggregateResult, trackedEntries, swanResult = null, trapResult = null) {
     try {
       const sql = `
         INSERT INTO large_order_detection_results 
         (symbol, timestamp, final_action, buy_score, sell_score, cvd_cum, oi, oi_change_pct, spoof_count, tracked_entries_count, detection_data,
          swan_alert_level, price_drop_pct, volume_24h, max_order_to_vol24h_ratio, max_order_to_oi_ratio, 
-         sweep_detected, sweep_pct, alert_triggers)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         sweep_detected, sweep_pct, alert_triggers,
+         trap_detected, trap_type, trap_confidence, trap_indicators, persistent_orders_count, flash_orders_count, cancel_ratio)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
       const detectionData = JSON.stringify({
@@ -349,7 +352,15 @@ class LargeOrderDetector {
         swanResult?.max_order_to_oi_ratio || null,
         swanResult?.sweep_detected || false,
         swanResult?.sweep_pct || null,
-        swanResult?.alert_triggers || null
+        swanResult?.alert_triggers || null,
+        // Trap字段
+        trapResult?.trap_detected || false,
+        trapResult?.trap_type || 'NONE',
+        trapResult?.trap_confidence || null,
+        trapResult?.trap_indicators || null,
+        trapResult?.persistent_orders_count || 0,
+        trapResult?.flash_orders_count || 0,
+        trapResult?.cancel_ratio || null
       ]);
       
     } catch (error) {
@@ -407,9 +418,39 @@ class LargeOrderDetector {
           logger.error('[SwanDetector] 检测失败', { symbol, error: error.message });
         }
       }
+
+      // 诱多诱空检测（新增）
+      let trapResult = null;
+      if (this.trapDetector && trackedEntries.length > 0) {
+        try {
+          trapResult = this.trapDetector.detect({
+            trackedEntries,
+            cvdChange: state.cvdCum,
+            oiChange: state.oi && state.prevOI ? state.oi - state.prevOI : 0,
+            priceChange: state.priceHistory && state.priceHistory.length >= 2
+              ? state.priceHistory[state.priceHistory.length - 1].price - state.priceHistory[0].price
+              : 0,
+            priceHistory: state.priceHistory || [],
+            cvdSeries: state.cvdSeries || [],
+            oiSeries: state.oiSeries || []
+          });
+
+          // 如果检测到陷阱，记录警告
+          if (trapResult.detected) {
+            logger.warn(`[TrapDetector] 检测到${trapResult.type}`, {
+              symbol,
+              type: trapResult.type,
+              confidence: trapResult.confidence,
+              flashCount: trapResult.indicators.flashCount
+            });
+          }
+        } catch (error) {
+          logger.error('[TrapDetector] 检测失败', { symbol, error: error.message });
+        }
+      }
       
-      // 保存到数据库（包含Swan结果）
-      await this._saveDetectionResult(symbol, Date.now(), aggregateResult, trackedEntries, swanResult);
+      // 保存到数据库（包含Swan和Trap结果）
+      await this._saveDetectionResult(symbol, Date.now(), aggregateResult, trackedEntries, swanResult, trapResult);
       
       return {
         symbol,
@@ -419,6 +460,13 @@ class LargeOrderDetector {
           level: swanResult.level,
           triggers: swanResult.triggers,
           score: swanResult.score
+        } : null,
+        trap: trapResult ? {
+          detected: trapResult.detected,
+          type: trapResult.type,
+          confidence: trapResult.confidence,
+          flashCount: trapResult.indicators.flashCount,
+          cancelRatio: trapResult.indicators.cancelRatio
         } : null,
         trackedEntries: trackedEntries.map(e => ({
           side: e.side,

@@ -61,6 +61,13 @@ class LargeOrdersTracker {
     const sellScore = (data.sellScore !== undefined && data.sellScore !== null) ? data.sellScore.toFixed(2) : '0.00';
     const oiChangePct = (data.oiChangePct !== undefined && data.oiChangePct !== null) ? data.oiChangePct.toFixed(2) : '0.00';
 
+    // Trap信息
+    const trapIndicator = data.trap && data.trap.detected
+      ? `<span class="trap-${data.trap.type === 'BULL_TRAP' ? 'bull' : 'bear'}">
+           ⚠️ ${data.trap.type === 'BULL_TRAP' ? '诱多' : '诱空'} (${data.trap.confidence.toFixed(0)}%)
+         </span>`
+      : '';
+
     container.innerHTML = `
       <div class="summary-grid">
         <div class="summary-item">
@@ -69,8 +76,9 @@ class LargeOrdersTracker {
         </div>
         <div class="summary-item">
           <div class="summary-label">最终动作</div>
-          <div class="summary-value" style="color: ${actionColor}; font-weight: bold;">
+          <div class="summary-value action-${(data.finalAction || 'UNKNOWN').toLowerCase()}">
             ${data.finalAction || 'UNKNOWN'}
+            ${trapIndicator}
           </div>
         </div>
         <div class="summary-item">
