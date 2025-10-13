@@ -159,12 +159,15 @@ class TradingSystemApp {
         global.aiScheduler = this.aiScheduler; // 设置全局变量供API路由使用（向后兼容）
         this.app.set('aiScheduler', this.aiScheduler);  // 注册到Express app
 
-        const aiStarted = await this.aiScheduler.start();
-        if (aiStarted) {
-          logger.info('[AI模块] ✅ AI分析调度器启动成功（独立运行，不影响策略）');
-        } else {
-          logger.warn('[AI模块] ⚠️ AI分析调度器未启动（可能已禁用）');
-        }
+        // 🚨 暂时禁用AI分析（API频率超限，CPU 100%占用）
+        logger.warn('[AI模块] ⚠️ AI分析调度器已暂时禁用（VPS性能优化）');
+        
+        // const aiStarted = await this.aiScheduler.start();
+        // if (aiStarted) {
+        //   logger.info('[AI模块] ✅ AI分析调度器启动成功（独立运行，不影响策略）');
+        // } else {
+        //   logger.warn('[AI模块] ⚠️ AI分析调度器未启动（可能已禁用）');
+        // }
       } catch (error) {
         logger.error('[AI模块] ❌ AI调度器启动失败（不影响策略执行）:', error);
         // AI调度器启动失败不影响主应用和策略执行
