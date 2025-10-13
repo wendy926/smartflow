@@ -23,14 +23,32 @@ class HistoryAggregator {
     const orderMap = new Map();  // key(side@price) -> aggregated data
     const now = Date.now();
 
+    logger.info(`[HistoryAggregator] 开始聚合 ${symbol}`, { records: detectionRecords.length });
+
     for (const record of detectionRecords) {
       let entries = [];
       
       try {
-        const detectionData = JSON.parse(record.detection_data || '{}');
-        entries = detectionData.trackedEntries || [];
+        const detectionData = typeof record.detection_data === 'string' 
+          ? JSON.parse(record.detection_data) 
+          : record.detection_data;
+        entries = detectionData?.trackedEntries || [];
+        
+        logger.debug(`[HistoryAggregator] 记录 ${record.symbol} - ${record.created_at}`, { 
+          entries: entries.length 
+        });
       } catch (error) {
-        logger.warn(`[HistoryAggregator] 解析detection_data失败:`, error.message);
+        logger.warn(`[HistoryAggregator] 解析detection_data失败:`, { 
+          symbol: record.symbol, 
+          error: error.message 
+        });
+        continue;
+      }
+
+      if (!entries || entries.length === 0) {
+        logger.debug(`[HistoryAggregator] 记录无追踪挂单，跳过`, { 
+          symbol: record.symbol 
+        });
         continue;
       }
 
@@ -43,6 +61,7 @@ class HistoryAggregator {
           orderMap.set(key, {
             price: entry.price,
             side: entry.side,
+            valueUSD: entry.valueUSD || 0,
             maxValueUSD: entry.valueUSD || 0,
             firstSeen: recordTime,
             lastSeen: recordTime,
@@ -54,12 +73,17 @@ class HistoryAggregator {
           // 已存在，更新
           const agg = orderMap.get(key);
           agg.maxValueUSD = Math.max(agg.maxValueUSD, entry.valueUSD || 0);
+          agg.valueUSD = agg.maxValueUSD;  // 确保valueUSD字段存在
           agg.lastSeen = Math.max(agg.lastSeen, recordTime);
           agg.lastSeenFormatted = record.created_at;
           agg.appearances++;
         }
       }
     }
+
+    logger.info(`[HistoryAggregator] 聚合完成 ${symbol}`, { 
+      uniqueOrders: orderMap.size 
+    });
 
     // 转换为数组并添加状态标记
     const result = Array.from(orderMap.values()).map(order => {
