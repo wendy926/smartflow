@@ -33,7 +33,7 @@ const getScheduler = () => {
  */
 router.get('/macro-risk', async (req, res) => {
   try {
-    const { symbols } = req.query;
+    const { symbols, forceRefresh } = req.query;
     const symbolList = symbols ? symbols.split(',') : ['BTCUSDT', 'ETHUSDT'];
 
     const operations = getAIOps();
@@ -44,7 +44,30 @@ router.get('/macro-risk', async (req, res) => {
     const binanceAPI = getBinanceAPI();
 
     for (const symbol of symbolList) {
-      const analysis = await operations.getLatestAnalysis(symbol, 'MACRO_RISK');
+      let analysis = await operations.getLatestAnalysis(symbol, 'MACRO_RISK');
+      
+      // 🆕 检查数据是否过期（超过2小时）或强制刷新
+      const shouldRefresh = forceRefresh === 'true' || 
+        !analysis || 
+        (analysis && (Date.now() - new Date(analysis.createdAt).getTime()) > 2 * 60 * 60 * 1000);
+
+      // 🆕 如果需要刷新且AI调度器可用，触发新的分析
+      if (shouldRefresh) {
+        const scheduler = getScheduler();
+        if (scheduler) {
+          try {
+            logger.info(`[AI手动触发] 触发${symbol}宏观分析（数据过期或手动刷新）`);
+            await scheduler.triggerMacroAnalysis(symbol);
+            // 重新获取最新分析结果
+            analysis = await operations.getLatestAnalysis(symbol, 'MACRO_RISK');
+          } catch (triggerError) {
+            logger.warn(`[AI手动触发] 触发${symbol}分析失败:`, triggerError.message);
+            // 继续使用旧数据
+          }
+        } else {
+          logger.warn('[AI手动触发] AI调度器未初始化，使用缓存数据');
+        }
+      }
 
       // 获取实时价格
       let realtimePrice = null;

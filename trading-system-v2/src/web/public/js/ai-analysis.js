@@ -30,10 +30,12 @@ class AIAnalysisModule {
 
   /**
    * 加载宏观风险分析（BTC和ETH）
+   * @param {boolean} forceRefresh - 是否强制刷新
    */
-  async loadMacroRiskAnalysis() {
+  async loadMacroRiskAnalysis(forceRefresh = false) {
     try {
-      const response = await fetch(`${this.apiBase}/macro-risk?symbols=BTCUSDT,ETHUSDT`);
+      const forceParam = forceRefresh ? '&forceRefresh=true' : '';
+      const response = await fetch(`${this.apiBase}/macro-risk?symbols=BTCUSDT,ETHUSDT${forceParam}`);
       const result = await response.json();
 
       if (result.success) {
