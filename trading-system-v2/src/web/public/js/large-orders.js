@@ -14,11 +14,162 @@ class LargeOrdersTracker {
     // 绑定刷新按钮
     const refreshBtn = document.getElementById('refresh-large-orders-btn');
     if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => this.loadData());
+      refreshBtn.addEventListener('click', () => this.loadHistoricalData());
     }
 
-    // 初次加载
-    this.loadData();
+    // 初次加载历史数据
+    this.loadHistoricalData();
+  }
+
+  /**
+   * 加载7天历史聚合数据
+   */
+  async loadHistoricalData() {
+    try {
+      console.log('[LargeOrders] 加载7天历史数据...');
+      const response = await fetch('/api/v1/large-orders/history-aggregated?symbols=BTCUSDT,ETHUSDT&days=7');
+      const result = await response.json();
+      console.log('[LargeOrders] 历史数据:', result);
+
+      if (result.success && result.data) {
+        this.renderHistoricalView(result.data);
+        this.updateLastUpdate();
+      } else {
+        this.showError('加载历史数据失败');
+      }
+    } catch (error) {
+      console.error('[LargeOrders] 加载历史数据失败', error);
+      this.showError('加载失败: ' + error.message);
+    }
+  }
+
+  /**
+   * 渲染历史视图（双面板）
+   */
+  renderHistoricalView(data) {
+    const container = document.getElementById('large-order-summary-content');
+    if (!container) return;
+
+    const btcData = data.BTCUSDT || { symbol: 'BTCUSDT', stats: {}, orders: [] };
+    const ethData = data.ETHUSDT || { symbol: 'ETHUSDT', stats: {}, orders: [] };
+
+    container.innerHTML = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        ${this.generateHistoricalPanel(btcData)}
+        ${this.generateHistoricalPanel(ethData)}
+      </div>
+    `;
+  }
+
+  /**
+   * 生成历史面板
+   */
+  generateHistoricalPanel(data) {
+    const { symbol, stats = {}, orders = [] } = data;
+    const newCount = stats.newOrders || 0;
+    const activeCount = stats.activeOrders || 0;
+    const totalCount = stats.totalOrders || 0;
+
+    return `
+      <div class="historical-panel" style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <!-- 头部 -->
+        <div style="border-bottom: 2px solid #e9ecef; padding-bottom: 15px; margin-bottom: 15px;">
+          <h3 style="margin: 0 0 10px 0; font-size: 22px;">
+            ${symbol}
+            <span style="font-size: 14px; color: #28a745; margin-left: 10px;">● 监控中</span>
+          </h3>
+          <div style="display: flex; gap: 20px; font-size: 13px;">
+            <span style="color: #666;">📊 7天累计: <strong>${totalCount}个</strong></span>
+            <span style="color: #28a745;">● 当前: <strong>${activeCount}个</strong></span>
+            ${newCount > 0 ? `<span style="color: #ffc107; animation: blink 1.5s ease-in-out infinite;">🆕 新增: <strong>${newCount}个</strong></span>` : ''}
+          </div>
+        </div>
+
+        <!-- 挂单列表 -->
+        <div style="max-height: 400px; overflow-y: auto;">
+          ${orders.length > 0 ? `
+            <table style="width: 100%; font-size: 12px;">
+              <thead style="position: sticky; top: 0; background: #f8f9fa;">
+                <tr>
+                  <th style="padding: 8px; text-align: left;">状态</th>
+                  <th style="padding: 8px; text-align: right;">价格</th>
+                  <th style="padding: 8px; text-align: right;">价值</th>
+                  <th style="padding: 8px; text-align: center;">出现次数</th>
+                  <th style="padding: 8px; text-align: right;">首次/最后</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${orders.map(order => this.generateHistoricalRow(order)).join('')}
+              </tbody>
+            </table>
+          ` : '<div style="text-align: center; padding: 40px; color: #999;">7天内无大额挂单（>1M USD）</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 生成历史行
+   */
+  generateHistoricalRow(order) {
+    const bgColor = order.isNew 
+      ? '#fff3cd'  // 新增：黄色
+      : order.isActive 
+        ? '#d4edda'  // 活跃：绿色
+        : '#ffffff'; // 历史：白色
+
+    const borderLeft = order.isNew 
+      ? '3px solid #ffc107'
+      : order.isActive
+        ? '3px solid #28a745'
+        : '1px solid #e9ecef';
+
+    const statusIcon = order.isNew
+      ? '<span style="color: #ffc107; font-weight: bold;">🆕</span>'
+      : order.isActive
+        ? '<span style="color: #28a745;">●</span>'
+        : '<span style="color: #9ca3af;">○</span>';
+
+    const sideColor = order.side === 'bid' ? '#28a745' : '#dc3545';
+    const sideText = order.side === 'bid' ? 'BUY' : 'SELL';
+
+    return `
+      <tr style="background: ${bgColor}; border-left: ${borderLeft};">
+        <td style="padding: 10px;">
+          ${statusIcon}
+          <span style="color: ${sideColor}; font-weight: 600; margin-left: 5px;">${sideText}</span>
+        </td>
+        <td style="padding: 10px; text-align: right; font-weight: 600;">
+          ${order.price.toLocaleString()}
+        </td>
+        <td style="padding: 10px; text-align: right;">
+          ${(order.maxValueUSD / 1000000).toFixed(1)}M
+        </td>
+        <td style="padding: 10px; text-align: center;">
+          ${order.appearances}次
+        </td>
+        <td style="padding: 10px; text-align: right; font-size: 11px; color: #666;">
+          ${this.formatTimeAgo(order.firstSeen)} -<br/>
+          ${this.formatTimeAgo(order.lastSeen)}
+        </td>
+      </tr>
+    `;
+  }
+
+  /**
+   * 格式化相对时间
+   */
+  formatTimeAgo(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (days > 0) return `${days}天前`;
+    if (hours > 0) return `${hours}小时前`;
+    if (minutes > 0) return `${minutes}分钟前`;
+    return '刚刚';
   }
 
   async loadData() {

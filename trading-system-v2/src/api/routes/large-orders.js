@@ -237,6 +237,40 @@ function initRoutes() {
   });
 
   /**
+   * GET /api/v1/large-orders/history-aggregated
+   * 获取历史聚合数据（7天累计）
+   * 
+   * @query {string} symbols - 交易对（逗号分隔，默认BTCUSDT,ETHUSDT）
+   * @query {number} days - 天数（默认7）
+   * @returns {Object} 聚合数据
+   */
+  router.get('/history-aggregated', async (req, res) => {
+    try {
+      const database = req.app.get('database');
+      const { symbols, days = 7 } = req.query;
+      const symbolList = symbols ? symbols.split(',').map(s => s.trim().toUpperCase()) : ['BTCUSDT', 'ETHUSDT'];
+
+      const HistoryAggregator = require('../../services/large-order/history-aggregator');
+      const aggregator = new HistoryAggregator();
+
+      const result = await aggregator.aggregateMultipleSymbols(database, symbolList, days);
+
+      res.json({
+        success: true,
+        data: result,
+        timeRange: `${days}天`,
+        timestamp: Date.now()
+      });
+    } catch (error) {
+      logger.error('[LargeOrdersAPI] /history-aggregated 失败', { error: error.message });
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
+  /**
    * GET /api/v1/large-orders/config
    * 获取配置
    * 
