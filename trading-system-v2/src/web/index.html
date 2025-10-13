@@ -2255,6 +2255,360 @@
                 </div>
               </div>
 
+              <!-- 聪明钱监控文档 (V2.1.0) -->
+              <div class="strategy-doc" id="smart-money-overview">
+                <div class="doc-header">
+                  <h3>💰 聪明钱监控系统 (V2.1.0)</h3>
+                  <span class="strategy-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">聪明钱</span>
+                </div>
+                <div class="doc-content">
+                  <h4>监控概述</h4>
+                  <p>聪明钱监控系统通过实时分析订单簿失衡(OBI)、累计成交量差(CVD)、持仓量变化(OI)和成交量异常(Volume Z-score)等多维度市场指标，识别主力资金（庄家）的操作意图。系统每15分钟更新一次，追踪6个核心交易对（BTCUSDT、ETHUSDT、SOLUSDT、ASTERUSDT、MEMEUSDT、4USDT）的实时动作。</p>
+                  
+                  <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196f3;">
+                    <h5 style="margin: 0 0 10px 0; color: #0c5460;">🎯 核心功能</h5>
+                    <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
+                      <li><strong>庄家动作识别</strong>：吸筹、拉升、派发、砸盘四种动作</li>
+                      <li><strong>诱多诱空检测</strong>：识别主力诱导散户的假信号</li>
+                      <li><strong>建仓信号提示</strong>：聪明钱建仓标识（紫色渐变+呼吸光效）</li>
+                      <li><strong>实时监控</strong>：15分钟刷新周期，数据库持久化</li>
+                    </ul>
+                  </div>
+
+                  <h4 id="smart-money-indicators">核心指标说明</h4>
+                  <table style="width:100%; font-size: 13px; margin: 15px 0; border-collapse: collapse;">
+                    <tr style="background: #667eea; color: white;">
+                      <th style="padding:10px; border:1px solid #ddd;">指标</th>
+                      <th style="padding:10px; border:1px solid #ddd;">英文缩写</th>
+                      <th style="padding:10px; border:1px solid #ddd;">计算方式</th>
+                      <th style="padding:10px; border:1px solid #ddd;">意义</th>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; border:1px solid #ddd;">订单簿失衡</td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>OBI</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">买单总量 - 卖单总量</td>
+                      <td style="padding:8px; border:1px solid #ddd;">正值→买盘强劲；负值→卖盘占优</td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                      <td style="padding:8px; border:1px solid #ddd;">累计成交量差</td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>CVD</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">∑(买方成交量 - 卖方成交量)</td>
+                      <td style="padding:8px; border:1px solid #ddd;">上升→主力吸筹；下降→主力派发</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; border:1px solid #ddd;">持仓量变化</td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>OI Change</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">当前OI - 前期OI</td>
+                      <td style="padding:8px; border:1px solid #ddd;">上升→新资金入场；下降→资金离场</td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                      <td style="padding:8px; border:1px solid #ddd;">成交量异常</td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>Volume Z-score</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">(当前量 - 均量) / 标准差</td>
+                      <td style="padding:8px; border:1px solid #ddd;">σ值越高→异常程度越大（>2σ显著异常）</td>
+                    </tr>
+                  </table>
+
+                  <div style="background: #fff9e6; padding: 12px; border-radius: 6px; margin: 15px 0;">
+                    <p style="margin: 0; color: #856404;"><strong>💡 σ（西格玛）说明</strong>：Z-score的单位，表示偏离均值的标准差倍数</p>
+                    <ul style="margin: 5px 0 0 20px; color: #856404; font-size: 13px;">
+                      <li>0-1σ：正常波动</li>
+                      <li>1-2σ：值得关注</li>
+                      <li>2-3σ：异常信号（强烈关注）</li>
+                      <li>>3σ：极度异常（可能是重大事件）</li>
+                    </ul>
+                  </div>
+
+                  <h4 id="smart-money-actions">庄家动作四象限模型</h4>
+                  <p>基于价格走势、CVD方向和持仓量变化，识别四种核心庄家动作：</p>
+
+                  <table style="width:100%; font-size: 13px; margin: 15px 0; border-collapse: collapse;">
+                    <tr style="background: #667eea; color: white;">
+                      <th style="padding:10px; border:1px solid #ddd;">动作</th>
+                      <th style="padding:10px; border:1px solid #ddd;">英文</th>
+                      <th style="padding:10px; border:1px solid #ddd;">价格</th>
+                      <th style="padding:10px; border:1px solid #ddd;">CVD</th>
+                      <th style="padding:10px; border:1px solid #ddd;">OI</th>
+                      <th style="padding:10px; border:1px solid #ddd;">策略建议</th>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; border:1px solid #ddd; background: #d4edda;">🟢 吸筹</td>
+                      <td style="padding:8px; border:1px solid #ddd;">ACCUMULATE</td>
+                      <td style="padding:8px; border:1px solid #ddd;">横盘/小跌</td>
+                      <td style="padding:8px; border:1px solid #ddd;">↑ 上升</td>
+                      <td style="padding:8px; border:1px solid #ddd;">↑ 上升</td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>潜伏</strong>（庄家建仓中）</td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                      <td style="padding:8px; border:1px solid #ddd; background: #cce5ff;">🔵 拉升</td>
+                      <td style="padding:8px; border:1px solid #ddd;">MARKUP</td>
+                      <td style="padding:8px; border:1px solid #ddd;">↑ 上行</td>
+                      <td style="padding:8px; border:1px solid #ddd;">↑ 上升</td>
+                      <td style="padding:8px; border:1px solid #ddd;">↑ 上升</td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>跟随</strong>（顺势做多）</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; border:1px solid #ddd; background: #fff3cd;">🟡 派发</td>
+                      <td style="padding:8px; border:1px solid #ddd;">DISTRIBUTION</td>
+                      <td style="padding:8px; border:1px solid #ddd;">横盘/小涨</td>
+                      <td style="padding:8px; border:1px solid #ddd;">↓ 下降</td>
+                      <td style="padding:8px; border:1px solid #ddd;">↑ 上升</td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>减仓</strong>（庄家出货）</td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                      <td style="padding:8px; border:1px solid #ddd; background: #f8d7da;">🔴 砸盘</td>
+                      <td style="padding:8px; border:1px solid #ddd;">MARKDOWN</td>
+                      <td style="padding:8px; border:1px solid #ddd;">↓ 下行</td>
+                      <td style="padding:8px; border:1px solid #ddd;">↓ 下降</td>
+                      <td style="padding:8px; border:1px solid #ddd;">↓ 下降</td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>观望</strong>（快速杀跌）</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; border:1px solid #ddd; background: #e9ecef;">⚪ 无信号</td>
+                      <td style="padding:8px; border:1px solid #ddd;">UNKNOWN</td>
+                      <td style="padding:8px; border:1px solid #ddd;">不明确</td>
+                      <td style="padding:8px; border:1px solid #ddd;">-</td>
+                      <td style="padding:8px; border:1px solid #ddd;">-</td>
+                      <td style="padding:8px; border:1px solid #ddd;">等待明确信号</td>
+                    </tr>
+                  </table>
+
+                  <h4 id="smart-money-traps">诱多诱空检测（V2.1.1）</h4>
+                  <p>通过分析大额挂单的真实性、持续性和执行情况，识别主力的诱导行为：</p>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border: 2px solid #f59e0b;">
+                      <h5 style="margin: 0 0 10px 0; color: #92400e;">⚠️ 诱多陷阱（Bull Trap）</h5>
+                      <p style="margin: 5px 0; font-size: 13px;"><strong>特征</strong>：</p>
+                      <ul style="margin: 5px 0; padding-left: 20px; font-size: 13px;">
+                        <li>大量买单挂出（制造需求假象）</li>
+                        <li>挂单频繁取消/移动</li>
+                        <li>CVD实际下降（主力卖出）</li>
+                        <li>OI上升但价格滞涨</li>
+                      </ul>
+                      <p style="margin: 5px 0; font-size: 13px; color: #92400e;"><strong>策略</strong>：避免追涨，等待假突破后回调</p>
+                    </div>
+
+                    <div style="background: #fee2e2; padding: 15px; border-radius: 8px; border: 2px solid #ef4444;">
+                      <h5 style="margin: 0 0 10px 0; color: #991b1b;">⚠️ 诱空陷阱（Bear Trap）</h5>
+                      <p style="margin: 5px 0; font-size: 13px;"><strong>特征</strong>：</p>
+                      <ul style="margin: 5px 0; padding-left: 20px; font-size: 13px;">
+                        <li>大量卖单挂出（制造恐慌）</li>
+                        <li>挂单频繁取消/移动</li>
+                        <li>CVD实际上升（主力买入）</li>
+                        <li>OI上升但价格不跌</li>
+                      </ul>
+                      <p style="margin: 5px 0; font-size: 13px; color: #991b1b;"><strong>策略</strong>：避免恐慌卖出，等待假跌破后反弹</p>
+                    </div>
+                  </div>
+
+                  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h5 style="margin: 0 0 10px 0; color: white;">💰 聪明钱建仓信号</h5>
+                    <p style="margin: 5px 0;">当同时满足以下条件时，前端显示"💰 聪明钱建仓"标识（紫色渐变+呼吸光效）：</p>
+                    <ol style="margin: 5px 0; padding-left: 20px;">
+                      <li>庄家动作为<strong>吸筹(ACCUMULATE)</strong>或<strong>拉升(MARKUP)</strong></li>
+                      <li><strong>未检测到</strong>诱多/诱空陷阱</li>
+                      <li>置信度 > <strong>70%</strong></li>
+                      <li>存在有效的大额挂单追踪（trackedEntriesCount > 0）</li>
+                    </ol>
+                    <p style="margin: 5px 0;"><strong>操作建议</strong>：这是主力真实建仓的高概率信号，可考虑跟随布局</p>
+                  </div>
+
+                  <h4>数据更新周期</h4>
+                  <ul>
+                    <li><strong>刷新频率</strong>：15分钟（可通过数据库strategy_params配置）</li>
+                    <li><strong>数据存储</strong>：每次分析结果存入MySQL数据库</li>
+                    <li><strong>历史数据</strong>：保留最近30天记录</li>
+                    <li><strong>前端展示</strong>：实时显示最新分析结果</li>
+                  </ul>
+
+                  <h4>使用方式</h4>
+                  <p>访问"💰 聪明钱"页面（<code>/smart-money</code>），查看实时监控表格：</p>
+                  <ol>
+                    <li><strong>自动刷新</strong>：切换到聪明钱页面自动启动15分钟刷新</li>
+                    <li><strong>手动添加</strong>：输入交易对符号（如LINKUSDT）添加监控</li>
+                    <li><strong>信号解读</strong>：参考"庄家动作"和"置信度"决策</li>
+                    <li><strong>陷阱识别</strong>：注意"⚠️ 诱多/诱空"标识</li>
+                    <li><strong>建仓提示</strong>：关注"💰 聪明钱建仓"信号</li>
+                  </ol>
+                </div>
+              </div>
+
+              <!-- 大额挂单监控文档 (V2.1.2) -->
+              <div class="strategy-doc" id="large-orders-overview">
+                <div class="doc-header">
+                  <h3>📊 大额挂单监控系统 (V2.1.2)</h3>
+                  <span class="strategy-badge" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">大额挂单</span>
+                </div>
+                <div class="doc-content">
+                  <h4>监控概述</h4>
+                  <p>大额挂单监控系统通过WebSocket实时订阅Binance订单簿深度数据，追踪价值超过<strong>100万美元</strong>的大额买卖挂单。系统不仅监控当前挂单状态，还追踪挂单的生命周期（新增、持续、取消、成交），识别主力操作意图和潜在黑天鹅事件。</p>
+                  
+                  <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
+                    <h5 style="margin: 0 0 10px 0; color: #856404;">🎯 核心功能</h5>
+                    <ul style="margin: 5px 0; padding-left: 20px; color: #856404;">
+                      <li><strong>WebSocket实时监控</strong>：100ms级别订单簿更新</li>
+                      <li><strong>大额挂单追踪</strong>：自动追踪>1M USD的买卖挂单</li>
+                      <li><strong>黑天鹅检测</strong>：识别极端市场事件（暴跌+大额卖单+持仓量异常）</li>
+                      <li><strong>7天历史视图</strong>：累计展示近7天大额挂单数据</li>
+                      <li><strong>双面板展示</strong>：BTCUSDT（₿橙色）vs ETHUSDT（Ξ蓝色）</li>
+                    </ul>
+                  </div>
+
+                  <h4 id="large-orders-tracking">挂单追踪机制</h4>
+                  <p>系统将大额挂单按生命周期分为以下类型：</p>
+
+                  <table style="width:100%; font-size: 13px; margin: 15px 0; border-collapse: collapse;">
+                    <tr style="background: #667eea; color: white;">
+                      <th style="padding:10px; border:1px solid #ddd;">状态</th>
+                      <th style="padding:10px; border:1px solid #ddd;">标识</th>
+                      <th style="padding:10px; border:1px solid #ddd;">说明</th>
+                      <th style="padding:10px; border:1px solid #ddd;">意义</th>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>新增挂单</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">🆕 黄色高亮</td>
+                      <td style="padding:8px; border:1px solid #ddd;">首次检测到的大额挂单</td>
+                      <td style="padding:8px; border:1px solid #ddd;">主力新建仓位/支撑阻力位</td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>持续挂单</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">● 绿色圆点</td>
+                      <td style="padding:8px; border:1px solid #ddd;">存在时间>3个检测周期</td>
+                      <td style="padding:8px; border:1px solid #ddd;">真实支撑/阻力，主力意图明确</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>历史挂单</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">○ 灰色圆点</td>
+                      <td style="padding:8px; border:1px solid #ddd;">已取消/成交的挂单</td>
+                      <td style="padding:8px; border:1px solid #ddd;">历史关键价位参考</td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>Spoof挂单</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">⚡ 闪电标识</td>
+                      <td style="padding:8px; border:1px solid #ddd;">短时间内取消的大额挂单</td>
+                      <td style="padding:8px; border:1px solid #ddd;">主力诱导行为，虚假信号</td>
+                    </tr>
+                  </table>
+
+                  <div style="background: #fef3c7; padding: 12px; border-radius: 6px; margin: 15px 0;">
+                    <p style="margin: 0; color: #92400e;"><strong>💡 Spoofing（诱单）说明</strong></p>
+                    <p style="margin: 5px 0; color: #92400e; font-size: 13px;">Spoofing是指主力挂出大额买单/卖单制造虚假供需信号，诱导散户做出错误决策后迅速撤单。系统通过检测挂单存在时间识别此类行为。</p>
+                  </div>
+
+                  <h4 id="large-orders-swan">黑天鹅检测（V2.1.1）</h4>
+                  <p>基于大额挂单、价格异动和持仓量变化，系统实时检测潜在黑天鹅事件并分级告警：</p>
+
+                  <table style="width:100%; font-size: 13px; margin: 15px 0; border-collapse: collapse;">
+                    <tr style="background: #dc3545; color: white;">
+                      <th style="padding:10px; border:1px solid #ddd;">级别</th>
+                      <th style="padding:10px; border:1px solid #ddd;">触发条件</th>
+                      <th style="padding:10px; border:1px solid #ddd;">策略建议</th>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; border:1px solid #ddd; background: #f8d7da;"><strong>🚨 CRITICAL</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">
+                        • 5分钟跌幅 > 3%<br>
+                        • 大额卖单 > 日均量10%<br>
+                        • 持仓量暴跌 > 20%
+                      </td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>立即平仓</strong>，等待市场企稳</td>
+                    </tr>
+                    <tr style="background: #f8f9fa;">
+                      <td style="padding:8px; border:1px solid #ddd; background: #fff3cd;"><strong>⚠️ HIGH</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">
+                        • 5分钟跌幅 > 2%<br>
+                        • 大额卖单 > 日均量8%<br>
+                        • 持仓量下降 > 15%
+                      </td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>减仓观望</strong>，收紧止损</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px; border:1px solid #ddd; background: #d1ecf1;"><strong>👀 WATCH</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd;">
+                        • 5分钟跌幅 > 1.5%<br>
+                        • 大额卖单 > 日均量5%<br>
+                        • 持仓量波动 > 10%
+                      </td>
+                      <td style="padding:8px; border:1px solid #ddd;"><strong>密切关注</strong>，准备应对</td>
+                    </tr>
+                  </table>
+
+                  <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h5 style="margin: 0 0 10px 0; color: white;">🦢 黑天鹅判定逻辑</h5>
+                    <p style="margin: 5px 0;">系统综合以下3个维度评估黑天鹅风险：</p>
+                    <ol style="margin: 5px 0; padding-left: 20px;">
+                      <li><strong>价格暴跌</strong>：5分钟内跌幅超过1.5%</li>
+                      <li><strong>大额抛售</strong>：单笔卖单占24小时成交量比例异常（sweep_detected）</li>
+                      <li><strong>持仓异常</strong>：持仓量(OI)短时间内大幅波动</li>
+                    </ol>
+                    <p style="margin: 5px 0; font-size: 13px;">三个维度综合得分决定告警级别（WATCH/HIGH/CRITICAL）</p>
+                  </div>
+
+                  <h4 id="large-orders-history">7天历史视图（V2.1.2）</h4>
+                  <p>前端页面以双面板形式展示BTCUSDT和ETHUSDT的7天历史累计数据：</p>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div style="border: 4px solid #f7931a; padding: 15px; border-radius: 8px;">
+                      <h5 style="margin: 0 0 10px 0; color: #f7931a;">₿ BTCUSDT 面板（橙色）</h5>
+                      <ul style="margin: 5px 0; padding-left: 20px; font-size: 13px;">
+                        <li>7天累计追踪挂单数</li>
+                        <li>当前存在的活跃挂单</li>
+                        <li>买卖力量对比条（百分比）</li>
+                        <li>挂单列表（价格、价值、出现次数、时间跨度）</li>
+                      </ul>
+                    </div>
+
+                    <div style="border: 4px solid #627eea; padding: 15px; border-radius: 8px;">
+                      <h5 style="margin: 0 0 10px 0; color: #627eea;">Ξ ETHUSDT 面板（蓝色）</h5>
+                      <ul style="margin: 5px 0; padding-left: 20px; font-size: 13px;">
+                        <li>7天累计追踪挂单数</li>
+                        <li>当前存在的活跃挂单</li>
+                        <li>买卖力量对比条（百分比）</li>
+                        <li>挂单列表（价格、价值、出现次数、时间跨度）</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div style="background: #d4edda; padding: 12px; border-radius: 6px; margin: 15px 0;">
+                    <p style="margin: 0; color: #155724;"><strong>✨ 新增挂单敏感检测</strong></p>
+                    <p style="margin: 5px 0; color: #155724; font-size: 13px;">系统对新增大额挂单进行黄色闪烁高亮，帮助用户第一时间发现主力新动作。同时显示挂单持续时间和出现次数，判断挂单真实性。</p>
+                  </div>
+
+                  <h4>技术实现</h4>
+                  <ul>
+                    <li><strong>数据源</strong>：Binance WebSocket depth@100ms（订单簿深度流）</li>
+                    <li><strong>监控交易对</strong>：BTCUSDT、ETHUSDT（现货+合约）</li>
+                    <li><strong>阈值</strong>：单笔挂单价值 > 1,000,000 USD</li>
+                    <li><strong>存储频率</strong>：每4小时保存一次检测结果到数据库（优化后）</li>
+                    <li><strong>数据保留</strong>：7天滚动窗口（自动清理）</li>
+                    <li><strong>前端刷新</strong>：60秒自动刷新</li>
+                  </ul>
+
+                  <h4>使用方式</h4>
+                  <p>访问"📊 大额挂单"页面（<code>/large-orders</code>），查看实时监控：</p>
+                  <ol>
+                    <li><strong>双面板视图</strong>：同时查看BTC和ETH的大额挂单情况</li>
+                    <li><strong>买卖对比</strong>：通过对比条快速判断多空力量</li>
+                    <li><strong>新增识别</strong>：关注黄色闪烁的新增挂单（🆕标识）</li>
+                    <li><strong>持续性判断</strong>：出现次数多的挂单（● 绿色）更可信</li>
+                    <li><strong>黑天鹅告警</strong>：注意🦢标识和告警级别</li>
+                    <li><strong>手动刷新</strong>：点击"刷新数据"按钮获取最新数据</li>
+                  </ol>
+
+                  <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 实战建议</h5>
+                    <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
+                      <li><strong>支撑阻力</strong>：持续性挂单（● 绿色）可作为关键支撑/阻力位参考</li>
+                      <li><strong>主力意图</strong>：买卖对比条偏向一方时，可能是主力建仓/出货信号</li>
+                      <li><strong>假信号过滤</strong>：忽略短时间内消失的挂单（Spoof）</li>
+                      <li><strong>黑天鹅应对</strong>：CRITICAL级别告警时立即平仓，保护本金</li>
+                      <li><strong>配合其他指标</strong>：结合聪明钱监控、V3/ICT策略综合判断</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
               <!-- ICT策略文档 -->
               <div class="strategy-doc" id="ict-strategy">
                 <div class="doc-header">
