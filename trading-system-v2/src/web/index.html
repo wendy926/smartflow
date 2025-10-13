@@ -1296,53 +1296,20 @@
         </div>
       </div>
 
-      <!-- 大额挂单监控页面 (V2.1.0) -->
-      <div id="large-orders" class="tab-content">
-        <div class="page-header">
-          <h2>📊 大额挂单监控</h2>
-          <button class="btn btn-primary" id="refresh-large-orders-btn">
-            <i class="fas fa-sync-alt"></i>
-            刷新数据
-          </button>
-        </div>
-
-        <div class="large-orders-container">
-          <!-- Summary Bar -->
-          <div class="card large-order-summary">
-            <div class="card-content">
-              <div id="large-order-summary-content">
-                <div class="loading">加载中...</div>
-              </div>
-            </div>
+        <!-- 大额挂单监控页面 (V2.1.2 - 7天历史视图) -->
+        <div id="large-orders" class="tab-content">
+          <div class="page-header">
+            <h2>📊 大额挂单监控（7天历史累计）</h2>
+            <button class="btn btn-primary" id="refresh-large-orders-btn">
+              <i class="fas fa-sync-alt"></i>
+              刷新数据
+            </button>
           </div>
 
-          <!-- Tracked Entries Table -->
-          <div class="card">
-            <div class="card-header">
-              <h3>追踪挂单列表 <span id="lo-last-update" class="last-update"></span></h3>
-            </div>
-            <div class="card-content">
-              <div id="large-order-table-container">
-                <table id="large-order-table" class="data-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>方向</th>
-                      <th>价格</th>
-                      <th>数量</th>
-                      <th>价值(USD)</th>
-                      <th>影响力</th>
-                      <th>分类</th>
-                      <th>持续</th>
-                      <th>状态</th>
-                    </tr>
-                  </thead>
-                  <tbody id="large-order-table-body">
-                    <tr><td colspan="9" class="text-center">暂无数据</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <div class="large-orders-container">
+            <!-- 历史视图双面板（BTCUSDT | ETHUSDT） -->
+            <div id="large-order-summary-content">
+              <div class="loading">加载7天历史数据中...</div>
           </div>
         </div>
       </div>
@@ -1562,7 +1529,7 @@
                 </div>
                 <div class="doc-content">
                   <h4>通知类型</h4>
-
+                  
                   <div
                     style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
                     <h5 style="margin: 0 0 10px 0; color: #155724;">1. 交易触发通知</h5>
@@ -1732,14 +1699,14 @@
                     </tbody>
                   </table>
 
-                  <div
-                    style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
-                    <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 更新机制优化 (2025-10-10)</h5>
-                    <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
-                      <li><strong>前后端统一5分钟刷新</strong>：Dashboard与strategy-worker完全同步</li>
-                      <li><strong>策略判断不存储</strong>：实时计算，用完即弃，只有交易触发时才保存</li>
-                      <li><strong>前端不做计算</strong>：所有数据统一使用后端计算结果</li>
-                      <li>AI分析使用<strong>数据库缓存</strong>：每小时更新，避免频繁AI API调用</li>
+                    <div
+                      style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
+                      <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 更新机制优化 (2025-10-10)</h5>
+                      <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
+                        <li><strong>前后端统一5分钟刷新</strong>：Dashboard与strategy-worker完全同步</li>
+                        <li><strong>策略判断不存储</strong>：实时计算，用完即弃，只有交易触发时才保存</li>
+                        <li><strong>前端不做计算</strong>：所有数据统一使用后端计算结果</li>
+                        <li>AI分析使用<strong>数据库缓存</strong>：每小时更新，避免频繁AI API调用</li>
                       <li>减少98.3%的不必要请求，提升用户体验</li>
                     </ul>
                   </div>
@@ -1794,7 +1761,7 @@
                         <li>1H价格 > VWAP（买）或 < VWAP（卖）</li>
                         <li>1H ADX > 20（弱趋势门槛）</li>
                         <li>4H ADX < 40（不强反向）</li>
-                      </ul>
+                    </ul>
                       <p><strong>效果</strong>：检测到早期趋势时，提升4H趋势权重10%，进入候选池等待确认</p>
                     </div>
 
@@ -2000,7 +1967,7 @@
                         <li>多头：stopLoss = entryPrice - (ATR15 × K_entry)</li>
                         <li>空头：stopLoss = entryPrice + (ATR15 × K_entry)</li>
                         <li>K_entry由置信度决定：1.5/2.0/2.6</li>
-                      </ul>
+                    </ul>
                       
                       <p><strong>动态调整</strong>（趋势确认后）：</p>
                       <ul style="margin-left: 20px;">
@@ -2546,7 +2513,7 @@
                       <li><strong>异常处理</strong>：数据缺失或计算错误时的降级处理</li>
                       <li><strong>调试信息</strong>：输出详细的评分过程和信号生成逻辑</li>
                     </ul>
-                  </div>
+              </div>
 
                   <h4>🆕 ICT策略优化历史</h4>
                   
@@ -2563,7 +2530,7 @@
                       <li><strong>示例</strong>：ONDOUSDT吞没强度23.1%，谐波0% → WATCH（不触发）</li>
                     </ul>
                   </div>
-                  
+
                   <div class="fix-item" style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>2025-10-08优化</h5>
                     
@@ -2583,7 +2550,7 @@
                     <p><strong>新增</strong>：15分钟入场增加总分强信号要求（总分≥60分）</p>
                     <p><strong>效果</strong>：提高交易信号可靠性，避免弱信号触发交易</p>
                   </div>
-                  
+
                   <div class="fix-item" style="background: #e7f3ff; border-left: 4px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>2025-10-07优化</h5>
                     
@@ -2595,7 +2562,7 @@
                       <li><strong>LTF扫荡阈值</strong>：0.2×ATR → 0.02×ATR（放宽90%）</li>
                     </ul>
                     <p><strong>效果</strong>：增加信号捕捉灵敏度，提升交易机会</p>
-                  </div>
+                    </div>
                 </div>
               </div>
 
