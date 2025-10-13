@@ -79,8 +79,8 @@ class SmartFlowApp {
     await this.loadMaxLossAmount(); // 加载最大损失金额设置
 
     // 初始化AI分析模块
-    if (typeof AIAnalysisModule !== 'undefined') {
-      this.aiAnalysisModule = new AIAnalysisModule();
+    if (typeof window.aiAnalysis !== 'undefined') {
+      this.aiAnalysisModule = window.aiAnalysis;
       await this.aiAnalysisModule.init();
     }
 

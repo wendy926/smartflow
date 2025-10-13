@@ -57,9 +57,11 @@ router.get('/macro-risk', async (req, res) => {
         if (scheduler) {
           try {
             logger.info(`[AI手动触发] 触发${symbol}宏观分析（数据过期或手动刷新）`);
-            await scheduler.triggerMacroAnalysis(symbol);
-            // 重新获取最新分析结果
-            analysis = await operations.getLatestAnalysis(symbol, 'MACRO_RISK');
+            // 🔧 异步触发分析，不等待完成（避免API超时）
+            scheduler.triggerMacroAnalysis(symbol).catch(error => {
+              logger.warn(`[AI手动触发] 触发${symbol}分析失败:`, error.message);
+            });
+            logger.info(`[AI手动触发] ${symbol}分析已触发，使用现有数据`);
           } catch (triggerError) {
             logger.warn(`[AI手动触发] 触发${symbol}分析失败:`, triggerError.message);
             // 继续使用旧数据
