@@ -45,7 +45,24 @@ class SmartMoneyTracker {
     }
 
     tbody.innerHTML = results.map(result => {
-      const actionClass = this.getActionClass(result.action);
+      // 中英文动作映射（smartmoney.md文档一致）
+      const actionMapping = {
+        'ACCUMULATE': '吸筹',
+        'MARKUP': '拉升',
+        'DISTRIBUTION': '派发',
+        'MARKDOWN': '砸盘',
+        'UNKNOWN': '无信号',
+        'ERROR': '错误',
+        '吸筹': '吸筹',
+        '拉升': '拉升',
+        '派发': '派发',
+        '砸盘': '砸盘',
+        '无动作': '无信号',
+        '无信号': '无信号'
+      };
+      
+      const actionCN = actionMapping[result.action] || result.action;
+      const actionClass = this.getActionClass(actionCN);
       const confidenceClass = this.getConfidenceClass(result.confidence);
       const trendIcon = this.getTrendIcon(result.trend);
       const price = result.indicators?.price || 0;
@@ -128,13 +145,24 @@ class SmartMoneyTracker {
    */
   getActionClass(action) {
     const classMap = {
+      // 英文映射
+      'ACCUMULATE': 'accumulate',
+      'MARKUP': 'markup',
+      'DISTRIBUTION': 'distribution',
+      'MARKDOWN': 'markdown',
+      'UNKNOWN': 'unknown',
+      'ERROR': 'error',
+      // 中文映射（smartmoney.md文档一致）
       '吸筹': 'accumulate',
       '拉升': 'markup',
       '派发': 'distribution',
       '砸盘': 'markdown',
+      '诱多': 'trap',
+      '诱空': 'trap',
+      '无信号': 'none',
       '无动作': 'none',
       '观望': 'unknown',
-      'ERROR': 'error'
+      '错误': 'error'
     };
     return classMap[action] || 'unknown';
   }
