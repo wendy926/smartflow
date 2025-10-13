@@ -78,21 +78,83 @@ class LargeOrdersTracker {
 
     console.log(`[LargeOrders] 生成${symbol}面板，订单数:`, orders.length);
 
+    // 计算买卖对比
+    const buyOrders = orders.filter(o => o.side === 'buy');
+    const sellOrders = orders.filter(o => o.side === 'sell');
+    const buyValueSum = buyOrders.reduce((sum, o) => sum + o.valueUSD, 0);
+    const sellValueSum = sellOrders.reduce((sum, o) => sum + o.valueUSD, 0);
+    const totalValue = buyValueSum + sellValueSum;
+    const buyPercent = totalValue > 0 ? (buyValueSum / totalValue * 100).toFixed(1) : 0;
+    const sellPercent = totalValue > 0 ? (sellValueSum / totalValue * 100).toFixed(1) : 0;
+
     return `
       <div class="historical-panel" style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <!-- 头部 -->
         <div style="border-bottom: 2px solid #e9ecef; padding-bottom: 15px; margin-bottom: 15px;">
-          <h3 style="margin: 0 0 10px 0; font-size: 22px;">
-            ${symbol}
-            <span style="font-size: 14px; color: #28a745; margin-left: 10px;">● 监控中</span>
+          <h3 style="margin: 0 0 10px 0; font-size: 22px; display: flex; align-items: center; gap: 10px;">
+            <span>${symbol}</span>
+            <span style="font-size: 14px; color: #28a745;">● 监控中</span>
+            <span style="font-size: 11px; color: #999; margin-left: auto;">
+              💡 大额挂单：单笔 > 1M USD
+            </span>
           </h3>
-          <div style="display: flex; gap: 20px; font-size: 13px; flex-wrap: wrap;">
-            <span style="color: #666;">📊 7天累计追踪: <strong>${totalCount}个大额挂单</strong></span>
-            <span style="color: #28a745;">● 当前存在: <strong>${activeCount}个</strong></span>
-            ${newCount > 0 ? `<span style="color: #ffc107; animation: blink 1.5s ease-in-out infinite;">🆕 新增: <strong>${newCount}个</strong></span>` : ''}
+          
+          <!-- 统计信息 -->
+          <div style="display: flex; gap: 20px; font-size: 13px; flex-wrap: wrap; margin-bottom: 12px;">
+            <span style="color: #666;">
+              📊 7天累计追踪: <strong style="color: #333;">${totalCount}个</strong>
+            </span>
+            <span style="color: #28a745;">
+              ● 当前存在: <strong>${activeCount}个</strong>
+            </span>
+            ${newCount > 0 ? `
+              <span style="color: #ffc107; animation: blink 1.5s ease-in-out infinite;">
+                🆕 新增: <strong>${newCount}个</strong>
+              </span>
+            ` : ''}
           </div>
-          <div style="margin-top: 8px; font-size: 11px; color: #999;">
-            💡 大额挂单定义：单笔价值 > 1,000,000 USD
+
+          <!-- 买卖力量对比条 -->
+          <div style="margin-top: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
+              <span style="color: #28a745; font-weight: 600;">
+                🟢 买方 ${buyOrders.length}个 (${buyPercent}%)
+              </span>
+              <span style="color: #dc3545; font-weight: 600;">
+                🔴 卖方 ${sellOrders.length}个 (${sellPercent}%)
+              </span>
+            </div>
+            <div style="display: flex; height: 24px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <div style="
+                background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+                width: ${buyPercent}%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 11px;
+                font-weight: 600;
+                transition: width 0.5s ease;
+              ">
+                ${buyPercent > 10 ? `${buyPercent}%` : ''}
+              </div>
+              <div style="
+                background: linear-gradient(90deg, #fd7e14 0%, #dc3545 100%);
+                width: ${sellPercent}%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 11px;
+                font-weight: 600;
+                transition: width 0.5s ease;
+              ">
+                ${sellPercent > 10 ? `${sellPercent}%` : ''}
+              </div>
+            </div>
+            <div style="margin-top: 5px; font-size: 10px; color: #999; text-align: center;">
+              ⚠️ 对比条表示：7天内追踪到的大额挂单买卖数量/价值对比
+            </div>
           </div>
         </div>
 
@@ -504,8 +566,8 @@ class LargeOrdersTracker {
 
   startAutoRefresh() {
     this.stopAutoRefresh();
-    this.loadData();
-    this.refreshInterval = setInterval(() => this.loadData(), 30000); // 30秒刷新
+    this.loadHistoricalData();  // 改为加载历史数据（7天累计）
+    this.refreshInterval = setInterval(() => this.loadHistoricalData(), 60000); // 60秒刷新
   }
 
   stopAutoRefresh() {
