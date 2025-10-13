@@ -92,7 +92,8 @@ class TelegramMonitoringService {
         }
       });
 
-      const message = this.formatTradingMessage(tradeData);
+      // 支持自定义消息（聪明钱监控使用）
+      const message = tradeData.custom_message || this.formatTradingMessage(tradeData);
 
       logger.debug('[Telegram交易] 消息格式化完成', {
         messageLength: message.length,

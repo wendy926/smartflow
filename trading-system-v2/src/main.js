@@ -72,6 +72,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/macro-monitor', require('./api/routes/macro-monitor'));
     // this.app.use('/api/v1/new-coin-monitor', require('./api/routes/new-coin-monitor')); // V2.0禁用：功能未使用
     this.app.use('/api/v1/smart-money', require('./api/routes/smart-money')); // V2.0.1新增：聪明钱跟踪
+    this.app.use('/api/v1/smart-money-monitor', require('./api/routes/smart-money-monitor')); // V2.1.0新增：聪明钱监控
     this.app.use('/api/v1/large-orders', require('./api/routes/large-orders')()); // V2.1.0新增：大额挂单监控
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
@@ -193,6 +194,23 @@ class TradingSystemApp {
         this.smartMoneyDetector = null;
       }
 
+      // 初始化聪明钱实时监控服务（V2.1.0新增）
+      try {
+        if (this.smartMoneyDetector && this.telegramService) {
+          logger.info('[聪明钱监控] 初始化实时监控服务...');
+          const SmartMoneyMonitor = require('./services/smart-money-monitor');
+          this.smartMoneyMonitor = new SmartMoneyMonitor(database, this.smartMoneyDetector, this.telegramService);
+          await this.smartMoneyMonitor.start();
+          this.app.set('smartMoneyMonitor', this.smartMoneyMonitor);
+          logger.info('[聪明钱监控] ✅ 实时监控服务启动成功');
+        } else {
+          logger.warn('[聪明钱监控] ⚠️ 跳过启动（依赖服务未就绪）');
+        }
+      } catch (error) {
+        logger.error('[聪明钱监控] ❌ 监控服务启动失败:', error);
+        this.smartMoneyMonitor = null;
+      }
+
       // 初始化大额挂单检测器（V2.1.2 - 启用BTCUSDT/ETHUSDT监控）
       try {
         logger.info('[大额挂单] 初始化大额挂单检测器...');
@@ -258,6 +276,16 @@ class TradingSystemApp {
       // 停止数据更新服务
       if (this.dataUpdater) {
         this.dataUpdater.stop();
+      }
+
+      // 停止聪明钱监控服务
+      if (this.smartMoneyMonitor) {
+        try {
+          await this.smartMoneyMonitor.stop();
+          logger.info('[聪明钱监控] 监控服务已停止');
+        } catch (error) {
+          logger.error('[聪明钱监控] 监控服务停止失败:', error);
+        }
       }
 
       // 停止宏观监控

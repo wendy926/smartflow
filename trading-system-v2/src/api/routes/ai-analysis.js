@@ -45,10 +45,10 @@ router.get('/macro-risk', async (req, res) => {
 
     for (const symbol of symbolList) {
       let analysis = await operations.getLatestAnalysis(symbol, 'MACRO_RISK');
-      
+
       // 🆕 检查数据是否过期（超过2小时）或强制刷新
-      const shouldRefresh = forceRefresh === 'true' || 
-        !analysis || 
+      const shouldRefresh = forceRefresh === 'true' ||
+        !analysis ||
         (analysis && (Date.now() - new Date(analysis.createdAt).getTime()) > 2 * 60 * 60 * 1000);
 
       // 🆕 如果需要刷新且AI调度器可用，触发新的分析
