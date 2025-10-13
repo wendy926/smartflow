@@ -348,24 +348,38 @@ class SmartMoneyDetector {
         source: 'indicators_only',
         largeOrder: null,
         trap: null,
-        swan: null
+        swan: null,
+        isSmartMoney: false,  // 无大额挂单，不是聪明钱
+        isTrap: false
       };
     }
 
     // 有大额挂单信号，进行整合
     const largeOrderAction = largeOrderSignal.finalAction;
+    const trapDetected = largeOrderSignal.trap?.detected || false;
 
     // 如果大额挂单动作明确（非UNKNOWN）且与基础判断一致，提升置信度
     if (largeOrderAction !== 'UNKNOWN' && largeOrderAction === baseActionEn) {
+      const enhancedConfidence = Math.min(0.95, baseResult.confidence * 1.3);
+      
+      // 判断是否聪明钱建仓（smartmoney.md行820-826）
+      const isSmartMoney = 
+        (largeOrderAction === 'ACCUMULATE' || largeOrderAction === 'MARKUP') &&  // 吸筹或拉升
+        !trapDetected &&                                                           // 非陷阱
+        enhancedConfidence > 0.7 &&                                                // 高置信度
+        largeOrderSignal.trackedEntriesCount > 0;                                  // 有大额挂单
+
       return {
         ...baseResult,
         action: largeOrderAction,
-        confidence: Math.min(0.95, baseResult.confidence * 1.3),
+        confidence: enhancedConfidence,
         reason: baseResult.reason + ' + 大额挂单确认',
         source: 'integrated_confirmed',
         largeOrder: largeOrderSignal,
         trap: largeOrderSignal.trap,
-        swan: largeOrderSignal.swan
+        swan: largeOrderSignal.swan,
+        isSmartMoney,                // 明确标识
+        isTrap: trapDetected
       };
     }
 

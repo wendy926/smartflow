@@ -60,6 +60,13 @@ class SmartMoneyTracker {
       const fundingRate = result.indicators?.fundingRate || 0;
 
       // Trap和Swan标记
+      // 聪明钱建仓标识（smartmoney.md行820-826）
+      const smartMoneyIndicator = result.isSmartMoney
+        ? `<span class="smart-money-badge">
+             💰 聪明钱建仓
+           </span>`
+        : '';
+
       const trapIndicator = result.trap && result.trap.detected
         ? `<span class="trap-${result.trap.type === 'BULL_TRAP' ? 'bull' : 'bear'}">
              ⚠️ ${result.trap.type === 'BULL_TRAP' ? '诱多' : '诱空'} 
@@ -84,6 +91,7 @@ class SmartMoneyTracker {
           </td>
           <td>
             <span class="badge badge-${actionClass}">${result.action}</span>
+            ${smartMoneyIndicator}
             ${trapIndicator}
             ${swanIndicator}
           </td>

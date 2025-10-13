@@ -272,6 +272,32 @@ tr.action-markdown {
   background: #e9ecef !important;
 }
 
+/* 聪明钱建仓标识（smartmoney.md文档规范行820-826） */
+.smart-money-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+  animation: pulse-glow 2s ease-in-out infinite;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+/* 呼吸光效动画 */
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+    transform: scale(1.02);
+  }
+}
+
 /* 陷阱标记（smartmoney.md文档规范行670-678） */
 .trap-bull {
   background: #fef3c7;
