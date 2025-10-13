@@ -9,8 +9,9 @@ const logger = require('../../utils/logger');
 const { toBeijingISO } = require('../../utils/time-helper');
 
 /**
- * 获取聪明钱检测结果
- * GET /api/v1/smart-money/detect?symbols=BTCUSDT,ETHUSDT
+ * 获取聪明钱检测结果（默认使用V2）
+ * GET /api/v1/smart-money/detect?symbols=BTCUSDT,ETHUSDT&v2=true
+ * GET /api/v1/smart-money/detect → 默认V2（包含isSmartMoney/isTrap）
  */
 router.get('/detect', async (req, res) => {
   try {
@@ -23,10 +24,21 @@ router.get('/detect', async (req, res) => {
       });
     }
 
-    const { symbols } = req.query;
+    const { symbols, v2 } = req.query;
     const symbolList = symbols ? symbols.split(',') : null;
 
-    const results = await detector.detectBatch(symbolList);
+    // 默认使用V2（包含isSmartMoney/isTrap字段）
+    let results;
+    if (v2 === 'false') {
+      // 明确指定v2=false时才使用V1
+      results = await detector.detectBatch(symbolList);
+    } else {
+      // 默认或v2=true时使用V2
+      logger.info('[SmartMoneyAPI] 使用V2检测（包含isSmartMoney/isTrap）');
+      results = await detector.detectBatchV2 ? 
+        await detector.detectBatchV2(symbolList) : 
+        await detector.detectBatch(symbolList);
+    }
 
     res.json({
       success: true,

@@ -444,7 +444,7 @@ class SmartMoneyDetector {
   }
 
   /**
-   * 批量检测多个交易对
+   * 批量检测多个交易对（V1 - 仅基础指标）
    * 
    * @param {Array<string>} symbols - 交易对数组
    * @returns {Promise<Array>} 检测结果数组
@@ -456,7 +456,7 @@ class SmartMoneyDetector {
         symbols = await this.loadWatchList();
       }
 
-      logger.info(`开始批量检测聪明钱: ${symbols.length}个交易对`);
+      logger.info(`[V1] 开始批量检测聪明钱: ${symbols.length}个交易对`);
 
       const results = [];
 
@@ -464,7 +464,14 @@ class SmartMoneyDetector {
       for (const symbol of symbols) {
         try {
           const result = await this.detectSmartMoney(symbol);
-          results.push(result);
+          // V1版本：添加默认字段，转换中文为英文
+          results.push({
+            ...result,
+            action: this.actionMapping[result.action] || result.action,
+            isSmartMoney: false,  // V1无大额挂单判断
+            isTrap: false,
+            source: 'indicators_only_v1'
+          });
 
           // 间隔200ms避免速率限制
           await new Promise(resolve => setTimeout(resolve, 200));
@@ -475,12 +482,14 @@ class SmartMoneyDetector {
             action: 'ERROR',
             confidence: 0,
             reason: error.message,
+            isSmartMoney: false,
+            isTrap: false,
             timestamp: new Date()
           });
         }
       }
 
-      logger.info(`批量检测完成: ${results.length}个结果`);
+      logger.info(`[V1] 批量检测完成: ${results.length}个结果`);
       return results;
     } catch (error) {
       logger.error(`批量检测失败: ${error.message}`);
