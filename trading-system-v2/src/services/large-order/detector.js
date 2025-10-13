@@ -156,22 +156,30 @@ class LargeOrderDetector {
       logger.error('[LargeOrderDetector] 首次CVD/OI更新失败', { symbol, error: err.message });
     });
     
-    // ✅ 新增：检测并保存到数据库的定时器（1小时）
-    const detectIntervalId = setInterval(async () => {
-      try {
-        logger.info(`[LargeOrderDetector] 定时检测并保存 ${symbol}`);
-        const result = await this.detect(symbol);
-        logger.info(`[LargeOrderDetector] 检测结果已保存到数据库`, { 
-          symbol, 
-          finalAction: result.finalAction,
-          trackedEntries: result.trackedEntriesCount,
-          buyScore: result.buyScore?.toFixed(1),
-          sellScore: result.sellScore?.toFixed(1)
-        });
-      } catch (error) {
-        logger.error(`[LargeOrderDetector] 定时检测失败`, { symbol, error: error.message });
-      }
-    }, 3600000);  // 1小时 = 3600000ms
+      // ✅ 优化：检测并保存到数据库的定时器（从1小时改为4小时，减少75%写入）
+      const detectIntervalId = setInterval(async () => {
+        try {
+          logger.info(`[LargeOrderDetector] 定时检测并保存 ${symbol}`);
+          
+          // 保存前清理旧数据（只保留最近7天）
+          await this.database.query(`
+            DELETE FROM large_order_detection_results
+            WHERE symbol = ?
+              AND created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
+          `, [symbol]);
+          
+          const result = await this.detect(symbol);
+          logger.info(`[LargeOrderDetector] 检测结果已保存到数据库`, {
+            symbol,
+            finalAction: result.finalAction,
+            trackedEntries: result.trackedEntriesCount,
+            buyScore: result.buyScore?.toFixed(1),
+            sellScore: result.sellScore?.toFixed(1)
+          });
+        } catch (error) {
+          logger.error(`[LargeOrderDetector] 定时检测失败`, { symbol, error: error.message });
+        }
+      }, 14400000);  // 4小时 = 14400000ms（从1小时优化到4小时）
     
     // ✅ 启动10秒后立即执行一次（快速填充数据）
     setTimeout(async () => {
