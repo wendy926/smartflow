@@ -188,7 +188,7 @@ class TradingSystemApp {
         this.smartMoneyDetector = null;
       }
 
-      // 初始化大额挂单检测器（V2.1.0 - VPS性能优化：禁用实时监控）
+      // 初始化大额挂单检测器（V2.1.2 - 启用BTCUSDT/ETHUSDT监控）
       try {
         logger.info('[大额挂单] 初始化大额挂单检测器...');
         const BinanceAPI = require('./api/binance-api');
@@ -199,10 +199,20 @@ class TradingSystemApp {
         // 注册到app（供API路由使用）
         this.app.set('largeOrderDetector', this.largeOrderDetector);
         
-        // VPS性能优化：禁用自动监控，降低内存和IO压力
-        // 用户访问/large-orders页面时API会按需检测
-        logger.warn('[大额挂单] ⚠️ 自动监控已禁用（VPS性能优化）');
-        logger.info('[大额挂单] 💡 访问/large-orders页面时将按需检测');
+        // V2.1.2：启动BTCUSDT和ETHUSDT监控（包含现货和合约）
+        // 性能影响：2个交易对 × 2个WebSocket = 4个连接
+        const monitoredSymbols = ['BTCUSDT', 'ETHUSDT'];
+        
+        // 启动监控（WebSocket模式）
+        for (const symbol of monitoredSymbols) {
+          this.largeOrderDetector.startMonitoring(symbol);
+        }
+        
+        logger.info('[大额挂单] ✅ 大额挂单检测器启动成功', { 
+          symbols: monitoredSymbols,
+          mode: 'WebSocket',
+          connections: monitoredSymbols.length
+        });
       } catch (error) {
         logger.error('[大额挂单] ❌ 检测器启动失败:', error);
         this.largeOrderDetector = null;
