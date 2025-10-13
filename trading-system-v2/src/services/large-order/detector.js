@@ -145,7 +145,7 @@ class LargeOrderDetector {
     });
     
     // 启动CVD/OI更新定时器（低频，15秒）
-    const intervalId = setInterval(() => {
+    const cvdOIIntervalId = setInterval(() => {
       this._updateCVDAndOI(symbol, Date.now()).catch(err => {
         logger.error('[LargeOrderDetector] 更新CVD/OI失败', { symbol, error: err.message });
       });
@@ -156,8 +156,49 @@ class LargeOrderDetector {
       logger.error('[LargeOrderDetector] 首次CVD/OI更新失败', { symbol, error: err.message });
     });
     
-    this.updateIntervals.set(symbol, intervalId);
-    logger.info('[LargeOrderDetector] 已启动监控（WebSocket模式）', { symbol });
+    // ✅ 新增：检测并保存到数据库的定时器（1小时）
+    const detectIntervalId = setInterval(async () => {
+      try {
+        logger.info(`[LargeOrderDetector] 定时检测并保存 ${symbol}`);
+        const result = await this.detect(symbol);
+        logger.info(`[LargeOrderDetector] 检测结果已保存到数据库`, { 
+          symbol, 
+          finalAction: result.finalAction,
+          trackedEntries: result.trackedEntriesCount,
+          buyScore: result.buyScore?.toFixed(1),
+          sellScore: result.sellScore?.toFixed(1)
+        });
+      } catch (error) {
+        logger.error(`[LargeOrderDetector] 定时检测失败`, { symbol, error: error.message });
+      }
+    }, 3600000);  // 1小时 = 3600000ms
+    
+    // ✅ 启动10秒后立即执行一次（快速填充数据）
+    setTimeout(async () => {
+      try {
+        logger.info(`[LargeOrderDetector] 首次检测并保存 ${symbol}`);
+        const result = await this.detect(symbol);
+        logger.info(`[LargeOrderDetector] 首次检测完成`, {
+          symbol,
+          trackedEntries: result.trackedEntriesCount
+        });
+      } catch (err) {
+        logger.error(`[LargeOrderDetector] 首次检测失败`, { symbol, error: err.message });
+      }
+    }, 10000);  // 10秒后执行
+    
+    // 保存所有定时器ID
+    this.updateIntervals.set(symbol, { 
+      cvdOI: cvdOIIntervalId, 
+      detect: detectIntervalId 
+    });
+    
+    logger.info('[LargeOrderDetector] 监控启动完成', { 
+      symbol, 
+      cvdOIInterval: '15秒', 
+      detectInterval: '1小时',
+      firstDetect: '10秒后'
+    });
   }
 
   /**
@@ -169,21 +210,24 @@ class LargeOrderDetector {
       // 取消WebSocket订阅
       this.wsManager.unsubscribe(symbol);
       
-      // 停止CVD/OI更新定时器
-      if (this.updateIntervals.has(symbol)) {
-        clearInterval(this.updateIntervals.get(symbol));
+      // 停止所有定时器
+      const intervals = this.updateIntervals.get(symbol);
+      if (intervals) {
+        if (intervals.cvdOI) clearInterval(intervals.cvdOI);     // 清除CVD/OI定时器
+        if (intervals.detect) clearInterval(intervals.detect);   // 清除检测定时器
         this.updateIntervals.delete(symbol);
       }
       
-      logger.info('[LargeOrderDetector] 已停止监控（WebSocket）', { symbol });
+      logger.info('[LargeOrderDetector] 已停止监控（WebSocket+定时检测）', { symbol });
     } else {
       // 停止所有监控
       this.wsManager.unsubscribeAll();
       
-      for (const [sym, intervalId] of this.updateIntervals.entries()) {
-        clearInterval(intervalId);
-        logger.info('[LargeOrderDetector] 已停止监控（WebSocket）', { symbol: sym });
-      }
+      this.updateIntervals.forEach((intervals, sym) => {
+        if (intervals.cvdOI) clearInterval(intervals.cvdOI);
+        if (intervals.detect) clearInterval(intervals.detect);
+        logger.info('[LargeOrderDetector] 已停止监控（WebSocket+定时检测）', { symbol: sym });
+      });
       this.updateIntervals.clear();
     }
   }
