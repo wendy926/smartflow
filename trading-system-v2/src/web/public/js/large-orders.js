@@ -87,12 +87,33 @@ class LargeOrdersTracker {
     const buyPercent = totalValue > 0 ? (buyValueSum / totalValue * 100).toFixed(1) : 0;
     const sellPercent = totalValue > 0 ? (sellValueSum / totalValue * 100).toFixed(1) : 0;
 
+    // 区分BTC和ETH的颜色标识
+    const symbolColor = symbol === 'BTCUSDT' ? '#f7931a' : '#627eea';  // BTC橙色 vs ETH蓝色
+    const symbolIcon = symbol === 'BTCUSDT' ? '₿' : 'Ξ';  // BTC符号 vs ETH符号
+
     return `
-      <div class="historical-panel" style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <div class="historical-panel" style="
+        background: white; 
+        border-radius: 8px; 
+        padding: 20px; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-top: 4px solid ${symbolColor};
+      ">
         <!-- 头部 -->
         <div style="border-bottom: 2px solid #e9ecef; padding-bottom: 15px; margin-bottom: 15px;">
-          <h3 style="margin: 0 0 10px 0; font-size: 22px; display: flex; align-items: center; gap: 10px;">
-            <span>${symbol}</span>
+          <h3 style="margin: 0 0 10px 0; font-size: 24px; display: flex; align-items: center; gap: 10px;">
+            <span style="
+              background: ${symbolColor}; 
+              color: white; 
+              padding: 6px 12px; 
+              border-radius: 6px;
+              font-weight: 700;
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            ">
+              ${symbolIcon} ${symbol}
+            </span>
             <span style="font-size: 14px; color: #28a745;">● 监控中</span>
             <span style="font-size: 11px; color: #999; margin-left: auto;">
               💡 大额挂单：单笔 > 1M USD
@@ -210,8 +231,17 @@ class LargeOrdersTracker {
         ? '<span style="color: #28a745;">●</span>'
         : '<span style="color: #9ca3af;">○</span>';
 
-    const sideColor = order.side === 'bid' ? '#28a745' : '#dc3545';
-    const sideText = order.side === 'bid' ? 'BUY' : 'SELL';
+    // 修复：检查side字段（可能是buy/sell或bid/ask）
+    const isBuy = order.side === 'buy' || order.side === 'bid';
+    const sideColor = isBuy ? '#28a745' : '#dc3545';
+    const sideText = isBuy ? 'BUY' : 'SELL';
+
+    // 安全获取字段值（兼容不同数据结构）
+    const price = order.price || order.avgPrice || 0;
+    const valueUSD = order.valueUSD || order.maxValueUSD || 0;
+    const appearances = order.appearances || order.snapshotCount || 1;
+    const firstSeen = order.firstSeen || order.firstSeenTime || Date.now();
+    const lastSeen = order.lastSeen || order.lastSeenTime || Date.now();
 
     return `
       <tr style="background: ${bgColor}; border-left: ${borderLeft};">
@@ -220,17 +250,17 @@ class LargeOrdersTracker {
           <span style="color: ${sideColor}; font-weight: 600; margin-left: 5px;">${sideText}</span>
         </td>
         <td style="padding: 10px; text-align: right; font-weight: 600;">
-          ${order.price.toLocaleString()}
+          $${typeof price === 'number' ? price.toLocaleString() : price}
         </td>
         <td style="padding: 10px; text-align: right;">
-          ${(order.maxValueUSD / 1000000).toFixed(1)}M
+          ${(valueUSD / 1000000).toFixed(1)}M
         </td>
         <td style="padding: 10px; text-align: center;">
-          ${order.appearances}次
+          ${appearances}次
         </td>
         <td style="padding: 10px; text-align: right; font-size: 11px; color: #666;">
-          ${this.formatTimeAgo(order.firstSeen)} -<br/>
-          ${this.formatTimeAgo(order.lastSeen)}
+          ${this.formatTimeAgo(firstSeen)} -<br/>
+          ${this.formatTimeAgo(lastSeen)}
         </td>
       </tr>
     `;
