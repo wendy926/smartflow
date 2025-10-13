@@ -152,6 +152,17 @@
   color: white;
 }
 
+.badge-trap {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+  color: white;
+  border: 2px solid #f57c00;
+}
+
+.badge-none {
+  background: #e9ecef;
+  color: #6c757d;
+}
+
 .badge-unknown {
   background: #6c757d;
   color: white;

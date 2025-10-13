@@ -90,7 +90,7 @@ class SmartMoneyTracker {
             </div>
           </td>
           <td>
-            <span class="badge badge-${actionClass}">${result.action}</span>
+            <span class="badge badge-${actionClass}">${actionCN}</span>
             ${smartMoneyIndicator}
             ${trapIndicator}
             ${swanIndicator}

@@ -77,7 +77,7 @@ D. **DISTRIBUTION（派发/出货）**
 
 * 大额卖单（ask）持续存在且不被吃掉，但 OI 上升且 CVD 负 → `DISTRIBUTION`（看空/出货）
 
-E. **MANIPULATION / SPOOF**
+E. **MANIPULATION / SPOOF(诱单：诱多/诱空)**
 
 * 频繁出现大额挂单但迅速撤销（少于 spoofWindowMs），或大量闪现但无成交 → `MANIPULATION`（提示“诱单”风险，慎重）
 
