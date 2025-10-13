@@ -50,8 +50,14 @@ class LargeOrdersTracker {
     const container = document.getElementById('large-order-summary-content');
     if (!container) return;
 
-    const btcData = data.BTCUSDT || { symbol: 'BTCUSDT', stats: {}, orders: [] };
-    const ethData = data.ETHUSDT || { symbol: 'ETHUSDT', stats: {}, orders: [] };
+    console.log('[LargeOrders] 渲染历史视图，数据:', data);
+
+    // 确保即使没有数据也显示空面板
+    const btcData = data.BTCUSDT || { symbol: 'BTCUSDT', stats: { totalOrders: 0, newOrders: 0, activeOrders: 0 }, orders: [] };
+    const ethData = data.ETHUSDT || { symbol: 'ETHUSDT', stats: { totalOrders: 0, newOrders: 0, activeOrders: 0 }, orders: [] };
+
+    console.log('[LargeOrders] BTC数据:', btcData);
+    console.log('[LargeOrders] ETH数据:', ethData);
 
     container.innerHTML = `
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -70,6 +76,8 @@ class LargeOrdersTracker {
     const activeCount = stats.activeOrders || 0;
     const totalCount = stats.totalOrders || 0;
 
+    console.log(`[LargeOrders] 生成${symbol}面板，订单数:`, orders.length);
+
     return `
       <div class="historical-panel" style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <!-- 头部 -->
@@ -78,31 +86,41 @@ class LargeOrdersTracker {
             ${symbol}
             <span style="font-size: 14px; color: #28a745; margin-left: 10px;">● 监控中</span>
           </h3>
-          <div style="display: flex; gap: 20px; font-size: 13px;">
-            <span style="color: #666;">📊 7天累计: <strong>${totalCount}个</strong></span>
-            <span style="color: #28a745;">● 当前: <strong>${activeCount}个</strong></span>
+          <div style="display: flex; gap: 20px; font-size: 13px; flex-wrap: wrap;">
+            <span style="color: #666;">📊 7天累计追踪: <strong>${totalCount}个大额挂单</strong></span>
+            <span style="color: #28a745;">● 当前存在: <strong>${activeCount}个</strong></span>
             ${newCount > 0 ? `<span style="color: #ffc107; animation: blink 1.5s ease-in-out infinite;">🆕 新增: <strong>${newCount}个</strong></span>` : ''}
+          </div>
+          <div style="margin-top: 8px; font-size: 11px; color: #999;">
+            💡 大额挂单定义：单笔价值 > 1,000,000 USD
           </div>
         </div>
 
         <!-- 挂单列表 -->
         <div style="max-height: 400px; overflow-y: auto;">
           ${orders.length > 0 ? `
-            <table style="width: 100%; font-size: 12px;">
-              <thead style="position: sticky; top: 0; background: #f8f9fa;">
-                <tr>
-                  <th style="padding: 8px; text-align: left;">状态</th>
-                  <th style="padding: 8px; text-align: right;">价格</th>
-                  <th style="padding: 8px; text-align: right;">价值</th>
-                  <th style="padding: 8px; text-align: center;">出现次数</th>
-                  <th style="padding: 8px; text-align: right;">首次/最后</th>
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+              <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 10;">
+                <tr style="border-bottom: 2px solid #dee2e6;">
+                  <th style="padding: 10px 8px; text-align: left;">状态</th>
+                  <th style="padding: 10px 8px; text-align: right;">价格</th>
+                  <th style="padding: 10px 8px; text-align: right;">价值</th>
+                  <th style="padding: 10px 8px; text-align: center;">出现次数</th>
+                  <th style="padding: 10px 8px; text-align: right;">时间跨度</th>
                 </tr>
               </thead>
               <tbody>
                 ${orders.map(order => this.generateHistoricalRow(order)).join('')}
               </tbody>
             </table>
-          ` : '<div style="text-align: center; padding: 40px; color: #999;">7天内无大额挂单（>1M USD）</div>'}
+          ` : `
+            <div style="text-align: center; padding: 60px 20px; color: #999;">
+              <div style="font-size: 48px; margin-bottom: 15px;">📊</div>
+              <div style="font-size: 14px; font-weight: 500; color: #666; margin-bottom: 8px;">7天内无大额挂单追踪记录</div>
+              <div style="font-size: 12px; color: #aaa;">大额挂单定义：单笔价值 > 1M USD</div>
+              <div style="font-size: 12px; color: #aaa; margin-top: 5px;">WebSocket实时监控中...</div>
+            </div>
+          `}
         </div>
       </div>
     `;
