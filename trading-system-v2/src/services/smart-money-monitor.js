@@ -109,7 +109,7 @@ class SmartMoneyMonitor {
       logger.debug(`[聪明钱监控] 开始检查 ${watchList.length} 个交易对`);
 
       // 批量检测聪明钱信号
-      const results = await this.smartMoneyDetector.detectBatchV2(watchList);
+      const results = await this.smartMoneyDetector.detectBatch(watchList);
 
       // 更新最后检查时间
       this.lastCheckTime = new Date().toISOString();
