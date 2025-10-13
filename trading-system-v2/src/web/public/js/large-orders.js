@@ -78,14 +78,23 @@ class LargeOrdersTracker {
 
     console.log(`[LargeOrders] 生成${symbol}面板，订单数:`, orders.length);
 
-    // 计算买卖对比
-    const buyOrders = orders.filter(o => o.side === 'buy');
-    const sellOrders = orders.filter(o => o.side === 'sell');
-    const buyValueSum = buyOrders.reduce((sum, o) => sum + o.valueUSD, 0);
-    const sellValueSum = sellOrders.reduce((sum, o) => sum + o.valueUSD, 0);
+    // 计算买卖对比（side字段可能是buy/sell或bid/ask）
+    const buyOrders = orders.filter(o => o.side === 'buy' || o.side === 'bid');
+    const sellOrders = orders.filter(o => o.side === 'sell' || o.side === 'ask');
+    const buyValueSum = buyOrders.reduce((sum, o) => sum + (o.valueUSD || o.maxValueUSD || 0), 0);
+    const sellValueSum = sellOrders.reduce((sum, o) => sum + (o.valueUSD || o.maxValueUSD || 0), 0);
     const totalValue = buyValueSum + sellValueSum;
     const buyPercent = totalValue > 0 ? (buyValueSum / totalValue * 100).toFixed(1) : 0;
     const sellPercent = totalValue > 0 ? (sellValueSum / totalValue * 100).toFixed(1) : 0;
+    
+    console.log(`[LargeOrders] ${symbol} 买卖统计:`, {
+      买方订单数: buyOrders.length,
+      卖方订单数: sellOrders.length,
+      买方价值: (buyValueSum / 1000000).toFixed(1) + 'M',
+      卖方价值: (sellValueSum / 1000000).toFixed(1) + 'M',
+      买方占比: buyPercent + '%',
+      卖方占比: sellPercent + '%'
+    });
 
     // 区分BTC和ETH的颜色标识
     const symbolColor = symbol === 'BTCUSDT' ? '#f7931a' : '#627eea';  // BTC橙色 vs ETH蓝色
