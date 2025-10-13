@@ -715,11 +715,20 @@ class AIAnalysisModule {
    * 绑定事件
    */
   bindEvents() {
-    // 刷新按钮
+    // 刷新按钮（🆕 支持强制刷新AI分析）
     const refreshBtn = document.getElementById('refreshAIAnalysis');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => {
-        this.loadMacroRiskAnalysis();
+        console.log('[AI分析] 手动触发刷新（会检查数据新鲜度并按需触发新分析）');
+        // 添加loading状态
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 分析中...';
+        
+        // 调用API时传递forceRefresh参数（如果数据超过2小时会自动触发新分析）
+        this.loadMacroRiskAnalysis(true).finally(() => {
+          refreshBtn.disabled = false;
+          refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> 刷新';
+        });
       });
     }
   }
