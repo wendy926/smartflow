@@ -11,12 +11,12 @@ const TelegramMonitoringService = require('../services/telegram-monitoring');
 class SystemMonitor {
   constructor() {
     this.isRunning = false;
-    this.monitorInterval = 30 * 1000; // 30秒检查一次
-    this.cpuThreshold = 60; // CPU使用率阈值
-    this.memoryThreshold = 60; // 内存使用率阈值
-    this.telegramService = new TelegramMonitoringService(); // Telegram通知服务
+    this.monitorInterval = 60 * 1000; // 60秒检查一次（从30秒优化到60秒，减少50%资源占用）
+    this.cpuThreshold = 75; // CPU使用率阈值（从60%提升到75%，减少误报）
+    this.memoryThreshold = 75; // 内存使用率阈值（从60%提升到75%）
+    this.telegramService = null; // 延迟初始化（节省内存）
     this.alertCooldown = new Map(); // 告警冷却
-    this.cooldownPeriod = 300000; // 5分钟冷却期
+    this.cooldownPeriod = 600000; // 10分钟冷却期（从5分钟优化到10分钟）
   }
 
   async start() {
@@ -103,7 +103,7 @@ class SystemMonitor {
   }
 
   /**
-   * 发送告警（带冷却机制）
+   * 发送告警（带冷却机制 + 延迟初始化Telegram服务）
    */
   async sendAlert(type, message, data = {}) {
     const now = Date.now();
@@ -116,6 +116,11 @@ class SystemMonitor {
     }
 
     try {
+      // 延迟初始化Telegram服务（节省内存）
+      if (!this.telegramService) {
+        this.telegramService = new TelegramMonitoringService();
+      }
+      
       await this.telegramService.sendMonitoringAlert(type, message, data);
       this.alertCooldown.set(type, now);
       logger.info(`系统监控Telegram告警已发送: ${type}`);

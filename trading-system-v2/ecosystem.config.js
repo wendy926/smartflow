@@ -41,9 +41,9 @@ module.exports = {
       script: './src/workers/data-cleaner.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '30M',
-      node_args: '--max-old-space-size=30',
-      cron_restart: '0 2 * * *',
+      max_memory_restart: '50M',  // 从30M提升到50M（减少重启）
+      node_args: '--max-old-space-size=50 --optimize-for-size',
+      cron_restart: '0 2 * * *',  // 每天凌晨2点重启
       env: {
         NODE_ENV: 'production',
         MEMORY_LIMIT: '50'
@@ -51,23 +51,29 @@ module.exports = {
       error_file: './logs/data-cleaner-error.log',
       out_file: './logs/data-cleaner-out.log',
       log_file: './logs/data-cleaner-combined.log',
-      time: true
+      time: true,
+      autorestart: true,
+      max_restarts: 10,  // 1小时内最多重启10次
+      min_uptime: '10s'  // 至少运行10秒才算成功启动
     },
     {
       name: 'monitor',
       script: './src/workers/monitor.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '20M',
-      node_args: '--max-old-space-size=20',
+      max_memory_restart: '50M',  // 从20M提升到50M（减少重启）
+      node_args: '--max-old-space-size=50 --optimize-for-size',
       env: {
         NODE_ENV: 'production',
-        MEMORY_LIMIT: '30'
+        MEMORY_LIMIT: '50'
       },
       error_file: './logs/monitor-error.log',
       out_file: './logs/monitor-out.log',
       log_file: './logs/monitor-combined.log',
-      time: true
+      time: true,
+      autorestart: true,
+      max_restarts: 10,  // 1小时内最多重启10次
+      min_uptime: '10s'  // 至少运行10秒才算成功启动
     }
   ]
 };

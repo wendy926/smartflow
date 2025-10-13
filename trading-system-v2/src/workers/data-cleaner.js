@@ -35,11 +35,42 @@ class DataCleaner {
   }
 
   async cleanupData() {
-    logger.info('开始数据清理');
+    logger.info('开始数据清理（优化版：轻量级清理）');
     
     try {
-      // 这里可以添加具体的数据清理逻辑
-      // 例如：删除超过60天的历史数据
+      const Database = require('../database');
+      const database = new Database();
+      await database.connect();
+      
+      // 1. 清理large_order_detection_results（保留7天）
+      const deleteOldLargeOrders = await database.query(`
+        DELETE FROM large_order_detection_results
+        WHERE created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
+      `);
+      logger.info(`清理large_order_detection_results: ${deleteOldLargeOrders.affectedRows || 0}条`);
+      
+      // 2. 清理ai_market_analysis（每个symbol只保留最近30条）
+      await database.query(`
+        DELETE FROM ai_market_analysis
+        WHERE id NOT IN (
+          SELECT id FROM (
+            SELECT id FROM ai_market_analysis
+            ORDER BY created_at DESC
+            LIMIT 300
+          ) tmp
+        )
+      `);
+      logger.info(`清理ai_market_analysis: 保留最近300条`);
+      
+      // 3. 清理超过60天的已平仓交易记录
+      const deleteOldTrades = await database.query(`
+        DELETE FROM simulation_trades
+        WHERE status = 'CLOSED'
+        AND updated_at < DATE_SUB(NOW(), INTERVAL 60 DAY)
+      `);
+      logger.info(`清理60天前已平仓交易: ${deleteOldTrades.affectedRows || 0}条`);
+      
+      await database.disconnect();
       logger.info('数据清理完成');
     } catch (error) {
       logger.error(`数据清理失败: ${error.message}`);
