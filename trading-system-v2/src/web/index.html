@@ -1296,20 +1296,20 @@
         </div>
       </div>
 
-        <!-- 大额挂单监控页面 (V2.1.2 - 7天历史视图) -->
-        <div id="large-orders" class="tab-content">
-          <div class="page-header">
-            <h2>📊 大额挂单监控（7天历史累计）</h2>
-            <button class="btn btn-primary" id="refresh-large-orders-btn">
-              <i class="fas fa-sync-alt"></i>
-              刷新数据
-            </button>
-          </div>
+      <!-- 大额挂单监控页面 (V2.1.2 - 7天历史视图) -->
+      <div id="large-orders" class="tab-content">
+        <div class="page-header">
+          <h2>📊 大额挂单监控（7天历史累计）</h2>
+          <button class="btn btn-primary" id="refresh-large-orders-btn">
+            <i class="fas fa-sync-alt"></i>
+            刷新数据
+          </button>
+        </div>
 
-          <div class="large-orders-container">
-            <!-- 历史视图双面板（BTCUSDT | ETHUSDT） -->
-            <div id="large-order-summary-content">
-              <div class="loading">加载7天历史数据中...</div>
+        <div class="large-orders-container">
+          <!-- 历史视图双面板（BTCUSDT | ETHUSDT） -->
+          <div id="large-order-summary-content">
+            <div class="loading">加载7天历史数据中...</div>
           </div>
         </div>
       </div>
@@ -1547,7 +1547,7 @@
                 </div>
                 <div class="doc-content">
                   <h4>通知类型</h4>
-                  
+
                   <div
                     style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
                     <h5 style="margin: 0 0 10px 0; color: #155724;">1. 交易触发通知</h5>
@@ -1717,14 +1717,14 @@
                     </tbody>
                   </table>
 
-                    <div
-                      style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
-                      <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 更新机制优化 (2025-10-10)</h5>
-                      <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
-                        <li><strong>前后端统一5分钟刷新</strong>：Dashboard与strategy-worker完全同步</li>
-                        <li><strong>策略判断不存储</strong>：实时计算，用完即弃，只有交易触发时才保存</li>
-                        <li><strong>前端不做计算</strong>：所有数据统一使用后端计算结果</li>
-                        <li>AI分析使用<strong>数据库缓存</strong>：每小时更新，避免频繁AI API调用</li>
+                  <div
+                    style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
+                    <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 更新机制优化 (2025-10-10)</h5>
+                    <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
+                      <li><strong>前后端统一5分钟刷新</strong>：Dashboard与strategy-worker完全同步</li>
+                      <li><strong>策略判断不存储</strong>：实时计算，用完即弃，只有交易触发时才保存</li>
+                      <li><strong>前端不做计算</strong>：所有数据统一使用后端计算结果</li>
+                      <li>AI分析使用<strong>数据库缓存</strong>：每小时更新，避免频繁AI API调用</li>
                       <li>减少98.3%的不必要请求，提升用户体验</li>
                     </ul>
                   </div>
@@ -1742,8 +1742,10 @@
                 </div>
                 <div class="doc-content">
                   <h4>策略概述</h4>
-                  <p>V3.1策略是V3策略的增强版本，在原有基础上新增<strong>早期趋势探测</strong>、<strong>假突破过滤器</strong>和<strong>动态止损</strong>机制。通过4H趋势判断、1H多因子评分和15M入场确认三个层次，结合早期趋势预警和严格的假突破过滤，实现更早捕捉趋势、更高信号质量和更灵活的风险管理。</p>
-                  
+                  <p>
+                    V3.1策略是V3策略的增强版本，在原有基础上新增<strong>早期趋势探测</strong>、<strong>假突破过滤器</strong>和<strong>动态止损</strong>机制。通过4H趋势判断、1H多因子评分和15M入场确认三个层次，结合早期趋势预警和严格的假突破过滤，实现更早捕捉趋势、更高信号质量和更灵活的风险管理。
+                  </p>
+
                   <div style="background: #e7f3ff; padding: 12px; border-left: 4px solid #2196f3; margin: 15px 0;">
                     <strong>🆕 V3.1核心升级</strong>
                     <ul style="margin: 5px 0 0 20px;">
@@ -1779,7 +1781,7 @@
                         <li>1H价格 > VWAP（买）或 < VWAP（卖）</li>
                         <li>1H ADX > 20（弱趋势门槛）</li>
                         <li>4H ADX < 40（不强反向）</li>
-                    </ul>
+                      </ul>
                       <p><strong>效果</strong>：检测到早期趋势时，提升4H趋势权重10%，进入候选池等待确认</p>
                     </div>
 
@@ -1806,7 +1808,7 @@
                         <tr>
                           <td style="padding:6px; border:1px solid #ddd;">突破确认</td>
                           <td style="padding:6px; border:1px solid #ddd;">突破后1根K线收盘不回撤</td>
-                          <td style="padding:6px; border:1px solid #ddd;">回撤<0.3%</td>
+                          <td style="padding:6px; border:1px solid #ddd;">回撤<0.3%< /td>
                         </tr>
                         <tr>
                           <td style="padding:6px; border:1px solid #ddd;">边界过滤</td>
@@ -1985,21 +1987,21 @@
                         <li>多头：stopLoss = entryPrice - (ATR15 × K_entry)</li>
                         <li>空头：stopLoss = entryPrice + (ATR15 × K_entry)</li>
                         <li>K_entry由置信度决定：1.5/2.0/2.6</li>
-                    </ul>
-                      
+                      </ul>
+
                       <p><strong>动态调整</strong>（趋势确认后）：</p>
                       <ul style="margin-left: 20px;">
                         <li>若1H/4H动量进一步确认（MACD增幅>30% + ADX上升）</li>
                         <li>扩大止损到ATR × 2.8或移至盈亏平衡+缓冲</li>
                         <li>避免被市场噪音止损出局</li>
                       </ul>
-                      
+
                       <p><strong>时间止损</strong>（60分钟）：</p>
                       <ul style="margin-left: 20px;">
                         <li>持仓超过60分钟且未盈利 → 平仓</li>
                         <li>避免长时间占用资金</li>
                       </ul>
-                      
+
                       <p><strong>追踪止盈</strong>：</p>
                       <ul style="margin-left: 20px;">
                         <li>盈利达到1×初始SL时启动追踪</li>
@@ -2029,10 +2031,11 @@
                       <li><strong>错误返回</strong>：返回ERROR信号而非抛出异常</li>
                     </ul>
                   </div>
-                  
+
                   <h4>🆕 V3.1-Plus 重大优化 (2025-10-12)</h4>
-                  
-                  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+
+                  <div
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
                     <h5 style="color: white; margin-top: 0;">🎯 优化目标</h5>
                     <table style="width:100%; color: white;">
                       <tr>
@@ -2053,16 +2056,17 @@
                     </table>
                   </div>
 
-                  <div class="fix-item" style="background: #e7f3ff; border-left: 4px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                  <div class="fix-item"
+                    style="background: #e7f3ff; border-left: 4px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>A. 入场时机优化（延迟确认 + 回撤分步入场）</h5>
-                    
+
                     <h6>1. 突破确认等待 ✅</h6>
                     <ul style="margin-left: 20px;">
                       <li>突破后等待<strong>1根15M K线收盘</strong>确认</li>
                       <li>避免假突破当根噪音</li>
                       <li>参数: <code>confirmationWait = 1</code></li>
                     </ul>
-                    
+
                     <h6>2. 多因子确认（至少2项）✅</h6>
                     <table style="width:100%; font-size: 13px; margin: 10px 0; border-collapse: collapse;">
                       <tr style="background: #f0f8ff;">
@@ -2092,7 +2096,7 @@
                       </tr>
                     </table>
                     <p><strong>规则</strong>：确认项数≥2才允许入场（全部通过更佳）</p>
-                    
+
                     <h6>3. Pullback入场模式 ✅</h6>
                     <ul style="margin-left: 20px;">
                       <li>突破后价格回撤到<strong>突破价±1.5%</strong>或<strong>EMA20</strong></li>
@@ -2102,9 +2106,10 @@
                     </ul>
                   </div>
 
-                  <div class="fix-item" style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                  <div class="fix-item"
+                    style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>B. 止损/仓位优化（动态止损Plus + 分批建仓）</h5>
-                    
+
                     <h6>1. 置信度分层止损（优化版）✅</h6>
                     <table style="width:100%; border-collapse: collapse; margin: 10px 0;">
                       <tr style="background: #ff9800; color: white;">
@@ -2132,21 +2137,21 @@
                         <td style="padding:6px; border:1px solid #ddd;">+15.4% (更宽)</td>
                       </tr>
                     </table>
-                    
+
                     <h6>2. 入场模式调整 ✅</h6>
                     <ul style="margin-left: 20px;">
                       <li><strong>Breakout模式</strong>: K × 1.25 (突破风险高，放宽止损)</li>
                       <li><strong>Pullback模式</strong>: K × 0.9 (回撤风险低，收紧止损)</li>
                       <li><strong>Momentum模式</strong>: K不变 (标准止损)</li>
                     </ul>
-                    
+
                     <h6>3. 追踪止盈优化 ✅</h6>
                     <ul style="margin-left: 20px;">
                       <li><strong>步长</strong>: 0.5×ATR → <strong>0.4×ATR</strong> (更敏感，-20%)</li>
                       <li><strong>目标</strong>: 1.3×ATR → <strong>2.0×ATR</strong> (更高，+53.8%)</li>
                       <li><strong>触发</strong>: 盈利≥1×止损距离时启用</li>
                     </ul>
-                    
+
                     <h6>4. 时间止损优化 ✅</h6>
                     <ul style="margin-left: 20px;">
                       <li><strong>基准</strong>: 60分钟未盈利 + 1H动量反转 → 平仓</li>
@@ -2155,9 +2160,10 @@
                     </ul>
                   </div>
 
-                  <div class="fix-item" style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                  <div class="fix-item"
+                    style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>C. 交易节律/频率控制（冷却 + 胜率驱动）</h5>
-                    
+
                     <h6>1. 冷却机制 ✅</h6>
                     <ul style="margin-left: 20px;">
                       <li><strong>单次冷却</strong>: 每次入场后<strong>45分钟</strong>内不再入场同一交易对</li>
@@ -2165,7 +2171,7 @@
                       <li><strong>实现</strong>: 内存缓存 + 数据库持久化</li>
                       <li><strong>自动重置</strong>: 每日0点重置计数</li>
                     </ul>
-                    
+
                     <h6>2. 胜率跟踪保护 ✅</h6>
                     <ul style="margin-left: 20px;">
                       <li><strong>跟踪窗口</strong>: 最近<strong>12笔</strong>已平仓交易</li>
@@ -2178,18 +2184,19 @@
                       </li>
                       <li><strong>恢复条件</strong>: 胜率回到≥30%时自动解除</li>
                     </ul>
-                    
+
                     <h6>3. 趋势过滤 ✅</h6>
                     <ul style="margin-left: 20px;">
-                      <li><strong>下降趋势</strong>: 拒绝LONG弱信号（<70分）</li>
-                      <li><strong>上升趋势</strong>: 拒绝SHORT弱信号（<70分）</li>
+                      <li><strong>下降趋势</strong>: 拒绝LONG弱信号（<70分）< /li>
+                      <li><strong>上升趋势</strong>: 拒绝SHORT弱信号（<70分）< /li>
                       <li><strong>逆势交易要求更严格</strong></li>
                     </ul>
                   </div>
 
-                  <div class="fix-item" style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                  <div class="fix-item"
+                    style="background: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>📊 V3.1-Plus 关键参数对比</h5>
-                    
+
                     <table style="width:100%; border-collapse: collapse; margin: 10px 0;">
                       <tr style="background: #0c5460; color: white;">
                         <th style="padding:8px; border:1px solid #ddd;">参数</th>
@@ -2236,13 +2243,15 @@
                       <tr>
                         <td style="padding:6px; border:1px solid #ddd;">胜率保护</td>
                         <td style="padding:6px; border:1px solid #ddd;">无</td>
-                        <td style="padding:6px; border:1px solid #ddd;"><30%启动</td>
+                        <td style="padding:6px; border:1px solid #ddd;">
+                          <30%启动< /td>
                         <td style="padding:6px; border:1px solid #ddd;">自适应调整</td>
                       </tr>
                     </table>
                   </div>
 
-                  <div class="fix-item" style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                  <div class="fix-item"
+                    style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>💡 实现亮点</h5>
                     <ul style="margin-left: 20px;">
                       <li>✅ <strong>零冗余</strong>: 无新建表，完全复用现有表结构</li>
@@ -2261,9 +2270,10 @@
                       <li>✅ <strong>24个可调参数</strong>: strategy_params表配置</li>
                     </ul>
                   </div>
-                  
+
                   <h4>🆕 V3.1优化历史 (2025-10-08)</h4>
-                  <div class="fix-item" style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                  <div class="fix-item"
+                    style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>震荡市交易逻辑修复</h5>
                     <p><strong>问题</strong>：震荡市模式下，即使15M检测到假突破信号，combineSignals也直接返回HOLD</p>
                     <p><strong>修复</strong>：增加震荡市假突破信号检查逻辑</p>
@@ -2277,13 +2287,17 @@
               <div class="strategy-doc" id="smart-money-overview">
                 <div class="doc-header">
                   <h3>💰 聪明钱监控系统 (V2.1.0)</h3>
-                  <span class="strategy-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">聪明钱</span>
+                  <span class="strategy-badge"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">聪明钱</span>
                 </div>
                 <div class="doc-content">
                   <h4>监控概述</h4>
-                  <p>聪明钱监控系统通过实时分析订单簿失衡(OBI)、累计成交量差(CVD)、持仓量变化(OI)和成交量异常(Volume Z-score)等多维度市场指标，识别主力资金（庄家）的操作意图。系统每15分钟更新一次，追踪6个核心交易对（BTCUSDT、ETHUSDT、SOLUSDT、ASTERUSDT、MEMEUSDT、4USDT）的实时动作。</p>
-                  
-                  <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196f3;">
+                  <p>聪明钱监控系统通过实时分析订单簿失衡(OBI)、累计成交量差(CVD)、持仓量变化(OI)和成交量异常(Volume
+                    Z-score)等多维度市场指标，识别主力资金（庄家）的操作意图。系统每15分钟更新一次，追踪6个核心交易对（BTCUSDT、ETHUSDT、SOLUSDT、ASTERUSDT、MEMEUSDT、4USDT）的实时动作。
+                  </p>
+
+                  <div
+                    style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196f3;">
                     <h5 style="margin: 0 0 10px 0; color: #0c5460;">🎯 核心功能</h5>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
                       <li><strong>庄家动作识别</strong>：吸筹、拉升、派发、砸盘四种动作</li>
@@ -2420,7 +2434,8 @@
                     </div>
                   </div>
 
-                  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                  <div
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
                     <h5 style="margin: 0 0 10px 0; color: white;">💰 聪明钱建仓信号</h5>
                     <p style="margin: 5px 0;">当同时满足以下条件时，前端显示"💰 聪明钱建仓"标识（紫色渐变+呼吸光效）：</p>
                     <ol style="margin: 5px 0; padding-left: 20px;">
@@ -2456,13 +2471,17 @@
               <div class="strategy-doc" id="large-orders-overview">
                 <div class="doc-header">
                   <h3>📊 大额挂单监控系统 (V2.1.2)</h3>
-                  <span class="strategy-badge" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">大额挂单</span>
+                  <span class="strategy-badge"
+                    style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">大额挂单</span>
                 </div>
                 <div class="doc-content">
                   <h4>监控概述</h4>
-                  <p>大额挂单监控系统通过WebSocket实时订阅Binance订单簿深度数据，追踪价值超过<strong>100万美元</strong>的大额买卖挂单。系统不仅监控当前挂单状态，还追踪挂单的生命周期（新增、持续、取消、成交），识别主力操作意图和潜在黑天鹅事件。</p>
-                  
-                  <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
+                  <p>
+                    大额挂单监控系统通过WebSocket实时订阅Binance订单簿深度数据，追踪价值超过<strong>100万美元</strong>的大额买卖挂单。系统不仅监控当前挂单状态，还追踪挂单的生命周期（新增、持续、取消、成交），识别主力操作意图和潜在黑天鹅事件。
+                  </p>
+
+                  <div
+                    style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
                     <h5 style="margin: 0 0 10px 0; color: #856404;">🎯 核心功能</h5>
                     <ul style="margin: 5px 0; padding-left: 20px; color: #856404;">
                       <li><strong>WebSocket实时监控</strong>：100ms级别订单簿更新</li>
@@ -2511,7 +2530,8 @@
 
                   <div style="background: #fef3c7; padding: 12px; border-radius: 6px; margin: 15px 0;">
                     <p style="margin: 0; color: #92400e;"><strong>💡 Spoofing（诱单）说明</strong></p>
-                    <p style="margin: 5px 0; color: #92400e; font-size: 13px;">Spoofing是指主力挂出大额买单/卖单制造虚假供需信号，诱导散户做出错误决策后迅速撤单。系统通过检测挂单存在时间识别此类行为。</p>
+                    <p style="margin: 5px 0; color: #92400e; font-size: 13px;">
+                      Spoofing是指主力挂出大额买单/卖单制造虚假供需信号，诱导散户做出错误决策后迅速撤单。系统通过检测挂单存在时间识别此类行为。</p>
                   </div>
 
                   <h4 id="large-orders-swan">黑天鹅检测（V2.1.1）</h4>
@@ -2524,7 +2544,8 @@
                       <th style="padding:10px; border:1px solid #ddd;">策略建议</th>
                     </tr>
                     <tr>
-                      <td style="padding:8px; border:1px solid #ddd; background: #f8d7da;"><strong>🚨 CRITICAL</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd; background: #f8d7da;"><strong>🚨 CRITICAL</strong>
+                      </td>
                       <td style="padding:8px; border:1px solid #ddd;">
                         • 5分钟跌幅 > 3%<br>
                         • 大额卖单 > 日均量10%<br>
@@ -2542,7 +2563,8 @@
                       <td style="padding:8px; border:1px solid #ddd;"><strong>减仓观望</strong>，收紧止损</td>
                     </tr>
                     <tr>
-                      <td style="padding:8px; border:1px solid #ddd; background: #d1ecf1;"><strong>👀 WATCH</strong></td>
+                      <td style="padding:8px; border:1px solid #ddd; background: #d1ecf1;"><strong>👀 WATCH</strong>
+                      </td>
                       <td style="padding:8px; border:1px solid #ddd;">
                         • 5分钟跌幅 > 1.5%<br>
                         • 大额卖单 > 日均量5%<br>
@@ -2552,7 +2574,8 @@
                     </tr>
                   </table>
 
-                  <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                  <div
+                    style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
                     <h5 style="margin: 0 0 10px 0; color: white;">🦢 黑天鹅判定逻辑</h5>
                     <p style="margin: 5px 0;">系统综合以下3个维度评估黑天鹅风险：</p>
                     <ol style="margin: 5px 0; padding-left: 20px;">
@@ -2590,7 +2613,8 @@
 
                   <div style="background: #d4edda; padding: 12px; border-radius: 6px; margin: 15px 0;">
                     <p style="margin: 0; color: #155724;"><strong>✨ 新增挂单敏感检测</strong></p>
-                    <p style="margin: 5px 0; color: #155724; font-size: 13px;">系统对新增大额挂单进行黄色闪烁高亮，帮助用户第一时间发现主力新动作。同时显示挂单持续时间和出现次数，判断挂单真实性。</p>
+                    <p style="margin: 5px 0; color: #155724; font-size: 13px;">
+                      系统对新增大额挂单进行黄色闪烁高亮，帮助用户第一时间发现主力新动作。同时显示挂单持续时间和出现次数，判断挂单真实性。</p>
                   </div>
 
                   <h4>技术实现</h4>
@@ -2765,7 +2789,8 @@
                       <li><strong>高度要求</strong>：高度 >= 0.15 × ATR(4H)（🆕 已从0.25放宽，2025-10-07）</li>
                       <li><strong>价格稳定性</strong>：range / avgPrice <= 0.03</li>
                       <li><strong>成交量集中</strong>：最后2根K线成交量 >= 60%平均成交量</li>
-                      <li><strong>年龄过滤</strong>：<span style="color: #28a745; font-weight: bold;">只考虑≤5天的订单块</span>（🆕 已从2天放宽，2025-10-07），确保时效性</li>
+                      <li><strong>年龄过滤</strong>：<span style="color: #28a745; font-weight: bold;">只考虑≤5天的订单块</span>（🆕
+                        已从2天放宽，2025-10-07），确保时效性</li>
                       <li><strong>有效性验证</strong>：订单块被扫荡后的回归行为验证</li>
                     </ul>
 
@@ -2885,13 +2910,14 @@
                       <li><strong>异常处理</strong>：数据缺失或计算错误时的降级处理</li>
                       <li><strong>调试信息</strong>：输出详细的评分过程和信号生成逻辑</li>
                     </ul>
-              </div>
+                  </div>
 
                   <h4>🆕 ICT策略优化历史</h4>
-                  
-                  <div class="fix-item" style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+
+                  <div class="fix-item"
+                    style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>2025-10-09优化</h5>
-                    
+
                     <h6>15M入场强度检查（容忍逻辑）✅</h6>
                     <p><strong>问题</strong>：即使门槛式5个条件全部通过，低质量吞没形态（如23.1%强度）仍触发交易</p>
                     <p><strong>修复</strong>：新增15M入场强度验证</p>
@@ -2903,29 +2929,31 @@
                     </ul>
                   </div>
 
-                  <div class="fix-item" style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                  <div class="fix-item"
+                    style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>2025-10-08优化</h5>
-                    
+
                     <h6>1. 前后端15M入场逻辑一致性修复 ✅</h6>
                     <p><strong>问题</strong>：前端15M入场判断过于简化，只检查吞没形态，未检查方向匹配和其他必须条件</p>
                     <p><strong>修复</strong>：统一前后端15M入场判断逻辑，实现门槛式确认 + 总分强信号（≥60分）</p>
-                    
+
                     <h6>2. 硬编码分数问题修复 ✅</h6>
                     <p><strong>问题</strong>：不同执行路径使用硬编码分数（30分、40分），不反映实际组件检测结果</p>
                     <p><strong>修复</strong>：统一使用基于组件的动态分数计算</p>
-                    
+
                     <h6>3. 置信度计算统一化 ✅</h6>
                     <p><strong>问题</strong>：部分路径使用字符串置信度（'MEDIUM', 'HIGH'），部分使用数值置信度</p>
                     <p><strong>修复</strong>：所有路径统一使用数值置信度计算（公式：harmonicScore × 0.6 + engulfingStrength × 0.4）</p>
-                    
+
                     <h6>4. 强信号阈值设定 ✅</h6>
                     <p><strong>新增</strong>：15分钟入场增加总分强信号要求（总分≥60分）</p>
                     <p><strong>效果</strong>：提高交易信号可靠性，避免弱信号触发交易</p>
                   </div>
 
-                  <div class="fix-item" style="background: #e7f3ff; border-left: 4px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                  <div class="fix-item"
+                    style="background: #e7f3ff; border-left: 4px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5>2025-10-07优化</h5>
-                    
+
                     <h6>订单块和扫荡阈值放宽 ✅</h6>
                     <ul style="margin-left: 20px;">
                       <li><strong>订单块高度</strong>：0.25×ATR → 0.15×ATR（放宽40%）</li>
@@ -2934,7 +2962,7 @@
                       <li><strong>LTF扫荡阈值</strong>：0.2×ATR → 0.02×ATR（放宽90%）</li>
                     </ul>
                     <p><strong>效果</strong>：增加信号捕捉灵敏度，提升交易机会</p>
-                    </div>
+                  </div>
                 </div>
               </div>
 

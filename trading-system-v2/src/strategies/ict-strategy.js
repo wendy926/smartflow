@@ -704,22 +704,31 @@ class ICTStrategy {
         logger.info(`ICT HTF Sweep调试 - 无订单块，使用最近极值: 高=${recentHigh}, 低=${recentLow}, 扫荡检测: ${JSON.stringify(sweepHTF)}`);
       }
 
-      // 4. 扫荡方向过滤（根据ict-plus.md优化）
+      // 4. 扫荡方向验证（V2.1.3修复：所有组合都有效，只判断信号类型）
       let validSweepHTF = sweepHTF;
+      let sweepSignalType = 'NONE';
+      let sweepConfidenceBonus = 0;
+      
       if (sweepHTF.detected && dailyTrend.trend !== 'RANGE') {
         const sweepDirection = sweepHTF.type === 'LIQUIDITY_SWEEP_UP' ? 'UP' : 'DOWN';
         const trendDirection = dailyTrend.trend;
 
-        // 上升趋势只接受下方扫荡（buy-side），下降趋势只接受上方扫荡（sell-side）
-        const isValidDirection = (trendDirection === 'UP' && sweepDirection === 'DOWN') ||
-          (trendDirection === 'DOWN' && sweepDirection === 'UP');
+        // ✅ 修复：所有扫荡方向都有效，只是信号类型不同
+        const isSameDirection = (trendDirection === 'UP' && sweepDirection === 'UP') ||
+          (trendDirection === 'DOWN' && sweepDirection === 'DOWN');
 
-        if (!isValidDirection) {
-          validSweepHTF = { detected: false, type: null, level: 0, confidence: 0, speed: 0 };
-          logger.info(`ICT 扫荡方向过滤 - 趋势: ${trendDirection}, 扫荡: ${sweepDirection}, 方向不匹配，过滤掉`);
+        if (isSameDirection) {
+          sweepSignalType = 'TREND_CONTINUATION'; // 顺势信号
+          sweepConfidenceBonus = 0.15; // 置信度+15%
+          logger.info(`ICT 扫荡方向 - 趋势: ${trendDirection}, 扫荡: ${sweepDirection}, 顺势信号（高置信度+15%）`);
         } else {
-          logger.info(`ICT 扫荡方向过滤 - 趋势: ${trendDirection}, 扫荡: ${sweepDirection}, 方向匹配，保留`);
+          sweepSignalType = 'REVERSAL'; // 反转信号
+          sweepConfidenceBonus = 0.10; // 置信度+10%
+          logger.info(`ICT 扫荡方向 - 趋势: ${trendDirection}, 扫荡: ${sweepDirection}, 反转信号（中置信度+10%）`);
         }
+        
+        // ✅ 修复：不再过滤任何扫荡信号
+        // validSweepHTF保持不变，所有扫荡都有效
       }
 
       // 调试信息
@@ -972,10 +981,10 @@ class ICTStrategy {
         sweepRate: validSweepHTF.speed || 0
       };
 
-      // 门槛3: HTF扫荡方向必须匹配趋势（关键优化）
+      // 门槛3: HTF扫荡检测（V2.1.3修复：移除错误的方向过滤）
       const sweepValidation = SweepDirectionFilter.validateSweep(dailyTrend.trend, validSweepHTF);
       if (!sweepValidation.valid) {
-        logger.info(`${symbol} ICT策略: ${sweepValidation.reason}`);
+        logger.info(`${symbol} ICT策略: ${sweepValidation.reason}（无扫荡信号）`);
 
         // 即使扫荡方向不匹配，也计算15M数据用于显示
         const engulfing = this.detectEngulfingPattern(klines15m);

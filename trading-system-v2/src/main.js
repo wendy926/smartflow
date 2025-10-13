@@ -166,7 +166,7 @@ class TradingSystemApp {
         } else {
           logger.warn('[AI模块] ⚠️ AI调度器初始化失败');
         }
-        
+
         // ❌ 禁用自动定时任务（避免API频率超限和CPU占用）
         // const aiStarted = await this.aiScheduler.start();
         // logger.info('[AI模块] 定时任务已禁用（节省资源）');
@@ -200,20 +200,20 @@ class TradingSystemApp {
         const binanceAPIInstance = new BinanceAPI();
         this.largeOrderDetector = new LargeOrderDetector(binanceAPIInstance, database);
         await this.largeOrderDetector.loadConfig();
-        
+
         // 注册到app（供API路由使用）
         this.app.set('largeOrderDetector', this.largeOrderDetector);
-        
+
         // V2.1.2：启动BTCUSDT和ETHUSDT监控（包含现货和合约）
         // 性能影响：2个交易对 × 2个WebSocket = 4个连接
         const monitoredSymbols = ['BTCUSDT', 'ETHUSDT'];
-        
+
         // 启动监控（WebSocket模式）
         for (const symbol of monitoredSymbols) {
           this.largeOrderDetector.startMonitoring(symbol);
         }
-        
-        logger.info('[大额挂单] ✅ 大额挂单检测器启动成功', { 
+
+        logger.info('[大额挂单] ✅ 大额挂单检测器启动成功', {
           symbols: monitoredSymbols,
           mode: 'WebSocket',
           connections: monitoredSymbols.length
