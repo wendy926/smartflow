@@ -61,11 +61,11 @@ module.exports = {
       script: './src/workers/monitor.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '50M',  // 从20M提升到50M（减少重启）
-      node_args: '--max-old-space-size=50 --optimize-for-size',
+      max_memory_restart: '80M',  // 从50M提升到80M（观察到实际使用62MB）
+      node_args: '--max-old-space-size=80 --optimize-for-size --gc-interval=100',
       env: {
         NODE_ENV: 'production',
-        MEMORY_LIMIT: '50'
+        MEMORY_LIMIT: '80'
       },
       error_file: './logs/monitor-error.log',
       out_file: './logs/monitor-out.log',
