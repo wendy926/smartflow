@@ -390,6 +390,11 @@ class SmartMoneyDetector {
       
       // 如果大额挂单信号很强（>5分）或有Spoof，优先采用
       if (largeOrderStrength > 5 || largeOrderSignal.spoofCount > 0) {
+        const isSmartMoney = 
+          (largeOrderAction === 'ACCUMULATE' || largeOrderAction === 'MARKUP') &&
+          !trapDetected &&
+          largeOrderStrength > 8;  // 强度很高才认定
+
         return {
           ...baseResult,
           action: largeOrderAction,
@@ -398,7 +403,9 @@ class SmartMoneyDetector {
           source: 'large_order_dominant',
           largeOrder: largeOrderSignal,
           trap: largeOrderSignal.trap,
-          swan: largeOrderSignal.swan
+          swan: largeOrderSignal.swan,
+          isSmartMoney,
+          isTrap: trapDetected
         };
       }
 
@@ -411,18 +418,28 @@ class SmartMoneyDetector {
         source: 'conflict',
         largeOrder: largeOrderSignal,
         trap: largeOrderSignal.trap,
-        swan: largeOrderSignal.swan
+        swan: largeOrderSignal.swan,
+        isSmartMoney: false,
+        isTrap: trapDetected
       };
     }
 
     // 大额挂单无明确信号，使用基础判断（英文版）
+    const finalConfidence = baseResult.confidence;
+    const isSmartMoney = 
+      (baseActionEn === 'ACCUMULATE' || baseActionEn === 'MARKUP') &&
+      !trapDetected &&
+      finalConfidence > 0.75;  // 高置信度才认定
+
     return {
       ...baseResult,
       action: baseActionEn,
       source: 'base_with_large_order_unknown',
       largeOrder: largeOrderSignal,
       trap: largeOrderSignal.trap,
-      swan: largeOrderSignal.swan
+      swan: largeOrderSignal.swan,
+      isSmartMoney,
+      isTrap: trapDetected
     };
   }
 
