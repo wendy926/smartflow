@@ -264,7 +264,7 @@ class TelegramMonitoringService {
     try {
       const message = this.formatAISignalMessage(aiSignalData);
       const result = await this.sendMessage(message, 'trading');
-      
+
       if (result) {
         logger.info('[Telegram AI信号] ✅ 消息发送成功', {
           symbol: aiSignalData.symbol,

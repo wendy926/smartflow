@@ -153,10 +153,10 @@ class TradingSystemApp {
         const binanceAPI = new BinanceAPI();  // 创建实例
 
         // 使用TelegramMonitoringService（支持从数据库加载配置）
-        const telegramService = new TelegramMonitoringService();
+        this.telegramService = new TelegramMonitoringService();
         logger.info('[AI模块] 使用TelegramMonitoringService（支持数据库配置）');
 
-        this.aiScheduler = new AIAnalysisScheduler(aiOps, binanceAPI, telegramService);
+        this.aiScheduler = new AIAnalysisScheduler(aiOps, binanceAPI, this.telegramService);
         global.aiScheduler = this.aiScheduler; // 设置全局变量供API路由使用（向后兼容）
         this.app.set('aiScheduler', this.aiScheduler);  // 注册到Express app
 
@@ -177,6 +177,10 @@ class TradingSystemApp {
         // 策略模块（V3/ICT）继续正常运行
         this.aiScheduler = null;
         global.aiScheduler = null;
+        // 即使AI模块失败，也要保持telegramService可用
+        if (!this.telegramService) {
+          this.telegramService = new TelegramMonitoringService();
+        }
       }
 
       // 为API路由提供数据库连接

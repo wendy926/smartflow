@@ -14,16 +14,16 @@ const logger = require('../../utils/logger');
 router.get('/status', (req, res) => {
   try {
     const smartMoneyMonitor = req.app.get('smartMoneyMonitor');
-    
+
     if (!smartMoneyMonitor) {
       return res.status(503).json({
         success: false,
         error: '聪明钱监控服务未启动'
       });
     }
-    
+
     const status = smartMoneyMonitor.getStatus();
-    
+
     res.json({
       success: true,
       data: status
@@ -44,24 +44,24 @@ router.get('/status', (req, res) => {
 router.post('/config', (req, res) => {
   try {
     const smartMoneyMonitor = req.app.get('smartMoneyMonitor');
-    
+
     if (!smartMoneyMonitor) {
       return res.status(503).json({
         success: false,
         error: '聪明钱监控服务未启动'
       });
     }
-    
+
     const {
       confidenceThreshold,
       checkInterval,
       cooldownPeriod,
       maxNotificationsPerHour
     } = req.body;
-    
+
     // 验证参数
     const config = {};
-    
+
     if (confidenceThreshold !== undefined) {
       if (typeof confidenceThreshold !== 'number' || confidenceThreshold < 0 || confidenceThreshold > 1) {
         return res.status(400).json({
@@ -71,7 +71,7 @@ router.post('/config', (req, res) => {
       }
       config.confidenceThreshold = confidenceThreshold;
     }
-    
+
     if (checkInterval !== undefined) {
       if (typeof checkInterval !== 'number' || checkInterval < 10000) {
         return res.status(400).json({
@@ -81,7 +81,7 @@ router.post('/config', (req, res) => {
       }
       config.checkInterval = checkInterval;
     }
-    
+
     if (cooldownPeriod !== undefined) {
       if (typeof cooldownPeriod !== 'number' || cooldownPeriod < 60000) {
         return res.status(400).json({
@@ -91,7 +91,7 @@ router.post('/config', (req, res) => {
       }
       config.cooldownPeriod = cooldownPeriod;
     }
-    
+
     if (maxNotificationsPerHour !== undefined) {
       if (typeof maxNotificationsPerHour !== 'number' || maxNotificationsPerHour < 1 || maxNotificationsPerHour > 100) {
         return res.status(400).json({
@@ -101,16 +101,16 @@ router.post('/config', (req, res) => {
       }
       config.maxNotificationsPerHour = maxNotificationsPerHour;
     }
-    
+
     // 更新配置
     smartMoneyMonitor.updateConfig(config);
-    
+
     res.json({
       success: true,
       message: '聪明钱监控配置已更新',
       data: smartMoneyMonitor.getStatus()
     });
-    
+
   } catch (error) {
     logger.error('更新聪明钱监控配置失败:', error);
     res.status(500).json({
@@ -127,22 +127,22 @@ router.post('/config', (req, res) => {
 router.post('/check', async (req, res) => {
   try {
     const smartMoneyMonitor = req.app.get('smartMoneyMonitor');
-    
+
     if (!smartMoneyMonitor) {
       return res.status(503).json({
         success: false,
         error: '聪明钱监控服务未启动'
       });
     }
-    
+
     // 手动触发检查
     await smartMoneyMonitor.checkSmartMoneySignals();
-    
+
     res.json({
       success: true,
       message: '聪明钱检查已触发'
     });
-    
+
   } catch (error) {
     logger.error('手动触发聪明钱检查失败:', error);
     res.status(500).json({
@@ -159,14 +159,14 @@ router.post('/check', async (req, res) => {
 router.get('/history', (req, res) => {
   try {
     const smartMoneyMonitor = req.app.get('smartMoneyMonitor');
-    
+
     if (!smartMoneyMonitor) {
       return res.status(503).json({
         success: false,
         error: '聪明钱监控服务未启动'
       });
     }
-    
+
     // 获取通知历史（这里需要扩展SmartMoneyMonitor类来暴露历史数据）
     const history = smartMoneyMonitor.notificationHistory || new Map();
     const historyArray = Array.from(history.entries()).map(([key, value]) => ({
@@ -174,7 +174,7 @@ router.get('/history', (req, res) => {
       ...value,
       timestamp: new Date(value.timestamp).toISOString()
     }));
-    
+
     res.json({
       success: true,
       data: {
@@ -182,7 +182,7 @@ router.get('/history', (req, res) => {
         totalCount: historyArray.length
       }
     });
-    
+
   } catch (error) {
     logger.error('获取聪明钱监控历史失败:', error);
     res.status(500).json({
