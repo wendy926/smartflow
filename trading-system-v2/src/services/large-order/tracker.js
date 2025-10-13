@@ -160,24 +160,29 @@ class OrderTracker {
    * @private
    */
   _cleanupOldEntries(timestamp) {
-    const ONE_HOUR = 3600000;
+    const THIRTY_MINUTES = 1800000; // 从1小时缩短到30分钟
     const keysToDelete = [];
 
     for (const [key, entry] of this.tracked.entries()) {
-      if (entry.canceledAt && (timestamp - entry.canceledAt) > ONE_HOUR) {
+      // 更激进的清理：已撤销且超过30分钟，或超过1小时未更新
+      if ((entry.canceledAt && (timestamp - entry.canceledAt) > THIRTY_MINUTES) ||
+          (timestamp - entry.lastSeenAt) > 3600000) {
         keysToDelete.push(key);
       }
     }
 
     keysToDelete.forEach(key => this.tracked.delete(key));
     
-    // 限制最大追踪数量
-    if (this.tracked.size > this.config.maxTrackedEntries) {
+    // 更严格的限制：超过80%限制就清理
+    const cleanupThreshold = Math.floor(this.config.maxTrackedEntries * 0.8);
+    if (this.tracked.size > cleanupThreshold) {
       const entries = Array.from(this.tracked.entries())
         .sort((a, b) => b[1].lastSeenAt - a[1].lastSeenAt)
-        .slice(this.config.maxTrackedEntries);
+        .slice(cleanupThreshold);
       
       entries.forEach(([key]) => this.tracked.delete(key));
+      
+      logger.info(`[OrderTracker] 内存清理：删除${entries.length}个旧挂单，当前${this.tracked.size}个`);
     }
   }
 

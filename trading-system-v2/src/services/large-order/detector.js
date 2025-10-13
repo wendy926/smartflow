@@ -34,7 +34,7 @@ class LargeOrderDetector {
       impactRatioThreshold: 0.25,
       cvdWindowMs: 14400000,            // 4小时
       priceTolerance: 0.0005,           // 0.05%
-      maxTrackedEntries: 100
+      maxTrackedEntries: 50  // 从100降低到50，减少50%内存占用
     };
     
     // 初始化子模块
@@ -282,14 +282,18 @@ class LargeOrderDetector {
       const trackedEntries = this.tracker.getTrackedEntries(symbol);
       this.classifier.classifyBatch(trackedEntries);
       
-      // 6. 如果有新发现或状态变化，记录日志
+      // 6. 如果有新发现或状态变化，记录日志（减少日志频率）
       if (updateResult.newEntries.length > 0 || updateResult.canceledEntries.length > 0) {
-        logger.info('[LargeOrderDetector] 挂单状态变化', {
-          symbol,
-          new: updateResult.newEntries.length,
-          canceled: updateResult.canceledEntries.length,
-          total: updateResult.totalTracked
-        });
+        // 只在总数变化超过5个或重要变化时才记录
+        if (updateResult.newEntries.length > 2 || updateResult.canceledEntries.length > 2 || 
+            updateResult.totalTracked % 10 === 0) {
+          logger.info('[LargeOrderDetector] 挂单状态变化', {
+            symbol,
+            new: updateResult.newEntries.length,
+            canceled: updateResult.canceledEntries.length,
+            total: updateResult.totalTracked
+          });
+        }
       }
       
     } catch (error) {
