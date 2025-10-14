@@ -1540,10 +1540,12 @@ class V3Strategy {
     } else if (trendDirection === 'RANGE') {
       // 震荡市场：价格在VWAP附近波动也给予部分分数
       const vwapDeviation = Math.abs(currentPrice - vwap) / vwap;
-      if (vwapDeviation < 0.01) { // 在VWAP 1%范围内
+      if (vwapDeviation < 0.03) { // 在VWAP 3%范围内（放宽阈值）
         factors.vwapDirection = 1; // 震荡市场中价格贴近VWAP也算有效
+        logger.info(`${symbol} 震荡市VWAP检查通过: 价格=${currentPrice.toFixed(4)}, VWAP=${vwap.toFixed(4)}, 偏差=${(vwapDeviation*100).toFixed(2)}%`);
       } else {
         factors.vwapDirection = 0;
+        logger.info(`${symbol} 震荡市VWAP检查失败: 价格=${currentPrice.toFixed(4)}, VWAP=${vwap.toFixed(4)}, 偏差=${(vwapDeviation*100).toFixed(2)}% > 3%`);
       }
     }
 
