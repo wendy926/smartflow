@@ -64,6 +64,17 @@ class TradingSystemApp {
   }
 
   setupRoutes() {
+    // 健康检查端点
+    this.app.get('/health', (req, res) => {
+      res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        version: '2.1.0'
+      });
+    });
+
     // API路由
     this.app.use('/api/v1/strategies', require('./api/routes/strategies'));
     this.app.use('/api/v1/symbols', require('./api/routes/symbols'));
