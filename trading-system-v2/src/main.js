@@ -174,17 +174,21 @@ class TradingSystemApp {
         global.aiScheduler = this.aiScheduler; // 设置全局变量供API路由使用（向后兼容）
         this.app.set('aiScheduler', this.aiScheduler);  // 注册到Express app
 
-        // 🔧 只初始化AI调度器，不启动定时任务（支持手动触发）
+        // 🔧 初始化AI调度器并启动定时任务（每小时分析一次）
         const aiInitialized = await this.aiScheduler.initialize();
         if (aiInitialized) {
-          logger.info('[AI模块] ✅ AI调度器初始化成功（手动触发可用，定时任务已禁用）');
+          logger.info('[AI模块] ✅ AI调度器初始化成功');
+          
+          // 启动定时任务（每小时宏观分析，每15分钟交易对分析）
+          const aiStarted = await this.aiScheduler.start();
+          if (aiStarted) {
+            logger.info('[AI模块] ✅ AI定时任务已启动（每小时宏观分析，每15分钟交易对分析）');
+          } else {
+            logger.warn('[AI模块] ⚠️ AI定时任务启动失败');
+          }
         } else {
           logger.warn('[AI模块] ⚠️ AI调度器初始化失败');
         }
-
-        // ❌ 禁用自动定时任务（避免API频率超限和CPU占用）
-        // const aiStarted = await this.aiScheduler.start();
-        // logger.info('[AI模块] 定时任务已禁用（节省资源）');
       } catch (error) {
         logger.error('[AI模块] ❌ AI调度器启动失败（不影响策略执行）:', error);
         // AI调度器启动失败不影响主应用和策略执行

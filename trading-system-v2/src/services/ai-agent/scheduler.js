@@ -97,12 +97,12 @@ class AIAnalysisScheduler {
 
       const config = await this.aiOps.getConfig();
 
-      // 启动宏观风险分析任务（每2小时）
-      const macroInterval = parseInt(config.macro_update_interval) || 7200;
+      // 启动宏观风险分析任务（每小时）
+      const macroInterval = parseInt(config.macro_update_interval) || 3600;
       this.startMacroAnalysisTask(macroInterval);
 
-      // 启动交易对分析任务（每5分钟）
-      const symbolInterval = parseInt(config.symbol_update_interval) || 300;
+      // 启动交易对分析任务（每15分钟）
+      const symbolInterval = parseInt(config.symbol_update_interval) || 900;
       this.startSymbolAnalysisTask(symbolInterval);
 
       this.isRunning = true;
