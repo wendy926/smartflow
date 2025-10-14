@@ -267,7 +267,7 @@ class FourPhaseSmartMoneyDetector {
       this.binanceAPI.getKlines(symbol, '15m', 200),
       this.binanceAPI.getKlines(symbol, '1h', 100),
       this.binanceAPI.getKlines(symbol, '4h', 50),
-      this.binanceAPI.getTicker(symbol),
+      this.binanceAPI.getTicker24hr(symbol),
       this.binanceAPI.getDepth(symbol, 50),
       this.binanceAPI.getOpenInterest(symbol)
     ]);
@@ -287,7 +287,7 @@ class FourPhaseSmartMoneyDetector {
    * @private
    */
   computeIndicators(marketData) {
-    const { klines15m, orderBook, openInterest } = marketData;
+    const { klines15m, klines1h, klines4h, ticker, orderBook, openInterest } = marketData;
 
     // 成交量指标
     const volArr = klines15m.slice(-this.params.recentVolCandles).map(k => k[5]);
@@ -302,19 +302,21 @@ class FourPhaseSmartMoneyDetector {
     const askVal = asks.reduce((sum, [price, qty]) => sum + parseFloat(price) * parseFloat(qty), 0);
     const obi = bidVal - askVal;
 
-    // OBI Z-Score（简化计算）
-    const obiZ = obi > 0 ? 1 : -1; // 简化实现
+    // OBI Z-Score（基于OBI值计算）
+    const obiZ = obi / 1000000; // 标准化到合理范围
 
-    // CVD Z-Score（简化计算）
-    const cvdZ = Math.random() * 2 - 1; // 临时实现，实际应从aggTrade计算
-
-    // Delta 15分钟（简化计算）
-    const delta15 = Math.random() * 0.1 - 0.05;
+    // CVD Z-Score（基于成交量变化计算）
+    const volChange = (lastVol - avgVol15) / avgVol15;
+    const cvdZ = Math.tanh(volChange * 2); // 使用tanh函数标准化
 
     // 价格跌幅
     const currentPrice = parseFloat(klines15m[klines15m.length - 1][4]);
     const pastPrice = parseFloat(klines15m[Math.max(0, klines15m.length - 12)][4]);
     const priceDropPct = (pastPrice - currentPrice) / pastPrice;
+
+    // Delta 15分钟（基于价格变化和成交量）
+    const priceChange = (currentPrice - pastPrice) / pastPrice;
+    const delta15 = priceChange * volRatio;
 
     // ATR 15分钟
     const atr15 = this.calculateATR(klines15m, 14);

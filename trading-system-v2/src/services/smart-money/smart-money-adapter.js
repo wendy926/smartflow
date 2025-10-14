@@ -282,20 +282,20 @@ class SmartMoneyAdapter {
   getStatistics() {
     const states = this.fourPhaseDetector.getAllStates();
     const symbols = Object.keys(states);
-    
+
     const stageCounts = {};
     for (const stage of Object.values(SmartMoneyStage)) {
       stageCounts[stage] = 0;
     }
-    
+
     for (const state of Object.values(states)) {
       stageCounts[state.stage]++;
     }
-    
+
     return {
       totalSymbols: symbols.length,
       stageCounts,
-      averageConfidence: symbols.length > 0 
+      averageConfidence: symbols.length > 0
         ? symbols.reduce((sum, symbol) => sum + states[symbol].confidence, 0) / symbols.length
         : 0
     };
@@ -311,7 +311,7 @@ class SmartMoneyAdapter {
       const [rows] = await this.database.pool.query(`
         SELECT symbol FROM smart_money_watch_list WHERE is_active = 1
       `);
-      
+
       return rows.map(row => row.symbol);
     } catch (error) {
       logger.error('[聪明钱适配器] 加载监控列表失败:', error);

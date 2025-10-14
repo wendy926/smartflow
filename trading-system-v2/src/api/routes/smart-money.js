@@ -35,8 +35,8 @@ router.get('/detect', async (req, res) => {
     } else {
       // 默认或v2=true时使用V2
       logger.info('[SmartMoneyAPI] 使用V2检测（包含isSmartMoney/isTrap）');
-      results = await detector.detectBatchV2 ? 
-        await detector.detectBatchV2(symbolList) : 
+      results = await detector.detectBatchV2 ?
+        await detector.detectBatchV2(symbolList) :
         await detector.detectBatch(symbolList);
     }
 
