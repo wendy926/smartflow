@@ -139,7 +139,11 @@ class SmartMoneyAdapter {
           cvdZ: result.indicators?.cvdZ || 0,
           volRatio: result.indicators?.volRatio || 0,
           delta: result.indicators?.delta15 || 0,
-          priceDropPct: result.indicators?.priceDropPct || 0
+          priceDropPct: result.indicators?.priceDropPct || 0,
+          currentPrice: result.indicators?.currentPrice || 0,
+          oiChange: result.indicators?.oiChange || 0,
+          volume24h: result.indicators?.volume24h || 0,
+          lastVol: result.indicators?.lastVol || 0
         },
         stage: result.stage,
         stageInfo: {

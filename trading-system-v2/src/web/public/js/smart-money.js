@@ -65,15 +65,15 @@ class SmartMoneyTracker {
       const actionClass = this.getActionClass(actionCN);
       const confidenceClass = this.getConfidenceClass(result.confidence);
       const trendIcon = this.getTrendIcon(result.trend);
-      const price = result.indicators?.price || 0;
-      const priceChange = result.indicators?.priceChange || 0;
-      const priceChangeClass = priceChange >= 0 ? 'positive' : 'negative';
+      const price = result.indicators?.currentPrice || 0;
+      const priceChange = result.indicators?.priceDropPct || 0;
+      const priceChangeClass = priceChange <= 0 ? 'positive' : 'negative'; // 价格跌幅为负表示上涨
 
       // 格式化指标显示
       const obi = result.indicators?.obi || 0;
-      const cvd = result.indicators?.cvd || 0;
+      const cvd = result.indicators?.cvdZ || 0;
       const oiChange = result.indicators?.oiChange || 0;
-      const volume = result.indicators?.volZ || 0;
+      const volume = result.indicators?.volRatio || 0;
       const fundingRate = result.indicators?.fundingRate || 0;
 
       // Trap和Swan标记
@@ -118,15 +118,15 @@ class SmartMoneyTracker {
             <small style="color: #999;">(${result.indicators?.obiZ?.toFixed(2) || '0.00'}σ)</small>
           </td>
           <td title="Cumulative Volume Delta - 累计成交量差">
-            <div>${this.formatNumber(cvd)}</div>
-            <small style="color: #999;">(${result.indicators?.cvdZ?.toFixed(2) || '0.00'}σ)</small>
+            <div>${cvd.toFixed(2)}σ</div>
+            <small style="color: #999;">Z-Score</small>
           </td>
           <td title="Open Interest Change - 持仓量变化">
-            <div class="${oiChange >= 0 ? 'positive' : 'negative'}">${this.formatNumber(oiChange)}</div>
-            <small style="color: #999;">(${result.indicators?.oiZ?.toFixed(2) || '0.00'}σ)</small>
+            <div class="${oiChange >= 0 ? 'positive' : 'negative'}">${oiChange.toFixed(2)}%</div>
+            <small style="color: #999;">24h变化</small>
           </td>
           <td title="Volume - 成交量异常">
-            <div>${volume.toFixed(2)}σ</div>
+            <div>${volume.toFixed(2)}x</div>
           </td>
           <td>${trendIcon}</td>
           <td class="reason-cell" title="${result.reason}">${this.truncateReason(result.reason)}</td>

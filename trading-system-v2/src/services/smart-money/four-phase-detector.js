@@ -293,7 +293,7 @@ class FourPhaseSmartMoneyDetector {
     const volArr = klines15m.slice(-this.params.recentVolCandles).map(k => k[5]);
     const avgVol15 = volArr.reduce((a, b) => a + b, 0) / volArr.length;
     const lastVol = klines15m[klines15m.length - 1][5];
-    const volRatio = lastVol / avgVol15;
+    const volRatio = avgVol15 > 0 ? lastVol / avgVol15 : 1; // 防止除零错误
 
     // OBI计算
     const bids = orderBook.bids.slice(0, this.params.obiTopN);
@@ -306,7 +306,7 @@ class FourPhaseSmartMoneyDetector {
     const obiZ = obi / 1000000; // 标准化到合理范围
 
     // CVD Z-Score（基于成交量变化计算）
-    const volChange = (lastVol - avgVol15) / avgVol15;
+    const volChange = avgVol15 > 0 ? (lastVol - avgVol15) / avgVol15 : 0;
     const cvdZ = Math.tanh(volChange * 2); // 使用tanh函数标准化
 
     // 价格跌幅
@@ -321,6 +321,14 @@ class FourPhaseSmartMoneyDetector {
     // ATR 15分钟
     const atr15 = this.calculateATR(klines15m, 14);
 
+    // OI变化计算
+    const oiChange = openInterest && openInterest.length > 1 
+      ? ((openInterest[openInterest.length - 1] - openInterest[0]) / openInterest[0]) * 100
+      : 0;
+
+    // 成交量数据
+    const volume24h = ticker && ticker.volume ? parseFloat(ticker.volume) : lastVol * 96; // 估算24小时成交量
+
     return {
       volRatio,
       obi,
@@ -329,7 +337,10 @@ class FourPhaseSmartMoneyDetector {
       delta15,
       priceDropPct,
       atr15,
-      currentPrice
+      currentPrice,
+      oiChange,
+      volume24h,
+      lastVol
     };
   }
 
