@@ -11,8 +11,10 @@ class SmartFlowApp {
     this.refreshInterval = null;
     this.maxLossAmount = 100; // 默认最大损失金额100 USDT
     this.lastAIAnalysisLoad = 0; // 记录AI分析上次加载时间
-    this.aiAnalysisInterval = 60 * 60 * 1000; // AI分析刷新间隔：1小时
+    this.aiAnalysisInterval = 30 * 60 * 1000; // AI分析刷新间隔：30分钟（减少缓存时间）
     this.cachedAIAnalysis = {}; // 缓存AI分析结果
+    this.forceAIAnalysisRefresh = false; // 强制刷新AI分析标志
+    this.aiAnalysisCacheTime = {}; // 每个交易对的AI分析缓存时间
     this.aiAnalysisModule = null; // AI分析模块实例
     this.init();
     this.initRouting();
@@ -122,7 +124,8 @@ class SmartFlowApp {
     const refreshStrategyStatusBtn = document.getElementById('refreshStrategyStatus');
     if (refreshStrategyStatusBtn) {
       refreshStrategyStatusBtn.addEventListener('click', () => {
-        // 强制刷新AI分析，重置缓存时间
+        // 强制刷新AI分析，设置强制刷新标志
+        this.forceAIAnalysisRefresh = true;
         this.lastAIAnalysisLoad = 0;
         this.loadStrategyCurrentStatus();
       });
@@ -1297,11 +1300,12 @@ class SmartFlowApp {
     const now = Date.now();
     const timeSinceLastLoad = now - this.lastAIAnalysisLoad;
 
-    if (timeSinceLastLoad >= this.aiAnalysisInterval || this.lastAIAnalysisLoad === 0) {
-      console.log(`[AI表格] 距离上次加载${Math.round(timeSinceLastLoad / 60000)}分钟，开始刷新AI分析`);
+    if (this.forceAIAnalysisRefresh || timeSinceLastLoad >= this.aiAnalysisInterval || this.lastAIAnalysisLoad === 0) {
+      console.log(`[AI表格] ${this.forceAIAnalysisRefresh ? '强制刷新' : `距离上次加载${Math.round(timeSinceLastLoad / 60000)}分钟`}，开始刷新AI分析`);
       setTimeout(() => {
         this.loadAIAnalysisForTable(sortedStatusData);
         this.lastAIAnalysisLoad = Date.now();
+        this.forceAIAnalysisRefresh = false; // 重置强制刷新标志
       }, 100);
     } else {
       const remainingMinutes = Math.round((this.aiAnalysisInterval - timeSinceLastLoad) / 60000);
@@ -1351,9 +1355,26 @@ class SmartFlowApp {
 
       try {
         console.log(`[AI表格] 加载 ${item.symbol} 分析...`);
-        // 如果lastAIAnalysisLoad为0，说明是强制刷新
-        const forceRefresh = this.lastAIAnalysisLoad === 0;
-        const analysis = await window.aiAnalysis.loadSymbolAnalysis(item.symbol, forceRefresh);
+        
+        // 智能缓存策略：检查单个交易对的缓存时间
+        const now = Date.now();
+        const lastCacheTime = this.aiAnalysisCacheTime[item.symbol] || 0;
+        const timeSinceLastCache = now - lastCacheTime;
+        const shouldRefresh = this.forceAIAnalysisRefresh || 
+                             this.lastAIAnalysisLoad === 0 || 
+                             timeSinceLastCache >= this.aiAnalysisInterval;
+        
+        if (shouldRefresh) {
+          console.log(`[AI表格] ${item.symbol} 需要刷新AI分析 (${this.forceAIAnalysisRefresh ? '强制' : '缓存过期'})`);
+        } else {
+          console.log(`[AI表格] ${item.symbol} 使用缓存数据，距离上次缓存${Math.round(timeSinceLastCache / 60000)}分钟`);
+        }
+        
+        const analysis = await window.aiAnalysis.loadSymbolAnalysis(item.symbol, shouldRefresh);
+        
+        if (analysis && shouldRefresh) {
+          this.aiAnalysisCacheTime[item.symbol] = now; // 更新缓存时间
+        }
 
         if (!analysis) {
           console.warn(`[AI表格] ${item.symbol} 无分析数据`);

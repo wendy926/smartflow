@@ -22,7 +22,7 @@ class LargeOrderDetector {
   constructor(binanceAPI, database) {
     this.binanceAPI = binanceAPI;
     this.database = database;
-    
+
     // 加载配置
     this.config = {
       largeUSDThreshold: 10000000,     // 10M USD
@@ -36,7 +36,7 @@ class LargeOrderDetector {
       priceTolerance: 0.0005,           // 0.05%
       maxTrackedEntries: 50  // 从100降低到50，减少50%内存占用
     };
-    
+
     // 初始化子模块
     this.tracker = new OrderTracker(this.config);
     this.classifier = new OrderClassifier(this.config);
@@ -44,13 +44,13 @@ class LargeOrderDetector {
     this.wsManager = new WebSocketManager(); // 新增WebSocket管理器
     this.swanDetector = null; // 黑天鹅检测器（延迟初始化）
     this.trapDetector = new TrapDetector(); // 诱多诱空检测器
-    
+
     // 状态存储（按symbol）
     this.state = new Map(); // symbol -> { cvdSeries, cvdCum, prevOI, oi, priceHistory: [] }
-    
+
     // CVD/OI更新定时器（低频）
     this.updateIntervals = new Map(); // symbol -> intervalId
-    
+
     logger.info('[LargeOrderDetector] 初始化完成（WebSocket模式）');
   }
 
@@ -61,17 +61,17 @@ class LargeOrderDetector {
     try {
       const sql = 'SELECT config_key, config_value, config_type FROM large_order_config';
       const rows = await this.database.query(sql);
-      
+
       rows.forEach(row => {
         const key = row.config_key;
         let value = row.config_value;
-        
+
         if (row.config_type === 'NUMBER') {
           value = parseFloat(value);
         } else if (row.config_type === 'BOOLEAN') {
           value = value === 'true' || value === '1';
         }
-        
+
         // 映射到配置对象
         const configMap = {
           'LARGE_USD_THRESHOLD': 'largeUSDThreshold',
@@ -85,17 +85,17 @@ class LargeOrderDetector {
           'PRICE_TOLERANCE': 'priceTolerance',
           'MAX_TRACKED_ENTRIES': 'maxTrackedEntries'
         };
-        
+
         if (configMap[key]) {
           this.config[configMap[key]] = value;
         }
       });
-      
+
       // 更新子模块配置
       this.tracker.config = this.config;
       this.classifier.config = this.config;
       this.aggregator.config = this.config;
-      
+
       logger.info('[LargeOrderDetector] 配置加载完成', this.config);
     } catch (error) {
       logger.error('[LargeOrderDetector] 配置加载失败', { error: error.message });
@@ -108,11 +108,11 @@ class LargeOrderDetector {
    */
   async start(symbols) {
     await this.loadConfig();
-    
+
     for (const symbol of symbols) {
       this.startMonitoring(symbol);
     }
-    
+
     logger.info('[LargeOrderDetector] 监控已启动', { symbols });
   }
 
@@ -125,7 +125,7 @@ class LargeOrderDetector {
       logger.warn('[LargeOrderDetector] 监控已存在', { symbol });
       return;
     }
-    
+
     // 初始化状态
     if (!this.state.has(symbol)) {
       this.state.set(symbol, {
@@ -136,51 +136,51 @@ class LargeOrderDetector {
         priceHistory: []  // 价格历史（5分钟窗口）
       });
     }
-    
+
     // 订阅depth WebSocket
     this.wsManager.subscribe(symbol, (sym, orderbook, timestamp) => {
       this._handleDepthUpdate(sym, orderbook, timestamp).catch(err => {
         logger.error('[LargeOrderDetector] 处理depth更新失败', { symbol: sym, error: err.message });
       });
     });
-    
+
     // 启动CVD/OI更新定时器（低频，15秒）
     const cvdOIIntervalId = setInterval(() => {
       this._updateCVDAndOI(symbol, Date.now()).catch(err => {
         logger.error('[LargeOrderDetector] 更新CVD/OI失败', { symbol, error: err.message });
       });
     }, this.config.pollIntervalMs);
-    
+
     // 立即执行一次CVD/OI更新
     this._updateCVDAndOI(symbol, Date.now()).catch(err => {
       logger.error('[LargeOrderDetector] 首次CVD/OI更新失败', { symbol, error: err.message });
     });
-    
-      // ✅ 优化：检测并保存到数据库的定时器（从1小时改为4小时，减少75%写入）
-      const detectIntervalId = setInterval(async () => {
-        try {
-          logger.info(`[LargeOrderDetector] 定时检测并保存 ${symbol}`);
-          
-          // 保存前清理旧数据（只保留最近7天）
-          await this.database.query(`
+
+    // ✅ 优化：检测并保存到数据库的定时器（从1小时改为4小时，减少75%写入）
+    const detectIntervalId = setInterval(async () => {
+      try {
+        logger.info(`[LargeOrderDetector] 定时检测并保存 ${symbol}`);
+
+        // 保存前清理旧数据（只保留最近7天）
+        await this.database.query(`
             DELETE FROM large_order_detection_results
             WHERE symbol = ?
               AND created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
           `, [symbol]);
-          
-          const result = await this.detect(symbol);
-          logger.info(`[LargeOrderDetector] 检测结果已保存到数据库`, {
-            symbol,
-            finalAction: result.finalAction,
-            trackedEntries: result.trackedEntriesCount,
-            buyScore: result.buyScore?.toFixed(1),
-            sellScore: result.sellScore?.toFixed(1)
-          });
-        } catch (error) {
-          logger.error(`[LargeOrderDetector] 定时检测失败`, { symbol, error: error.message });
-        }
-      }, 14400000);  // 4小时 = 14400000ms（从1小时优化到4小时）
-    
+
+        const result = await this.detect(symbol);
+        logger.info(`[LargeOrderDetector] 检测结果已保存到数据库`, {
+          symbol,
+          finalAction: result.finalAction,
+          trackedEntries: result.trackedEntriesCount,
+          buyScore: result.buyScore?.toFixed(1),
+          sellScore: result.sellScore?.toFixed(1)
+        });
+      } catch (error) {
+        logger.error(`[LargeOrderDetector] 定时检测失败`, { symbol, error: error.message });
+      }
+    }, 14400000);  // 4小时 = 14400000ms（从1小时优化到4小时）
+
     // ✅ 启动10秒后立即执行一次（快速填充数据）
     setTimeout(async () => {
       try {
@@ -194,16 +194,16 @@ class LargeOrderDetector {
         logger.error(`[LargeOrderDetector] 首次检测失败`, { symbol, error: err.message });
       }
     }, 10000);  // 10秒后执行
-    
+
     // 保存所有定时器ID
-    this.updateIntervals.set(symbol, { 
-      cvdOI: cvdOIIntervalId, 
-      detect: detectIntervalId 
+    this.updateIntervals.set(symbol, {
+      cvdOI: cvdOIIntervalId,
+      detect: detectIntervalId
     });
-    
-    logger.info('[LargeOrderDetector] 监控启动完成', { 
-      symbol, 
-      cvdOIInterval: '15秒', 
+
+    logger.info('[LargeOrderDetector] 监控启动完成', {
+      symbol,
+      cvdOIInterval: '15秒',
       detectInterval: '1小时',
       firstDetect: '10秒后'
     });
@@ -217,7 +217,7 @@ class LargeOrderDetector {
     if (symbol) {
       // 取消WebSocket订阅
       this.wsManager.unsubscribe(symbol);
-      
+
       // 停止所有定时器
       const intervals = this.updateIntervals.get(symbol);
       if (intervals) {
@@ -225,12 +225,12 @@ class LargeOrderDetector {
         if (intervals.detect) clearInterval(intervals.detect);   // 清除检测定时器
         this.updateIntervals.delete(symbol);
       }
-      
+
       logger.info('[LargeOrderDetector] 已停止监控（WebSocket+定时检测）', { symbol });
     } else {
       // 停止所有监控
       this.wsManager.unsubscribeAll();
-      
+
       this.updateIntervals.forEach((intervals, sym) => {
         if (intervals.cvdOI) clearInterval(intervals.cvdOI);
         if (intervals.detect) clearInterval(intervals.detect);
@@ -250,7 +250,7 @@ class LargeOrderDetector {
       const bestBid = parseFloat(orderbook.bids[0]?.[0] || 0);
       const bestAsk = parseFloat(orderbook.asks[0]?.[0] || 0);
       const currentPrice = (bestBid + bestAsk) / 2;
-      
+
       if (!currentPrice || currentPrice === 0) {
         logger.warn('[LargeOrderDetector] 无效的价格数据', { symbol });
         return;
@@ -265,28 +265,28 @@ class LargeOrderDetector {
         const cutoff = timestamp - windowMs;
         state.priceHistory = state.priceHistory.filter(p => p.ts >= cutoff);
       }
-      
+
       // 2. 转换为统一格式
       const depthSnapshot = [
         ...orderbook.bids.map(([price, qty]) => ({ side: 'bid', price: parseFloat(price), qty: parseFloat(qty) })),
         ...orderbook.asks.map(([price, qty]) => ({ side: 'ask', price: parseFloat(price), qty: parseFloat(qty) }))
       ];
-      
+
       // 3. 更新追踪器
       const updateResult = this.tracker.update(symbol, depthSnapshot, currentPrice, timestamp);
-      
+
       // 4. 计算影响力比率
       this._calculateImpactRatios(symbol, orderbook);
-      
+
       // 5. 分类挂单
       const trackedEntries = this.tracker.getTrackedEntries(symbol);
       this.classifier.classifyBatch(trackedEntries);
-      
+
       // 6. 如果有新发现或状态变化，记录日志（减少日志频率）
       if (updateResult.newEntries.length > 0 || updateResult.canceledEntries.length > 0) {
         // 只在总数变化超过5个或重要变化时才记录
-        if (updateResult.newEntries.length > 2 || updateResult.canceledEntries.length > 2 || 
-            updateResult.totalTracked % 10 === 0) {
+        if (updateResult.newEntries.length > 2 || updateResult.canceledEntries.length > 2 ||
+          updateResult.totalTracked % 10 === 0) {
           logger.info('[LargeOrderDetector] 挂单状态变化', {
             symbol,
             new: updateResult.newEntries.length,
@@ -295,7 +295,7 @@ class LargeOrderDetector {
           });
         }
       }
-      
+
     } catch (error) {
       logger.error('[LargeOrderDetector] 处理depth更新失败', { symbol, error: error.message });
     }
@@ -307,13 +307,13 @@ class LargeOrderDetector {
    */
   _calculateImpactRatios(symbol, depth) {
     const trackedEntries = this.tracker.getTrackedEntries(symbol);
-    
+
     for (const entry of trackedEntries) {
       const topNDepth = entry.side === 'bid' ? depth.bids : depth.asks;
       const topNValue = topNDepth
         .slice(0, this.config.topN)
         .reduce((sum, [price, qty]) => sum + parseFloat(price) * parseFloat(qty), 0);
-      
+
       entry.impactRatio = topNValue > 0 ? entry.valueUSD / topNValue : 0;
     }
   }
@@ -324,7 +324,7 @@ class LargeOrderDetector {
    */
   async _updateCVDAndOI(symbol, timestamp) {
     const state = this.state.get(symbol);
-    
+
     try {
       // 获取最近1小时的K线计算CVD增量
       const klines = await this.binanceAPI.getKlines(symbol, '15m', 4);
@@ -333,28 +333,28 @@ class LargeOrderDetector {
         const volume = parseFloat(lastKline[5]);
         const close = parseFloat(lastKline[4]);
         const open = parseFloat(lastKline[1]);
-        
+
         // 简化CVD计算：close > open 为正，否则为负
         const delta = close > open ? volume : -volume;
-        
+
         state.cvdSeries.push({ ts: timestamp, delta });
         state.cvdCum += delta;
-        
+
         // 清理超出窗口的数据
         const windowStart = timestamp - this.config.cvdWindowMs;
         state.cvdSeries = state.cvdSeries.filter(item => item.ts >= windowStart);
-        
+
         // 重新计算累积值
         state.cvdCum = state.cvdSeries.reduce((sum, item) => sum + item.delta, 0);
       }
-      
+
       // 获取持仓量
       const oiData = await this.binanceAPI.getOpenInterest(symbol);
       if (oiData && oiData.openInterest) {
         state.prevOI = state.oi;
         state.oi = oiData.openInterest;
       }
-      
+
     } catch (error) {
       logger.error('[LargeOrderDetector] 更新CVD/OI失败', { symbol, error: error.message });
     }
@@ -374,7 +374,7 @@ class LargeOrderDetector {
          trap_detected, trap_type, trap_confidence, trap_indicators, persistent_orders_count, flash_orders_count, cancel_ratio)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      
+
       const detectionData = JSON.stringify({
         trackedEntries: trackedEntries.map(e => ({
           side: e.side,
@@ -387,7 +387,7 @@ class LargeOrderDetector {
           isSpoof: e.isSpoof
         }))
       });
-      
+
       await this.database.query(sql, [
         symbol,
         timestamp,
@@ -418,7 +418,7 @@ class LargeOrderDetector {
         trapResult?.flash_orders_count || 0,
         trapResult?.cancel_ratio || null
       ]);
-      
+
     } catch (error) {
       logger.error('[LargeOrderDetector] 保存数据库失败', { symbol, error: error.message });
     }
@@ -433,10 +433,10 @@ class LargeOrderDetector {
     try {
       const trackedEntries = this.tracker.getTrackedEntries(symbol);
       const state = this.state.get(symbol) || { cvdCum: 0, oi: null, prevOI: null };
-      
+
       // 确保分类
       this.classifier.classifyBatch(trackedEntries);
-      
+
       // 聚合信号
       const aggregateResult = this.aggregator.aggregate(
         trackedEntries,
@@ -504,10 +504,10 @@ class LargeOrderDetector {
           logger.error('[TrapDetector] 检测失败', { symbol, error: error.message });
         }
       }
-      
+
       // 保存到数据库（包含Swan和Trap结果）
       await this._saveDetectionResult(symbol, Date.now(), aggregateResult, trackedEntries, swanResult, trapResult);
-      
+
       return {
         symbol,
         timestamp: Date.now(),
@@ -550,11 +550,11 @@ class LargeOrderDetector {
   getMonitoringStatus() {
     const status = {};
     const wsStats = this.wsManager.getStats();
-    
+
     for (const [symbol, state] of this.state.entries()) {
       const trackerStats = this.tracker.getStats(symbol);
       const wsStatus = this.wsManager.getStatus(symbol);
-      
+
       status[symbol] = {
         isMonitoring: this.updateIntervals.has(symbol),
         wsStatus,
@@ -563,7 +563,7 @@ class LargeOrderDetector {
         trackerStats
       };
     }
-    
+
     status._websocketStats = wsStats;
     return status;
   }

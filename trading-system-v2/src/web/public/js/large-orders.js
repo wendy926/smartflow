@@ -81,15 +81,15 @@ class LargeOrdersTracker {
     // 计算买卖对比（side字段可能是buy/sell或bid/ask）
     const buyOrders = orders.filter(o => o.side === 'buy' || o.side === 'bid');
     const sellOrders = orders.filter(o => o.side === 'sell' || o.side === 'ask');
-    
+
     // 区分长期挂单和短期新增挂单
     const longTermOrders = orders.filter(o => !o.isNew && o.isActive); // 长期活跃挂单
     const shortTermOrders = orders.filter(o => o.isNew); // 短期新增挂单
-    
+
     // 长期挂单的买卖比例
     const longTermBuyOrders = longTermOrders.filter(o => o.side === 'buy' || o.side === 'bid');
     const longTermSellOrders = longTermOrders.filter(o => o.side === 'sell' || o.side === 'ask');
-    
+
     // 计算总价值
     const longTermBuyValue = longTermBuyOrders.reduce((sum, o) => sum + (o.valueUSD || 0), 0);
     const longTermSellValue = longTermSellOrders.reduce((sum, o) => sum + (o.valueUSD || 0), 0);
@@ -100,7 +100,7 @@ class LargeOrdersTracker {
     const totalValue = buyValueSum + sellValueSum;
     const buyPercent = totalValue > 0 ? (buyValueSum / totalValue * 100).toFixed(1) : 0;
     const sellPercent = totalValue > 0 ? (sellValueSum / totalValue * 100).toFixed(1) : 0;
-    
+
     console.log(`[LargeOrders] ${symbol} 买卖统计:`, {
       买方订单数: buyOrders.length,
       卖方订单数: sellOrders.length,
@@ -281,13 +281,13 @@ class LargeOrdersTracker {
    * 生成历史行
    */
   generateHistoricalRow(order) {
-    const bgColor = order.isNew 
+    const bgColor = order.isNew
       ? '#fff3cd'  // 新增：黄色
-      : order.isActive 
+      : order.isActive
         ? '#d4edda'  // 活跃：绿色
         : '#ffffff'; // 历史：白色
 
-    const borderLeft = order.isNew 
+    const borderLeft = order.isNew
       ? '3px solid #ffc107'
       : order.isActive
         ? '3px solid #28a745'
@@ -380,7 +380,7 @@ class LargeOrdersTracker {
 
     // 生成多个交易对的Summary卡片
     container.innerHTML = dataArray.map(data => this.generateSymbolCard(data)).join('');
-    
+
     // 渲染第一个有数据的交易对的详细表格
     const dataWithEntries = dataArray.find(d => d.trackedEntriesCount > 0);
     if (dataWithEntries) {
@@ -398,12 +398,12 @@ class LargeOrdersTracker {
     const actionColor = this.getActionColor(data.finalAction);
     const buyScore = (data.buyScore || 0).toFixed(2);
     const sellScore = (data.sellScore || 0).toFixed(2);
-    
+
     // 买卖力量百分比
     const totalScore = parseFloat(buyScore) + parseFloat(sellScore);
     const buyPct = totalScore > 0 ? (parseFloat(buyScore) / totalScore * 100).toFixed(0) : 50;
     const sellPct = totalScore > 0 ? (parseFloat(sellScore) / totalScore * 100).toFixed(0) : 50;
-    
+
     // Trap标记
     const trapIndicator = data.trap && data.trap.detected
       ? `<span class="trap-${data.trap.type === 'BULL_TRAP' ? 'bull' : 'bear'}">
@@ -552,7 +552,7 @@ class LargeOrdersTracker {
         💡 说明：大额挂单监控采用按需检测模式，点击"刷新数据"按钮可获取最新数据。当前没有追踪挂单表示市场上暂无>100M USD的大额挂单（正常现象）。
       </div>
     `;
-    
+
     console.log('[LargeOrders] Summary渲染完成');
   }
 
