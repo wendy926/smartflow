@@ -100,13 +100,17 @@ class LargeOrdersTracker {
 
     console.log(`[LargeOrders] 生成${symbol}面板，订单数:`, orders.length);
 
-    // 计算买卖对比（side字段可能是buy/sell或bid/ask）
-    const buyOrders = orders.filter(o => o.side === 'buy' || o.side === 'bid');
-    const sellOrders = orders.filter(o => o.side === 'sell' || o.side === 'ask');
+    // 过滤出单笔价值>10M的订单
+    const filteredOrders = orders.filter(o => (o.valueUSD || 0) >= 10000000);
+    console.log(`[LargeOrders] ${symbol}过滤后订单数(>10M):`, filteredOrders.length);
 
-    // 区分长期挂单和短期新增挂单
-    const longTermOrders = orders.filter(o => !o.isNew && o.isActive); // 长期活跃挂单
-    const shortTermOrders = orders.filter(o => o.isNew); // 短期新增挂单
+    // 计算买卖对比（side字段可能是buy/sell或bid/ask）
+    const buyOrders = filteredOrders.filter(o => o.side === 'buy' || o.side === 'bid');
+    const sellOrders = filteredOrders.filter(o => o.side === 'sell' || o.side === 'ask');
+
+    // 区分长期挂单和短期新增挂单（基于过滤后的订单）
+    const longTermOrders = filteredOrders.filter(o => !o.isNew && o.isActive); // 长期活跃挂单
+    const shortTermOrders = filteredOrders.filter(o => o.isNew); // 短期新增挂单
 
     // 长期挂单的买卖比例
     const longTermBuyOrders = longTermOrders.filter(o => o.side === 'buy' || o.side === 'bid');
@@ -264,10 +268,11 @@ class LargeOrdersTracker {
 
         <!-- 挂单列表 -->
         <div style="max-height: 400px; overflow-y: auto;">
-          ${orders.length > 0 ? `
+          ${filteredOrders.length > 0 ? `
             <!-- 说明信息 -->
             <div style="margin-bottom: 10px; padding: 8px 12px; background: #e3f2fd; border-radius: 4px; font-size: 11px; color: #1976d2;">
-              <strong>📋 追踪挂单列表说明：</strong>
+              <strong>📋 超大额挂单列表说明：</strong>
+              <br/>• <strong>显示条件</strong>：仅显示单笔价值 > 10M USD 的挂单
               <br/>• <strong>出现次数</strong>：同一价格档位在7天历史记录中被检测到的次数
               <br/>• <strong>长期挂单</strong>：存在时间>1小时，通常代表机构或大户的真实意图
               <br/>• <strong>短期新增</strong>：<1小时的新挂单，可能是试探性或临时性订单
@@ -283,14 +288,14 @@ class LargeOrdersTracker {
                 </tr>
               </thead>
               <tbody>
-                ${orders.map(order => this.generateHistoricalRow(order)).join('')}
+                ${filteredOrders.map(order => this.generateHistoricalRow(order)).join('')}
               </tbody>
             </table>
           ` : `
             <div style="text-align: center; padding: 60px 20px; color: #999;">
               <div style="font-size: 48px; margin-bottom: 15px;">📊</div>
-              <div style="font-size: 14px; font-weight: 500; color: #666; margin-bottom: 8px;">7天内无大额挂单追踪记录</div>
-              <div style="font-size: 12px; color: #aaa;">大额挂单定义：单笔价值 > 10M USD</div>
+              <div style="font-size: 14px; font-weight: 500; color: #666; margin-bottom: 8px;">7天内无超大额挂单追踪记录</div>
+              <div style="font-size: 12px; color: #aaa;">超大额挂单定义：单笔价值 > 10M USD</div>
               <div style="font-size: 12px; color: #aaa; margin-top: 5px;">WebSocket实时监控中...</div>
             </div>
           `}
