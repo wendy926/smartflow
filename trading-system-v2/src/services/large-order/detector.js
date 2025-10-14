@@ -25,7 +25,7 @@ class LargeOrderDetector {
     
     // 加载配置
     this.config = {
-      largeUSDThreshold: 100000000,    // 100M USD
+      largeUSDThreshold: 10000000,     // 10M USD
       pollIntervalMs: 15000,            // 15秒（仅用于CVD/OI更新）
       depthLimit: 1000,
       topN: 50,

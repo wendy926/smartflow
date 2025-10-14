@@ -81,6 +81,20 @@ class LargeOrdersTracker {
     // 计算买卖对比（side字段可能是buy/sell或bid/ask）
     const buyOrders = orders.filter(o => o.side === 'buy' || o.side === 'bid');
     const sellOrders = orders.filter(o => o.side === 'sell' || o.side === 'ask');
+    
+    // 区分长期挂单和短期新增挂单
+    const longTermOrders = orders.filter(o => !o.isNew && o.isActive); // 长期活跃挂单
+    const shortTermOrders = orders.filter(o => o.isNew); // 短期新增挂单
+    
+    // 长期挂单的买卖比例
+    const longTermBuyOrders = longTermOrders.filter(o => o.side === 'buy' || o.side === 'bid');
+    const longTermSellOrders = longTermOrders.filter(o => o.side === 'sell' || o.side === 'ask');
+    
+    // 计算总价值
+    const longTermBuyValue = longTermBuyOrders.reduce((sum, o) => sum + (o.valueUSD || 0), 0);
+    const longTermSellValue = longTermSellOrders.reduce((sum, o) => sum + (o.valueUSD || 0), 0);
+    const shortTermBuyValue = shortTermOrders.filter(o => o.side === 'buy' || o.side === 'bid').reduce((sum, o) => sum + (o.valueUSD || 0), 0);
+    const shortTermSellValue = shortTermOrders.filter(o => o.side === 'sell' || o.side === 'ask').reduce((sum, o) => sum + (o.valueUSD || 0), 0);
     const buyValueSum = buyOrders.reduce((sum, o) => sum + (o.valueUSD || o.maxValueUSD || 0), 0);
     const sellValueSum = sellOrders.reduce((sum, o) => sum + (o.valueUSD || o.maxValueUSD || 0), 0);
     const totalValue = buyValueSum + sellValueSum;
@@ -125,7 +139,7 @@ class LargeOrdersTracker {
             </span>
             <span style="font-size: 14px; color: #28a745;">● 监控中</span>
             <span style="font-size: 11px; color: #999; margin-left: auto;">
-              💡 大额挂单：单笔 > 1M USD
+              💡 大额挂单：单笔 > 10M USD
             </span>
           </h3>
           
@@ -134,15 +148,53 @@ class LargeOrdersTracker {
             <span style="color: #666;">
               📊 7天累计追踪: <strong style="color: #333;">${totalCount}个</strong>
             </span>
-            <span style="color: #28a745;">
-              ● 当前存在: <strong>${activeCount}个</strong>
+            <span style="color: #666;">
+              🆕 短期新增: <strong style="color: #ffc107;">${shortTermOrders.length}个</strong>
             </span>
-            ${newCount > 0 ? `
-              <span style="color: #ffc107; animation: blink 1.5s ease-in-out infinite;">
-                🆕 新增: <strong>${newCount}个</strong>
-              </span>
-            ` : ''}
+            <span style="color: #666;">
+              ⚡ 长期活跃: <strong style="color: #28a745;">${longTermOrders.length}个</strong>
+            </span>
           </div>
+          
+          <!-- 长期挂单买卖比例 -->
+          ${longTermOrders.length > 0 ? `
+          <div style="margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+              <strong>长期挂单 (>1小时，>10M USD)</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="color: #28a745; font-weight: 600;">
+                🟢 买方 ${longTermBuyOrders.length}个 (${longTermBuyValue + longTermSellValue > 0 ? ((longTermBuyValue / (longTermBuyValue + longTermSellValue)) * 100).toFixed(1) : 0}%)
+              </span>
+              <span style="color: #dc3545; font-weight: 600;">
+                🔴 卖方 ${longTermSellOrders.length}个 (${longTermBuyValue + longTermSellValue > 0 ? ((longTermSellValue / (longTermBuyValue + longTermSellValue)) * 100).toFixed(1) : 0}%)
+              </span>
+            </div>
+            <div style="font-size: 11px; color: #666;">
+              总价值: ${((longTermBuyValue + longTermSellValue) / 1000000).toFixed(1)}M USD
+            </div>
+          </div>
+          ` : ''}
+          
+          <!-- 短期新增挂单统计 -->
+          ${shortTermOrders.length > 0 ? `
+          <div style="margin-bottom: 12px; padding: 10px; background: #fff3cd; border-radius: 6px; border-left: 3px solid #ffc107;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+              <strong>短期新增挂单 (<1小时)</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="color: #28a745; font-weight: 600;">
+                🟢 买方 ${shortTermOrders.filter(o => o.side === 'buy' || o.side === 'bid').length}个 (${shortTermBuyValue + shortTermSellValue > 0 ? ((shortTermBuyValue / (shortTermBuyValue + shortTermSellValue)) * 100).toFixed(1) : 0}%)
+              </span>
+              <span style="color: #dc3545; font-weight: 600;">
+                🔴 卖方 ${shortTermOrders.filter(o => o.side === 'sell' || o.side === 'ask').length}个 (${shortTermBuyValue + shortTermSellValue > 0 ? ((shortTermSellValue / (shortTermBuyValue + shortTermSellValue)) * 100).toFixed(1) : 0}%)
+              </span>
+            </div>
+            <div style="font-size: 11px; color: #666;">
+              总价值: ${((shortTermBuyValue + shortTermSellValue) / 1000000).toFixed(1)}M USD
+            </div>
+          </div>
+          ` : ''}
 
           <!-- 买卖力量对比条 -->
           <div style="margin-top: 12px;">
@@ -191,6 +243,13 @@ class LargeOrdersTracker {
         <!-- 挂单列表 -->
         <div style="max-height: 400px; overflow-y: auto;">
           ${orders.length > 0 ? `
+            <!-- 说明信息 -->
+            <div style="margin-bottom: 10px; padding: 8px 12px; background: #e3f2fd; border-radius: 4px; font-size: 11px; color: #1976d2;">
+              <strong>📋 追踪挂单列表说明：</strong>
+              <br/>• <strong>出现次数</strong>：同一价格档位在7天历史记录中被检测到的次数
+              <br/>• <strong>长期挂单</strong>：存在时间>1小时，通常代表机构或大户的真实意图
+              <br/>• <strong>短期新增</strong>：<1小时的新挂单，可能是试探性或临时性订单
+            </div>
             <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
               <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 10;">
                 <tr style="border-bottom: 2px solid #dee2e6;">
@@ -209,7 +268,7 @@ class LargeOrdersTracker {
             <div style="text-align: center; padding: 60px 20px; color: #999;">
               <div style="font-size: 48px; margin-bottom: 15px;">📊</div>
               <div style="font-size: 14px; font-weight: 500; color: #666; margin-bottom: 8px;">7天内无大额挂单追踪记录</div>
-              <div style="font-size: 12px; color: #aaa;">大额挂单定义：单笔价值 > 1M USD</div>
+              <div style="font-size: 12px; color: #aaa;">大额挂单定义：单笔价值 > 10M USD</div>
               <div style="font-size: 12px; color: #aaa; margin-top: 5px;">WebSocket实时监控中...</div>
             </div>
           `}

@@ -727,7 +727,7 @@ class AIAnalysisModule {
         // 添加loading状态
         refreshBtn.disabled = true;
         refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 分析中...';
-        
+
         // 调用API时传递forceRefresh参数（如果数据超过2小时会自动触发新分析）
         this.loadMacroRiskAnalysis(true).finally(() => {
           refreshBtn.disabled = false;
