@@ -122,9 +122,6 @@ class SmartMoneyAdapter {
   async detectBatch(symbols) {
     try {
       const results = await this.fourPhaseDetector.detectBatch(symbols);
-      
-      // 调试日志
-      logger.info('[聪明钱适配器] 检测结果:', JSON.stringify(results[0], null, 2));
 
       // 转换为兼容格式
       return results.map(result => ({
