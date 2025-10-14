@@ -3209,6 +3209,17 @@
 
                   <h4>最新优化 (2025-10-14)</h4>
                   <div
+                    style="background: #fff8e1; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5 style="color: #e65100;">🎯 持仓时长管理策略系统</h5>
+                    <ul style="color: #e65100;">
+                      <li><strong>交易对分类管理</strong>：根据strategy-v3.md建议，为不同类别交易对设置专属持仓时长限制</li>
+                      <li><strong>自动监控平仓</strong>：5分钟间隔检查，超时自动平仓，避免资金费率磨损</li>
+                      <li><strong>动态止损止盈</strong>：基于置信度调整止损止盈倍数，优化风险收益比</li>
+                      <li><strong>完整API接口</strong>：提供监控状态查询、手动检查、配置更新等管理功能</li>
+                    </ul>
+                  </div>
+
+                  <div
                     style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5 style="color: #0d47a1;">🔧 V3策略震荡市信号修复</h5>
                     <ul style="color: #0d47a1;">
@@ -3258,11 +3269,12 @@
 
                   <h4>策略实现细节</h4>
                   <ul>
-                    <li><strong>V3策略</strong>：4H趋势判断 + 1H多因子分析 + 15M入场确认 + MACD Histogram + 震荡市VWAP优化</li>
-                    <li><strong>ICT策略</strong>：1D趋势 + 4H订单块 + 15M扫荡确认 + 吞没形态 + 谐波形态共振</li>
+                    <li><strong>V3策略</strong>：4H趋势判断 + 1H多因子分析 + 15M入场确认 + MACD Histogram + 震荡市VWAP优化 + 持仓时长管理</li>
+                    <li><strong>ICT策略</strong>：1D趋势 + 4H订单块 + 15M扫荡确认 + 吞没形态 + 谐波形态共振 + 持仓时长管理</li>
                     <li><strong>技术指标</strong>：EMA、ADX、BBW、ATR、VWAP、MACD Histogram、成交量分析</li>
                     <li><strong>评分机制</strong>：多因子加权评分 + 谐波共振加分 + 门槛式结构确认</li>
-                    <li><strong>风险参数</strong>：基于ATR动态止损 + 结构点位止损 + 动态杠杆计算</li>
+                    <li><strong>风险参数</strong>：基于ATR动态止损 + 结构点位止损 + 动态杠杆计算 + 持仓时长限制</li>
+                    <li><strong>持仓管理</strong>：交易对分类 + 自动监控 + 超时平仓 + 时间止损 + 置信度调整</li>
                   </ul>
 
                   <h4>V3策略震荡市信号修复技术细节</h4>
@@ -3281,6 +3293,65 @@
                         </ul>
                       </li>
                       <li><strong>预期效果</strong>：恢复V3策略在震荡市环境下的正常信号生成能力</li>
+                    </ul>
+                  </div>
+
+                  <h4>持仓时长管理策略技术细节</h4>
+                  <div style="background: #f3e5f5; border-left: 4px solid #9c27b0; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5 style="color: #4a148c;">🎯 交易对分类与持仓时长配置</h5>
+                    <ul style="color: #4a148c;">
+                      <li><strong>主流币</strong>（BTC/ETH/BNB）：
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>趋势市：最大持仓7天，时间止损60分钟，止损2倍ATR，止盈1.5倍ATR</li>
+                          <li>震荡市：最大持仓12小时，时间止损30分钟，止损1.5倍ATR，止盈1倍ATR</li>
+                        </ul>
+                      </li>
+                      <li><strong>高市值强趋势币</strong>（SOL/XRP/ADA等）：
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>趋势市：最大持仓3天，时间止损120分钟，止损2.5倍ATR，止盈2倍ATR</li>
+                          <li>震荡市：最大持仓6小时，时间止损45分钟，止损1.8倍ATR，止盈1.2倍ATR</li>
+                        </ul>
+                      </li>
+                      <li><strong>热点币</strong>（PEPE/SUI/PENDLE等）：
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>趋势市：最大持仓24小时，时间止损180分钟，止损3倍ATR，止盈2.5倍ATR</li>
+                          <li>震荡市：最大持仓3小时，时间止损60分钟，止损2倍ATR，止盈1.5倍ATR</li>
+                        </ul>
+                      </li>
+                      <li><strong>小币</strong>（ONDO/LDO等）：
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>仅震荡市：最大持仓2小时，时间止损30分钟，止损1.5倍ATR，止盈1倍ATR</li>
+                          <li>不做趋势市交易，避免长期持仓风险</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div style="background: #e8f5e8; border-left: 4px solid #4caf50; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5 style="color: #1b5e20;">⚙️ 技术实现架构</h5>
+                    <ul style="color: #1b5e20;">
+                      <li><strong>PositionDurationManager</strong>：核心管理器，根据交易对类别和市场类型计算持仓配置</li>
+                      <li><strong>PositionMonitor</strong>：自动监控服务，5分钟间隔检查所有活跃持仓</li>
+                      <li><strong>置信度调整</strong>：high(1.0x), med(1.2x), low(1.5x) 动态调整止损止盈倍数</li>
+                      <li><strong>策略集成</strong>：
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>V3策略：使用持仓时长管理器计算止损止盈</li>
+                          <li>ICT策略：结合结构止损和时长止损，选择更保守方案</li>
+                        </ul>
+                      </li>
+                      <li><strong>API接口</strong>：提供状态查询、手动检查、配置更新、交易对配置查询等完整功能</li>
+                    </ul>
+                  </div>
+
+                  <div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5 style="color: #e65100;">📊 监控与平仓逻辑</h5>
+                    <ul style="color: #e65100;">
+                      <li><strong>自动检查</strong>：每5分钟扫描所有OPEN状态的交易</li>
+                      <li><strong>时长超限</strong>：超过最大持仓时长限制时强制平仓</li>
+                      <li><strong>时间止损</strong>：持仓超时且未盈利时自动平仓</li>
+                      <li><strong>提前警告</strong>：接近时长限制时提前1小时发出警告</li>
+                      <li><strong>详细日志</strong>：记录所有监控、警告、平仓操作的详细信息</li>
+                      <li><strong>API管理</strong>：支持手动检查、调整检查间隔、查询配置等操作</li>
                     </ul>
                   </div>
 
@@ -3335,7 +3406,7 @@
       <link rel="stylesheet" href="public/css/smart-money.css">
       <script src="public/js/large-orders.js?v=20251011"></script>
       <link rel="stylesheet" href="public/css/large-orders.css">
-      <script src="app.js?v=20251014v2"></script>
+      <script src="app.js?v=20251014v3"></script>
 </body>
 
 </html>

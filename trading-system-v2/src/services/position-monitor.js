@@ -48,7 +48,7 @@ class PositionMonitor {
     }
 
     this.isRunning = false;
-    
+
     if (this.monitorInterval) {
       clearInterval(this.monitorInterval);
       this.monitorInterval = null;
@@ -81,7 +81,7 @@ class PositionMonitor {
 
       for (const trade of trades) {
         const result = await this.checkSinglePosition(trade);
-        
+
         if (result.action === 'closed') {
           closedCount++;
         } else if (result.action === 'warned') {
@@ -162,8 +162,8 @@ class PositionMonitor {
       const { id, symbol, trade_type, entry_price, entry_time } = trade;
 
       // 计算盈亏
-      const pnl = trade_type === 'LONG' 
-        ? exitPrice - entry_price 
+      const pnl = trade_type === 'LONG'
+        ? exitPrice - entry_price
         : entry_price - exitPrice;
       const pnlPercentage = (pnl / entry_price) * 100;
 
@@ -219,17 +219,17 @@ class PositionMonitor {
    */
   updateCheckInterval(intervalMinutes) {
     const newInterval = intervalMinutes * 60 * 1000;
-    
+
     if (newInterval !== this.checkInterval) {
       this.checkInterval = newInterval;
-      
+
       if (this.isRunning && this.monitorInterval) {
         clearInterval(this.monitorInterval);
         this.monitorInterval = setInterval(async () => {
           await this.checkAllPositions();
         }, this.checkInterval);
       }
-      
+
       logger.info(`[持仓监控] 检查间隔已更新为 ${intervalMinutes} 分钟`);
     }
   }

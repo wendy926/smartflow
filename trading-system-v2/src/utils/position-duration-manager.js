@@ -101,16 +101,16 @@ class PositionDurationManager {
   static getPositionConfig(symbol, marketType) {
     const category = TokenClassifier.classify(symbol);
     const config = POSITION_DURATION_CONFIG[category];
-    
+
     if (!config) {
       logger.warn(`未找到 ${symbol} 的持仓配置，使用默认配置`);
       return POSITION_DURATION_CONFIG.HOT.rangeMarket; // 默认使用热点币震荡市配置
     }
 
     const marketConfig = marketType === 'TREND' ? config.trendMarket : config.rangeMarket;
-    
+
     logger.info(`${symbol} (${config.name}) ${marketType}市配置: 最大持仓${marketConfig.maxDurationHours}小时, 时间止损${marketConfig.timeStopMinutes}分钟`);
-    
+
     return {
       ...marketConfig,
       category: config.name,
@@ -130,19 +130,19 @@ class PositionDurationManager {
    */
   static calculateDurationBasedStopLoss(symbol, signal, entryPrice, atr, marketType, confidence = 'med') {
     const config = this.getPositionConfig(symbol, marketType);
-    
+
     // 根据置信度调整止损止盈倍数
     const confidenceMultiplier = {
       high: 1.0,
       med: 1.2,
       low: 1.5
     };
-    
+
     const multiplier = confidenceMultiplier[confidence] || 1.2;
-    
+
     let stopLoss = 0;
     let takeProfit = 0;
-    
+
     // 计算止损止盈价格
     if (signal === 'BUY') {
       stopLoss = entryPrice - (atr * config.stopLoss * multiplier);
@@ -151,7 +151,7 @@ class PositionDurationManager {
       stopLoss = entryPrice + (atr * config.stopLoss * multiplier);
       takeProfit = entryPrice - (atr * config.profitTarget * multiplier);
     }
-    
+
     return {
       stopLoss: parseFloat(stopLoss.toFixed(4)),
       takeProfit: parseFloat(takeProfit.toFixed(4)),
@@ -170,11 +170,11 @@ class PositionDurationManager {
     try {
       const { symbol, entryTime, marketType } = trade;
       const config = this.getPositionConfig(symbol, marketType || 'RANGE');
-      
+
       const now = new Date();
       const entryDate = new Date(entryTime);
       const hoursHeld = (now - entryDate) / (1000 * 60 * 60);
-      
+
       if (hoursHeld >= config.maxDurationHours) {
         logger.warn(`⏰ ${symbol} 持仓时长超限: ${hoursHeld.toFixed(2)}小时 >= ${config.maxDurationHours}小时，建议平仓`);
         return {
@@ -185,7 +185,7 @@ class PositionDurationManager {
           reason: `持仓时长超过${config.maxDurationHours}小时限制`
         };
       }
-      
+
       // 检查是否接近时长限制（提前1小时警告）
       if (hoursHeld >= config.maxDurationHours - 1) {
         logger.info(`⚠️ ${symbol} 接近持仓时长限制: ${hoursHeld.toFixed(2)}小时/${config.maxDurationHours}小时`);
@@ -198,7 +198,7 @@ class PositionDurationManager {
           reason: `接近${config.maxDurationHours}小时持仓限制`
         };
       }
-      
+
       return {
         exceeded: false,
         hoursHeld: parseFloat(hoursHeld.toFixed(2)),
@@ -224,11 +224,11 @@ class PositionDurationManager {
     try {
       const { symbol, entryTime, entryPrice, side, marketType } = trade;
       const config = this.getPositionConfig(symbol, marketType || 'RANGE');
-      
+
       const now = new Date();
       const entryDate = new Date(entryTime);
       const minutesHeld = (now - entryDate) / (1000 * 60);
-      
+
       // 检查是否超过时间止损
       if (minutesHeld < config.timeStopMinutes) {
         return {
@@ -237,13 +237,13 @@ class PositionDurationManager {
           threshold: config.timeStopMinutes
         };
       }
-      
+
       // 计算盈亏
-      const pnl = side === 'LONG' 
-        ? currentPrice - entryPrice 
+      const pnl = side === 'LONG'
+        ? currentPrice - entryPrice
         : entryPrice - currentPrice;
       const isProfitable = pnl > 0;
-      
+
       // 如果超时且未盈利，触发时间止损
       if (!isProfitable) {
         logger.info(`⏰ ${symbol} 时间止损触发: 持仓${Math.floor(minutesHeld)}分钟, 未盈利, 强制平仓`);
@@ -255,7 +255,7 @@ class PositionDurationManager {
           action: 'close'
         };
       }
-      
+
       logger.debug(`${symbol} 时间止损检查: 持仓${Math.floor(minutesHeld)}分钟, 盈利中, 继续持有`);
       return {
         triggered: false,
@@ -278,7 +278,7 @@ class PositionDurationManager {
    */
   static getAllPositionDurations() {
     const result = {};
-    
+
     Object.keys(POSITION_DURATION_CONFIG).forEach(category => {
       const config = POSITION_DURATION_CONFIG[category];
       result[category] = {
@@ -295,7 +295,7 @@ class PositionDurationManager {
         }
       };
     });
-    
+
     return result;
   }
 

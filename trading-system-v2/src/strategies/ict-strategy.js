@@ -597,7 +597,7 @@ class ICTStrategy {
       const signal = trend === 'UP' ? 'BUY' : 'SELL';
       const marketType = 'TREND'; // ICT策略主要针对趋势市
       const confidence = signals.score >= 60 ? 'high' : signals.score >= 40 ? 'med' : 'low';
-      
+
       const stopLossConfig = PositionDurationManager.calculateDurationBasedStopLoss(
         symbol, signal, entry, atr4H, marketType, confidence
       );
@@ -611,8 +611,8 @@ class ICTStrategy {
       );
 
       // 选择更保守的止损（距离入场价格更近的）
-      const stopLoss = Math.abs(entry - stopLossConfig.stopLoss) < Math.abs(entry - structuralStopLoss) 
-        ? stopLossConfig.stopLoss 
+      const stopLoss = Math.abs(entry - stopLossConfig.stopLoss) < Math.abs(entry - structuralStopLoss)
+        ? stopLossConfig.stopLoss
         : structuralStopLoss;
 
       // 计算止盈价格（RR = 3:1）
@@ -729,7 +729,7 @@ class ICTStrategy {
       let validSweepHTF = sweepHTF;
       let sweepSignalType = 'NONE';
       let sweepConfidenceBonus = 0;
-      
+
       if (sweepHTF.detected && dailyTrend.trend !== 'RANGE') {
         const sweepDirection = sweepHTF.type === 'LIQUIDITY_SWEEP_UP' ? 'UP' : 'DOWN';
         const trendDirection = dailyTrend.trend;
@@ -747,7 +747,7 @@ class ICTStrategy {
           sweepConfidenceBonus = 0.10; // 置信度+10%
           logger.info(`ICT 扫荡方向 - 趋势: ${trendDirection}, 扫荡: ${sweepDirection}, 反转信号（中置信度+10%）`);
         }
-        
+
         // ✅ 修复：不再过滤任何扫荡信号
         // validSweepHTF保持不变，所有扫荡都有效
       }

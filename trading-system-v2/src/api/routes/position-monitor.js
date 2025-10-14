@@ -28,8 +28,8 @@ router.use((req, res, next) => {
 router.get('/status', (req, res) => {
   try {
     const status = positionMonitor.getStatus();
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       data: status,
       timestamp: new Date().toISOString()
     });
@@ -46,8 +46,8 @@ router.get('/status', (req, res) => {
 router.post('/check', async (req, res) => {
   try {
     const result = await positionMonitor.manualCheck();
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       data: result,
       timestamp: new Date().toISOString()
     });
@@ -65,18 +65,18 @@ router.post('/check', async (req, res) => {
 router.post('/interval', (req, res) => {
   try {
     const { intervalMinutes } = req.body;
-    
+
     if (!intervalMinutes || intervalMinutes < 1 || intervalMinutes > 60) {
-      return res.status(400).json({ 
-        success: false, 
-        error: '检查间隔必须在1-60分钟之间' 
+      return res.status(400).json({
+        success: false,
+        error: '检查间隔必须在1-60分钟之间'
       });
     }
 
     positionMonitor.updateCheckInterval(intervalMinutes);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: `检查间隔已更新为 ${intervalMinutes} 分钟`,
       data: positionMonitor.getStatus(),
       timestamp: new Date().toISOString()
@@ -95,9 +95,9 @@ router.get('/config', (req, res) => {
   try {
     const PositionDurationManager = require('../../utils/position-duration-manager');
     const config = PositionDurationManager.getAllPositionDurations();
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       data: config,
       timestamp: new Date().toISOString()
     });
@@ -115,12 +115,12 @@ router.get('/config/:symbol', (req, res) => {
   try {
     const { symbol } = req.params;
     const { marketType = 'RANGE' } = req.query;
-    
+
     const PositionDurationManager = require('../../utils/position-duration-manager');
     const config = PositionDurationManager.getPositionConfig(symbol, marketType);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       data: {
         symbol,
         marketType,
