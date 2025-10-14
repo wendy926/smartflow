@@ -16,9 +16,9 @@ router.use((req, res, next) => {
   }
   if (!fourPhaseNotifier) {
     logger.error('[四阶段聪明钱通知API] 通知器未初始化');
-    return res.status(500).json({ 
-      success: false, 
-      error: '四阶段聪明钱通知器未初始化' 
+    return res.status(500).json({
+      success: false,
+      error: '四阶段聪明钱通知器未初始化'
     });
   }
   next();
@@ -31,7 +31,7 @@ router.use((req, res, next) => {
 router.get('/config', (req, res) => {
   try {
     const stats = fourPhaseNotifier.getNotificationStats();
-    
+
     res.json({
       success: true,
       data: {
@@ -61,7 +61,7 @@ router.get('/config', (req, res) => {
 router.post('/config', async (req, res) => {
   try {
     const config = req.body;
-    
+
     // 参数验证
     if (config.enabled !== undefined && typeof config.enabled !== 'boolean') {
       return res.status(400).json({
@@ -69,20 +69,20 @@ router.post('/config', async (req, res) => {
         error: 'enabled必须是布尔值'
       });
     }
-    
-    if (config.confidenceThreshold !== undefined && 
-        (typeof config.confidenceThreshold !== 'number' || 
-         config.confidenceThreshold < 0 || 
-         config.confidenceThreshold > 1)) {
+
+    if (config.confidenceThreshold !== undefined &&
+      (typeof config.confidenceThreshold !== 'number' ||
+        config.confidenceThreshold < 0 ||
+        config.confidenceThreshold > 1)) {
       return res.status(400).json({
         success: false,
         error: 'confidenceThreshold必须是0-1之间的数字'
       });
     }
-    
-    if (config.cooldownMinutes !== undefined && 
-        (typeof config.cooldownMinutes !== 'number' || 
-         config.cooldownMinutes < 1)) {
+
+    if (config.cooldownMinutes !== undefined &&
+      (typeof config.cooldownMinutes !== 'number' ||
+        config.cooldownMinutes < 1)) {
       return res.status(400).json({
         success: false,
         error: 'cooldownMinutes必须是大于0的数字'
@@ -91,7 +91,7 @@ router.post('/config', async (req, res) => {
 
     // 更新配置
     await fourPhaseNotifier.updateConfiguration(config);
-    
+
     res.json({
       success: true,
       message: '通知配置更新成功',
@@ -115,7 +115,7 @@ router.post('/config', async (req, res) => {
 router.post('/test', async (req, res) => {
   try {
     const { symbol = 'BTCUSDT', stage = 'accumulation' } = req.body;
-    
+
     // 参数验证
     if (typeof symbol !== 'string' || !symbol.match(/^[A-Z]{3,10}USDT$/)) {
       return res.status(400).json({
@@ -123,7 +123,7 @@ router.post('/test', async (req, res) => {
         error: '无效的交易对格式'
       });
     }
-    
+
     const validStages = ['accumulation', 'markup', 'distribution', 'markdown'];
     if (!validStages.includes(stage)) {
       return res.status(400).json({
@@ -134,7 +134,7 @@ router.post('/test', async (req, res) => {
 
     // 发送测试通知
     await fourPhaseNotifier.sendTestNotification(symbol, stage);
-    
+
     res.json({
       success: true,
       message: `测试通知已发送: ${symbol} ${stage}`,
@@ -156,7 +156,7 @@ router.post('/test', async (req, res) => {
 router.get('/stats', (req, res) => {
   try {
     const stats = fourPhaseNotifier.getNotificationStats();
-    
+
     res.json({
       success: true,
       data: stats,
@@ -178,7 +178,7 @@ router.get('/stats', (req, res) => {
 router.post('/reset-history', (req, res) => {
   try {
     fourPhaseNotifier.resetNotificationHistory();
-    
+
     res.json({
       success: true,
       message: '通知历史已重置',
@@ -200,7 +200,7 @@ router.post('/reset-history', (req, res) => {
 router.post('/check', async (req, res) => {
   try {
     await fourPhaseNotifier.checkForSignals();
-    
+
     res.json({
       success: true,
       message: '信号检查完成',
@@ -262,7 +262,7 @@ router.get('/docs', (req, res) => {
       }
     }
   };
-  
+
   res.json({
     success: true,
     data: docs,

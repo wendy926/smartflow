@@ -20,7 +20,7 @@ class FourPhaseTelegramNotifier {
     this.telegramService = telegramService;
     this.database = database;
     this.fourPhaseDetector = fourPhaseDetector;
-    
+
     // 通知配置
     this.config = {
       enabled: true,
@@ -33,10 +33,10 @@ class FourPhaseTelegramNotifier {
         [SmartMoneyStage.MARKDOWN]: { enabled: true, emoji: '📉' }
       }
     };
-    
+
     // 通知历史记录（防重复）
     this.notificationHistory = new Map();
-    
+
     // 中文阶段名称映射
     this.stageNames = {
       [SmartMoneyStage.ACCUMULATION]: '吸筹',
@@ -54,10 +54,10 @@ class FourPhaseTelegramNotifier {
     try {
       // 从数据库加载配置
       await this.loadConfiguration();
-      
+
       // 启动定期检查
       this.startMonitoring();
-      
+
       logger.info('[四阶段聪明钱通知] 通知器初始化完成');
     } catch (error) {
       logger.error('[四阶段聪明钱通知] 初始化失败:', error);
@@ -78,7 +78,7 @@ class FourPhaseTelegramNotifier {
       for (const row of rows) {
         const key = row.config_key.replace('notify_', '');
         let value = row.config_value;
-        
+
         // 解析JSON配置
         if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
           try {
@@ -87,14 +87,14 @@ class FourPhaseTelegramNotifier {
             // 保持原值
           }
         }
-        
+
         // 设置配置
         if (key === 'enabled') this.config.enabled = value === 'true' || value === true;
         if (key === 'confidence_threshold') this.config.confidenceThreshold = parseFloat(value);
         if (key === 'cooldown_minutes') this.config.cooldownMinutes = parseInt(value);
         if (key === 'stages') this.config.stages = { ...this.config.stages, ...value };
       }
-      
+
       logger.info('[四阶段聪明钱通知] 配置加载完成');
     } catch (error) {
       logger.warn('[四阶段聪明钱通知] 配置加载失败，使用默认值:', error.message);
@@ -109,7 +109,7 @@ class FourPhaseTelegramNotifier {
     this.monitorInterval = setInterval(() => {
       this.checkForSignals();
     }, 5 * 60 * 1000);
-    
+
     logger.info('[四阶段聪明钱通知] 监控已启动，检查间隔：5分钟');
   }
 
@@ -121,7 +121,7 @@ class FourPhaseTelegramNotifier {
       clearInterval(this.monitorInterval);
       this.monitorInterval = null;
     }
-    
+
     logger.info('[四阶段聪明钱通知] 监控已停止');
   }
 
@@ -136,7 +136,7 @@ class FourPhaseTelegramNotifier {
     try {
       // 获取所有交易对的四阶段状态
       const states = this.fourPhaseDetector.getAllStates();
-      
+
       for (const [symbol, state] of Object.entries(states)) {
         await this.checkSymbolSignal(symbol, state);
       }
@@ -151,23 +151,23 @@ class FourPhaseTelegramNotifier {
   async checkSymbolSignal(symbol, state) {
     try {
       const { stage, confidence, since, reasons } = state;
-      
+
       // 检查是否满足通知条件
       if (!this.shouldNotify(symbol, stage, confidence)) {
         return;
       }
-      
+
       // 检查是否在冷却期内
       if (this.isInCooldown(symbol, stage)) {
         return;
       }
-      
+
       // 发送通知
       await this.sendNotification(symbol, stage, confidence, reasons, since);
-      
+
       // 记录通知历史
       this.recordNotification(symbol, stage);
-      
+
     } catch (error) {
       logger.error(`[四阶段聪明钱通知] 检查${symbol}信号失败:`, error);
     }
@@ -181,17 +181,17 @@ class FourPhaseTelegramNotifier {
     if (!this.config.stages[stage]?.enabled) {
       return false;
     }
-    
+
     // 检查置信度阈值
     if (confidence < this.config.confidenceThreshold) {
       return false;
     }
-    
+
     // 中性阶段不发送通知
     if (stage === SmartMoneyStage.NEUTRAL) {
       return false;
     }
-    
+
     return true;
   }
 
@@ -201,14 +201,14 @@ class FourPhaseTelegramNotifier {
   isInCooldown(symbol, stage) {
     const key = `${symbol}_${stage}`;
     const lastNotification = this.notificationHistory.get(key);
-    
+
     if (!lastNotification) {
       return false;
     }
-    
+
     const now = Date.now();
     const cooldownMs = this.config.cooldownMinutes * 60 * 1000;
-    
+
     return (now - lastNotification) < cooldownMs;
   }
 
@@ -221,15 +221,15 @@ class FourPhaseTelegramNotifier {
       const emoji = stageConfig?.emoji || '📊';
       const stageName = this.stageNames[stage];
       const confidencePercent = Math.round(confidence * 100);
-      
+
       // 计算持续时间
       const duration = this.formatDuration(Date.now() - since);
-      
+
       // 格式化触发原因
-      const reasonText = reasons && reasons.length > 0 
+      const reasonText = reasons && reasons.length > 0
         ? `\n触发原因: ${reasons.join(', ')}`
         : '';
-      
+
       // 构建消息
       const message = `${emoji} **四阶段聪明钱信号** ${emoji}
 
@@ -239,7 +239,7 @@ class FourPhaseTelegramNotifier {
 **持续时间**: ${duration}${reasonText}
 
 ⏰ ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`;
-      
+
       // 发送通知
       await this.telegramService.sendTradingAlert({
         symbol: symbol,
@@ -247,9 +247,9 @@ class FourPhaseTelegramNotifier {
         confidence: confidence,
         custom_message: message
       });
-      
+
       logger.info(`[四阶段聪明钱通知] ${symbol} ${stageName}信号通知已发送 (置信度: ${confidencePercent}%)`);
-      
+
     } catch (error) {
       logger.error(`[四阶段聪明钱通知] 发送${symbol}通知失败:`, error);
     }
@@ -261,7 +261,7 @@ class FourPhaseTelegramNotifier {
   recordNotification(symbol, stage) {
     const key = `${symbol}_${stage}`;
     this.notificationHistory.set(key, Date.now());
-    
+
     // 清理过期记录（保留7天）
     const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
     for (const [k, timestamp] of this.notificationHistory.entries()) {
@@ -278,7 +278,7 @@ class FourPhaseTelegramNotifier {
     const minutes = Math.floor(ms / (1000 * 60));
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) return `${days}天${hours % 24}小时`;
     if (hours > 0) return `${hours}小时${minutes % 60}分钟`;
     if (minutes > 0) return `${minutes}分钟`;
@@ -291,13 +291,13 @@ class FourPhaseTelegramNotifier {
   async sendTestNotification(symbol = 'BTCUSDT', stage = SmartMoneyStage.ACCUMULATION) {
     try {
       await this.sendNotification(
-        symbol, 
-        stage, 
-        0.8, 
-        ['测试原因1', '测试原因2'], 
+        symbol,
+        stage,
+        0.8,
+        ['测试原因1', '测试原因2'],
         Date.now() - 30 * 60 * 1000
       );
-      
+
       logger.info(`[四阶段聪明钱通知] 测试通知已发送: ${symbol} ${this.stageNames[stage]}`);
     } catch (error) {
       logger.error('[四阶段聪明钱通知] 发送测试通知失败:', error);
@@ -310,7 +310,7 @@ class FourPhaseTelegramNotifier {
   async updateConfiguration(newConfig) {
     try {
       this.config = { ...this.config, ...newConfig };
-      
+
       // 保存到数据库
       for (const [key, value] of Object.entries(newConfig)) {
         await this.database.pool.query(`
@@ -319,7 +319,7 @@ class FourPhaseTelegramNotifier {
           ON DUPLICATE KEY UPDATE config_value = VALUES(config_value)
         `, [`notify_${key}`, typeof value === 'object' ? JSON.stringify(value) : String(value)]);
       }
-      
+
       logger.info('[四阶段聪明钱通知] 配置更新完成');
     } catch (error) {
       logger.error('[四阶段聪明钱通知] 配置更新失败:', error);
@@ -333,15 +333,15 @@ class FourPhaseTelegramNotifier {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
     const oneWeek = 7 * oneDay;
-    
+
     let todayCount = 0;
     let weekCount = 0;
-    
+
     for (const timestamp of this.notificationHistory.values()) {
       if (now - timestamp < oneDay) todayCount++;
       if (now - timestamp < oneWeek) weekCount++;
     }
-    
+
     return {
       totalNotifications: this.notificationHistory.size,
       todayNotifications: todayCount,

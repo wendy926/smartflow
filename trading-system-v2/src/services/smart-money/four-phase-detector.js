@@ -232,6 +232,10 @@ class FourPhaseSmartMoneyDetector {
    * @returns {Promise<Array>} 检测结果列表
    */
   async detectBatch(symbols) {
+    if (!symbols || !Array.isArray(symbols) || symbols.length === 0) {
+      return [];
+    }
+
     const results = [];
 
     for (const symbol of symbols) {

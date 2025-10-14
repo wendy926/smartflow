@@ -25,7 +25,7 @@ router.get('/detect', async (req, res) => {
     }
 
     const { symbols, v2 } = req.query;
-    const symbolList = symbols ? symbols.split(',') : null;
+    const symbolList = symbols ? symbols.split(',') : ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']; // 默认监控列表
 
     // 默认使用V2（包含isSmartMoney/isTrap字段）
     let results;

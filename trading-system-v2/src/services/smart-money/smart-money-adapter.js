@@ -152,7 +152,8 @@ class SmartMoneyAdapter {
       }));
     } catch (error) {
       logger.error('[聪明钱适配器] 批量检测失败:', error);
-      return symbols.map(symbol => ({
+      const symbolsToProcess = symbols || [];
+      return symbolsToProcess.map(symbol => ({
         symbol,
         action: 'UNKNOWN',
         actionChinese: '无动作',
