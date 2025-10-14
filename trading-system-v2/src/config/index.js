@@ -146,7 +146,7 @@ const config = {
   defaultSymbols: process.env.DEFAULT_SYMBOLS?.split(',') || [
     'BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 'MKRUSDT', 'PENDLEUSDT',
     'MPLUSDT', 'LINKUSDT', 'LDOUSDT', 'ADAUSDT', 'BNBUSDT', 'SOLUSDT',
-    'XRPUSDT', 'SUIUSDT'
+    'XRPUSDT', 'SUIUSDT', 'ASTERUSDT', 'MEMEUSDT'
   ]
 };
 

@@ -267,13 +267,14 @@ class FourPhaseSmartMoneyDetector {
    * @private
    */
   async gatherMarketData(symbol) {
-    const [klines15m, klines1h, klines4h, ticker, depth, oi] = await Promise.all([
+    const [klines15m, klines1h, klines4h, ticker, depth, oi, oiHist] = await Promise.all([
       this.binanceAPI.getKlines(symbol, '15m', 200),
       this.binanceAPI.getKlines(symbol, '1h', 100),
       this.binanceAPI.getKlines(symbol, '4h', 50),
       this.binanceAPI.getTicker24hr(symbol),
       this.binanceAPI.getDepth(symbol, 50),
-      this.binanceAPI.getOpenInterest(symbol)
+      this.binanceAPI.getOpenInterest(symbol).catch(() => null),
+      this.binanceAPI.getOpenInterestHist(symbol, '1h', 6).catch(() => [])
     ]);
 
     return {
@@ -282,7 +283,8 @@ class FourPhaseSmartMoneyDetector {
       klines4h,
       ticker,
       orderBook: depth,
-      openInterest: oi
+      openInterest: oi,
+      openInterestHist: oiHist
     };
   }
 
@@ -291,12 +293,12 @@ class FourPhaseSmartMoneyDetector {
    * @private
    */
   computeIndicators(marketData) {
-    const { klines15m, klines1h, klines4h, ticker, orderBook, openInterest } = marketData;
+    const { klines15m, klines1h, klines4h, ticker, orderBook, openInterest, openInterestHist } = marketData;
 
     // 成交量指标
-    const volArr = klines15m.slice(-this.params.recentVolCandles).map(k => k[5]);
+    const volArr = klines15m.slice(-this.params.recentVolCandles).map(k => parseFloat(k[5]));
     const avgVol15 = volArr.reduce((a, b) => a + b, 0) / volArr.length;
-    const lastVol = klines15m[klines15m.length - 1][5];
+    const lastVol = parseFloat(klines15m[klines15m.length - 1][5]);
     const volRatio = avgVol15 > 0 ? lastVol / avgVol15 : 1; // 防止除零错误
 
     // OBI计算
@@ -309,9 +311,19 @@ class FourPhaseSmartMoneyDetector {
     // OBI Z-Score（基于OBI值计算）
     const obiZ = obi / 1000000; // 标准化到合理范围
 
-    // CVD Z-Score（基于成交量变化计算）
-    const volChange = avgVol15 > 0 ? (lastVol - avgVol15) / avgVol15 : 0;
-    const cvdZ = Math.tanh(volChange * 2); // 使用tanh函数标准化
+    // CVD计算（基于买卖压力）
+    const cvdValues = [];
+    for (let i = Math.max(0, klines15m.length - 12); i < klines15m.length; i++) {
+      const kline = klines15m[i];
+      const close = parseFloat(kline[4]);
+      const open = parseFloat(kline[1]);
+      const volume = parseFloat(kline[5]);
+      // 如果收盘价高于开盘价，为买入压力；否则为卖出压力
+      const delta = close > open ? volume : -volume;
+      cvdValues.push(delta);
+    }
+    const cvdSum = cvdValues.reduce((sum, val) => sum + val, 0);
+    const cvdZ = Math.tanh(cvdSum / (avgVol15 * 12)); // 标准化CVD
 
     // 价格跌幅
     const currentPrice = parseFloat(klines15m[klines15m.length - 1][4]);
@@ -325,10 +337,18 @@ class FourPhaseSmartMoneyDetector {
     // ATR 15分钟
     const atr15 = this.calculateATR(klines15m, 14);
 
-    // OI变化计算
-    const oiChange = openInterest && openInterest.length > 1
-      ? ((openInterest[openInterest.length - 1] - openInterest[0]) / openInterest[0]) * 100
-      : 0;
+    // OI变化计算（基于历史数据）
+    let oiChange = 0;
+    if (openInterestHist && openInterestHist.length >= 2) {
+      const latestOI = parseFloat(openInterestHist[openInterestHist.length - 1].sumOpenInterest);
+      const earliestOI = parseFloat(openInterestHist[0].sumOpenInterest);
+      oiChange = earliestOI > 0 ? ((latestOI - earliestOI) / earliestOI) * 100 : 0;
+    } else if (openInterest && openInterest.openInterest) {
+      // 如果没有历史数据，使用当前OI与估算值的比较
+      const currentOI = openInterest.openInterest;
+      const estimatedOI = 1000000; // 基础估算值
+      oiChange = ((currentOI - estimatedOI) / estimatedOI) * 100;
+    }
 
     // 成交量数据
     const volume24h = ticker && ticker.volume ? parseFloat(ticker.volume) : lastVol * 96; // 估算24小时成交量
@@ -344,7 +364,7 @@ class FourPhaseSmartMoneyDetector {
       currentPrice,
       oiChange,
       volume24h,
-      lastVol
+      lastVol: lastVol.toString()
     };
   }
 

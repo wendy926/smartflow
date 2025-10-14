@@ -136,7 +136,7 @@ class SmartMoneyDetector {
     } catch (error) {
       logger.error(`加载监控列表失败: ${error.message}`);
       // 返回默认列表
-      return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
+      return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ASTERUSDT', 'MEMEUSDT'];
     }
   }
 
@@ -361,9 +361,9 @@ class SmartMoneyDetector {
     // 如果大额挂单动作明确（非UNKNOWN）且与基础判断一致，提升置信度
     if (largeOrderAction !== 'UNKNOWN' && largeOrderAction === baseActionEn) {
       const enhancedConfidence = Math.min(0.95, baseResult.confidence * 1.3);
-      
+
       // 判断是否聪明钱建仓（smartmoney.md行820-826）
-      const isSmartMoney = 
+      const isSmartMoney =
         (largeOrderAction === 'ACCUMULATE' || largeOrderAction === 'MARKUP') &&  // 吸筹或拉升
         !trapDetected &&                                                           // 非陷阱
         enhancedConfidence > 0.7 &&                                                // 高置信度
@@ -387,10 +387,10 @@ class SmartMoneyDetector {
     if (largeOrderAction !== 'UNKNOWN') {
       // 判断哪个信号更强
       const largeOrderStrength = largeOrderSignal.buyScore + largeOrderSignal.sellScore;
-      
+
       // 如果大额挂单信号很强（>5分）或有Spoof，优先采用
       if (largeOrderStrength > 5 || largeOrderSignal.spoofCount > 0) {
-        const isSmartMoney = 
+        const isSmartMoney =
           (largeOrderAction === 'ACCUMULATE' || largeOrderAction === 'MARKUP') &&
           !trapDetected &&
           largeOrderStrength > 8;  // 强度很高才认定
@@ -426,7 +426,7 @@ class SmartMoneyDetector {
 
     // 大额挂单无明确信号，使用基础判断（英文版）
     const finalConfidence = baseResult.confidence;
-    const isSmartMoney = 
+    const isSmartMoney =
       (baseActionEn === 'ACCUMULATE' || baseActionEn === 'MARKUP') &&
       !trapDetected &&
       finalConfidence > 0.75;  // 高置信度才认定
