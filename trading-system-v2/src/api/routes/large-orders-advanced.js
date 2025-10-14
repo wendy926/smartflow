@@ -61,7 +61,7 @@ function initRoutes() {
             if (entry.valueUSD >= minAmountUsd) {
               const key = `${entry.side}@${entry.price}`;
               const duration = now - recordTime;
-              
+
               if (duration >= minDaysMs) {
                 if (!persistentOrders.has(key)) {
                   persistentOrders.set(key, {
@@ -186,7 +186,7 @@ function initRoutes() {
               const key = `${entry.side}@${entry.price}`;
               const recordTime = new Date(row.created_at).getTime();
               const age = now - recordTime;
-              
+
               // 只保留最近的数据（1小时内）
               if (age <= 60 * 60 * 1000) {
                 if (!megaOrders.has(key) || recordTime > megaOrders.get(key).lastSeenAt) {

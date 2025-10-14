@@ -146,7 +146,7 @@ tr.manipulation {
 }
 
 .query-controls {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .query-card {
@@ -155,11 +155,11 @@ tr.manipulation {
 
 .query-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .query-result-card {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   animation: slideIn 0.3s ease-out;
 }
 
@@ -168,6 +168,7 @@ tr.manipulation {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -237,13 +238,27 @@ tr.manipulation {
 
 /* 新增挂单闪烁动画 */
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 @keyframes pulse-border {
-  0%, 100% { border-color: #ffc107; }
-  50% { border-color: #ffed4e; }
+
+  0%,
+  100% {
+    border-color: #ffc107;
+  }
+
+  50% {
+    border-color: #ffed4e;
+  }
 }
 
 .new-order-highlight {
@@ -257,6 +272,5 @@ tr.manipulation {
 
 .historical-panel:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
-

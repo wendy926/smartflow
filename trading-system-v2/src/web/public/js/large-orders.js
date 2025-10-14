@@ -28,6 +28,17 @@ class LargeOrdersTracker {
       megaBtn.addEventListener('click', () => this.queryMegaOrders());
     }
 
+    // 绑定内联查询按钮
+    const persistentInlineBtn = document.getElementById('query-persistent-orders-inline');
+    if (persistentInlineBtn) {
+      persistentInlineBtn.addEventListener('click', () => this.queryPersistentOrders());
+    }
+
+    const megaInlineBtn = document.getElementById('query-mega-orders-inline');
+    if (megaInlineBtn) {
+      megaInlineBtn.addEventListener('click', () => this.queryMegaOrders());
+    }
+
     // 初次加载历史数据
     this.loadHistoricalData();
   }
@@ -693,12 +704,12 @@ class LargeOrdersTracker {
     try {
       const days = document.getElementById('persistent-days').value;
       const amount = document.getElementById('persistent-amount').value;
-      
+
       console.log(`[LargeOrders] 查询持续${days}天且>${amount}USD的挂单...`);
-      
+
       const response = await fetch(`/api/v1/large-orders-advanced/persistent-orders?symbols=BTCUSDT,ETHUSDT&minDays=${days}&minAmount=${amount}`);
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         this.renderPersistentOrders(result.data, result.criteria);
       } else {
@@ -716,12 +727,12 @@ class LargeOrdersTracker {
   async queryMegaOrders() {
     try {
       const amount = document.getElementById('mega-amount').value;
-      
+
       console.log(`[LargeOrders] 查询>${amount}USD的超大挂单...`);
-      
+
       const response = await fetch(`/api/v1/large-orders-advanced/mega-orders?symbols=BTCUSDT,ETHUSDT&minAmount=${amount}`);
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         this.renderMegaOrders(result.data, result.criteria);
       } else {
@@ -926,16 +937,5 @@ if (document.readyState === 'loading') {
   largeOrdersTracker = new LargeOrdersTracker();
 }
 
-// 全局函数，供HTML onclick调用
-function queryPersistentOrders() {
-  if (largeOrdersTracker) {
-    largeOrdersTracker.queryPersistentOrders();
-  }
-}
-
-function queryMegaOrders() {
-  if (largeOrdersTracker) {
-    largeOrdersTracker.queryMegaOrders();
-  }
-}
+// 全局函数已移除，改为使用事件监听器避免CSP问题
 
