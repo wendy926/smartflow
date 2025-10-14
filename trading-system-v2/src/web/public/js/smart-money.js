@@ -75,6 +75,12 @@ class SmartMoneyTracker {
       const oiChange = result.indicators?.oiChange || 0;
       const volume = result.indicators?.volRatio || 0;
       const fundingRate = result.indicators?.fundingRate || 0;
+      
+      // 调试日志
+      console.log(`[聪明钱前端] ${result.symbol} 指标数据:`, {
+        price, cvd, oiChange, volume, 
+        rawIndicators: result.indicators
+      });
 
       // Trap和Swan标记
       // 聪明钱建仓标识（smartmoney.md行820-826）
@@ -129,7 +135,7 @@ class SmartMoneyTracker {
             <div>${volume.toFixed(2)}x</div>
           </td>
           <td>${trendIcon}</td>
-          <td class="reason-cell" title="${result.reason}">${this.truncateReason(result.reason)}</td>
+          <td class="reason-cell" title="${result.reasons?.join(', ') || ''}">${this.truncateReason(result.reasons?.join(', ') || '')}</td>
           <td>
             <button class="btn-sm btn-danger" onclick="smartMoneyTracker.removeSymbol('${result.symbol}')">
               移除
