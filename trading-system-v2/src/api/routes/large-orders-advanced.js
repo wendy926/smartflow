@@ -63,7 +63,7 @@ function initRoutes() {
           for (const entry of trackedEntries) {
             if (entry.valueUSD >= minAmountUsd) {
               const key = `${row.symbol}@${entry.side}@${entry.price}`;
-              
+
               if (!orderLifecycle.has(key)) {
                 // 首次发现这个挂单
                 orderLifecycle.set(key, {
@@ -104,7 +104,7 @@ function initRoutes() {
         // 检查是否满足持续条件
         const duration = order.lastSeen - order.firstSeen;
         const isStillActive = (now - order.lastSeen) <= (2 * 60 * 60 * 1000); // 2小时内还有记录
-        
+
         // 条件1：持续时间 >= minDays
         // 条件2：最近2小时内还有记录（说明可能还在活跃）
         // 条件3：或者持续时间 >= minDays * 1.5（即使不再活跃，但确实持续了很久）

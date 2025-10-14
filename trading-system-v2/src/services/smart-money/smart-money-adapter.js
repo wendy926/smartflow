@@ -133,6 +133,7 @@ class SmartMoneyAdapter {
         isSmartMoney: result.stage === SmartMoneyStage.ACCUMULATION && result.confidence > 0.6,
         isTrap: false,
         reasons: result.reasons,
+        trend: result.trend || null,
         indicators: {
           obi: result.indicators?.obi || 0,
           obiZ: result.indicators?.obiZ || 0,

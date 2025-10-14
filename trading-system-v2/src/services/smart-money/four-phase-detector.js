@@ -192,6 +192,9 @@ class FourPhaseSmartMoneyDetector {
       // 确定当前阶段
       const stageResult = this.determineStage(symbol, scores);
 
+      // 分析趋势
+      const trend = this.analyzeTrend(marketData, indicators);
+
       // 保存结果到数据库
       await this.saveDetectionResult(symbol, stageResult, indicators, largeOrders);
 
@@ -202,6 +205,7 @@ class FourPhaseSmartMoneyDetector {
         action: this.actionMapping[stageResult.stage],
         reasons: stageResult.reasons,
         scores: stageResult.scores,
+        trend: trend,
         indicators: {
           obi: indicators.obi,
           obiZ: indicators.obiZ,
@@ -626,6 +630,149 @@ class FourPhaseSmartMoneyDetector {
       logger.info('[四阶段聪明钱] 参数更新完成');
     } catch (error) {
       logger.error('[四阶段聪明钱] 参数更新失败:', error);
+    }
+  }
+
+  /**
+   * 分析趋势
+   * @param {Object} marketData - 市场数据
+   * @param {Object} indicators - 技术指标
+   * @returns {Object} 趋势分析结果
+   */
+  analyzeTrend(marketData, indicators) {
+    try {
+      const { klines15m, klines1h, klines4h } = marketData;
+      
+      // 分析多时间框架趋势
+      const trends = {
+        '15m': this.analyzeTimeframeTrend(klines15m, '15m'),
+        '1h': this.analyzeTimeframeTrend(klines1h, '1h'),
+        '4h': this.analyzeTimeframeTrend(klines4h, '4h')
+      };
+
+      // 综合趋势判断
+      const short = trends['15m'].direction;
+      const medium = trends['1h'].direction;
+      const long = trends['4h'].direction;
+
+      // 趋势一致性判断
+      const aligned = (short === medium && medium === long) && short !== 0;
+      
+      // 趋势强度（基于多个时间框架的确认）
+      const strength = this.calculateTrendStrength(trends);
+
+      return {
+        aligned: aligned,
+        short: short,
+        medium: medium,
+        long: long,
+        strength: strength,
+        timeframes: trends,
+        summary: this.getTrendSummary(trends, aligned)
+      };
+    } catch (error) {
+      logger.error('[四阶段聪明钱] 趋势分析失败:', error);
+      return {
+        aligned: false,
+        short: 0,
+        medium: 0,
+        long: 0,
+        strength: 0,
+        timeframes: {},
+        summary: '趋势分析失败'
+      };
+    }
+  }
+
+  /**
+   * 分析单个时间框架的趋势
+   * @param {Array} klines - K线数据
+   * @param {string} timeframe - 时间框架
+   * @returns {Object} 趋势结果
+   */
+  analyzeTimeframeTrend(klines, timeframe) {
+    if (!klines || klines.length < 20) {
+      return { direction: 0, strength: 0, ema: null };
+    }
+
+    try {
+      const closes = klines.map(k => parseFloat(k[4]));
+      const highs = klines.map(k => parseFloat(k[2]));
+      const lows = klines.map(k => parseFloat(k[3]));
+      
+      // 计算EMA
+      const ema20 = TechnicalIndicators.ema(closes, 20);
+      const ema50 = TechnicalIndicators.ema(closes, 50);
+      
+      const currentPrice = closes[closes.length - 1];
+      const ema20Value = ema20[ema20.length - 1];
+      const ema50Value = ema50[ema50.length - 1];
+
+      // 趋势方向判断
+      let direction = 0;
+      if (currentPrice > ema20Value && ema20Value > ema50Value) {
+        direction = 1; // 上升趋势
+      } else if (currentPrice < ema20Value && ema20Value < ema50Value) {
+        direction = -1; // 下降趋势
+      }
+
+      // 趋势强度计算（基于价格与EMA的距离）
+      const strength = direction !== 0 ? 
+        Math.abs((currentPrice - ema50Value) / ema50Value) * 100 : 0;
+
+      return {
+        direction: direction,
+        strength: strength,
+        ema: {
+          ema20: ema20Value,
+          ema50: ema50Value
+        },
+        price: currentPrice
+      };
+    } catch (error) {
+      logger.error(`[四阶段聪明钱] ${timeframe}趋势分析失败:`, error);
+      return { direction: 0, strength: 0, ema: null };
+    }
+  }
+
+  /**
+   * 计算趋势强度
+   * @param {Object} trends - 各时间框架趋势
+   * @returns {number} 综合趋势强度
+   */
+  calculateTrendStrength(trends) {
+    const weights = { '15m': 0.2, '1h': 0.3, '4h': 0.5 };
+    let totalStrength = 0;
+    let totalWeight = 0;
+
+    for (const [timeframe, trend] of Object.entries(trends)) {
+      if (trend && trend.strength !== undefined) {
+        totalStrength += trend.strength * weights[timeframe];
+        totalWeight += weights[timeframe];
+      }
+    }
+
+    return totalWeight > 0 ? totalStrength / totalWeight : 0;
+  }
+
+  /**
+   * 获取趋势摘要
+   * @param {Object} trends - 各时间框架趋势
+   * @param {boolean} aligned - 是否对齐
+   * @returns {string} 趋势摘要
+   */
+  getTrendSummary(trends, aligned) {
+    if (!aligned) {
+      return '趋势分歧';
+    }
+
+    const { '4h': longTerm } = trends;
+    if (longTerm && longTerm.direction === 1) {
+      return '多头趋势';
+    } else if (longTerm && longTerm.direction === -1) {
+      return '空头趋势';
+    } else {
+      return '震荡趋势';
     }
   }
 }
