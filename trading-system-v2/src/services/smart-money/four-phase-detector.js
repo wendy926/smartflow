@@ -208,7 +208,11 @@ class FourPhaseSmartMoneyDetector {
           cvdZ: indicators.cvdZ,
           volRatio: indicators.volRatio,
           delta15: indicators.delta15,
-          priceDropPct: indicators.priceDropPct
+          priceDropPct: indicators.priceDropPct,
+          currentPrice: indicators.currentPrice,
+          oiChange: indicators.oiChange,
+          volume24h: indicators.volume24h,
+          lastVol: indicators.lastVol
         },
         largeOrders: largeOrders.length,
         timestamp: new Date().toISOString()
