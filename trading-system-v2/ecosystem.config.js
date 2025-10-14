@@ -5,17 +5,21 @@ module.exports = {
       script: './src/main.js',
       instances: 1,
       exec_mode: 'fork',
-      max_memory_restart: '150M',  // 提升内存限制（WebSocket需要更多内存）
-      node_args: '--max-old-space-size=150',
+      max_memory_restart: '200M',  // 提升内存限制（避免频繁重启）
+      node_args: '--max-old-space-size=200 --optimize-for-size --gc-interval=100',
       env: {
         NODE_ENV: 'production',
-        MEMORY_LIMIT: '150',  // 更新环境变量
+        MEMORY_LIMIT: '200',  // 更新环境变量
         PORT: 8080
       },
       error_file: './logs/main-app-error.log',
       out_file: './logs/main-app-out.log',
       log_file: './logs/main-app-combined.log',
-      time: true
+      time: true,
+      autorestart: true,
+      max_restarts: 5,  // 1小时内最多重启5次
+      min_uptime: '30s',  // 至少运行30秒才算成功启动
+      restart_delay: 5000  // 重启延迟5秒
     },
     {
       name: 'strategy-worker',
