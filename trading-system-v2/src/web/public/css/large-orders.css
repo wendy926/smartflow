@@ -138,6 +138,73 @@ tr.manipulation {
   background: #fd7e14;
 }
 
+/* 新增查询功能样式 */
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.query-controls {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.query-card {
+  transition: transform 0.2s ease;
+}
+
+.query-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.query-result-card {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stats-grid .stat-item {
+  transition: background-color 0.2s ease;
+}
+
+.stats-grid .stat-item:hover {
+  background-color: #e9ecef !important;
+}
+
+.orders-list {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+}
+
+.order-item {
+  transition: background-color 0.2s ease;
+}
+
+.order-item:hover {
+  background-color: #f8f9fa;
+}
+
+.badge-success {
+  background: #28a745;
+  color: white;
+}
+
+.badge-secondary {
+  background: #6c757d;
+  color: white;
+}
+
 /* 响应式 */
 @media (max-width: 768px) {
   .summary-grid {

@@ -112,7 +112,7 @@ class AIAnalysisScheduler {
       setTimeout(() => {
         this.runMacroAnalysis();
       }, 5000);
-      
+
       setTimeout(() => {
         this.runSymbolAnalysis();
       }, 10000);  // 10秒后执行交易对分析，避免同时执行
@@ -132,7 +132,7 @@ class AIAnalysisScheduler {
   startMacroAnalysisTask(intervalSeconds) {
     // 计算cron表达式（每N秒转换为分钟）
     const intervalMinutes = Math.max(1, Math.floor(intervalSeconds / 60));
-    
+
     // 修复Cron表达式生成逻辑
     // 分钟字段范围是0-59，小时字段范围是0-23
     let cronExpression;
@@ -159,7 +159,7 @@ class AIAnalysisScheduler {
    */
   startSymbolAnalysisTask(intervalSeconds) {
     const intervalMinutes = Math.max(1, Math.floor(intervalSeconds / 60));
-    
+
     // 修复Cron表达式生成逻辑
     // 分钟字段范围是0-59，当intervalMinutes>=60时需要转换为小时表达式
     let cronExpression;
@@ -229,9 +229,9 @@ class AIAnalysisScheduler {
       // 内存检查：如果内存使用率过高，减少分析数量
       const memUsage = process.memoryUsage();
       const memPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-      
+
       let maxSymbols = 13;  // 默认分析所有13个
-      
+
       if (memPercent > 85) {
         maxSymbols = 8;  // 内存紧张时只分析8个
         logger.warn(`⚠️ 内存使用率${memPercent.toFixed(1)}%，减少分析数量至${maxSymbols}个`);
@@ -486,13 +486,13 @@ class AIAnalysisScheduler {
       `, ['ACTIVE']);
 
       const symbols = rows.map(row => row.symbol);
-      
+
       if (symbols.length > 0) {
         logger.info(`获取到 ${symbols.length} 个活跃交易对（按数据新鲜度排序）`);
-        
+
         // 记录每个交易对的数据年龄
         rows.forEach(row => {
-          const ageHours = row.last_analysis_time 
+          const ageHours = row.last_analysis_time
             ? Math.floor((Date.now() - new Date(row.last_analysis_time).getTime()) / (1000 * 60 * 60))
             : 999;
           logger.debug(`  ${row.symbol}: ${ageHours === 999 ? '无数据' : ageHours + '小时前'}`);

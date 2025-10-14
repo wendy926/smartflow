@@ -87,6 +87,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/smart-money-four-phase', require('./api/routes/smart-money-four-phase')); // V2.2.0新增：四阶段聪明钱检测
     this.app.use('/api/v1/smart-money-four-phase-notifier', require('./api/routes/smart-money-four-phase-notifier')); // V2.2.1新增：四阶段聪明钱通知
     this.app.use('/api/v1/large-orders', require('./api/routes/large-orders')()); // V2.1.0新增：大额挂单监控
+    this.app.use('/api/v1/large-orders-advanced', require('./api/routes/large-orders-advanced')()); // V2.2.2新增：大额挂单高级查询
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
@@ -178,7 +179,7 @@ class TradingSystemApp {
         const aiInitialized = await this.aiScheduler.initialize();
         if (aiInitialized) {
           logger.info('[AI模块] ✅ AI调度器初始化成功');
-          
+
           // 启动定时任务（每小时宏观分析，每15分钟交易对分析）
           const aiStarted = await this.aiScheduler.start();
           if (aiStarted) {

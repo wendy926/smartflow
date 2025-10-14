@@ -17,6 +17,17 @@ class LargeOrdersTracker {
       refreshBtn.addEventListener('click', () => this.loadHistoricalData());
     }
 
+    // 绑定查询按钮
+    const persistentBtn = document.getElementById('query-persistent-orders-btn');
+    if (persistentBtn) {
+      persistentBtn.addEventListener('click', () => this.queryPersistentOrders());
+    }
+
+    const megaBtn = document.getElementById('query-mega-orders-btn');
+    if (megaBtn) {
+      megaBtn.addEventListener('click', () => this.queryMegaOrders());
+    }
+
     // 初次加载历史数据
     this.loadHistoricalData();
   }
@@ -674,6 +685,233 @@ class LargeOrdersTracker {
       this.refreshInterval = null;
     }
   }
+
+  /**
+   * 查询持续超过指定天数的大额挂单
+   */
+  async queryPersistentOrders() {
+    try {
+      const days = document.getElementById('persistent-days').value;
+      const amount = document.getElementById('persistent-amount').value;
+      
+      console.log(`[LargeOrders] 查询持续${days}天且>${amount}USD的挂单...`);
+      
+      const response = await fetch(`/api/v1/large-orders-advanced/persistent-orders?symbols=BTCUSDT,ETHUSDT&minDays=${days}&minAmount=${amount}`);
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        this.renderPersistentOrders(result.data, result.criteria);
+      } else {
+        this.showQueryError('查询持续挂单失败: ' + (result.error || '未知错误'));
+      }
+    } catch (error) {
+      console.error('[LargeOrders] 查询持续挂单失败', error);
+      this.showQueryError('查询失败: ' + error.message);
+    }
+  }
+
+  /**
+   * 查询超大额挂单（实时最新）
+   */
+  async queryMegaOrders() {
+    try {
+      const amount = document.getElementById('mega-amount').value;
+      
+      console.log(`[LargeOrders] 查询>${amount}USD的超大挂单...`);
+      
+      const response = await fetch(`/api/v1/large-orders-advanced/mega-orders?symbols=BTCUSDT,ETHUSDT&minAmount=${amount}`);
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        this.renderMegaOrders(result.data, result.criteria);
+      } else {
+        this.showQueryError('查询超大挂单失败: ' + (result.error || '未知错误'));
+      }
+    } catch (error) {
+      console.error('[LargeOrders] 查询超大挂单失败', error);
+      this.showQueryError('查询失败: ' + error.message);
+    }
+  }
+
+  /**
+   * 渲染持续挂单查询结果
+   */
+  renderPersistentOrders(data, criteria) {
+    const container = document.getElementById('query-results');
+    if (!container) return;
+
+    let html = `
+      <div class="query-result-card" style="background: white; border: 1px solid #28a745; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+        <div class="result-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h4 style="margin: 0; color: #28a745;">
+            📅 持续${criteria.minDays}天且>${this.formatNumber(criteria.minAmount)}USD的挂单
+          </h4>
+          <span class="badge" style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+            ${new Date().toLocaleTimeString()}
+          </span>
+        </div>
+    `;
+
+    for (const [symbol, symbolData] of Object.entries(data)) {
+      if (symbolData.totalOrders > 0) {
+        html += `
+          <div class="symbol-section" style="margin-bottom: 20px;">
+            <h5 style="margin: 0 0 10px 0; color: #333;">${symbol}</h5>
+            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px;">
+              <div class="stat-item" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                <div style="font-size: 18px; font-weight: bold; color: #28a745;">${symbolData.totalOrders}</div>
+                <div style="font-size: 12px; color: #666;">总挂单数</div>
+              </div>
+              <div class="stat-item" style="text-align: center; padding: 10px; background: #d4edda; border-radius: 6px;">
+                <div style="font-size: 18px; font-weight: bold; color: #155724;">${symbolData.buyOrders}</div>
+                <div style="font-size: 12px; color: #666;">买单 (${symbolData.buyRatio}%)</div>
+              </div>
+              <div class="stat-item" style="text-align: center; padding: 10px; background: #f8d7da; border-radius: 6px;">
+                <div style="font-size: 18px; font-weight: bold; color: #721c24;">${symbolData.sellOrders}</div>
+                <div style="font-size: 12px; color: #666;">卖单 (${symbolData.sellRatio}%)</div>
+              </div>
+              <div class="stat-item" style="text-align: center; padding: 10px; background: #fff3cd; border-radius: 6px;">
+                <div style="font-size: 16px; font-weight: bold; color: #856404;">${this.formatNumber(symbolData.totalValue)}</div>
+                <div style="font-size: 12px; color: #666;">总价值 USD</div>
+              </div>
+            </div>
+            <div class="orders-list" style="max-height: 200px; overflow-y: auto;">
+              ${symbolData.orders.map(order => `
+                <div class="order-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee;">
+                  <div>
+                    <span class="badge ${order.side === 'bid' ? 'badge-buy' : 'badge-sell'}" style="margin-right: 8px;">
+                      ${order.side === 'bid' ? '买单' : '卖单'}
+                    </span>
+                    <span style="font-weight: bold;">${this.formatNumber(order.price)}</span>
+                    <span style="color: #666; font-size: 12px;">(${order.durationDays}天)</span>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-weight: bold; color: #28a745;">${this.formatNumber(order.valueUSD)} USD</div>
+                    <div style="font-size: 11px; color: #666;">出现${order.appearances}次</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="symbol-section" style="margin-bottom: 20px;">
+            <h5 style="margin: 0 0 10px 0; color: #333;">${symbol}</h5>
+            <div style="text-align: center; padding: 20px; color: #666; background: #f8f9fa; border-radius: 6px;">
+              暂无持续${criteria.minDays}天且>${this.formatNumber(criteria.minAmount)}USD的挂单
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+
+  /**
+   * 渲染超大挂单查询结果
+   */
+  renderMegaOrders(data, criteria) {
+    const container = document.getElementById('query-results');
+    if (!container) return;
+
+    let html = `
+      <div class="query-result-card" style="background: white; border: 1px solid #ffc107; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+        <div class="result-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h4 style="margin: 0; color: #ffc107;">
+            ⚡ >${this.formatNumber(criteria.minAmount)}USD的超大挂单 (24小时内)
+          </h4>
+          <span class="badge" style="background: #ffc107; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+            ${new Date().toLocaleTimeString()}
+          </span>
+        </div>
+    `;
+
+    for (const [symbol, symbolData] of Object.entries(data)) {
+      if (symbolData.totalOrders > 0) {
+        html += `
+          <div class="symbol-section" style="margin-bottom: 20px;">
+            <h5 style="margin: 0 0 10px 0; color: #333;">${symbol}</h5>
+            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px;">
+              <div class="stat-item" style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                <div style="font-size: 18px; font-weight: bold; color: #ffc107;">${symbolData.totalOrders}</div>
+                <div style="font-size: 12px; color: #666;">总挂单数</div>
+              </div>
+              <div class="stat-item" style="text-align: center; padding: 10px; background: #fff3cd; border-radius: 6px;">
+                <div style="font-size: 18px; font-weight: bold; color: #856404;">${symbolData.activeOrders}</div>
+                <div style="font-size: 12px; color: #666;">活跃挂单</div>
+              </div>
+              <div class="stat-item" style="text-align: center; padding: 10px; background: #d4edda; border-radius: 6px;">
+                <div style="font-size: 18px; font-weight: bold; color: #155724;">${symbolData.buyOrders}</div>
+                <div style="font-size: 12px; color: #666;">买单 (${symbolData.buyRatio}%)</div>
+              </div>
+              <div class="stat-item" style="text-align: center; padding: 10px; background: #f8d7da; border-radius: 6px;">
+                <div style="font-size: 18px; font-weight: bold; color: #721c24;">${symbolData.sellOrders}</div>
+                <div style="font-size: 12px; color: #666;">卖单 (${symbolData.sellRatio}%)</div>
+              </div>
+              <div class="stat-item" style="text-align: center; padding: 10px; background: #fff3cd; border-radius: 6px;">
+                <div style="font-size: 16px; font-weight: bold; color: #856404;">${this.formatNumber(symbolData.totalValue)}</div>
+                <div style="font-size: 12px; color: #666;">总价值 USD</div>
+              </div>
+            </div>
+            <div class="orders-list" style="max-height: 200px; overflow-y: auto;">
+              ${symbolData.orders.map(order => `
+                <div class="order-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee;">
+                  <div>
+                    <span class="badge ${order.side === 'bid' ? 'badge-buy' : 'badge-sell'}" style="margin-right: 8px;">
+                      ${order.side === 'bid' ? '买单' : '卖单'}
+                    </span>
+                    <span style="font-weight: bold;">${this.formatNumber(order.price)}</span>
+                    <span class="badge ${order.isActive ? 'badge-success' : 'badge-secondary'}" style="margin-left: 8px; font-size: 10px;">
+                      ${order.isActive ? '活跃' : `${order.ageMinutes}分钟前`}
+                    </span>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-weight: bold; color: #ffc107;">${this.formatNumber(order.valueUSD)} USD</div>
+                    <div style="font-size: 11px; color: #666;">出现${order.appearances}次</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="symbol-section" style="margin-bottom: 20px;">
+            <h5 style="margin: 0 0 10px 0; color: #333;">${symbol}</h5>
+            <div style="text-align: center; padding: 20px; color: #666; background: #f8f9fa; border-radius: 6px;">
+              暂无>${this.formatNumber(criteria.minAmount)}USD的超大挂单
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+
+  /**
+   * 显示查询错误
+   */
+  showQueryError(message) {
+    const container = document.getElementById('query-results');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="error-card" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center;">
+          <i class="fas fa-exclamation-triangle" style="color: #721c24; margin-right: 10px; font-size: 18px;"></i>
+          <div>
+            <h5 style="margin: 0; color: #721c24;">查询失败</h5>
+            <p style="margin: 5px 0 0 0; color: #721c24;">${message}</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 }
 
 // 全局实例
@@ -686,5 +924,18 @@ if (document.readyState === 'loading') {
   });
 } else {
   largeOrdersTracker = new LargeOrdersTracker();
+}
+
+// 全局函数，供HTML onclick调用
+function queryPersistentOrders() {
+  if (largeOrdersTracker) {
+    largeOrdersTracker.queryPersistentOrders();
+  }
+}
+
+function queryMegaOrders() {
+  if (largeOrdersTracker) {
+    largeOrdersTracker.queryMegaOrders();
+  }
 }
 

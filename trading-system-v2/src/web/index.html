@@ -1296,17 +1296,63 @@
         </div>
       </div>
 
-      <!-- 大额挂单监控页面 (V2.1.2 - 7天历史视图) -->
+      <!-- 大额挂单监控页面 (V2.2.2 - 增强版查询功能) -->
       <div id="large-orders" class="tab-content">
         <div class="page-header">
-          <h2>📊 大额挂单监控（7天历史累计）</h2>
-          <button class="btn btn-primary" id="refresh-large-orders-btn">
-            <i class="fas fa-sync-alt"></i>
-            刷新数据
-          </button>
+          <h2>📊 大额挂单监控（增强版查询）</h2>
+          <div class="header-actions">
+            <button class="btn btn-primary" id="refresh-large-orders-btn">
+              <i class="fas fa-sync-alt"></i>
+              刷新数据
+            </button>
+            <button class="btn btn-success" id="query-persistent-orders-btn">
+              <i class="fas fa-clock"></i>
+              查询持续3天+挂单
+            </button>
+            <button class="btn btn-warning" id="query-mega-orders-btn">
+              <i class="fas fa-bolt"></i>
+              查询30M+超大挂单
+            </button>
+          </div>
         </div>
 
         <div class="large-orders-container">
+          <!-- 查询控制面板 -->
+          <div class="query-controls"
+            style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h4 style="margin: 0 0 15px 0;">🔍 高级查询功能</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+              <div class="query-card"
+                style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #28a745;">
+                <h5 style="margin: 0 0 10px 0; color: #28a745;">📅 持续挂单查询</h5>
+                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">查询持续超过3天且单笔金额>10M的大额挂单</p>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                  <input type="number" id="persistent-days" value="3" min="1" max="30"
+                    style="width: 60px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                  <span>天</span>
+                  <input type="number" id="persistent-amount" value="10000000" min="1000000" step="1000000"
+                    style="width: 120px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                  <span>USD</span>
+                  <button class="btn btn-sm btn-success" onclick="queryPersistentOrders()">查询</button>
+                </div>
+              </div>
+              <div class="query-card"
+                style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
+                <h5 style="margin: 0 0 10px 0; color: #ffc107;">⚡ 超大挂单查询</h5>
+                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">查询实时最新的单笔金额>30M的超大挂单</p>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                  <input type="number" id="mega-amount" value="30000000" min="10000000" step="1000000"
+                    style="width: 120px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                  <span>USD</span>
+                  <button class="btn btn-sm btn-warning" onclick="queryMegaOrders()">查询</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 查询结果区域 -->
+          <div id="query-results" style="margin-bottom: 20px;"></div>
+
           <!-- 历史视图双面板（BTCUSDT | ETHUSDT） -->
           <div id="large-order-summary-content">
             <div class="loading">加载7天历史数据中...</div>
