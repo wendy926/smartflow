@@ -557,9 +557,11 @@ class V3Strategy {
    * @param {string} signal - 交易信号
    * @param {number} currentPrice - 当前价格
    * @param {number} atr - ATR值
+   * @param {string} marketType - 市场类型 'TREND' 或 'RANGE'
+   * @param {string} confidence - 置信度 'high'/'med'/'low'
    * @returns {Object} 交易参数
    */
-  async calculateTradeParameters(symbol, signal, currentPrice, atr) {
+  async calculateTradeParameters(symbol, signal, currentPrice, atr, marketType = 'RANGE', confidence = 'med') {
     try {
       if (!currentPrice) {
         return { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
@@ -572,18 +574,16 @@ class V3Strategy {
       }
 
       const entryPrice = currentPrice;
-      let stopLoss = 0;
-      let takeProfit = 0;
       let leverage = 1;
 
-      // 根据信号方向计算止损和止盈
-      if (signal === 'BUY') {
-        stopLoss = entryPrice - (atr * 2);
-        takeProfit = entryPrice + (atr * 4);
-      } else if (signal === 'SELL') {
-        stopLoss = entryPrice + (atr * 2);
-        takeProfit = entryPrice - (atr * 4);
-      }
+      // 使用持仓时长管理器计算止损止盈
+      const PositionDurationManager = require('../utils/position-duration-manager');
+      const stopLossConfig = PositionDurationManager.calculateDurationBasedStopLoss(
+        symbol, signal, entryPrice, atr, marketType, confidence
+      );
+
+      const stopLoss = stopLossConfig.stopLoss;
+      const takeProfit = stopLossConfig.takeProfit;
 
       // 按照文档计算杠杆和保证金
       // 止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
@@ -604,12 +604,18 @@ class V3Strategy {
       // 保证金Z：M/(Y*X%) 数值向上取整
       const margin = stopLossDistanceAbs > 0 ? Math.ceil(maxLossAmount / (leverage * stopLossDistanceAbs)) : 0;
 
+      logger.info(`${symbol} 交易参数计算: 市场类型=${marketType}, 置信度=${confidence}, 最大持仓=${stopLossConfig.maxDurationHours}小时, 时间止损=${stopLossConfig.timeStopMinutes}分钟`);
+
       return {
         entryPrice: parseFloat(entryPrice.toFixed(4)),
         stopLoss: parseFloat(stopLoss.toFixed(4)),
         takeProfit: parseFloat(takeProfit.toFixed(4)),
         leverage: leverage,
-        margin: margin
+        margin: margin,
+        timeStopMinutes: stopLossConfig.timeStopMinutes,
+        maxDurationHours: stopLossConfig.maxDurationHours,
+        marketType: marketType,
+        confidence: confidence
       };
     } catch (error) {
       logger.error(`V3交易参数计算失败: ${error.message}`);

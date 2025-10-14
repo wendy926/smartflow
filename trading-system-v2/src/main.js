@@ -89,6 +89,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
     this.app.use('/api/v1/ai', require('./api/routes/ai-analysis'));
+    this.app.use('/api/v1/position-monitor', require('./api/routes/position-monitor'));
 
     // 健康检查
     this.app.get('/health', (req, res) => {
@@ -226,6 +227,21 @@ class TradingSystemApp {
         this.smartMoneyMonitor = null;
       }
 
+      // 初始化持仓监控服务（V2.1.3新增）
+      try {
+        logger.info('[持仓监控] 初始化持仓监控服务...');
+        const PositionMonitor = require('./services/position-monitor');
+        const BinanceAPI = require('./api/binance-api');
+        const binanceAPIInstance = new BinanceAPI();
+        this.positionMonitor = new PositionMonitor(database, binanceAPIInstance);
+        await this.positionMonitor.start();
+        this.app.set('positionMonitor', this.positionMonitor);
+        logger.info('[持仓监控] ✅ 持仓监控服务启动成功');
+      } catch (error) {
+        logger.error('[持仓监控] ❌ 监控服务启动失败:', error);
+        this.positionMonitor = null;
+      }
+
       // 初始化大额挂单检测器（V2.1.2 - 启用BTCUSDT/ETHUSDT监控）
       try {
         logger.info('[大额挂单] 初始化大额挂单检测器...');
@@ -300,6 +316,16 @@ class TradingSystemApp {
           logger.info('[聪明钱监控] 监控服务已停止');
         } catch (error) {
           logger.error('[聪明钱监控] 监控服务停止失败:', error);
+        }
+      }
+
+      // 停止持仓监控服务
+      if (this.positionMonitor) {
+        try {
+          await this.positionMonitor.stop();
+          logger.info('[持仓监控] 监控服务已停止');
+        } catch (error) {
+          logger.error('[持仓监控] 监控服务停止失败:', error);
         }
       }
 

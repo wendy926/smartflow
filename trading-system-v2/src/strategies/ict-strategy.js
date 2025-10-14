@@ -592,19 +592,36 @@ class ICTStrategy {
       // 计算入场价格（当前价格）
       const entry = currentPrice;
 
-      // 计算止损价格（优化：使用结构点位，传递扫荡信息）
-      const stopLoss = this.calculateStructuralStopLoss(
+      // 使用持仓时长管理器计算止损止盈
+      const PositionDurationManager = require('../utils/position-duration-manager');
+      const signal = trend === 'UP' ? 'BUY' : 'SELL';
+      const marketType = 'TREND'; // ICT策略主要针对趋势市
+      const confidence = signals.score >= 60 ? 'high' : signals.score >= 40 ? 'med' : 'low';
+      
+      const stopLossConfig = PositionDurationManager.calculateDurationBasedStopLoss(
+        symbol, signal, entry, atr4H, marketType, confidence
+      );
+
+      // 使用持仓时长管理器的止损止盈，但保留ICT的结构止损作为参考
+      const structuralStopLoss = this.calculateStructuralStopLoss(
         trend,
         orderBlock,
         klines4H,
-        signals.sweepHTF  // 传递扫荡信息
+        signals.sweepHTF
       );
+
+      // 选择更保守的止损（距离入场价格更近的）
+      const stopLoss = Math.abs(entry - stopLossConfig.stopLoss) < Math.abs(entry - structuralStopLoss) 
+        ? stopLossConfig.stopLoss 
+        : structuralStopLoss;
 
       // 计算止盈价格（RR = 3:1）
       const takeProfit = this.calculateTakeProfit(entry, stopLoss, trend);
 
       // 计算仓位大小
       const positionSize = this.calculatePositionSize(equity, riskPct, entry, stopLoss);
+
+      logger.info(`${symbol} ICT交易参数: 趋势=${trend}, 置信度=${confidence}, 最大持仓=${stopLossConfig.maxDurationHours}小时, 时间止损=${stopLossConfig.timeStopMinutes}分钟`);
 
       return {
         entry: parseFloat(entry.toFixed(4)),
@@ -615,7 +632,11 @@ class ICTStrategy {
         risk: riskPct,
         units: parseFloat(positionSize.units.toFixed(4)),
         notional: parseFloat(positionSize.notional.toFixed(2)),
-        riskAmount: parseFloat(positionSize.riskAmount.toFixed(2))
+        riskAmount: parseFloat(positionSize.riskAmount.toFixed(2)),
+        timeStopMinutes: stopLossConfig.timeStopMinutes,
+        maxDurationHours: stopLossConfig.maxDurationHours,
+        marketType: marketType,
+        confidence: confidence
       };
     } catch (error) {
       logger.error(`ICT Trade parameters calculation error for ${symbol}:`, error);
