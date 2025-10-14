@@ -205,7 +205,7 @@ class TradingSystemApp {
         const SmartMoneyAdapter = require('./services/smart-money/smart-money-adapter');
         const BinanceAPI = require('./api/binance-api');
         const binanceAPIInstance = new BinanceAPI();
-        
+
         this.smartMoneyDetector = new SmartMoneyAdapter(database, binanceAPIInstance, this.largeOrderDetector);
         await this.smartMoneyDetector.initialize();
         this.app.set('smartMoneyDetector', this.smartMoneyDetector);

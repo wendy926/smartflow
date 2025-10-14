@@ -21,28 +21,28 @@ class SmartMoneyAdapter {
     this.database = database;
     this.binanceAPI = binanceAPI;
     this.largeOrderDetector = largeOrderDetector;
-    
+
     // 四阶段检测器
     this.fourPhaseDetector = new FourPhaseSmartMoneyDetector(
-      database, 
-      binanceAPI, 
+      database,
+      binanceAPI,
       largeOrderDetector
     );
-    
+
     // 兼容性映射
     this.compatibilityMapping = {
       [SmartMoneyStage.ACCUMULATION]: 'ACCUMULATE',
       [SmartMoneyStage.MARKUP]: 'MARKUP',
-      [SmartMoneyStage.DISTRIBUTION]: 'DISTRIBUTION', 
+      [SmartMoneyStage.DISTRIBUTION]: 'DISTRIBUTION',
       [SmartMoneyStage.MARKDOWN]: 'MARKDOWN',
       [SmartMoneyStage.NEUTRAL]: 'UNKNOWN'
     };
-    
+
     // 中文动作映射
     this.actionMapping = {
       [SmartMoneyStage.ACCUMULATION]: '吸筹',
       [SmartMoneyStage.MARKUP]: '拉升',
-      [SmartMoneyStage.DISTRIBUTION]: '派发', 
+      [SmartMoneyStage.DISTRIBUTION]: '派发',
       [SmartMoneyStage.MARKDOWN]: '砸盘',
       [SmartMoneyStage.NEUTRAL]: '无动作'
     };
@@ -70,7 +70,7 @@ class SmartMoneyAdapter {
     try {
       // 使用四阶段检测器
       const result = await this.fourPhaseDetector.detect(symbol);
-      
+
       // 转换为兼容格式
       return {
         symbol: result.symbol,
@@ -122,7 +122,7 @@ class SmartMoneyAdapter {
   async detectBatch(symbols) {
     try {
       const results = await this.fourPhaseDetector.detectBatch(symbols);
-      
+
       // 转换为兼容格式
       return results.map(result => ({
         symbol: result.symbol,
@@ -174,7 +174,7 @@ class SmartMoneyAdapter {
   async getFourPhaseDetails(symbol) {
     try {
       const result = await this.fourPhaseDetector.detect(symbol);
-      
+
       return {
         symbol: result.symbol,
         stage: result.stage,
@@ -208,7 +208,7 @@ class SmartMoneyAdapter {
     try {
       const states = this.fourPhaseDetector.getAllStates();
       const result = {};
-      
+
       for (const [symbol, state] of Object.entries(states)) {
         result[symbol] = {
           stage: state.stage,
@@ -220,7 +220,7 @@ class SmartMoneyAdapter {
           scores: state.scores
         };
       }
-      
+
       return result;
     } catch (error) {
       logger.error('[聪明钱适配器] 获取所有四阶段状态失败:', error);
@@ -298,6 +298,33 @@ class SmartMoneyAdapter {
         ? symbols.reduce((sum, symbol) => sum + states[symbol].confidence, 0) / symbols.length
         : 0
     };
+  }
+
+  /**
+   * 加载监控交易对列表（兼容性方法）
+   * @returns {Promise<Array>} 监控交易对列表
+   */
+  async loadWatchList() {
+    try {
+      // 从数据库获取监控列表
+      const [rows] = await this.database.pool.query(`
+        SELECT symbol FROM smart_money_watch_list WHERE is_active = 1
+      `);
+      
+      return rows.map(row => row.symbol);
+    } catch (error) {
+      logger.error('[聪明钱适配器] 加载监控列表失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 批量检测（兼容性方法）
+   * @param {Array<string>} symbols - 交易对列表
+   * @returns {Promise<Array>} 检测结果
+   */
+  async detectBatchV2(symbols) {
+    return this.detectBatch(symbols);
   }
 }
 

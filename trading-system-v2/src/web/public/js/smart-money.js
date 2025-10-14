@@ -20,8 +20,8 @@ class SmartMoneyTracker {
       const data = await response.json();
 
       if (data.success) {
-        console.log(`[聪明钱] 加载成功: ${data.data.length}个交易对`);
-        this.updateTable(data.data);
+        console.log(`[聪明钱] 加载成功: ${data.data ? data.data.length : 0}个交易对`);
+        this.updateTable(data.data || []);
         this.updateLastUpdateTime(data.timestamp);
       } else {
         throw new Error(data.error);

@@ -84,7 +84,7 @@
   border-radius: 50%;
   margin-right: 8px;
   border: 2px solid white;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
 .stage-indicator .stage-label {
@@ -101,7 +101,7 @@
   padding: 20px;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .four-phase-flow .stage-node {
@@ -131,7 +131,7 @@
 
 .four-phase-flow .stage-node.active .stage-circle {
   transform: scale(1.1);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .four-phase-flow .arrow {
@@ -147,13 +147,13 @@
   border-radius: 8px;
   padding: 20px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease;
 }
 
 .stats-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .stats-card .stats-number {
@@ -173,7 +173,7 @@
   background: white;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .four-phase-table .table {
@@ -234,22 +234,22 @@
     flex-direction: column;
     padding: 15px;
   }
-  
+
   .four-phase-flow .stage-node {
     margin-bottom: 20px;
   }
-  
+
   .four-phase-flow .arrow {
     transform: rotate(90deg);
     margin: 10px 0;
   }
-  
+
   .four-phase-table .table th,
   .four-phase-table .table td {
     padding: 8px 4px;
     font-size: 12px;
   }
-  
+
   .stats-card .stats-number {
     font-size: 1.5rem;
   }
@@ -267,8 +267,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 错误状态 */
@@ -307,9 +312,17 @@
 }
 
 @keyframes stageTransition {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* 置信度条形图 */
@@ -378,14 +391,14 @@
   border-radius: 50%;
   background-color: #007bff;
   border: 2px solid white;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
 .timeline-item .timeline-content {
   background: white;
   padding: 10px 15px;
   border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* 暗色主题支持 */
@@ -394,20 +407,20 @@
     background: #2d3748;
     color: #e2e8f0;
   }
-  
+
   .stats-card {
     background: #4a5568;
     color: #e2e8f0;
   }
-  
+
   .four-phase-table {
     background: #4a5568;
   }
-  
+
   .four-phase-table .table th {
     background-color: #2d3748;
   }
-  
+
   .four-phase-flow {
     background: #4a5568;
   }

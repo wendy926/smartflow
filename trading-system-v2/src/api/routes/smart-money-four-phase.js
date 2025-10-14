@@ -22,9 +22,9 @@ router.use((req, res, next) => {
   }
   if (!smartMoneyDetector) {
     logger.error('[四阶段聪明钱API] 聪明钱检测器未初始化');
-    return res.status(500).json({ 
-      success: false, 
-      error: '聪明钱检测器未初始化' 
+    return res.status(500).json({
+      success: false,
+      error: '聪明钱检测器未初始化'
     });
   }
   next();
@@ -37,7 +37,7 @@ router.use((req, res, next) => {
 router.get('/states', (req, res) => {
   try {
     const states = smartMoneyDetector.getAllFourPhaseStates();
-    
+
     res.json({
       success: true,
       data: states,
@@ -60,7 +60,7 @@ router.get('/states', (req, res) => {
 router.get('/statistics', (req, res) => {
   try {
     const stats = smartMoneyDetector.getStatistics();
-    
+
     res.json({
       success: true,
       data: stats,
@@ -82,7 +82,7 @@ router.get('/statistics', (req, res) => {
 router.get('/parameters', (req, res) => {
   try {
     const params = smartMoneyDetector.getParameters();
-    
+
     res.json({
       success: true,
       data: params,
@@ -148,7 +148,7 @@ router.get('/docs', (req, res) => {
       'GET /docs': '获取API文档'
     }
   };
-  
+
   res.json({
     success: true,
     data: docs,
@@ -164,7 +164,7 @@ router.get('/docs', (req, res) => {
 router.post('/batch', async (req, res) => {
   try {
     const { symbols } = req.body;
-    
+
     // 参数验证
     if (!Array.isArray(symbols) || symbols.length === 0) {
       return res.status(400).json({
@@ -192,7 +192,7 @@ router.post('/batch', async (req, res) => {
 
     // 批量检测
     const results = await smartMoneyDetector.detectBatch(symbols);
-    
+
     res.json({
       success: true,
       data: results,
@@ -216,7 +216,7 @@ router.post('/batch', async (req, res) => {
 router.post('/parameters', async (req, res) => {
   try {
     const params = req.body;
-    
+
     // 参数验证
     if (!params || typeof params !== 'object') {
       return res.status(400).json({
@@ -234,7 +234,7 @@ router.post('/parameters', async (req, res) => {
           error: `未知参数: ${key}`
         });
       }
-      
+
       if (typeof value !== typeof currentParams[key]) {
         return res.status(400).json({
           success: false,
@@ -245,7 +245,7 @@ router.post('/parameters', async (req, res) => {
 
     // 更新参数
     await smartMoneyDetector.updateParameters(params);
-    
+
     res.json({
       success: true,
       message: '参数更新成功',
@@ -268,7 +268,7 @@ router.post('/parameters', async (req, res) => {
 router.post('/:symbol/reset', (req, res) => {
   try {
     const { symbol } = req.params;
-    
+
     // 参数验证
     if (!symbol || typeof symbol !== 'string') {
       return res.status(400).json({
@@ -279,7 +279,7 @@ router.post('/:symbol/reset', (req, res) => {
 
     // 重置状态
     smartMoneyDetector.resetSymbolState(symbol);
-    
+
     res.json({
       success: true,
       message: `${symbol}状态已重置`,
@@ -301,7 +301,7 @@ router.post('/:symbol/reset', (req, res) => {
 router.get('/:symbol', async (req, res) => {
   try {
     const { symbol } = req.params;
-    
+
     // 参数验证
     if (!symbol || typeof symbol !== 'string') {
       return res.status(400).json({
@@ -312,7 +312,7 @@ router.get('/:symbol', async (req, res) => {
 
     // 获取四阶段详细信息
     const result = await smartMoneyDetector.getFourPhaseDetails(symbol);
-    
+
     res.json({
       success: true,
       data: result,

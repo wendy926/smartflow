@@ -19,7 +19,7 @@ const TechnicalIndicators = require('../../utils/technical-indicators');
  */
 const SmartMoneyStage = {
   NEUTRAL: 'neutral',
-  ACCUMULATION: 'accumulation', 
+  ACCUMULATION: 'accumulation',
   MARKUP: 'markup',
   DISTRIBUTION: 'distribution',
   MARKDOWN: 'markdown'
@@ -44,10 +44,10 @@ class FourPhaseSmartMoneyDetector {
     this.database = database;
     this.binanceAPI = binanceAPI;
     this.largeOrderDetector = largeOrderDetector;
-    
+
     // 状态存储：symbol -> state
     this.stateMap = new Map();
-    
+
     // 默认参数（可从数据库加载）
     this.params = {
       // 时间窗口
@@ -55,7 +55,7 @@ class FourPhaseSmartMoneyDetector {
       recentVolCandles: 20,
       obiTopN: 50,
       persistenceSec: 10,
-      
+
       // 阈值参数
       obiZPos: 0.8,
       obiZNeg: -0.8,
@@ -69,21 +69,21 @@ class FourPhaseSmartMoneyDetector {
       sweepPct: 0.3,
       priceDropPctWindow: 0.03,
       minStageLockMins: 180,
-      
+
       // 阶段判定阈值
       minAccumulationScore: 3,
       minMarkupScore: 3,
       minDistributionScore: 2,
       minMarkdownScore: 3
     };
-    
+
     // 数据缓存
     this.dataCache = new Map();
-    
+
     // 中文动作映射
     this.actionMapping = {
       [SmartMoneyStage.ACCUMULATION]: '吸筹',
-      [SmartMoneyStage.MARKUP]: '拉升', 
+      [SmartMoneyStage.MARKUP]: '拉升',
       [SmartMoneyStage.DISTRIBUTION]: '派发',
       [SmartMoneyStage.MARKDOWN]: '砸盘',
       [SmartMoneyStage.NEUTRAL]: '无动作'
@@ -97,10 +97,10 @@ class FourPhaseSmartMoneyDetector {
     try {
       // 从数据库加载参数配置
       await this.loadParameters();
-      
+
       // 初始化默认监控交易对
       await this.initializeWatchList();
-      
+
       logger.info('[四阶段聪明钱] 检测器初始化完成');
     } catch (error) {
       logger.error('[四阶段聪明钱] 初始化失败:', error);
@@ -122,7 +122,7 @@ class FourPhaseSmartMoneyDetector {
       for (const row of rows) {
         const key = row.param_name.replace('fpsm_', '');
         let value = row.param_value;
-        
+
         // 类型转换
         switch (row.param_type) {
           case 'number':
@@ -132,13 +132,13 @@ class FourPhaseSmartMoneyDetector {
             value = value === 'true';
             break;
         }
-        
+
         // 设置参数
         if (key in this.params) {
           this.params[key] = value;
         }
       }
-      
+
       logger.info('[四阶段聪明钱] 参数加载完成');
     } catch (error) {
       logger.warn('[四阶段聪明钱] 参数加载失败，使用默认值:', error.message);
@@ -163,7 +163,7 @@ class FourPhaseSmartMoneyDetector {
           scores: {}
         });
       }
-      
+
       logger.info(`[四阶段聪明钱] 初始化监控交易对: ${rows.length}个`);
     } catch (error) {
       logger.warn('[四阶段聪明钱] 监控列表初始化失败:', error.message);
@@ -179,22 +179,22 @@ class FourPhaseSmartMoneyDetector {
     try {
       // 获取市场数据
       const marketData = await this.gatherMarketData(symbol);
-      
+
       // 计算技术指标
       const indicators = this.computeIndicators(marketData);
-      
+
       // 检测大额挂单
       const largeOrders = await this.detectLargeOrders(symbol, marketData.orderBook);
-      
+
       // 评估四阶段得分
       const scores = this.evaluateStageScores(indicators, largeOrders);
-      
+
       // 确定当前阶段
       const stageResult = this.determineStage(symbol, scores);
-      
+
       // 保存结果到数据库
       await this.saveDetectionResult(symbol, stageResult, indicators, largeOrders);
-      
+
       return {
         symbol,
         stage: stageResult.stage,
@@ -233,7 +233,7 @@ class FourPhaseSmartMoneyDetector {
    */
   async detectBatch(symbols) {
     const results = [];
-    
+
     for (const symbol of symbols) {
       try {
         const result = await this.detect(symbol);
@@ -250,7 +250,7 @@ class FourPhaseSmartMoneyDetector {
         });
       }
     }
-    
+
     return results;
   }
 
@@ -270,7 +270,7 @@ class FourPhaseSmartMoneyDetector {
 
     return {
       klines15m,
-      klines1h, 
+      klines1h,
       klines4h,
       ticker,
       orderBook: depth,
@@ -284,7 +284,7 @@ class FourPhaseSmartMoneyDetector {
    */
   computeIndicators(marketData) {
     const { klines15m, orderBook, openInterest } = marketData;
-    
+
     // 成交量指标
     const volArr = klines15m.slice(-this.params.recentVolCandles).map(k => k[5]);
     const avgVol15 = volArr.reduce((a, b) => a + b, 0) / volArr.length;
@@ -333,7 +333,7 @@ class FourPhaseSmartMoneyDetector {
    */
   calculateATR(klines, period) {
     if (klines.length < period + 1) return 0;
-    
+
     const trs = [];
     for (let i = 1; i < klines.length; i++) {
       const current = klines[i];
@@ -345,7 +345,7 @@ class FourPhaseSmartMoneyDetector {
       );
       trs.push(tr);
     }
-    
+
     return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
   }
 
@@ -356,7 +356,7 @@ class FourPhaseSmartMoneyDetector {
   async detectLargeOrders(symbol, orderBook) {
     const largeOrders = [];
     const topN = this.params.obiTopN;
-    
+
     // 检测买单
     for (const [price, qty] of orderBook.bids.slice(0, topN)) {
       const value = parseFloat(price) * parseFloat(qty);
@@ -370,7 +370,7 @@ class FourPhaseSmartMoneyDetector {
         });
       }
     }
-    
+
     // 检测卖单
     for (const [price, qty] of orderBook.asks.slice(0, topN)) {
       const value = parseFloat(price) * parseFloat(qty);
@@ -384,7 +384,7 @@ class FourPhaseSmartMoneyDetector {
         });
       }
     }
-    
+
     return largeOrders;
   }
 
@@ -394,7 +394,7 @@ class FourPhaseSmartMoneyDetector {
    */
   evaluateStageScores(indicators, largeOrders) {
     const { volRatio, obiZ, cvdZ, delta15, priceDropPct } = indicators;
-    
+
     let accScore = 0, markupScore = 0, distScore = 0, markdnScore = 0;
     const reasons = [];
 
@@ -425,7 +425,7 @@ class FourPhaseSmartMoneyDetector {
 
     return {
       accScore,
-      markupScore, 
+      markupScore,
       distScore,
       markdnScore,
       reasons
@@ -438,22 +438,22 @@ class FourPhaseSmartMoneyDetector {
    */
   determineStage(symbol, scores) {
     const { accScore, markupScore, distScore, markdnScore, reasons } = scores;
-    
+
     // 获取当前状态
     const currentState = this.stateMap.get(symbol) || {
       stage: SmartMoneyStage.NEUTRAL,
       since: Date.now(),
       confidence: 0
     };
-    
+
     const now = Date.now();
     const timeSinceLastChange = now - currentState.since;
     const isLocked = timeSinceLastChange < (this.params.minStageLockMins * 60 * 1000);
-    
+
     // 确定新阶段（优先级：砸盘 > 拉升 > 派发 > 吸筹）
     let newStage = SmartMoneyStage.NEUTRAL;
     let confidence = 0.2;
-    
+
     if (markdnScore >= this.params.minMarkdownScore) {
       newStage = SmartMoneyStage.MARKDOWN;
       confidence = Math.min(1, markdnScore / 4);
@@ -467,11 +467,11 @@ class FourPhaseSmartMoneyDetector {
       newStage = SmartMoneyStage.ACCUMULATION;
       confidence = Math.min(1, accScore / 4);
     }
-    
+
     // 检查阶段流转是否合法
     const allowedTransitions = STAGE_TRANSITIONS[currentState.stage] || [];
     const isValidTransition = allowedTransitions.includes(newStage) || newStage === SmartMoneyStage.MARKDOWN;
-    
+
     // 更新状态
     if (newStage !== currentState.stage && (!isLocked || !isValidTransition)) {
       // 阶段变化且（未锁定或允许流转）
@@ -492,7 +492,7 @@ class FourPhaseSmartMoneyDetector {
       });
       newStage = currentState.stage;
     }
-    
+
     return {
       stage: newStage,
       confidence: this.stateMap.get(symbol).confidence,
@@ -521,7 +521,7 @@ class FourPhaseSmartMoneyDetector {
         detection_data = VALUES(detection_data),
         timestamp = VALUES(timestamp)
       `;
-      
+
       const detectionData = JSON.stringify({
         stage: stageResult.stage,
         confidence: stageResult.confidence,
@@ -530,7 +530,7 @@ class FourPhaseSmartMoneyDetector {
         indicators,
         largeOrders: largeOrders.length
       });
-      
+
       await this.database.pool.query(sql, [
         symbol,
         Date.now(),
@@ -544,7 +544,7 @@ class FourPhaseSmartMoneyDetector {
         largeOrders.length, // tracked_entries_count
         detectionData
       ]);
-      
+
     } catch (error) {
       logger.error(`[四阶段聪明钱] 保存${symbol}检测结果失败:`, error);
     }
@@ -572,7 +572,7 @@ class FourPhaseSmartMoneyDetector {
       for (const [key, value] of Object.entries(newParams)) {
         if (key in this.params) {
           this.params[key] = value;
-          
+
           // 保存到数据库
           await this.database.pool.query(`
             INSERT INTO strategy_params (param_name, param_value, param_type, category, description)
@@ -581,7 +581,7 @@ class FourPhaseSmartMoneyDetector {
           `, [`fpsm_${key}`, String(value), typeof value]);
         }
       }
-      
+
       logger.info('[四阶段聪明钱] 参数更新完成');
     } catch (error) {
       logger.error('[四阶段聪明钱] 参数更新失败:', error);

@@ -18,7 +18,7 @@ class SmartMoneyFourPhaseModule {
     this.stageColors = {
       neutral: '#6c757d',
       accumulation: '#28a745',
-      markup: '#007bff', 
+      markup: '#007bff',
       distribution: '#ffc107',
       markdown: '#dc3545'
     };
@@ -53,7 +53,7 @@ class SmartMoneyFourPhaseModule {
     try {
       const response = await fetch(`${this.apiBase}/states`);
       const result = await response.json();
-      
+
       if (result.success) {
         this.currentData = result.data;
         this.renderStates();
@@ -96,7 +96,7 @@ class SmartMoneyFourPhaseModule {
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
     }
-    
+
     this.refreshTimer = setInterval(() => {
       this.refreshData();
     }, this.refreshInterval);
@@ -124,7 +124,7 @@ class SmartMoneyFourPhaseModule {
       }
 
       await this.loadInitialData();
-      
+
       if (refreshBtn) {
         refreshBtn.disabled = false;
         refreshBtn.textContent = '刷新';
@@ -184,8 +184,8 @@ class SmartMoneyFourPhaseModule {
     const stageColor = this.stageColors[state.stage] || '#6c757d';
     const stageName = this.stageNames[state.stage] || '未知';
 
-    const reasons = state.reasons && state.reasons.length > 0 
-      ? state.reasons.join(', ') 
+    const reasons = state.reasons && state.reasons.length > 0
+      ? state.reasons.join(', ')
       : '无';
 
     return `
@@ -234,7 +234,7 @@ class SmartMoneyFourPhaseModule {
     try {
       const response = await fetch(`${this.apiBase}/statistics`);
       const result = await response.json();
-      
+
       if (!result.success) return;
 
       const stats = result.data;
@@ -319,7 +319,7 @@ class SmartMoneyFourPhaseModule {
     try {
       const response = await fetch(`${this.apiBase}/${symbol}`);
       const result = await response.json();
-      
+
       if (!result.success) {
         alert(`获取${symbol}详情失败: ${result.error}`);
         return;
@@ -327,12 +327,12 @@ class SmartMoneyFourPhaseModule {
 
       const data = result.data;
       const modal = this.createDetailsModal(symbol, data);
-      
+
       // 显示模态框
       document.body.appendChild(modal);
       const bsModal = new bootstrap.Modal(modal);
       bsModal.show();
-      
+
       // 模态框关闭时移除DOM元素
       modal.addEventListener('hidden.bs.modal', () => {
         document.body.removeChild(modal);
@@ -401,7 +401,7 @@ class SmartMoneyFourPhaseModule {
         </div>
       </div>
     `;
-    
+
     return modal;
   }
 
@@ -418,7 +418,7 @@ class SmartMoneyFourPhaseModule {
         method: 'POST'
       });
       const result = await response.json();
-      
+
       if (result.success) {
         alert(`${symbol} 状态已重置`);
         this.refreshData();
@@ -442,14 +442,14 @@ class SmartMoneyFourPhaseModule {
     try {
       const symbols = Object.keys(this.currentData);
       let successCount = 0;
-      
+
       for (const symbol of symbols) {
         try {
           const response = await fetch(`${this.apiBase}/${symbol}/reset`, {
             method: 'POST'
           });
           const result = await response.json();
-          
+
           if (result.success) {
             successCount++;
           }
@@ -457,7 +457,7 @@ class SmartMoneyFourPhaseModule {
           console.error(`[四阶段聪明钱] 重置${symbol}失败:`, error);
         }
       }
-      
+
       alert(`已重置 ${successCount}/${symbols.length} 个交易对的状态`);
       this.refreshData();
     } catch (error) {
@@ -479,12 +479,12 @@ class SmartMoneyFourPhaseModule {
    */
   formatDuration(ms) {
     if (!ms) return '0秒';
-    
+
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
-    
+
     if (days > 0) return `${days}天${hours % 24}小时`;
     if (hours > 0) return `${hours}小时${minutes % 60}分钟`;
     if (minutes > 0) return `${minutes}分钟${seconds % 60}秒`;
