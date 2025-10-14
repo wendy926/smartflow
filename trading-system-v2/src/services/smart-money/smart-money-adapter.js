@@ -78,7 +78,7 @@ class SmartMoneyAdapter {
         actionChinese: result.action,
         confidence: result.confidence,
         score: result.confidence * 100,
-        isSmartMoney: result.confidence > 0.6,
+        isSmartMoney: result.stage === SmartMoneyStage.ACCUMULATION && result.confidence > 0.6,
         isTrap: false, // 四阶段检测器暂不检测陷阱
         reasons: result.reasons,
         indicators: {
@@ -130,7 +130,7 @@ class SmartMoneyAdapter {
         actionChinese: result.action,
         confidence: result.confidence,
         score: result.confidence * 100,
-        isSmartMoney: result.confidence > 0.6,
+        isSmartMoney: result.stage === SmartMoneyStage.ACCUMULATION && result.confidence > 0.6,
         isTrap: false,
         reasons: result.reasons,
         indicators: {
