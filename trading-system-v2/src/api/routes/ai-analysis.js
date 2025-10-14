@@ -139,11 +139,11 @@ router.get('/symbol-analysis', async (req, res) => {
 
     const operations = getAIOps();
     let analysis = await operations.getLatestAnalysis(symbol, 'SYMBOL_TREND');
-    
+
     // 检查是否需要强制刷新
-    const shouldRefresh = forceRefresh === 'true' || 
-                         !analysis || 
-                         (analysis && (Date.now() - new Date(analysis.createdAt).getTime()) > 2 * 60 * 60 * 1000);
+    const shouldRefresh = forceRefresh === 'true' ||
+      !analysis ||
+      (analysis && (Date.now() - new Date(analysis.createdAt).getTime()) > 2 * 60 * 60 * 1000);
 
     if (shouldRefresh) {
       const scheduler = getScheduler();
