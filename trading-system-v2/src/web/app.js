@@ -122,6 +122,8 @@ class SmartFlowApp {
     const refreshStrategyStatusBtn = document.getElementById('refreshStrategyStatus');
     if (refreshStrategyStatusBtn) {
       refreshStrategyStatusBtn.addEventListener('click', () => {
+        // 强制刷新AI分析，重置缓存时间
+        this.lastAIAnalysisLoad = 0;
         this.loadStrategyCurrentStatus();
       });
     }
@@ -1349,7 +1351,9 @@ class SmartFlowApp {
 
       try {
         console.log(`[AI表格] 加载 ${item.symbol} 分析...`);
-        const analysis = await window.aiAnalysis.loadSymbolAnalysis(item.symbol);
+        // 如果lastAIAnalysisLoad为0，说明是强制刷新
+        const forceRefresh = this.lastAIAnalysisLoad === 0;
+        const analysis = await window.aiAnalysis.loadSymbolAnalysis(item.symbol, forceRefresh);
 
         if (!analysis) {
           console.warn(`[AI表格] ${item.symbol} 无分析数据`);

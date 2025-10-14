@@ -524,11 +524,13 @@ class AIAnalysisModule {
   /**
    * 加载交易对AI分析
    * @param {string} symbol - 交易对符号
+   * @param {boolean} forceRefresh - 是否强制刷新
    * @returns {Promise<Object>}
    */
-  async loadSymbolAnalysis(symbol) {
+  async loadSymbolAnalysis(symbol, forceRefresh = false) {
     try {
-      const response = await fetch(`${this.apiBase}/symbol-analysis?symbol=${symbol}`);
+      const forceParam = forceRefresh ? '&forceRefresh=true' : '';
+      const response = await fetch(`${this.apiBase}/symbol-analysis?symbol=${symbol}${forceParam}`);
       const result = await response.json();
 
       if (result.success && result.data) {
