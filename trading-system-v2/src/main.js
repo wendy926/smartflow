@@ -85,6 +85,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/smart-money', require('./api/routes/smart-money')); // V2.0.1新增：聪明钱跟踪
     this.app.use('/api/v1/smart-money-monitor', require('./api/routes/smart-money-monitor')); // V2.1.0新增：聪明钱监控
     this.app.use('/api/v1/smart-money-four-phase', require('./api/routes/smart-money-four-phase')); // V2.2.0新增：四阶段聪明钱检测
+    this.app.use('/api/v1/smart-money-four-phase-notifier', require('./api/routes/smart-money-four-phase-notifier')); // V2.2.1新增：四阶段聪明钱通知
     this.app.use('/api/v1/large-orders', require('./api/routes/large-orders')()); // V2.1.0新增：大额挂单监控
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
@@ -232,6 +233,23 @@ class TradingSystemApp {
         this.smartMoneyMonitor = null;
       }
 
+      // 初始化四阶段聪明钱Telegram通知服务（V2.2.1新增）
+      try {
+        if (this.smartMoneyDetector && this.telegramService) {
+          logger.info('[四阶段聪明钱通知] 初始化Telegram通知服务...');
+          const FourPhaseTelegramNotifier = require('./services/smart-money/four-phase-telegram-notifier');
+          this.fourPhaseNotifier = new FourPhaseTelegramNotifier(this.telegramService, database, this.smartMoneyDetector.fourPhaseDetector);
+          await this.fourPhaseNotifier.initialize();
+          this.app.set('fourPhaseNotifier', this.fourPhaseNotifier);
+          logger.info('[四阶段聪明钱通知] ✅ Telegram通知服务启动成功');
+        } else {
+          logger.warn('[四阶段聪明钱通知] ⚠️ 跳过启动（依赖服务未就绪）');
+        }
+      } catch (error) {
+        logger.error('[四阶段聪明钱通知] ❌ 通知服务启动失败:', error);
+        this.fourPhaseNotifier = null;
+      }
+
       // 初始化持仓监控服务（V2.1.3新增）
       try {
         logger.info('[持仓监控] 初始化持仓监控服务...');
@@ -321,6 +339,16 @@ class TradingSystemApp {
           logger.info('[聪明钱监控] 监控服务已停止');
         } catch (error) {
           logger.error('[聪明钱监控] 监控服务停止失败:', error);
+        }
+      }
+
+      // 停止四阶段聪明钱通知服务
+      if (this.fourPhaseNotifier) {
+        try {
+          this.fourPhaseNotifier.stopMonitoring();
+          logger.info('[四阶段聪明钱通知] 通知服务已停止');
+        } catch (error) {
+          logger.error('[四阶段聪明钱通知] 通知服务停止失败:', error);
         }
       }
 

@@ -118,35 +118,26 @@ ON DUPLICATE KEY UPDATE
 -- 4. 四阶段聪明钱监控配置表
 CREATE TABLE IF NOT EXISTS four_phase_monitor_config (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    symbol VARCHAR(20) NOT NULL COMMENT '交易对符号',
-    is_active TINYINT(1) DEFAULT 1 COMMENT '是否启用监控',
-    alert_enabled TINYINT(1) DEFAULT 1 COMMENT '是否启用告警',
-    confidence_threshold DECIMAL(5,4) DEFAULT 0.8000 COMMENT '告警置信度阈值',
-    cooldown_minutes INT DEFAULT 60 COMMENT '告警冷却时间(分钟)',
-    
-    -- 阶段特定配置
-    accumulation_alerts TINYINT(1) DEFAULT 1 COMMENT '吸筹阶段告警',
-    markup_alerts TINYINT(1) DEFAULT 1 COMMENT '拉升阶段告警',
-    distribution_alerts TINYINT(1) DEFAULT 1 COMMENT '派发阶段告警',
-    markdown_alerts TINYINT(1) DEFAULT 1 COMMENT '砸盘阶段告警',
-    
+    config_key VARCHAR(100) NOT NULL COMMENT '配置键',
+    config_value TEXT NOT NULL COMMENT '配置值',
+    config_type ENUM('STRING', 'NUMBER', 'BOOLEAN', 'JSON') DEFAULT 'STRING' COMMENT '配置类型',
+    description TEXT DEFAULT NULL COMMENT '配置描述',
+    is_active BOOLEAN DEFAULT TRUE COMMENT '是否激活',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     
-    UNIQUE KEY uk_symbol (symbol),
+    UNIQUE KEY uk_config_key (config_key),
     INDEX idx_is_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='四阶段聪明钱监控配置表';
 
--- 5. 插入默认监控配置
-INSERT INTO four_phase_monitor_config (symbol, is_active, alert_enabled) VALUES
-('BTCUSDT', 1, 1),
-('ETHUSDT', 1, 1),
-('SOLUSDT', 1, 1),
-('XRPUSDT', 1, 1),
-('ADAUSDT', 1, 1)
+-- 5. 插入默认通知配置
+INSERT INTO four_phase_monitor_config (config_key, config_value, config_type, description) VALUES
+('notify_enabled', 'true', 'BOOLEAN', '是否启用四阶段聪明钱通知'),
+('notify_confidence_threshold', '0.6', 'NUMBER', '通知置信度阈值'),
+('notify_cooldown_minutes', '60', 'NUMBER', '通知冷却时间（分钟）'),
+('notify_stages', '{"accumulation":{"enabled":true,"emoji":"📈"},"markup":{"enabled":true,"emoji":"🚀"},"distribution":{"enabled":true,"emoji":"⚠️"},"markdown":{"enabled":true,"emoji":"📉"}}', 'JSON', '各阶段通知配置')
 ON DUPLICATE KEY UPDATE 
-    is_active = VALUES(is_active),
-    alert_enabled = VALUES(alert_enabled),
+    config_value = VALUES(config_value),
     updated_at = CURRENT_TIMESTAMP;
 
 -- 6. 创建数据清理存储过程
