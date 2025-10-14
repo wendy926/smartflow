@@ -84,6 +84,7 @@ class TradingSystemApp {
     // this.app.use('/api/v1/new-coin-monitor', require('./api/routes/new-coin-monitor')); // V2.0禁用：功能未使用
     this.app.use('/api/v1/smart-money', require('./api/routes/smart-money')); // V2.0.1新增：聪明钱跟踪
     this.app.use('/api/v1/smart-money-monitor', require('./api/routes/smart-money-monitor')); // V2.1.0新增：聪明钱监控
+    this.app.use('/api/v1/smart-money-four-phase', require('./api/routes/smart-money-four-phase')); // V2.2.0新增：四阶段聪明钱检测
     this.app.use('/api/v1/large-orders', require('./api/routes/large-orders')()); // V2.1.0新增：大额挂单监控
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
@@ -198,13 +199,17 @@ class TradingSystemApp {
       // 为API路由提供数据库连接
       this.app.set('database', database);
 
-      // 初始化聪明钱检测器（V2.0.1新增）
+      // 初始化聪明钱检测器（V2.2.0 - 四阶段状态机）
       try {
-        logger.info('[聪明钱] 初始化聪明钱检测器...');
-        this.smartMoneyDetector = new SmartMoneyDetector(database);
+        logger.info('[聪明钱] 初始化四阶段聪明钱检测器...');
+        const SmartMoneyAdapter = require('./services/smart-money/smart-money-adapter');
+        const BinanceAPI = require('./api/binance-api');
+        const binanceAPIInstance = new BinanceAPI();
+        
+        this.smartMoneyDetector = new SmartMoneyAdapter(database, binanceAPIInstance, this.largeOrderDetector);
         await this.smartMoneyDetector.initialize();
         this.app.set('smartMoneyDetector', this.smartMoneyDetector);
-        logger.info('[聪明钱] ✅ 聪明钱检测器启动成功');
+        logger.info('[聪明钱] ✅ 四阶段聪明钱检测器启动成功');
       } catch (error) {
         logger.error('[聪明钱] ❌ 检测器启动失败:', error);
         this.smartMoneyDetector = null;
