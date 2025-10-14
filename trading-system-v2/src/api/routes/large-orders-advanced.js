@@ -60,8 +60,8 @@ function initRoutes() {
           for (const entry of trackedEntries) {
             if (entry.valueUSD >= minAmountUsd) {
               const key = `${entry.side}@${entry.price}`;
-              const duration = now - entry.createdAt;
-
+              const duration = now - recordTime;
+              
               if (duration >= minDaysMs) {
                 if (!persistentOrders.has(key)) {
                   persistentOrders.set(key, {
@@ -70,8 +70,8 @@ function initRoutes() {
                     price: entry.price,
                     qty: entry.qty,
                     valueUSD: entry.valueUSD,
-                    createdAt: entry.createdAt,
-                    lastSeenAt: entry.lastSeenAt,
+                    createdAt: recordTime,
+                    lastSeenAt: recordTime,
                     duration: duration,
                     durationDays: Math.floor(duration / (24 * 60 * 60 * 1000)),
                     appearances: 1
@@ -79,7 +79,7 @@ function initRoutes() {
                 } else {
                   const existing = persistentOrders.get(key);
                   existing.appearances++;
-                  existing.lastSeenAt = Math.max(existing.lastSeenAt, entry.lastSeenAt);
+                  existing.lastSeenAt = Math.max(existing.lastSeenAt, recordTime);
                 }
               }
             }
@@ -184,19 +184,20 @@ function initRoutes() {
           for (const entry of trackedEntries) {
             if (entry.valueUSD >= minAmountUsd) {
               const key = `${entry.side}@${entry.price}`;
-              const age = now - entry.createdAt;
-
+              const recordTime = new Date(row.created_at).getTime();
+              const age = now - recordTime;
+              
               // 只保留最近的数据（1小时内）
               if (age <= 60 * 60 * 1000) {
-                if (!megaOrders.has(key) || entry.lastSeenAt > megaOrders.get(key).lastSeenAt) {
+                if (!megaOrders.has(key) || recordTime > megaOrders.get(key).lastSeenAt) {
                   megaOrders.set(key, {
                     symbol: row.symbol,
                     side: entry.side,
                     price: entry.price,
                     qty: entry.qty,
                     valueUSD: entry.valueUSD,
-                    createdAt: entry.createdAt,
-                    lastSeenAt: entry.lastSeenAt,
+                    createdAt: recordTime,
+                    lastSeenAt: recordTime,
                     age: age,
                     ageMinutes: Math.floor(age / (60 * 1000)),
                     isActive: age <= 5 * 60 * 1000, // 5分钟内为活跃
@@ -205,7 +206,7 @@ function initRoutes() {
                 } else {
                   const existing = megaOrders.get(key);
                   existing.appearances++;
-                  existing.lastSeenAt = Math.max(existing.lastSeenAt, entry.lastSeenAt);
+                  existing.lastSeenAt = Math.max(existing.lastSeenAt, recordTime);
                 }
               }
             }
