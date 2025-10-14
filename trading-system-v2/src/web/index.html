@@ -1547,7 +1547,7 @@
                 </div>
                 <div class="doc-content">
                   <h4>通知类型</h4>
-
+                  
                   <div
                     style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;">
                     <h5 style="margin: 0 0 10px 0; color: #155724;">1. 交易触发通知</h5>
@@ -1717,14 +1717,14 @@
                     </tbody>
                   </table>
 
-                  <div
-                    style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
-                    <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 更新机制优化 (2025-10-10)</h5>
-                    <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
-                      <li><strong>前后端统一5分钟刷新</strong>：Dashboard与strategy-worker完全同步</li>
-                      <li><strong>策略判断不存储</strong>：实时计算，用完即弃，只有交易触发时才保存</li>
-                      <li><strong>前端不做计算</strong>：所有数据统一使用后端计算结果</li>
-                      <li>AI分析使用<strong>数据库缓存</strong>：每小时更新，避免频繁AI API调用</li>
+                    <div
+                      style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8;">
+                      <h5 style="margin: 0 0 10px 0; color: #0c5460;">💡 更新机制优化 (2025-10-10)</h5>
+                      <ul style="margin: 5px 0; padding-left: 20px; color: #0c5460;">
+                        <li><strong>前后端统一5分钟刷新</strong>：Dashboard与strategy-worker完全同步</li>
+                        <li><strong>策略判断不存储</strong>：实时计算，用完即弃，只有交易触发时才保存</li>
+                        <li><strong>前端不做计算</strong>：所有数据统一使用后端计算结果</li>
+                        <li>AI分析使用<strong>数据库缓存</strong>：每小时更新，避免频繁AI API调用</li>
                       <li>减少98.3%的不必要请求，提升用户体验</li>
                     </ul>
                   </div>
@@ -1781,7 +1781,7 @@
                         <li>1H价格 > VWAP（买）或 < VWAP（卖）</li>
                         <li>1H ADX > 20（弱趋势门槛）</li>
                         <li>4H ADX < 40（不强反向）</li>
-                      </ul>
+                    </ul>
                       <p><strong>效果</strong>：检测到早期趋势时，提升4H趋势权重10%，进入候选池等待确认</p>
                     </div>
 
@@ -1987,7 +1987,7 @@
                         <li>多头：stopLoss = entryPrice - (ATR15 × K_entry)</li>
                         <li>空头：stopLoss = entryPrice + (ATR15 × K_entry)</li>
                         <li>K_entry由置信度决定：1.5/2.0/2.6</li>
-                      </ul>
+                    </ul>
 
                       <p><strong>动态调整</strong>（趋势确认后）：</p>
                       <ul style="margin-left: 20px;">
@@ -2910,7 +2910,7 @@
                       <li><strong>异常处理</strong>：数据缺失或计算错误时的降级处理</li>
                       <li><strong>调试信息</strong>：输出详细的评分过程和信号生成逻辑</li>
                     </ul>
-                  </div>
+              </div>
 
                   <h4>🆕 ICT策略优化历史</h4>
 
@@ -2962,7 +2962,7 @@
                       <li><strong>LTF扫荡阈值</strong>：0.2×ATR → 0.02×ATR（放宽90%）</li>
                     </ul>
                     <p><strong>效果</strong>：增加信号捕捉灵敏度，提升交易机会</p>
-                  </div>
+                    </div>
                 </div>
               </div>
 
@@ -3207,7 +3207,19 @@
                     </ul>
                   </div>
 
-                  <h4>最新优化 (2025-10-09)</h4>
+                  <h4>最新优化 (2025-10-14)</h4>
+                  <div
+                    style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5 style="color: #0d47a1;">🔧 V3策略震荡市信号修复</h5>
+                    <ul style="color: #0d47a1;">
+                      <li><strong>VWAP方向判断优化</strong>：震荡市模式下VWAP偏差阈值从1%放宽到3%</li>
+                      <li><strong>信号生成逻辑修复</strong>：解决V3策略在震荡市模式下无法触发交易信号的问题</li>
+                      <li><strong>详细日志增强</strong>：添加VWAP检查详细日志，便于策略调试和监控</li>
+                      <li><strong>效果预期</strong>：恢复V3策略的正常交易信号生成，提升策略活跃度</li>
+                    </ul>
+                  </div>
+
+                  <h4>历史优化 (2025-10-09)</h4>
                   <div
                     style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5 style="color: #155724;">🆕 15M入场有效性检查</h5>
@@ -3246,12 +3258,30 @@
 
                   <h4>策略实现细节</h4>
                   <ul>
-                    <li><strong>V3策略</strong>：4H趋势判断 + 1H多因子分析 + 15M入场确认 + MACD Histogram</li>
+                    <li><strong>V3策略</strong>：4H趋势判断 + 1H多因子分析 + 15M入场确认 + MACD Histogram + 震荡市VWAP优化</li>
                     <li><strong>ICT策略</strong>：1D趋势 + 4H订单块 + 15M扫荡确认 + 吞没形态 + 谐波形态共振</li>
                     <li><strong>技术指标</strong>：EMA、ADX、BBW、ATR、VWAP、MACD Histogram、成交量分析</li>
                     <li><strong>评分机制</strong>：多因子加权评分 + 谐波共振加分 + 门槛式结构确认</li>
                     <li><strong>风险参数</strong>：基于ATR动态止损 + 结构点位止损 + 动态杠杆计算</li>
                   </ul>
+
+                  <h4>V3策略震荡市信号修复技术细节</h4>
+                  <div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5 style="color: #e65100;">🔧 问题诊断与修复</h5>
+                    <ul style="color: #e65100;">
+                      <li><strong>问题根源</strong>：震荡市模式下VWAP方向判断阈值过于严格（1%），导致1H因子得分为0</li>
+                      <li><strong>修复方案</strong>：将震荡市VWAP偏差阈值从1%放宽到3%，并添加详细调试日志</li>
+                      <li><strong>技术实现</strong>：
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>VWAP方向检查：价格与VWAP偏差 < 3% 时通过检查</li>
+                          <li>1H因子评分：VWAP方向通过后，其他5个因子参与评分</li>
+                          <li>信号融合：总分≥70%时触发强信号，≥45%时触发中等信号</li>
+                          <li>日志增强：详细记录VWAP检查过程和偏差百分比</li>
+                        </ul>
+                      </li>
+                      <li><strong>预期效果</strong>：恢复V3策略在震荡市环境下的正常信号生成能力</li>
+                    </ul>
+                  </div>
 
                   <h4>数据流程架构</h4>
                   <ol>
