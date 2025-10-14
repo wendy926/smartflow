@@ -326,7 +326,7 @@ class FourPhaseSmartMoneyDetector {
     const atr15 = this.calculateATR(klines15m, 14);
 
     // OI变化计算
-    const oiChange = openInterest && openInterest.length > 1 
+    const oiChange = openInterest && openInterest.length > 1
       ? ((openInterest[openInterest.length - 1] - openInterest[0]) / openInterest[0]) * 100
       : 0;
 

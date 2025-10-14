@@ -60,7 +60,7 @@ class SmartMoneyTracker {
         '无动作': '无信号',
         '无信号': '无信号'
       };
-      
+
       const actionCN = actionMapping[result.action] || result.action;
       const actionClass = this.getActionClass(actionCN);
       const confidenceClass = this.getConfidenceClass(result.confidence);
@@ -90,7 +90,7 @@ class SmartMoneyTracker {
              (${result.trap.confidence.toFixed(0)}%)
            </span>`
         : '';
-      
+
       const swanIndicator = result.swan && result.swan.level !== 'NONE'
         ? `<span style="color:#ef4444; font-weight:bold; margin-left:5px;">
              🦢 ${result.swan.level}
