@@ -35,6 +35,8 @@ function initRoutes() {
       const minAmountUsd = parseInt(minAmount);
 
       // 查询持续超过指定天数的大额挂单
+      // 查询更长时间范围的数据，以便分析挂单的完整生命周期
+      const queryDays = Math.max(minDays * 2, 7); // 查询至少7天或minDays*2的数据
       const sql = `
         SELECT 
           symbol,
@@ -43,15 +45,16 @@ function initRoutes() {
         FROM large_order_detection_results 
         WHERE symbol IN (${symbolList.map(() => '?').join(',')})
           AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-        ORDER BY created_at DESC
+        ORDER BY created_at ASC
       `;
 
-      const rows = await database.query(sql, [...symbolList, minDays + 1]);
+      const rows = await database.query(sql, [...symbolList, queryDays]);
 
-      // 处理数据，找出持续超过指定天数的挂单
-      const persistentOrders = new Map();
+      // 处理数据，找出真正持续超过指定天数的挂单
+      const orderLifecycle = new Map(); // key -> { firstSeen, lastSeen, maxValue, ... }
       const now = Date.now();
 
+      // 第一遍：收集所有挂单的生命周期信息
       for (const row of rows) {
         try {
           const trackedEntries = JSON.parse(row.trackedEntries || '[]');
@@ -59,28 +62,29 @@ function initRoutes() {
 
           for (const entry of trackedEntries) {
             if (entry.valueUSD >= minAmountUsd) {
-              const key = `${entry.side}@${entry.price}`;
-              const duration = now - recordTime;
-
-              if (duration >= minDaysMs) {
-                if (!persistentOrders.has(key)) {
-                  persistentOrders.set(key, {
-                    symbol: row.symbol,
-                    side: entry.side,
-                    price: entry.price,
-                    qty: entry.qty,
-                    valueUSD: entry.valueUSD,
-                    createdAt: recordTime,
-                    lastSeenAt: recordTime,
-                    duration: duration,
-                    durationDays: Math.floor(duration / (24 * 60 * 60 * 1000)),
-                    appearances: 1
-                  });
-                } else {
-                  const existing = persistentOrders.get(key);
-                  existing.appearances++;
-                  existing.lastSeenAt = Math.max(existing.lastSeenAt, recordTime);
-                }
+              const key = `${row.symbol}@${entry.side}@${entry.price}`;
+              
+              if (!orderLifecycle.has(key)) {
+                // 首次发现这个挂单
+                orderLifecycle.set(key, {
+                  symbol: row.symbol,
+                  side: entry.side,
+                  price: entry.price,
+                  firstSeen: recordTime,
+                  lastSeen: recordTime,
+                  maxValueUSD: entry.valueUSD,
+                  currentValueUSD: entry.valueUSD,
+                  appearances: 1,
+                  records: [{ time: recordTime, value: entry.valueUSD }]
+                });
+              } else {
+                // 更新挂单信息
+                const order = orderLifecycle.get(key);
+                order.lastSeen = Math.max(order.lastSeen, recordTime);
+                order.maxValueUSD = Math.max(order.maxValueUSD, entry.valueUSD);
+                order.currentValueUSD = entry.valueUSD; // 使用最新记录的价值
+                order.appearances++;
+                order.records.push({ time: recordTime, value: entry.valueUSD });
               }
             }
           }
@@ -88,6 +92,36 @@ function initRoutes() {
           logger.warn('[PersistentOrders] 解析数据失败:', {
             symbol: row.symbol,
             error: error.message
+          });
+        }
+      }
+
+      // 第二遍：筛选真正持续的挂单
+      const persistentOrders = new Map();
+      const cutoffTime = now - minDaysMs; // 最小持续时间的截止点
+
+      for (const [key, order] of orderLifecycle.entries()) {
+        // 检查是否满足持续条件
+        const duration = order.lastSeen - order.firstSeen;
+        const isStillActive = (now - order.lastSeen) <= (2 * 60 * 60 * 1000); // 2小时内还有记录
+        
+        // 条件1：持续时间 >= minDays
+        // 条件2：最近2小时内还有记录（说明可能还在活跃）
+        // 条件3：或者持续时间 >= minDays * 1.5（即使不再活跃，但确实持续了很久）
+        if (duration >= minDaysMs && (isStillActive || duration >= minDaysMs * 1.5)) {
+          persistentOrders.set(key, {
+            symbol: order.symbol,
+            side: order.side,
+            price: order.price,
+            qty: 0, // 数量信息在历史记录中可能不准确
+            valueUSD: order.maxValueUSD, // 使用最大价值
+            createdAt: order.firstSeen,
+            lastSeenAt: order.lastSeen,
+            duration: duration,
+            durationDays: Math.floor(duration / (24 * 60 * 60 * 1000)),
+            appearances: order.appearances,
+            isActive: isStillActive,
+            recordsCount: order.records.length
           });
         }
       }
