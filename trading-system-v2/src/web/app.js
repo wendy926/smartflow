@@ -1355,23 +1355,23 @@ class SmartFlowApp {
 
       try {
         console.log(`[AI表格] 加载 ${item.symbol} 分析...`);
-        
+
         // 智能缓存策略：检查单个交易对的缓存时间
         const now = Date.now();
         const lastCacheTime = this.aiAnalysisCacheTime[item.symbol] || 0;
         const timeSinceLastCache = now - lastCacheTime;
-        const shouldRefresh = this.forceAIAnalysisRefresh || 
-                             this.lastAIAnalysisLoad === 0 || 
-                             timeSinceLastCache >= this.aiAnalysisInterval;
-        
+        const shouldRefresh = this.forceAIAnalysisRefresh ||
+          this.lastAIAnalysisLoad === 0 ||
+          timeSinceLastCache >= this.aiAnalysisInterval;
+
         if (shouldRefresh) {
           console.log(`[AI表格] ${item.symbol} 需要刷新AI分析 (${this.forceAIAnalysisRefresh ? '强制' : '缓存过期'})`);
         } else {
           console.log(`[AI表格] ${item.symbol} 使用缓存数据，距离上次缓存${Math.round(timeSinceLastCache / 60000)}分钟`);
         }
-        
+
         const analysis = await window.aiAnalysis.loadSymbolAnalysis(item.symbol, shouldRefresh);
-        
+
         if (analysis && shouldRefresh) {
           this.aiAnalysisCacheTime[item.symbol] = now; // 更新缓存时间
         }

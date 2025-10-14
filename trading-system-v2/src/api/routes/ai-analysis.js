@@ -124,11 +124,11 @@ router.get('/macro-risk', async (req, res) => {
 
 /**
  * 获取交易对AI分析
- * GET /api/v1/ai/symbol-analysis?symbol=BTCUSDT
+ * GET /api/v1/ai/symbol-analysis?symbol=BTCUSDT&forceRefresh=true
  */
 router.get('/symbol-analysis', async (req, res) => {
   try {
-    const { symbol } = req.query;
+    const { symbol, forceRefresh } = req.query;
 
     if (!symbol) {
       return res.status(400).json({
@@ -138,7 +138,31 @@ router.get('/symbol-analysis', async (req, res) => {
     }
 
     const operations = getAIOps();
-    const analysis = await operations.getLatestAnalysis(symbol, 'SYMBOL_TREND');
+    let analysis = await operations.getLatestAnalysis(symbol, 'SYMBOL_TREND');
+    
+    // 检查是否需要强制刷新
+    const shouldRefresh = forceRefresh === 'true' || 
+                         !analysis || 
+                         (analysis && (Date.now() - new Date(analysis.createdAt).getTime()) > 2 * 60 * 60 * 1000);
+
+    if (shouldRefresh) {
+      const scheduler = getScheduler();
+      if (scheduler) {
+        try {
+          logger.info(`[AI手动触发] 触发${symbol}符号趋势分析（数据过期或手动刷新）`);
+          // 异步触发分析，不等待完成（避免API超时）
+          scheduler.triggerSymbolAnalysis(symbol).catch(error => {
+            logger.warn(`[AI手动触发] 触发${symbol}符号分析失败:`, error.message);
+          });
+          logger.info(`[AI手动触发] ${symbol}符号分析已触发，使用现有数据`);
+        } catch (triggerError) {
+          logger.warn(`[AI手动触发] 触发${symbol}符号分析失败:`, triggerError.message);
+          // 继续使用旧数据
+        }
+      } else {
+        logger.warn('[AI手动触发] AI调度器未初始化，使用缓存数据');
+      }
+    }
 
     if (!analysis) {
       return res.json({
