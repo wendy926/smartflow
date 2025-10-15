@@ -80,10 +80,12 @@ class SmartFlowApp {
     this.setupEventListeners();
     await this.loadMaxLossAmount(); // 加载最大损失金额设置
 
-    // 初始化AI分析模块
+    // 获取AI分析模块引用（不重复初始化）
     if (typeof window.aiAnalysis !== 'undefined') {
       this.aiAnalysisModule = window.aiAnalysis;
-      await this.aiAnalysisModule.init();
+      console.log('[App] AI分析模块已获取引用');
+    } else {
+      console.warn('[App] AI分析模块未找到');
     }
 
     this.loadInitialData();
