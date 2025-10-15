@@ -17,7 +17,9 @@ class AIAnalysisModule {
     console.log('初始化AI分析模块...');
 
     // 加载宏观风险分析
+    console.log('开始加载宏观风险分析...');
     await this.loadMacroRiskAnalysis();
+    console.log('宏观风险分析加载完成');
 
     // 设置定时更新
     this.startAutoUpdate();
@@ -34,13 +36,22 @@ class AIAnalysisModule {
    */
   async loadMacroRiskAnalysis(forceRefresh = false) {
     try {
+      console.log(`[AI分析] 开始加载宏观风险分析，强制刷新: ${forceRefresh}`);
       const forceParam = forceRefresh ? '&forceRefresh=true' : '';
-      const response = await fetch(`${this.apiBase}/macro-risk?symbols=BTCUSDT,ETHUSDT${forceParam}`);
+      const url = `${this.apiBase}/macro-risk?symbols=BTCUSDT,ETHUSDT${forceParam}`;
+      console.log(`[AI分析] 请求URL: ${url}`);
+      
+      const response = await fetch(url);
+      console.log(`[AI分析] 响应状态: ${response.status}`);
+      
       const result = await response.json();
+      console.log('[AI分析] API响应:', result);
 
       if (result.success) {
+        console.log('[AI分析] 开始渲染数据...');
         this.renderMacroRiskAnalysis(result.data);
         this.updateLastUpdateTime(result.lastUpdate);
+        console.log('[AI分析] 渲染完成');
       } else {
         console.error('加载宏观风险分析失败:', result.error);
         this.showError('宏观风险分析暂时不可用');
@@ -56,26 +67,39 @@ class AIAnalysisModule {
    * @param {Object} data - 分析数据
    */
   renderMacroRiskAnalysis(data) {
+    console.log('[AI分析] 开始渲染宏观风险分析，数据:', data);
     const container = document.getElementById('aiMacroAnalysis');
-    if (!container) return;
+    if (!container) {
+      console.error('[AI分析] 找不到容器元素 aiMacroAnalysis');
+      return;
+    }
 
     let html = '';
 
     // 渲染BTC分析（使用AI Agent分析数据）
     if (data.BTCUSDT && data.BTCUSDT.analysisData) {
+      console.log('[AI分析] 渲染BTC分析数据');
       html += this.renderRiskCard('BTC', data.BTCUSDT);
+    } else {
+      console.log('[AI分析] BTC数据不完整:', data.BTCUSDT);
     }
 
     // 渲染ETH分析（使用AI Agent分析数据）
     if (data.ETHUSDT && data.ETHUSDT.analysisData) {
+      console.log('[AI分析] 渲染ETH分析数据');
       html += this.renderRiskCard('ETH', data.ETHUSDT);
+    } else {
+      console.log('[AI分析] ETH数据不完整:', data.ETHUSDT);
     }
 
     if (html === '') {
       html = '<p class="no-data">暂无AI分析数据，请等待分析完成...</p>';
+      console.log('[AI分析] 没有有效数据，显示默认消息');
     }
 
+    console.log('[AI分析] 最终HTML长度:', html.length);
     container.innerHTML = html;
+    console.log('[AI分析] 内容已更新到容器');
   }
 
   /**
@@ -719,9 +743,11 @@ class AIAnalysisModule {
    * 绑定事件
    */
   bindEvents() {
+    console.log('[AI分析] 开始绑定事件...');
     // 刷新按钮（🆕 支持强制刷新AI分析）
     const refreshBtn = document.getElementById('refreshAIAnalysis');
     if (refreshBtn) {
+      console.log('[AI分析] 找到刷新按钮，绑定点击事件');
       refreshBtn.addEventListener('click', () => {
         console.log('[AI分析] 手动触发刷新（会检查数据新鲜度并按需触发新分析）');
         // 添加loading状态
@@ -734,7 +760,10 @@ class AIAnalysisModule {
           refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> 刷新';
         });
       });
+    } else {
+      console.error('[AI分析] 找不到刷新按钮 refreshAIAnalysis');
     }
+    console.log('[AI分析] 事件绑定完成');
   }
 
   /**
