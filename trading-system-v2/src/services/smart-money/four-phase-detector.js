@@ -701,8 +701,8 @@ class FourPhaseSmartMoneyDetector {
       const lows = klines.map(k => parseFloat(k[3]));
 
       // 计算EMA
-      const ema20 = TechnicalIndicators.ema(closes, 20);
-      const ema50 = TechnicalIndicators.ema(closes, 50);
+      const ema20 = TechnicalIndicators.calculateEMA(closes, 20);
+      const ema50 = TechnicalIndicators.calculateEMA(closes, 50);
 
       const currentPrice = closes[closes.length - 1];
       const ema20Value = ema20[ema20.length - 1];
