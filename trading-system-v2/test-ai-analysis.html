@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI分析测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-container { max-width: 800px; margin: 0 auto; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; margin: 10px 0; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        #aiMacroAnalysis { border: 1px solid #ddd; padding: 20px; margin: 20px 0; min-height: 100px; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>AI分析模块测试</h1>
+        
+        <div id="testResults"></div>
+        
+        <button onclick="testAIModule()">测试AI分析模块</button>
+        <button onclick="testRefresh()">测试刷新功能</button>
+        
+        <div id="aiMacroAnalysis">
+            <p>正在加载AI分析...</p>
+        </div>
+    </div>
+
+    <!-- 引入AI分析模块 -->
+    <script src="public/js/ai-analysis.js"></script>
+    
+    <script>
+        function log(message, type = 'info') {
+            const resultsDiv = document.getElementById('testResults');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultsDiv.appendChild(div);
+            console.log(message);
+        }
+
+        function testAIModule() {
+            log('开始测试AI分析模块...', 'info');
+            
+            // 检查全局对象
+            if (typeof window.aiAnalysis !== 'undefined') {
+                log('✓ AI分析模块已加载', 'success');
+                
+                // 检查方法
+                if (typeof window.aiAnalysis.loadMacroRiskAnalysis === 'function') {
+                    log('✓ loadMacroRiskAnalysis 方法存在', 'success');
+                } else {
+                    log('✗ loadMacroRiskAnalysis 方法不存在', 'error');
+                }
+                
+                if (typeof window.aiAnalysis.renderMacroRiskAnalysis === 'function') {
+                    log('✓ renderMacroRiskAnalysis 方法存在', 'success');
+                } else {
+                    log('✗ renderMacroRiskAnalysis 方法不存在', 'error');
+                }
+                
+                if (typeof window.aiAnalysis.bindEvents === 'function') {
+                    log('✓ bindEvents 方法存在', 'success');
+                } else {
+                    log('✗ bindEvents 方法不存在', 'error');
+                }
+                
+            } else {
+                log('✗ AI分析模块未加载', 'error');
+            }
+        }
+
+        function testRefresh() {
+            log('测试刷新功能...', 'info');
+            
+            if (typeof window.aiAnalysis !== 'undefined') {
+                window.aiAnalysis.loadMacroRiskAnalysis(true).then(() => {
+                    log('✓ 刷新功能测试成功', 'success');
+                }).catch(error => {
+                    log(`✗ 刷新功能测试失败: ${error.message}`, 'error');
+                });
+            } else {
+                log('✗ AI分析模块未加载，无法测试', 'error');
+            }
+        }
+
+        // 页面加载完成后自动测试
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                log('页面加载完成，开始自动测试...', 'info');
+                testAIModule();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
