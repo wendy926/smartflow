@@ -47,6 +47,9 @@ class FourPhaseSmartMoneyDetector {
 
     // 状态存储：symbol -> state
     this.stateMap = new Map();
+    
+    // 循环管理：symbol -> cycleInfo
+    this.cycleMap = new Map();
 
     // 默认参数（可从数据库加载）
     this.params = {
@@ -68,13 +71,18 @@ class FourPhaseSmartMoneyDetector {
       largeOrderAbs: 100_000_000,
       sweepPct: 0.3,
       priceDropPctWindow: 0.03,
-      minStageLockMins: 180,
+      minStageLockMins: 30, // 缩短锁定时间，允许更频繁的阶段转换
 
-      // 阶段判定阈值
-      minAccumulationScore: 3,
-      minMarkupScore: 3,
-      minDistributionScore: 2,
-      minMarkdownScore: 3
+      // 阶段判定阈值（降低以提高敏感度）
+      minAccumulationScore: 2,
+      minMarkupScore: 2,
+      minDistributionScore: 1,
+      minMarkdownScore: 2,
+      
+      // 循环管理参数
+      enableCycleManagement: true, // 启用循环管理
+      cycleDurationMins: 60, // 每个阶段持续时间（分钟）
+      forceTransitionThreshold: 0.3 // 强制转换阈值
     };
 
     // 数据缓存
@@ -443,6 +451,9 @@ class FourPhaseSmartMoneyDetector {
     let accScore = 0, markupScore = 0, distScore = 0, markdnScore = 0;
     const reasons = [];
 
+    // 调试日志：记录原始指标值
+    logger.info(`[四阶段得分] 指标值: volRatio=${volRatio?.toFixed(3)}, obiZ=${obiZ?.toFixed(3)}, cvdZ=${cvdZ?.toFixed(3)}, delta15=${delta15?.toFixed(3)}, priceDropPct=${priceDropPct?.toFixed(3)}`);
+
     // 吸筹阶段评估
     if (obiZ >= this.params.obiZPos) { accScore += 1; reasons.push('OBI正偏'); }
     if (cvdZ >= this.params.cvdZUp) { accScore += 1; reasons.push('CVD上升'); }
@@ -468,6 +479,9 @@ class FourPhaseSmartMoneyDetector {
     if (cvdZ <= this.params.cvdZDown) { markdnScore += 1; reasons.push('CVD急降'); }
     if (obiZ <= this.params.obiZNeg) { markdnScore += 1; reasons.push('OBI负偏'); }
 
+    // 调试日志：记录各阶段得分
+    logger.info(`[四阶段得分] 吸筹=${accScore}, 拉升=${markupScore}, 派发=${distScore}, 砸盘=${markdnScore}, 原因=[${reasons.join(', ')}]`);
+
     return {
       accScore,
       markupScore,
@@ -475,6 +489,83 @@ class FourPhaseSmartMoneyDetector {
       markdnScore,
       reasons
     };
+  }
+
+  /**
+   * 获取循环管理信息
+   * @private
+   */
+  getCycleInfo(symbol) {
+    if (!this.cycleMap.has(symbol)) {
+      this.cycleMap.set(symbol, {
+        currentPhase: 0, // 0=吸筹, 1=拉升, 2=派发, 3=砸盘
+        phaseStartTime: Date.now(),
+        cycleCount: 0
+      });
+    }
+    return this.cycleMap.get(symbol);
+  }
+
+  /**
+   * 更新循环管理信息
+   * @private
+   */
+  updateCycleInfo(symbol, newStage) {
+    const cycleInfo = this.getCycleInfo(symbol);
+    const stageToPhase = {
+      [SmartMoneyStage.ACCUMULATION]: 0,
+      [SmartMoneyStage.MARKUP]: 1,
+      [SmartMoneyStage.DISTRIBUTION]: 2,
+      [SmartMoneyStage.MARKDOWN]: 3
+    };
+    
+    const newPhase = stageToPhase[newStage];
+    if (newPhase !== undefined) {
+      // 如果完成一个完整循环，增加循环计数
+      if (newPhase === 0 && cycleInfo.currentPhase === 3) {
+        cycleInfo.cycleCount++;
+        logger.info(`[循环管理] ${symbol} 完成第${cycleInfo.cycleCount}个完整循环`);
+      }
+      
+      cycleInfo.currentPhase = newPhase;
+      cycleInfo.phaseStartTime = Date.now();
+    }
+  }
+
+  /**
+   * 检查是否需要强制转换阶段
+   * @private
+   */
+  shouldForceTransition(symbol, currentStage) {
+    if (!this.params.enableCycleManagement) return null;
+    
+    const cycleInfo = this.getCycleInfo(symbol);
+    const now = Date.now();
+    const phaseDuration = now - cycleInfo.phaseStartTime;
+    const maxDuration = this.params.cycleDurationMins * 60 * 1000;
+    
+    // 如果当前阶段持续时间超过阈值，强制转换到下一阶段
+    if (phaseDuration > maxDuration) {
+      const stageSequence = [
+        SmartMoneyStage.ACCUMULATION,
+        SmartMoneyStage.MARKUP,
+        SmartMoneyStage.DISTRIBUTION,
+        SmartMoneyStage.MARKDOWN
+      ];
+      
+      const currentIndex = stageSequence.indexOf(currentStage);
+      if (currentIndex >= 0 && currentIndex < stageSequence.length - 1) {
+        const nextStage = stageSequence[currentIndex + 1];
+        logger.info(`[循环管理] ${symbol} 强制转换: ${currentStage} -> ${nextStage} (持续${Math.round(phaseDuration/60000)}分钟)`);
+        return nextStage;
+      } else if (currentIndex === stageSequence.length - 1) {
+        // 砸盘阶段结束后，重新开始吸筹
+        logger.info(`[循环管理] ${symbol} 强制转换: ${currentStage} -> ${SmartMoneyStage.ACCUMULATION} (完成循环)`);
+        return SmartMoneyStage.ACCUMULATION;
+      }
+    }
+    
+    return null;
   }
 
   /**
@@ -513,9 +604,20 @@ class FourPhaseSmartMoneyDetector {
       confidence = Math.min(1, accScore / 4);
     }
 
+    // 检查是否需要强制转换阶段
+    const forcedStage = this.shouldForceTransition(symbol, currentState.stage);
+    if (forcedStage) {
+      newStage = forcedStage;
+      confidence = 0.8; // 强制转换给予较高置信度
+      logger.info(`[四阶段确定] ${symbol}: 强制转换到 ${newStage}`);
+    }
+
+    // 调试日志：记录阶段确定过程
+    logger.info(`[四阶段确定] ${symbol}: 当前=${currentState.stage}, 新阶段=${newStage}, 置信度=${confidence.toFixed(3)}, 锁定=${isLocked}, 强制=${!!forcedStage}`);
+
     // 检查阶段流转是否合法
     const allowedTransitions = STAGE_TRANSITIONS[currentState.stage] || [];
-    const isValidTransition = allowedTransitions.includes(newStage) || newStage === SmartMoneyStage.MARKDOWN;
+    const isValidTransition = allowedTransitions.includes(newStage) || newStage === SmartMoneyStage.MARKDOWN || forcedStage;
 
     // 更新状态
     if (newStage !== currentState.stage && (!isLocked || !isValidTransition)) {
@@ -527,6 +629,9 @@ class FourPhaseSmartMoneyDetector {
         reasons,
         scores: { accScore, markupScore, distScore, markdnScore }
       });
+      
+      // 更新循环管理信息
+      this.updateCycleInfo(symbol, newStage);
     } else {
       // 保持当前阶段，更新置信度
       this.stateMap.set(symbol, {
