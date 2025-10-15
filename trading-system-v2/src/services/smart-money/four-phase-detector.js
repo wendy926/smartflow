@@ -81,7 +81,7 @@ class FourPhaseSmartMoneyDetector {
       
       // 循环管理参数
       enableCycleManagement: true, // 启用循环管理
-      cycleDurationMins: 5, // 每个阶段持续时间（分钟）- 测试用
+      cycleDurationMins: 60, // 每个阶段持续时间（分钟）
       forceTransitionThreshold: 0.3 // 强制转换阈值
     };
 
