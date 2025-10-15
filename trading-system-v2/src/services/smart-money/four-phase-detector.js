@@ -642,7 +642,7 @@ class FourPhaseSmartMoneyDetector {
   analyzeTrend(marketData, indicators) {
     try {
       const { klines15m, klines1h, klines4h } = marketData;
-      
+
       // 分析多时间框架趋势
       const trends = {
         '15m': this.analyzeTimeframeTrend(klines15m, '15m'),
@@ -657,7 +657,7 @@ class FourPhaseSmartMoneyDetector {
 
       // 趋势一致性判断
       const aligned = (short === medium && medium === long) && short !== 0;
-      
+
       // 趋势强度（基于多个时间框架的确认）
       const strength = this.calculateTrendStrength(trends);
 
@@ -699,11 +699,11 @@ class FourPhaseSmartMoneyDetector {
       const closes = klines.map(k => parseFloat(k[4]));
       const highs = klines.map(k => parseFloat(k[2]));
       const lows = klines.map(k => parseFloat(k[3]));
-      
+
       // 计算EMA
       const ema20 = TechnicalIndicators.ema(closes, 20);
       const ema50 = TechnicalIndicators.ema(closes, 50);
-      
+
       const currentPrice = closes[closes.length - 1];
       const ema20Value = ema20[ema20.length - 1];
       const ema50Value = ema50[ema50.length - 1];
@@ -717,7 +717,7 @@ class FourPhaseSmartMoneyDetector {
       }
 
       // 趋势强度计算（基于价格与EMA的距离）
-      const strength = direction !== 0 ? 
+      const strength = direction !== 0 ?
         Math.abs((currentPrice - ema50Value) / ema50Value) * 100 : 0;
 
       return {
