@@ -27,12 +27,13 @@ const SmartMoneyStage = {
 
 /**
  * 阶段流转规则
+ * 严格按照四阶段循环：吸筹→拉升→派发→砸盘→吸筹
  */
 const STAGE_TRANSITIONS = {
   [SmartMoneyStage.NEUTRAL]: [SmartMoneyStage.ACCUMULATION],
   [SmartMoneyStage.ACCUMULATION]: [SmartMoneyStage.MARKUP, SmartMoneyStage.NEUTRAL],
   [SmartMoneyStage.MARKUP]: [SmartMoneyStage.DISTRIBUTION, SmartMoneyStage.MARKDOWN],
-  [SmartMoneyStage.DISTRIBUTION]: [SmartMoneyStage.MARKDOWN, SmartMoneyStage.ACCUMULATION],
+  [SmartMoneyStage.DISTRIBUTION]: [SmartMoneyStage.MARKDOWN], // 派发后只能进入砸盘
   [SmartMoneyStage.MARKDOWN]: [SmartMoneyStage.ACCUMULATION, SmartMoneyStage.NEUTRAL]
 };
 
@@ -47,7 +48,7 @@ class FourPhaseSmartMoneyDetector {
 
     // 状态存储：symbol -> state
     this.stateMap = new Map();
-    
+
     // 循环管理：symbol -> cycleInfo
     this.cycleMap = new Map();
 
@@ -78,7 +79,7 @@ class FourPhaseSmartMoneyDetector {
       minMarkupScore: 2,
       minDistributionScore: 1,
       minMarkdownScore: 2,
-      
+
       // 循环管理参数
       enableCycleManagement: true, // 启用循环管理
       cycleDurationMins: 60, // 每个阶段持续时间（分钟）
@@ -518,7 +519,7 @@ class FourPhaseSmartMoneyDetector {
       [SmartMoneyStage.DISTRIBUTION]: 2,
       [SmartMoneyStage.MARKDOWN]: 3
     };
-    
+
     const newPhase = stageToPhase[newStage];
     if (newPhase !== undefined) {
       // 如果完成一个完整循环，增加循环计数
@@ -526,7 +527,7 @@ class FourPhaseSmartMoneyDetector {
         cycleInfo.cycleCount++;
         logger.info(`[循环管理] ${symbol} 完成第${cycleInfo.cycleCount}个完整循环`);
       }
-      
+
       cycleInfo.currentPhase = newPhase;
       cycleInfo.phaseStartTime = Date.now();
     }
@@ -538,12 +539,12 @@ class FourPhaseSmartMoneyDetector {
    */
   shouldForceTransition(symbol, currentStage) {
     if (!this.params.enableCycleManagement) return null;
-    
+
     const cycleInfo = this.getCycleInfo(symbol);
     const now = Date.now();
     const phaseDuration = now - cycleInfo.phaseStartTime;
     const maxDuration = this.params.cycleDurationMins * 60 * 1000;
-    
+
     // 如果当前阶段持续时间超过阈值，强制转换到下一阶段
     if (phaseDuration > maxDuration) {
       const stageSequence = [
@@ -552,11 +553,11 @@ class FourPhaseSmartMoneyDetector {
         SmartMoneyStage.DISTRIBUTION,
         SmartMoneyStage.MARKDOWN
       ];
-      
+
       const currentIndex = stageSequence.indexOf(currentStage);
       if (currentIndex >= 0 && currentIndex < stageSequence.length - 1) {
         const nextStage = stageSequence[currentIndex + 1];
-        logger.info(`[循环管理] ${symbol} 强制转换: ${currentStage} -> ${nextStage} (持续${Math.round(phaseDuration/60000)}分钟)`);
+        logger.info(`[循环管理] ${symbol} 强制转换: ${currentStage} -> ${nextStage} (持续${Math.round(phaseDuration / 60000)}分钟)`);
         return nextStage;
       } else if (currentIndex === stageSequence.length - 1) {
         // 砸盘阶段结束后，重新开始吸筹
@@ -564,7 +565,7 @@ class FourPhaseSmartMoneyDetector {
         return SmartMoneyStage.ACCUMULATION;
       }
     }
-    
+
     return null;
   }
 
@@ -617,7 +618,7 @@ class FourPhaseSmartMoneyDetector {
 
     // 检查阶段流转是否合法
     const allowedTransitions = STAGE_TRANSITIONS[currentState.stage] || [];
-    const isValidTransition = allowedTransitions.includes(newStage) || newStage === SmartMoneyStage.MARKDOWN || forcedStage;
+    const isValidTransition = allowedTransitions.includes(newStage) || forcedStage;
 
     // 更新状态
     if (newStage !== currentState.stage && (!isLocked || !isValidTransition)) {
@@ -629,7 +630,7 @@ class FourPhaseSmartMoneyDetector {
         reasons,
         scores: { accScore, markupScore, distScore, markdnScore }
       });
-      
+
       // 更新循环管理信息
       this.updateCycleInfo(symbol, newStage);
     } else {
