@@ -110,6 +110,12 @@ class FourPhaseSmartMoneyDetector {
       // 初始化默认监控交易对
       await this.initializeWatchList();
 
+      // 加载持久化状态
+      await this.loadStatesFromDatabase();
+
+      // 启动状态持久化
+      this.startStatePersistence();
+
       logger.info('[四阶段聪明钱] 检测器初始化完成');
     } catch (error) {
       logger.error('[四阶段聪明钱] 初始化失败:', error);
@@ -633,6 +639,9 @@ class FourPhaseSmartMoneyDetector {
 
       // 更新循环管理信息
       this.updateCycleInfo(symbol, newStage);
+      
+      // 保存状态到数据库
+      this.saveStatesToDatabase();
     } else {
       // 保持当前阶段，更新置信度
       this.stateMap.set(symbol, {
@@ -880,6 +889,110 @@ class FourPhaseSmartMoneyDetector {
     } else {
       return '震荡趋势';
     }
+  }
+
+  /**
+   * 从数据库加载状态
+   */
+  async loadStatesFromDatabase() {
+    try {
+      // 创建状态表（如果不存在）
+      await this.database.pool.query(`
+        CREATE TABLE IF NOT EXISTS four_phase_states (
+          symbol VARCHAR(20) PRIMARY KEY,
+          stage VARCHAR(20) NOT NULL,
+          since BIGINT NOT NULL,
+          confidence DECIMAL(5,3) NOT NULL,
+          reasons JSON,
+          scores JSON,
+          cycle_phase INT DEFAULT 0,
+          cycle_start_time BIGINT DEFAULT 0,
+          cycle_count INT DEFAULT 0,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+
+      // 加载状态
+      const [rows] = await this.database.pool.query(`
+        SELECT symbol, stage, since, confidence, reasons, scores, 
+               cycle_phase, cycle_start_time, cycle_count
+        FROM four_phase_states
+      `);
+
+      for (const row of rows) {
+        // 恢复状态
+        this.stateMap.set(row.symbol, {
+          stage: row.stage,
+          since: row.since,
+          confidence: row.confidence,
+          reasons: row.reasons ? JSON.parse(row.reasons) : [],
+          scores: row.scores ? JSON.parse(row.scores) : {}
+        });
+
+        // 恢复循环管理信息
+        this.cycleMap.set(row.symbol, {
+          currentPhase: row.cycle_phase,
+          phaseStartTime: row.cycle_start_time,
+          cycleCount: row.cycle_count
+        });
+      }
+
+      logger.info(`[四阶段聪明钱] 从数据库加载了${rows.length}个交易对的状态`);
+    } catch (error) {
+      logger.warn('[四阶段聪明钱] 加载状态失败，使用默认状态:', error.message);
+    }
+  }
+
+  /**
+   * 保存状态到数据库
+   */
+  async saveStatesToDatabase() {
+    try {
+      for (const [symbol, state] of this.stateMap) {
+        const cycleInfo = this.cycleMap.get(symbol) || {
+          currentPhase: 0,
+          phaseStartTime: Date.now(),
+          cycleCount: 0
+        };
+
+        await this.database.pool.query(`
+          INSERT INTO four_phase_states 
+          (symbol, stage, since, confidence, reasons, scores, 
+           cycle_phase, cycle_start_time, cycle_count)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+          stage = VALUES(stage),
+          since = VALUES(since),
+          confidence = VALUES(confidence),
+          reasons = VALUES(reasons),
+          scores = VALUES(scores),
+          cycle_phase = VALUES(cycle_phase),
+          cycle_start_time = VALUES(cycle_start_time),
+          cycle_count = VALUES(cycle_count)
+        `, [
+          symbol,
+          state.stage,
+          state.since,
+          state.confidence,
+          JSON.stringify(state.reasons || []),
+          JSON.stringify(state.scores || {}),
+          cycleInfo.currentPhase,
+          cycleInfo.phaseStartTime,
+          cycleInfo.cycleCount
+        ]);
+      }
+    } catch (error) {
+      logger.error('[四阶段聪明钱] 保存状态失败:', error);
+    }
+  }
+
+  /**
+   * 定期保存状态（每5分钟）
+   */
+  startStatePersistence() {
+    setInterval(() => {
+      this.saveStatesToDatabase();
+    }, 5 * 60 * 1000); // 5分钟
   }
 }
 
