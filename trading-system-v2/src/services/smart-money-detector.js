@@ -23,6 +23,10 @@ class SmartMoneyDetector {
     // 状态存储（内存，实时计算，不存数据库）
     this.state = new Map();
 
+    // 四阶段检测器
+    const { FourPhaseSmartMoneyDetector } = require('./smart-money/four-phase-detector');
+    this.fourPhaseDetector = new FourPhaseSmartMoneyDetector(database, this.binanceAPI, largeOrderDetector);
+
     // 默认参数（可从数据库加载）
     this.params = {
       klineInterval: '15m',
@@ -63,6 +67,9 @@ class SmartMoneyDetector {
     try {
       // 从数据库加载参数
       await this.loadParams();
+
+      // 初始化四阶段检测器
+      await this.fourPhaseDetector.initialize();
 
       // 从数据库加载监控列表
       const watchList = await this.loadWatchList();
