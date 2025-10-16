@@ -601,7 +601,7 @@ class FourPhaseSmartMoneyDetector {
 
     // 获取当前阶段允许的转换
     const allowedTransitions = STAGE_TRANSITIONS[currentState.stage] || [];
-    
+
     // 按照优先级检查允许的转换
     if (allowedTransitions.includes(SmartMoneyStage.MARKDOWN) && markdnScore >= this.params.minMarkdownScore) {
       newStage = SmartMoneyStage.MARKDOWN;

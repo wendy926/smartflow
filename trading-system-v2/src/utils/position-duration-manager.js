@@ -17,14 +17,14 @@ const POSITION_DURATION_CONFIG = {
       maxDurationHours: 168, // 7天
       minDurationHours: 24,  // 1天
       timeStopMinutes: 60,   // 1小时时间止损
-      profitTarget: 1.5,     // 1.5倍ATR止盈
-      stopLoss: 2.0          // 2倍ATR止损
+      profitTarget: 4.5,     // 4.5倍ATR止盈（3:1盈亏比）
+      stopLoss: 1.5          // 1.5倍ATR止损
     },
     rangeMarket: {
       maxDurationHours: 12,  // 12小时
       minDurationHours: 1,   // 1小时
       timeStopMinutes: 30,   // 30分钟时间止损
-      profitTarget: 1.0,     // 1倍ATR止盈
+      profitTarget: 4.5,     // 4.5倍ATR止盈（3:1盈亏比）
       stopLoss: 1.5          // 1.5倍ATR止损
     }
   },
@@ -36,15 +36,15 @@ const POSITION_DURATION_CONFIG = {
       maxDurationHours: 72,  // 3天
       minDurationHours: 12,  // 0.5天
       timeStopMinutes: 120,  // 2小时时间止损
-      profitTarget: 2.0,     // 2倍ATR止盈
-      stopLoss: 2.5          // 2.5倍ATR止损
+      profitTarget: 6.0,     // 6倍ATR止盈（3:1盈亏比）
+      stopLoss: 2.0          // 2倍ATR止损
     },
     rangeMarket: {
       maxDurationHours: 6,   // 6小时
       minDurationHours: 1,   // 1小时
       timeStopMinutes: 45,   // 45分钟时间止损
-      profitTarget: 1.2,     // 1.2倍ATR止盈
-      stopLoss: 1.8          // 1.8倍ATR止损
+      profitTarget: 6.0,     // 6倍ATR止盈（3:1盈亏比）
+      stopLoss: 2.0          // 2倍ATR止损
     }
   },
 
@@ -55,15 +55,15 @@ const POSITION_DURATION_CONFIG = {
       maxDurationHours: 24,  // 24小时
       minDurationHours: 6,   // 6小时
       timeStopMinutes: 180,  // 3小时时间止损
-      profitTarget: 2.5,     // 2.5倍ATR止盈
-      stopLoss: 3.0          // 3倍ATR止损
+      profitTarget: 7.5,     // 7.5倍ATR止盈（3:1盈亏比）
+      stopLoss: 2.5          // 2.5倍ATR止损
     },
     rangeMarket: {
       maxDurationHours: 3,   // 3小时
       minDurationHours: 1,   // 1小时
       timeStopMinutes: 60,   // 1小时时间止损
-      profitTarget: 1.5,     // 1.5倍ATR止盈
-      stopLoss: 2.0          // 2倍ATR止损
+      profitTarget: 7.5,     // 7.5倍ATR止盈（3:1盈亏比）
+      stopLoss: 2.5          // 2.5倍ATR止损
     }
   },
 
@@ -74,14 +74,14 @@ const POSITION_DURATION_CONFIG = {
       maxDurationHours: 12,  // 12小时（仅震荡市，不做趋势）
       minDurationHours: 0.5, // 0.5小时
       timeStopMinutes: 30,   // 30分钟时间止损
-      profitTarget: 1.0,     // 1倍ATR止盈
+      profitTarget: 4.5,     // 4.5倍ATR止盈（3:1盈亏比）
       stopLoss: 1.5          // 1.5倍ATR止损
     },
     rangeMarket: {
       maxDurationHours: 2,   // 2小时
       minDurationHours: 0.5, // 0.5小时
       timeStopMinutes: 30,   // 30分钟时间止损
-      profitTarget: 1.0,     // 1倍ATR止盈
+      profitTarget: 4.5,     // 4.5倍ATR止盈（3:1盈亏比）
       stopLoss: 1.5          // 1.5倍ATR止损
     }
   }
