@@ -621,7 +621,7 @@ class FourPhaseSmartMoneyDetector {
     const isValidTransition = allowedTransitions.includes(newStage) || forcedStage;
 
     // 更新状态
-    if (newStage !== currentState.stage && (!isLocked || !isValidTransition)) {
+    if (newStage !== currentState.stage && (!isLocked || isValidTransition)) {
       // 阶段变化且（未锁定或允许流转）
       this.stateMap.set(symbol, {
         stage: newStage,

@@ -40,10 +40,10 @@ class AIAnalysisModule {
       const forceParam = forceRefresh ? '&forceRefresh=true' : '';
       const url = `${this.apiBase}/macro-risk?symbols=BTCUSDT,ETHUSDT${forceParam}`;
       console.log(`[AI分析] 请求URL: ${url}`);
-      
+
       const response = await fetch(url);
       console.log(`[AI分析] 响应状态: ${response.status}`);
-      
+
       const result = await response.json();
       console.log('[AI分析] API响应:', result);
 
