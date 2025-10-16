@@ -591,24 +591,34 @@ class FourPhaseSmartMoneyDetector {
 
     const now = Date.now();
     const timeSinceLastChange = now - currentState.since;
-    const isLocked = timeSinceLastChange < (this.params.minStageLockMins * 60 * 1000);
+    const isTimeLocked = timeSinceLastChange < (this.params.minStageLockMins * 60 * 1000);
+    const isConfidenceLocked = currentState.confidence >= 0.7; // 置信度高于70%才锁定
+    const isLocked = isTimeLocked && isConfidenceLocked;
 
-    // 确定新阶段（优先级：砸盘 > 拉升 > 派发 > 吸筹）
+    // 确定新阶段（基于当前阶段和流转规则）
     let newStage = SmartMoneyStage.NEUTRAL;
     let confidence = 0.2;
 
-    if (markdnScore >= this.params.minMarkdownScore) {
+    // 获取当前阶段允许的转换
+    const allowedTransitions = STAGE_TRANSITIONS[currentState.stage] || [];
+    
+    // 按照优先级检查允许的转换
+    if (allowedTransitions.includes(SmartMoneyStage.MARKDOWN) && markdnScore >= this.params.minMarkdownScore) {
       newStage = SmartMoneyStage.MARKDOWN;
       confidence = Math.min(1, markdnScore / 4);
-    } else if (markupScore >= this.params.minMarkupScore) {
+    } else if (allowedTransitions.includes(SmartMoneyStage.MARKUP) && markupScore >= this.params.minMarkupScore) {
       newStage = SmartMoneyStage.MARKUP;
       confidence = Math.min(1, markupScore / 4);
-    } else if (distScore >= this.params.minDistributionScore) {
+    } else if (allowedTransitions.includes(SmartMoneyStage.DISTRIBUTION) && distScore >= this.params.minDistributionScore) {
       newStage = SmartMoneyStage.DISTRIBUTION;
       confidence = Math.min(1, distScore / 3);
-    } else if (accScore >= this.params.minAccumulationScore) {
+    } else if (allowedTransitions.includes(SmartMoneyStage.ACCUMULATION) && accScore >= this.params.minAccumulationScore) {
       newStage = SmartMoneyStage.ACCUMULATION;
       confidence = Math.min(1, accScore / 4);
+    } else if (allowedTransitions.includes(SmartMoneyStage.NEUTRAL)) {
+      // 如果没有其他阶段满足条件，可以转换到中性
+      newStage = SmartMoneyStage.NEUTRAL;
+      confidence = 0.1;
     }
 
     // 检查是否需要强制转换阶段
@@ -622,9 +632,8 @@ class FourPhaseSmartMoneyDetector {
     // 调试日志：记录阶段确定过程
     logger.info(`[四阶段确定] ${symbol}: 当前=${currentState.stage}, 新阶段=${newStage}, 置信度=${confidence.toFixed(3)}, 锁定=${isLocked}, 强制=${!!forcedStage}`);
 
-    // 检查阶段流转是否合法
-    const allowedTransitions = STAGE_TRANSITIONS[currentState.stage] || [];
-    const isValidTransition = allowedTransitions.includes(newStage) || forcedStage;
+    // 检查阶段流转是否合法（已经在上面检查过了）
+    const isValidTransition = true; // 因为newStage已经基于allowedTransitions确定
 
     // 更新状态
     if (newStage !== currentState.stage && (!isLocked || isValidTransition)) {
@@ -639,7 +648,7 @@ class FourPhaseSmartMoneyDetector {
 
       // 更新循环管理信息
       this.updateCycleInfo(symbol, newStage);
-      
+
       // 保存状态到数据库
       this.saveStatesToDatabase();
     } else {

@@ -27,10 +27,10 @@ class FourPhaseTelegramNotifier {
       confidenceThreshold: 0.6, // 置信度阈值
       cooldownMinutes: 60, // 冷却时间（分钟）
       stages: {
-        [SmartMoneyStage.ACCUMULATION]: { enabled: true, emoji: '📈' },
-        [SmartMoneyStage.MARKUP]: { enabled: true, emoji: '🚀' },
-        [SmartMoneyStage.DISTRIBUTION]: { enabled: true, emoji: '⚠️' },
-        [SmartMoneyStage.MARKDOWN]: { enabled: true, emoji: '📉' }
+        [SmartMoneyStage.ACCUMULATION]: { enabled: false, emoji: '📈' }, // 禁用吸筹通知
+        [SmartMoneyStage.MARKUP]: { enabled: true, emoji: '🚀' }, // 启用拉升通知
+        [SmartMoneyStage.DISTRIBUTION]: { enabled: false, emoji: '⚠️' }, // 禁用派发通知
+        [SmartMoneyStage.MARKDOWN]: { enabled: true, emoji: '📉' } // 启用砸盘通知
       }
     };
 
