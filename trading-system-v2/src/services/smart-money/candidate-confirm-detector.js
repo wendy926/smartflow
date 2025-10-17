@@ -199,7 +199,15 @@ class CandidateConfirmDetector extends EventEmitter {
 
       // 检查候选条件
       const candidateChecks = this.evaluateCandidates(symbol, metrics, deltas);
-
+      
+      logger.info(`[候选确认检测器] ${symbol} 候选条件评估:`, {
+        accumulate: candidateChecks.accumulate.candidate,
+        markup: candidateChecks.markup.candidate,
+        distribution: candidateChecks.distribution.candidate,
+        markdown: candidateChecks.markdown.candidate,
+        hasExistingCandidate: this.candidateMap.has(symbol)
+      });
+      
       // 处理现有候选
       if (this.candidateMap.has(symbol)) {
         this.processExistingCandidate(symbol, metrics, candidateChecks, deltas);
