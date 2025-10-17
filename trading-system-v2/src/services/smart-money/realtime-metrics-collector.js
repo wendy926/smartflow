@@ -179,10 +179,19 @@ class RealtimeMetricsCollector {
 
       // 计算指标
       const metrics = this.calculateMetrics(symbol, cache);
-
+      
+      logger.info(`[实时指标收集器] ${symbol} 指标计算完成:`, {
+        metrics: metrics ? 'success' : 'null',
+        hasKlines: cache.klines && cache.klines.length > 0,
+        hasTicker: !!cache.ticker,
+        hasOrderBook: !!cache.orderBook
+      });
+      
       // 传递给检测器
       if (metrics) {
         this.detector.onNewMetrics(symbol, metrics);
+      } else {
+        logger.warn(`[实时指标收集器] ${symbol} 指标计算失败，跳过检测`);
       }
 
     } catch (error) {
