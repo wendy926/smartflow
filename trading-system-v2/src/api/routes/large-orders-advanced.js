@@ -58,13 +58,17 @@ function initRoutes() {
       const now = Date.now();
 
       // 第一遍：收集所有挂单的生命周期信息
+      let totalEntries = 0;
+      let validEntries = 0;
       for (const row of rows) {
         try {
           const trackedEntries = JSON.parse(row.trackedEntries || '[]');
           const recordTime = new Date(row.created_at).getTime();
+          totalEntries += trackedEntries.length;
 
           for (const entry of trackedEntries) {
             if (entry.valueUSD >= minAmountUsd) {
+              validEntries++;
               // 改进的订单识别：使用价格范围（±0.5%）来匹配订单
               const priceTolerance = entry.price * 0.005; // 0.5%的价格容差
               const priceKey = `${row.symbol}@${entry.side}@${Math.round(entry.price / priceTolerance)}`;
@@ -111,6 +115,8 @@ function initRoutes() {
           });
         }
       }
+
+      logger.info(`[PersistentOrders] 总共${totalEntries}个订单，其中${validEntries}个超过${minAmountUsd}USD`);
 
       // 第二遍：筛选真正持续的挂单
       const persistentOrders = new Map();
