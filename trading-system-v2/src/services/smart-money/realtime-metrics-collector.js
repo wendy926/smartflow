@@ -178,7 +178,7 @@ class RealtimeMetricsCollector {
       cache.lastUpdate = now;
 
       // 计算指标
-      const metrics = this.calculateMetrics(symbol, cache);
+      const metrics = await this.calculateMetrics(symbol, cache);
       
       logger.info(`[实时指标收集器] ${symbol} 指标计算完成:`, {
         metrics: metrics ? 'success' : 'null',
@@ -281,46 +281,46 @@ class RealtimeMetricsCollector {
   /**
    * 计算指标
    */
-  calculateMetrics(symbol, cache) {
+  async calculateMetrics(symbol, cache) {
     const klines = cache.klines;
     const ticker = cache.ticker;
-
+    
     if (!klines || klines.length === 0 || !ticker) {
       return null;
     }
-
+    
     const now = Date.now();
     const currentPrice = ticker.price;
     const currentVolume = ticker.volume;
-
+    
     // 计算CVD（累积成交量差）
     const cvd = this.calculateCVD(klines);
-
+    
     // 计算CVD Z-Score
     const cvdZ = this.calculateCVDZScore(klines, cvd);
-
+    
     // 计算OBI（订单簿不平衡）
     const obi = this.calculateOBI(cache.orderBook);
-
+    
     // 计算OBI Z-Score
     const obiZ = this.calculateOBIZScore(klines, obi);
-
+    
     // 计算成交量比率
     const volAvg = this.calculateVolAvg(klines);
     const volRatio = currentVolume / volAvg;
-
+    
     // 计算Delta（15分钟）
     const delta15 = this.calculateDelta15(klines);
-
+    
     // 计算价格跌幅
     const priceDropPct = this.calculatePriceDropPct(klines);
-
+    
     // 计算ATR（15分钟）
     const atr15 = this.calculateATR15(klines);
-
+    
     // 获取持仓量变化
-    const oiChange = this.calculateOIChange(symbol);
-
+    const oiChange = await this.calculateOIChange(symbol);
+    
     // 计算趋势得分
     const trendScore = this.calculateTrendScore(klines);
 
@@ -498,13 +498,33 @@ class RealtimeMetricsCollector {
   /**
    * 计算持仓量变化
    */
-  calculateOIChange(symbol) {
-    // 简化实现，实际应该从数据库或API获取
-    return {
-      current: 0,
-      prev: 0,
-      change: 0
-    };
+  async calculateOIChange(symbol) {
+    try {
+      const oi = await this.binanceAPI.getOpenInterest(symbol);
+      const history = this.metricsHistory.get(symbol) || [];
+      const prevMetrics = history[history.length - 1];
+      
+      if (!prevMetrics || !prevMetrics.OI) {
+        return {
+          current: oi.openInterest,
+          prev: oi.openInterest,
+          change: 0
+        };
+      }
+      
+      return {
+        current: oi.openInterest,
+        prev: prevMetrics.OI,
+        change: (oi.openInterest - prevMetrics.OI) / prevMetrics.OI
+      };
+    } catch (error) {
+      logger.error(`[实时指标收集器] 计算${symbol}持仓量变化失败:`, error);
+      return {
+        current: 0,
+        prev: 0,
+        change: 0
+      };
+    }
   }
 
   /**
