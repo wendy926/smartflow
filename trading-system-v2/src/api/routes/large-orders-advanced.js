@@ -62,11 +62,24 @@ function initRoutes() {
 
           for (const entry of trackedEntries) {
             if (entry.valueUSD >= minAmountUsd) {
-              const key = `${row.symbol}@${entry.side}@${entry.price}`;
+              // 改进的订单识别：使用价格范围（±0.5%）来匹配订单
+              const priceTolerance = entry.price * 0.005; // 0.5%的价格容差
+              const priceKey = `${row.symbol}@${entry.side}@${Math.round(entry.price / priceTolerance)}`;
+              
+              // 查找是否存在相似的订单（价格差异在0.5%以内）
+              let matchedKey = null;
+              for (const [key, order] of orderLifecycle.entries()) {
+                if (order.symbol === row.symbol && 
+                    order.side === entry.side && 
+                    Math.abs(order.price - entry.price) / order.price <= 0.005) {
+                  matchedKey = key;
+                  break;
+                }
+              }
 
-              if (!orderLifecycle.has(key)) {
+              if (!matchedKey) {
                 // 首次发现这个挂单
-                orderLifecycle.set(key, {
+                orderLifecycle.set(priceKey, {
                   symbol: row.symbol,
                   side: entry.side,
                   price: entry.price,
@@ -79,7 +92,7 @@ function initRoutes() {
                 });
               } else {
                 // 更新挂单信息
-                const order = orderLifecycle.get(key);
+                const order = orderLifecycle.get(matchedKey);
                 order.lastSeen = Math.max(order.lastSeen, recordTime);
                 order.maxValueUSD = Math.max(order.maxValueUSD, entry.valueUSD);
                 order.currentValueUSD = entry.valueUSD; // 使用最新记录的价值
