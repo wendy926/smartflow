@@ -177,6 +177,14 @@ class CandidateConfirmDetector extends EventEmitter {
    */
   onNewMetrics(symbol, metrics) {
     try {
+      logger.info(`[候选确认检测器] 收到${symbol}指标:`, {
+        time: metrics.time,
+        price: metrics.price,
+        volume: metrics.volume,
+        dCVD: metrics.prevCVD !== undefined ? (metrics.CVD - metrics.prevCVD) : 'N/A',
+        dOI: metrics.oiChange
+      });
+      
       // 验证指标完整性
       if (!this.validateMetrics(metrics)) {
         logger.warn(`[候选确认检测器] ${symbol} 指标不完整:`, metrics);
