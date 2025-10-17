@@ -50,13 +50,8 @@ function initRoutes() {
         ORDER BY created_at ASC
       `;
 
-      // 获取原始连接以支持typeCast
       logger.info(`[PersistentOrders] 准备查询，参数: ${JSON.stringify([...symbolList, queryDays])}`);
-      logger.info(`[PersistentOrders] database.pool: ${database.pool ? 'exists' : 'null'}`);
-      const connection = await database.pool.getConnection();
-      const [rows] = await connection.query(sql, [...symbolList, queryDays]);
-      connection.release();
-
+      const rows = await database.query(sql, [...symbolList, queryDays]);
       logger.info(`[PersistentOrders] 查询到${rows.length}条记录`);
       if (rows.length > 0) {
         logger.info(`[PersistentOrders] 第一条记录示例:`, {
@@ -245,10 +240,7 @@ function initRoutes() {
         LIMIT 100
       `;
 
-      // 获取原始连接以支持typeCast
-      const connection = await database.pool.getConnection();
-      const [rows] = await connection.query(sql, symbolList);
-      connection.release();
+      const rows = await database.query(sql, symbolList);
 
       // 处理数据，找出超大额挂单
       const megaOrders = new Map();
