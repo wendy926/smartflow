@@ -40,7 +40,7 @@ function initRoutes() {
       const sql = `
         SELECT 
           symbol,
-          JSON_EXTRACT(detection_data, '$.trackedEntries') as trackedEntries,
+          CAST(JSON_EXTRACT(detection_data, '$.trackedEntries') AS CHAR) as trackedEntries,
           created_at
         FROM large_order_detection_results 
         WHERE symbol IN (${symbolList.map(() => '?').join(',')})
@@ -229,7 +229,7 @@ function initRoutes() {
       const sql = `
         SELECT 
           symbol,
-          JSON_EXTRACT(detection_data, '$.trackedEntries') as trackedEntries,
+          CAST(JSON_EXTRACT(detection_data, '$.trackedEntries') AS CHAR) as trackedEntries,
           created_at
         FROM large_order_detection_results 
         WHERE symbol IN (${symbolList.map(() => '?').join(',')})
