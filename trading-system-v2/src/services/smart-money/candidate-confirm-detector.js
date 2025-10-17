@@ -184,7 +184,7 @@ class CandidateConfirmDetector extends EventEmitter {
         dCVD: metrics.prevCVD !== undefined ? (metrics.CVD - metrics.prevCVD) : 'N/A',
         dOI: metrics.oiChange
       });
-      
+
       // 验证指标完整性
       if (!this.validateMetrics(metrics)) {
         logger.warn(`[候选确认检测器] ${symbol} 指标不完整:`, metrics);
@@ -193,20 +193,20 @@ class CandidateConfirmDetector extends EventEmitter {
 
       // 计算变化量
       const deltas = this.calculateDeltas(symbol, metrics);
-      
+
       logger.info(`[候选确认检测器] ${symbol} 变化量:`, {
         dPrice: deltas.dPrice,
         dCVD: deltas.dCVD,
         dOI: deltas.dOI,
         volRatio: deltas.volRatio
       });
-      
+
       // 保存指标历史
       this.saveMetricsHistory(symbol, metrics);
 
       // 检查候选条件
       const candidateChecks = this.evaluateCandidates(symbol, metrics, deltas);
-      
+
       logger.info(`[候选确认检测器] ${symbol} 候选条件评估:`, {
         accumulate: candidateChecks.accumulate.candidate,
         markup: candidateChecks.markup.candidate,
@@ -214,7 +214,7 @@ class CandidateConfirmDetector extends EventEmitter {
         markdown: candidateChecks.markdown.candidate,
         hasExistingCandidate: this.candidateMap.has(symbol)
       });
-      
+
       // 处理现有候选
       if (this.candidateMap.has(symbol)) {
         this.processExistingCandidate(symbol, metrics, candidateChecks, deltas);

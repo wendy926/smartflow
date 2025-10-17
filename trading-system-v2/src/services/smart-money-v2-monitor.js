@@ -175,13 +175,21 @@ class SmartMoneyV2Monitor {
 
       logger.info(`[聪明钱V2监控] ${event.symbol} 阶段变化: ${event.from} -> ${event.to} (置信度: ${event.confidence.toFixed(2)})`);
 
-      // 发送Telegram通知
-      if (this.telegramService) {
+      // 只在拉升和砸盘时发送Telegram通知
+      if (this.telegramService && this.shouldNotifyPhase(event.to)) {
         this.sendPhaseChangeNotification(event);
       }
     } catch (error) {
       logger.error('[聪明钱V2监控] 处理阶段变化事件失败:', error);
     }
+  }
+
+  /**
+   * 判断是否应该发送通知
+   * 只在拉升和砸盘时发送通知
+   */
+  shouldNotifyPhase(phase) {
+    return phase === Phase.MARKUP || phase === Phase.MARKDOWN;
   }
 
   /**
@@ -225,7 +233,15 @@ ${emoji} **聪明钱阶段变化**
 时间: ${new Date(event.time).toLocaleString('zh-CN')}
       `.trim();
 
-      await this.telegramService.sendMessage(message);
+      // 使用交易触发bot配置
+      await this.telegramService.sendTradingAlert({
+        symbol: event.symbol,
+        action: phaseName,
+        confidence: event.confidence,
+        custom_message: message
+      });
+      
+      logger.info(`[聪明钱V2监控] ${event.symbol} ${phaseName}通知已发送 (置信度: ${(event.confidence * 100).toFixed(1)}%)`);
     } catch (error) {
       logger.error('[聪明钱V2监控] 发送阶段变化通知失败:', error);
     }

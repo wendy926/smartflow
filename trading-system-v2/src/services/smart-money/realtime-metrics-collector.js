@@ -179,14 +179,14 @@ class RealtimeMetricsCollector {
 
       // 计算指标
       const metrics = await this.calculateMetrics(symbol, cache);
-      
+
       logger.info(`[实时指标收集器] ${symbol} 指标计算完成:`, {
         metrics: metrics ? 'success' : 'null',
         hasKlines: cache.klines && cache.klines.length > 0,
         hasTicker: !!cache.ticker,
         hasOrderBook: !!cache.orderBook
       });
-      
+
       // 传递给检测器
       if (metrics) {
         this.detector.onNewMetrics(symbol, metrics);
@@ -284,43 +284,43 @@ class RealtimeMetricsCollector {
   async calculateMetrics(symbol, cache) {
     const klines = cache.klines;
     const ticker = cache.ticker;
-    
+
     if (!klines || klines.length === 0 || !ticker) {
       return null;
     }
-    
+
     const now = Date.now();
     const currentPrice = ticker.price;
     const currentVolume = ticker.volume;
-    
+
     // 计算CVD（累积成交量差）
     const cvd = this.calculateCVD(klines);
-    
+
     // 计算CVD Z-Score
     const cvdZ = this.calculateCVDZScore(klines, cvd);
-    
+
     // 计算OBI（订单簿不平衡）
     const obi = this.calculateOBI(cache.orderBook);
-    
+
     // 计算OBI Z-Score
     const obiZ = this.calculateOBIZScore(klines, obi);
-    
+
     // 计算成交量比率
     const volAvg = this.calculateVolAvg(klines);
     const volRatio = currentVolume / volAvg;
-    
+
     // 计算Delta（15分钟）
     const delta15 = this.calculateDelta15(klines);
-    
+
     // 计算价格跌幅
     const priceDropPct = this.calculatePriceDropPct(klines);
-    
+
     // 计算ATR（15分钟）
     const atr15 = this.calculateATR15(klines);
-    
+
     // 获取持仓量变化
     const oiChange = await this.calculateOIChange(symbol);
-    
+
     // 计算趋势得分
     const trendScore = this.calculateTrendScore(klines);
 
@@ -503,7 +503,7 @@ class RealtimeMetricsCollector {
       const oi = await this.binanceAPI.getOpenInterest(symbol);
       const history = this.dataCache.get(symbol)?.metricsHistory || [];
       const prevMetrics = history[history.length - 1];
-      
+
       if (!prevMetrics || !prevMetrics.OI) {
         return {
           current: oi.openInterest,
@@ -511,7 +511,7 @@ class RealtimeMetricsCollector {
           change: 0
         };
       }
-      
+
       return {
         current: oi.openInterest,
         prev: prevMetrics.OI,
