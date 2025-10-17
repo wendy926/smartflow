@@ -135,13 +135,16 @@ function initRoutes() {
       for (const [key, order] of orderLifecycle.entries()) {
         // 检查是否满足持续条件
         const duration = order.lastSeen - order.firstSeen;
+        const durationDays = Math.floor(duration / (24 * 60 * 60 * 1000));
         const isStillActive = (now - order.lastSeen) <= (2 * 60 * 60 * 1000); // 2小时内还有记录
+
+        logger.info(`[PersistentOrders] 检查订单: ${order.symbol} ${order.side} ${order.price}, 持续时间: ${durationDays}天, 仍然活跃: ${isStillActive}, 最小天数: ${minDays}`);
 
         // 条件1：持续时间 >= minDays
         // 条件2：最近2小时内还有记录（说明可能还在活跃）
         // 条件3：或者持续时间 >= minDays * 1.5（即使不再活跃，但确实持续了很久）
         if (duration >= minDaysMs && (isStillActive || duration >= minDaysMs * 1.5)) {
-          logger.info(`[PersistentOrders] 找到持续订单: ${order.symbol} ${order.side} ${order.price}, 持续时间: ${Math.floor(duration / (24 * 60 * 60 * 1000))}天`);
+          logger.info(`[PersistentOrders] 找到持续订单: ${order.symbol} ${order.side} ${order.price}, 持续时间: ${durationDays}天`);
           persistentOrders.set(key, {
             symbol: order.symbol,
             side: order.side,
