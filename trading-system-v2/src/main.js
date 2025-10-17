@@ -22,6 +22,7 @@ const TelegramAlert = require('./services/telegram-alert');
 const TelegramMonitoringService = require('./services/telegram-monitoring');
 const SmartMoneyDetector = require('./services/smart-money-detector');
 const LargeOrderDetector = require('./services/large-order/detector'); // V2.1.0新增：大额挂单监控
+const { SmartMoneyV2Monitor } = require('./services/smart-money-v2-monitor'); // V2.3.0新增：聪明钱V2监控
 
 class TradingSystemApp {
   constructor() {
@@ -32,6 +33,7 @@ class TradingSystemApp {
     this.aiScheduler = null;
     this.smartMoneyDetector = null;
     this.largeOrderDetector = null; // V2.1.0新增
+    this.smartMoneyV2Monitor = null; // V2.3.0新增
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -88,6 +90,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/smart-money-four-phase-notifier', require('./api/routes/smart-money-four-phase-notifier')); // V2.2.1新增：四阶段聪明钱通知
     this.app.use('/api/v1/large-orders', require('./api/routes/large-orders')()); // V2.1.0新增：大额挂单监控
     this.app.use('/api/v1/large-orders-advanced', require('./api/routes/large-orders-advanced')()); // V2.2.2新增：大额挂单高级查询
+    this.app.use('/api/v1/smart-money-v2', require('./api/routes/smart-money-v2')()); // V2.3.0新增：聪明钱V2 API
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
@@ -253,6 +256,22 @@ class TradingSystemApp {
       } catch (error) {
         logger.error('[四阶段聪明钱通知] ❌ 通知服务启动失败:', error);
         this.fourPhaseNotifier = null;
+      }
+
+      // 初始化聪明钱V2监控服务（V2.3.0新增 - 候选-确认分层策略）
+      try {
+        logger.info('[聪明钱V2] 初始化候选-确认分层检测服务...');
+        const BinanceAPI = require('./api/binance-api');
+        const binanceAPIInstance = new BinanceAPI();
+        
+        this.smartMoneyV2Monitor = new SmartMoneyV2Monitor(database, binanceAPIInstance, this.telegramService);
+        await this.smartMoneyV2Monitor.initialize();
+        await this.smartMoneyV2Monitor.start();
+        this.app.set('smartMoneyV2Monitor', this.smartMoneyV2Monitor);
+        logger.info('[聪明钱V2] ✅ 候选-确认分层检测服务启动成功');
+      } catch (error) {
+        logger.error('[聪明钱V2] ❌ 检测服务启动失败:', error);
+        this.smartMoneyV2Monitor = null;
       }
 
       // 初始化持仓监控服务（V2.1.3新增）
