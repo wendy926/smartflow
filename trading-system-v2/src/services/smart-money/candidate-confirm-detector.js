@@ -193,7 +193,14 @@ class CandidateConfirmDetector extends EventEmitter {
 
       // 计算变化量
       const deltas = this.calculateDeltas(symbol, metrics);
-
+      
+      logger.info(`[候选确认检测器] ${symbol} 变化量:`, {
+        dPrice: deltas.dPrice,
+        dCVD: deltas.dCVD,
+        dOI: deltas.dOI,
+        volRatio: deltas.volRatio
+      });
+      
       // 保存指标历史
       this.saveMetricsHistory(symbol, metrics);
 
