@@ -77,16 +77,16 @@ function initRoutes() {
           for (const entry of trackedEntries) {
             if (entry.valueUSD >= minAmountUsd) {
               validEntries++;
-              // 改进的订单识别：使用价格范围（±0.5%）来匹配订单
-              const priceTolerance = entry.price * 0.005; // 0.5%的价格容差
+              // 改进的订单识别：使用价格范围（±2%）来匹配订单
+              const priceTolerance = entry.price * 0.02; // 2%的价格容差
               const priceKey = `${row.symbol}@${entry.side}@${Math.round(entry.price / priceTolerance)}`;
               
-              // 查找是否存在相似的订单（价格差异在0.5%以内）
+              // 查找是否存在相似的订单（价格差异在2%以内）
               let matchedKey = null;
               for (const [key, order] of orderLifecycle.entries()) {
                 if (order.symbol === row.symbol && 
                     order.side === entry.side && 
-                    Math.abs(order.price - entry.price) / order.price <= 0.005) {
+                    Math.abs(order.price - entry.price) / order.price <= 0.02) {
                   matchedKey = key;
                   break;
                 }
