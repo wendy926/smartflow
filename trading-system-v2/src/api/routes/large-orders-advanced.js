@@ -51,6 +51,8 @@ function initRoutes() {
 
       const rows = await database.query(sql, [...symbolList, queryDays]);
 
+      logger.info(`[PersistentOrders] 查询到${rows.length}条记录`);
+
       // 处理数据，找出真正持续超过指定天数的挂单
       const orderLifecycle = new Map(); // key -> { firstSeen, lastSeen, maxValue, ... }
       const now = Date.now();
@@ -114,6 +116,8 @@ function initRoutes() {
       const persistentOrders = new Map();
       const cutoffTime = now - minDaysMs; // 最小持续时间的截止点
 
+      logger.info(`[PersistentOrders] 分析${orderLifecycle.size}个订单的生命周期`);
+
       for (const [key, order] of orderLifecycle.entries()) {
         // 检查是否满足持续条件
         const duration = order.lastSeen - order.firstSeen;
@@ -123,6 +127,7 @@ function initRoutes() {
         // 条件2：最近2小时内还有记录（说明可能还在活跃）
         // 条件3：或者持续时间 >= minDays * 1.5（即使不再活跃，但确实持续了很久）
         if (duration >= minDaysMs && (isStillActive || duration >= minDaysMs * 1.5)) {
+          logger.info(`[PersistentOrders] 找到持续订单: ${order.symbol} ${order.side} ${order.price}, 持续时间: ${Math.floor(duration / (24 * 60 * 60 * 1000))}天`);
           persistentOrders.set(key, {
             symbol: order.symbol,
             side: order.side,
