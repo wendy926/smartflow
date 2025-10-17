@@ -45,6 +45,7 @@ function initRoutes() {
         FROM large_order_detection_results 
         WHERE symbol IN (${symbolList.map(() => '?').join(',')})
           AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+          AND JSON_EXTRACT(detection_data, '$.trackedEntries') IS NOT NULL
         ORDER BY created_at ASC
       `;
 
@@ -214,6 +215,7 @@ function initRoutes() {
         FROM large_order_detection_results 
         WHERE symbol IN (${symbolList.map(() => '?').join(',')})
           AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+          AND JSON_EXTRACT(detection_data, '$.trackedEntries') IS NOT NULL
         ORDER BY created_at DESC
         LIMIT 100
       `;
