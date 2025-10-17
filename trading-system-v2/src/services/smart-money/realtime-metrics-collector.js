@@ -501,7 +501,7 @@ class RealtimeMetricsCollector {
   async calculateOIChange(symbol) {
     try {
       const oi = await this.binanceAPI.getOpenInterest(symbol);
-      const history = this.metricsHistory.get(symbol) || [];
+      const history = this.dataCache.get(symbol)?.metricsHistory || [];
       const prevMetrics = history[history.length - 1];
       
       if (!prevMetrics || !prevMetrics.OI) {
