@@ -51,6 +51,7 @@ function initRoutes() {
       `;
 
       // 获取原始连接以支持typeCast
+      logger.info(`[PersistentOrders] 准备查询，参数: ${JSON.stringify([...symbolList, queryDays])}`);
       const connection = await database.pool.getConnection();
       const [rows] = await connection.query(sql, [...symbolList, queryDays]);
       connection.release();
