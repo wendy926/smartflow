@@ -179,7 +179,9 @@ class RealtimeMetricsCollector {
       const metrics = this.calculateMetrics(symbol, cache);
       
       // 传递给检测器
-      this.detector.onNewMetrics(symbol, metrics);
+      if (metrics) {
+        this.detector.onNewMetrics(symbol, metrics);
+      }
       
     } catch (error) {
       logger.error(`[实时指标收集器] 更新${symbol}失败:`, error);
@@ -212,7 +214,7 @@ class RealtimeMetricsCollector {
    */
   async fetchTicker(symbol) {
     try {
-      const ticker = await this.binanceAPI.getTicker(symbol);
+      const ticker = await this.binanceAPI.getTicker24hr(symbol);
       
       return {
         price: parseFloat(ticker.lastPrice),
@@ -247,7 +249,7 @@ class RealtimeMetricsCollector {
    */
   async fetchOrderBook(symbol) {
     try {
-      const orderBook = await this.binanceAPI.getOrderBook(symbol, 50);
+      const orderBook = await this.binanceAPI.getDepth(symbol, 50);
       
       return {
         bids: orderBook.bids.map(([price, qty]) => ({
