@@ -52,6 +52,13 @@ function initRoutes() {
       const rows = await database.query(sql, [...symbolList, queryDays]);
 
       logger.info(`[PersistentOrders] 查询到${rows.length}条记录`);
+      if (rows.length > 0) {
+        logger.info(`[PersistentOrders] 第一条记录示例:`, {
+          symbol: rows[0].symbol,
+          trackedEntries: typeof rows[0].trackedEntries,
+          trackedEntriesValue: rows[0].trackedEntries
+        });
+      }
 
       // 处理数据，找出真正持续超过指定天数的挂单
       const orderLifecycle = new Map(); // key -> { firstSeen, lastSeen, maxValue, ... }
