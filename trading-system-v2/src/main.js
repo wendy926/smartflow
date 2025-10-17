@@ -263,7 +263,7 @@ class TradingSystemApp {
         logger.info('[聪明钱V2] 初始化候选-确认分层检测服务...');
         const BinanceAPI = require('./api/binance-api');
         const binanceAPIInstance = new BinanceAPI();
-        
+
         this.smartMoneyV2Monitor = new SmartMoneyV2Monitor(database, binanceAPIInstance, this.telegramService);
         await this.smartMoneyV2Monitor.initialize();
         await this.smartMoneyV2Monitor.start();

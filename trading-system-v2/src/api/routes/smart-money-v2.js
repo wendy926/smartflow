@@ -27,16 +27,16 @@ function initRoutes() {
   router.get('/status', async (req, res) => {
     try {
       const monitor = req.app.get('smartMoneyV2Monitor');
-      
+
       if (!monitor) {
         return res.status(503).json({
           success: false,
           error: '聪明钱V2监控服务未初始化'
         });
       }
-      
+
       const states = monitor.getAllStates();
-      
+
       res.json({
         success: true,
         data: states,
@@ -50,7 +50,7 @@ function initRoutes() {
       });
     }
   });
-  
+
   /**
    * GET /api/v1/smart-money-v2/status/:symbol
    * 获取指定交易对的聪明钱状态
@@ -62,23 +62,23 @@ function initRoutes() {
     try {
       const monitor = req.app.get('smartMoneyV2Monitor');
       const symbol = req.params.symbol.toUpperCase();
-      
+
       if (!monitor) {
         return res.status(503).json({
           success: false,
           error: '聪明钱V2监控服务未初始化'
         });
       }
-      
+
       const state = monitor.getState(symbol);
-      
+
       if (!state) {
         return res.status(404).json({
           success: false,
           error: `交易对${symbol}未找到`
         });
       }
-      
+
       res.json({
         success: true,
         data: state,
@@ -92,7 +92,7 @@ function initRoutes() {
       });
     }
   });
-  
+
   /**
    * POST /api/v1/smart-money-v2/detect/:symbol
    * 手动触发指定交易对的检测
@@ -104,16 +104,16 @@ function initRoutes() {
     try {
       const monitor = req.app.get('smartMoneyV2Monitor');
       const symbol = req.params.symbol.toUpperCase();
-      
+
       if (!monitor) {
         return res.status(503).json({
           success: false,
           error: '聪明钱V2监控服务未初始化'
         });
       }
-      
+
       const state = await monitor.triggerDetection(symbol);
-      
+
       res.json({
         success: true,
         data: state,
@@ -127,7 +127,7 @@ function initRoutes() {
       });
     }
   });
-  
+
   /**
    * GET /api/v1/smart-money-v2/stats
    * 获取监控统计信息
@@ -137,16 +137,16 @@ function initRoutes() {
   router.get('/stats', async (req, res) => {
     try {
       const monitor = req.app.get('smartMoneyV2Monitor');
-      
+
       if (!monitor) {
         return res.status(503).json({
           success: false,
           error: '聪明钱V2监控服务未初始化'
         });
       }
-      
+
       const stats = monitor.getStats();
-      
+
       res.json({
         success: true,
         data: stats,
@@ -160,7 +160,7 @@ function initRoutes() {
       });
     }
   });
-  
+
   /**
    * GET /api/v1/smart-money-v2/history/:symbol
    * 获取指定交易对的历史状态变化
@@ -174,7 +174,7 @@ function initRoutes() {
       const database = req.app.get('database');
       const symbol = req.params.symbol.toUpperCase();
       const limit = parseInt(req.query.limit) || 50;
-      
+
       const sql = `
         SELECT 
           from_stage,
@@ -190,9 +190,9 @@ function initRoutes() {
         ORDER BY transition_time DESC
         LIMIT ?
       `;
-      
+
       const rows = await database.query(sql, [symbol, limit]);
-      
+
       const history = rows.map(row => ({
         from: row.from_stage,
         to: row.to_stage,
@@ -203,7 +203,7 @@ function initRoutes() {
         price: row.price_at_transition,
         volume: row.volume_at_transition
       }));
-      
+
       res.json({
         success: true,
         data: history,
@@ -217,7 +217,7 @@ function initRoutes() {
       });
     }
   });
-  
+
   /**
    * GET /api/v1/smart-money-v2/recent/:symbol
    * 获取指定交易对的最近检测结果
@@ -231,7 +231,7 @@ function initRoutes() {
       const database = req.app.get('database');
       const symbol = req.params.symbol.toUpperCase();
       const limit = parseInt(req.query.limit) || 20;
-      
+
       const sql = `
         SELECT 
           timestamp,
@@ -245,9 +245,9 @@ function initRoutes() {
         ORDER BY timestamp DESC
         LIMIT ?
       `;
-      
+
       const rows = await database.query(sql, [symbol, limit]);
-      
+
       const results = rows.map(row => ({
         time: row.timestamp,
         stage: row.current_stage,
@@ -256,7 +256,7 @@ function initRoutes() {
         reasons: JSON.parse(row.trigger_reasons || '[]'),
         indicators: JSON.parse(row.raw_indicators || '{}')
       }));
-      
+
       res.json({
         success: true,
         data: results,
@@ -270,7 +270,7 @@ function initRoutes() {
       });
     }
   });
-  
+
   return router;
 }
 

@@ -24,16 +24,16 @@ class SmartMoneyV2Monitor {
     this.database = database;
     this.binanceAPI = binanceAPI;
     this.telegramService = telegramService;
-    
+
     // 候选-确认检测器
     this.detector = null;
-    
+
     // 实时指标收集器
     this.collector = null;
-    
+
     // 运行状态
     this.isRunning = false;
-    
+
     // 统计信息
     this.stats = {
       totalDetections: 0,
@@ -43,14 +43,14 @@ class SmartMoneyV2Monitor {
       startTime: null
     };
   }
-  
+
   /**
    * 初始化监控服务
    */
   async initialize() {
     try {
       logger.info('[聪明钱V2监控] 初始化...');
-      
+
       // 创建检测器
       this.detector = new CandidateConfirmDetector(
         this.database,
@@ -59,25 +59,25 @@ class SmartMoneyV2Monitor {
           debug: process.env.NODE_ENV === 'development'
         }
       );
-      
+
       // 初始化检测器
       await this.detector.initialize();
-      
+
       // 绑定检测器事件
       this.detector.on('candidate', (event) => {
         this.handleCandidateEvent(event);
       });
-      
+
       this.detector.on('phase_change', (event) => {
         this.handlePhaseChangeEvent(event);
       });
-      
+
       this.detector.on('debug', (event) => {
         if (process.env.NODE_ENV === 'development') {
           logger.debug('[聪明钱V2监控] 调试:', event);
         }
       });
-      
+
       // 创建指标收集器
       this.collector = new RealtimeMetricsCollector(
         this.database,
@@ -88,74 +88,74 @@ class SmartMoneyV2Monitor {
           klineInterval: '1m'
         }
       );
-      
+
       logger.info('[聪明钱V2监控] 初始化完成');
     } catch (error) {
       logger.error('[聪明钱V2监控] 初始化失败:', error);
       throw error;
     }
   }
-  
+
   /**
    * 启动监控服务
    */
   async start() {
     try {
       logger.info('[聪明钱V2监控] 启动...');
-      
+
       if (this.isRunning) {
         logger.warn('[聪明钱V2监控] 已在运行中');
         return;
       }
-      
+
       // 启动指标收集器
       await this.collector.start();
-      
+
       this.isRunning = true;
       this.stats.startTime = Date.now();
-      
+
       logger.info('[聪明钱V2监控] 已启动');
     } catch (error) {
       logger.error('[聪明钱V2监控] 启动失败:', error);
       throw error;
     }
   }
-  
+
   /**
    * 停止监控服务
    */
   async stop() {
     try {
       logger.info('[聪明钱V2监控] 停止...');
-      
+
       if (!this.isRunning) {
         logger.warn('[聪明钱V2监控] 未运行');
         return;
       }
-      
+
       // 停止指标收集器
       if (this.collector) {
         this.collector.stop();
       }
-      
+
       this.isRunning = false;
-      
+
       logger.info('[聪明钱V2监控] 已停止');
     } catch (error) {
       logger.error('[聪明钱V2监控] 停止失败:', error);
       throw error;
     }
   }
-  
+
   /**
    * 处理候选事件
    */
   handleCandidateEvent(event) {
     try {
       this.stats.candidates++;
-      
+
       logger.info(`[聪明钱V2监控] ${event.symbol} 候选: ${event.phase} - ${event.reason}`);
-      
+
       // 可选：发送Telegram通知
       if (this.telegramService) {
         this.sendCandidateNotification(event);
@@ -164,7 +164,7 @@ class SmartMoneyV2Monitor {
       logger.error('[聪明钱V2监控] 处理候选事件失败:', error);
     }
   }
-  
+
   /**
    * 处理阶段变化事件
    */
@@ -172,9 +172,9 @@ class SmartMoneyV2Monitor {
     try {
       this.stats.phaseChanges++;
       this.stats.totalDetections++;
-      
+
       logger.info(`[聪明钱V2监控] ${event.symbol} 阶段变化: ${event.from} -> ${event.to} (置信度: ${event.confidence.toFixed(2)})`);
-      
+
       // 发送Telegram通知
       if (this.telegramService) {
         this.sendPhaseChangeNotification(event);
@@ -183,7 +183,7 @@ class SmartMoneyV2Monitor {
       logger.error('[聪明钱V2监控] 处理阶段变化事件失败:', error);
     }
   }
-  
+
   /**
    * 发送候选通知
    */
@@ -199,13 +199,13 @@ class SmartMoneyV2Monitor {
 价格: $${event.metrics.price.toFixed(2)}
 时间: ${new Date(event.since).toLocaleString('zh-CN')}
       `.trim();
-      
+
       await this.telegramService.sendMessage(message);
     } catch (error) {
       logger.error('[聪明钱V2监控] 发送候选通知失败:', error);
     }
   }
-  
+
   /**
    * 发送阶段变化通知
    */
@@ -224,13 +224,13 @@ ${emoji} **聪明钱阶段变化**
 价格: $${event.metrics.price.toFixed(2)}
 时间: ${new Date(event.time).toLocaleString('zh-CN')}
       `.trim();
-      
+
       await this.telegramService.sendMessage(message);
     } catch (error) {
       logger.error('[聪明钱V2监控] 发送阶段变化通知失败:', error);
     }
   }
-  
+
   /**
    * 获取阶段名称
    */
@@ -242,10 +242,10 @@ ${emoji} **聪明钱阶段变化**
       [Phase.DISTRIBUTION]: '派发',
       [Phase.MARKDOWN]: '砸盘'
     };
-    
+
     return mapping[phase] || phase;
   }
-  
+
   /**
    * 获取阶段Emoji
    */
@@ -257,10 +257,10 @@ ${emoji} **聪明钱阶段变化**
       [Phase.DISTRIBUTION]: '⚠️',
       [Phase.MARKDOWN]: '📉'
     };
-    
+
     return mapping[phase] || '⚪';
   }
-  
+
   /**
    * 获取当前状态
    */
@@ -268,10 +268,10 @@ ${emoji} **聪明钱阶段变化**
     if (!this.detector) {
       return null;
     }
-    
+
     return this.detector.getState(symbol);
   }
-  
+
   /**
    * 获取所有交易对状态
    */
@@ -279,16 +279,16 @@ ${emoji} **聪明钱阶段变化**
     if (!this.detector) {
       return {};
     }
-    
+
     return this.detector.getAllStates();
   }
-  
+
   /**
    * 获取统计信息
    */
   getStats() {
     const uptime = this.stats.startTime ? Date.now() - this.stats.startTime : 0;
-    
+
     return {
       ...this.stats,
       uptime: uptime,
@@ -296,20 +296,20 @@ ${emoji} **聪明钱阶段变化**
       isRunning: this.isRunning
     };
   }
-  
+
   /**
    * 手动触发检测
    */
   async triggerDetection(symbol) {
     try {
       logger.info(`[聪明钱V2监控] 手动触发${symbol}检测`);
-      
+
       if (!this.collector) {
         throw new Error('指标收集器未初始化');
       }
-      
+
       await this.collector.updateSymbol(symbol);
-      
+
       return this.getState(symbol);
     } catch (error) {
       logger.error(`[聪明钱V2监控] 手动触发${symbol}检测失败:`, error);
