@@ -84,7 +84,7 @@ class SmartMoneyV2Monitor {
         this.binanceAPI,
         this.detector,
         {
-          updateIntervalSec: 1,  // 1秒更新一次
+          updateIntervalSec: 15,  // 15秒更新一次，降低API调用频率
           klineInterval: '1m'
         }
       );
