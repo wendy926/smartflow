@@ -49,7 +49,10 @@ function initRoutes() {
         ORDER BY created_at ASC
       `;
 
-      const rows = await database.query(sql, [...symbolList, queryDays]);
+      // 获取原始连接以支持typeCast
+      const connection = await database.pool.getConnection();
+      const [rows] = await connection.query(sql, [...symbolList, queryDays]);
+      connection.release();
 
       logger.info(`[PersistentOrders] 查询到${rows.length}条记录`);
       if (rows.length > 0) {
@@ -238,7 +241,10 @@ function initRoutes() {
         LIMIT 100
       `;
 
-      const rows = await database.query(sql, symbolList);
+      // 获取原始连接以支持typeCast
+      const connection = await database.pool.getConnection();
+      const [rows] = await connection.query(sql, symbolList);
+      connection.release();
 
       // 处理数据，找出超大额挂单
       const megaOrders = new Map();
