@@ -831,7 +831,7 @@
 
       <h4>ICT策略持仓时长配置：</h4>
       <p>ICT策略主要针对<strong>趋势市</strong>，结合持仓时长管理器和ICT结构止损。</p>
-      
+
       <table>
         <tr>
           <th>交易对类别</th>
@@ -869,19 +869,19 @@
       <div class="code-block">
         // ICT策略使用持仓时长管理器计算止损止盈
         const stopLossConfig = PositionDurationManager.calculateDurationBasedStopLoss(
-          symbol, signal, entry, atr4H, 'TREND', confidence
+        symbol, signal, entry, atr4H, 'TREND', confidence
         );
 
         // 结合ICT结构止损
         const structuralStopLoss = calculateStructuralStopLoss(
-          trend, orderBlock, klines4H, signals.sweepHTF
+        trend, orderBlock, klines4H, signals.sweepHTF
         );
 
         // 选择更保守的止损（距离入场价格更近的）
-        const finalStopLoss = Math.abs(entry - stopLossConfig.stopLoss) 
-          &lt; Math.abs(entry - structuralStopLoss)
-          ? stopLossConfig.stopLoss
-          : structuralStopLoss;
+        const finalStopLoss = Math.abs(entry - stopLossConfig.stopLoss)
+        &lt; Math.abs(entry - structuralStopLoss)
+        ? stopLossConfig.stopLoss
+        : structuralStopLoss;
       </div>
 
       <h4>置信度调整：</h4>

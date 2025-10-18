@@ -149,12 +149,12 @@ class ResourceMonitor {
       // 使用 df 命令获取根目录磁盘使用率
       const { stdout } = await execAsync('df -h / | tail -1');
       const parts = stdout.trim().split(/\s+/);
-      
+
       // df 输出格式: Filesystem Size Used Avail Use% Mounted
       // 例如: /dev/vda3 30G 15G 13G 54% /
       const usageStr = parts[4]; // Use% 列
       const usage = parseFloat(usageStr.replace('%', ''));
-      
+
       return isNaN(usage) ? 0 : usage;
     } catch (error) {
       logger.error(`获取磁盘使用率失败: ${error.message}`);

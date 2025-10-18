@@ -91,6 +91,7 @@ class TradingSystemApp {
     this.app.use('/api/v1/large-orders', require('./api/routes/large-orders')()); // V2.1.0新增：大额挂单监控
     this.app.use('/api/v1/large-orders-advanced', require('./api/routes/large-orders-advanced')()); // V2.2.2新增：大额挂单高级查询
     this.app.use('/api/v1/smart-money-v2', require('./api/routes/smart-money-v2')()); // V2.3.0新增：聪明钱V2 API
+    this.app.use('/api/v1/ict-position', require('./api/routes/ict-position')); // ICT优化V2.0新增：ICT仓位管理API
     this.app.use('/api/v1/tools', require('./api/routes/tools'));
     this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
@@ -239,6 +240,22 @@ class TradingSystemApp {
       } catch (error) {
         logger.error('[聪明钱监控] ❌ 监控服务启动失败:', error);
         this.smartMoneyMonitor = null;
+      }
+
+      // 初始化 ICT 仓位监控服务（ICT优化V2.0新增）
+      try {
+        logger.info('[ICT仓位监控] 初始化ICT仓位监控服务...');
+        const ICTPositionMonitor = require('./services/ict-position-monitor');
+        const BinanceAPI = require('./api/binance-api');
+        const binanceAPIInstance = new BinanceAPI();
+        
+        this.ictPositionMonitor = new ICTPositionMonitor(database, binanceAPIInstance);
+        await this.ictPositionMonitor.start();
+        this.app.set('ictPositionMonitor', this.ictPositionMonitor);
+        logger.info('[ICT仓位监控] ✅ ICT仓位监控服务启动成功');
+      } catch (error) {
+        logger.error('[ICT仓位监控] ❌ 监控服务启动失败:', error);
+        this.ictPositionMonitor = null;
       }
 
       // 初始化四阶段聪明钱Telegram通知服务（V2.2.1新增）

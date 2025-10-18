@@ -594,6 +594,7 @@ class ICTStrategy {
 
       // 使用持仓时长管理器计算止损止盈
       const PositionDurationManager = require('../utils/position-duration-manager');
+      const ICTPositionManager = require('../services/ict-position-manager');
       const signal = trend === 'UP' ? 'BUY' : 'SELL';
       const marketType = 'TREND'; // ICT策略主要针对趋势市
       const confidence = signals.score >= 60 ? 'high' : signals.score >= 40 ? 'med' : 'low';
@@ -615,28 +616,55 @@ class ICTStrategy {
         ? stopLossConfig.stopLoss
         : structuralStopLoss;
 
-      // 计算止盈价格（RR = 3:1）
-      const takeProfit = this.calculateTakeProfit(entry, stopLoss, trend);
+      // ✅ 使用新的仓位管理器计算头寸
+      const sizing = ICTPositionManager.calculatePositionSize({
+        accountBalance: equity,
+        riskPercent: riskPct,
+        entryPrice: entry,
+        stopPrice: stopLoss
+      });
 
-      // 计算仓位大小
-      const positionSize = this.calculatePositionSize(equity, riskPct, entry, stopLoss);
+      // ✅ 构建交易计划（分层止盈）
+      const plan = ICTPositionManager.buildTradePlan({
+        direction: trend === 'UP' ? 'long' : 'short',
+        entryPrice: entry,
+        stopPrice: stopLoss,
+        qty: sizing.qty,
+        profitMultipliers: [2, 3] // TP1=2R, TP2=3R
+      });
 
-      logger.info(`${symbol} ICT交易参数: 趋势=${trend}, 置信度=${confidence}, 最大持仓=${stopLossConfig.maxDurationHours}小时, 时间止损=${stopLossConfig.timeStopMinutes}分钟`);
+      // 计算杠杆和保证金
+      const stopDistance = Math.abs(entry - stopLoss);
+      const calculatedMaxLeverage = Math.floor(1 / (stopDistance / entry + 0.005));
+      const leverage = Math.min(calculatedMaxLeverage, 24);
+      const margin = stopDistance > 0 ? Math.ceil(sizing.riskCash / (leverage * stopDistance / entry)) : 0;
+
+      logger.info(`${symbol} ICT交易参数 (优化版): 趋势=${trend}, 置信度=${confidence}, 最大持仓=${stopLossConfig.maxDurationHours}小时, TP1=${plan.tps[0]}, TP2=${plan.tps[1]}, 保本=${plan.breakevenMove}`);
 
       return {
         entry: parseFloat(entry.toFixed(4)),
         stopLoss: parseFloat(stopLoss.toFixed(4)),
-        takeProfit: parseFloat(takeProfit.toFixed(4)),
-        leverage: positionSize.leverage,
-        margin: parseFloat(positionSize.margin.toFixed(2)),
+        takeProfit: parseFloat(plan.tps[1].toFixed(4)), // 保留原有字段用于兼容
+        takeProfit1: parseFloat(plan.tps[0].toFixed(4)), // ✅ 新增：TP1
+        takeProfit2: parseFloat(plan.tps[1].toFixed(4)), // ✅ 新增：TP2
+        breakevenPrice: parseFloat(plan.breakevenMove.toFixed(4)), // ✅ 新增：保本点
+        leverage: leverage,
+        margin: parseFloat(margin.toFixed(2)),
         risk: riskPct,
-        units: parseFloat(positionSize.units.toFixed(4)),
-        notional: parseFloat(positionSize.notional.toFixed(2)),
-        riskAmount: parseFloat(positionSize.riskAmount.toFixed(2)),
+        units: parseFloat(sizing.qty.toFixed(4)),
+        notional: parseFloat((sizing.qty * entry).toFixed(2)),
+        riskAmount: parseFloat(sizing.riskCash.toFixed(2)),
+        riskCash: parseFloat(sizing.riskCash.toFixed(2)), // ✅ 新增：风险金额
+        stopDistance: parseFloat(sizing.stopDistance.toFixed(4)), // ✅ 新增：止损距离
         timeStopMinutes: stopLossConfig.timeStopMinutes,
         maxDurationHours: stopLossConfig.maxDurationHours,
         marketType: marketType,
-        confidence: confidence
+        confidence: confidence,
+        confidenceScore: signals.score / 100, // ✅ 新增：置信度分数
+        positionManagementMode: 'LAYERED', // ✅ 新增：仓位管理模式
+        remainingQuantity: parseFloat(sizing.qty.toFixed(4)), // ✅ 新增：剩余数量
+        tp1Quantity: parseFloat((sizing.qty * 0.5).toFixed(4)), // ✅ 新增：TP1数量
+        tp2Quantity: parseFloat((sizing.qty * 0.5).toFixed(4)) // ✅ 新增：TP2数量
       };
     } catch (error) {
       logger.error(`ICT Trade parameters calculation error for ${symbol}:`, error);

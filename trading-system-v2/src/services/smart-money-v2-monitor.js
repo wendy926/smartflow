@@ -240,7 +240,7 @@ ${emoji} **聪明钱阶段变化**
         confidence: event.confidence,
         custom_message: message
       });
-      
+
       logger.info(`[聪明钱V2监控] ${event.symbol} ${phaseName}通知已发送 (置信度: ${(event.confidence * 100).toFixed(1)}%)`);
     } catch (error) {
       logger.error('[聪明钱V2监控] 发送阶段变化通知失败:', error);
