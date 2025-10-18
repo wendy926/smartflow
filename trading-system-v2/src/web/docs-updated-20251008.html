@@ -118,24 +118,25 @@
   <div class="docs-content">
     <div class="update-section">
       <h1><i class="fas fa-file-alt"></i> SmartFlow 交易策略系统文档</h1>
-      <p class="timestamp">最后更新: 2025-10-08</p>
-      <p>本文档记录了ICT策略和V3策略的最新优化和修复内容</p>
+      <p class="timestamp">最后更新: 2025-10-18</p>
+      <p>本文档记录了ICT策略和V3策略的最新优化和修复内容，包括持仓时长管理系统</p>
     </div>
 
     <!-- 目录 -->
     <div class="strategy-detail">
       <h2><i class="fas fa-list"></i> 目录</h2>
       <ul>
-        <li><a href="#latest-updates">最新更新 (2025-10-08)</a></li>
+        <li><a href="#latest-updates">最新更新 (2025-10-18)</a></li>
         <li><a href="#ict-strategy">ICT策略详解</a></li>
         <li><a href="#v3-strategy">V3策略详解</a></li>
         <li><a href="#technical-indicators">技术指标说明</a></li>
         <li><a href="#risk-management">风险管理</a></li>
+        <li><a href="#position-duration">持仓时长管理</a></li>
       </ul>
     </div>
 
     <!-- 最新更新 -->
-    <h2 id="latest-updates"><i class="fas fa-bolt"></i> 最新更新 (2025-10-08)</h2>
+    <h2 id="latest-updates"><i class="fas fa-bolt"></i> 最新更新 (2025-10-18)</h2>
 
     <h3>🔧 ICT策略关键修复</h3>
 
@@ -823,6 +824,91 @@
       </ul>
     </div>
 
+    <h3 id="position-duration">持仓时长管理 ⏰</h3>
+    <div class="strategy-detail">
+      <h4>核心机制：</h4>
+      <p>根据交易对类别和市场类型，动态设置最大持仓时长，避免长期持仓风险。</p>
+
+      <h4>ICT策略持仓时长配置：</h4>
+      <p>ICT策略主要针对<strong>趋势市</strong>，结合持仓时长管理器和ICT结构止损。</p>
+      
+      <table>
+        <tr>
+          <th>交易对类别</th>
+          <th>趋势市最大持仓</th>
+          <th>时间止损</th>
+          <th>典型代币</th>
+        </tr>
+        <tr>
+          <td>主流币</td>
+          <td>7天（168小时）</td>
+          <td>1小时</td>
+          <td>BTC, ETH</td>
+        </tr>
+        <tr>
+          <td>高市值强趋势币</td>
+          <td>3天（72小时）</td>
+          <td>2小时</td>
+          <td>BNB, SOL, XRP, ADA</td>
+        </tr>
+        <tr>
+          <td>热点币</td>
+          <td>24小时</td>
+          <td>3小时</td>
+          <td>实时变化</td>
+        </tr>
+        <tr>
+          <td>小币</td>
+          <td>12小时</td>
+          <td>30分钟</td>
+          <td>市值 &lt; $50M</td>
+        </tr>
+      </table>
+
+      <h4>ICT策略止损逻辑：</h4>
+      <div class="code-block">
+        // ICT策略使用持仓时长管理器计算止损止盈
+        const stopLossConfig = PositionDurationManager.calculateDurationBasedStopLoss(
+          symbol, signal, entry, atr4H, 'TREND', confidence
+        );
+
+        // 结合ICT结构止损
+        const structuralStopLoss = calculateStructuralStopLoss(
+          trend, orderBlock, klines4H, signals.sweepHTF
+        );
+
+        // 选择更保守的止损（距离入场价格更近的）
+        const finalStopLoss = Math.abs(entry - stopLossConfig.stopLoss) 
+          &lt; Math.abs(entry - structuralStopLoss)
+          ? stopLossConfig.stopLoss
+          : structuralStopLoss;
+      </div>
+
+      <h4>置信度调整：</h4>
+      <ul>
+        <li><strong>高置信度（≥60分）：</strong>1.0x 止损止盈倍数</li>
+        <li><strong>中等置信度（40-60分）：</strong>1.2x 止损止盈倍数</li>
+        <li><strong>低置信度（&lt;40分）：</strong>1.5x 止损止盈倍数</li>
+      </ul>
+
+      <h4>自动监控与平仓：</h4>
+      <ul>
+        <li><strong>自动检查：</strong>每5分钟扫描所有OPEN状态的交易</li>
+        <li><strong>时长超限：</strong>超过最大持仓时长限制时强制平仓</li>
+        <li><strong>时间止损：</strong>持仓超时且未盈利时自动平仓</li>
+        <li><strong>提前警告：</strong>接近时长限制时提前1小时发出警告</li>
+        <li><strong>详细日志：</strong>记录所有监控、警告、平仓操作的详细信息</li>
+      </ul>
+
+      <h4>API接口：</h4>
+      <ul>
+        <li><code>GET /api/v1/position-monitor/status</code> - 获取监控状态</li>
+        <li><code>POST /api/v1/position-monitor/check</code> - 手动触发持仓检查</li>
+        <li><code>GET /api/v1/position-monitor/config</code> - 获取所有交易对的持仓时长配置</li>
+        <li><code>GET /api/v1/position-monitor/config/:symbol</code> - 获取特定交易对的持仓时长配置</li>
+      </ul>
+    </div>
+
     <!-- 总结 -->
     <div class="update-section" style="margin-top: 50px;">
       <h2><i class="fas fa-check-circle"></i> 修复总结</h2>
@@ -833,11 +919,16 @@
         <li>✅ 消除硬编码分数，真实反映组件检测结果</li>
         <li>✅ 统一置信度计算，所有路径使用数值置信度</li>
         <li>✅ 总分与置信度逻辑一致</li>
+        <li>✅ 集成持仓时长管理器，根据交易对类别动态设置最大持仓时长</li>
+        <li>✅ 结合ICT结构止损和时长止损，选择更保守的方案</li>
+        <li>✅ 自动监控持仓时长，超过限制时强制平仓</li>
       </ul>
 
       <h3>V3策略修复 ✅</h3>
       <ul>
         <li>✅ 震荡市假突破信号能够正确触发交易</li>
+        <li>✅ 集成持仓时长管理器，根据交易对类别和市场类型动态设置最大持仓时长</li>
+        <li>✅ 自动监控持仓时长，超过限制时强制平仓</li>
         <li>✅ combineSignals方法检查震荡市信号</li>
         <li>✅ 15M假突破逻辑完整实现</li>
       </ul>
