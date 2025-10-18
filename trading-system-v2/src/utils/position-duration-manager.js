@@ -40,7 +40,7 @@ const POSITION_DURATION_CONFIG = {
       stopLoss: 2.0          // 2倍ATR止损
     },
     rangeMarket: {
-      maxDurationHours: 6,   // 6小时
+      maxDurationHours: 4,   // 4小时
       minDurationHours: 1,   // 1小时
       timeStopMinutes: 45,   // 45分钟时间止损
       profitTarget: 6.0,     // 6倍ATR止盈（3:1盈亏比）
