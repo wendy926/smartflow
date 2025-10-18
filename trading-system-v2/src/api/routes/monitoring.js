@@ -24,7 +24,7 @@ const getDbOps = () => {
 router.get('/system', async (req, res) => {
   try {
     const systemInfo = resourceMonitor.getSystemInfo();
-    const currentResources = resourceMonitor.checkResources();
+    const currentResources = await resourceMonitor.checkResources(); // ✅ 修复：添加 await
 
     // 获取Binance API统计（使用单例，确保统计数据共享）
     const { getBinanceAPI } = require('../../api/binance-api-singleton');
@@ -231,7 +231,7 @@ router.get('/health', async (req, res) => {
         cache: 'connected',
         strategies: 'running'
       },
-      resources: resourceMonitor.checkResources()
+      resources: await resourceMonitor.checkResources() // ✅ 修复：添加 await
     };
 
     res.json({

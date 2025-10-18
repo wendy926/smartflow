@@ -3238,7 +3238,7 @@ class SmartFlowApp {
         const monitoringData = {
           cpu: resources.cpu || (system.loadAverage ? system.loadAverage[0] * 50 : 0), // 使用load average估算
           memory: memoryUsage,
-          disk: resources.disk || 45, // 默认45%（需要后端补充真实磁盘数据）
+          disk: resources.disk || 0, // ✅ 修复：使用后端返回的真实磁盘数据
           apis: {
             binanceRest: {
               status: 'online',

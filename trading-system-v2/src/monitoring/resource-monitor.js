@@ -3,8 +3,12 @@
  */
 
 const os = require('os');
+const { exec } = require('child_process');
+const { promisify } = require('util');
 const logger = require('../utils/logger');
 const AlertEngine = require('../services/alert-engine');
+
+const execAsync = promisify(exec);
 
 class ResourceMonitor {
   constructor() {
@@ -13,6 +17,7 @@ class ResourceMonitor {
     this.checkInterval = 30000; // 检查间隔30秒
     this.isMonitoring = false;
     this.alertEngine = new AlertEngine();
+    this.previousCpuUsage = null; // 用于计算CPU使用率
   }
 
   /**
@@ -59,10 +64,11 @@ class ResourceMonitor {
     try {
       const cpuUsage = this.getCpuUsage();
       const memoryUsage = this.getMemoryUsage();
+      const diskUsage = await this.getDiskUsage();
 
       // 使用北京时间
       const beijingTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
-      logger.info(`系统资源状态 - CPU: ${cpuUsage.toFixed(2)}%, 内存: ${memoryUsage.toFixed(2)}% (${beijingTime})`);
+      logger.info(`系统资源状态 - CPU: ${cpuUsage.toFixed(2)}%, 内存: ${memoryUsage.toFixed(2)}%, 磁盘: ${diskUsage.toFixed(2)}% (${beijingTime})`);
 
       // 检查CPU使用率
       if (cpuUsage > this.cpuThreshold) {
@@ -85,6 +91,7 @@ class ResourceMonitor {
       return {
         cpu: cpuUsage,
         memory: memoryUsage,
+        disk: diskUsage,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -112,7 +119,15 @@ class ResourceMonitor {
     const total = totalTick / cpus.length;
     const usage = 100 - ~~(100 * idle / total);
 
-    return Math.max(0, Math.min(100, usage));
+    // 使用 load average 作为补充指标（更准确）
+    const loadAvg = os.loadavg()[0]; // 1分钟平均负载
+    const cpuCount = cpus.length;
+    const loadBasedUsage = Math.min(100, (loadAvg / cpuCount) * 100);
+
+    // 如果 load average 可用，使用它；否则使用瞬时值
+    const finalUsage = loadAvg > 0 ? loadBasedUsage : Math.max(0, Math.min(100, usage));
+
+    return finalUsage;
   }
 
   /**
@@ -124,6 +139,27 @@ class ResourceMonitor {
     const usedMem = totalMem - freeMem;
 
     return (usedMem / totalMem) * 100;
+  }
+
+  /**
+   * 获取磁盘使用率
+   */
+  async getDiskUsage() {
+    try {
+      // 使用 df 命令获取根目录磁盘使用率
+      const { stdout } = await execAsync('df -h / | tail -1');
+      const parts = stdout.trim().split(/\s+/);
+      
+      // df 输出格式: Filesystem Size Used Avail Use% Mounted
+      // 例如: /dev/vda3 30G 15G 13G 54% /
+      const usageStr = parts[4]; // Use% 列
+      const usage = parseFloat(usageStr.replace('%', ''));
+      
+      return isNaN(usage) ? 0 : usage;
+    } catch (error) {
+      logger.error(`获取磁盘使用率失败: ${error.message}`);
+      return 0;
+    }
   }
 
   /**
