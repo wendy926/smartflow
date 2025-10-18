@@ -5,6 +5,7 @@
 
 const PositionDurationManager = require('../utils/position-duration-manager');
 const logger = require('../utils/logger');
+const FundingRateCalculator = require('../utils/funding-rate-calculator');
 
 class PositionMonitor {
   constructor(database, binanceAPI) {
@@ -13,6 +14,7 @@ class PositionMonitor {
     this.isRunning = false;
     this.monitorInterval = null;
     this.checkInterval = 5 * 60 * 1000; // 5分钟检查一次
+    this.fundingRateCalculator = new FundingRateCalculator();
   }
 
   /**
@@ -159,13 +161,31 @@ class PositionMonitor {
    */
   async closePosition(trade, exitPrice, reason) {
     try {
-      const { id, symbol, trade_type, entry_price, entry_time } = trade;
+      const { id, symbol, trade_type, entry_price, entry_time, margin_used } = trade;
 
-      // 计算盈亏
-      const pnl = trade_type === 'LONG'
+      // 计算原始盈亏
+      const rawPnl = trade_type === 'LONG'
         ? exitPrice - entry_price
         : entry_price - exitPrice;
-      const pnlPercentage = (pnl / entry_price) * 100;
+      const pnlPercentage = (rawPnl / entry_price) * 100;
+
+      // 计算持仓时长（小时）
+      const entryTime = new Date(entry_time);
+      const exitTime = new Date();
+      const holdHours = (exitTime - entryTime) / (1000 * 60 * 60);
+
+      // 计算资金费率和利率成本
+      const costsResult = this.fundingRateCalculator.calculateCostsOnly({
+        positionSize: parseFloat(margin_used || entry_price),
+        holdHours: holdHours,
+        fundingRate: parseFloat(trade.funding_rate || 0.0001),
+        interestRate: parseFloat(trade.interest_rate || 0.01),
+        feeRate: parseFloat(trade.fee_rate || 0.0004)
+      });
+
+      // 实际盈亏 = 原始盈亏 - 总成本
+      const netPnl = rawPnl - costsResult.totalCost;
+      const netPnlPercentage = (netPnl / entry_price) * 100;
 
       // 更新数据库
       await this.database.pool.query(
@@ -175,12 +195,35 @@ class PositionMonitor {
              exit_time = NOW(), 
              exit_reason = ?, 
              pnl = ?, 
-             pnl_percentage = ? 
+             pnl_percentage = ?,
+             hold_hours = ?,
+             funding_cost = ?,
+             interest_cost = ?,
+             fee_cost = ?,
+             raw_pnl = ?,
+             net_pnl = ?
          WHERE id = ?`,
-        [exitPrice, reason, pnl, pnlPercentage, id]
+        [
+          exitPrice, 
+          reason, 
+          rawPnl, 
+          pnlPercentage,
+          holdHours,
+          costsResult.fundingCost,
+          costsResult.interestCost,
+          costsResult.feeCost,
+          rawPnl,
+          netPnl,
+          id
+        ]
       );
 
-      logger.info(`[持仓监控] ✅ ${symbol} 自动平仓: 入场=${entry_price}, 出场=${exitPrice}, 盈亏=${pnl.toFixed(4)} (${pnlPercentage.toFixed(2)}%), 原因=${reason}`);
+      logger.info(`[持仓监控] ✅ ${symbol} 自动平仓:`);
+      logger.info(`  入场=${entry_price}, 出场=${exitPrice}`);
+      logger.info(`  原始盈亏=${rawPnl.toFixed(4)} (${pnlPercentage.toFixed(2)}%)`);
+      logger.info(`  实际盈亏=${netPnl.toFixed(4)} (${netPnlPercentage.toFixed(2)}%)`);
+      logger.info(`  成本明细: 手续费=${costsResult.feeCost.toFixed(2)}, 资金费=${costsResult.fundingCost.toFixed(2)}, 利息=${costsResult.interestCost.toFixed(2)}`);
+      logger.info(`  持仓时长=${holdHours.toFixed(2)} 小时, 原因=${reason}`);
 
     } catch (error) {
       logger.error(`[持仓监控] 平仓 ${trade.symbol} 失败:`, error);

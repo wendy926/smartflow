@@ -5,6 +5,7 @@
 
 const logger = require('../utils/logger');
 const { manageTrade, calculateUnrealizedPnl, formatHours } = require('./ict-position-manager');
+const FundingRateCalculator = require('../utils/funding-rate-calculator');
 
 class ICTPositionMonitor {
   constructor(database, binanceAPI) {
@@ -13,6 +14,7 @@ class ICTPositionMonitor {
     this.isRunning = false;
     this.checkInterval = 5 * 60 * 1000; // 5分钟检查一次
     this.intervalId = null;
+    this.fundingRateCalculator = new FundingRateCalculator();
   }
 
   /**
@@ -377,8 +379,26 @@ class ICTPositionMonitor {
     try {
       const realizedPnl = parseFloat(trade.realized_pnl || 0);
       const unrealizedPnl = parseFloat(trade.unrealized_pnl || 0);
-      const totalPnl = realizedPnl + unrealizedPnl;
-      const pnlPercentage = (totalPnl / parseFloat(trade.margin_used)) * 100;
+      const rawPnl = realizedPnl + unrealizedPnl;
+      
+      // 计算持仓时长（小时）
+      const entryTime = new Date(trade.entry_time);
+      const exitTime = new Date();
+      const holdHours = (exitTime - entryTime) / (1000 * 60 * 60);
+
+      // 计算资金费率和利率成本
+      const costsResult = this.fundingRateCalculator.calculateCostsOnly({
+        positionSize: parseFloat(trade.margin_used),
+        holdHours: holdHours,
+        fundingRate: parseFloat(trade.funding_rate || 0.0001),
+        interestRate: parseFloat(trade.interest_rate || 0.01),
+        feeRate: parseFloat(trade.fee_rate || 0.0004)
+      });
+
+      // 实际盈亏 = 原始盈亏 - 总成本
+      const netPnl = rawPnl - costsResult.totalCost;
+      const pnlPercentage = (rawPnl / parseFloat(trade.margin_used)) * 100;
+      const netPnlPercentage = (netPnl / parseFloat(trade.margin_used)) * 100;
 
       await this.database.query(
         `UPDATE simulation_trades 
@@ -387,15 +407,37 @@ class ICTPositionMonitor {
              exit_time = NOW(),
              pnl = ?,
              pnl_percentage = ?,
-             exit_reason = ?
+             exit_reason = ?,
+             hold_hours = ?,
+             funding_cost = ?,
+             interest_cost = ?,
+             fee_cost = ?,
+             raw_pnl = ?,
+             net_pnl = ?
          WHERE id = ?`,
-        [exitPrice, totalPnl, pnlPercentage, reason, trade.id]
+        [
+          exitPrice, 
+          rawPnl, 
+          pnlPercentage, 
+          reason,
+          holdHours,
+          costsResult.fundingCost,
+          costsResult.interestCost,
+          costsResult.feeCost,
+          rawPnl,
+          netPnl,
+          trade.id
+        ]
       );
 
-      logger.info(`[ICT仓位监控] ${trade.symbol} 交易已关闭: 总盈亏 = ${totalPnl.toFixed(2)} USDT (${pnlPercentage.toFixed(2)}%)`);
+      logger.info(`[ICT仓位监控] ${trade.symbol} 交易已关闭:`);
+      logger.info(`  原始盈亏: ${rawPnl.toFixed(2)} USDT (${pnlPercentage.toFixed(2)}%)`);
+      logger.info(`  实际盈亏: ${netPnl.toFixed(2)} USDT (${netPnlPercentage.toFixed(2)}%)`);
+      logger.info(`  成本明细: 手续费=${costsResult.feeCost.toFixed(2)}, 资金费=${costsResult.fundingCost.toFixed(2)}, 利息=${costsResult.interestCost.toFixed(2)}`);
+      logger.info(`  持仓时长: ${holdHours.toFixed(2)} 小时`);
 
-      // 更新统计
-      await this.updateStats(trade, totalPnl, pnlPercentage > 0);
+      // 更新统计（使用实际盈亏）
+      await this.updateStats(trade, netPnl, netPnl > 0);
 
     } catch (error) {
       logger.error(`[ICT仓位监控] 关闭交易失败:`, error);
