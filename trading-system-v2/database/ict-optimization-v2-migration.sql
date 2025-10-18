@@ -74,7 +74,10 @@ SET
   time_stop_triggered = FALSE,
   time_stop_exit_pct = 0.5,
   risk_cash = margin_used * 0.01,
-  stop_distance = ABS(entry_price - COALESCE(stop_loss, entry_price * 0.02)),
+  stop_distance = CASE 
+    WHEN stop_loss IS NOT NULL THEN ABS(entry_price - stop_loss)
+    ELSE entry_price * 0.02
+  END,
   risk_reward_ratio = NULL,
   atr_multiplier = 1.5,
   position_management_mode = 'SIMPLE',
