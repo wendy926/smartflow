@@ -594,6 +594,9 @@ class FourPhaseSmartMoneyDetector {
     const isTimeLocked = timeSinceLastChange < (this.params.minStageLockMins * 60 * 1000);
     const isConfidenceLocked = currentState.confidence >= 0.7; // 置信度高于70%才锁定
     const isLocked = isTimeLocked && isConfidenceLocked;
+    
+    // 如果置信度高于70%，强制锁定当前阶段，避免频繁切换
+    const shouldLockByConfidence = currentState.confidence >= 0.7 && currentState.stage !== SmartMoneyStage.NEUTRAL;
 
     // 确定新阶段（基于当前阶段和流转规则）
     let newStage = SmartMoneyStage.NEUTRAL;
@@ -636,7 +639,18 @@ class FourPhaseSmartMoneyDetector {
     const isValidTransition = true; // 因为newStage已经基于allowedTransitions确定
 
     // 更新状态
-    if (newStage !== currentState.stage && (!isLocked || isValidTransition)) {
+    // 如果置信度高于70%，锁定当前阶段，避免频繁切换
+    if (shouldLockByConfidence && newStage !== currentState.stage) {
+      logger.info(`[四阶段锁定] ${symbol}: 置信度${(currentState.confidence * 100).toFixed(0)}%高于70%，锁定当前阶段${currentState.stage}，不切换到${newStage}`);
+      // 保持当前阶段，更新置信度
+      this.stateMap.set(symbol, {
+        ...currentState,
+        confidence: Math.max(0.05, confidence),
+        reasons,
+        scores: { accScore, markupScore, distScore, markdnScore }
+      });
+      newStage = currentState.stage;
+    } else if (newStage !== currentState.stage && (!isLocked || isValidTransition)) {
       // 阶段变化且（未锁定或允许流转）
       this.stateMap.set(symbol, {
         stage: newStage,

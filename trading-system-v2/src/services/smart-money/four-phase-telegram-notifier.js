@@ -24,7 +24,7 @@ class FourPhaseTelegramNotifier {
     // 通知配置
     this.config = {
       enabled: true,
-      confidenceThreshold: 0.6, // 置信度阈值
+      confidenceThreshold: 0.7, // 置信度阈值（提高到70%，避免低置信度通知）
       cooldownMinutes: 60, // 冷却时间（分钟）
       stages: {
         [SmartMoneyStage.ACCUMULATION]: { enabled: false, emoji: '📈' }, // 禁用吸筹通知
@@ -36,6 +36,9 @@ class FourPhaseTelegramNotifier {
 
     // 通知历史记录（防重复）
     this.notificationHistory = new Map();
+    
+    // 阶段变化跟踪（只跟踪阶段变化）
+    this.stageChangeHistory = new Map();
 
     // 中文阶段名称映射
     this.stageNames = {
@@ -152,13 +155,26 @@ class FourPhaseTelegramNotifier {
     try {
       const { stage, confidence, since, reasons } = state;
 
+      // 检查阶段是否变化
+      const previousStage = this.stageChangeHistory.get(symbol);
+      const isStageChanged = previousStage !== stage;
+      
+      // 如果阶段没有变化，不发送通知
+      if (!isStageChanged) {
+        return;
+      }
+
       // 检查是否满足通知条件
       if (!this.shouldNotify(symbol, stage, confidence)) {
+        // 即使不满足通知条件，也要记录阶段变化
+        this.stageChangeHistory.set(symbol, stage);
         return;
       }
 
       // 检查是否在冷却期内
       if (this.isInCooldown(symbol, stage)) {
+        // 记录阶段变化，但不发送通知
+        this.stageChangeHistory.set(symbol, stage);
         return;
       }
 
@@ -167,6 +183,9 @@ class FourPhaseTelegramNotifier {
 
       // 记录通知历史
       this.recordNotification(symbol, stage);
+      
+      // 记录阶段变化
+      this.stageChangeHistory.set(symbol, stage);
 
     } catch (error) {
       logger.error(`[四阶段聪明钱通知] 检查${symbol}信号失败:`, error);
@@ -222,6 +241,10 @@ class FourPhaseTelegramNotifier {
       const stageName = this.stageNames[stage];
       const confidencePercent = Math.round(confidence * 100);
 
+      // 获取上一个阶段
+      const previousStage = this.stageChangeHistory.get(symbol);
+      const previousStageName = previousStage ? this.stageNames[previousStage] : '未知';
+
       // 计算持续时间
       const duration = this.formatDuration(Date.now() - since);
 
@@ -234,7 +257,7 @@ class FourPhaseTelegramNotifier {
       const message = `${emoji} **四阶段聪明钱信号** ${emoji}
 
 **交易对**: ${symbol}
-**阶段**: ${stageName}
+**阶段变化**: ${previousStageName} → ${stageName}
 **置信度**: ${confidencePercent}%
 **持续时间**: ${duration}${reasonText}
 
@@ -248,7 +271,7 @@ class FourPhaseTelegramNotifier {
         custom_message: message
       });
 
-      logger.info(`[四阶段聪明钱通知] ${symbol} ${stageName}信号通知已发送 (置信度: ${confidencePercent}%)`);
+      logger.info(`[四阶段聪明钱通知] ${symbol} ${previousStageName} → ${stageName} 信号通知已发送 (置信度: ${confidencePercent}%)`);
 
     } catch (error) {
       logger.error(`[四阶段聪明钱通知] 发送${symbol}通知失败:`, error);
