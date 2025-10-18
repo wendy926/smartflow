@@ -1229,8 +1229,15 @@
         <div class="smart-money-container">
           <!-- 添加监控交易对 -->
           <div class="card add-symbol-section">
-            <div class="card-header">
-              <h3>添加监控交易对</h3>
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <h3 style="margin: 0;">添加监控交易对</h3>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <label for="smartMoneySignalFilter" style="font-weight: 500; color: #666;">显示筛选:</label>
+                <select id="smartMoneySignalFilter" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                  <option value="all">全部交易对</option>
+                  <option value="signals">仅显示有信号的</option>
+                </select>
+              </div>
             </div>
             <div class="card-content">
               <div class="add-symbol-form">

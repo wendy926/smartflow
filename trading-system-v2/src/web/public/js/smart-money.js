@@ -44,7 +44,27 @@ class SmartMoneyTracker {
       return;
     }
 
-    tbody.innerHTML = results.map(result => {
+    // 获取筛选选项
+    const showOnlySignals = document.getElementById('smartMoneySignalFilter')?.value === 'signals';
+
+    // 过滤结果（如果选择了只显示有信号的）
+    let filteredResults = results;
+    if (showOnlySignals) {
+      filteredResults = results.filter(result => {
+        const action = result.action || '';
+        return action !== 'UNKNOWN' && 
+               action !== '无动作' && 
+               action !== '无信号' && 
+               result.stage !== 'neutral';
+      });
+    }
+
+    if (filteredResults.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="11" class="no-data">暂无有信号的交易对</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filteredResults.map(result => {
       // 中英文动作映射（smartmoney.md文档一致）
       const actionMapping = {
         'ACCUMULATE': '吸筹',
@@ -376,6 +396,15 @@ function initSmartMoneyTracker() {
         e.preventDefault();
         smartMoneyTracker.addSymbol();
       }
+    });
+  }
+
+  // 绑定筛选下拉框
+  const filterSelect = document.getElementById('smartMoneySignalFilter');
+  if (filterSelect) {
+    filterSelect.addEventListener('change', () => {
+      console.log('[聪明钱] 筛选选项改变，重新加载数据');
+      smartMoneyTracker.loadSmartMoneyData();
     });
   }
 }
