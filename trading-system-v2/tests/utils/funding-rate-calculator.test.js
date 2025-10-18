@@ -59,11 +59,11 @@ describe('FundingRateCalculator', () => {
 
       const result = calculator.calculatePnLWithCosts(params);
 
-      // 原始盈亏：30 USDT
-      expect(result.rawPnL).toBeCloseTo(30, 2);
+      // 原始盈亏：(1030 - 1000) * (1000 / 1030) ≈ 29.126 USDT
+      expect(result.rawPnL).toBeCloseTo(29.126, 2);
 
-      // 实际盈亏：30 - 0.8 - 0.3 - 0.0274 ≈ 28.87 USDT
-      expect(result.netPnL).toBeCloseTo(28.87, 2);
+      // 实际盈亏：29.126 - 0.8 - 0.3 - 0.0274 ≈ 28.00 USDT
+      expect(result.netPnL).toBeCloseTo(28.00, 2);
     });
 
     it('应该正确计算亏损（增加成本）', () => {
