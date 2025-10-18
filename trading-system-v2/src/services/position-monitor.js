@@ -128,7 +128,7 @@ class PositionMonitor {
       const timeStopCheck = PositionDurationManager.checkTimeStopLoss({
         symbol,
         entryTime: entry_time,
-        entryPrice,
+        entryPrice: entry_price,
         side: trade_type,
         marketType
       }, currentPrice);
