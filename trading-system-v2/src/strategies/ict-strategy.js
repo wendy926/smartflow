@@ -592,18 +592,18 @@ class ICTStrategy {
       // 计算入场价格（当前价格）
       const entry = currentPrice;
 
-      // 使用持仓时长管理器计算止损止盈
-      const PositionDurationManager = require('../utils/position-duration-manager');
+      // ✅ ICT优化V2.0：使用独立的仓位管理器，不使用持仓时长管理器
       const ICTPositionManager = require('../services/ict-position-manager');
-      const signal = trend === 'UP' ? 'BUY' : 'SELL';
-      const marketType = 'TREND'; // ICT策略主要针对趋势市
-      const confidence = signals.score >= 60 ? 'high' : signals.score >= 40 ? 'med' : 'low';
+      
+      // ICT优化V2.0 配置
+      const ictConfig = {
+        maxHoldingHours: 48,        // ICT策略最大持仓48小时
+        timeStopMinutes: 60,        // 时间止损60分钟（用于未盈利交易）
+        timeExitPct: 0.5,           // 时间止损平仓50%
+        riskPercent: 0.01           // 1%风险
+      };
 
-      const stopLossConfig = PositionDurationManager.calculateDurationBasedStopLoss(
-        symbol, signal, entry, atr4H, marketType, confidence
-      );
-
-      // 使用持仓时长管理器的止损止盈，但保留ICT的结构止损作为参考
+      // 计算ICT结构止损
       const structuralStopLoss = this.calculateStructuralStopLoss(
         trend,
         orderBlock,
@@ -611,10 +611,8 @@ class ICTStrategy {
         signals.sweepHTF
       );
 
-      // 选择更保守的止损（距离入场价格更近的）
-      const stopLoss = Math.abs(entry - stopLossConfig.stopLoss) < Math.abs(entry - structuralStopLoss)
-        ? stopLossConfig.stopLoss
-        : structuralStopLoss;
+      // ICT策略使用结构止损
+      const stopLoss = structuralStopLoss;
 
       // ✅ 使用新的仓位管理器计算头寸
       const sizing = ICTPositionManager.calculatePositionSize({
@@ -639,7 +637,9 @@ class ICTStrategy {
       const leverage = Math.min(calculatedMaxLeverage, 24);
       const margin = stopDistance > 0 ? Math.ceil(sizing.riskCash / (leverage * stopDistance / entry)) : 0;
 
-      logger.info(`${symbol} ICT交易参数 (优化版): 趋势=${trend}, 置信度=${confidence}, 最大持仓=${stopLossConfig.maxDurationHours}小时, TP1=${plan.tps[0]}, TP2=${plan.tps[1]}, 保本=${plan.breakevenMove}`);
+      const confidence = signals.score >= 60 ? 'high' : signals.score >= 40 ? 'med' : 'low';
+      
+      logger.info(`${symbol} ICT交易参数 (优化V2.0): 趋势=${trend}, 置信度=${confidence}, 最大持仓=${ictConfig.maxHoldingHours}小时, TP1=${plan.tps[0]}, TP2=${plan.tps[1]}, 保本=${plan.breakevenMove}`);
 
       return {
         entry: parseFloat(entry.toFixed(4)),
@@ -656,9 +656,10 @@ class ICTStrategy {
         riskAmount: parseFloat(sizing.riskCash.toFixed(2)),
         riskCash: parseFloat(sizing.riskCash.toFixed(2)), // ✅ 新增：风险金额
         stopDistance: parseFloat(sizing.stopDistance.toFixed(4)), // ✅ 新增：止损距离
-        timeStopMinutes: stopLossConfig.timeStopMinutes,
-        maxDurationHours: stopLossConfig.maxDurationHours,
-        marketType: marketType,
+        timeStopMinutes: ictConfig.timeStopMinutes, // ✅ ICT优化V2.0：60分钟时间止损
+        maxDurationHours: ictConfig.maxHoldingHours, // ✅ ICT优化V2.0：48小时最大持仓
+        timeStopExitPct: ictConfig.timeExitPct, // ✅ ICT优化V2.0：时间止损平仓50%
+        marketType: 'TREND', // ICT策略主要针对趋势市
         confidence: confidence,
         confidenceScore: signals.score / 100, // ✅ 新增：置信度分数
         positionManagementMode: 'LAYERED', // ✅ 新增：仓位管理模式
