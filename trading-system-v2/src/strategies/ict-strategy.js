@@ -592,16 +592,25 @@ class ICTStrategy {
       // 计算入场价格（当前价格）
       const entry = currentPrice;
 
-      // ✅ ICT优化V2.0：使用独立的仓位管理器，不使用持仓时长管理器
+      // ✅ ICT优化V2.0：使用独立的仓位管理器
       const ICTPositionManager = require('../services/ict-position-manager');
+      const PositionDurationManager = require('../utils/position-duration-manager');
       
-      // ICT优化V2.0 配置
+      // 获取市场类型（ICT策略主要针对趋势市，但需要根据实际情况判断）
+      const marketType = 'TREND'; // 可以根据 signals 或其他指标动态判断
+      
+      // ✅ 使用持仓时长管理器获取配置
+      const durationConfig = PositionDurationManager.getPositionConfig(symbol, marketType);
+      
+      // ICT优化V2.0 配置（结合持仓时长管理器）
       const ictConfig = {
-        maxHoldingHours: 48,        // ICT策略最大持仓48小时
-        timeStopMinutes: 60,        // 时间止损60分钟（用于未盈利交易）
+        maxHoldingHours: durationConfig.maxDurationHours, // 根据交易对类别动态调整
+        timeStopMinutes: durationConfig.timeStopMinutes,  // 根据交易对类别动态调整
         timeExitPct: 0.5,           // 时间止损平仓50%
         riskPercent: 0.01           // 1%风险
       };
+      
+      logger.info(`${symbol} ICT持仓配置: ${durationConfig.category} ${marketType}市, 最大持仓=${ictConfig.maxHoldingHours}小时, 时间止损=${ictConfig.timeStopMinutes}分钟`);
 
       // 计算ICT结构止损
       const structuralStopLoss = this.calculateStructuralStopLoss(
@@ -633,9 +642,20 @@ class ICTStrategy {
 
       // 计算杠杆和保证金
       const stopDistance = Math.abs(entry - stopLoss);
-      const calculatedMaxLeverage = Math.floor(1 / (stopDistance / entry + 0.005));
+      const stopDistancePct = stopDistance / entry;
+      const calculatedMaxLeverage = Math.floor(1 / (stopDistancePct + 0.005));
+      
+      // ✅ 确保杠杆不超过24倍
       const leverage = Math.min(calculatedMaxLeverage, 24);
+      
+      // 验证杠杆限制
+      if (calculatedMaxLeverage > 24) {
+        logger.warn(`${symbol} ICT策略: 计算杠杆=${calculatedMaxLeverage}倍, 超过24倍限制, 已限制为24倍`);
+      }
+      
       const margin = stopDistance > 0 ? Math.ceil(sizing.riskCash / (leverage * stopDistance / entry)) : 0;
+      
+      logger.info(`${symbol} ICT杠杆计算: 止损距离=${stopDistance.toFixed(4)} (${(stopDistancePct * 100).toFixed(2)}%), 计算杠杆=${calculatedMaxLeverage}倍, 实际杠杆=${leverage}倍`);
 
       const confidence = signals.score >= 60 ? 'high' : signals.score >= 40 ? 'med' : 'low';
       
