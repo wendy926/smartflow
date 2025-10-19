@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartFlow 交易策略系统 - 最新优化文档 (2025-10-08)</title>
+  <title>SmartFlow 交易策略系统 - 最新优化文档 (2025-10-18)</title>
   <link rel="stylesheet" href="styles.css">
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
   <style>
@@ -126,12 +126,28 @@
     <div class="strategy-detail">
       <h2><i class="fas fa-list"></i> 目录</h2>
       <ul>
-        <li><a href="#latest-updates">最新更新 (2025-10-18)</a></li>
-        <li><a href="#ict-strategy">ICT策略详解</a></li>
+        <li><a href="#latest-updates">最新更新 (2025-10-18)</a>
+          <ul>
+            <li><a href="#funding-rate-calculation">资金费率和利率成本计算</a></li>
+            <li><a href="#ict-leverage-fix">ICT策略杠杆限制修复</a></li>
+            <li><a href="#ict-duration-fix">ICT策略持仓时长修复</a></li>
+            <li><a href="#v3-duration-fix">V3策略持仓时长修复</a></li>
+            <li><a href="#smart-money-optimization">聪明钱系统优化</a></li>
+          </ul>
+        </li>
+        <li><a href="#ict-strategy">ICT策略详解</a>
+          <ul>
+            <li><a href="#ict-optimization-v2">ICT策略优化 V2.0</a></li>
+          </ul>
+        </li>
         <li><a href="#v3-strategy">V3策略详解</a></li>
         <li><a href="#technical-indicators">技术指标说明</a></li>
-        <li><a href="#risk-management">风险管理</a></li>
-        <li><a href="#position-duration">持仓时长管理</a></li>
+        <li><a href="#risk-management">风险管理</a>
+          <ul>
+            <li><a href="#position-duration">持仓时长管理</a></li>
+            <li><a href="#funding-rate-costs">资金费率和利率成本</a></li>
+          </ul>
+        </li>
       </ul>
     </div>
 
@@ -233,6 +249,273 @@
       </ul>
 
       <p><strong>影响：</strong>震荡市假突破信号现在能够正确触发交易</p>
+    </div>
+
+    <h3 id="funding-rate-calculation">💰 资金费率和利率成本计算</h3>
+
+    <div class="optimization-item">
+      <h4>1. 盈亏计算优化</h4>
+      <p><strong>实现：</strong>在 ICT 策略和 V3 策略的盈亏逻辑中引入 Binance 的资金费率和利率成本</p>
+      
+      <h5>成本组成：</h5>
+      <table>
+        <tr>
+          <th>成本类型</th>
+          <th>来源</th>
+          <th>说明</th>
+        </tr>
+        <tr>
+          <td>手续费 (Fee)</td>
+          <td>交易所</td>
+          <td>开仓和平仓手续费</td>
+        </tr>
+        <tr>
+          <td>资金费率 (Funding Rate)</td>
+          <td>合约市场</td>
+          <td>多空之间的资金交换费率，通常每8小时结算一次</td>
+        </tr>
+        <tr>
+          <td>利率 (Interest Rate)</td>
+          <td>杠杆/借贷</td>
+          <td>使用杠杆或币本位合约时按年利率计算的借贷成本</td>
+        </tr>
+      </table>
+
+      <h5>计算公式：</h5>
+      <div class="code-block">
+        // 原始盈亏
+        rawPnL = isLong 
+          ? (exitPrice - entryPrice) * (positionSize / entryPrice)
+          : (entryPrice - exitPrice) * (positionSize / entryPrice);
+
+        // 手续费成本 (双向)
+        feeCost = positionSize * feeRate * 2;
+
+        // 资金费率成本 (每8小时结算一次)
+        fundingCost = positionSize * fundingRate * Math.floor(holdHours / 8);
+
+        // 利息成本 (按小时折算年化)
+        interestCost = positionSize * (interestRate / 365 / 24) * holdHours;
+
+        // 实际盈亏
+        netPnL = rawPnL - feeCost - fundingCost - interestCost;
+      </div>
+
+      <h5>数据库扩展：</h5>
+      <ul>
+        <li>✅ 添加 funding_rate, interest_rate, fee_rate 字段</li>
+        <li>✅ 添加 hold_hours 字段（持仓时长）</li>
+        <li>✅ 添加 funding_cost, interest_cost, fee_cost 字段</li>
+        <li>✅ 添加 raw_pnl, net_pnl 字段（原始盈亏和净盈亏）</li>
+      </ul>
+
+      <p><strong>影响：</strong>盈亏计算更准确，真实反映交易成本</p>
+    </div>
+
+    <h3 id="ict-leverage-fix">🔧 ICT策略杠杆限制修复</h3>
+
+    <div class="fix-item">
+      <h4>1. 杠杆计算优化</h4>
+      <p><strong>问题：</strong>预期最大杠杆是24倍，但发现有大于24倍的交易记录</p>
+      <p><strong>修复：</strong>确保杠杆永远不会超过24倍</p>
+
+      <h5>杠杆计算公式：</h5>
+      <div class="code-block">
+        // 止损距离
+        stopDistance = Math.abs(entry - stopLoss);
+        stopDistancePct = stopDistance / entry;
+
+        // 计算最大杠杆
+        calculatedMaxLeverage = Math.floor(1 / (stopDistancePct + 0.005));
+
+        // 确保杠杆不超过24倍
+        leverage = Math.min(calculatedMaxLeverage, 24);
+      </div>
+
+      <h5>验证机制：</h5>
+      <ul>
+        <li>✅ 添加杠杆计算日志</li>
+        <li>✅ 添加杠杆超限警告</li>
+        <li>✅ 添加单元测试（9个测试用例）</li>
+      </ul>
+
+      <p><strong>影响：</strong>杠杆永远不会超过24倍，风险可控</p>
+    </div>
+
+    <h3 id="ict-duration-fix">⏰ ICT策略持仓时长修复</h3>
+
+    <div class="fix-item">
+      <h4>1. 动态持仓时长配置</h4>
+      <p><strong>问题：</strong>ICT 策略使用固定的持仓时长配置（48小时），没有根据交易对类别动态调整</p>
+      <p><strong>修复：</strong>ICT 策略使用 PositionDurationManager 动态获取配置</p>
+
+      <h5>持仓时长配置：</h5>
+      <table>
+        <tr>
+          <th>交易对类别</th>
+          <th>市场类型</th>
+          <th>最大持仓时长</th>
+          <th>时间止损</th>
+        </tr>
+        <tr>
+          <td rowspan="2">主流币</td>
+          <td>趋势市</td>
+          <td>168小时（7天）</td>
+          <td>60分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>12小时</td>
+          <td>30分钟</td>
+        </tr>
+        <tr>
+          <td rowspan="2">高市值强趋势币</td>
+          <td>趋势市</td>
+          <td>72小时（3天）</td>
+          <td>120分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>4小时</td>
+          <td>45分钟</td>
+        </tr>
+        <tr>
+          <td rowspan="2">热点币</td>
+          <td>趋势市</td>
+          <td>24小时</td>
+          <td>180分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>3小时</td>
+          <td>60分钟</td>
+        </tr>
+      </table>
+
+      <h5>实现细节：</h5>
+      <ul>
+        <li>✅ ICT 策略使用 PositionDurationManager 动态获取配置</li>
+        <li>✅ 根据交易对类别自动调整最大持仓时间</li>
+        <li>✅ 添加持仓时长测试（18个测试用例）</li>
+      </ul>
+
+      <p><strong>影响：</strong>持仓时长根据交易对类别动态调整，更符合实际交易需求</p>
+    </div>
+
+    <h3 id="v3-duration-fix">⏰ V3策略持仓时长修复</h3>
+
+    <div class="fix-item">
+      <h4>1. 市场类型识别优化</h4>
+      <p><strong>问题：</strong>V3 策略出现 33 分钟被动停止的交易单，不符合预期最大持仓时间</p>
+      <p><strong>原因：</strong></p>
+      <ul>
+        <li>❌ PositionMonitor 对 V3 策略使用固定的 'RANGE' 市场类型</li>
+        <li>❌ 交易记录中缺少市场类型信息</li>
+        <li>❌ V3 策略未返回市场类型</li>
+      </ul>
+
+      <h5>修复内容：</h5>
+      <ul>
+        <li>✅ V3 策略返回市场类型和持仓时长参数</li>
+        <li>✅ 交易创建流程保存市场类型</li>
+        <li>✅ PositionMonitor 使用正确的市场类型</li>
+        <li>✅ 添加持仓时长测试（23个测试用例）</li>
+      </ul>
+
+      <h5>持仓时长配置：</h5>
+      <table>
+        <tr>
+          <th>交易对类别</th>
+          <th>市场类型</th>
+          <th>最大持仓时长</th>
+          <th>时间止损</th>
+        </tr>
+        <tr>
+          <td rowspan="2">主流币</td>
+          <td>趋势市</td>
+          <td>168小时（7天）</td>
+          <td>60分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>12小时</td>
+          <td>30分钟</td>
+        </tr>
+        <tr>
+          <td rowspan="2">高市值强趋势币</td>
+          <td>趋势市</td>
+          <td>72小时（3天）</td>
+          <td>120分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>4小时</td>
+          <td>45分钟</td>
+        </tr>
+        <tr>
+          <td rowspan="2">热点币</td>
+          <td>趋势市</td>
+          <td>24小时</td>
+          <td>180分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>3小时</td>
+          <td>60分钟</td>
+        </tr>
+      </table>
+
+      <p><strong>影响：</strong>V3 策略持仓时长符合预期，不再出现异常停止</p>
+    </div>
+
+    <h3 id="smart-money-optimization">💡 聪明钱系统优化</h3>
+
+    <div class="optimization-item">
+      <h4>1. 前端显示优化</h4>
+      <p><strong>问题：</strong>前端显示所有交易对一直是无信号，但 Telegram bot 一直有庄家动作告警通知</p>
+      <p><strong>原因：</strong>前端显示实时状态，Telegram 通知基于阶段变化，两者显示内容不同</p>
+      
+      <h5>修复内容：</h5>
+      <ul>
+        <li>✅ 添加筛选下拉框，支持"全部交易对"和"仅显示有信号的"两种显示模式</li>
+        <li>✅ 用户可以根据需要切换显示模式</li>
+      </ul>
+
+      <p><strong>影响：</strong>前端显示更灵活，用户体验更好</p>
+    </div>
+
+    <div class="optimization-item">
+      <h4>2. 置信度锁定机制</h4>
+      <p><strong>问题：</strong>前端显示频繁切换中性-拉升或中性-砸盘等有状态信号</p>
+      
+      <h5>修复内容：</h5>
+      <ul>
+        <li>✅ 置信度阈值提高至 70%</li>
+        <li>✅ 添加置信度锁定机制（置信度 ≥ 70% 时锁定当前阶段）</li>
+        <li>✅ 只在阶段变化时发送 Telegram 通知</li>
+        <li>✅ 低置信度时允许阶段转换</li>
+      </ul>
+
+      <h5>锁定机制：</h5>
+      <table>
+        <tr>
+          <th>置信度</th>
+          <th>锁定状态</th>
+          <th>通知条件</th>
+        </tr>
+        <tr>
+          <td>≥ 70%</td>
+          <td>锁定当前阶段</td>
+          <td>阶段变化 + 置信度 ≥ 70%</td>
+        </tr>
+        <tr>
+          <td>&lt; 70%</td>
+          <td>允许阶段转换</td>
+          <td>不发送通知</td>
+        </tr>
+      </table>
+
+      <p><strong>影响：</strong>减少频繁切换，提高信号质量</p>
     </div>
 
     <div class="success-box">
@@ -913,7 +1196,7 @@
     <div class="update-section" style="margin-top: 50px;">
       <h2><i class="fas fa-rocket"></i> ICT 策略优化 V2.0 🚀</h2>
       <p class="timestamp">更新时间：2025-10-18</p>
-      
+
       <h3>优化目标</h3>
       <ul>
         <li>✅ 解决长时间持仓问题（从平均72小时降至48小时以内）</li>
@@ -1110,40 +1393,40 @@
 
       <h3>技术实现</h3>
       <div class="code-block">
-// ICT 仓位管理器
-const ICTPositionManager = require('./services/ict-position-manager');
+        // ICT 仓位管理器
+        const ICTPositionManager = require('./services/ict-position-manager');
 
-// 1. 计算头寸
-const sizing = ICTPositionManager.calculatePositionSize({
-  accountBalance: equity,
-  riskPercent: 0.01, // 1%
-  entryPrice: entry,
-  stopPrice: stopLoss
-});
+        // 1. 计算头寸
+        const sizing = ICTPositionManager.calculatePositionSize({
+        accountBalance: equity,
+        riskPercent: 0.01, // 1%
+        entryPrice: entry,
+        stopPrice: stopLoss
+        });
 
-// 2. 构建交易计划
-const plan = ICTPositionManager.buildTradePlan({
-  direction: trend === 'UP' ? 'long' : 'short',
-  entryPrice: entry,
-  stopPrice: stopLoss,
-  qty: sizing.qty,
-  profitMultipliers: [2, 3] // TP1=2R, TP2=3R
-});
+        // 2. 构建交易计划
+        const plan = ICTPositionManager.buildTradePlan({
+        direction: trend === 'UP' ? 'long' : 'short',
+        entryPrice: entry,
+        stopPrice: stopLoss,
+        qty: sizing.qty,
+        profitMultipliers: [2, 3] // TP1=2R, TP2=3R
+        });
 
-// 3. 管理已开仓交易
-const actions = ICTPositionManager.manageTrade({
-  state: {
-    plan,
-    remainingQty: plan.qty,
-    filledPartialIndices: new Set()
-  },
-  price: currentPrice,
-  timeElapsedHours: hoursSinceEntry,
-  config: {
-    maxHoldingHours: 48,
-    timeExitPct: 0.5
-  }
-});
+        // 3. 管理已开仓交易
+        const actions = ICTPositionManager.manageTrade({
+        state: {
+        plan,
+        remainingQty: plan.qty,
+        filledPartialIndices: new Set()
+        },
+        price: currentPrice,
+        timeElapsedHours: hoursSinceEntry,
+        config: {
+        maxHoldingHours: 48,
+        timeExitPct: 0.5
+        }
+        });
       </div>
 
       <h3>优化效果</h3>
