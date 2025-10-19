@@ -152,7 +152,10 @@ class StrategyWorker {
         leverage: leverage,
         margin_used: margin_used, // 使用margin_used字段
         stop_loss: stopLoss,
-        take_profit: takeProfit
+        take_profit: takeProfit,
+        market_type: result.marketType || (strategy === 'ICT' ? 'TREND' : 'RANGE'), // ✅ 保存市场类型
+        time_stop_minutes: result.timeStopMinutes, // ✅ 保存时间止损
+        max_duration_hours: result.maxDurationHours // ✅ 保存最大持仓时长
       };
 
       // 创建交易

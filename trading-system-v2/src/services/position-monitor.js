@@ -116,8 +116,10 @@ class PositionMonitor {
 
       const currentPrice = parseFloat(klines15m[klines15m.length - 1][4]);
 
-      // 确定市场类型（根据策略）
-      const marketType = strategy_name === 'ICT' ? 'TREND' : 'RANGE';
+      // ✅ 从交易记录中获取市场类型，如果没有则使用默认值
+      const marketType = trade.market_type || (strategy_name === 'ICT' ? 'TREND' : 'RANGE');
+      
+      logger.info(`[持仓监控] ${symbol} (${strategy_name}) 市场类型=${marketType}`);
 
       // 检查最大持仓时长
       const durationCheck = PositionDurationManager.checkMaxDurationExceeded({
@@ -204,9 +206,9 @@ class PositionMonitor {
              net_pnl = ?
          WHERE id = ?`,
         [
-          exitPrice, 
-          reason, 
-          rawPnl, 
+          exitPrice,
+          reason,
+          rawPnl,
           pnlPercentage,
           holdHours,
           costsResult.fundingCost,

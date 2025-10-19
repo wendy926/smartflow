@@ -988,10 +988,13 @@ class V3Strategy {
         takeProfit: tradeParams.takeProfit || 0,
         leverage: tradeParams.leverage || 0,
         margin: tradeParams.margin || 0,
+        marketType: tradeParams.marketType || 'RANGE', // ✅ 保存市场类型
+        timeStopMinutes: tradeParams.timeStopMinutes, // ✅ 保存时间止损
+        maxDurationHours: tradeParams.maxDurationHours, // ✅ 保存最大持仓时长
         timestamp: new Date()
       };
 
-      logger.info(`V3策略分析完成: ${symbol} - ${finalSignal}`);
+      logger.info(`V3策略分析完成: ${symbol} - ${finalSignal}, marketType=${result.marketType}, maxDurationHours=${result.maxDurationHours}`);
       return result;
     } catch (error) {
       logger.error(`V3策略执行失败: ${error.message}`);

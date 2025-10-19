@@ -500,6 +500,9 @@ class DatabaseOperations {
         margin_used,
         quantity,
         entry_reason = '',
+        market_type = null,
+        time_stop_minutes = null,
+        max_duration_hours = null,
         created_at = new Date()
       } = tradeData;
 
@@ -518,15 +521,15 @@ class DatabaseOperations {
       const [result] = await connection.execute(
         `INSERT INTO simulation_trades 
          (symbol_id, strategy_name, trade_type, entry_price, stop_loss, take_profit, 
-          leverage, margin_used, quantity, entry_reason, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          leverage, margin_used, quantity, entry_reason, market_type, time_stop_minutes, max_duration_hours, created_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           symbolId, strategy_type, trade_type, entry_price, stop_loss, take_profit,
-          leverage, margin_used, quantity, entry_reason, created_at
+          leverage, margin_used, quantity, entry_reason, market_type, time_stop_minutes, max_duration_hours, created_at
         ]
       );
 
-      logger.info(`Trade added with ID: ${result.insertId}`);
+      logger.info(`Trade added with ID: ${result.insertId}, market_type=${market_type}, max_duration_hours=${max_duration_hours}`);
       return { success: true, id: result.insertId };
     } catch (error) {
       logger.error('Error adding trade:', error);
