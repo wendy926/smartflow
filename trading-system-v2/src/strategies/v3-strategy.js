@@ -121,9 +121,16 @@ class V3Strategy {
       'factor': 'factor_thresholds',
       'entry': 'entry_thresholds'
     };
-
+    
     const paramCategory = categoryMap[category] || category;
-    return this.params[paramCategory]?.[name] || defaultValue;
+    const value = this.params[paramCategory]?.[name] || defaultValue;
+    
+    // ✅ 调试日志
+    if (name.includes('Threshold')) {
+      logger.info(`[V3-getThreshold] category=${category}, name=${name}, paramCategory=${paramCategory}, dbValue=${this.params[paramCategory]?.[name]}, defaultValue=${defaultValue}, finalValue=${value}`);
+    }
+    
+    return value;
   }
 
   /**
