@@ -153,6 +153,9 @@ class ICTStrategy {
       const firstPrice = recent20Prices[0];
       const lastPrice = recent20Prices[recent20Prices.length - 1];
       const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
+      
+      // 添加调试日志
+      logger.info(`[ICT日线趋势] 20日价格变化: ${priceChange.toFixed(2)}%, 首价: ${firstPrice}, 末价: ${lastPrice}, 阈值: ±1%`);
 
       // 趋势判断逻辑：基于20日收盘价比较
       // 优化：进一步降低阈值从±2%到±1%，增加交易机会
