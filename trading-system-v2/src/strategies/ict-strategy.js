@@ -174,6 +174,9 @@ class ICTStrategy {
         confidence = 0.3; // 震荡市场基础置信度
       }
 
+      // 添加趋势判断结果日志
+      logger.info(`[ICT日线趋势] 趋势判断结果: ${trend}, 置信度: ${confidence.toFixed(3)}, 原因: ${priceChange.toFixed(2)}% ${priceChange > 1 ? '> 1%' : priceChange < -1 ? '< -1%' : '在±1%范围内'}`);
+      
       return {
         trend,
         confidence,
