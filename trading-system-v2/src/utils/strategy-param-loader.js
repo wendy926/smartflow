@@ -29,7 +29,7 @@ class StrategyParameterLoader {
 
     try {
       const sql = `
-        SELECT param_group, param_name, param_value, param_type
+        SELECT param_group, param_name, param_value, param_type, category
         FROM strategy_params
         WHERE strategy_name = ? 
           AND strategy_mode = ?
@@ -43,7 +43,8 @@ class StrategyParameterLoader {
       const params = {};
       
       for (const row of rows) {
-        const group = row.param_group || 'general';
+        // ✅ 优先使用category，如果不存在则使用param_group
+        const group = row.category || row.param_group || 'general';
         const name = row.param_name;
         let value = row.param_value;
 
