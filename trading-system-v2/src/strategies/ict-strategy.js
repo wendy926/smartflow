@@ -929,8 +929,11 @@ class ICTStrategy {
       const dailyTrend = this.analyzeDailyTrend(klines1D);
 
       // 2. 检测订单块
+      logger.info(`[ICT策略] 4H数据长度: ${klines4H ? klines4H.length : 'undefined'}, 1D数据长度: ${klines1D ? klines1D.length : 'undefined'}`);
       const atr4H = this.calculateATR(klines4H, 14);
+      logger.info(`[ICT策略] 4H ATR计算完成, 长度: ${atr4H ? atr4H.length : 'undefined'}, 最新值: ${atr4H && atr4H.length > 0 ? atr4H[atr4H.length - 1] : 'undefined'}`);
       const orderBlocks = this.detectOrderBlocks(klines4H, atr4H[atr4H.length - 1], 30);
+      logger.info(`[ICT策略] 订单块检测完成, 数量: ${orderBlocks ? orderBlocks.length : 'undefined'}`);
 
       // 3. 检测HTF Sweep - 基于订单块进行扫荡检测
       let sweepHTF = { detected: false, type: null, level: 0, confidence: 0, speed: 0 };
