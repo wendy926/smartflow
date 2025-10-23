@@ -366,8 +366,8 @@ class BacktestStrategyEngineV3 {
         // 设置Mock Binance API的当前索引
         mockAPI.setCurrentIndex(i);
 
-        // 强制设置模式并应用参数
-        this.v3Strategy = new V3StrategyV31();
+        // ✅ 不需要每次循环都new，复用constructor中创建的实例
+        // this.v3Strategy在constructor中已经创建
         this.v3Strategy.binanceAPI = mockAPI; // 使用同一个Mock API实例
         this.v3Strategy.mode = mode; // 强制设置模式
 
