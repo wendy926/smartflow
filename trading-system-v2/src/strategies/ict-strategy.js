@@ -155,14 +155,14 @@ class ICTStrategy {
       const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
 
       // 趋势判断逻辑：基于20日收盘价比较
-      // 优化：降低阈值从±3%到±2%，使其与V3策略更协调
+      // 优化：进一步降低阈值从±2%到±1%，增加交易机会
       let trend = 'RANGE';
       let confidence = 0;
 
-      if (priceChange > 2) { // 20日涨幅超过2%（从3%降低）
+      if (priceChange > 1) { // 20日涨幅超过1%（从2%降低）
         trend = 'UP';
         confidence = Math.min(Math.abs(priceChange) / 10, 1);
-      } else if (priceChange < -2) { // 20日跌幅超过2%（从-3%降低）
+      } else if (priceChange < -1) { // 20日跌幅超过1%（从-2%降低）
         trend = 'DOWN';
         confidence = Math.min(Math.abs(priceChange) / 10, 1);
       } else {
@@ -178,7 +178,7 @@ class ICTStrategy {
         priceChange,
         closeChange: priceChange / 100, // 转换为小数形式
         lookback: 20, // 20日回看期
-        reason: `20-day price change: ${priceChange.toFixed(2)}% (threshold: ±2%), ATR: ${currentATR.toFixed(4)}`
+        reason: `20-day price change: ${priceChange.toFixed(2)}% (threshold: ±1%), ATR: ${currentATR.toFixed(4)}`
       };
     } catch (error) {
       logger.error(`ICT Daily trend analysis error for ${symbol}:`, error);
