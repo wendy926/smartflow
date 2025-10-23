@@ -209,6 +209,7 @@ class ICTStrategy {
     const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
 
     // 寻找价格停留区域作为订单块（3-5根K线窗口）
+    logger.info(`[ICT订单块检测] 开始检测, 数据长度: ${klines.length}, 循环范围: 3到${klines.length - 2}, 总窗口数: ${klines.length - 4}`);
     for (let i = 3; i < klines.length - 2; i++) {
       const window = klines.slice(i - 3, i + 2); // 5根K线窗口
 
