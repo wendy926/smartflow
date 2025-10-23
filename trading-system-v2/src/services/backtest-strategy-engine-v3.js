@@ -6,13 +6,13 @@
 
 const logger = require('../utils/logger');
 const ICTStrategy = require('../strategies/ict-strategy');
-const V3StrategyV31 = require('../strategies/v3-strategy-v3-1-integrated');
+const V3Strategy = require('../strategies/v3-strategy'); // ✅ 使用主V3策略而非旧版integrated
 
 class BacktestStrategyEngineV3 {
   constructor(mockBinanceAPI) {
     this.mockBinanceAPI = mockBinanceAPI;
     this.ictStrategy = new ICTStrategy();
-    this.v3Strategy = new V3StrategyV31();
+    this.v3Strategy = new V3Strategy(); // ✅ 使用主V3策略
 
     // 将Mock Binance API注入到策略中
     if (this.mockBinanceAPI) {
@@ -221,7 +221,7 @@ class BacktestStrategyEngineV3 {
           if (stopLoss === 0 || takeProfit === 0) {
             // 计算真实的ATR（过去14根K线的平均真实波动幅度）
             const atr = this.calculateTrueATR(klines, i, 14);
-            
+
             // ✅ 从参数中获取止损倍数，默认1.5
             const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || 1.5;
             const stopDistance = atr * atrMultiplier;
@@ -231,7 +231,7 @@ class BacktestStrategyEngineV3 {
             // ✅ 从参数中获取止盈倍数，默认5.0
             const takeProfitRatio = params?.risk_management?.takeProfitRatio || 5.0;
             takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
-            
+
             const actualRR = takeProfitRatio / atrMultiplier;
             logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 使用参数计算止损止盈, ATR=${atr.toFixed(2)}, ATR倍数=${atrMultiplier}, 止盈倍数=${takeProfitRatio}, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1`);
           } else {
@@ -254,7 +254,7 @@ class BacktestStrategyEngineV3 {
           };
 
           lastSignal = signal;
-          
+
           const actualRR = Math.abs(position.takeProfit - entryPrice) / Math.abs(entryPrice - position.stopLoss);
           logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 开仓 ${direction} @ ${entryPrice.toFixed(2)}, SL=${position.stopLoss.toFixed(2)}, TP=${position.takeProfit.toFixed(2)}, 实际盈亏比=${actualRR.toFixed(2)}:1`);
         }
@@ -485,7 +485,7 @@ class BacktestStrategyEngineV3 {
           if (stopLoss === 0 || takeProfit === 0) {
             // 计算真实的ATR（过去14根K线的平均真实波动幅度）
             const atr = this.calculateTrueATR(klines, i, 14);
-            
+
             // ✅ 从参数中获取止损倍数（根据置信度），默认1.8
             let atrMultiplier = 1.8;
             if (params?.risk_management) {
@@ -499,7 +499,7 @@ class BacktestStrategyEngineV3 {
                 atrMultiplier = params.risk_management.stopLossATRMultiplier;
               }
             }
-            
+
             const stopDistance = atr * atrMultiplier;
             stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
             const risk = stopDistance;
@@ -507,7 +507,7 @@ class BacktestStrategyEngineV3 {
             // ✅ 从参数中获取止盈倍数，默认5.0
             const takeProfitRatio = params?.risk_management?.takeProfitRatio || 5.0;
             takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
-            
+
             const actualRR = takeProfitRatio / atrMultiplier;
             logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 使用参数计算止损止盈, ATR=${atr.toFixed(2)}, ATR倍数=${atrMultiplier}, 止盈倍数=${takeProfitRatio}, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1, 置信度=${confidence}`);
           } else {
