@@ -4,6 +4,9 @@ const SweepDirectionFilter = require('./ict-sweep-filter');
 const HarmonicPatterns = require('./harmonic-patterns');
 const logger = require('../utils/logger');
 const config = require('../config');
+const StrategyParameterLoader = require('../utils/strategy-param-loader');
+const ADXCalculator = require('../utils/adx-calculator');
+const DatabaseConnection = require('../database/connection');
 
 /**
  * ICT策略实现
@@ -14,6 +17,77 @@ class ICTStrategy {
     this.name = 'ICT';
     this.timeframes = ['1D', '4H', '15m'];
     this.binanceAPI = getBinanceAPI();  // 使用单例
+    
+    // 参数加载器
+    this.paramLoader = null;
+    this.params = {};
+    
+    // 异步初始化参数
+    this.initializeParameters();
+  }
+
+  /**
+   * 初始化策略参数（从数据库加载）
+   */
+  async initializeParameters() {
+    try {
+      const dbConnection = DatabaseConnection.getInstance();
+      this.paramLoader = new StrategyParameterLoader(dbConnection);
+      
+      // 加载BALANCED模式参数
+      this.params = await this.paramLoader.loadParameters('ICT', 'BALANCED');
+      
+      logger.info('[ICT策略] 参数加载完成', {
+        paramGroups: Object.keys(this.params).length,
+        adxEnabled: this.params.filters?.adxEnabled,
+        stopLossATR: this.params.risk_management?.stopLossATRMultiplier
+      });
+    } catch (error) {
+      logger.error('[ICT策略] 参数加载失败，使用默认值', error);
+      this.params = this.getDefaultParameters();
+    }
+  }
+
+  /**
+   * 获取默认参数（数据库加载失败时使用）
+   */
+  getDefaultParameters() {
+    return {
+      filters: {
+        adxEnabled: true,
+        adxMinThreshold: 20,
+        adxPeriod: 14
+      },
+      atr_timeframes: {
+        stopLossTimeframe: '4h',
+        orderBlockHeightTimeframe: '4h',
+        htfSweepTimeframe: '4h',
+        ltfSweepTimeframe: '15m'
+      },
+      risk_management: {
+        stopLossATRMultiplier: 2.5,
+        takeProfitRatio: 3.0,
+        useStructuralStop: true
+      },
+      order_block: {
+        maxAgeDays: 3,
+        minHeightATR: 0.25,
+        volumeThreshold: 0.8
+      },
+      sweep_thresholds: {
+        htfMultiplier: 0.3,
+        ltfMultiplier: 0.1,
+        regressionRatio: 0.5
+      },
+      required_conditions: {
+        optionalRequiredCount: 2
+      },
+      signal_thresholds: {
+        minEngulfingStrength: 0.5,
+        strongThreshold: 0.7,
+        moderateThreshold: 0.5
+      }
+    };
   }
 
   /**
@@ -595,13 +669,13 @@ class ICTStrategy {
       // ✅ ICT优化V2.0：使用独立的仓位管理器
       const ICTPositionManager = require('../services/ict-position-manager');
       const PositionDurationManager = require('../utils/position-duration-manager');
-      
+
       // 获取市场类型（ICT策略主要针对趋势市，但需要根据实际情况判断）
       const marketType = 'TREND'; // 可以根据 signals 或其他指标动态判断
-      
+
       // ✅ 使用持仓时长管理器获取配置
       const durationConfig = PositionDurationManager.getPositionConfig(symbol, marketType);
-      
+
       // ICT优化V2.0 配置（结合持仓时长管理器）
       const ictConfig = {
         maxHoldingHours: durationConfig.maxDurationHours, // 根据交易对类别动态调整
@@ -609,7 +683,7 @@ class ICTStrategy {
         timeExitPct: 0.5,           // 时间止损平仓50%
         riskPercent: 0.01           // 1%风险
       };
-      
+
       logger.info(`${symbol} ICT持仓配置: ${durationConfig.category} ${marketType}市, 最大持仓=${ictConfig.maxHoldingHours}小时, 时间止损=${ictConfig.timeStopMinutes}分钟`);
 
       // 计算ICT结构止损
@@ -644,21 +718,21 @@ class ICTStrategy {
       const stopDistance = Math.abs(entry - stopLoss);
       const stopDistancePct = stopDistance / entry;
       const calculatedMaxLeverage = Math.floor(1 / (stopDistancePct + 0.005));
-      
+
       // ✅ 确保杠杆不超过24倍
       const leverage = Math.min(calculatedMaxLeverage, 24);
-      
+
       // 验证杠杆限制
       if (calculatedMaxLeverage > 24) {
         logger.warn(`${symbol} ICT策略: 计算杠杆=${calculatedMaxLeverage}倍, 超过24倍限制, 已限制为24倍`);
       }
-      
+
       const margin = stopDistance > 0 ? Math.ceil(sizing.riskCash / (leverage * stopDistance / entry)) : 0;
-      
+
       logger.info(`${symbol} ICT杠杆计算: 止损距离=${stopDistance.toFixed(4)} (${(stopDistancePct * 100).toFixed(2)}%), 计算杠杆=${calculatedMaxLeverage}倍, 实际杠杆=${leverage}倍`);
 
       const confidence = signals.score >= 60 ? 'high' : signals.score >= 40 ? 'med' : 'low';
-      
+
       logger.info(`${symbol} ICT交易参数 (优化V2.0): 趋势=${trend}, 置信度=${confidence}, 最大持仓=${ictConfig.maxHoldingHours}小时, TP1=${plan.tps[0]}, TP2=${plan.tps[1]}, 保本=${plan.breakevenMove}`);
 
       return {
@@ -704,7 +778,46 @@ class ICTStrategy {
     let score = 0;              // 默认总分
 
     try {
+      // ==================== 参数加载确认 ====================
+      if (!this.params || Object.keys(this.params).length === 0) {
+        await this.initializeParameters();
+      }
+
       logger.info(`Executing ICT strategy for ${symbol}`);
+
+      // ==================== ADX过滤（震荡市过滤）====================
+      if (this.params.filters?.adxEnabled) {
+        // 获取15M K线用于ADX计算
+        const klines15mForADX = await this.binanceAPI.getKlines(symbol, '15m', 50);
+        
+        if (klines15mForADX && klines15mForADX.length >= 15) {
+          const adxPeriod = this.params.filters.adxPeriod || 14;
+          const adxThreshold = this.params.filters.adxMinThreshold || 20;
+          const adx = ADXCalculator.calculateADX(klines15mForADX, adxPeriod);
+          
+          logger.info(`[ICT-ADX] ${symbol} ADX=${adx?.toFixed(2) || 'N/A'}, 阈值=${adxThreshold}`);
+          
+          if (ADXCalculator.shouldFilter(adx, adxThreshold)) {
+            logger.info(`[ICT-ADX过滤] ${symbol} 震荡市(ADX=${adx.toFixed(2)}), 跳过交易`);
+            return {
+              symbol,
+              strategy: 'ICT',
+              signal: 'HOLD',
+              confidence: 'low',
+              score: 0,
+              trend: 'RANGING',
+              reason: `ADX过滤：震荡市(ADX=${adx.toFixed(2)} < ${adxThreshold})`,
+              metadata: {
+                adx: adx,
+                adxThreshold: adxThreshold,
+                marketState: ADXCalculator.getMarketState(adx),
+                filtered: true
+              }
+            };
+          }
+        }
+      }
+      // ===== ADX过滤结束 =====
 
       // 暂时禁用缓存以确保每个交易对都有独立数据
       // if (this.cache) {
@@ -726,6 +839,35 @@ class ICTStrategy {
       // 检查数据有效性
       if (!klines1D || !klines4H || !klines15m) {
         throw new Error(`无法获取 ${symbol} 的完整数据`);
+      }
+
+      // 检查数据长度
+      if (klines1D.length === 0 || klines4H.length === 0 || klines15m.length === 0) {
+        logger.warn(`[ICT策略] ${symbol} 数据不足: 1D=${klines1D.length}, 4H=${klines4H.length}, 15M=${klines15m.length}`);
+        // 返回HOLD信号
+        return {
+          symbol,
+          strategy: 'ICT',
+          signal: 'HOLD',
+          confidence: 'low',
+          score: 0,
+          trend: 'NEUTRAL',
+          reason: '数据不足'
+        };
+      }
+
+      // 检查数据格式
+      if (!klines4H[klines4H.length - 1] || !klines4H[klines4H.length - 1][4]) {
+        logger.warn(`[ICT策略] ${symbol} 4H数据格式错误`);
+        return {
+          symbol,
+          strategy: 'ICT',
+          signal: 'HOLD',
+          confidence: 'low',
+          score: 0,
+          trend: 'NEUTRAL',
+          reason: '数据格式错误'
+        };
       }
 
       // 1. 分析日线趋势

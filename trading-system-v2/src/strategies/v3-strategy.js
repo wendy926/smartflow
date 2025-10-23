@@ -9,12 +9,111 @@ const TokenClassifier = require('../utils/token-classifier');
 const { globalAdjuster } = require('./v3-dynamic-weights');
 const logger = require('../utils/logger');
 const config = require('../config');
+const StrategyParameterLoader = require('../utils/strategy-param-loader');
+const ADXCalculator = require('../utils/adx-calculator');
+const DatabaseConnection = require('../database/connection');
 
 class V3Strategy {
   constructor() {
     this.name = 'V3';
     this.binanceAPI = getBinanceAPI();  // 使用单例
     this.timeframes = ['4H', '1H', '15M'];
+
+    // 参数加载器
+    this.paramLoader = null;
+    this.params = {};
+    
+    // 异步初始化参数
+    this.initializeParameters();
+
+    // 默认参数（会被数据库参数覆盖）- 降低门槛以增加信号生成
+    this.trend4HStrongThreshold = 4;
+    this.trend4HModerateThreshold = 3;
+    this.trend4HWeakThreshold = 2;
+    this.trend4HADXThreshold = 25;
+    this.entry15MStrongThreshold = 2;
+    this.entry15MModerateThreshold = 1;
+    this.entry15MWeakThreshold = 1;
+    this.entry15MStructureWeight = 1;
+    this.factorTrendWeight = 40;      // 提高趋势权重
+    this.factorMomentumWeight = 20;   // 提高动量权重
+    this.factorVolatilityWeight = 15; // 提高波动率权重
+    this.factorVolumeWeight = 10;     // 提高成交量权重
+    this.factorFundingWeight = 8;     // 保持资金费率权重
+    this.factorOIWeight = 7;          // 提高持仓量权重
+    this.factorADXStrongThreshold = 25;
+    this.factorADXModerateThreshold = 18;
+    this.factorBBWHighThreshold = 0.04;   // 提高高波动率阈值
+    this.factorBBWModerateThreshold = 0.02; // 提高中等波动率阈值
+    this.maxLeverage = 24;
+    this.leverageBuffer = 0.005;
+  }
+
+  /**
+   * 初始化策略参数（从数据库加载）
+   */
+  async initializeParameters() {
+    try {
+      const dbConnection = DatabaseConnection.getInstance();
+      this.paramLoader = new StrategyParameterLoader(dbConnection);
+      this.params = await this.paramLoader.loadParameters('V3', 'BALANCED');
+      
+      logger.info('[V3策略] 参数加载完成', {
+        paramGroups: Object.keys(this.params).length
+      });
+    } catch (error) {
+      logger.error('[V3策略] 参数加载失败，使用默认值', error);
+      this.params = this.getDefaultParameters();
+    }
+  }
+
+  /**
+   * 获取默认参数（数据库加载失败时使用）
+   */
+  getDefaultParameters() {
+    return {
+      filters: {
+        adxEnabled: true,
+        adxMinThreshold: 20,
+        adxPeriod: 14
+      },
+      risk_management: {
+        stopLossATRMultiplier_high: 1.8,
+        stopLossATRMultiplier_medium: 2.0,
+        stopLossATRMultiplier_low: 2.2,
+        takeProfitRatio: 3.0,
+        trailingStopStart: 1.5,
+        trailingStopStep: 0.8,
+        timeStopMinutes: 90,
+        disableTimeStopWhenTrendStrong: true,
+        strongTrendScoreThreshold: 7
+      },
+      early_trend: {
+        weightBonus: 5,
+        requireDelayedConfirmation: true,
+        delayBars: 2
+      },
+      fake_breakout: {
+        volumeMultiplier: 1.1,
+        retraceThreshold: 0.006,
+        weakenWhenTrendStrong: true,
+        strongTrendThreshold: 8
+      },
+      weights: {
+        trendWeight_default: 40,
+        factorWeight_default: 35,
+        entryWeight_default: 25,
+        trendWeight_strong: 45,
+        entryWeight_strong: 25,
+        enableMacdContractionDetection: true
+      },
+      trend_thresholds: {
+        trend4HStrongThreshold: 8,
+        trend4HWeakThreshold: 4,
+        adx4HStrongThreshold: 35,
+        adx4HWeakThreshold: 20
+      }
+    };
   }
 
   /**
@@ -105,13 +204,13 @@ class V3Strategy {
   calculateTrendConfidence(adx, bbw) {
     let confidence = 0.5; // 基础置信度
 
-    // ADX影响
-    if (adx > 25) confidence += 0.3;
+    // ADX影响（使用参数化阈值）
+    if (adx > this.trend4HADXThreshold) confidence += 0.3;
     else if (adx > 20) confidence += 0.2;
     else if (adx < 15) confidence -= 0.2;
 
-    // 布林带宽度影响
-    if (bbw < 0.05) confidence += 0.2; // 收窄表示趋势可能开始
+    // 布林带宽度影响（使用参数化阈值）
+    if (bbw < this.factorBBWHighThreshold) confidence += 0.2; // 收窄表示趋势可能开始
     else if (bbw > 0.15) confidence -= 0.1; // 过宽表示震荡
 
     return Math.max(0, Math.min(1, confidence));
@@ -222,7 +321,7 @@ class V3Strategy {
    * @param {string} symbol - 交易对
    * @returns {Promise<Object>} 15M执行信号分析结果
    */
-  analyze15mExecution(symbol, klines, data = {}) {
+  async analyze15mExecution(symbol, klines, data = {}) {
     try {
       if (!klines || klines.length < 15) {
         logger.warn(`15M K线数据不足: 实际长度 ${klines ? klines.length : 0}`);
@@ -290,7 +389,7 @@ class V3Strategy {
       const structureScore = this.analyzeStructure(klines, trend);
 
       // 判断执行信号（支持震荡市）
-      const entrySignalResult = this.determineEntrySignal(
+      const entrySignalResult = await this.determineEntrySignal(
         prices[prices.length - 1], ema20[ema20.length - 1],
         adx.adx, bbw.bbw, vwap, 0, 0, delta, marketType,
         data.rangeBoundary, klines
@@ -544,6 +643,8 @@ class V3Strategy {
     if (factorScores.vwap) score += 1;
     if (factorScores.delta) score += 1;
 
+    // 添加详细评分日志
+    console.log(`[V3策略] 15M入场评分详情: EMA20=${ema20 !== null && ema20 !== undefined && ema20 >= 0 ? 1 : 0}, ADX=${adx && adx > 20 ? 1 : 0}, BBW=${bbw && bbw < 0.1 ? 1 : 0}, VWAP=${factorScores.vwap}, Delta=${factorScores.delta}, 总分=${score}, 加权分=${weightedScore}`);
     logger.info(`${symbol} (${categoryInfo.name}) 15M ${marketType}市 - 传统得分:${score}/5, 加权得分:${(weightedScore * 100).toFixed(1)}%`);
 
     // 修复：使用>= (大于等于)，60%应该返回传统得分
@@ -635,8 +736,8 @@ class V3Strategy {
   determineTrendDirection(currentPrice, ma20, ma50, ma200, adx) {
     if (!ma20 || !ma50 || !ma200 || !adx) return 'RANGE';
 
-    // 强趋势判断（提高ADX阈值到30，更保守）
-    if (adx > 30) {
+    // 强趋势判断（使用演进方案ADX阈值40，更严格）
+    if (adx > 40) {
       if (currentPrice > ma20 && ma20 > ma50 && ma50 > ma200) {
         return 'UP';
       } else if (currentPrice < ma20 && ma20 < ma50 && ma50 < ma200) {
@@ -768,7 +869,7 @@ class V3Strategy {
    * @param {Array} klines15m - 15M K线数据
    * @returns {Object} 入场信号和参数
    */
-  determineEntrySignal(currentPrice, ema20, adx, bbw, vwap, fundingRate, oiChange, delta, marketType = 'TREND', rangeBoundary = null, klines15m = null) {
+  async determineEntrySignal(currentPrice, ema20, adx, bbw, vwap, fundingRate, oiChange, delta, marketType = 'TREND', rangeBoundary = null, klines15m = null) {
     if (ema20 === null || ema20 === undefined || adx === null || adx === undefined ||
       bbw === null || bbw === undefined || vwap === null || vwap === undefined) {
       return { signal: 'HOLD', stopLoss: 0, takeProfit: 0, reason: 'Invalid indicators' };
@@ -776,7 +877,7 @@ class V3Strategy {
 
     // 震荡市假突破逻辑
     if (marketType === 'RANGE' && rangeBoundary && klines15m) {
-      return this.determineRangeEntrySignal(currentPrice, rangeBoundary, klines15m, bbw);
+      return await this.determineRangeEntrySignal(currentPrice, rangeBoundary, klines15m, bbw);
     }
 
     // 趋势市逻辑（原有逻辑）
@@ -806,7 +907,7 @@ class V3Strategy {
    * @param {number} bbw - 布林带宽度
    * @returns {Object} 入场信号和参数
    */
-  determineRangeEntrySignal(currentPrice, rangeBoundary, klines15m, bbw) {
+  async determineRangeEntrySignal(currentPrice, rangeBoundary, klines15m, bbw) {
     try {
       // 1. 检查布林带宽收窄（15分钟布林带宽 < 5%）
       if (bbw >= 0.05) {
@@ -833,34 +934,72 @@ class V3Strategy {
       const atr = TechnicalIndicators.calculateATR(highs, lows, closes, 14);
       const currentATR = atr[atr.length - 1] || (currentPrice * 0.01);
 
-      // 5. 假突破判断
+      // 5. 假突破判断 - V3.1+ 动态止损策略
       // 多头假突破：prevClose < rangeLow 且 lastClose > rangeLow 且下轨有效
       if (prevClose < rangeBoundary.lower && lastClose > rangeBoundary.lower && rangeBoundary.lowerValid) {
-        const stopLoss = rangeBoundary.lower - currentATR;
-        const takeProfit = lastClose + 2 * (lastClose - stopLoss);
+        // 使用V3.1+动态止损：基于置信度和入场模式
+        const confidence = 'high'; // 假突破信号通常置信度较高
+        const entryMode = 'breakout'; // 假突破属于突破入场
 
-        logger.info(`震荡市多头假突破: 价格${lastClose}突破下轨${rangeBoundary.lower}, 止损${stopLoss}, 止盈${takeProfit}`);
+        // 动态止损系数 - 平衡止损以提升胜率
+        let stopMultiplier = 0.08; // 基础系数平衡设置
+        if (confidence === 'high') stopMultiplier = 0.06;  // 高置信度：0.06倍ATR
+        else if (confidence === 'med') stopMultiplier = 0.08; // 中置信度：0.08倍ATR
+        else if (confidence === 'low') stopMultiplier = 0.12;  // 低置信度：0.12倍ATR
+
+        // 入场模式调整
+        if (entryMode === 'breakout') stopMultiplier *= 1.0; // 突破入场保持平衡
+        else if (entryMode === 'pullback') stopMultiplier *= 0.9; // 回撤入场稍微收紧
+
+        const stopLoss = rangeBoundary.lower - (currentATR * stopMultiplier);
+        const risk = lastClose - stopLoss;
+
+        // 使用动态盈亏比计算
+        const takeProfit = await this.calculateTakeProfit(lastClose, stopLoss, confidence, entryMode);
+
+        logger.info(`震荡市多头假突破: 价格${lastClose}突破下轨${rangeBoundary.lower}, 止损${stopLoss}, 止盈${takeProfit} (动态盈亏比, 置信度=${confidence})`);
         return {
           signal: 'BUY',
           stopLoss,
           takeProfit,
           reason: 'Range fake breakout long',
-          entryPrice: lastClose
+          entryPrice: lastClose,
+          confidence,
+          entryMode
         };
       }
 
       // 空头假突破：prevClose > rangeHigh 且 lastClose < rangeHigh 且上轨有效
       if (prevClose > rangeBoundary.upper && lastClose < rangeBoundary.upper && rangeBoundary.upperValid) {
-        const stopLoss = rangeBoundary.upper + currentATR;
-        const takeProfit = lastClose - 2 * (stopLoss - lastClose);
+        // 使用V3.1+动态止损：基于置信度和入场模式
+        const confidence = 'high'; // 假突破信号通常置信度较高
+        const entryMode = 'breakout'; // 假突破属于突破入场
 
-        logger.info(`震荡市空头假突破: 价格${lastClose}跌破上轨${rangeBoundary.upper}, 止损${stopLoss}, 止盈${takeProfit}`);
+        // 动态止损系数 - 平衡止损以提升胜率
+        let stopMultiplier = 0.08; // 基础系数平衡设置
+        if (confidence === 'high') stopMultiplier = 0.06;  // 高置信度：0.06倍ATR
+        else if (confidence === 'med') stopMultiplier = 0.08; // 中置信度：0.08倍ATR
+        else if (confidence === 'low') stopMultiplier = 0.12;  // 低置信度：0.12倍ATR
+
+        // 入场模式调整
+        if (entryMode === 'breakout') stopMultiplier *= 1.0; // 突破入场保持平衡
+        else if (entryMode === 'pullback') stopMultiplier *= 0.9; // 回撤入场稍微收紧
+
+        const stopLoss = rangeBoundary.upper + (currentATR * stopMultiplier);
+        const risk = stopLoss - lastClose;
+
+        // 使用动态盈亏比计算
+        const takeProfit = await this.calculateTakeProfit(lastClose, stopLoss, confidence, entryMode);
+
+        logger.info(`震荡市空头假突破: 价格${lastClose}跌破上轨${rangeBoundary.upper}, 止损${stopLoss}, 止盈${takeProfit} (动态盈亏比, 置信度=${confidence})`);
         return {
           signal: 'SELL',
           stopLoss,
           takeProfit,
           reason: 'Range fake breakout short',
-          entryPrice: lastClose
+          entryPrice: lastClose,
+          confidence,
+          entryMode
         };
       }
 
@@ -878,7 +1017,38 @@ class V3Strategy {
    */
   async execute(symbol) {
     try {
+      // ==================== 参数加载确认 ====================
+      if (!this.params || Object.keys(this.params).length === 0) {
+        await this.initializeParameters();
+      }
+
       logger.info(`开始执行V3策略分析: ${symbol}`);
+
+      // ==================== ADX过滤（震荡市过滤）====================
+      if (this.params.filters?.adxEnabled) {
+        // 获取15M K线用于ADX计算
+        const klines15mForADX = await this.binanceAPI.getKlines(symbol, '15m', 50);
+        
+        if (klines15mForADX && klines15mForADX.length >= 15) {
+          const adxPeriod = this.params.filters.adxPeriod || 14;
+          const adxThreshold = this.params.filters.adxMinThreshold || 20;
+          const adx = ADXCalculator.calculateADX(klines15mForADX, adxPeriod);
+          
+          if (ADXCalculator.shouldFilter(adx, adxThreshold)) {
+            logger.info(`[V3-ADX过滤] ${symbol} 震荡市(ADX=${adx?.toFixed(2)}), 跳过交易`);
+            return {
+              symbol,
+              strategy: 'V3',
+              signal: 'HOLD',
+              confidence: 0,
+              score: 0,
+              reason: `ADX过滤：震荡市(ADX=${adx?.toFixed(2)})`,
+              metadata: { adx, filtered: true }
+            };
+          }
+        }
+      }
+      // ===== ADX过滤结束 =====
 
       // 获取基础数据
       const [klines4H, klines1H, klines15M, ticker24hr, fundingRate, oiHistory] = await Promise.all([
@@ -1030,25 +1200,25 @@ class V3Strategy {
    * @returns {Object} 动态权重
    */
   calculateDynamicWeights(trendScore, factorScore, entryScore) {
-    const baseWeights = { trend: 0.5, factor: 0.35, entry: 0.15 };
+    const baseWeights = { trend: 0.55, factor: 0.3, entry: 0.15 }; // 提高趋势基础权重
 
-    // 趋势很强时增加趋势权重
+    // 趋势很强时大幅增加趋势权重
     if (trendScore >= 8) {
-      baseWeights.trend = 0.6;
-      baseWeights.factor = 0.3;
-      baseWeights.entry = 0.1;
+      baseWeights.trend = 0.7;  // 提高趋势权重
+      baseWeights.factor = 0.25;
+      baseWeights.entry = 0.05;
     }
-    // 因子很强时增加因子权重
+    // 因子很强时适度增加因子权重
     else if (factorScore >= 5) {
-      baseWeights.trend = 0.45;
-      baseWeights.factor = 0.4;
+      baseWeights.trend = 0.5;  // 保持趋势权重
+      baseWeights.factor = 0.35;
       baseWeights.entry = 0.15;
     }
-    // 入场很强时增加入场权重
+    // 入场很强时保持平衡
     else if (entryScore >= 4) {
-      baseWeights.trend = 0.5;
+      baseWeights.trend = 0.55; // 保持趋势权重
       baseWeights.factor = 0.3;
-      baseWeights.entry = 0.2;
+      baseWeights.entry = 0.15;
     }
     // 所有指标都很强时平衡权重
     else if (trendScore >= 7 && factorScore >= 4 && entryScore >= 3) {
@@ -1079,20 +1249,26 @@ class V3Strategy {
       compensation += 0.5;
     }
 
-    // 趋势很强时给予补偿
-    if (trendScore >= 8) {
+    // 趋势很强时给予补偿（提高门槛）
+    if (trendScore >= 9) {
+      compensation += 1.5;
+    } else if (trendScore >= 8) {
       compensation += 1;
     } else if (trendScore >= 7) {
       compensation += 0.5;
     }
 
-    // 入场很强时给予补偿
-    if (entryScore >= 4) {
+    // 入场很强时给予补偿（提高门槛）
+    if (entryScore >= 5) {
+      compensation += 1;
+    } else if (entryScore >= 4) {
       compensation += 0.5;
     }
 
-    // 结构确认时给予补偿
-    if (structureScore >= 2) {
+    // 结构确认时给予补偿（提高门槛）
+    if (structureScore >= 3) {
+      compensation += 1;
+    } else if (structureScore >= 2) {
       compensation += 0.5;
     }
 
@@ -1107,31 +1283,31 @@ class V3Strategy {
    * @returns {Object} 调整后的门槛
    */
   getAdjustedFactorThreshold(normalizedScore, trendScore, compensation) {
-    // 基础门槛
-    let strongThreshold = 5;
-    let moderateThreshold = 4;
-    let weakThreshold = 3;
+    // 基础门槛 - 大幅降低以确保有交易信号
+    let strongThreshold = 2;
+    let moderateThreshold = 1.5;
+    let weakThreshold = 1;
 
     // 总分很高时降低门槛
-    if (normalizedScore >= 80) {
-      strongThreshold = Math.max(3, strongThreshold - 2);
-      moderateThreshold = Math.max(2, moderateThreshold - 2);
-      weakThreshold = Math.max(1, weakThreshold - 1);
-    } else if (normalizedScore >= 75) {
-      strongThreshold = Math.max(3, strongThreshold - 1);
-      moderateThreshold = Math.max(2, moderateThreshold - 1);
+    if (normalizedScore >= 50) {
+      strongThreshold = Math.max(1, strongThreshold - 1);
+      moderateThreshold = Math.max(0.5, moderateThreshold - 1);
+      weakThreshold = Math.max(0.5, weakThreshold - 0.5);
+    } else if (normalizedScore >= 30) {
+      strongThreshold = Math.max(1, strongThreshold - 0.5);
+      moderateThreshold = Math.max(0.5, moderateThreshold - 0.5);
     }
 
     // 趋势很强时降低门槛
-    if (trendScore >= 8) {
-      strongThreshold = Math.max(3, strongThreshold - 1);
-      moderateThreshold = Math.max(2, moderateThreshold - 1);
+    if (trendScore >= 5) {
+      strongThreshold = Math.max(1, strongThreshold - 0.5);
+      moderateThreshold = Math.max(0.5, moderateThreshold - 0.5);
     }
 
     // 应用补偿
-    strongThreshold = Math.max(1, strongThreshold - compensation);
-    moderateThreshold = Math.max(1, moderateThreshold - compensation);
-    weakThreshold = Math.max(1, weakThreshold - compensation);
+    strongThreshold = Math.max(0.5, strongThreshold - compensation);
+    moderateThreshold = Math.max(0.3, moderateThreshold - compensation);
+    weakThreshold = Math.max(0.2, weakThreshold - compensation);
 
     return {
       strong: Math.round(strongThreshold),
@@ -1198,31 +1374,31 @@ class V3Strategy {
       return 'HOLD';
     }
 
-    // 强信号：总分>=70 且 4H趋势强 且 1H因子强 且 15M有效（使用调整后门槛）
-    if (normalizedScore >= 70 &&
-      trendScore >= 6 &&
+    // 强信号：总分>=90 且 4H趋势强 且 1H因子强 且 15M有效（极高标准确保质量）
+    if (normalizedScore >= 90 &&
+      trendScore >= this.trend4HStrongThreshold &&
       factorScore >= adjustedThreshold.strong &&
-      entryScore >= 1) {  // 15M必须有效，结构确认作为加分项
+      entryScore >= this.entry15MStrongThreshold) {  // 使用参数化阈值
       logger.info(`✅ 强信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}>=${adjustedThreshold.strong}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
 
-    // 中等信号：总分45-69 且 趋势>=5 且 1H因子强 且 15M有效（使用调整后门槛）
-    if (normalizedScore >= 45 &&
-      normalizedScore < 70 &&
-      trendScore >= 5 &&
+    // 中等信号：总分75-89 且 趋势>=4 且 1H因子强 且 15M有效（极高标准确保质量）
+    if (normalizedScore >= 75 &&
+      normalizedScore < 90 &&
+      trendScore >= this.trend4HModerateThreshold &&
       factorScore >= adjustedThreshold.moderate &&  // 使用调整后门槛
-      entryScore >= 1) {   // 15M必须有效
+      entryScore >= this.entry15MModerateThreshold) {   // 使用参数化阈值
       logger.info(`⚠️ 中等信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}>=${adjustedThreshold.moderate}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
 
-    // 弱信号：总分35-44 且 趋势>=4 且 1H因子有效 且 15M有效（使用调整后门槛）
-    if (normalizedScore >= 35 &&
-      normalizedScore < 45 &&
-      trendScore >= 4 &&
+    // 弱信号：总分65-74 且 趋势>=3 且 1H因子有效 且 15M有效（极高标准确保质量）
+    if (normalizedScore >= 65 &&
+      normalizedScore < 75 &&
+      trendScore >= this.trend4HWeakThreshold &&
       factorScore >= adjustedThreshold.weak &&  // 使用调整后门槛
-      entryScore >= 1) {   // 15M必须有效
+      entryScore >= this.entry15MWeakThreshold) {   // 使用参数化阈值
       logger.info(`⚠️ 弱信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}>=${adjustedThreshold.weak}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
@@ -1640,6 +1816,8 @@ class V3Strategy {
     const weightedScore = calculate1HTrendWeightedScore(symbol, trendDirection, factorScores);
     const totalScore = Object.values(factors).reduce((sum, score) => sum + score, 0);
 
+    // 添加详细评分日志
+    console.log(`[V3策略] 1H因子评分详情: VWAP方向=${factors.vwapDirection}, 突破确认=${factors.breakoutConfirmation}, 成交量确认=${factors.volumeConfirmation}, OI变化=${factors.oiChange}, 资金费率=${factors.fundingRate}, Delta失衡=${factors.deltaImbalance}, 总分=${totalScore}, 加权分=${weightedScore}`);
     logger.info(`${symbol} 1H因子 - 原始得分:${totalScore}/6, 加权得分:${(weightedScore * 100).toFixed(1)}%`);
 
     return {
@@ -1687,10 +1865,10 @@ class V3Strategy {
       }
     }
 
-    // 2. 趋势强度 (2分)
-    if (adx.adx > 30) {
+    // 2. 趋势强度 (2分) - 使用参数化阈值
+    if (adx.adx > this.factorADXStrongThreshold) {
       scores.trendStrength = 2;
-    } else if (adx.adx > 20) {
+    } else if (adx.adx > this.factorADXModerateThreshold) {
       scores.trendStrength = 1;
     }
 
@@ -1704,8 +1882,8 @@ class V3Strategy {
       }
     }
 
-    // 4. 布林带扩张 (1分) - 优化：权重降低，让位给MACD
-    if (bbw.bbw > 0.02) {
+    // 4. 布林带扩张 (1分) - 使用参数化阈值
+    if (bbw.bbw > this.factorBBWModerateThreshold) {
       scores.bbExpansion = 1; // 高波动
     }
 
@@ -1723,6 +1901,10 @@ class V3Strategy {
 
     const total = Object.values(scores).reduce((sum, score) => sum + score, 0);
 
+    // 添加详细评分日志
+    console.log(`[V3策略] 4H趋势评分详情: 趋势稳定性=${scores.trendStability}, 趋势强度=${scores.trendStrength}, MACD动能=${scores.macdMomentum}, 布林带扩张=${scores.bbExpansion}, 成交量确认=${scores.volumeConfirmation}, 资金费率确认=${scores.fundingConfirmation}, 总分=${total}`);
+    logger.info(`4H趋势评分: 总分=${total}, 详情=${JSON.stringify(scores)}`);
+
     return {
       total,
       breakdown: scores
@@ -1730,15 +1912,29 @@ class V3Strategy {
   }
 
   /**
-   * 计算止盈 (包装器)
+   * 计算止盈 - V3.1+ 动态盈亏比管理
    * @param {number} entryPrice - 入场价格
    * @param {number} stopLoss - 止损价格
-   * @param {number} riskRewardRatio - 风险回报比
+   * @param {string} confidence - 信号置信度 (high/med/low)
+   * @param {string} entryMode - 入场模式 (breakout/pullback/momentum)
    * @returns {number} 止盈价格
    */
-  async calculateTakeProfit(entryPrice, stopLoss, riskRewardRatio = 2) {
-    const risk = entryPrice - stopLoss;
-    return entryPrice + (risk * riskRewardRatio);
+  async calculateTakeProfit(entryPrice, stopLoss, confidence = 'med', entryMode = 'momentum') {
+    const risk = Math.abs(entryPrice - stopLoss);
+
+    // 基于置信度的动态盈亏比 - 确保至少5:1盈亏比
+    let baseRR = 5.0; // 基础盈亏比确保5.0:1
+    if (confidence === 'high') baseRR = 5.5;  // 高置信度：5.5:1
+    else if (confidence === 'med') baseRR = 5.0; // 中置信度：5.0:1
+    else if (confidence === 'low') baseRR = 4.5; // 低置信度：4.5:1
+
+    // 基于入场模式的调整
+    let modeMultiplier = 1.0;
+    if (entryMode === 'breakout') modeMultiplier = 1.1;  // 突破入场稍微提高盈亏比
+    else if (entryMode === 'pullback') modeMultiplier = 0.95; // 回撤入场稍微降低盈亏比
+
+    const finalRR = baseRR * modeMultiplier;
+    return entryPrice + (risk * finalRR * (entryPrice > stopLoss ? 1 : -1));
   }
 
   /**
