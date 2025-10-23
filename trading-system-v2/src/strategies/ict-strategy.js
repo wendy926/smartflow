@@ -1402,17 +1402,27 @@ class ICTStrategy {
       reasons.push(`✅ 确认通过: 吞没形态${engulfing.type} (强度${(engulfing.strength * 100).toFixed(1)}%)`);
 
       // ========== 15M入场有效性检查（容忍逻辑）==========
-      // 要求：吞没形态强度>=60% 或 谐波形态分数>=60%
-      const minEngulfStrength = 0.6;  // 60%
-      const minHarmonicScore = 0.6;   // 60%
+      // 要求：吞没形态强度>=30% 或 谐波形态分数>=30%（降低阈值）
+      const minEngulfStrength = 0.3;  // 从60%降到30%
+      const minHarmonicScore = 0.3;   // 从60%降到30%
 
       const engulfStrength = engulfing.strength || 0;
       const harmonicScore = harmonicPattern.detected ? harmonicPattern.score : 0;
 
-      const entryValid = (engulfStrength >= minEngulfStrength) || (harmonicScore >= minHarmonicScore);
+      // 计算基础信号强度（趋势+订单块+扫荡+成交量）
+      const trendScore = dailyTrend.confidence * 25;
+      const orderBlockScore = hasValidOrderBlock ? 20 : 0;
+      const sweepScore = (validSweepHTF.detected ? 10 : 0) + (sweepLTF.detected ? 5 : 0);
+      const volumeScore = volumeExpansion.detected ? 5 : 0;
+      const basicScore = trendScore + orderBlockScore + sweepScore + volumeScore;
+      
+      // 入场条件：吞没/谐波满足阈值 或 基础信号强度足够
+      const entryValid = (engulfStrength >= minEngulfStrength) || 
+                        (harmonicScore >= minHarmonicScore) ||
+                        (basicScore >= 30); // 基础信号强度≥30分
 
       if (!entryValid) {
-        logger.info(`${symbol} ICT策略: 15M入场有效性不足 - 吞没强度${(engulfStrength * 100).toFixed(1)}%（需≥60%），谐波分数${(harmonicScore * 100).toFixed(1)}%（需≥60%）`);
+        logger.info(`${symbol} ICT策略: 15M入场有效性不足 - 吞没强度${(engulfStrength * 100).toFixed(1)}%（需≥30%），谐波分数${(harmonicScore * 100).toFixed(1)}%（需≥30%），基础信号${basicScore}分（需≥30分）`);
 
         // 计算分数用于显示（即使无效也显示分析结果）
         const trendScore = dailyTrend.confidence * 25;
@@ -1434,7 +1444,7 @@ class ICTStrategy {
           trend: dailyTrend.trend,
           confidence: numericConfidence,
           reasons: [
-            `❌ 15M入场无效: 吞没强度${(engulfStrength * 100).toFixed(1)}%（需≥60%），谐波分数${(harmonicScore * 100).toFixed(1)}%（需≥60%）`,
+            `❌ 15M入场无效: 吞没强度${(engulfStrength * 100).toFixed(1)}%（需≥30%），谐波分数${(harmonicScore * 100).toFixed(1)}%（需≥30%），基础信号${basicScore}分（需≥30分）`,
             `门槛已通过，但入场确认条件不足`
           ],
           signals: { engulfing, sweepHTF: sweepValidation },
