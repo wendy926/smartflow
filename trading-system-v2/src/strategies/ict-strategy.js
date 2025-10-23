@@ -53,6 +53,39 @@ class ICTStrategy {
   }
 
   /**
+   * 获取阈值参数（支持嵌套结构）
+   * @param {string} category - 参数分类
+   * @param {string} name - 参数名称
+   * @param {*} defaultValue - 默认值
+   * @returns {*} 参数值
+   */
+  getThreshold(category, name, defaultValue) {
+    const paramCategory = category === 'trend' ? 'trend_thresholds' : 
+                         category === 'entry' ? 'entry_thresholds' :
+                         category === 'factor' ? 'factor_thresholds' :
+                         category === 'filter' ? 'filters' : category;
+    
+    const value = this.params[paramCategory]?.[name] || defaultValue;
+    
+    if (name.includes('Threshold') || name.includes('Score')) {
+      logger.info(`[ICT-getThreshold] category=${category}, name=${name}, paramCategory=${paramCategory}, dbValue=${this.params[paramCategory]?.[name]}, defaultValue=${defaultValue}, finalValue=${value}`);
+    }
+    
+    return value;
+  }
+
+  /**
+   * 获取权重参数
+   * @param {string} name - 参数名称
+   * @param {*} defaultValue - 默认值
+   * @returns {*} 参数值
+   */
+  getWeight(name, defaultValue) {
+    const value = this.params.weights?.[name] || defaultValue;
+    return value;
+  }
+
+  /**
    * 获取默认参数（数据库加载失败时使用）
    */
   getDefaultParameters() {
@@ -735,7 +768,9 @@ class ICTStrategy {
 
       logger.info(`${symbol} ICT杠杆计算: 止损距离=${stopDistance.toFixed(4)} (${(stopDistancePct * 100).toFixed(2)}%), 计算杠杆=${calculatedMaxLeverage}倍, 实际杠杆=${leverage}倍`);
 
-      const confidence = signals.score >= 60 ? 'high' : signals.score >= 40 ? 'med' : 'low';
+      const highThreshold = this.getThreshold('signal', 'highConfidenceThreshold', 60);
+      const medThreshold = this.getThreshold('signal', 'medConfidenceThreshold', 40);
+      const confidence = signals.score >= highThreshold ? 'high' : signals.score >= medThreshold ? 'med' : 'low';
 
       logger.info(`${symbol} ICT交易参数 (优化V2.0): 趋势=${trend}, 置信度=${confidence}, 最大持仓=${ictConfig.maxHoldingHours}小时, TP1=${plan.tps[0]}, TP2=${plan.tps[1]}, 保本=${plan.breakevenMove}`);
 
@@ -1489,11 +1524,12 @@ class ICTStrategy {
       logger.info(`${symbol} ICT评分详情: 趋势=${trendScore.toFixed(1)}, 订单块=${orderBlockScore}, 吞没=${engulfingScore}, 扫荡=${sweepScore}, 成交量=${volumeScore}, 谐波=${harmonicScorePoints.toFixed(1)}, 总分=${score}`);
 
       // 门槛式结构确认 + 总分强信号要求
-      // 强信号定义：总分 >= 30分（临时降低用于测试）
-      const isStrongSignal = score >= 30;
+      // 强信号定义：从数据库获取阈值
+      const strongSignalThreshold = this.getThreshold('signal', 'strongSignalThreshold', 60);
+      const isStrongSignal = score >= strongSignalThreshold;
 
       if (!isStrongSignal) {
-        logger.info(`${symbol} ICT策略: 门槛式确认通过，但总分不足（${score}/100，需要≥30），信号强度不够`);
+        logger.info(`${symbol} ICT策略: 门槛式确认通过，但总分不足（${score}/100，需要≥${strongSignalThreshold}），信号强度不够`);
 
         // 计算数值置信度（基于谐波形态和吞没形态强度）
         const harmonicScoreForConfidence = harmonicPattern.detected ? harmonicPattern.score : 0;
@@ -1522,7 +1558,7 @@ class ICTStrategy {
           score: score,
           trend: dailyTrend.trend,
           confidence: numericConfidence,
-          reasons: [`门槛式确认通过，但总分${score}分不足（需要≥60分）`],
+          reasons: [`门槛式确认通过，但总分${score}分不足（需要≥${strongSignalThreshold}分）`],
           signals: { engulfing, sweepHTF: sweepValidation },
           timeframes: {
             '1D': {
@@ -1558,7 +1594,7 @@ class ICTStrategy {
         };
       }
 
-      logger.info(`${symbol} ICT策略 触发交易信号: ${signal}, 置信度=${numericConfidence.toFixed(3)}, 门槛式确认通过 + 总分${score}≥60（强信号）`);
+      logger.info(`${symbol} ICT策略 触发交易信号: ${signal}, 置信度=${numericConfidence.toFixed(3)}, 门槛式确认通过 + 总分${score}≥${strongSignalThreshold}（强信号）`);
       logger.info(`${symbol} ICT理由: ${reasons.join(' | ')}`)
 
       // 8. 计算交易参数（只在信号为BUY或SELL时计算）
