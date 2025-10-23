@@ -251,10 +251,17 @@ class ICTStrategy {
       const lastTwoVolumes = window.slice(-2).map(k => parseFloat(k[5]));
       const volumeConcentrated = lastTwoVolumes.every(vol => vol >= avgVolume * 0.6); // 从80%放宽到60%
 
+      // 添加订单块检测调试日志
+      if (i % 10 === 0) { // 每10个窗口输出一次日志
+        logger.info(`[ICT订单块检测] 窗口${i}: 高度=${obHeight.toFixed(2)}, ATR=${atr4H.toFixed(2)}, 高度有效=${heightValid}, 价格稳定=${priceStable}, 成交量集中=${volumeConcentrated}`);
+      }
+      
       if (heightValid && priceStable && volumeConcentrated) {
         // 确定订单块类型（基于价格位置）
         const currentPrice = parseFloat(klines[klines.length - 1][4]);
         const type = currentPrice > (windowHigh + windowLow) / 2 ? 'BULLISH' : 'BEARISH';
+        
+        logger.info(`[ICT订单块检测] 发现订单块: 类型=${type}, 高度=${obHeight.toFixed(2)}, 价格=${avgPrice.toFixed(2)}`);
 
         orderBlocks.push({
           type: type,
