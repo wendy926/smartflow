@@ -1489,11 +1489,11 @@ class ICTStrategy {
       logger.info(`${symbol} ICT评分详情: 趋势=${trendScore.toFixed(1)}, 订单块=${orderBlockScore}, 吞没=${engulfingScore}, 扫荡=${sweepScore}, 成交量=${volumeScore}, 谐波=${harmonicScorePoints.toFixed(1)}, 总分=${score}`);
 
       // 门槛式结构确认 + 总分强信号要求
-      // 强信号定义：总分 >= 60分
-      const isStrongSignal = score >= 60;
+      // 强信号定义：总分 >= 30分（临时降低用于测试）
+      const isStrongSignal = score >= 30;
 
       if (!isStrongSignal) {
-        logger.info(`${symbol} ICT策略: 门槛式确认通过，但总分不足（${score}/100，需要≥60），信号强度不够`);
+        logger.info(`${symbol} ICT策略: 门槛式确认通过，但总分不足（${score}/100，需要≥30），信号强度不够`);
 
         // 计算数值置信度（基于谐波形态和吞没形态强度）
         const harmonicScoreForConfidence = harmonicPattern.detected ? harmonicPattern.score : 0;
