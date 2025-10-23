@@ -121,7 +121,7 @@ class V3Strategy {
       'factor': 'factor_thresholds',
       'entry': 'entry_thresholds'
     };
-    
+
     const paramCategory = categoryMap[category] || category;
     return this.params[paramCategory]?.[name] || defaultValue;
   }
@@ -1414,13 +1414,17 @@ class V3Strategy {
     // 强信号：总分>=90 且 4H趋势强 且 1H因子强 且 15M有效（极高标准确保质量）
     const trend4HStrongThreshold = this.getThreshold('trend', 'trend4HStrongThreshold', 8);
     const entry15MStrongThreshold = this.getThreshold('entry', 'entry15MStrongThreshold', 3);
+
+    // ✅ 添加详细日志 - 诊断用
+    logger.info(`[V3信号判断] === 详细得分诊断 ===`);
+    logger.info(`[V3信号判断] 阈值配置: trend4HStrong=${trend4HStrongThreshold}, entry15MStrong=${entry15MStrongThreshold}`);
+    logger.info(`[V3信号判断] 因子阈值: strong=${adjustedThreshold.strong}, moderate=${adjustedThreshold.moderate}, weak=${adjustedThreshold.weak}`);
+    logger.info(`[V3信号判断] 实际得分: 总分=${normalizedScore.toFixed(2)}%, 趋势=${trendScore}, 因子=${factorScore}, 15M=${entryScore}, 结构=${structureScore}`);
+    logger.info(`[V3信号判断] 补偿机制: 补偿=${compensation.toFixed(2)}, 趋势方向=${trendDirection}`);
+    logger.info(`[V3信号判断] 判断结果: 总分${normalizedScore}>=30? ${normalizedScore>=30}, 趋势${trendScore}>=${trend4HStrongThreshold}? ${trendScore>=trend4HStrongThreshold}`);
     
-    // ✅ 添加详细日志
-    logger.info(`[V3信号判断] 阈值: trend4HStrong=${trend4HStrongThreshold}, entry15MStrong=${entry15MStrongThreshold}, adjustedStrong=${adjustedThreshold.strong}`);
-    logger.info(`[V3信号判断] 得分: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
-    
-    // ✅ 临时降低总分阈值从90→60，诊断用
-    if (normalizedScore >= 60 &&
+    // ✅ 进一步降低总分阈值从60→30，诊断用
+    if (normalizedScore >= 30 &&
       trendScore >= trend4HStrongThreshold &&
       factorScore >= adjustedThreshold.strong &&
       entryScore >= entry15MStrongThreshold) {  // 使用参数化阈值
@@ -1428,12 +1432,12 @@ class V3Strategy {
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
 
-    // 中等信号：总分50-59 且 趋势>=4 且 1H因子强 且 15M有效（临时降低阈值）
+    // 中等信号：总分25-29 且 趋势>=4 且 1H因子强 且 15M有效（临时降低阈值）
     const trend4HModerateThreshold = this.getThreshold('trend', 'trend4HModerateThreshold', 6);
     const entry15MModerateThreshold = this.getThreshold('entry', 'entry15MModerateThreshold', 2);
     
-    if (normalizedScore >= 50 &&
-      normalizedScore < 60 &&
+    if (normalizedScore >= 25 &&
+      normalizedScore < 30 &&
       trendScore >= trend4HModerateThreshold &&
       factorScore >= adjustedThreshold.moderate &&  // 使用调整后门槛
       entryScore >= entry15MModerateThreshold) {   // 使用参数化阈值
@@ -1441,12 +1445,12 @@ class V3Strategy {
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
 
-    // 弱信号：总分40-49 且 趋势>=3 且 1H因子有效 且 15M有效（临时降低阈值）
+    // 弱信号：总分20-24 且 趋势>=3 且 1H因子有效 且 15M有效（临时降低阈值）
     const trend4HWeakThreshold = this.getThreshold('trend', 'trend4HWeakThreshold', 4);
     const entry15MWeakThreshold = this.getThreshold('entry', 'entry15MWeakThreshold', 1);
     
-    if (normalizedScore >= 40 &&
-      normalizedScore < 50 &&
+    if (normalizedScore >= 20 &&
+      normalizedScore < 25 &&
       trendScore >= trend4HWeakThreshold &&
       factorScore >= adjustedThreshold.weak &&  // 使用调整后门槛
       entryScore >= entry15MWeakThreshold) {   // 使用参数化阈值
