@@ -1051,8 +1051,11 @@ class V3Strategy {
           const adxThreshold = this.params.filters.adxMinThreshold || 20;
           const adx = ADXCalculator.calculateADX(klines15mForADX, adxPeriod);
 
+          // ✅ 添加详细ADX过滤日志
+          logger.info(`[V3-ADX检查] ${symbol} ADX=${adx?.toFixed(2)}, 阈值=${adxThreshold}, 是否过滤=${ADXCalculator.shouldFilter(adx, adxThreshold)}`);
+          
           if (ADXCalculator.shouldFilter(adx, adxThreshold)) {
-            logger.info(`[V3-ADX过滤] ${symbol} 震荡市(ADX=${adx?.toFixed(2)}), 跳过交易`);
+            logger.warn(`[V3-ADX过滤] ${symbol} 震荡市(ADX=${adx?.toFixed(2)} < ${adxThreshold}), 跳过交易 ❌`);
             return {
               symbol,
               strategy: 'V3',
@@ -1062,6 +1065,8 @@ class V3Strategy {
               reason: `ADX过滤：震荡市(ADX=${adx?.toFixed(2)})`,
               metadata: { adx, filtered: true }
             };
+          } else {
+            logger.info(`[V3-ADX通过] ${symbol} 趋势市(ADX=${adx?.toFixed(2)} >= ${adxThreshold}) ✅`);
           }
         }
       }
