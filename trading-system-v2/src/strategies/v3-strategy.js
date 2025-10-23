@@ -26,27 +26,8 @@ class V3Strategy {
     // 异步初始化参数
     this.initializeParameters();
 
-    // 默认参数（会被数据库参数覆盖）- 降低门槛以增加信号生成
-    this.trend4HStrongThreshold = 4;
-    this.trend4HModerateThreshold = 3;
-    this.trend4HWeakThreshold = 2;
-    this.trend4HADXThreshold = 25;
-    this.entry15MStrongThreshold = 2;
-    this.entry15MModerateThreshold = 1;
-    this.entry15MWeakThreshold = 1;
-    this.entry15MStructureWeight = 1;
-    this.factorTrendWeight = 40;      // 提高趋势权重
-    this.factorMomentumWeight = 20;   // 提高动量权重
-    this.factorVolatilityWeight = 15; // 提高波动率权重
-    this.factorVolumeWeight = 10;     // 提高成交量权重
-    this.factorFundingWeight = 8;     // 保持资金费率权重
-    this.factorOIWeight = 7;          // 提高持仓量权重
-    this.factorADXStrongThreshold = 25;
-    this.factorADXModerateThreshold = 18;
-    this.factorBBWHighThreshold = 0.04;   // 提高高波动率阈值
-    this.factorBBWModerateThreshold = 0.02; // 提高中等波动率阈值
-    this.maxLeverage = 24;
-    this.leverageBuffer = 0.005;
+    // ✅ 移除所有硬编码，改用从数据库/参数加载
+    // 所有阈值和权重都通过getThreshold()和getWeight()方法动态获取
   }
 
   /**
@@ -116,8 +97,40 @@ class V3Strategy {
         trend4HWeakThreshold: 4,
         adx4HStrongThreshold: 35,
         adx4HWeakThreshold: 20
+      },
+      factor_thresholds: {
+        adxStrongThreshold: 25,
+        adxModerateThreshold: 18,
+        bbwHighThreshold: 0.04,
+        bbwModerateThreshold: 0.02
+      },
+      entry_thresholds: {
+        entry15MStrongThreshold: 3,
+        entry15MModerateThreshold: 2,
+        entry15MWeakThreshold: 1
       }
     };
+  }
+
+  /**
+   * 获取阈值（从params中读取，带默认值）
+   */
+  getThreshold(category, name, defaultValue) {
+    const categoryMap = {
+      'trend': 'trend_thresholds',
+      'factor': 'factor_thresholds',
+      'entry': 'entry_thresholds'
+    };
+    
+    const paramCategory = categoryMap[category] || category;
+    return this.params[paramCategory]?.[name] || defaultValue;
+  }
+
+  /**
+   * 获取权重（从params中读取，带默认值）
+   */
+  getWeight(name, defaultValue) {
+    return this.params.weights?.[name] || defaultValue;
   }
 
   /**
@@ -209,7 +222,7 @@ class V3Strategy {
     let confidence = 0.5; // 基础置信度
 
     // ADX影响（使用参数化阈值）
-    if (adx > this.trend4HADXThreshold) confidence += 0.3;
+    if (adx > this.getThreshold('trend', 'adx4HStrongThreshold', 35)) confidence += 0.3;
     else if (adx > 20) confidence += 0.2;
     else if (adx < 15) confidence -= 0.2;
 
@@ -1129,28 +1142,28 @@ class V3Strategy {
           if (!existingTrade) {
             // 没有现有交易，计算新的交易参数
             const currentPrice = parseFloat(klines15M[klines15M.length - 1][4]);
-            
+
             // 计算15M ATR（用于快速反应）
             const atr15M = this.calculateATR(
-              klines15M.map(k => parseFloat(k[2])), 
-              klines15M.map(k => parseFloat(k[3])), 
+              klines15M.map(k => parseFloat(k[2])),
+              klines15M.map(k => parseFloat(k[3])),
               klines15M.map(k => parseFloat(k[4]))
             );
             const currentATR15M = atr15M[atr15M.length - 1];
-            
+
             // 计算4H ATR（用于止损，更稳定）
             const atr4H = this.calculateATR(
-              klines4H.map(k => parseFloat(k[2])), 
-              klines4H.map(k => parseFloat(k[3])), 
+              klines4H.map(k => parseFloat(k[2])),
+              klines4H.map(k => parseFloat(k[3])),
               klines4H.map(k => parseFloat(k[4]))
             );
             const currentATR4H = atr4H[atr4H.length - 1];
-            
+
             // 使用4H ATR计算止损（更稳定，减少假突破）
             const atrForStopLoss = currentATR4H || currentATR15M || (currentPrice * 0.01);
-            
+
             logger.info(`[V3策略] ${symbol} ATR计算: 15M=${currentATR15M?.toFixed(4)}, 4H=${currentATR4H?.toFixed(4)}, 使用${currentATR4H ? '4H' : '15M'}级别`);
-            
+
             tradeParams = await this.calculateTradeParameters(symbol, finalSignal, currentPrice, atrForStopLoss);
 
             // 缓存交易参数（5分钟过期）
@@ -1399,30 +1412,39 @@ class V3Strategy {
     }
 
     // 强信号：总分>=90 且 4H趋势强 且 1H因子强 且 15M有效（极高标准确保质量）
+    const trend4HStrongThreshold = this.getThreshold('trend', 'trend4HStrongThreshold', 8);
+    const entry15MStrongThreshold = this.getThreshold('entry', 'entry15MStrongThreshold', 3);
+    
     if (normalizedScore >= 90 &&
-      trendScore >= this.trend4HStrongThreshold &&
+      trendScore >= trend4HStrongThreshold &&
       factorScore >= adjustedThreshold.strong &&
-      entryScore >= this.entry15MStrongThreshold) {  // 使用参数化阈值
+      entryScore >= entry15MStrongThreshold) {  // 使用参数化阈值
       logger.info(`✅ 强信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}>=${adjustedThreshold.strong}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
 
     // 中等信号：总分75-89 且 趋势>=4 且 1H因子强 且 15M有效（极高标准确保质量）
+    const trend4HModerateThreshold = this.getThreshold('trend', 'trend4HModerateThreshold', 6);
+    const entry15MModerateThreshold = this.getThreshold('entry', 'entry15MModerateThreshold', 2);
+    
     if (normalizedScore >= 75 &&
       normalizedScore < 90 &&
-      trendScore >= this.trend4HModerateThreshold &&
+      trendScore >= trend4HModerateThreshold &&
       factorScore >= adjustedThreshold.moderate &&  // 使用调整后门槛
-      entryScore >= this.entry15MModerateThreshold) {   // 使用参数化阈值
+      entryScore >= entry15MModerateThreshold) {   // 使用参数化阈值
       logger.info(`⚠️ 中等信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}>=${adjustedThreshold.moderate}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
 
     // 弱信号：总分65-74 且 趋势>=3 且 1H因子有效 且 15M有效（极高标准确保质量）
+    const trend4HWeakThreshold = this.getThreshold('trend', 'trend4HWeakThreshold', 4);
+    const entry15MWeakThreshold = this.getThreshold('entry', 'entry15MWeakThreshold', 1);
+    
     if (normalizedScore >= 65 &&
       normalizedScore < 75 &&
-      trendScore >= this.trend4HWeakThreshold &&
+      trendScore >= trend4HWeakThreshold &&
       factorScore >= adjustedThreshold.weak &&  // 使用调整后门槛
-      entryScore >= this.entry15MWeakThreshold) {   // 使用参数化阈值
+      entryScore >= entry15MWeakThreshold) {   // 使用参数化阈值
       logger.info(`⚠️ 弱信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}>=${adjustedThreshold.weak}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
