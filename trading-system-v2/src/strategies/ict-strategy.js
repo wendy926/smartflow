@@ -17,11 +17,11 @@ class ICTStrategy {
     this.name = 'ICT';
     this.timeframes = ['1D', '4H', '15m'];
     this.binanceAPI = getBinanceAPI();  // 使用单例
-    
+
     // 参数加载器
     this.paramLoader = null;
     this.params = {};
-    
+
     // 异步初始化参数
     this.initializeParameters();
   }
@@ -32,15 +32,15 @@ class ICTStrategy {
   async initializeParameters() {
     try {
       // 获取数据库连接实例
-      const dbConnection = typeof DatabaseConnection.getInstance === 'function' 
-        ? DatabaseConnection.getInstance() 
+      const dbConnection = typeof DatabaseConnection.getInstance === 'function'
+        ? DatabaseConnection.getInstance()
         : DatabaseConnection;
-      
+
       this.paramLoader = new StrategyParameterLoader(dbConnection);
-      
+
       // 加载BALANCED模式参数
       this.params = await this.paramLoader.loadParameters('ICT', 'BALANCED');
-      
+
       logger.info('[ICT策略] 参数加载完成', {
         paramGroups: Object.keys(this.params).length,
         adxEnabled: this.params.filters?.adxEnabled,
@@ -69,8 +69,8 @@ class ICTStrategy {
         ltfSweepTimeframe: '15m'
       },
       risk_management: {
-        stopLossATRMultiplier: 2.5,
-        takeProfitRatio: 3.0,
+        stopLossATRMultiplier: 1.5,  // 降低止损倍数
+        takeProfitRatio: 5.0,         // 提升止盈倍数以实现3:1+盈亏比
         useStructuralStop: true
       },
       order_block: {
@@ -793,14 +793,14 @@ class ICTStrategy {
       if (this.params.filters?.adxEnabled) {
         // 获取15M K线用于ADX计算
         const klines15mForADX = await this.binanceAPI.getKlines(symbol, '15m', 50);
-        
+
         if (klines15mForADX && klines15mForADX.length >= 15) {
           const adxPeriod = this.params.filters.adxPeriod || 14;
           const adxThreshold = this.params.filters.adxMinThreshold || 20;
           const adx = ADXCalculator.calculateADX(klines15mForADX, adxPeriod);
-          
+
           logger.info(`[ICT-ADX] ${symbol} ADX=${adx?.toFixed(2) || 'N/A'}, 阈值=${adxThreshold}`);
-          
+
           if (ADXCalculator.shouldFilter(adx, adxThreshold)) {
             logger.info(`[ICT-ADX过滤] ${symbol} 震荡市(ADX=${adx.toFixed(2)}), 跳过交易`);
             return {

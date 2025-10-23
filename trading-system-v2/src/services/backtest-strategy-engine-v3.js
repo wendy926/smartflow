@@ -710,7 +710,7 @@ class BacktestStrategyEngineV3 {
   }
 
   /**
-   * 计算真实的ATR（Average True Range）
+   * 计算真实的ATR（Average True Range）- 使用Wilder's Smoothing Method
    * @param {Array} klines - K线数据数组
    * @param {number} currentIndex - 当前K线索引
    * @param {number} period - ATR计算周期，默认14
@@ -718,20 +718,18 @@ class BacktestStrategyEngineV3 {
    */
   calculateTrueATR(klines, currentIndex, period = 14) {
     try {
-      if (currentIndex < period) {
+      if (currentIndex < period - 1) {
         // 如果数据不足，使用当前价格的0.5%作为估算
         const currentPrice = parseFloat(klines[currentIndex][4]);
         return currentPrice * 0.005;
       }
 
+      // 计算所有需要的TR值（从索引0到currentIndex）
       const trValues = [];
-
-      // 计算过去period根K线的True Range
-      for (let i = currentIndex - period + 1; i <= currentIndex; i++) {
+      for (let i = 0; i <= currentIndex; i++) {
         const kline = klines[i];
         const high = parseFloat(kline[2]);
         const low = parseFloat(kline[3]);
-        const close = parseFloat(kline[4]);
 
         let tr;
         if (i === 0) {
@@ -745,14 +743,34 @@ class BacktestStrategyEngineV3 {
             Math.abs(low - prevClose)
           );
         }
-
         trValues.push(tr);
       }
 
-      // 计算ATR（True Range的平均值）
-      const atr = trValues.reduce((sum, tr) => sum + tr, 0) / trValues.length;
+      // 使用Wilder's Smoothing计算ATR
+      let atr = 0;
+      
+      if (currentIndex === period - 1) {
+        // 初始ATR：前14根TR的简单平均
+        const sum = trValues.slice(0, period).reduce((a, b) => a + b, 0);
+        atr = sum / period;
+      } else if (currentIndex > period - 1) {
+        // Wilder's Smoothing: ATR[i] = ATR[i-1] - (ATR[i-1]/period) + (TR[i]/period)
+        // 递归计算到currentIndex
+        
+        // 先计算初始ATR
+        const initialSum = trValues.slice(0, period).reduce((a, b) => a + b, 0);
+        let prevATR = initialSum / period;
+        
+        // 然后用Wilder's Smoothing逐步更新到currentIndex
+        for (let i = period; i <= currentIndex; i++) {
+          const currentTR = trValues[i];
+          prevATR = prevATR - (prevATR / period) + (currentTR / period);
+        }
+        
+        atr = prevATR;
+      }
 
-      logger.debug(`[回测引擎V3] ATR计算: 周期=${period}, 当前索引=${currentIndex}, TR值=${trValues.map(v => v.toFixed(2)).join(',')}, ATR=${atr.toFixed(4)}`);
+      logger.debug(`[回测引擎V3] ATR计算(Wilder's): 周期=${period}, 当前索引=${currentIndex}, ATR=${atr.toFixed(4)}`);
 
       return atr;
     } catch (error) {

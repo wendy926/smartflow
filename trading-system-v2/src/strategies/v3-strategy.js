@@ -22,7 +22,7 @@ class V3Strategy {
     // 参数加载器
     this.paramLoader = null;
     this.params = {};
-    
+
     // 异步初始化参数
     this.initializeParameters();
 
@@ -55,13 +55,13 @@ class V3Strategy {
   async initializeParameters() {
     try {
       // 获取数据库连接实例
-      const dbConnection = typeof DatabaseConnection.getInstance === 'function' 
-        ? DatabaseConnection.getInstance() 
+      const dbConnection = typeof DatabaseConnection.getInstance === 'function'
+        ? DatabaseConnection.getInstance()
         : DatabaseConnection;
-      
+
       this.paramLoader = new StrategyParameterLoader(dbConnection);
       this.params = await this.paramLoader.loadParameters('V3', 'BALANCED');
-      
+
       logger.info('[V3策略] 参数加载完成', {
         paramGroups: Object.keys(this.params).length
       });
@@ -82,11 +82,11 @@ class V3Strategy {
         adxPeriod: 14
       },
       risk_management: {
-        stopLossATRMultiplier_high: 1.8,
-        stopLossATRMultiplier_medium: 2.0,
-        stopLossATRMultiplier_low: 2.2,
-        takeProfitRatio: 3.0,
-        trailingStopStart: 1.5,
+        stopLossATRMultiplier_high: 1.5,    // 降低止损倍数
+        stopLossATRMultiplier_medium: 1.8,  // 降低止损倍数
+        stopLossATRMultiplier_low: 2.0,     // 降低止损倍数
+        takeProfitRatio: 5.0,               // 提升止盈倍数以实现3:1+盈亏比
+        trailingStopStart: 2.0,             // 追踪止盈启动点调整
         trailingStopStep: 0.8,
         timeStopMinutes: 90,
         disableTimeStopWhenTrendStrong: true,
@@ -1032,12 +1032,12 @@ class V3Strategy {
       if (this.params.filters?.adxEnabled) {
         // 获取15M K线用于ADX计算
         const klines15mForADX = await this.binanceAPI.getKlines(symbol, '15m', 50);
-        
+
         if (klines15mForADX && klines15mForADX.length >= 15) {
           const adxPeriod = this.params.filters.adxPeriod || 14;
           const adxThreshold = this.params.filters.adxMinThreshold || 20;
           const adx = ADXCalculator.calculateADX(klines15mForADX, adxPeriod);
-          
+
           if (ADXCalculator.shouldFilter(adx, adxThreshold)) {
             logger.info(`[V3-ADX过滤] ${symbol} 震荡市(ADX=${adx?.toFixed(2)}), 跳过交易`);
             return {
@@ -1129,9 +1129,29 @@ class V3Strategy {
           if (!existingTrade) {
             // 没有现有交易，计算新的交易参数
             const currentPrice = parseFloat(klines15M[klines15M.length - 1][4]);
-            const atr = this.calculateATR(klines15M.map(k => parseFloat(k[2])), klines15M.map(k => parseFloat(k[3])), klines15M.map(k => parseFloat(k[4])));
-            const currentATR = atr[atr.length - 1];
-            tradeParams = await this.calculateTradeParameters(symbol, finalSignal, currentPrice, currentATR);
+            
+            // 计算15M ATR（用于快速反应）
+            const atr15M = this.calculateATR(
+              klines15M.map(k => parseFloat(k[2])), 
+              klines15M.map(k => parseFloat(k[3])), 
+              klines15M.map(k => parseFloat(k[4]))
+            );
+            const currentATR15M = atr15M[atr15M.length - 1];
+            
+            // 计算4H ATR（用于止损，更稳定）
+            const atr4H = this.calculateATR(
+              klines4H.map(k => parseFloat(k[2])), 
+              klines4H.map(k => parseFloat(k[3])), 
+              klines4H.map(k => parseFloat(k[4]))
+            );
+            const currentATR4H = atr4H[atr4H.length - 1];
+            
+            // 使用4H ATR计算止损（更稳定，减少假突破）
+            const atrForStopLoss = currentATR4H || currentATR15M || (currentPrice * 0.01);
+            
+            logger.info(`[V3策略] ${symbol} ATR计算: 15M=${currentATR15M?.toFixed(4)}, 4H=${currentATR4H?.toFixed(4)}, 使用${currentATR4H ? '4H' : '15M'}级别`);
+            
+            tradeParams = await this.calculateTradeParameters(symbol, finalSignal, currentPrice, atrForStopLoss);
 
             // 缓存交易参数（5分钟过期）
             if (this.cache && tradeParams.entryPrice > 0) {
