@@ -256,7 +256,7 @@
     <div class="optimization-item">
       <h4>1. 盈亏计算优化</h4>
       <p><strong>实现：</strong>在 ICT 策略和 V3 策略的盈亏逻辑中引入 Binance 的资金费率和利率成本</p>
-      
+
       <h5>成本组成：</h5>
       <table>
         <tr>
@@ -284,9 +284,9 @@
       <h5>计算公式：</h5>
       <div class="code-block">
         // 原始盈亏
-        rawPnL = isLong 
-          ? (exitPrice - entryPrice) * (positionSize / entryPrice)
-          : (entryPrice - exitPrice) * (positionSize / entryPrice);
+        rawPnL = isLong
+        ? (exitPrice - entryPrice) * (positionSize / entryPrice)
+        : (entryPrice - exitPrice) * (positionSize / entryPrice);
 
         // 手续费成本 (双向)
         feeCost = positionSize * feeRate * 2;
@@ -474,7 +474,7 @@
       <h4>1. 前端显示优化</h4>
       <p><strong>问题：</strong>前端显示所有交易对一直是无信号，但 Telegram bot 一直有庄家动作告警通知</p>
       <p><strong>原因：</strong>前端显示实时状态，Telegram 通知基于阶段变化，两者显示内容不同</p>
-      
+
       <h5>修复内容：</h5>
       <ul>
         <li>✅ 添加筛选下拉框，支持"全部交易对"和"仅显示有信号的"两种显示模式</li>
@@ -487,7 +487,7 @@
     <div class="optimization-item">
       <h4>2. 置信度锁定机制</h4>
       <p><strong>问题：</strong>前端显示频繁切换中性-拉升或中性-砸盘等有状态信号</p>
-      
+
       <h5>修复内容：</h5>
       <ul>
         <li>✅ 置信度阈值提高至 70%</li>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartFlow 交易策略系统 - 最新优化文档</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .docs-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .update-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+
+    .fix-item {
+      background: #f8f9fa;
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .optimization-item {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .strategy-detail {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .code-block {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+      overflow-x: auto;
+    }
+
+    .highlight {
+      background: #fff3cd;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .status-fixed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-optimized {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .status-new {
+      background: #fff3cd;
+      color: #856404;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- 头部导航 -->
+    <header class="header">
+      <div class="logo">
+        <i class="fas fa-chart-line"></i>
+        <h1>SmartFlow</h1>
+      </div>
+      <nav class="nav">
+        <a href="/dashboard" class="nav-link">
+          <i class="fas fa-tachometer-alt"></i>
+          仪表板
+        </a>
+        <a href="/strategies" class="nav-link">
+          <i class="fas fa-chess"></i>
+          策略执行
+        </a>
+        <a href="/monitoring" class="nav-link">
+          <i class="fas fa-monitor-heart-rate"></i>
+          系统监控
+        </a>
+        <a href="/statistics" class="nav-link">
+          <i class="fas fa-chart-bar"></i>
+          胜率统计
+        </a>
+        <a href="/tools" class="nav-link">
+          <i class="fas fa-tools"></i>
+          工具
+        </a>
+        <a href="/docs" class="nav-link active">
+          <i class="fas fa-book"></i>
+          文档
+        </a>
+      </nav>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="main-content">
+      <div class="docs-content">
+        <h1>SmartFlow 交易策略系统 - 最新优化文档</h1>
+
+        <div class="update-section">
+          <h2><i class="fas fa-rocket"></i> 最新优化与修复 (2025-10-07)</h2>
+          <p>基于用户反馈和系统分析，我们对SmartFlow交易策略系统进行了全面的优化和修复，显著提升了策略的准确性和系统的稳定性。</p>
+        </div>
+
+        <h2><i class="fas fa-wrench"></i> 核心修复</h2>
+
+        <div class="fix-item">
+          <h3><span class="status-badge status-fixed">已修复</span> ICT策略扫荡检测优化</h3>
+          <p><strong>问题描述：</strong>扫荡检测过于严格，导致所有交易对显示扫荡值为"否"，扫荡速率为0.00</p>
+          <p><strong>修复方案：</strong></p>
+          <ul>
+            <li>放宽检测条件：从严格突破极值点改为98%接近</li>
+            <li>降低扫荡速率阈值：从0.4×ATR降低到0.2×ATR</li>
+            <li>简化检测逻辑：优化barsToReturn计算</li>
+            <li>增加调试信息：详细记录扫荡检测过程</li>
+          </ul>
+          <p><strong>修复效果：</strong>扫荡检测现在能正常工作，显示具体扫荡速率，如BNBUSDT显示扫荡速率37.37</p>
+        </div>
+
+        <div class="fix-item">
+          <h3><span class="status-badge status-fixed">已修复</span> V3策略15M得分显示修复</h3>
+          <p><strong>问题描述：</strong>V3策略低时间框架得分显示为0，即使日志显示实际得分</p>
+          <p><strong>修复方案：</strong>修正<code>calculate15MScore</code>中的条件判断逻辑，移除过于严格的条件</p>
+          <p><strong>修复效果：</strong>15M得分现在正确显示实际计算值</p>
+        </div>
+
+        <div class="fix-item">
+          <h3><span class="status-badge status-fixed">已修复</span> 前端502错误修复</h3>
+          <p><strong>问题描述：</strong>Chart.js 404错误和API 502错误导致前端无法正常加载</p>
+          <p><strong>修复方案：</strong></p>
+          <ul>
+            <li>使用CDN版本的Chart.js替代本地引用</li>
+            <li>更新版本号强制浏览器刷新缓存</li>
+            <li>验证所有API端点正常工作</li>
+          </ul>
+          <p><strong>修复效果：</strong>前端正常加载，无502错误，Chart.js正常显示图表</p>
+        </div>
+
+        <div class="fix-item">
+          <h3><span class="status-badge status-fixed">已修复</span> 信号一致性修复</h3>
+          <p><strong>问题描述：</strong>V3策略低时间框架信号与主信号列显示不一致</p>
+          <p><strong>修复方案：</strong>统一数据源，确保信号显示一致性</p>
+          <p><strong>修复效果：</strong>所有信号显示现在保持一致</p>
+        </div>
+
+        <h2><i class="fas fa-star"></i> 策略优化</h2>
+
+        <div class="optimization-item">
+          <h3><span class="status-badge status-optimized">已优化</span> ICT策略谐波形态共振集成</h3>
+          <p>根据<code>ict-plus.md</code>优化方案，实现了完整的谐波形态共振逻辑：</p>
+
+          <h4>谐波形态检测</h4>
+          <ul>
+            <li><strong>Cypher形态</strong>：AB: 35%-65%, BC: 105%-150%, CD: 75%-95%</li>
+            <li><strong>Bat形态</strong>：AB: 35%-55%, BC: 35%-95%, CD: 80%-95%</li>
+            <li><strong>Shark形态</strong>：AB: 105%-170%, BC: 105%-170%, CD: 80%-110%</li>
+          </ul>
+
+          <h4>综合评分系统</h4>
+          <div class="code-block">
+            趋势(25%) + 订单块(20%) + 吞没(15%) + 扫荡(15%) + 成交量(5%) + 谐波(20%)
+            谐波共振时额外加10分
+            方向匹配检查：谐波形态方向必须与日线趋势一致
+          </div>
+
+          <h4>门槛式结构确认</h4>
+          <p>日线趋势 → 有效订单块 → 扫荡方向匹配 → 吞没确认 → 谐波共振</p>
+          <p>替代线性加权评分，采用顺序化门槛式确认，显著降低逆势入场</p>
+        </div>
+
+        <div class="optimization-item">
+          <h3><span class="status-badge status-optimized">已优化</span> V3策略信号融合优化</h3>
+          <ul>
+            <li><strong>MACD Histogram集成</strong>：4H趋势确认增加MACD动能分析</li>
+            <li><strong>15M结构分析</strong>：检测Higher Highs/Lows和Lower Lows/Highs</li>
+            <li><strong>信号融合逻辑</strong>：4H(50%) + 1H(35%) + 15M(15%)加权评分</li>
+            <li><strong>容差机制</strong>：强信号(≥60%)和中等信号(45-59%)分级处理</li>
+          </ul>
+        </div>
+
+        <div class="optimization-item">
+          <h3><span class="status-badge status-optimized">已优化</span> 动态仓位管理</h3>
+          <ul>
+            <li><strong>最大损失金额</strong>：用户可设置(20/50/100/200 USDT)</li>
+            <li><strong>动态杠杆计算</strong>：基于最大损失金额和止损距离</li>
+            <li><strong>风险控制</strong>：ATR自适应止损，结构点位止损</li>
+          </ul>
+        </div>
+
+        <h2><i class="fas fa-cogs"></i> 策略详细说明</h2>
+
+        <div class="strategy-detail">
+          <h3>V3多因子趋势策略</h3>
+          <h4>核心逻辑：</h4>
+          <ol>
+            <li><strong>4H趋势判断</strong>：EMA20/50/200 + ADX(≥30) + MACD Histogram</li>
+            <li><strong>1H多因子分析</strong>：6个技术因子加权评分</li>
+            <li><strong>15M入场确认</strong>：结构突破 + EMA对齐 + ATR止损</li>
+          </ol>
+
+          <h4>技术指标：</h4>
+          <ul>
+            <li>EMA(20,50,200)：趋势方向判断</li>
+            <li>ADX：趋势强度确认(阈值30)</li>
+            <li>MACD Histogram：动能确认</li>
+            <li>BBW：波动率分析</li>
+            <li>VWAP：成交量加权平均价</li>
+            <li>ATR：动态止损计算</li>
+          </ul>
+
+          <h4>评分权重：</h4>
+          <ul>
+            <li>4H趋势：50%</li>
+            <li>1H因子：35%</li>
+            <li>15M结构：15%</li>
+          </ul>
+        </div>
+
+        <div class="strategy-detail">
+          <h3>ICT订单块策略</h3>
+          <h4>核心逻辑：</h4>
+          <ol>
+            <li><strong>1D趋势判断</strong>：20日价格变化率(±2%)</li>
+            <li><strong>4H订单块检测</strong>：价格停留+成交量集中+年龄过滤(≤2天)</li>
+            <li><strong>扫荡确认</strong>：方向性扫荡检测(上升趋势只接受下方扫荡)</li>
+            <li><strong>15M入场</strong>：吞没形态+谐波形态共振</li>
+          </ol>
+
+          <h4>谐波形态共振：</h4>
+          <ul>
+            <li><strong>Cypher形态</strong>：最强势，得分0.9</li>
+            <li><strong>Bat形态</strong>：中等强度，得分0.8</li>
+            <li><strong>Shark形态</strong>：较强，得分0.85</li>
+            <li><strong>方向匹配</strong>：谐波形态方向必须与日线趋势一致</li>
+          </ul>
+
+          <h4>综合评分：</h4>
+          <p>趋势(25%) + 订单块(20%) + 吞没(15%) + 扫荡(15%) + 成交量(5%) + 谐波(20%)</p>
+          <p>谐波共振额外加10分</p>
+        </div>
+
+        <h2><i class="fas fa-server"></i> 系统架构</h2>
+
+        <h3>技术栈</h3>
+        <ul>
+          <li><strong>后端</strong>：Node.js + Express.js + PM2进程管理</li>
+          <li><strong>数据库</strong>：MySQL 8.0 + Redis 6.0缓存</li>
+          <li><strong>前端</strong>：原生JavaScript + HTML5 + CSS3 + Chart.js CDN</li>
+          <li><strong>数据源</strong>：Binance Futures API (REST + WebSocket)</li>
+          <li><strong>外部API</strong>：Blockchair、Etherscan、Alternative.me、FRED</li>
+          <li><strong>部署</strong>：VPS 2C1G + Nginx反向代理</li>
+        </ul>
+
+        <h3>核心组件</h3>
+        <ul>
+          <li><strong>主应用</strong>：src/main.js - 应用入口和中间件配置</li>
+          <li><strong>策略引擎</strong>：src/strategies/ - V3和ICT策略实现</li>
+          <li><strong>谐波检测</strong>：src/strategies/harmonic-patterns.js - Cypher/Bat/Shark检测</li>
+          <li><strong>扫荡过滤</strong>：src/strategies/ict-sweep-filter.js - 方向性扫荡过滤</li>
+          <li><strong>工作进程</strong>：src/workers/ - 策略执行和数据更新</li>
+          <li><strong>API路由</strong>：src/api/routes/ - RESTful API接口</li>
+          <li><strong>监控服务</strong>：src/services/ - 宏观监控和系统监控</li>
+        </ul>
+
+        <h2><i class="fas fa-chart-line"></i> 性能优化</h2>
+
+        <h3>内存管理</h3>
+        <ul>
+          <li><strong>VPS限制</strong>：针对2C1G配置的内存优化</li>
+          <li><strong>连接池</strong>：数据库连接池管理</li>
+          <li><strong>缓存策略</strong>：Redis缓存热点数据</li>
+          <li><strong>垃圾回收</strong>：定期清理过期数据</li>
+        </ul>
+
+        <h3>并发处理</h3>
+        <ul>
+          <li><strong>Promise.all</strong>：并行执行API调用</li>
+          <li><strong>异步处理</strong>：避免阻塞主线程</li>
+          <li><strong>错峰更新</strong>：不同模块错峰执行</li>
+        </ul>
+
+        <h3>网络优化</h3>
+        <ul>
+          <li><strong>CDN使用</strong>：Chart.js使用CDN版本</li>
+          <li><strong>数据压缩</strong>：gzip压缩响应</li>
+          <li><strong>超时控制</strong>：API调用超时管理</li>
+        </ul>
+
+        <h2><i class="fas fa-history"></i> 更新日志</h2>
+
+        <h3>v2025.10.07</h3>
+        <ul>
+          <li>✅ 修复ICT策略扫荡检测逻辑</li>
+          <li>✅ 修复V3策略15M得分显示</li>
+          <li>✅ 修复前端502错误和Chart.js 404</li>
+          <li>✅ 实现ICT策略谐波形态共振</li>
+          <li>✅ 优化V3策略信号融合逻辑</li>
+          <li>✅ 统一信号显示一致性</li>
+          <li>✅ 更新在线文档</li>
+        </ul>
+
+        <h3>未来计划</h3>
+        <ul>
+          <li>🔄 谐波形态检测精度优化</li>
+          <li>🔄 动态权重回归算法</li>
+          <li>🔄 更多技术指标集成</li>
+          <li>🔄 机器学习信号优化</li>
+          <li>🔄 多交易所支持</li>
+        </ul>
+
+        <div class="update-section">
+          <h3><i class="fas fa-info-circle"></i> 系统信息</h3>
+          <p><strong>最后更新：</strong>2025年10月7日</p>
+          <p><strong>系统版本：</strong>v2.0.0</p>
+          <p><strong>文档版本：</strong>v2025.10.07</p>
+          <p><strong>状态：</strong><span class="status-badge status-optimized">运行正常</span></p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 返回顶部按钮 -->
+  <button class="back-to-top" id="backToTop" title="返回顶部">
+    <i class="fas fa-arrow-up"></i>
+  </button>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="app.js?v=20251007v5"></script>
+</body>
+
+</html>

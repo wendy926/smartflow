@@ -380,7 +380,7 @@ class ICTPositionMonitor {
       const realizedPnl = parseFloat(trade.realized_pnl || 0);
       const unrealizedPnl = parseFloat(trade.unrealized_pnl || 0);
       const rawPnl = realizedPnl + unrealizedPnl;
-      
+
       // 计算持仓时长（小时）
       const entryTime = new Date(trade.entry_time);
       const exitTime = new Date();
@@ -416,9 +416,9 @@ class ICTPositionMonitor {
              net_pnl = ?
          WHERE id = ?`,
         [
-          exitPrice, 
-          rawPnl, 
-          pnlPercentage, 
+          exitPrice,
+          rawPnl,
+          pnlPercentage,
           reason,
           holdHours,
           costsResult.fundingCost,

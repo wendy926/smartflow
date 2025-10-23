@@ -1,0 +1,427 @@
+/**
+ * 四阶段聪明钱检测样式
+ * 基于smartmoney.md文档的视觉设计
+ */
+
+/* 四阶段状态颜色定义 */
+:root {
+  --stage-neutral: #6c757d;
+  --stage-accumulation: #28a745;
+  --stage-markup: #007bff;
+  --stage-distribution: #ffc107;
+  --stage-markdown: #dc3545;
+}
+
+/* 四阶段聪明钱容器 */
+.four-phase-container {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+/* 四阶段状态徽章 */
+.stage-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stage-badge.neutral {
+  background-color: var(--stage-neutral);
+  color: white;
+}
+
+.stage-badge.accumulation {
+  background-color: var(--stage-accumulation);
+  color: white;
+}
+
+.stage-badge.markup {
+  background-color: var(--stage-markup);
+  color: white;
+}
+
+.stage-badge.distribution {
+  background-color: var(--stage-distribution);
+  color: #212529;
+}
+
+.stage-badge.markdown {
+  background-color: var(--stage-markdown);
+  color: white;
+}
+
+/* 置信度进度条 */
+.confidence-progress {
+  height: 20px;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #e9ecef;
+}
+
+.confidence-progress .progress-bar {
+  transition: width 0.3s ease;
+  font-size: 11px;
+  line-height: 20px;
+  font-weight: 600;
+}
+
+/* 四阶段状态指示器 */
+.stage-indicator {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.stage-indicator .stage-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.stage-indicator .stage-label {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* 四阶段流程图 */
+.four-phase-flow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.four-phase-flow .stage-node {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+
+.four-phase-flow .stage-node .stage-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  font-weight: 600;
+  color: white;
+  font-size: 14px;
+}
+
+.four-phase-flow .stage-node .stage-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+.four-phase-flow .stage-node.active .stage-circle {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.four-phase-flow .arrow {
+  flex: 0 0 30px;
+  text-align: center;
+  color: #999;
+  font-size: 18px;
+}
+
+/* 统计卡片 */
+.stats-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stats-card .stats-number {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.stats-card .stats-label {
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 表格样式 */
+.four-phase-table {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.four-phase-table .table {
+  margin-bottom: 0;
+}
+
+.four-phase-table .table th {
+  background-color: #343a40;
+  color: white;
+  border: none;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 12px 8px;
+}
+
+.four-phase-table .table td {
+  padding: 12px 8px;
+  vertical-align: middle;
+  border-color: #dee2e6;
+}
+
+.four-phase-table .table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* 操作按钮 */
+.action-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+/* 详情模态框 */
+.four-phase-modal .modal-dialog {
+  max-width: 800px;
+}
+
+.four-phase-modal .modal-body {
+  padding: 20px;
+}
+
+.four-phase-modal .detail-section {
+  margin-bottom: 20px;
+}
+
+.four-phase-modal .detail-section h6 {
+  color: #495057;
+  font-weight: 600;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .four-phase-flow {
+    flex-direction: column;
+    padding: 15px;
+  }
+
+  .four-phase-flow .stage-node {
+    margin-bottom: 20px;
+  }
+
+  .four-phase-flow .arrow {
+    transform: rotate(90deg);
+    margin: 10px 0;
+  }
+
+  .four-phase-table .table th,
+  .four-phase-table .table td {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+
+  .stats-card .stats-number {
+    font-size: 1.5rem;
+  }
+}
+
+/* 加载状态 */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 错误状态 */
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px 15px;
+  border-radius: 4px;
+  border: 1px solid #f5c6cb;
+  margin: 10px 0;
+}
+
+/* 成功状态 */
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px 15px;
+  border-radius: 4px;
+  border: 1px solid #c3e6cb;
+  margin: 10px 0;
+}
+
+/* 警告状态 */
+.warning-message {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 10px 15px;
+  border-radius: 4px;
+  border: 1px solid #ffeaa7;
+  margin: 10px 0;
+}
+
+/* 四阶段状态动画 */
+.stage-transition {
+  animation: stageTransition 0.5s ease-in-out;
+}
+
+@keyframes stageTransition {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 置信度条形图 */
+.confidence-bar {
+  display: flex;
+  align-items: center;
+  margin: 5px 0;
+}
+
+.confidence-bar .bar-label {
+  width: 80px;
+  font-size: 12px;
+  color: #666;
+}
+
+.confidence-bar .bar-container {
+  flex: 1;
+  height: 16px;
+  background-color: #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0 10px;
+}
+
+.confidence-bar .bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 8px;
+}
+
+.confidence-bar .bar-value {
+  width: 40px;
+  text-align: right;
+  font-size: 11px;
+  color: #666;
+}
+
+/* 时间轴样式 */
+.timeline {
+  position: relative;
+  padding-left: 30px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #dee2e6;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -22px;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #007bff;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-item .timeline-content {
+  background: white;
+  padding: 10px 15px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 暗色主题支持 */
+@media (prefers-color-scheme: dark) {
+  .four-phase-container {
+    background: #2d3748;
+    color: #e2e8f0;
+  }
+
+  .stats-card {
+    background: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .four-phase-table {
+    background: #4a5568;
+  }
+
+  .four-phase-table .table th {
+    background-color: #2d3748;
+  }
+
+  .four-phase-flow {
+    background: #4a5568;
+  }
+}

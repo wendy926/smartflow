@@ -1,0 +1,333 @@
+/* 聪明钱跟踪样式 */
+
+.smart-money-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* 添加交易对区域 */
+.add-symbol-section {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.add-symbol-section h3 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.add-symbol-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.add-symbol-form input {
+  flex: 1;
+  max-width: 300px;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.add-symbol-form input:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.add-symbol-form button {
+  padding: 10px 20px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.add-symbol-form button:hover {
+  background: #45a049;
+}
+
+/* 结果展示区域 */
+.smart-money-results {
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.smart-money-results h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.last-update {
+  font-size: 12px;
+  color: #666;
+  font-weight: normal;
+}
+
+/* 表格样式 */
+#smart-money-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+#smart-money-table th {
+  background: #f8f9fa;
+  padding: 12px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 2px solid #dee2e6;
+  color: #495057;
+}
+
+#smart-money-table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #dee2e6;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+#smart-money-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+/* 价格变化样式 */
+.price-change {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.price-change.positive {
+  color: #28a745;
+}
+
+.price-change.negative {
+  color: #dc3545;
+}
+
+/* 动作徽章样式 */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  min-width: 60px;
+}
+
+.badge-accumulate {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.badge-markup {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.badge-distribution {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  color: #333;
+}
+
+.badge-markdown {
+  background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
+  color: white;
+}
+
+.badge-trap {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+  color: white;
+  border: 2px solid #f57c00;
+}
+
+.badge-none {
+  background: #e9ecef;
+  color: #6c757d;
+}
+
+.badge-unknown {
+  background: #6c757d;
+  color: white;
+}
+
+.badge-error {
+  background: #e74c3c;
+  color: white;
+}
+
+/* 置信度徽章 */
+.badge-high {
+  background: #28a745;
+  color: white;
+}
+
+.badge-medium {
+  background: #ffc107;
+  color: #333;
+}
+
+.badge-low {
+  background: #dc3545;
+  color: white;
+}
+
+/* 原因列样式 */
+.reason-cell {
+  font-size: 12px;
+  max-width: 300px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* 行动作背景色（淡化） */
+tr.action-accumulate {
+  background: rgba(102, 126, 234, 0.05);
+}
+
+tr.action-markup {
+  background: rgba(240, 147, 251, 0.05);
+}
+
+tr.action-distribution {
+  background: rgba(255, 236, 210, 0.1);
+}
+
+tr.action-markdown {
+  background: rgba(255, 107, 107, 0.05);
+}
+
+/* 按钮样式 */
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  opacity: 0.85;
+}
+
+/* 加载和错误状态 */
+.loading,
+.no-data,
+.error {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
+}
+
+.error {
+  color: #dc3545;
+  font-style: normal;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .smart-money-container {
+    padding: 10px;
+  }
+
+  #smart-money-table {
+    font-size: 11px;
+  }
+
+  #smart-money-table th,
+  #smart-money-table td {
+    padding: 8px 4px;
+  }
+
+  .reason-cell {
+    max-width: 150px;
+    font-size: 11px;
+  }
+}
+/* 无动作状态样式 */
+.badge-none {
+  background: #e9ecef;
+  color: #6c757d;
+  border: 1px dashed #adb5bd;
+}
+
+.action-none {
+  background: #f8f9fa !important;
+}
+
+.action-none:hover {
+  background: #e9ecef !important;
+}
+
+/* 聪明钱建仓标识（smartmoney.md文档规范行820-826） */
+.smart-money-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+  animation: pulse-glow 2s ease-in-out infinite;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+/* 呼吸光效动画 */
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+    transform: scale(1.02);
+  }
+}
+
+/* 陷阱标记（smartmoney.md文档规范行670-678） */
+.trap-bull {
+  background: #fef3c7;
+  border: 2px solid #f59e0b;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.trap-bear {
+  background: #fee2e2;
+  border: 2px solid #ef4444;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+}

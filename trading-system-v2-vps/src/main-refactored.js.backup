@@ -1,0 +1,71 @@
+// 强制重新加载环境变量
+delete require.cache[require.resolve('../.env')];
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env'), override: true });
+
+// 清除配置和数据库连接缓存
+delete require.cache[require.resolve('./config')];
+delete require.cache[require.resolve('./database/connection')];
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const winston = require('winston');
+
+// 重新加载配置
+const config = require('./config');
+
+// 打印数据库配置以诊断
+console.log('[启动] 数据库配置:', {
+  host: config.database.host,
+  user: config.database.user,
+  password: config.database.password ? '***' + config.database.password.slice(-3) : 'empty',
+  database: config.database.name
+});
+
+const BacktestManagerRefactored = require('./services/backtest-manager-refactored');
+const createBacktestRoutesRefactored = require('./routes/backtest-refactored');
+const { StrategyEngine, ParameterManager, SignalProcessor } = require('./core/strategy-engine');
+const V3StrategyRefactored = require('./strategies/v3-strategy-refactored');
+const ICTStrategyRefactored = require('./strategies/ict-strategy-refactored');
+const DatabaseAdapter = require('./core/database-adapter');
+    })
+  ],
+});
+
+const app = express();
+const PORT = process.env.PORT || 8080;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+
+// Initialize core components
+const databaseAdapter = new DatabaseAdapter();
+const parameterManager = new ParameterManager(databaseAdapter, logger);
+const signalProcessor = new SignalProcessor(logger);
+const strategyEngine = new StrategyEngine(databaseAdapter, parameterManager, signalProcessor, logger);
+
+// Register strategies
+strategyEngine.registerStrategy('V3', new V3StrategyRefactored(logger));
+strategyEngine.registerStrategy('ICT', new ICTStrategyRefactored(logger));
+
+const backtestManager = new BacktestManagerRefactored(strategyEngine, databaseAdapter, logger);
+
+// Routes
+app.use('/api/v1/backtest', createBacktestRoutesRefactored(backtestManager, logger));
+
+// Basic health check route
+app.get('/health', (req, res) => {
+  res.status(200).send('Refactored backtest system is healthy');
+});
+
+// Start the server
+app.listen(PORT, () => {
+  logger.info(`重构后回测系统启动成功，端口: ${PORT}`);
+  console.log(`重构后回测系统启动成功，端口: ${PORT}`);
+}).on('error', (err) => {
+  logger.error(`重构后回测系统启动失败: ${err.message}`, err);
+  console.error(`重构后回测系统启动失败: ${err.message}`, err);
+});
+
+module.exports = app;

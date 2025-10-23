@@ -52,10 +52,10 @@ class SmartMoneyTracker {
     if (showOnlySignals) {
       filteredResults = results.filter(result => {
         const action = result.action || '';
-        return action !== 'UNKNOWN' && 
-               action !== '无动作' && 
-               action !== '无信号' && 
-               result.stage !== 'neutral';
+        return action !== 'UNKNOWN' &&
+          action !== '无动作' &&
+          action !== '无信号' &&
+          result.stage !== 'neutral';
       });
     }
 

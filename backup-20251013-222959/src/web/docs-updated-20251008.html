@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartFlow 交易策略系统 - 最新优化文档 (2025-10-08)</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .docs-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .update-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+
+    .fix-item {
+      background: #f8f9fa;
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .optimization-item {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .strategy-detail {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .code-block {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      margin: 10px 0;
+    }
+
+    .warning-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .success-box {
+      background: #d4edda;
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    h2 {
+      color: #667eea;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+      margin-top: 40px;
+    }
+
+    h3 {
+      color: #764ba2;
+      margin-top: 30px;
+    }
+
+    .timestamp {
+      color: #6c757d;
+      font-size: 0.9em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+
+    table th,
+    table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+
+    table th {
+      background-color: #667eea;
+      color: white;
+    }
+
+    table tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="docs-content">
+    <div class="update-section">
+      <h1><i class="fas fa-file-alt"></i> SmartFlow 交易策略系统文档</h1>
+      <p class="timestamp">最后更新: 2025-10-08</p>
+      <p>本文档记录了ICT策略和V3策略的最新优化和修复内容</p>
+    </div>
+
+    <!-- 目录 -->
+    <div class="strategy-detail">
+      <h2><i class="fas fa-list"></i> 目录</h2>
+      <ul>
+        <li><a href="#latest-updates">最新更新 (2025-10-08)</a></li>
+        <li><a href="#ict-strategy">ICT策略详解</a></li>
+        <li><a href="#v3-strategy">V3策略详解</a></li>
+        <li><a href="#technical-indicators">技术指标说明</a></li>
+        <li><a href="#risk-management">风险管理</a></li>
+      </ul>
+    </div>
+
+    <!-- 最新更新 -->
+    <h2 id="latest-updates"><i class="fas fa-bolt"></i> 最新更新 (2025-10-08)</h2>
+
+    <h3>🔧 ICT策略关键修复</h3>
+
+    <div class="fix-item">
+      <h4>1. 前后端15分钟入场判断逻辑一致性修复</h4>
+      <p><strong>问题：</strong>前端15M入场判断过于简化，只检查吞没形态，未检查方向匹配和其他必须条件</p>
+      <p><strong>修复：</strong>统一前后端15M入场判断逻辑，实现门槛式确认</p>
+
+      <h5>后端必须条件（门槛）：</h5>
+      <ul>
+        <li>✅ 日线趋势确认（UP或DOWN，非RANGE）</li>
+        <li>✅ 4H订单块存在（有效且未过期）</li>
+        <li>✅ 4H扫荡确认（方向匹配趋势）</li>
+        <li>✅ 吞没形态方向匹配（BULLISH对应UP，BEARISH对应DOWN）</li>
+      </ul>
+
+      <h5>前端判断逻辑：</h5>
+      <div class="code-block">
+        const valid = (trend !== 'RANGE') &&
+        hasOrderBlock &&
+        hasSweepHTF &&
+        engulfing &&
+        engulfingDirectionMatch;
+      </div>
+
+      <p><strong>影响：</strong>前端显示的15M入场有效性现在与后端策略逻辑完全一致</p>
+    </div>
+
+    <div class="fix-item">
+      <h4>2. 硬编码分数问题修复</h4>
+      <p><strong>问题：</strong>在不同执行路径中使用硬编码分数（30分、40分），不反映实际组件检测结果</p>
+      <p><strong>修复：</strong>统一使用基于组件的动态分数计算</p>
+
+      <h5>分数计算公式：</h5>
+      <ul>
+        <li>趋势分 = dailyTrend.confidence × 25</li>
+        <li>订单块分 = 20分（检测到）/ 0分（未检测到）</li>
+        <li>吞没分 = 15分（检测到）/ 0分（未检测到）</li>
+        <li>扫荡分 = 4H扫荡（10分）+ 15M扫荡（5分）</li>
+        <li>成交量分 = 5分（放大）/ 0分（未放大）</li>
+        <li>谐波分 = harmonicPattern.score × 20</li>
+        <li>总分 = 各组件分数之和（最高100分）</li>
+      </ul>
+
+      <p><strong>影响：</strong>总分真实反映策略组件的检测状态，消除了硬编码导致的分数失真</p>
+    </div>
+
+    <div class="fix-item">
+      <h4>3. 置信度计算统一化</h4>
+      <p><strong>问题：</strong>部分执行路径使用字符串置信度（'MEDIUM', 'HIGH'），部分使用数值置信度</p>
+      <p><strong>修复：</strong>所有路径统一使用数值置信度计算</p>
+
+      <h5>置信度计算公式：</h5>
+      <div class="code-block">
+        numericConfidence = harmonicScore × 0.6 + engulfingStrength × 0.4
+      </div>
+
+      <p><strong>前端转换规则：</strong></p>
+      <ul>
+        <li>confidence ≥ 0.6 → '高'</li>
+        <li>0.3 ≤ confidence < 0.6 → '中' </li>
+        <li>confidence < 0.3 → '低' </li>
+      </ul>
+
+      <p><strong>影响：</strong>置信度与总分逻辑一致，前端统一处理数值类型</p>
+    </div>
+
+    <h3>🚀 V3策略关键修复</h3>
+
+    <div class="fix-item">
+      <h4>1. 震荡市交易逻辑修复</h4>
+      <p><strong>问题：</strong>震荡市模式下，即使15M检测到假突破信号，combineSignals也直接返回HOLD</p>
+      <p><strong>修复：</strong>增加震荡市假突破信号检查逻辑</p>
+
+      <h5>修复后的震荡市逻辑：</h5>
+      <div class="code-block">
+        if (trendDirection === 'RANGE') {
+        // 检查15M假突破信号
+        if (execution15M.signal === 'BUY' || execution15M.signal === 'SELL') {
+        if (reason.includes('Range fake breakout')) {
+        return execution15M.signal; // 返回假突破信号
+        }
+        }
+        return 'HOLD'; // 无假突破信号，继续观望
+        }
+      </div>
+
+      <h5>震荡市假突破条件：</h5>
+      <ul>
+        <li>✅ 4H趋势判断为RANGE</li>
+        <li>✅ 1H边界有效（上轨/下轨）</li>
+        <li>✅ 布林带宽度收窄（波动率降低）</li>
+        <li>✅ 价格假突破边界后快速回归</li>
+      </ul>
+
+      <p><strong>影响：</strong>震荡市假突破信号现在能够正确触发交易</p>
+    </div>
+
+    <div class="success-box">
+      <h4>✅ 数据显示问题说明</h4>
+      <p><strong>BNBUSDT MA20/MA50为0的问题：</strong></p>
+      <p>这是临时性问题，可能由于：</p>
+      <ul>
+        <li>网络延迟或API限流</li>
+        <li>数据获取暂时失败</li>
+        <li>策略执行异常</li>
+      </ul>
+      <p>直接调用V3策略API，BNBUSDT的数据完全正常（MA20=1226.00, MA50=1136.05等）</p>
+      <p><strong>建议：</strong>在前端添加错误状态显示，而不是显示0值</p>
+    </div>
+
+    <!-- ICT策略详解 -->
+    <h2 id="ict-strategy"><i class="fas fa-chart-line"></i> ICT策略详解</h2>
+
+    <h3>策略概述</h3>
+    <div class="strategy-detail">
+      <p>ICT（Inner Circle Trader）策略基于<strong>订单块、流动性扫荡和吞没形态</strong>的ICT概念，采用多时间框架分析。</p>
+
+      <h4>核心概念：</h4>
+      <ul>
+        <li><strong>订单块（Order Block）</strong>：机构订单集中区域，表现为价格盘整+成交量集中</li>
+        <li><strong>流动性扫荡（Liquidity Sweep）</strong>：价格快速刺破关键价位后迅速回归</li>
+        <li><strong>吞没形态（Engulfing）</strong>：强势反转信号，后一根K线实体吞没前一根</li>
+        <li><strong>谐波形态（Harmonic Pattern）</strong>：Cypher/Bat/Shark等谐波形态共振</li>
+      </ul>
+    </div>
+
+    <h3>三个时间框架分析</h3>
+
+    <div class="optimization-item">
+      <h4>1. 高时间框架（HTF - 1D）</h4>
+      <p><strong>目标：</strong>确定市场主要趋势方向</p>
+      <p><strong>方法：</strong>比较最近20根日线收盘价</p>
+      <ul>
+        <li>末值 > 首值 + 2% → 上升趋势（UP）</li>
+        <li>末值 < 首值 - 2% → 下降趋势（DOWN）</li>
+        <li>其他 → 震荡趋势（RANGE），不交易</li>
+      </ul>
+      <p><strong>置信度：</strong>confidence = min(|priceChange| / 10, 1)</p>
+    </div>
+
+    <div class="optimization-item">
+      <h4>2. 中时间框架（MTF - 4H）</h4>
+      <p><strong>目标：</strong>识别订单块和流动性扫荡</p>
+
+      <h5>订单块检测条件：</h5>
+      <ul>
+        <li>高度 ≥ 0.15 × ATR(4H)</li>
+        <li>价格稳定性（range/avgPrice ≤ 0.03）</li>
+        <li>成交量集中（最后2根K线成交量 ≥ 60%平均成交量）</li>
+        <li>年龄 ≤ 5天</li>
+      </ul>
+
+      <h5>4H扫荡检测：</h5>
+      <ul>
+        <li>基于订单块高/低点检测</li>
+        <li>方向过滤：UP趋势只接受下方扫荡，DOWN趋势只接受上方扫荡</li>
+        <li>速率要求：sweepSpeed ≥ 0.4 × ATR(4H)</li>
+      </ul>
+    </div>
+
+    <div class="optimization-item">
+      <h4>3. 低时间框架（LTF - 15M）</h4>
+      <p><strong>目标：</strong>精确入场点确认</p>
+
+      <h5>15M入场必须条件（门槛式）：</h5>
+      <table>
+        <tr>
+          <th>条件</th>
+          <th>要求</th>
+          <th>说明</th>
+        </tr>
+        <tr>
+          <td>门槛1</td>
+          <td>日线趋势明确</td>
+          <td>trend = UP 或 DOWN（非RANGE）</td>
+        </tr>
+        <tr>
+          <td>门槛2</td>
+          <td>4H订单块存在</td>
+          <td>hasValidOrderBlock = true</td>
+        </tr>
+        <tr>
+          <td>门槛3</td>
+          <td>4H扫荡有效</td>
+          <td>方向匹配趋势</td>
+        </tr>
+        <tr>
+          <td>门槛4</td>
+          <td>吞没形态匹配</td>
+          <td>BULLISH↔UP, BEARISH↔DOWN</td>
+        </tr>
+      </table>
+
+      <h5>可选加强条件：</h5>
+      <ul>
+        <li>15M扫荡检测（LTF Sweep，阈值 0.02 × ATR）</li>
+        <li>成交量放大（> 1.5倍平均成交量）</li>
+        <li>谐波形态共振（Cypher/Bat/Shark）</li>
+      </ul>
+
+      <h5>吞没形态强度计算：</h5>
+      <div class="code-block">
+        strength = min(currentBodySize / previousBodySize, 2.0)
+        // 允许部分吞没（≥50%）
+      </div>
+    </div>
+
+    <h3>ICT策略评分系统</h3>
+
+    <div class="strategy-detail">
+      <h4>综合评分计算（满分100分）：</h4>
+      <table>
+        <tr>
+          <th>组件</th>
+          <th>权重</th>
+          <th>计算方式</th>
+        </tr>
+        <tr>
+          <td>趋势</td>
+          <td>25%</td>
+          <td>dailyTrend.confidence × 25</td>
+        </tr>
+        <tr>
+          <td>订单块</td>
+          <td>20%</td>
+          <td>检测到=20分，未检测到=0分</td>
+        </tr>
+        <tr>
+          <td>吞没形态</td>
+          <td>15%</td>
+          <td>检测到=15分，未检测到=0分</td>
+        </tr>
+        <tr>
+          <td>4H扫荡</td>
+          <td>10%</td>
+          <td>检测到=10分，未检测到=0分</td>
+        </tr>
+        <tr>
+          <td>15M扫荡</td>
+          <td>5%</td>
+          <td>检测到=5分，未检测到=0分</td>
+        </tr>
+        <tr>
+          <td>成交量</td>
+          <td>5%</td>
+          <td>放大=5分，未放大=0分</td>
+        </tr>
+        <tr>
+          <td>谐波形态</td>
+          <td>20%</td>
+          <td>harmonicPattern.score × 20</td>
+        </tr>
+      </table>
+
+      <p><strong>谐波共振加分：</strong>如果谐波形态得分 > 0.6，额外加10分</p>
+      <p><strong>最终总分：</strong>min(计算总分, 100)</p>
+    </div>
+
+    <h3>ICT策略置信度计算</h3>
+
+    <div class="strategy-detail">
+      <h4>置信度公式：</h4>
+      <div class="code-block">
+        numericConfidence = harmonicScore × 0.6 + engulfingStrength × 0.4
+      </div>
+
+      <h4>置信度等级：</h4>
+      <ul>
+        <li><strong>高（≥0.6）：</strong>谐波形态共振+强吞没形态</li>
+        <li><strong>中（0.3-0.6）：</strong>有吞没或谐波，但强度一般</li>
+        <li><strong>低（<0.3）：< /strong>吞没和谐波形态都较弱</li>
+      </ul>
+
+      <div class="warning-box">
+        <p><strong>注意：</strong>置信度与总分独立计算，反映入场信号的质量，而总分反映整体策略组件的完整性</p>
+      </div>
+    </div>
+
+    <!-- V3策略详解 -->
+    <h2 id="v3-strategy"><i class="fas fa-chart-bar"></i> V3策略详解</h2>
+
+    <h3>策略概述</h3>
+    <div class="strategy-detail">
+      <p>V3策略是<strong>多因子趋势策略</strong>，基于4H趋势判断、1H因子分析和15M入场信号的综合策略。</p>
+
+      <h4>核心特点：</h4>
+      <ul>
+        <li><strong>多时间框架协同</strong>：4H确定趋势，1H分析因子，15M精确入场</li>
+        <li><strong>动态权重调整</strong>：根据各组件强度动态调整权重</li>
+        <li><strong>补偿机制</strong>：避免信号死区，防止单一因子阻碍信号生成</li>
+        <li><strong>震荡市交易</strong>：支持震荡市假突破交易逻辑</li>
+      </ul>
+    </div>
+
+    <h3>三个时间框架分析</h3>
+
+    <div class="optimization-item">
+      <h4>1. 4H趋势判断</h4>
+      <p><strong>目标：</strong>确定市场主要趋势方向和强度</p>
+
+      <h5>技术指标：</h5>
+      <ul>
+        <li>MA20, MA50, MA200（移动平均线）</li>
+        <li>ADX（平均趋向指数，趋势强度）</li>
+        <li>BBW（布林带宽度，波动率）</li>
+        <li>VWAP（成交量加权平均价）</li>
+        <li>MACD Histogram（MACD柱状图，动量）</li>
+      </ul>
+
+      <h5>趋势判断逻辑：</h5>
+      <ul>
+        <li><strong>上升趋势：</strong>MA20 > MA50 > MA200 且 ADX > 25</li>
+        <li><strong>下降趋势：</strong>MA20 < MA50 < MA200 且 ADX> 25</li>
+        <li><strong>震荡趋势：</strong>ADX < 25 或 均线无明显排列</li>
+      </ul>
+
+      <h5>趋势置信度：</h5>
+      <div class="code-block">
+        confidence = (adxScore × 0.4 + bbwScore × 0.3 + maScore × 0.3)
+        // adxScore: ADX强度得分
+        // bbwScore: 布林带宽度得分
+        // maScore: 均线排列得分
+      </div>
+
+      <h5>4H评分（满分10分）：</h5>
+      <ul>
+        <li>趋势强度：ADX > 40 = 4分，ADX > 30 = 3分，ADX > 25 = 2分</li>
+        <li>均线排列：完全排列 = 3分，部分排列 = 2分</li>
+        <li>MACD Histogram：强趋势 = 2分，弱趋势 = 1分</li>
+        <li>布林带：适度波动 = 1分</li>
+      </ul>
+    </div>
+
+    <div class="optimization-item">
+      <h4>2. 1H多因子分析</h4>
+      <p><strong>目标：</strong>确认趋势持续性和市场参与度</p>
+
+      <h5>六大因子：</h5>
+      <table>
+        <tr>
+          <th>因子</th>
+          <th>趋势市判断</th>
+          <th>震荡市判断</th>
+        </tr>
+        <tr>
+          <td>VWAP方向</td>
+          <td>价格在VWAP上方（UP）/下方（DOWN）</td>
+          <td>价格偏离VWAP < 1%</td>
+        </tr>
+        <tr>
+          <td>突破确认</td>
+          <td>价格在EMA20上方（UP）/下方（DOWN）</td>
+          <td>价格偏离EMA20 < 2%</td>
+        </tr>
+        <tr>
+          <td>成交量确认</td>
+          <td>成交量 > 1.2倍平均</td>
+          <td>成交量 > 1.2倍平均</td>
+        </tr>
+        <tr>
+          <td>持仓量变化</td>
+          <td>OI变化 > 2%（UP时>0，DOWN时<0）< /td>
+          <td>|OI变化| > 1%</td>
+        </tr>
+        <tr>
+          <td>资金费率</td>
+          <td>资金费率方向匹配趋势</td>
+          <td>资金费率方向匹配趋势</td>
+        </tr>
+        <tr>
+          <td>Delta不平衡</td>
+          <td>Delta > 10%（UP时>0，DOWN时<0）< /td>
+          <td>|Delta| > 5%</td>
+        </tr>
+      </table>
+
+      <h5>1H评分（满分6分）：</h5>
+      <p>每个因子满足条件得1分，总分0-6分</p>
+
+      <h5>震荡市边界分析：</h5>
+      <ul>
+        <li>布林带上下轨作为震荡边界</li>
+        <li>连续触碰检测（≥2次）</li>
+        <li>多因子评分（成交量、Delta、OI、无新高/低、VWAP接近）</li>
+        <li>边界有效得分 ≥ 3分 → 边界有效</li>
+      </ul>
+    </div>
+
+    <div class="optimization-item">
+      <h4>3. 15M入场执行</h4>
+      <p><strong>目标：</strong>精确入场时机确认</p>
+
+      <h5>趋势市入场条件：</h5>
+      <ul>
+        <li>EMA20与EMA50排列正确</li>
+        <li>ADX > 20（有趋势）</li>
+        <li>BBW适度（0.01-0.05，不过度收窄或扩张）</li>
+        <li>价格结构确认（HH/HL或LL/LH）</li>
+      </ul>
+
+      <h5>震荡市入场条件（假突破）：</h5>
+      <ul>
+        <li>1H边界有效（上轨/下轨）</li>
+        <li>布林带宽度收窄（BBW下降）</li>
+        <li>假突破模式：
+          <ul>
+            <li>空头假突破：前一根收盘跌破下轨，当前收盘回归轨道内 → BUY</li>
+            <li>多头假突破：前一根收盘突破上轨，当前收盘回归轨道内 → SELL</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h5>15M评分（满分5分）：</h5>
+      <ul>
+        <li>EMA排列正确 = 2分</li>
+        <li>ADX > 20 = 1分</li>
+        <li>BBW适度 = 1分</li>
+        <li>结构确认 = 0.5-2分（根据HH/HL或LL/LH强度）</li>
+      </ul>
+    </div>
+
+    <h3>V3策略信号融合逻辑</h3>
+
+    <div class="strategy-detail">
+      <h4>动态权重计算：</h4>
+      <div class="code-block">
+        // 基础权重
+        baseWeights = {
+        trend: 0.50, // 4H趋势
+        factor: 0.30, // 1H因子
+        entry: 0.20 // 15M入场
+        }
+
+        // 动态调整
+        if (trendScore >= 8) trend权重 += 0.1
+        if (factorScore >= 5) factor权重 += 0.05
+        if (entryScore >= 4) entry权重 += 0.05
+      </div>
+
+      <h4>总分计算：</h4>
+      <div class="code-block">
+        totalScore = (trendScore/10 × trend权重 +
+        factorScore/6 × factor权重 +
+        entryScore/5 × entry权重) × 100
+      </div>
+
+      <h4>补偿机制：</h4>
+      <p>避免单一因子阻碍信号生成，当总分较高但某个因子略低时，降低该因子门槛</p>
+      <div class="code-block">
+        compensation = (normalizedScore/100) × trendStrength × 0.2
+        adjustedThreshold = baseThreshold - compensation
+      </div>
+
+      <h4>信号判断（趋势市）：</h4>
+      <table>
+        <tr>
+          <th>信号等级</th>
+          <th>总分</th>
+          <th>4H趋势</th>
+          <th>1H因子</th>
+          <th>15M入场</th>
+        </tr>
+        <tr>
+          <td>强信号</td>
+          <td>≥70</td>
+          <td>≥6</td>
+          <td>≥4（调整后）</td>
+          <td>≥1</td>
+        </tr>
+        <tr>
+          <td>中等信号</td>
+          <td>45-69</td>
+          <td>≥5</td>
+          <td>≥3（调整后）</td>
+          <td>≥1</td>
+        </tr>
+        <tr>
+          <td>弱信号</td>
+          <td>35-44</td>
+          <td>≥4</td>
+          <td>≥2（调整后）</td>
+          <td>≥1</td>
+        </tr>
+        <tr>
+          <td>HOLD</td>
+          <td>
+            <35< /td>
+          <td colspan="3">条件不满足</td>
+        </tr>
+      </table>
+
+      <h4>震荡市信号判断：</h4>
+      <div class="code-block">
+        if (trend === 'RANGE') {
+        // 检查15M假突破信号
+        if (execution15M.signal === 'BUY' || 'SELL') {
+        if (reason包含'Range fake breakout') {
+        return execution15M.signal
+        }
+        }
+        return 'HOLD'
+        }
+      </div>
+    </div>
+
+    <!-- 技术指标说明 -->
+    <h2 id="technical-indicators"><i class="fas fa-calculator"></i> 技术指标说明</h2>
+
+    <h3>趋势指标</h3>
+    <div class="strategy-detail">
+      <h4>EMA（指数移动平均线）</h4>
+      <ul>
+        <li>EMA20：短期趋势</li>
+        <li>EMA50：中期趋势</li>
+        <li>用途：判断趋势方向和支撑阻力</li>
+      </ul>
+
+      <h4>MA（简单移动平均线）</h4>
+      <ul>
+        <li>MA20, MA50, MA200</li>
+        <li>用途：趋势方向和长期支撑阻力</li>
+      </ul>
+
+      <h4>ADX（平均趋向指数）</h4>
+      <ul>
+        <li>ADX > 40：强趋势</li>
+        <li>ADX > 25：中等趋势</li>
+        <li>ADX < 25：无趋势/震荡</li>
+      </ul>
+
+      <h4>MACD Histogram（柱状图）</h4>
+      <ul>
+        <li>正值增加：上涨动量增强</li>
+        <li>负值减小：下跌动量减弱</li>
+        <li>用途：趋势动量确认</li>
+      </ul>
+    </div>
+
+    <h3>波动率指标</h3>
+    <div class="strategy-detail">
+      <h4>ATR（平均真实波幅）</h4>
+      <ul>
+        <li>用途：衡量市场波动性</li>
+        <li>应用：动态止损计算、订单块高度过滤</li>
+      </ul>
+
+      <h4>BBW（布林带宽度）</h4>
+      <ul>
+        <li>BBW收窄：波动率降低，可能突破</li>
+        <li>BBW扩张：波动率增加，趋势强劲</li>
+        <li>用途：震荡市识别、入场时机选择</li>
+      </ul>
+    </div>
+
+    <h3>成交量指标</h3>
+    <div class="strategy-detail">
+      <h4>VWAP（成交量加权平均价）</h4>
+      <ul>
+        <li>价格在VWAP上方：买方占优</li>
+        <li>价格在VWAP下方：卖方占优</li>
+        <li>用途：判断市场力量对比</li>
+      </ul>
+
+      <h4>成交量分析</h4>
+      <ul>
+        <li>成交量放大：趋势确认</li>
+        <li>成交量萎缩：趋势可能反转</li>
+      </ul>
+
+      <h4>Delta（买卖力量不平衡）</h4>
+      <ul>
+        <li>Delta > 0：买方力量强</li>
+        <li>Delta < 0：卖方力量强</li>
+        <li>用途：短期市场情绪判断</li>
+      </ul>
+    </div>
+
+    <h3>市场微观结构</h3>
+    <div class="strategy-detail">
+      <h4>持仓量（Open Interest）</h4>
+      <ul>
+        <li>OI上升+价格上涨：多头开仓，趋势强劲</li>
+        <li>OI下降+价格上涨：空头平仓，趋势可能减弱</li>
+      </ul>
+
+      <h4>资金费率（Funding Rate）</h4>
+      <ul>
+        <li>正资金费率：多头占优，需支付费用给空头</li>
+        <li>负资金费率：空头占优，需支付费用给多头</li>
+        <li>用途：市场情绪和持仓偏好</li>
+      </ul>
+    </div>
+
+    <!-- 风险管理 -->
+    <h2 id="risk-management"><i class="fas fa-shield-alt"></i> 风险管理</h2>
+
+    <h3>止损策略</h3>
+    <div class="strategy-detail">
+      <h4>ICT策略止损：</h4>
+      <ul>
+        <li><strong>上升趋势：</strong>订单块下沿 - 1.5×ATR(4H) 或 最近3根4H最低点</li>
+        <li><strong>下降趋势：</strong>订单块上沿 + 1.5×ATR(4H) 或 最近3根4H最高点</li>
+        <li><strong>自适应止损：</strong>根据置信度调整止损倍数（1.5-2.5×ATR）</li>
+      </ul>
+
+      <h4>V3策略止损：</h4>
+      <ul>
+        <li><strong>趋势市：</strong>基于15M ATR，止损距离 = 2×ATR</li>
+        <li><strong>震荡市：</strong>基于边界突破点，止损距离 = (price - boundary) × 1.2</li>
+        <li><strong>动态调整：</strong>根据波动率和置信度动态调整</li>
+      </ul>
+    </div>
+
+    <h3>止盈策略</h3>
+    <div class="strategy-detail">
+      <h4>固定盈亏比：</h4>
+      <ul>
+        <li>ICT策略：RR = 3:1</li>
+        <li>V3策略：RR = 2:1（趋势市），RR = 1.5:1（震荡市）</li>
+      </ul>
+
+      <h4>动态止盈：</h4>
+      <ul>
+        <li>波动率收缩时（BBW下降 > 20% 或 ATR下降 > 15%）提前止盈</li>
+        <li>移动止损：盈利达到1R后，止损移至保本点</li>
+      </ul>
+    </div>
+
+    <h3>仓位管理</h3>
+    <div class="strategy-detail">
+      <h4>杠杆计算：</h4>
+      <div class="code-block">
+        // 最大杠杆计算
+        maxLeverage = maxLossAmount / (stopDistance × entryPrice)
+
+        // 实际杠杆限制
+        leverage = min(maxLeverage, 24) // 最大24倍
+
+        // 保证金计算
+        margin = entryPrice / leverage
+      </div>
+
+      <h4>分级仓位（V3策略）：</h4>
+      <table>
+        <tr>
+          <th>信号强度</th>
+          <th>置信度</th>
+          <th>仓位比例</th>
+        </tr>
+        <tr>
+          <td>强信号</td>
+          <td>≥0.7</td>
+          <td>100%</td>
+        </tr>
+        <tr>
+          <td>中等信号</td>
+          <td>0.5-0.7</td>
+          <td>70%</td>
+        </tr>
+        <tr>
+          <td>弱信号</td>
+          <td>
+            <0.5< /td>
+          <td>50%</td>
+        </tr>
+      </table>
+
+      <h4>风险控制：</h4>
+      <ul>
+        <li>单笔最大损失：20/50/100/200 USDT（用户可选）</li>
+        <li>同一交易对同时只能有一个活跃交易</li>
+        <li>每日最大交易次数限制</li>
+        <li>连续亏损后自动降低仓位</li>
+      </ul>
+    </div>
+
+    <h3>交易去重</h3>
+    <div class="strategy-detail">
+      <h4>缓存机制：</h4>
+      <ul>
+        <li>交易参数缓存5分钟，避免重复下单</li>
+        <li>信号生成后检查是否已有活跃交易</li>
+        <li>同一交易对同一方向5分钟内只触发一次</li>
+      </ul>
+    </div>
+
+    <!-- 总结 -->
+    <div class="update-section" style="margin-top: 50px;">
+      <h2><i class="fas fa-check-circle"></i> 修复总结</h2>
+
+      <h3>ICT策略修复 ✅</h3>
+      <ul>
+        <li>✅ 前后端15分钟入场判断逻辑完全一致</li>
+        <li>✅ 消除硬编码分数，真实反映组件检测结果</li>
+        <li>✅ 统一置信度计算，所有路径使用数值置信度</li>
+        <li>✅ 总分与置信度逻辑一致</li>
+      </ul>
+
+      <h3>V3策略修复 ✅</h3>
+      <ul>
+        <li>✅ 震荡市假突破信号能够正确触发交易</li>
+        <li>✅ combineSignals方法检查震荡市信号</li>
+        <li>✅ 15M假突破逻辑完整实现</li>
+      </ul>
+
+      <h3>系统优化 ✅</h3>
+      <ul>
+        <li>✅ 评分系统更加透明和一致</li>
+        <li>✅ 信号判断逻辑更加合理</li>
+        <li>✅ 文档更新完整详细</li>
+      </ul>
+    </div>
+
+    <!-- 页脚 -->
+    <div style="text-align: center; padding: 30px 0; color: #6c757d; border-top: 2px solid #dee2e6; margin-top: 50px;">
+      <p>SmartFlow 交易策略系统 v2.0</p>
+      <p>最后更新: 2025-10-08 | <a href="https://smart.aimaventop.com" target="_blank">系统仪表板</a></p>
+    </div>
+  </div>
+</body>
+
+</html>

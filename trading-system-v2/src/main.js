@@ -12,7 +12,8 @@ require('dotenv').config();
 
 const config = require('./config');
 const logger = require('./utils/logger');
-const database = require('./database/connection');
+const DatabaseConnection = require('./database/connection');
+const database = DatabaseConnection.getInstance ? DatabaseConnection.getInstance() : DatabaseConnection.default;
 const cache = require('./cache/redis');
 const monitoring = require('./monitoring/resource-monitor');
 const DataUpdater = require('./services/data-updater');
@@ -23,6 +24,10 @@ const TelegramMonitoringService = require('./services/telegram-monitoring');
 const SmartMoneyDetector = require('./services/smart-money-detector');
 const LargeOrderDetector = require('./services/large-order/detector'); // V2.1.0新增：大额挂单监控
 const { SmartMoneyV2Monitor } = require('./services/smart-money-v2-monitor'); // V2.3.0新增：聪明钱V2监控
+const BacktestManager = require('./services/backtest-manager'); // V2.4.0新增：回测管理器
+const BacktestDataService = require('./services/backtest-data-service'); // V2.4.0新增：回测数据服务
+const BacktestStrategyEngine = require('./services/backtest-strategy-engine'); // V2.4.0新增：回测策略引擎
+const MarketDataPreloader = require('./services/market-data-preloader'); // V2.4.0新增：市场数据预加载器
 
 class TradingSystemApp {
   constructor() {
@@ -34,6 +39,10 @@ class TradingSystemApp {
     this.smartMoneyDetector = null;
     this.largeOrderDetector = null; // V2.1.0新增
     this.smartMoneyV2Monitor = null; // V2.3.0新增
+    this.backtestManager = null; // V2.4.0新增：回测管理器
+    this.backtestDataService = null; // V2.4.0新增：回测数据服务
+    this.backtestStrategyEngine = null; // V2.4.0新增：回测策略引擎
+    this.marketDataPreloader = null; // V2.4.0新增：市场数据预加载器
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -97,6 +106,12 @@ class TradingSystemApp {
     this.app.use('/api/v1/settings', require('./api/routes/settings'));
     this.app.use('/api/v1/ai', require('./api/routes/ai-analysis'));
     this.app.use('/api/v1/position-monitor', require('./api/routes/position-monitor'));
+    this.app.use('/api/v1/strategy-params', require('./api/routes/strategy-params')); // 策略参数化调优API
+
+    // 回测API路由
+    const { router: backtestRouter, setBacktestServices } = require('./api/routes/backtest');
+    this.app.use('/api/v1/backtest', backtestRouter);
+    this.setBacktestServices = setBacktestServices; // 保存设置函数
 
     // 健康检查
     this.app.get('/health', (req, res) => {
@@ -117,6 +132,11 @@ class TradingSystemApp {
     // 前端路由处理 - 支持SPA路由
     this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', /* '/new-coin-monitor', */ '/tools', '/smart-money', '/large-orders', '/docs'], (req, res) => {
       res.sendFile('index.html', { root: 'src/web' });
+    });
+
+    // 策略参数调优页面
+    this.app.get('/strategy-params', (req, res) => {
+      res.sendFile('strategy-params.html', { root: 'src/web' });
     });
   }
 
@@ -248,7 +268,7 @@ class TradingSystemApp {
         const ICTPositionMonitor = require('./services/ict-position-monitor');
         const BinanceAPI = require('./api/binance-api');
         const binanceAPIInstance = new BinanceAPI();
-        
+
         this.ictPositionMonitor = new ICTPositionMonitor(database, binanceAPIInstance);
         await this.ictPositionMonitor.start();
         this.app.set('ictPositionMonitor', this.ictPositionMonitor);
@@ -256,6 +276,49 @@ class TradingSystemApp {
       } catch (error) {
         logger.error('[ICT仓位监控] ❌ 监控服务启动失败:', error);
         this.ictPositionMonitor = null;
+      }
+
+      // 初始化策略参数管理器（策略参数化调优）
+      try {
+        logger.info('[策略参数] 初始化策略参数管理器...');
+        const StrategyParameterManager = require('./services/strategy-parameter-manager');
+        this.strategyParamManager = new StrategyParameterManager(database);
+        this.app.set('strategyParamManager', this.strategyParamManager);
+        logger.info('[策略参数] ✅ 策略参数管理器启动成功');
+      } catch (error) {
+        logger.error('[策略参数] ❌ 参数管理器启动失败:', error);
+        this.strategyParamManager = null;
+      }
+
+      // 初始化回测服务（V2.4.0新增）
+      try {
+        logger.info('[回测服务] 初始化回测管理器V3...');
+        const BinanceAPI = require('./api/binance-api');
+        const binanceAPIInstance = new BinanceAPI();
+
+        // 使用新的回测管理器V3（直接调用Dashboard策略逻辑）
+        const BacktestManagerV3 = require('./services/backtest-manager-v3');
+        const BacktestStrategyEngineV3 = require('./services/backtest-strategy-engine-v3');
+
+        this.backtestDataService = new BacktestDataService(database, binanceAPIInstance);
+        this.backtestStrategyEngine = new BacktestStrategyEngineV3(); // 使用V3版本
+        this.backtestManager = new BacktestManagerV3(database); // 使用V3版本
+        this.marketDataPreloader = new MarketDataPreloader(database, binanceAPIInstance);
+
+        // 设置回测服务到API路由
+        this.setBacktestServices(this.backtestManager, this.backtestDataService, this.backtestStrategyEngine, this.marketDataPreloader);
+
+        this.app.set('backtestManager', this.backtestManager);
+        this.app.set('backtestDataService', this.backtestDataService);
+        this.app.set('backtestStrategyEngine', this.backtestStrategyEngine);
+        this.app.set('marketDataPreloader', this.marketDataPreloader);
+
+        logger.info('[回测服务] ✅ 回测服务V3启动成功');
+      } catch (error) {
+        logger.error('[回测服务] ❌ 回测服务启动失败:', error);
+        this.backtestManager = null;
+        this.backtestDataService = null;
+        this.backtestStrategyEngine = null;
       }
 
       // 初始化四阶段聪明钱Telegram通知服务（V2.2.1新增）

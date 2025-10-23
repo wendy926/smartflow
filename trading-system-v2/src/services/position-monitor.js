@@ -118,7 +118,7 @@ class PositionMonitor {
 
       // ✅ 从交易记录中获取市场类型，如果没有则使用默认值
       const marketType = trade.market_type || (strategy_name === 'ICT' ? 'TREND' : 'RANGE');
-      
+
       logger.info(`[持仓监控] ${symbol} (${strategy_name}) 市场类型=${marketType}`);
 
       // 检查最大持仓时长

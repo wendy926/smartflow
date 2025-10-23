@@ -1411,8 +1411,8 @@ class V3Strategy {
       return 'HOLD';
     }
 
-    // 强信号：总分>=90 且 4H趋势强 且 1H因子强 且 15M有效（极高标准确保质量）
-    const trend4HStrongThreshold = this.getThreshold('trend', 'trend4HStrongThreshold', 8);
+    // 强信号：总分>=30 且 4H趋势强 且 1H因子强 且 15M有效
+    const trend4HStrongThreshold = this.getThreshold('trend', 'trend4HStrongThreshold', 3); // ✅ 3以匹配实际得分
     const entry15MStrongThreshold = this.getThreshold('entry', 'entry15MStrongThreshold', 3);
 
     // ✅ 添加详细日志
@@ -1428,8 +1428,8 @@ class V3Strategy {
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
 
-    // 中等信号：总分50-59 且 趋势>=4 且 1H因子强 且 15M有效（临时降低阈值）
-    const trend4HModerateThreshold = this.getThreshold('trend', 'trend4HModerateThreshold', 6);
+    // 中等信号：总分25-29 且 趋势>=2 且 1H因子强 且 15M有效
+    const trend4HModerateThreshold = this.getThreshold('trend', 'trend4HModerateThreshold', 2); // ✅ 2以匹配实际得分
     const entry15MModerateThreshold = this.getThreshold('entry', 'entry15MModerateThreshold', 2);
 
     if (normalizedScore >= 50 &&

@@ -1,0 +1,276 @@
+/**
+ * 大额挂单监控样式
+ * V2.1.0
+ */
+
+.large-orders-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.large-order-summary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.large-order-summary .card-content {
+  padding: 20px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+}
+
+.summary-item {
+  text-align: center;
+}
+
+.summary-label {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-bottom: 5px;
+}
+
+.summary-value {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* 表格样式 */
+#large-order-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#large-order-table th,
+#large-order-table td {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid #e9ecef;
+}
+
+#large-order-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+/* 分类背景色 */
+tr.defensive-buy {
+  background-color: #d4edda;
+}
+
+tr.defensive-sell {
+  background-color: #f8d7da;
+}
+
+tr.sweep-buy {
+  background-color: #fff3cd;
+  font-weight: bold;
+}
+
+tr.sweep-sell {
+  background-color: #fff3cd;
+  font-weight: bold;
+}
+
+tr.spoof {
+  background-color: #e2e3e5;
+  opacity: 0.7;
+}
+
+tr.manipulation {
+  background-color: #ffeaa7;
+}
+
+/* Badge样式 */
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-buy {
+  background: #28a745;
+  color: white;
+}
+
+.badge-sell {
+  background: #dc3545;
+  color: white;
+}
+
+.classification-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #6c757d;
+  color: white;
+}
+
+.classification-badge.defensive_buy {
+  background: #28a745;
+}
+
+.classification-badge.defensive_sell {
+  background: #dc3545;
+}
+
+.classification-badge.sweep_buy,
+.classification-badge.sweep_sell {
+  background: #ffc107;
+  color: #000;
+}
+
+.classification-badge.spoof {
+  background: #6c757d;
+}
+
+.classification-badge.manipulation {
+  background: #fd7e14;
+}
+
+/* 新增查询功能样式 */
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.query-controls {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.query-card {
+  transition: transform 0.2s ease;
+}
+
+.query-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.query-result-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stats-grid .stat-item {
+  transition: background-color 0.2s ease;
+}
+
+.stats-grid .stat-item:hover {
+  background-color: #e9ecef !important;
+}
+
+.orders-list {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+}
+
+.order-item {
+  transition: background-color 0.2s ease;
+}
+
+.order-item:hover {
+  background-color: #f8f9fa;
+}
+
+.badge-success {
+  background: #28a745;
+  color: white;
+}
+
+.badge-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  #large-order-table {
+    font-size: 12px;
+  }
+
+  #large-order-table th,
+  #large-order-table td {
+    padding: 6px;
+  }
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: white;
+}
+
+.error-message {
+  text-align: center;
+  padding: 20px;
+  color: #dc3545;
+  background: white;
+  border-radius: 6px;
+}
+
+/* 新增挂单闪烁动画 */
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes pulse-border {
+
+  0%,
+  100% {
+    border-color: #ffc107;
+  }
+
+  50% {
+    border-color: #ffed4e;
+  }
+}
+
+.new-order-highlight {
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
+/* 历史面板样式 */
+.historical-panel {
+  transition: transform 0.3s ease;
+}
+
+.historical-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}

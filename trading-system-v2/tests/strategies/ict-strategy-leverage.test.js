@@ -22,7 +22,7 @@ describe('ICT Strategy Leverage Tests', () => {
 
       // 验证杠杆不超过24倍
       expect(result.leverage).toBeLessThanOrEqual(24);
-      
+
       // 止损距离 = 10, 止损距离% = 1%
       // 计算杠杆 = floor(1 / (0.01 + 0.005)) = floor(1 / 0.015) = floor(66.67) = 66
       // 实际杠杆 = min(66, 24) = 24
@@ -103,7 +103,7 @@ describe('ICT Strategy Leverage Tests', () => {
       const equity = 10000;
       const riskPct = 0.01;
       const entryPrice = 1000;
-      
+
       // 测试不同的止损距离
       const testCases = [
         { stopLoss: 999, expectedLeverage: 24 }, // 0.1%

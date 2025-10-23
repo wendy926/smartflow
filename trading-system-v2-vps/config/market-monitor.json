@@ -1,0 +1,17 @@
+{
+  "lastUpdate": "2025-10-09T08:50:00+08:00",
+  "artifactUrl": "https://claude.ai/public/artifacts/8712090a-7b76-476e-bbc8-6920f6b5f4b8",
+  "BTC": {
+    "alertLevel": "中度关注",
+    "alertColor": "warning",
+    "tradingSuggestion": "价格在$123k附近震荡，建议等待明确突破或回调至$120k支撑位再考虑入场",
+    "riskWarning": "资金费率偏低显示多头谨慎，高持仓量增加市场脆弱性，注意$120k支撑"
+  },
+  "ETH": {
+    "alertLevel": "低度关注",
+    "alertColor": "safe",
+    "tradingSuggestion": "相对BTC表现稳健，可关注$3,500-$3,600区间震荡机会",
+    "riskWarning": "跟随BTC走势，独立性较弱，建议观望为主"
+  }
+}
+

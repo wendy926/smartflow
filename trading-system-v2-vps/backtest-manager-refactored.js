@@ -1,0 +1,244 @@
+/**
+ * 回测管理器重构版本
+ * 完全解耦，参数驱动，支持差异化配置
+ */
+
+const { BacktestEngine } = require('../core/backtest-engine');
+const { V3Strategy } = require('../strategies/v3-strategy-refactored');
+const { ICTStrategy } = require('../strategies/ict-strategy-refactored');
+const DatabaseAdapter = require('../core/database-adapter');
+const logger = require('../utils/logger');
+
+class BacktestManagerRefactored {
+  constructor() {
+    this.backtestEngine = new BacktestEngine();
+    this.databaseAdapter = new DatabaseAdapter();
+    this.initializeStrategies();
+  }
+
+  /**
+   * 初始化策略
+   */
+  initializeStrategies() {
+    // 注册V3策略
+    this.backtestEngine.registerStrategy('V3', V3Strategy);
+
+    // 注册ICT策略
+    this.backtestEngine.registerStrategy('ICT', ICTStrategy);
+
+    logger.info('[回测管理器] 策略初始化完成');
+  }
+
+  /**
+   * 启动回测
+   * @param {string} strategyName - 策略名称
+   * @param {string} mode - 模式
+   * @param {Object} options - 选项
+   * @returns {Object} 回测结果
+   */
+  async startBacktest(strategyName, mode, options = {}) {
+    try {
+      const {
+        timeframe = '1h',
+        startDate = '2025-04-25',
+        endDate = '2025-10-22',
+        symbol = 'BTCUSDT'
+      } = options;
+
+      logger.info(`[回测管理器] 启动回测: ${strategyName}-${mode}, 时间框架: ${timeframe}`);
+
+      // 检查数据库连接
+      const isConnected = await this.databaseAdapter.checkConnection();
+      if (!isConnected) {
+        throw new Error('数据库连接失败');
+      }
+
+      // 获取策略参数
+      const parameters = await this.databaseAdapter.getStrategyParameters(strategyName, mode);
+
+      // 设置策略参数
+      this.backtestEngine.setStrategyParameters(strategyName, mode, parameters);
+
+      // 执行回测
+      const result = await this.backtestEngine.runBacktest(
+        strategyName,
+        mode,
+        timeframe,
+        startDate,
+        endDate
+      );
+
+      // 保存回测结果
+      await this.databaseAdapter.saveBacktestResult(result);
+
+      logger.info(`[回测管理器] 回测完成: ${strategyName}-${mode}, 交易数: ${result.totalTrades}`);
+
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      logger.error(`[回测管理器] 回测失败: ${strategyName}-${mode}`, error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 获取回测结果
+   * @param {string} strategyName - 策略名称
+   * @param {string} mode - 模式
+   * @param {string} timeframe - 时间框架
+   * @returns {Array} 回测结果
+   */
+  async getBacktestResults(strategyName, mode, timeframe) {
+    try {
+      const results = await this.databaseAdapter.getBacktestResults(
+        strategyName,
+        mode,
+        timeframe
+      );
+
+      return {
+        success: true,
+        data: results
+      };
+    } catch (error) {
+      logger.error(`[回测管理器] 获取回测结果失败`, error);
+      return {
+        success: false,
+        error: error.message,
+        data: []
+      };
+    }
+  }
+
+  /**
+   * 设置策略参数
+   * @param {string} strategyName - 策略名称
+   * @param {string} mode - 模式
+   * @param {Object} parameters - 参数
+   * @returns {Object} 设置结果
+   */
+  async setStrategyParameters(strategyName, mode, parameters) {
+    try {
+      const success = await this.databaseAdapter.saveStrategyParameters(
+        strategyName,
+        mode,
+        parameters
+      );
+
+      if (success) {
+        // 同时更新回测引擎中的参数
+        this.backtestEngine.setStrategyParameters(strategyName, mode, parameters);
+      }
+
+      return {
+        success,
+        message: success ? '参数设置成功' : '参数设置失败'
+      };
+    } catch (error) {
+      logger.error(`[回测管理器] 设置策略参数失败`, error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 获取策略参数
+   * @param {string} strategyName - 策略名称
+   * @param {string} mode - 模式
+   * @returns {Object} 策略参数
+   */
+  async getStrategyParameters(strategyName, mode) {
+    try {
+      const parameters = await this.databaseAdapter.getStrategyParameters(
+        strategyName,
+        mode
+      );
+
+      return {
+        success: true,
+        data: parameters
+      };
+    } catch (error) {
+      logger.error(`[回测管理器] 获取策略参数失败`, error);
+      return {
+        success: false,
+        error: error.message,
+        data: {}
+      };
+    }
+  }
+
+  /**
+   * 批量回测
+   * @param {Array} configs - 回测配置
+   * @returns {Array} 回测结果
+   */
+  async batchBacktest(configs) {
+    const results = [];
+
+    for (const config of configs) {
+      try {
+        const result = await this.startBacktest(
+          config.strategyName,
+          config.mode,
+          config.options
+        );
+        results.push(result);
+      } catch (error) {
+        logger.error(`[回测管理器] 批量回测失败: ${config.strategyName}-${config.mode}`, error);
+        results.push({
+          success: false,
+          error: error.message,
+          config
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * 获取支持的策略列表
+   * @returns {Array} 策略列表
+   */
+  getSupportedStrategies() {
+    return [
+      { name: 'V3', modes: ['AGGRESSIVE', 'BALANCED', 'CONSERVATIVE'] },
+      { name: 'ICT', modes: ['AGGRESSIVE', 'BALANCED', 'CONSERVATIVE'] }
+    ];
+  }
+
+  /**
+   * 获取支持的时间框架
+   * @returns {Array} 时间框架列表
+   */
+  getSupportedTimeframes() {
+    return ['5m', '15m', '1h', '4h'];
+  }
+
+  /**
+   * 清理缓存
+   */
+  clearCache() {
+    // 清理回测引擎缓存
+    if (this.backtestEngine.dataManager) {
+      this.backtestEngine.dataManager.cache.clear();
+    }
+
+    // 强制垃圾回收
+    if (global.gc) {
+      global.gc();
+    }
+
+    logger.info('[回测管理器] 缓存清理完成');
+  }
+}
+
+module.exports = BacktestManagerRefactored;

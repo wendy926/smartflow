@@ -1,0 +1,691 @@
+/**
+ * AI分析定时任务调度器
+ * 负责定时触发宏观风险分析和交易对趋势分析
+ */
+
+const cron = require('node-cron');
+const logger = require('../../utils/logger');
+const UnifiedAIClient = require('./unified-ai-client');
+const MacroRiskAnalyzer = require('./macro-risk-analyzer');
+const SymbolTrendAnalyzer = require('./symbol-trend-analyzer');
+const AIAlertService = require('./ai-alert-service');
+
+/**
+ * AI分析调度器类
+ */
+class AIAnalysisScheduler {
+  constructor(aiOperations, binanceAPI, telegramService) {
+    this.aiOps = aiOperations;
+    this.binanceAPI = binanceAPI;
+    this.telegram = telegramService;
+
+    // 初始化组件
+    this.aiClient = new UnifiedAIClient();
+    this.macroAnalyzer = null;
+    this.symbolAnalyzer = null;
+    this.alertService = null;
+
+    // 定时任务
+    this.macroTask = null;
+    this.symbolTask = null;
+
+    // 状态
+    this.isInitialized = false;
+    this.isRunning = false;
+
+    // AI信号通知冷却期（每个交易对+信号类型组合，1小时）
+    this.signalAlertCooldowns = new Map();
+    this.signalAlertCooldownMs = 60 * 60 * 1000; // 1小时
+  }
+
+  /**
+   * 初始化调度器
+   * @returns {Promise<boolean>}
+   */
+  async initialize() {
+    try {
+      logger.info('初始化AI分析调度器...');
+
+      // 加载配置
+      const config = await this.aiOps.getConfig();
+
+      // 检查AI是否启用
+      if (config.ai_analysis_enabled !== 'true') {
+        logger.warn('AI分析未启用，调度器不会启动');
+        return false;
+      }
+
+      // 初始化AI客户端
+      const initialized = await this.aiClient.initialize(config);
+      if (!initialized) {
+        logger.error('AI客户端初始化失败');
+        return false;
+      }
+
+      // 初始化分析器
+      this.macroAnalyzer = new MacroRiskAnalyzer(this.aiClient, this.aiOps);
+      this.symbolAnalyzer = new SymbolTrendAnalyzer(this.aiClient, this.aiOps);
+      this.alertService = new AIAlertService(this.aiOps, this.telegram);
+
+      this.isInitialized = true;
+      logger.info('AI分析调度器初始化成功');
+      return true;
+
+    } catch (error) {
+      logger.error('AI分析调度器初始化失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 启动调度器
+   * @returns {Promise<boolean>}
+   */
+  async start() {
+    try {
+      if (!this.isInitialized) {
+        const initialized = await this.initialize();
+        if (!initialized) {
+          return false;
+        }
+      }
+
+      if (this.isRunning) {
+        logger.warn('AI分析调度器已经在运行');
+        return true;
+      }
+
+      const config = await this.aiOps.getConfig();
+
+      // 启动宏观风险分析任务（每2小时）
+      const macroInterval = parseInt(config.macro_update_interval) || 7200;
+      this.startMacroAnalysisTask(macroInterval);
+
+      // 启动交易对分析任务（每5分钟）
+      const symbolInterval = parseInt(config.symbol_update_interval) || 300;
+      this.startSymbolAnalysisTask(symbolInterval);
+
+      this.isRunning = true;
+      logger.info('AI分析调度器已启动');
+
+      // 立即执行一次宏观分析和交易对分析
+      setTimeout(() => {
+        this.runMacroAnalysis();
+      }, 5000);
+      
+      setTimeout(() => {
+        this.runSymbolAnalysis();
+      }, 10000);  // 10秒后执行交易对分析，避免同时执行
+
+      return true;
+
+    } catch (error) {
+      logger.error('启动AI分析调度器失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 启动宏观风险分析任务
+   * @param {number} intervalSeconds - 间隔秒数
+   */
+  startMacroAnalysisTask(intervalSeconds) {
+    // 计算cron表达式（每N秒转换为分钟）
+    const intervalMinutes = Math.max(1, Math.floor(intervalSeconds / 60));
+    
+    // 修复Cron表达式生成逻辑
+    // 分钟字段范围是0-59，小时字段范围是0-23
+    let cronExpression;
+    if (intervalMinutes >= 60) {
+      // 小时级：每N小时的第0分钟执行
+      const hours = Math.floor(intervalMinutes / 60);
+      cronExpression = hours === 1 ? `0 * * * *` : `0 */${hours} * * *`;
+    } else {
+      // 分钟级：每N分钟执行（N必须<=59）
+      const validMinutes = Math.min(59, intervalMinutes);
+      cronExpression = `*/${validMinutes} * * * *`;
+    }
+
+    logger.info(`宏观风险分析任务设置 - 间隔: ${intervalSeconds}秒 (${intervalMinutes}分钟), Cron: ${cronExpression}`);
+
+    this.macroTask = cron.schedule(cronExpression, async () => {
+      await this.runMacroAnalysis();
+    });
+  }
+
+  /**
+   * 启动交易对分析任务
+   * @param {number} intervalSeconds - 间隔秒数
+   */
+  startSymbolAnalysisTask(intervalSeconds) {
+    const intervalMinutes = Math.max(1, Math.floor(intervalSeconds / 60));
+    
+    // 修复Cron表达式生成逻辑
+    // 分钟字段范围是0-59，当intervalMinutes>=60时需要转换为小时表达式
+    let cronExpression;
+    if (intervalMinutes >= 60) {
+      // 小时级：每N小时的第0分钟执行
+      const hours = Math.floor(intervalMinutes / 60);
+      cronExpression = hours === 1 ? `0 * * * *` : `0 */${hours} * * *`;
+    } else {
+      // 分钟级：每N分钟执行（N必须<=59）
+      const validMinutes = Math.min(59, intervalMinutes);
+      cronExpression = `*/${validMinutes} * * * *`;
+    }
+
+    logger.info(`交易对分析任务设置 - 间隔: ${intervalSeconds}秒 (${intervalMinutes}分钟), Cron: ${cronExpression}`);
+
+    this.symbolTask = cron.schedule(cronExpression, async () => {
+      await this.runSymbolAnalysis();
+    });
+  }
+
+  /**
+   * 执行宏观风险分析
+   * @returns {Promise<void>}
+   */
+  async runMacroAnalysis() {
+    try {
+      logger.info('执行宏观风险分析任务...');
+
+      // 分析BTC和ETH
+      const symbols = ['BTCUSDT', 'ETHUSDT'];
+      const results = [];
+
+      for (const symbol of symbols) {
+        // 获取市场数据
+        const marketData = await this.getMarketData(symbol);
+
+        // 执行分析
+        const result = await this.macroAnalyzer.analyzeSymbolRisk(symbol, marketData);
+        results.push(result);
+
+        // 短暂延迟，避免API限流
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      // 检查并触发告警
+      await this.alertService.checkMultipleAlerts(results);
+
+      logger.info(`宏观风险分析任务完成 - 成功: ${results.filter(r => r.success).length}, 失败: ${results.filter(r => !r.success).length}`);
+
+    } catch (error) {
+      logger.error('宏观风险分析任务失败:', error);
+    }
+  }
+
+  /**
+   * 执行交易对分析
+   * @returns {Promise<void>}
+   */
+  async runSymbolAnalysis() {
+    try {
+      // 熔断检查：如果连续失败过多，暂停分析
+      if (this.circuitBreakerPaused) {
+        logger.warn('AI分析熔断中，跳过本次执行');
+        return;
+      }
+
+      // 内存检查：如果内存使用率过高，减少分析数量
+      const memUsage = process.memoryUsage();
+      const memPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
+      
+      let maxSymbols = 13;  // 默认分析所有13个
+      
+      if (memPercent > 85) {
+        maxSymbols = 8;  // 内存紧张时只分析8个
+        logger.warn(`⚠️ 内存使用率${memPercent.toFixed(1)}%，减少分析数量至${maxSymbols}个`);
+      } else if (memPercent > 75) {
+        maxSymbols = 10;  // 内存偏高时分析10个
+        logger.info(`内存使用率${memPercent.toFixed(1)}%，分析${maxSymbols}个交易对`);
+      } else {
+        logger.info(`内存使用率${memPercent.toFixed(1)}%，分析全部${maxSymbols}个交易对`);
+      }
+
+      logger.info('执行交易对分析任务...');
+
+      // 获取活跃交易对（按数据新鲜度排序，最旧的优先）
+      const symbols = await this.getActiveSymbols();
+
+      if (symbols.length === 0) {
+        logger.warn('没有活跃的交易对需要分析');
+        return;
+      }
+
+      // 根据内存情况动态调整分析数量
+      const symbolsToAnalyze = symbols.slice(0, maxSymbols);
+
+      logger.info(`将分析 ${symbolsToAnalyze.length} 个交易对（共${symbols.length}个活跃）: ${symbolsToAnalyze.join(', ')}`);
+
+      // 获取策略数据
+      const strategyDataMap = await this.getStrategyData(symbolsToAnalyze);
+
+      // 批量分析（已优化为顺序执行，每个间隔3秒）
+      let results = [];
+      try {
+        results = await this.symbolAnalyzer.analyzeSymbols(symbolsToAnalyze, strategyDataMap);
+      } catch (analysisError) {
+        logger.error('AI分析过程出错:', analysisError);
+        // 继续处理已完成的结果（如果有）
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      logger.info(`交易对分析任务完成 - 成功: ${successCount}, 失败: ${failCount}`);
+
+      // 错误熔断逻辑
+      if (successCount === 0 && failCount > 0) {
+        // 全部失败
+        this.consecutiveFailures++;
+        logger.warn(`连续失败 ${this.consecutiveFailures}/${this.maxConsecutiveFailures} 次`);
+
+        if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+          this.circuitBreakerPaused = true;
+          logger.error(`⚠️ AI分析熔断触发！连续失败${this.maxConsecutiveFailures}次，暂停分析30分钟`);
+
+          // 30分钟后自动恢复
+          setTimeout(() => {
+            this.circuitBreakerPaused = false;
+            this.consecutiveFailures = 0;
+            logger.info('✅ AI分析熔断恢复，重新启动');
+          }, this.circuitBreakerResetMs);
+        }
+      } else if (successCount > 0) {
+        // 有成功的，重置失败计数
+        if (this.consecutiveFailures > 0) {
+          logger.info(`✅ AI分析恢复正常，重置失败计数（之前${this.consecutiveFailures}次）`);
+          this.consecutiveFailures = 0;
+        }
+      }
+
+      // 检查是否有需要通知的信号（强烈看多或强烈看跌）
+      // 即使任务部分完成，也检查已完成的结果
+      if (results && results.length > 0) {
+        try {
+          await this.checkAndSendSignalAlerts(results);
+        } catch (notifyError) {
+          logger.error('发送AI信号通知失败:', notifyError);
+        }
+      }
+
+    } catch (error) {
+      logger.error('交易对分析任务失败:', error);
+
+      // 异常也算作失败
+      this.consecutiveFailures++;
+    }
+  }
+
+  /**
+   * 检查并发送AI信号通知
+   * @param {Array} analysisResults - 分析结果数组
+   * @returns {Promise<void>}
+   */
+  async checkAndSendSignalAlerts(analysisResults) {
+    if (!this.telegram) {
+      logger.debug('[AI信号通知] Telegram服务未配置，跳过');
+      return;
+    }
+
+    const targetSignals = ['strongBuy', 'strongSell', 'caution'];  // strongSell和caution都触发通知
+    let alertsSent = 0;
+    let alertsSkipped = 0;
+
+    for (const result of analysisResults) {
+      try {
+        if (!result.success || !result.analysisData) {
+          continue;
+        }
+
+        const { symbol, analysisData } = result;
+        const { overallScore } = analysisData;
+
+        if (!overallScore || !overallScore.signalRecommendation) {
+          continue;
+        }
+
+        const signal = overallScore.signalRecommendation;
+
+        // 检查是否是需要通知的信号
+        if (!targetSignals.includes(signal)) {
+          continue;
+        }
+
+        // 检查冷却期
+        const cooldownKey = `${symbol}_${signal}`;
+        const lastAlertTime = this.signalAlertCooldowns.get(cooldownKey);
+        const now = Date.now();
+
+        if (lastAlertTime && (now - lastAlertTime) < this.signalAlertCooldownMs) {
+          const remainingMinutes = Math.ceil((this.signalAlertCooldownMs - (now - lastAlertTime)) / 60000);
+          logger.debug(`[AI信号通知] ${symbol} ${signal} 在冷却期内，剩余${remainingMinutes}分钟`);
+          alertsSkipped++;
+          continue;
+        }
+
+        // 发送Telegram通知
+        logger.info(`[AI信号通知] 触发通知 - ${symbol} ${signal}`);
+        const alertSent = await this.telegram.sendAISignalAlert({
+          symbol: analysisData.symbol || symbol,
+          signalRecommendation: signal,
+          overallScore: overallScore,
+          currentPrice: analysisData.currentPrice,
+          shortTermTrend: analysisData.shortTermTrend,
+          midTermTrend: analysisData.midTermTrend,
+          timestamp: analysisData.timestamp || new Date().toISOString()
+        });
+
+        if (alertSent) {
+          // 更新冷却期
+          this.signalAlertCooldowns.set(cooldownKey, now);
+          alertsSent++;
+          logger.info(`[AI信号通知] ✅ ${symbol} ${signal} 通知已发送`);
+        } else {
+          logger.warn(`[AI信号通知] ⚠️ ${symbol} ${signal} 通知发送失败`);
+        }
+
+      } catch (error) {
+        logger.error(`[AI信号通知] 处理 ${result.symbol} 通知时异常:`, error);
+      }
+    }
+
+    if (alertsSent > 0 || alertsSkipped > 0) {
+      logger.info(`[AI信号通知] 通知统计 - 已发送: ${alertsSent}, 跳过(冷却期): ${alertsSkipped}`);
+    }
+  }
+
+  /**
+   * 获取市场数据（实时从Binance API获取）
+   * @param {string} symbol - 交易对符号
+   * @returns {Promise<Object>}
+   */
+  async getMarketData(symbol) {
+    try {
+      logger.debug(`[AI] 获取 ${symbol} 实时市场数据`);
+
+      // 确保binanceAPI存在
+      if (!this.binanceAPI) {
+        logger.error('[AI] binanceAPI未初始化！');
+        throw new Error('binanceAPI未初始化');
+      }
+
+      // 从Binance API获取实时数据
+      const binanceAPI = this.binanceAPI;
+
+      // 获取24小时价格统计
+      const ticker = await binanceAPI.getTicker24hr(symbol);
+
+      // 获取资金费率
+      const fundingRateData = await binanceAPI.getFundingRate(symbol);
+      const fundingRate = parseFloat(fundingRateData.lastFundingRate || 0);
+
+      const marketData = {
+        currentPrice: parseFloat(ticker.lastPrice || 0),
+        priceChange24h: parseFloat(ticker.priceChangePercent || 0),
+        volume24h: parseFloat(ticker.quoteVolume || 0),
+        fundingRate: parseFloat(fundingRate || 0),
+        high24h: parseFloat(ticker.highPrice || 0),
+        low24h: parseFloat(ticker.lowPrice || 0)
+      };
+
+      logger.info(`[AI] ${symbol} 实时数据 - 价格: $${marketData.currentPrice}, 24H变化: ${marketData.priceChange24h}%`);
+
+      return marketData;
+
+    } catch (error) {
+      logger.error(`获取 ${symbol} 实时市场数据失败:`, error);
+
+      // 降级：从数据库获取
+      try {
+        logger.warn(`[AI] 降级使用数据库数据`);
+        const [rows] = await this.aiOps.pool.query(
+          'SELECT last_price, price_change_24h, volume_24h, funding_rate FROM symbols WHERE symbol = ?',
+          [symbol]
+        );
+
+        if (rows.length > 0) {
+          const data = rows[0];
+          return {
+            currentPrice: parseFloat(data.last_price),
+            priceChange24h: parseFloat(data.price_change_24h),
+            volume24h: parseFloat(data.volume_24h),
+            fundingRate: parseFloat(data.funding_rate)
+          };
+        }
+      } catch (dbError) {
+        logger.error('从数据库获取数据也失败:', dbError);
+      }
+
+      return {};
+    }
+  }
+
+  /**
+   * 获取活跃交易对（按AI分析新鲜度排序）
+   * @returns {Promise<Array<string>>}
+   */
+  async getActiveSymbols() {
+    try {
+      // 获取所有活跃交易对及其最新AI分析时间
+      const [rows] = await this.aiOps.pool.query(`
+        SELECT 
+          s.symbol,
+          s.volume_24h,
+          MAX(ai.created_at) as last_analysis_time
+        FROM symbols s
+        LEFT JOIN ai_market_analysis ai 
+          ON s.symbol = ai.symbol AND ai.analysis_type = 'SYMBOL_TREND'
+        WHERE s.status = ?
+        GROUP BY s.symbol, s.volume_24h
+        ORDER BY 
+          last_analysis_time IS NULL DESC,     -- NULL值优先（MySQL语法）
+          last_analysis_time ASC,              -- 最旧的数据优先
+          s.volume_24h DESC                    -- 相同时间则按成交量排序
+        LIMIT 13
+      `, ['ACTIVE']);
+
+      const symbols = rows.map(row => row.symbol);
+      
+      if (symbols.length > 0) {
+        logger.info(`获取到 ${symbols.length} 个活跃交易对（按数据新鲜度排序）`);
+        
+        // 记录每个交易对的数据年龄
+        rows.forEach(row => {
+          const ageHours = row.last_analysis_time 
+            ? Math.floor((Date.now() - new Date(row.last_analysis_time).getTime()) / (1000 * 60 * 60))
+            : 999;
+          logger.debug(`  ${row.symbol}: ${ageHours === 999 ? '无数据' : ageHours + '小时前'}`);
+        });
+      }
+
+      return symbols;
+
+    } catch (error) {
+      logger.error('获取活跃交易对失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取策略数据（AI分析完全独立，不依赖策略判断）
+   * @param {Array<string>} symbols - 交易对数组
+   * @returns {Promise<Object>}
+   */
+  async getStrategyData(symbols) {
+    try {
+      logger.debug('[AI独立] AI分析使用独立数据源，不依赖策略判断');
+      const dataMap = {};
+
+      for (const symbol of symbols) {
+        // 第一步：总是获取Binance实时价格（AI分析的核心数据）
+        let currentPrice = 0;
+        try {
+          const ticker = await this.binanceAPI.getTicker24hr(symbol);
+          currentPrice = parseFloat(ticker.lastPrice || 0);
+          logger.info(`[AI独立] ${symbol} Binance实时价格: $${currentPrice}`);
+        } catch (priceError) {
+          logger.error(`[AI独立] ${symbol} 获取Binance实时价格失败:`, priceError.message);
+          // 降级：尝试从symbols表获取
+          try {
+            const [symbolRows] = await this.aiOps.pool.query(
+              'SELECT last_price FROM symbols WHERE symbol = ?',
+              [symbol]
+            );
+            if (symbolRows.length > 0) {
+              currentPrice = parseFloat(symbolRows[0].last_price);
+              logger.warn(`[AI独立] ${symbol} 降级使用symbols表价格: $${currentPrice}`);
+            }
+          } catch (dbError) {
+            logger.error(`[AI独立] ${symbol} 从数据库获取价格也失败`);
+          }
+        }
+
+        // 第二步：尝试获取策略数据作为参考（可选，不影响AI分析）
+        let strategyData = {
+          trend4h: 'RANGE',
+          trend1h: 'RANGE',
+          signal15m: 'HOLD',
+          score: {
+            trend4h: 5,
+            factors1h: 5,
+            entry15m: 5
+          },
+          indicators: {}
+        };
+
+        try {
+          const [rows] = await this.aiOps.pool.query(
+            `SELECT sj.*, s.last_price 
+            FROM strategy_judgments sj
+            INNER JOIN symbols s ON sj.symbol_id = s.id
+            WHERE s.symbol = ?
+            ORDER BY sj.created_at DESC
+            LIMIT 1`,
+            [symbol]
+          );
+
+          if (rows.length > 0) {
+            const row = rows[0];
+            strategyData = {
+              trend4h: row.trend_direction || 'RANGE',
+              trend1h: row.trend_direction || 'RANGE',
+              signal15m: row.entry_signal || 'HOLD',
+              score: {
+                trend4h: Math.round(parseFloat(row.confidence_score || 50) / 10),
+                factors1h: Math.round(parseFloat(row.confidence_score || 50) / 15),
+                entry15m: Math.round(parseFloat(row.confidence_score || 50) / 30)
+              },
+              indicators: row.indicators_data ? JSON.parse(row.indicators_data) : {}
+            };
+            logger.debug(`[AI独立] ${symbol} 找到策略参考数据（可选）`);
+          } else {
+            logger.debug(`[AI独立] ${symbol} 无策略数据，使用默认值（不影响AI分析）`);
+          }
+        } catch (strategyError) {
+          logger.warn(`[AI独立] ${symbol} 读取策略数据失败，继续使用默认值:`, strategyError.message);
+        }
+
+        // 组合数据：实时价格 + 策略参考
+        dataMap[symbol] = {
+          currentPrice: currentPrice,  // ← AI分析的核心：总是实时价格
+          ...strategyData
+        };
+      }
+
+      return dataMap;
+
+    } catch (error) {
+      logger.error('[AI独立] AI数据获取失败（不影响策略执行）:', error);
+      // 即使失败，也返回基本结构而不是空对象
+      const fallbackMap = {};
+      for (const symbol of symbols) {
+        fallbackMap[symbol] = {
+          currentPrice: 0,
+          trend4h: 'RANGE',
+          trend1h: 'RANGE',
+          signal15m: 'HOLD',
+          score: { trend4h: 5, factors1h: 5, entry15m: 5 },
+          indicators: {}
+        };
+      }
+      return fallbackMap;
+    }
+  }
+
+  /**
+   * 停止调度器
+   */
+  stop() {
+    try {
+      if (this.macroTask) {
+        this.macroTask.stop();
+        logger.info('宏观风险分析任务已停止');
+      }
+
+      if (this.symbolTask) {
+        this.symbolTask.stop();
+        logger.info('交易对分析任务已停止');
+      }
+
+      this.isRunning = false;
+      logger.info('AI分析调度器已停止');
+
+    } catch (error) {
+      logger.error('停止AI分析调度器失败:', error);
+    }
+  }
+
+  /**
+   * 获取调度器状态
+   * @returns {Object}
+   */
+  getStatus() {
+    return {
+      initialized: this.isInitialized,
+      running: this.isRunning,
+      aiStats: this.aiClient ? this.aiClient.getUsageStats() : null
+    };
+  }
+
+  /**
+   * 手动触发宏观分析
+   * @param {string} symbol - 交易对符号（可选）
+   * @returns {Promise<Object>}
+   */
+  async triggerMacroAnalysis(symbol = null) {
+    try {
+      if (symbol) {
+        const marketData = await this.getMarketData(symbol);
+        const result = await this.macroAnalyzer.analyzeSymbolRisk(symbol, marketData);
+        await this.alertService.checkAndTriggerAlert(result);
+        return result;
+      } else {
+        await this.runMacroAnalysis();
+        return { success: true, message: 'BTC和ETH宏观分析已触发' };
+      }
+    } catch (error) {
+      logger.error('手动触发宏观分析失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 手动触发交易对分析
+   * @param {string} symbol - 交易对符号
+   * @returns {Promise<Object>}
+   */
+  async triggerSymbolAnalysis(symbol) {
+    try {
+      const strategyData = await this.getStrategyData([symbol]);
+      const result = await this.symbolAnalyzer.analyzeSymbol(symbol, strategyData[symbol] || {});
+      return result;
+    } catch (error) {
+      logger.error(`手动触发 ${symbol} 分析失败:`, error);
+      throw error;
+    }
+  }
+}
+
+module.exports = AIAnalysisScheduler;
+

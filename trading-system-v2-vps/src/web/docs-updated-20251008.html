@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartFlow 交易策略系统 - 最新优化文档 (2025-10-18)</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .docs-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .update-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+
+    .fix-item {
+      background: #f8f9fa;
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .optimization-item {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .strategy-detail {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .code-block {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      margin: 10px 0;
+    }
+
+    .warning-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    .success-box {
+      background: #d4edda;
+      border-left: 4px solid #28a745;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+
+    h2 {
+      color: #667eea;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+      margin-top: 40px;
+    }
+
+    h3 {
+      color: #764ba2;
+      margin-top: 30px;
+    }
+
+    .timestamp {
+      color: #6c757d;
+      font-size: 0.9em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+
+    table th,
+    table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+
+    table th {
+      background-color: #667eea;
+      color: white;
+    }
+
+    table tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="docs-content">
+    <div class="update-section">
+      <h1><i class="fas fa-file-alt"></i> SmartFlow 交易策略系统文档</h1>
+      <p class="timestamp">最后更新: 2025-10-18</p>
+      <p>本文档记录了ICT策略和V3策略的最新优化和修复内容，包括持仓时长管理系统</p>
+    </div>
+
+    <!-- 目录 -->
+    <div class="strategy-detail">
+      <h2><i class="fas fa-list"></i> 目录</h2>
+      <ul>
+        <li><a href="#latest-updates">最新更新 (2025-10-18)</a>
+          <ul>
+            <li><a href="#funding-rate-calculation">资金费率和利率成本计算</a></li>
+            <li><a href="#ict-leverage-fix">ICT策略杠杆限制修复</a></li>
+            <li><a href="#ict-duration-fix">ICT策略持仓时长修复</a></li>
+            <li><a href="#v3-duration-fix">V3策略持仓时长修复</a></li>
+            <li><a href="#smart-money-optimization">聪明钱系统优化</a></li>
+          </ul>
+        </li>
+        <li><a href="#ict-strategy">ICT策略详解</a>
+          <ul>
+            <li><a href="#ict-optimization-v2">ICT策略优化 V2.0</a></li>
+          </ul>
+        </li>
+        <li><a href="#v3-strategy">V3策略详解</a></li>
+        <li><a href="#technical-indicators">技术指标说明</a></li>
+        <li><a href="#risk-management">风险管理</a>
+          <ul>
+            <li><a href="#position-duration">持仓时长管理</a></li>
+            <li><a href="#funding-rate-costs">资金费率和利率成本</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 最新更新 -->
+    <h2 id="latest-updates"><i class="fas fa-bolt"></i> 最新更新 (2025-10-18)</h2>
+
+    <h3>🔧 ICT策略关键修复</h3>
+
+    <div class="fix-item">
+      <h4>1. 前后端15分钟入场判断逻辑一致性修复</h4>
+      <p><strong>问题：</strong>前端15M入场判断过于简化，只检查吞没形态，未检查方向匹配和其他必须条件</p>
+      <p><strong>修复：</strong>统一前后端15M入场判断逻辑，实现门槛式确认</p>
+
+      <h5>后端必须条件（门槛）：</h5>
+      <ul>
+        <li>✅ 日线趋势确认（UP或DOWN，非RANGE）</li>
+        <li>✅ 4H订单块存在（有效且未过期）</li>
+        <li>✅ 4H扫荡确认（方向匹配趋势）</li>
+        <li>✅ 吞没形态方向匹配（BULLISH对应UP，BEARISH对应DOWN）</li>
+      </ul>
+
+      <h5>前端判断逻辑：</h5>
+      <div class="code-block">
+        const valid = (trend !== 'RANGE') &&
+        hasOrderBlock &&
+        hasSweepHTF &&
+        engulfing &&
+        engulfingDirectionMatch;
+      </div>
+
+      <p><strong>影响：</strong>前端显示的15M入场有效性现在与后端策略逻辑完全一致</p>
+    </div>
+
+    <div class="fix-item">
+      <h4>2. 硬编码分数问题修复</h4>
+      <p><strong>问题：</strong>在不同执行路径中使用硬编码分数（30分、40分），不反映实际组件检测结果</p>
+      <p><strong>修复：</strong>统一使用基于组件的动态分数计算</p>
+
+      <h5>分数计算公式：</h5>
+      <ul>
+        <li>趋势分 = dailyTrend.confidence × 25</li>
+        <li>订单块分 = 20分（检测到）/ 0分（未检测到）</li>
+        <li>吞没分 = 15分（检测到）/ 0分（未检测到）</li>
+        <li>扫荡分 = 4H扫荡（10分）+ 15M扫荡（5分）</li>
+        <li>成交量分 = 5分（放大）/ 0分（未放大）</li>
+        <li>谐波分 = harmonicPattern.score × 20</li>
+        <li>总分 = 各组件分数之和（最高100分）</li>
+      </ul>
+
+      <p><strong>影响：</strong>总分真实反映策略组件的检测状态，消除了硬编码导致的分数失真</p>
+    </div>
+
+    <div class="fix-item">
+      <h4>3. 置信度计算统一化</h4>
+      <p><strong>问题：</strong>部分执行路径使用字符串置信度（'MEDIUM', 'HIGH'），部分使用数值置信度</p>
+      <p><strong>修复：</strong>所有路径统一使用数值置信度计算</p>
+
+      <h5>置信度计算公式：</h5>
+      <div class="code-block">
+        numericConfidence = harmonicScore × 0.6 + engulfingStrength × 0.4
+      </div>
+
+      <p><strong>前端转换规则：</strong></p>
+      <ul>
+        <li>confidence ≥ 0.6 → '高'</li>
+        <li>0.3 ≤ confidence < 0.6 → '中' </li>
+        <li>confidence < 0.3 → '低' </li>
+      </ul>
+
+      <p><strong>影响：</strong>置信度与总分逻辑一致，前端统一处理数值类型</p>
+    </div>
+
+    <h3>🚀 V3策略关键修复</h3>
+
+    <div class="fix-item">
+      <h4>1. 震荡市交易逻辑修复</h4>
+      <p><strong>问题：</strong>震荡市模式下，即使15M检测到假突破信号，combineSignals也直接返回HOLD</p>
+      <p><strong>修复：</strong>增加震荡市假突破信号检查逻辑</p>
+
+      <h5>修复后的震荡市逻辑：</h5>
+      <div class="code-block">
+        if (trendDirection === 'RANGE') {
+        // 检查15M假突破信号
+        if (execution15M.signal === 'BUY' || execution15M.signal === 'SELL') {
+        if (reason.includes('Range fake breakout')) {
+        return execution15M.signal; // 返回假突破信号
+        }
+        }
+        return 'HOLD'; // 无假突破信号，继续观望
+        }
+      </div>
+
+      <h5>震荡市假突破条件：</h5>
+      <ul>
+        <li>✅ 4H趋势判断为RANGE</li>
+        <li>✅ 1H边界有效（上轨/下轨）</li>
+        <li>✅ 布林带宽度收窄（波动率降低）</li>
+        <li>✅ 价格假突破边界后快速回归</li>
+      </ul>
+
+      <p><strong>影响：</strong>震荡市假突破信号现在能够正确触发交易</p>
+    </div>
+
+    <h3 id="funding-rate-calculation">💰 资金费率和利率成本计算</h3>
+
+    <div class="optimization-item">
+      <h4>1. 盈亏计算优化</h4>
+      <p><strong>实现：</strong>在 ICT 策略和 V3 策略的盈亏逻辑中引入 Binance 的资金费率和利率成本</p>
+      
+      <h5>成本组成：</h5>
+      <table>
+        <tr>
+          <th>成本类型</th>
+          <th>来源</th>
+          <th>说明</th>
+        </tr>
+        <tr>
+          <td>手续费 (Fee)</td>
+          <td>交易所</td>
+          <td>开仓和平仓手续费</td>
+        </tr>
+        <tr>
+          <td>资金费率 (Funding Rate)</td>
+          <td>合约市场</td>
+          <td>多空之间的资金交换费率，通常每8小时结算一次</td>
+        </tr>
+        <tr>
+          <td>利率 (Interest Rate)</td>
+          <td>杠杆/借贷</td>
+          <td>使用杠杆或币本位合约时按年利率计算的借贷成本</td>
+        </tr>
+      </table>
+
+      <h5>计算公式：</h5>
+      <div class="code-block">
+        // 原始盈亏
+        rawPnL = isLong 
+          ? (exitPrice - entryPrice) * (positionSize / entryPrice)
+          : (entryPrice - exitPrice) * (positionSize / entryPrice);
+
+        // 手续费成本 (双向)
+        feeCost = positionSize * feeRate * 2;
+
+        // 资金费率成本 (每8小时结算一次)
+        fundingCost = positionSize * fundingRate * Math.floor(holdHours / 8);
+
+        // 利息成本 (按小时折算年化)
+        interestCost = positionSize * (interestRate / 365 / 24) * holdHours;
+
+        // 实际盈亏
+        netPnL = rawPnL - feeCost - fundingCost - interestCost;
+      </div>
+
+      <h5>数据库扩展：</h5>
+      <ul>
+        <li>✅ 添加 funding_rate, interest_rate, fee_rate 字段</li>
+        <li>✅ 添加 hold_hours 字段（持仓时长）</li>
+        <li>✅ 添加 funding_cost, interest_cost, fee_cost 字段</li>
+        <li>✅ 添加 raw_pnl, net_pnl 字段（原始盈亏和净盈亏）</li>
+      </ul>
+
+      <p><strong>影响：</strong>盈亏计算更准确，真实反映交易成本</p>
+    </div>
+
+    <h3 id="ict-leverage-fix">🔧 ICT策略杠杆限制修复</h3>
+
+    <div class="fix-item">
+      <h4>1. 杠杆计算优化</h4>
+      <p><strong>问题：</strong>预期最大杠杆是24倍，但发现有大于24倍的交易记录</p>
+      <p><strong>修复：</strong>确保杠杆永远不会超过24倍</p>
+
+      <h5>杠杆计算公式：</h5>
+      <div class="code-block">
+        // 止损距离
+        stopDistance = Math.abs(entry - stopLoss);
+        stopDistancePct = stopDistance / entry;
+
+        // 计算最大杠杆
+        calculatedMaxLeverage = Math.floor(1 / (stopDistancePct + 0.005));
+
+        // 确保杠杆不超过24倍
+        leverage = Math.min(calculatedMaxLeverage, 24);
+      </div>
+
+      <h5>验证机制：</h5>
+      <ul>
+        <li>✅ 添加杠杆计算日志</li>
+        <li>✅ 添加杠杆超限警告</li>
+        <li>✅ 添加单元测试（9个测试用例）</li>
+      </ul>
+
+      <p><strong>影响：</strong>杠杆永远不会超过24倍，风险可控</p>
+    </div>
+
+    <h3 id="ict-duration-fix">⏰ ICT策略持仓时长修复</h3>
+
+    <div class="fix-item">
+      <h4>1. 动态持仓时长配置</h4>
+      <p><strong>问题：</strong>ICT 策略使用固定的持仓时长配置（48小时），没有根据交易对类别动态调整</p>
+      <p><strong>修复：</strong>ICT 策略使用 PositionDurationManager 动态获取配置</p>
+
+      <h5>持仓时长配置：</h5>
+      <table>
+        <tr>
+          <th>交易对类别</th>
+          <th>市场类型</th>
+          <th>最大持仓时长</th>
+          <th>时间止损</th>
+        </tr>
+        <tr>
+          <td rowspan="2">主流币</td>
+          <td>趋势市</td>
+          <td>168小时（7天）</td>
+          <td>60分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>12小时</td>
+          <td>30分钟</td>
+        </tr>
+        <tr>
+          <td rowspan="2">高市值强趋势币</td>
+          <td>趋势市</td>
+          <td>72小时（3天）</td>
+          <td>120分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>4小时</td>
+          <td>45分钟</td>
+        </tr>
+        <tr>
+          <td rowspan="2">热点币</td>
+          <td>趋势市</td>
+          <td>24小时</td>
+          <td>180分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>3小时</td>
+          <td>60分钟</td>
+        </tr>
+      </table>
+
+      <h5>实现细节：</h5>
+      <ul>
+        <li>✅ ICT 策略使用 PositionDurationManager 动态获取配置</li>
+        <li>✅ 根据交易对类别自动调整最大持仓时间</li>
+        <li>✅ 添加持仓时长测试（18个测试用例）</li>
+      </ul>
+
+      <p><strong>影响：</strong>持仓时长根据交易对类别动态调整，更符合实际交易需求</p>
+    </div>
+
+    <h3 id="v3-duration-fix">⏰ V3策略持仓时长修复</h3>
+
+    <div class="fix-item">
+      <h4>1. 市场类型识别优化</h4>
+      <p><strong>问题：</strong>V3 策略出现 33 分钟被动停止的交易单，不符合预期最大持仓时间</p>
+      <p><strong>原因：</strong></p>
+      <ul>
+        <li>❌ PositionMonitor 对 V3 策略使用固定的 'RANGE' 市场类型</li>
+        <li>❌ 交易记录中缺少市场类型信息</li>
+        <li>❌ V3 策略未返回市场类型</li>
+      </ul>
+
+      <h5>修复内容：</h5>
+      <ul>
+        <li>✅ V3 策略返回市场类型和持仓时长参数</li>
+        <li>✅ 交易创建流程保存市场类型</li>
+        <li>✅ PositionMonitor 使用正确的市场类型</li>
+        <li>✅ 添加持仓时长测试（23个测试用例）</li>
+      </ul>
+
+      <h5>持仓时长配置：</h5>
+      <table>
+        <tr>
+          <th>交易对类别</th>
+          <th>市场类型</th>
+          <th>最大持仓时长</th>
+          <th>时间止损</th>
+        </tr>
+        <tr>
+          <td rowspan="2">主流币</td>
+          <td>趋势市</td>
+          <td>168小时（7天）</td>
+          <td>60分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>12小时</td>
+          <td>30分钟</td>
+        </tr>
+        <tr>
+          <td rowspan="2">高市值强趋势币</td>
+          <td>趋势市</td>
+          <td>72小时（3天）</td>
+          <td>120分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>4小时</td>
+          <td>45分钟</td>
+        </tr>
+        <tr>
+          <td rowspan="2">热点币</td>
+          <td>趋势市</td>
+          <td>24小时</td>
+          <td>180分钟</td>
+        </tr>
+        <tr>
+          <td>震荡市</td>
+          <td>3小时</td>
+          <td>60分钟</td>
+        </tr>
+      </table>
+
+      <p><strong>影响：</strong>V3 策略持仓时长符合预期，不再出现异常停止</p>
+    </div>
+
+    <h3 id="smart-money-optimization">💡 聪明钱系统优化</h3>
+
+    <div class="optimization-item">
+      <h4>1. 前端显示优化</h4>
+      <p><strong>问题：</strong>前端显示所有交易对一直是无信号，但 Telegram bot 一直有庄家动作告警通知</p>
+      <p><strong>原因：</strong>前端显示实时状态，Telegram 通知基于阶段变化，两者显示内容不同</p>
+      
+      <h5>修复内容：</h5>
+      <ul>
+        <li>✅ 添加筛选下拉框，支持"全部交易对"和"仅显示有信号的"两种显示模式</li>
+        <li>✅ 用户可以根据需要切换显示模式</li>
+      </ul>
+
+      <p><strong>影响：</strong>前端显示更灵活，用户体验更好</p>
+    </div>
+
+    <div class="optimization-item">
+      <h4>2. 置信度锁定机制</h4>
+      <p><strong>问题：</strong>前端显示频繁切换中性-拉升或中性-砸盘等有状态信号</p>
+      
+      <h5>修复内容：</h5>
+      <ul>
+        <li>✅ 置信度阈值提高至 70%</li>
+        <li>✅ 添加置信度锁定机制（置信度 ≥ 70% 时锁定当前阶段）</li>
+        <li>✅ 只在阶段变化时发送 Telegram 通知</li>
+        <li>✅ 低置信度时允许阶段转换</li>
+      </ul>
+
+      <h5>锁定机制：</h5>
+      <table>
+        <tr>
+          <th>置信度</th>
+          <th>锁定状态</th>
+          <th>通知条件</th>
+        </tr>
+        <tr>
+          <td>≥ 70%</td>
+          <td>锁定当前阶段</td>
+          <td>阶段变化 + 置信度 ≥ 70%</td>
+        </tr>
+        <tr>
+          <td>&lt; 70%</td>
+          <td>允许阶段转换</td>
+          <td>不发送通知</td>
+        </tr>
+      </table>
+
+      <p><strong>影响：</strong>减少频繁切换，提高信号质量</p>
+    </div>
+
+    <div class="success-box">
+      <h4>✅ 数据显示问题说明</h4>
+      <p><strong>BNBUSDT MA20/MA50为0的问题：</strong></p>
+      <p>这是临时性问题，可能由于：</p>
+      <ul>
+        <li>网络延迟或API限流</li>
+        <li>数据获取暂时失败</li>
+        <li>策略执行异常</li>
+      </ul>
+      <p>直接调用V3策略API，BNBUSDT的数据完全正常（MA20=1226.00, MA50=1136.05等）</p>
+      <p><strong>建议：</strong>在前端添加错误状态显示，而不是显示0值</p>
+    </div>
+
+    <!-- ICT策略详解 -->
+    <h2 id="ict-strategy"><i class="fas fa-chart-line"></i> ICT策略详解</h2>
+
+    <h3>策略概述</h3>
+    <div class="strategy-detail">
+      <p>ICT（Inner Circle Trader）策略基于<strong>订单块、流动性扫荡和吞没形态</strong>的ICT概念，采用多时间框架分析。</p>
+
+      <h4>核心概念：</h4>
+      <ul>
+        <li><strong>订单块（Order Block）</strong>：机构订单集中区域，表现为价格盘整+成交量集中</li>
+        <li><strong>流动性扫荡（Liquidity Sweep）</strong>：价格快速刺破关键价位后迅速回归</li>
+        <li><strong>吞没形态（Engulfing）</strong>：强势反转信号，后一根K线实体吞没前一根</li>
+        <li><strong>谐波形态（Harmonic Pattern）</strong>：Cypher/Bat/Shark等谐波形态共振</li>
+      </ul>
+    </div>
+
+    <h3>三个时间框架分析</h3>
+
+    <div class="optimization-item">
+      <h4>1. 高时间框架（HTF - 1D）</h4>
+      <p><strong>目标：</strong>确定市场主要趋势方向</p>
+      <p><strong>方法：</strong>比较最近20根日线收盘价</p>
+      <ul>
+        <li>末值 > 首值 + 2% → 上升趋势（UP）</li>
+        <li>末值 < 首值 - 2% → 下降趋势（DOWN）</li>
+        <li>其他 → 震荡趋势（RANGE），不交易</li>
+      </ul>
+      <p><strong>置信度：</strong>confidence = min(|priceChange| / 10, 1)</p>
+    </div>
+
+    <div class="optimization-item">
+      <h4>2. 中时间框架（MTF - 4H）</h4>
+      <p><strong>目标：</strong>识别订单块和流动性扫荡</p>
+
+      <h5>订单块检测条件：</h5>
+      <ul>
+        <li>高度 ≥ 0.15 × ATR(4H)</li>
+        <li>价格稳定性（range/avgPrice ≤ 0.03）</li>
+        <li>成交量集中（最后2根K线成交量 ≥ 60%平均成交量）</li>
+        <li>年龄 ≤ 5天</li>
+      </ul>
+
+      <h5>4H扫荡检测：</h5>
+      <ul>
+        <li>基于订单块高/低点检测</li>
+        <li>方向过滤：UP趋势只接受下方扫荡，DOWN趋势只接受上方扫荡</li>
+        <li>速率要求：sweepSpeed ≥ 0.4 × ATR(4H)</li>
+      </ul>
+    </div>
+
+    <div class="optimization-item">
+      <h4>3. 低时间框架（LTF - 15M）</h4>
+      <p><strong>目标：</strong>精确入场点确认</p>
+
+      <h5>15M入场必须条件（门槛式）：</h5>
+      <table>
+        <tr>
+          <th>条件</th>
+          <th>要求</th>
+          <th>说明</th>
+        </tr>
+        <tr>
+          <td>门槛1</td>
+          <td>日线趋势明确</td>
+          <td>trend = UP 或 DOWN（非RANGE）</td>
+        </tr>
+        <tr>
+          <td>门槛2</td>
+          <td>4H订单块存在</td>
+          <td>hasValidOrderBlock = true</td>
+        </tr>
+        <tr>
+          <td>门槛3</td>
+          <td>4H扫荡有效</td>
+          <td>方向匹配趋势</td>
+        </tr>
+        <tr>
+          <td>门槛4</td>
+          <td>吞没形态匹配</td>
+          <td>BULLISH↔UP, BEARISH↔DOWN</td>
+        </tr>
+      </table>
+
+      <h5>可选加强条件：</h5>
+      <ul>
+        <li>15M扫荡检测（LTF Sweep，阈值 0.02 × ATR）</li>
+        <li>成交量放大（> 1.5倍平均成交量）</li>
+        <li>谐波形态共振（Cypher/Bat/Shark）</li>
+      </ul>
+
+      <h5>吞没形态强度计算：</h5>
+      <div class="code-block">
+        strength = min(currentBodySize / previousBodySize, 2.0)
+        // 允许部分吞没（≥50%）
+      </div>
+    </div>
+
+    <h3>ICT策略评分系统</h3>
+
+    <div class="strategy-detail">
+      <h4>综合评分计算（满分100分）：</h4>
+      <table>
+        <tr>
+          <th>组件</th>
+          <th>权重</th>
+          <th>计算方式</th>
+        </tr>
+        <tr>
+          <td>趋势</td>
+          <td>25%</td>
+          <td>dailyTrend.confidence × 25</td>
+        </tr>
+        <tr>
+          <td>订单块</td>
+          <td>20%</td>
+          <td>检测到=20分，未检测到=0分</td>
+        </tr>
+        <tr>
+          <td>吞没形态</td>
+          <td>15%</td>
+          <td>检测到=15分，未检测到=0分</td>
+        </tr>
+        <tr>
+          <td>4H扫荡</td>
+          <td>10%</td>
+          <td>检测到=10分，未检测到=0分</td>
+        </tr>
+        <tr>
+          <td>15M扫荡</td>
+          <td>5%</td>
+          <td>检测到=5分，未检测到=0分</td>
+        </tr>
+        <tr>
+          <td>成交量</td>
+          <td>5%</td>
+          <td>放大=5分，未放大=0分</td>
+        </tr>
+        <tr>
+          <td>谐波形态</td>
+          <td>20%</td>
+          <td>harmonicPattern.score × 20</td>
+        </tr>
+      </table>
+
+      <p><strong>谐波共振加分：</strong>如果谐波形态得分 > 0.6，额外加10分</p>
+      <p><strong>最终总分：</strong>min(计算总分, 100)</p>
+    </div>
+
+    <h3>ICT策略置信度计算</h3>
+
+    <div class="strategy-detail">
+      <h4>置信度公式：</h4>
+      <div class="code-block">
+        numericConfidence = harmonicScore × 0.6 + engulfingStrength × 0.4
+      </div>
+
+      <h4>置信度等级：</h4>
+      <ul>
+        <li><strong>高（≥0.6）：</strong>谐波形态共振+强吞没形态</li>
+        <li><strong>中（0.3-0.6）：</strong>有吞没或谐波，但强度一般</li>
+        <li><strong>低（<0.3）：< /strong>吞没和谐波形态都较弱</li>
+      </ul>
+
+      <div class="warning-box">
+        <p><strong>注意：</strong>置信度与总分独立计算，反映入场信号的质量，而总分反映整体策略组件的完整性</p>
+      </div>
+    </div>
+
+    <!-- V3策略详解 -->
+    <h2 id="v3-strategy"><i class="fas fa-chart-bar"></i> V3策略详解</h2>
+
+    <h3>策略概述</h3>
+    <div class="strategy-detail">
+      <p>V3策略是<strong>多因子趋势策略</strong>，基于4H趋势判断、1H因子分析和15M入场信号的综合策略。</p>
+
+      <h4>核心特点：</h4>
+      <ul>
+        <li><strong>多时间框架协同</strong>：4H确定趋势，1H分析因子，15M精确入场</li>
+        <li><strong>动态权重调整</strong>：根据各组件强度动态调整权重</li>
+        <li><strong>补偿机制</strong>：避免信号死区，防止单一因子阻碍信号生成</li>
+        <li><strong>震荡市交易</strong>：支持震荡市假突破交易逻辑</li>
+      </ul>
+    </div>
+
+    <h3>三个时间框架分析</h3>
+
+    <div class="optimization-item">
+      <h4>1. 4H趋势判断</h4>
+      <p><strong>目标：</strong>确定市场主要趋势方向和强度</p>
+
+      <h5>技术指标：</h5>
+      <ul>
+        <li>MA20, MA50, MA200（移动平均线）</li>
+        <li>ADX（平均趋向指数，趋势强度）</li>
+        <li>BBW（布林带宽度，波动率）</li>
+        <li>VWAP（成交量加权平均价）</li>
+        <li>MACD Histogram（MACD柱状图，动量）</li>
+      </ul>
+
+      <h5>趋势判断逻辑：</h5>
+      <ul>
+        <li><strong>上升趋势：</strong>MA20 > MA50 > MA200 且 ADX > 25</li>
+        <li><strong>下降趋势：</strong>MA20 < MA50 < MA200 且 ADX> 25</li>
+        <li><strong>震荡趋势：</strong>ADX < 25 或 均线无明显排列</li>
+      </ul>
+
+      <h5>趋势置信度：</h5>
+      <div class="code-block">
+        confidence = (adxScore × 0.4 + bbwScore × 0.3 + maScore × 0.3)
+        // adxScore: ADX强度得分
+        // bbwScore: 布林带宽度得分
+        // maScore: 均线排列得分
+      </div>
+
+      <h5>4H评分（满分10分）：</h5>
+      <ul>
+        <li>趋势强度：ADX > 40 = 4分，ADX > 30 = 3分，ADX > 25 = 2分</li>
+        <li>均线排列：完全排列 = 3分，部分排列 = 2分</li>
+        <li>MACD Histogram：强趋势 = 2分，弱趋势 = 1分</li>
+        <li>布林带：适度波动 = 1分</li>
+      </ul>
+    </div>
+
+    <div class="optimization-item">
+      <h4>2. 1H多因子分析</h4>
+      <p><strong>目标：</strong>确认趋势持续性和市场参与度</p>
+
+      <h5>六大因子：</h5>
+      <table>
+        <tr>
+          <th>因子</th>
+          <th>趋势市判断</th>
+          <th>震荡市判断</th>
+        </tr>
+        <tr>
+          <td>VWAP方向</td>
+          <td>价格在VWAP上方（UP）/下方（DOWN）</td>
+          <td>价格偏离VWAP < 1%</td>
+        </tr>
+        <tr>
+          <td>突破确认</td>
+          <td>价格在EMA20上方（UP）/下方（DOWN）</td>
+          <td>价格偏离EMA20 < 2%</td>
+        </tr>
+        <tr>
+          <td>成交量确认</td>
+          <td>成交量 > 1.2倍平均</td>
+          <td>成交量 > 1.2倍平均</td>
+        </tr>
+        <tr>
+          <td>持仓量变化</td>
+          <td>OI变化 > 2%（UP时>0，DOWN时<0）< /td>
+          <td>|OI变化| > 1%</td>
+        </tr>
+        <tr>
+          <td>资金费率</td>
+          <td>资金费率方向匹配趋势</td>
+          <td>资金费率方向匹配趋势</td>
+        </tr>
+        <tr>
+          <td>Delta不平衡</td>
+          <td>Delta > 10%（UP时>0，DOWN时<0）< /td>
+          <td>|Delta| > 5%</td>
+        </tr>
+      </table>
+
+      <h5>1H评分（满分6分）：</h5>
+      <p>每个因子满足条件得1分，总分0-6分</p>
+
+      <h5>震荡市边界分析：</h5>
+      <ul>
+        <li>布林带上下轨作为震荡边界</li>
+        <li>连续触碰检测（≥2次）</li>
+        <li>多因子评分（成交量、Delta、OI、无新高/低、VWAP接近）</li>
+        <li>边界有效得分 ≥ 3分 → 边界有效</li>
+      </ul>
+    </div>
+
+    <div class="optimization-item">
+      <h4>3. 15M入场执行</h4>
+      <p><strong>目标：</strong>精确入场时机确认</p>
+
+      <h5>趋势市入场条件：</h5>
+      <ul>
+        <li>EMA20与EMA50排列正确</li>
+        <li>ADX > 20（有趋势）</li>
+        <li>BBW适度（0.01-0.05，不过度收窄或扩张）</li>
+        <li>价格结构确认（HH/HL或LL/LH）</li>
+      </ul>
+
+      <h5>震荡市入场条件（假突破）：</h5>
+      <ul>
+        <li>1H边界有效（上轨/下轨）</li>
+        <li>布林带宽度收窄（BBW下降）</li>
+        <li>假突破模式：
+          <ul>
+            <li>空头假突破：前一根收盘跌破下轨，当前收盘回归轨道内 → BUY</li>
+            <li>多头假突破：前一根收盘突破上轨，当前收盘回归轨道内 → SELL</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h5>15M评分（满分5分）：</h5>
+      <ul>
+        <li>EMA排列正确 = 2分</li>
+        <li>ADX > 20 = 1分</li>
+        <li>BBW适度 = 1分</li>
+        <li>结构确认 = 0.5-2分（根据HH/HL或LL/LH强度）</li>
+      </ul>
+    </div>
+
+    <h3>V3策略信号融合逻辑</h3>
+
+    <div class="strategy-detail">
+      <h4>动态权重计算：</h4>
+      <div class="code-block">
+        // 基础权重
+        baseWeights = {
+        trend: 0.50, // 4H趋势
+        factor: 0.30, // 1H因子
+        entry: 0.20 // 15M入场
+        }
+
+        // 动态调整
+        if (trendScore >= 8) trend权重 += 0.1
+        if (factorScore >= 5) factor权重 += 0.05
+        if (entryScore >= 4) entry权重 += 0.05
+      </div>
+
+      <h4>总分计算：</h4>
+      <div class="code-block">
+        totalScore = (trendScore/10 × trend权重 +
+        factorScore/6 × factor权重 +
+        entryScore/5 × entry权重) × 100
+      </div>
+
+      <h4>补偿机制：</h4>
+      <p>避免单一因子阻碍信号生成，当总分较高但某个因子略低时，降低该因子门槛</p>
+      <div class="code-block">
+        compensation = (normalizedScore/100) × trendStrength × 0.2
+        adjustedThreshold = baseThreshold - compensation
+      </div>
+
+      <h4>信号判断（趋势市）：</h4>
+      <table>
+        <tr>
+          <th>信号等级</th>
+          <th>总分</th>
+          <th>4H趋势</th>
+          <th>1H因子</th>
+          <th>15M入场</th>
+        </tr>
+        <tr>
+          <td>强信号</td>
+          <td>≥70</td>
+          <td>≥6</td>
+          <td>≥4（调整后）</td>
+          <td>≥1</td>
+        </tr>
+        <tr>
+          <td>中等信号</td>
+          <td>45-69</td>
+          <td>≥5</td>
+          <td>≥3（调整后）</td>
+          <td>≥1</td>
+        </tr>
+        <tr>
+          <td>弱信号</td>
+          <td>35-44</td>
+          <td>≥4</td>
+          <td>≥2（调整后）</td>
+          <td>≥1</td>
+        </tr>
+        <tr>
+          <td>HOLD</td>
+          <td>
+            <35< /td>
+          <td colspan="3">条件不满足</td>
+        </tr>
+      </table>
+
+      <h4>震荡市信号判断：</h4>
+      <div class="code-block">
+        if (trend === 'RANGE') {
+        // 检查15M假突破信号
+        if (execution15M.signal === 'BUY' || 'SELL') {
+        if (reason包含'Range fake breakout') {
+        return execution15M.signal
+        }
+        }
+        return 'HOLD'
+        }
+      </div>
+    </div>
+
+    <!-- 技术指标说明 -->
+    <h2 id="technical-indicators"><i class="fas fa-calculator"></i> 技术指标说明</h2>
+
+    <h3>趋势指标</h3>
+    <div class="strategy-detail">
+      <h4>EMA（指数移动平均线）</h4>
+      <ul>
+        <li>EMA20：短期趋势</li>
+        <li>EMA50：中期趋势</li>
+        <li>用途：判断趋势方向和支撑阻力</li>
+      </ul>
+
+      <h4>MA（简单移动平均线）</h4>
+      <ul>
+        <li>MA20, MA50, MA200</li>
+        <li>用途：趋势方向和长期支撑阻力</li>
+      </ul>
+
+      <h4>ADX（平均趋向指数）</h4>
+      <ul>
+        <li>ADX > 40：强趋势</li>
+        <li>ADX > 25：中等趋势</li>
+        <li>ADX < 25：无趋势/震荡</li>
+      </ul>
+
+      <h4>MACD Histogram（柱状图）</h4>
+      <ul>
+        <li>正值增加：上涨动量增强</li>
+        <li>负值减小：下跌动量减弱</li>
+        <li>用途：趋势动量确认</li>
+      </ul>
+    </div>
+
+    <h3>波动率指标</h3>
+    <div class="strategy-detail">
+      <h4>ATR（平均真实波幅）</h4>
+      <ul>
+        <li>用途：衡量市场波动性</li>
+        <li>应用：动态止损计算、订单块高度过滤</li>
+      </ul>
+
+      <h4>BBW（布林带宽度）</h4>
+      <ul>
+        <li>BBW收窄：波动率降低，可能突破</li>
+        <li>BBW扩张：波动率增加，趋势强劲</li>
+        <li>用途：震荡市识别、入场时机选择</li>
+      </ul>
+    </div>
+
+    <h3>成交量指标</h3>
+    <div class="strategy-detail">
+      <h4>VWAP（成交量加权平均价）</h4>
+      <ul>
+        <li>价格在VWAP上方：买方占优</li>
+        <li>价格在VWAP下方：卖方占优</li>
+        <li>用途：判断市场力量对比</li>
+      </ul>
+
+      <h4>成交量分析</h4>
+      <ul>
+        <li>成交量放大：趋势确认</li>
+        <li>成交量萎缩：趋势可能反转</li>
+      </ul>
+
+      <h4>Delta（买卖力量不平衡）</h4>
+      <ul>
+        <li>Delta > 0：买方力量强</li>
+        <li>Delta < 0：卖方力量强</li>
+        <li>用途：短期市场情绪判断</li>
+      </ul>
+    </div>
+
+    <h3>市场微观结构</h3>
+    <div class="strategy-detail">
+      <h4>持仓量（Open Interest）</h4>
+      <ul>
+        <li>OI上升+价格上涨：多头开仓，趋势强劲</li>
+        <li>OI下降+价格上涨：空头平仓，趋势可能减弱</li>
+      </ul>
+
+      <h4>资金费率（Funding Rate）</h4>
+      <ul>
+        <li>正资金费率：多头占优，需支付费用给空头</li>
+        <li>负资金费率：空头占优，需支付费用给多头</li>
+        <li>用途：市场情绪和持仓偏好</li>
+      </ul>
+    </div>
+
+    <!-- 风险管理 -->
+    <h2 id="risk-management"><i class="fas fa-shield-alt"></i> 风险管理</h2>
+
+    <h3>止损策略</h3>
+    <div class="strategy-detail">
+      <h4>ICT策略止损：</h4>
+      <ul>
+        <li><strong>上升趋势：</strong>订单块下沿 - 1.5×ATR(4H) 或 最近3根4H最低点</li>
+        <li><strong>下降趋势：</strong>订单块上沿 + 1.5×ATR(4H) 或 最近3根4H最高点</li>
+        <li><strong>自适应止损：</strong>根据置信度调整止损倍数（1.5-2.5×ATR）</li>
+      </ul>
+
+      <h4>V3策略止损：</h4>
+      <ul>
+        <li><strong>趋势市：</strong>基于15M ATR，止损距离 = 2×ATR</li>
+        <li><strong>震荡市：</strong>基于边界突破点，止损距离 = (price - boundary) × 1.2</li>
+        <li><strong>动态调整：</strong>根据波动率和置信度动态调整</li>
+      </ul>
+    </div>
+
+    <h3>止盈策略</h3>
+    <div class="strategy-detail">
+      <h4>固定盈亏比：</h4>
+      <ul>
+        <li>ICT策略：RR = 3:1</li>
+        <li>V3策略：RR = 2:1（趋势市），RR = 1.5:1（震荡市）</li>
+      </ul>
+
+      <h4>动态止盈：</h4>
+      <ul>
+        <li>波动率收缩时（BBW下降 > 20% 或 ATR下降 > 15%）提前止盈</li>
+        <li>移动止损：盈利达到1R后，止损移至保本点</li>
+      </ul>
+    </div>
+
+    <h3>仓位管理</h3>
+    <div class="strategy-detail">
+      <h4>杠杆计算：</h4>
+      <div class="code-block">
+        // 最大杠杆计算
+        maxLeverage = maxLossAmount / (stopDistance × entryPrice)
+
+        // 实际杠杆限制
+        leverage = min(maxLeverage, 24) // 最大24倍
+
+        // 保证金计算
+        margin = entryPrice / leverage
+      </div>
+
+      <h4>分级仓位（V3策略）：</h4>
+      <table>
+        <tr>
+          <th>信号强度</th>
+          <th>置信度</th>
+          <th>仓位比例</th>
+        </tr>
+        <tr>
+          <td>强信号</td>
+          <td>≥0.7</td>
+          <td>100%</td>
+        </tr>
+        <tr>
+          <td>中等信号</td>
+          <td>0.5-0.7</td>
+          <td>70%</td>
+        </tr>
+        <tr>
+          <td>弱信号</td>
+          <td>
+            <0.5< /td>
+          <td>50%</td>
+        </tr>
+      </table>
+
+      <h4>风险控制：</h4>
+      <ul>
+        <li>单笔最大损失：20/50/100/200 USDT（用户可选）</li>
+        <li>同一交易对同时只能有一个活跃交易</li>
+        <li>每日最大交易次数限制</li>
+        <li>连续亏损后自动降低仓位</li>
+      </ul>
+    </div>
+
+    <h3>交易去重</h3>
+    <div class="strategy-detail">
+      <h4>缓存机制：</h4>
+      <ul>
+        <li>交易参数缓存5分钟，避免重复下单</li>
+        <li>信号生成后检查是否已有活跃交易</li>
+        <li>同一交易对同一方向5分钟内只触发一次</li>
+      </ul>
+    </div>
+
+    <h3 id="position-duration">持仓时长管理 ⏰</h3>
+    <div class="strategy-detail">
+      <h4>核心机制：</h4>
+      <p>根据交易对类别和市场类型，动态设置最大持仓时长，避免长期持仓风险。</p>
+
+      <h4>ICT策略持仓时长配置：</h4>
+      <p>ICT策略主要针对<strong>趋势市</strong>，结合持仓时长管理器和ICT结构止损。</p>
+
+      <table>
+        <tr>
+          <th>交易对类别</th>
+          <th>趋势市最大持仓</th>
+          <th>时间止损</th>
+          <th>典型代币</th>
+        </tr>
+        <tr>
+          <td>主流币</td>
+          <td>7天（168小时）</td>
+          <td>1小时</td>
+          <td>BTC, ETH</td>
+        </tr>
+        <tr>
+          <td>高市值强趋势币</td>
+          <td>3天（72小时）</td>
+          <td>2小时</td>
+          <td>BNB, SOL, XRP, ADA</td>
+        </tr>
+        <tr>
+          <td>热点币</td>
+          <td>24小时</td>
+          <td>3小时</td>
+          <td>实时变化</td>
+        </tr>
+        <tr>
+          <td>小币</td>
+          <td>12小时</td>
+          <td>30分钟</td>
+          <td>市值 &lt; $50M</td>
+        </tr>
+      </table>
+
+      <h4>ICT策略止损逻辑：</h4>
+      <div class="code-block">
+        // ICT策略使用持仓时长管理器计算止损止盈
+        const stopLossConfig = PositionDurationManager.calculateDurationBasedStopLoss(
+        symbol, signal, entry, atr4H, 'TREND', confidence
+        );
+
+        // 结合ICT结构止损
+        const structuralStopLoss = calculateStructuralStopLoss(
+        trend, orderBlock, klines4H, signals.sweepHTF
+        );
+
+        // 选择更保守的止损（距离入场价格更近的）
+        const finalStopLoss = Math.abs(entry - stopLossConfig.stopLoss)
+        &lt; Math.abs(entry - structuralStopLoss)
+        ? stopLossConfig.stopLoss
+        : structuralStopLoss;
+      </div>
+
+      <h4>置信度调整：</h4>
+      <ul>
+        <li><strong>高置信度（≥60分）：</strong>1.0x 止损止盈倍数</li>
+        <li><strong>中等置信度（40-60分）：</strong>1.2x 止损止盈倍数</li>
+        <li><strong>低置信度（&lt;40分）：</strong>1.5x 止损止盈倍数</li>
+      </ul>
+
+      <h4>自动监控与平仓：</h4>
+      <ul>
+        <li><strong>自动检查：</strong>每5分钟扫描所有OPEN状态的交易</li>
+        <li><strong>时长超限：</strong>超过最大持仓时长限制时强制平仓</li>
+        <li><strong>时间止损：</strong>持仓超时且未盈利时自动平仓</li>
+        <li><strong>提前警告：</strong>接近时长限制时提前1小时发出警告</li>
+        <li><strong>详细日志：</strong>记录所有监控、警告、平仓操作的详细信息</li>
+      </ul>
+
+      <h4>API接口：</h4>
+      <ul>
+        <li><code>GET /api/v1/position-monitor/status</code> - 获取监控状态</li>
+        <li><code>POST /api/v1/position-monitor/check</code> - 手动触发持仓检查</li>
+        <li><code>GET /api/v1/position-monitor/config</code> - 获取所有交易对的持仓时长配置</li>
+        <li><code>GET /api/v1/position-monitor/config/:symbol</code> - 获取特定交易对的持仓时长配置</li>
+      </ul>
+    </div>
+
+    <!-- ICT 策略优化 V2.0 -->
+    <div class="update-section" style="margin-top: 50px;">
+      <h2><i class="fas fa-rocket"></i> ICT 策略优化 V2.0 🚀</h2>
+      <p class="timestamp">更新时间：2025-10-18</p>
+
+      <h3>优化目标</h3>
+      <ul>
+        <li>✅ 解决长时间持仓问题（从平均72小时降至48小时以内）</li>
+        <li>✅ 解决胜率高但亏损多问题（从平均5%降至2%以内）</li>
+        <li>✅ 提升盈亏比（从1:1提升至≥2:1，目标3:1）</li>
+      </ul>
+
+      <h3>核心优化功能</h3>
+      <div class="strategy-detail">
+        <h4>1. 分层止盈（TP1/TP2）</h4>
+        <ul>
+          <li><strong>TP1（第一止盈位）：</strong>2R（风险回报比 2:1），平仓 50%</li>
+          <li><strong>TP2（第二止盈位）：</strong>3R（风险回报比 3:1），平仓 50%</li>
+          <li><strong>部分平仓：</strong>达到TP1时平仓50%，剩余50%继续持有至TP2</li>
+          <li><strong>记录追踪：</strong>所有部分平仓操作记录在 ict_partial_closes 表</li>
+        </ul>
+
+        <h4>2. 保本止损</h4>
+        <ul>
+          <li><strong>触发条件：</strong>达到TP1后自动激活</li>
+          <li><strong>保本价格：</strong>entry + 0.25 × stopDistance</li>
+          <li><strong>作用：</strong>防止回撤把已实现利润返还</li>
+          <li><strong>记录：</strong>保本触发状态记录在 breakeven_triggered 字段</li>
+        </ul>
+
+        <h4>3. 移动止损（追踪止损）</h4>
+        <ul>
+          <li><strong>激活时机：</strong>达到TP1后启动</li>
+          <li><strong>追踪方式：</strong>每波动 0.5×ATR 提升止损</li>
+          <li><strong>锁定利润：</strong>让利润奔跑，同时保护已实现利润</li>
+          <li><strong>状态跟踪：</strong>trailing_stop_active 和 trailing_stop_price 字段</li>
+        </ul>
+
+        <h4>4. 时间止损</h4>
+        <ul>
+          <li><strong>最大持仓时长：</strong>默认 48 小时（可配置）</li>
+          <li><strong>超时处理：</strong>超过最大持仓时长且未触及TP，按市价平仓50%</li>
+          <li><strong>止损调整：</strong>剩余仓位移至更严格的止损（breakeven - ATR）</li>
+          <li><strong>释放资金：</strong>避免长期套单，提高资金周转率</li>
+        </ul>
+
+        <h4>5. 风险控制</h4>
+        <ul>
+          <li><strong>风险现金：</strong>每单最大风险 ≤ 1% 总资金（可配置）</li>
+          <li><strong>ATR 驱动：</strong>止损距离 = max(订单块下边界外 + ATR × k, 最小点距)</li>
+          <li><strong>仓位计算：</strong>qty = riskCash / stopDistance（而非固定百分比）</li>
+          <li><strong>动态调整：</strong>高波动时自动减仓，低波动时可以适度放大</li>
+        </ul>
+
+        <h4>6. 仓位管理</h4>
+        <ul>
+          <li><strong>剩余数量：</strong>remaining_quantity 实时跟踪</li>
+          <li><strong>已实现盈亏：</strong>realized_pnl 记录部分平仓的盈亏</li>
+          <li><strong>未实现盈亏：</strong>unrealized_pnl 记录剩余仓位的盈亏</li>
+          <li><strong>风险回报比：</strong>risk_reward_ratio 实时计算当前 R:R</li>
+        </ul>
+
+        <h4>7. ICT 仓位监控服务</h4>
+        <ul>
+          <li><strong>自动检查：</strong>每 5 分钟检查所有活跃 ICT 交易</li>
+          <li><strong>智能管理：</strong>自动执行部分平仓、更新止损、关闭交易</li>
+          <li><strong>状态跟踪：</strong>实时更新 ict_position_management 表</li>
+          <li><strong>详细日志：</strong>记录所有操作的详细原因</li>
+        </ul>
+
+        <h4>8. API 接口</h4>
+        <ul>
+          <li><code>GET /api/v1/ict-position/status</code> - 获取监控状态</li>
+          <li><code>POST /api/v1/ict-position/check</code> - 手动触发检查</li>
+          <li><code>GET /api/v1/ict-position/active</code> - 获取活跃仓位</li>
+          <li><code>GET /api/v1/ict-position/partial-closes/:tradeId</code> - 获取部分平仓记录</li>
+          <li><code>GET /api/v1/ict-position/stats/:symbol?</code> - 获取策略统计</li>
+          <li><code>GET /api/v1/ict-position/details/:tradeId</code> - 获取仓位详情</li>
+        </ul>
+      </div>
+
+      <h3>数据库扩展</h3>
+      <div class="strategy-detail">
+        <h4>simulation_trades 表新增字段（23个）</h4>
+        <table>
+          <tr>
+            <th>字段类别</th>
+            <th>字段名</th>
+            <th>说明</th>
+          </tr>
+          <tr>
+            <td rowspan="6">分层止盈</td>
+            <td>take_profit_1</td>
+            <td>第一止盈位（TP1）</td>
+          </tr>
+          <tr>
+            <td>take_profit_2</td>
+            <td>第二止盈位（TP2）</td>
+          </tr>
+          <tr>
+            <td>tp1_quantity</td>
+            <td>TP1平仓数量</td>
+          </tr>
+          <tr>
+            <td>tp2_quantity</td>
+            <td>TP2平仓数量</td>
+          </tr>
+          <tr>
+            <td>tp1_filled</td>
+            <td>TP1是否已平仓</td>
+          </tr>
+          <tr>
+            <td>tp2_filled</td>
+            <td>TP2是否已平仓</td>
+          </tr>
+          <tr>
+            <td rowspan="2">保本止损</td>
+            <td>breakeven_price</td>
+            <td>保本价格</td>
+          </tr>
+          <tr>
+            <td>breakeven_triggered</td>
+            <td>保本是否已触发</td>
+          </tr>
+          <tr>
+            <td rowspan="2">移动止损</td>
+            <td>trailing_stop_price</td>
+            <td>追踪止损价格</td>
+          </tr>
+          <tr>
+            <td>trailing_stop_active</td>
+            <td>追踪止损是否激活</td>
+          </tr>
+          <tr>
+            <td rowspan="3">时间止损</td>
+            <td>max_holding_hours</td>
+            <td>最大持仓时长（小时）</td>
+          </tr>
+          <tr>
+            <td>time_stop_triggered</td>
+            <td>时间止损是否触发</td>
+          </tr>
+          <tr>
+            <td>time_stop_exit_pct</td>
+            <td>时间止损平仓比例</td>
+          </tr>
+          <tr>
+            <td rowspan="4">风险控制</td>
+            <td>risk_cash</td>
+            <td>风险金额（USDT）</td>
+          </tr>
+          <tr>
+            <td>stop_distance</td>
+            <td>止损距离</td>
+          </tr>
+          <tr>
+            <td>risk_reward_ratio</td>
+            <td>风险回报比</td>
+          </tr>
+          <tr>
+            <td>atr_multiplier</td>
+            <td>ATR倍数</td>
+          </tr>
+          <tr>
+            <td rowspan="4">仓位管理</td>
+            <td>position_management_mode</td>
+            <td>仓位管理模式（SIMPLE/LAYERED/TRAILING）</td>
+          </tr>
+          <tr>
+            <td>remaining_quantity</td>
+            <td>剩余数量</td>
+          </tr>
+          <tr>
+            <td>realized_pnl</td>
+            <td>已实现盈亏</td>
+          </tr>
+          <tr>
+            <td>unrealized_pnl</td>
+            <td>未实现盈亏</td>
+          </tr>
+          <tr>
+            <td rowspan="2">入场出场</td>
+            <td>confidence_score</td>
+            <td>入场置信度(0-1)</td>
+          </tr>
+          <tr>
+            <td>multi_timeframe_aligned</td>
+            <td>多时间框架是否对齐</td>
+          </tr>
+        </table>
+
+        <h4>新建辅助表（3个）</h4>
+        <ul>
+          <li><strong>ict_position_management：</strong>实时状态跟踪表</li>
+          <li><strong>ict_partial_closes：</strong>部分平仓记录表</li>
+          <li><strong>ict_strategy_stats：</strong>策略统计表</li>
+        </ul>
+      </div>
+
+      <h3>技术实现</h3>
+      <div class="code-block">
+        // ICT 仓位管理器
+        const ICTPositionManager = require('./services/ict-position-manager');
+
+        // 1. 计算头寸
+        const sizing = ICTPositionManager.calculatePositionSize({
+        accountBalance: equity,
+        riskPercent: 0.01, // 1%
+        entryPrice: entry,
+        stopPrice: stopLoss
+        });
+
+        // 2. 构建交易计划
+        const plan = ICTPositionManager.buildTradePlan({
+        direction: trend === 'UP' ? 'long' : 'short',
+        entryPrice: entry,
+        stopPrice: stopLoss,
+        qty: sizing.qty,
+        profitMultipliers: [2, 3] // TP1=2R, TP2=3R
+        });
+
+        // 3. 管理已开仓交易
+        const actions = ICTPositionManager.manageTrade({
+        state: {
+        plan,
+        remainingQty: plan.qty,
+        filledPartialIndices: new Set()
+        },
+        price: currentPrice,
+        timeElapsedHours: hoursSinceEntry,
+        config: {
+        maxHoldingHours: 48,
+        timeExitPct: 0.5
+        }
+        });
+      </div>
+
+      <h3>优化效果</h3>
+      <div class="success-box">
+        <h4>短期（1个月）</h4>
+        <ul>
+          <li>✅ 持仓时间：从平均 72 小时降至 48 小时以内</li>
+          <li>✅ 单笔亏损：从平均 5% 降至 2% 以内</li>
+          <li>✅ 盈亏比：从 1:1 提升至 2:1 以上</li>
+        </ul>
+
+        <h4>中期（3个月）</h4>
+        <ul>
+          <li>✅ 资金周转率：从每月 10 笔提升至 15 笔以上</li>
+          <li>✅ 平均盈亏比：达到 2.5:1</li>
+          <li>✅ 最大回撤：降低 30%</li>
+        </ul>
+
+        <h4>长期（6个月）</h4>
+        <ul>
+          <li>✅ 平均盈亏比：达到 3:1</li>
+          <li>✅ 策略稳定性：提升 50%</li>
+          <li>✅ 资金利用率：提升 40%</li>
+        </ul>
+      </div>
+
+      <h3>使用建议</h3>
+      <div class="warning-box">
+        <h4>⚠️ 重要提示</h4>
+        <ul>
+          <li>✅ 建议单笔风险不超过总资金的 1-2%</li>
+          <li>✅ 如总资金 5000U，使用 100U 最大损失（2%）</li>
+          <li>✅ 如总资金 2000U，使用 20 或 50U 最大损失（1-2.5%）</li>
+          <li>⚠️ 避免使用过高的风险比例（>3%）</li>
+        </ul>
+
+        <h4>💡 最佳实践</h4>
+        <ul>
+          <li>✅ 优先使用 V3 策略（胜率 39.22%）</li>
+          <li>✅ ICT 策略作为辅助信号（结合 V3 使用）</li>
+          <li>✅ 小资金建议选择 20 或 50 USDT 最大损失</li>
+          <li>✅ 定期检查 ICT 仓位监控状态</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 总结 -->
+    <div class="update-section" style="margin-top: 50px;">
+      <h2><i class="fas fa-check-circle"></i> 修复总结</h2>
+
+      <h3>ICT策略修复 ✅</h3>
+      <ul>
+        <li>✅ 前后端15分钟入场判断逻辑完全一致</li>
+        <li>✅ 消除硬编码分数，真实反映组件检测结果</li>
+        <li>✅ 统一置信度计算，所有路径使用数值置信度</li>
+        <li>✅ 总分与置信度逻辑一致</li>
+        <li>✅ 集成持仓时长管理器，根据交易对类别动态设置最大持仓时长</li>
+        <li>✅ 结合ICT结构止损和时长止损，选择更保守的方案</li>
+        <li>✅ 自动监控持仓时长，超过限制时强制平仓</li>
+      </ul>
+
+      <h3>V3策略修复 ✅</h3>
+      <ul>
+        <li>✅ 震荡市假突破信号能够正确触发交易</li>
+        <li>✅ 集成持仓时长管理器，根据交易对类别和市场类型动态设置最大持仓时长</li>
+        <li>✅ 自动监控持仓时长，超过限制时强制平仓</li>
+        <li>✅ combineSignals方法检查震荡市信号</li>
+        <li>✅ 15M假突破逻辑完整实现</li>
+      </ul>
+
+      <h3>系统优化 ✅</h3>
+      <ul>
+        <li>✅ 评分系统更加透明和一致</li>
+        <li>✅ 信号判断逻辑更加合理</li>
+        <li>✅ 文档更新完整详细</li>
+      </ul>
+    </div>
+
+    <!-- 页脚 -->
+    <div style="text-align: center; padding: 30px 0; color: #6c757d; border-top: 2px solid #dee2e6; margin-top: 50px;">
+      <p>SmartFlow 交易策略系统 v2.0</p>
+      <p>最后更新: 2025-10-08 | <a href="https://smart.aimaventop.com" target="_blank">系统仪表板</a></p>
+    </div>
+  </div>
+</body>
+
+</html>
