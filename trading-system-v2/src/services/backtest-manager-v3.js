@@ -588,9 +588,9 @@ class BacktestManagerV3 {
       console.log(`[回测管理器V3] 开始获取${strategyName}-${mode}参数`);
       logger.info(`[回测管理器V3] 开始获取${strategyName}-${mode}参数`);
 
-      // 优先使用正在运行的策略参数 (is_active = 1)
+      // ✅ 优先使用正在运行的策略参数 (is_active = 1)，查询category字段
       let query = `
-        SELECT param_name, param_value 
+        SELECT param_name, param_value, category, param_group, param_type
         FROM strategy_params 
         WHERE strategy_name = ? AND strategy_mode = ? AND is_active = 1
       `;
@@ -600,7 +600,7 @@ class BacktestManagerV3 {
       // 如果没有正在运行的参数，则使用回测参数 (is_active = 0)
       if (rows.length === 0) {
         query = `
-          SELECT param_name, param_value 
+          SELECT param_name, param_value, category, param_group, param_type
           FROM strategy_params 
           WHERE strategy_name = ? AND strategy_mode = ? AND is_active = 0
         `;
@@ -612,15 +612,40 @@ class BacktestManagerV3 {
         logger.info(`[回测管理器V3] 使用正在运行的参数: ${strategyName}-${mode}`);
       }
 
+      // ✅ 组织成嵌套结构（与StrategyParameterLoader保持一致）
       const params = {};
       rows.forEach(row => {
+        // 优先使用category，fallback到param_group
+        const group = row.category || row.param_group || 'general';
+        
         // 转换参数值类型
         let value = row.param_value;
-        if (value === 'true') value = true;
-        else if (value === 'false') value = false;
-        else if (!isNaN(value) && value !== '') value = parseFloat(value);
+        switch (row.param_type) {
+          case 'number':
+            value = parseFloat(value);
+            break;
+          case 'boolean':
+            value = value === '1' || value === 'true' || value === true;
+            break;
+          case 'json':
+            try {
+              value = JSON.parse(value);
+            } catch (e) {
+              logger.warn(`[回测管理器V3] 解析JSON失败: ${row.param_name}`, e);
+            }
+            break;
+          default:
+            // string类型保持原样，但尝试转换number
+            if (value === 'true') value = true;
+            else if (value === 'false') value = false;
+            else if (!isNaN(value) && value !== '') value = parseFloat(value);
+        }
 
-        params[row.param_name] = value;
+        // 创建嵌套结构
+        if (!params[group]) {
+          params[group] = {};
+        }
+        params[group][row.param_name] = value;
       });
 
       logger.info(`[回测管理器V3] 获取${strategyName}-${mode}参数:`, Object.keys(params));

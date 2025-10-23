@@ -371,11 +371,21 @@ class BacktestStrategyEngineV3 {
         this.v3Strategy.binanceAPI = mockAPI; // 使用同一个Mock API实例
         this.v3Strategy.mode = mode; // 强制设置模式
 
-        // 应用参数到策略实例
+        // ✅ 应用参数到策略的params属性（嵌套结构）
         if (params && Object.keys(params).length > 0) {
-          Object.assign(this.v3Strategy, params);
-          console.log(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数`, Object.keys(params));
-          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数`, Object.keys(params));
+          // 清除参数加载器缓存，确保每次都重新加载
+          if (this.v3Strategy.paramLoader) {
+            this.v3Strategy.paramLoader.clearCache();
+          }
+          
+          // 将参数合并到this.v3Strategy.params
+          this.v3Strategy.params = {
+            ...this.v3Strategy.params,
+            ...params
+          };
+          
+          console.log(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
 
           // 验证关键参数是否正确应用
           console.log(`[回测引擎V3] ${symbol} V3-${mode}: 验证参数 - trend4HStrongThreshold=${this.v3Strategy.trend4HStrongThreshold}, entry15MStrongThreshold=${this.v3Strategy.entry15MStrongThreshold}`);
