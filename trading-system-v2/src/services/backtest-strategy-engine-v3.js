@@ -171,13 +171,24 @@ class BacktestStrategyEngineV3 {
           this.mockBinanceAPI.setCurrentIndex(i);
         }
 
-        // 应用策略参数 - 确保参数正确应用
+        // ✅ 应用策略参数到params属性（嵌套结构）
         if (params && Object.keys(params).length > 0) {
           // 先重置策略实例，然后应用参数
           this.ictStrategy = new ICTStrategy();
           this.ictStrategy.binanceAPI = this.mockBinanceAPI;
-          Object.assign(this.ictStrategy, params);
-          logger.debug(`[回测引擎V3] ${symbol} ICT-${mode}: 应用参数`, Object.keys(params));
+          
+          // 清除参数加载器缓存，确保每次都重新加载
+          if (this.ictStrategy.paramLoader) {
+            this.ictStrategy.paramLoader.clearCache();
+          }
+          
+          // 将参数合并到this.ictStrategy.params
+          this.ictStrategy.params = {
+            ...this.ictStrategy.params,
+            ...params
+          };
+          
+          logger.debug(`[回测引擎V3] ${symbol} ICT-${mode}: 应用参数到params`, Object.keys(params));
         }
 
         // 直接调用ICT策略的execute方法（异步处理）
