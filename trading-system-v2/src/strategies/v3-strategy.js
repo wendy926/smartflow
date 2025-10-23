@@ -1415,7 +1415,12 @@ class V3Strategy {
     const trend4HStrongThreshold = this.getThreshold('trend', 'trend4HStrongThreshold', 8);
     const entry15MStrongThreshold = this.getThreshold('entry', 'entry15MStrongThreshold', 3);
     
-    if (normalizedScore >= 90 &&
+    // ✅ 添加详细日志
+    logger.info(`[V3信号判断] 阈值: trend4HStrong=${trend4HStrongThreshold}, entry15MStrong=${entry15MStrongThreshold}, adjustedStrong=${adjustedThreshold.strong}`);
+    logger.info(`[V3信号判断] 得分: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
+    
+    // ✅ 临时降低总分阈值从90→60，诊断用
+    if (normalizedScore >= 60 &&
       trendScore >= trend4HStrongThreshold &&
       factorScore >= adjustedThreshold.strong &&
       entryScore >= entry15MStrongThreshold) {  // 使用参数化阈值
@@ -1423,12 +1428,12 @@ class V3Strategy {
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
 
-    // 中等信号：总分75-89 且 趋势>=4 且 1H因子强 且 15M有效（极高标准确保质量）
+    // 中等信号：总分50-59 且 趋势>=4 且 1H因子强 且 15M有效（临时降低阈值）
     const trend4HModerateThreshold = this.getThreshold('trend', 'trend4HModerateThreshold', 6);
     const entry15MModerateThreshold = this.getThreshold('entry', 'entry15MModerateThreshold', 2);
     
-    if (normalizedScore >= 75 &&
-      normalizedScore < 90 &&
+    if (normalizedScore >= 50 &&
+      normalizedScore < 60 &&
       trendScore >= trend4HModerateThreshold &&
       factorScore >= adjustedThreshold.moderate &&  // 使用调整后门槛
       entryScore >= entry15MModerateThreshold) {   // 使用参数化阈值
@@ -1436,12 +1441,12 @@ class V3Strategy {
       return trendDirection === 'UP' ? 'BUY' : 'SELL';
     }
 
-    // 弱信号：总分65-74 且 趋势>=3 且 1H因子有效 且 15M有效（极高标准确保质量）
+    // 弱信号：总分40-49 且 趋势>=3 且 1H因子有效 且 15M有效（临时降低阈值）
     const trend4HWeakThreshold = this.getThreshold('trend', 'trend4HWeakThreshold', 4);
     const entry15MWeakThreshold = this.getThreshold('entry', 'entry15MWeakThreshold', 1);
     
-    if (normalizedScore >= 65 &&
-      normalizedScore < 75 &&
+    if (normalizedScore >= 40 &&
+      normalizedScore < 50 &&
       trendScore >= trend4HWeakThreshold &&
       factorScore >= adjustedThreshold.weak &&  // 使用调整后门槛
       entryScore >= entry15MWeakThreshold) {   // 使用参数化阈值
