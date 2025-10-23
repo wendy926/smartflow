@@ -239,6 +239,11 @@ class ICTStrategy {
       const avgVolume = totalVolume / window.length;
 
       // 检查年龄过滤
+      const ageMs = Date.now() - timestamp;
+      const ageDays = ageMs / (24 * 60 * 60 * 1000);
+      if (i % 10 === 0) { // 每10个窗口输出一次年龄信息
+        logger.info(`[ICT订单块检测] 窗口${i}: 时间戳=${timestamp}, 年龄=${ageDays.toFixed(1)}天, 最大年龄=${maxAgeDays}天, 年龄有效=${ageMs < maxAgeMs}`);
+      }
       if (timestamp < Date.now() - maxAgeMs) continue;
 
       // 订单块条件：
