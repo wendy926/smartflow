@@ -31,7 +31,11 @@ class ICTStrategy {
    */
   async initializeParameters() {
     try {
-      const dbConnection = DatabaseConnection.getInstance();
+      // 获取数据库连接实例
+      const dbConnection = typeof DatabaseConnection.getInstance === 'function' 
+        ? DatabaseConnection.getInstance() 
+        : DatabaseConnection;
+      
       this.paramLoader = new StrategyParameterLoader(dbConnection);
       
       // 加载BALANCED模式参数

@@ -54,7 +54,11 @@ class V3Strategy {
    */
   async initializeParameters() {
     try {
-      const dbConnection = DatabaseConnection.getInstance();
+      // 获取数据库连接实例
+      const dbConnection = typeof DatabaseConnection.getInstance === 'function' 
+        ? DatabaseConnection.getInstance() 
+        : DatabaseConnection;
+      
       this.paramLoader = new StrategyParameterLoader(dbConnection);
       this.params = await this.paramLoader.loadParameters('V3', 'BALANCED');
       
