@@ -16,7 +16,7 @@ async function runBacktest(strategy, symbol, startDate, endDate, mode = 'BALANCE
   console.log(`时间框架: 5m\n`);
 
   let db;
-  
+
   try {
     // 1. 初始化数据库连接
     console.log('1. 初始化数据库连接...');
@@ -30,7 +30,7 @@ async function runBacktest(strategy, symbol, startDate, endDate, mode = 'BALANCE
 
     // 2. 创建回测管理器
     console.log('2. 创建回测管理器...');
-    const backtestManager = new BacktestManagerV3();
+    const backtestManager = new BacktestManagerV3(db); // ✅ 传递数据库连接
     console.log('✅ 回测管理器创建成功\n');
 
     // 3. 运行回测
@@ -42,7 +42,7 @@ async function runBacktest(strategy, symbol, startDate, endDate, mode = 'BALANCE
       endDate: endDate
     });
     console.log('✅ 回测运行完成\n');
-    
+
     // 等待回测完成(异步执行)
     console.log('4. 等待回测任务完成...');
     await new Promise(resolve => setTimeout(resolve, 60000)); // 等待60秒
@@ -55,7 +55,7 @@ async function runBacktest(strategy, symbol, startDate, endDate, mode = 'BALANCE
       ORDER BY created_at DESC LIMIT 1
     `;
     const results = await db.query(query, [strategy, mode]);
-    
+
     // 6. 输出结果
     console.log('\n=== 回测结果 ===');
     if (results && results.length > 0) {
@@ -78,9 +78,9 @@ async function runBacktest(strategy, symbol, startDate, endDate, mode = 'BALANCE
     } else {
       console.log('未找到回测结果，请检查数据库或等待更长时间');
     }
-    
+
     console.log('\n✅ 回测完成！');
-    
+
     return results && results.length > 0 ? results[0] : null;
 
   } catch (error) {
