@@ -1425,8 +1425,7 @@ class ICTStrategy {
         logger.info(`${symbol} ICT策略: 15M入场有效性不足 - 吞没强度${(engulfStrength * 100).toFixed(1)}%（需≥30%），谐波分数${(harmonicScore * 100).toFixed(1)}%（需≥30%），基础信号${basicScore}分（需≥30分）`);
 
         // 计算分数用于显示（即使无效也显示分析结果）
-        const trendScore = dailyTrend.confidence * 25;
-        const orderBlockScore = hasValidOrderBlock ? 20 : 0;
+        // trendScore, orderBlockScore等变量已在上面声明，直接使用
         const engulfingScore = engulfing.detected ? 15 : 0;
         const sweepScore = (validSweepHTF.detected ? 10 : 0) + (sweepLTF.detected ? 5 : 0);
         const volumeScore = volumeExpansion.detected ? 5 : 0;
@@ -1516,11 +1515,8 @@ class ICTStrategy {
 
       // 按照ict-plus.md的综合评分计算
       // 趋势(25%) + 订单块(20%) + 吞没(15%) + 扫荡(15%) + 成交量(5%) + 谐波(20%)
-      const trendScore = dailyTrend.confidence * 25;
-      const orderBlockScore = hasValidOrderBlock ? 20 : 0;
+      // trendScore, orderBlockScore等变量已在上面声明，直接使用
       const engulfingScore = engulfing.detected ? 15 : 0;
-      const sweepScore = (validSweepHTF.detected ? 10 : 0) + (sweepLTF.detected ? 5 : 0);
-      const volumeScore = volumeExpansion.detected ? 5 : 0;
       const harmonicScorePoints = harmonicPattern.detected ? harmonicPattern.score * 20 : 0; // 重命名避免冲突
 
       score = Math.round(trendScore + orderBlockScore + engulfingScore + sweepScore + volumeScore + harmonicScorePoints);
