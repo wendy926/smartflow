@@ -35,34 +35,53 @@ async function runBacktest(strategy, symbol, startDate, endDate, mode = 'BALANCE
 
     // 3. 运行回测
     console.log('3. 开始运行回测...');
-    const result = await backtestManager.runBacktest({
-      strategy: strategy,
-      symbol: symbol,
+    const result = await backtestManager.startBacktest(strategy, mode, {
+      symbols: [symbol],
       timeframe: '5m',
       startDate: startDate,
-      endDate: endDate,
-      mode: mode
+      endDate: endDate
     });
     console.log('✅ 回测运行完成\n');
+    
+    // 等待回测完成(异步执行)
+    console.log('4. 等待回测任务完成...');
+    await new Promise(resolve => setTimeout(resolve, 60000)); // 等待60秒
 
-    // 4. 输出结果
-    console.log('=== 回测结果 ===');
-    console.log(`策略: ${result.strategy || strategy}`);
-    console.log(`模式: ${result.mode || mode}`);
-    console.log(`总交易数: ${result.totalTrades || 0}笔`);
-    console.log(`盈利交易: ${result.winningTrades || 0}笔`);
-    console.log(`亏损交易: ${result.losingTrades || 0}笔`);
-    console.log(`胜率: ${(result.winRate || 0).toFixed(2)}%`);
-    console.log(`盈亏比: ${(result.profitFactor || 0).toFixed(2)}:1`);
-    console.log(`净盈利: ${(result.netProfit || 0).toFixed(2)} USDT`);
-    console.log(`平均盈利: ${(result.avgWin || 0).toFixed(2)} USDT`);
-    console.log(`平均亏损: ${(result.avgLoss || 0).toFixed(2)} USDT`);
-    console.log(`最大回撤: ${(result.maxDrawdown || 0).toFixed(2)}%`);
-    console.log(`夏普比率: ${(result.sharpeRatio || 0).toFixed(2)}`);
+    // 5. 查询回测结果
+    console.log('5. 查询回测结果...');
+    const query = `
+      SELECT * FROM strategy_parameter_backtest_results 
+      WHERE strategy_name = ? AND strategy_mode = ?
+      ORDER BY created_at DESC LIMIT 1
+    `;
+    const results = await db.query(query, [strategy, mode]);
+    
+    // 6. 输出结果
+    console.log('\n=== 回测结果 ===');
+    if (results && results.length > 0) {
+      const r = results[0];
+      console.log(`策略: ${r.strategy_name}`);
+      console.log(`模式: ${r.strategy_mode}`);
+      console.log(`回测周期: ${r.backtest_period}`);
+      console.log(`总交易数: ${r.total_trades}笔`);
+      console.log(`盈利交易: ${r.winning_trades}笔`);
+      console.log(`亏损交易: ${r.losing_trades}笔`);
+      console.log(`胜率: ${parseFloat(r.win_rate).toFixed(2)}%`);
+      console.log(`盈亏比: ${parseFloat(r.profit_factor).toFixed(2)}:1`);
+      console.log(`净盈利: ${parseFloat(r.net_profit).toFixed(2)} USDT`);
+      console.log(`平均盈利: ${parseFloat(r.avg_win).toFixed(2)} USDT`);
+      console.log(`平均亏损: ${parseFloat(r.avg_loss).toFixed(2)} USDT`);
+      console.log(`最大回撤: ${parseFloat(r.max_drawdown).toFixed(2)}%`);
+      console.log(`夏普比率: ${parseFloat(r.sharpe_ratio || 0).toFixed(2)}`);
+      console.log(`状态: ${r.backtest_status}`);
+      console.log(`完成时间: ${r.created_at}`);
+    } else {
+      console.log('未找到回测结果，请检查数据库或等待更长时间');
+    }
     
     console.log('\n✅ 回测完成！');
     
-    return result;
+    return results && results.length > 0 ? results[0] : null;
 
   } catch (error) {
     console.error('\n❌ 回测失败:', error.message);
