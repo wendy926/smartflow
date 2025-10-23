@@ -252,8 +252,11 @@ class ICTStrategy {
       const volumeConcentrated = lastTwoVolumes.every(vol => vol >= avgVolume * 0.6); // 从80%放宽到60%
 
       // 添加订单块检测调试日志
-      if (i % 10 === 0) { // 每10个窗口输出一次日志
-        logger.info(`[ICT订单块检测] 窗口${i}: 高度=${obHeight.toFixed(2)}, ATR=${atr4H.toFixed(2)}, 高度有效=${heightValid}, 价格稳定=${priceStable}, 成交量集中=${volumeConcentrated}`);
+      if (i % 5 === 0) { // 每5个窗口输出一次日志
+        const heightThreshold = 0.15 * atr4H;
+        const priceThreshold = 0.03;
+        const volumeThreshold = 0.6;
+        logger.info(`[ICT订单块检测] 窗口${i}: 高度=${obHeight.toFixed(2)}/${heightThreshold.toFixed(2)}, 价格稳定=${(obHeight/avgPrice*100).toFixed(2)}%/${priceThreshold*100}%, 成交量集中=${volumeConcentrated}, 高度有效=${heightValid}, 价格稳定=${priceStable}`);
       }
       
       if (heightValid && priceStable && volumeConcentrated) {
