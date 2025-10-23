@@ -20,7 +20,11 @@ async function runBacktest(strategy, symbol, startDate, endDate, mode = 'BALANCE
   try {
     // 1. 初始化数据库连接
     console.log('1. 初始化数据库连接...');
-    db = DatabaseConnection.getInstance();
+    db = DatabaseConnection;
+    // 如果有getInstance方法，使用它；否则直接使用导出的实例
+    if (typeof DatabaseConnection.getInstance === 'function') {
+      db = DatabaseConnection.getInstance();
+    }
     await db.connect();
     console.log('✅ 数据库连接成功\n');
 
