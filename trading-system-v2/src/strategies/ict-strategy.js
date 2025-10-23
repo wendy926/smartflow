@@ -205,8 +205,14 @@ class ICTStrategy {
 
     if (klines.length < 20) return orderBlocks;
 
-    const currentTime = Date.now();
-    const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
+    // 对于回测数据，使用相对年龄而不是绝对年龄
+    // 回测数据通常是历史数据，使用数据范围内的相对年龄
+    const dataStartTime = parseFloat(klines[0][0]);
+    const dataEndTime = parseFloat(klines[klines.length - 1][0]);
+    const dataDurationMs = dataEndTime - dataStartTime;
+    const maxAgeMs = Math.min(maxAgeDays * 24 * 60 * 60 * 1000, dataDurationMs * 0.3); // 最多使用30%的数据时长
+    
+    logger.info(`[ICT订单块检测] 年龄限制调整: 数据时长=${(dataDurationMs/(24*60*60*1000)).toFixed(1)}天, 最大年龄=${(maxAgeMs/(24*60*60*1000)).toFixed(1)}天`);
 
     // 寻找价格停留区域作为订单块（3-5根K线窗口）
     logger.info(`[ICT订单块检测] 开始检测, 数据长度: ${klines.length}, 循环范围: 3到${klines.length - 2}, 总窗口数: ${klines.length - 4}`);
@@ -238,13 +244,13 @@ class ICTStrategy {
       const avgPrice = priceSum / window.length;
       const avgVolume = totalVolume / window.length;
 
-      // 检查年龄过滤
-      const ageMs = Date.now() - timestamp;
+      // 检查年龄过滤 - 使用相对年龄
+      const ageMs = dataEndTime - timestamp;
       const ageDays = ageMs / (24 * 60 * 60 * 1000);
       if (i % 10 === 0) { // 每10个窗口输出一次年龄信息
-        logger.info(`[ICT订单块检测] 窗口${i}: 时间戳=${timestamp}, 年龄=${ageDays.toFixed(1)}天, 最大年龄=${maxAgeDays}天, 年龄有效=${ageMs < maxAgeMs}`);
+        logger.info(`[ICT订单块检测] 窗口${i}: 时间戳=${timestamp}, 相对年龄=${ageDays.toFixed(1)}天, 最大年龄=${(maxAgeMs/(24*60*60*1000)).toFixed(1)}天, 年龄有效=${ageMs < maxAgeMs}`);
       }
-      if (timestamp < Date.now() - maxAgeMs) continue;
+      if (ageMs > maxAgeMs) continue;
 
       // 订单块条件：
       // 1. 高度过滤：OB高度 >= 0.15 × ATR(4H)（放宽要求）
