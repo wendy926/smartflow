@@ -12,7 +12,6 @@ class StrategyParameterManager {
     this.database = database;
     this.cache = new Map(); // 缓存参数配置
     this.cacheExpiry = 5 * 60 * 1000; // 缓存5分钟
-    this.lastCacheUpdate = 0;
   }
 
   /**
@@ -27,16 +26,19 @@ class StrategyParameterManager {
       const cacheKey = `${strategyName}_${strategyMode}_${paramGroup || 'all'}`;
 
       // 检查缓存
-      if (this.cache.has(cacheKey) && Date.now() - this.lastCacheUpdate < this.cacheExpiry) {
-        return this.cache.get(cacheKey);
+      if (this.cache.has(cacheKey)) {
+        const cached = this.cache.get(cacheKey);
+        if (Date.now() - cached.timestamp < this.cacheExpiry) {
+          return cached.params;
+        }
       }
 
-      // 构建查询 - 参数调优使用 is_active = 0 的测试参数
+      // 构建查询 - 参数调优使用 is_active = 1 的活跃参数
       let query = `
         SELECT param_group, param_name, param_value, param_type, category, 
                description, unit, min_value, max_value
         FROM strategy_params
-        WHERE strategy_name = ? AND strategy_mode = ? AND is_active = 0
+        WHERE strategy_name = ? AND strategy_mode = ? AND is_active = 1
       `;
       const params = [strategyName, strategyMode];
 
@@ -67,8 +69,10 @@ class StrategyParameterManager {
       });
 
       // 更新缓存
-      this.cache.set(cacheKey, result);
-      this.lastCacheUpdate = Date.now();
+      this.cache.set(cacheKey, {
+        params: result,
+        timestamp: Date.now()
+      });
 
       logger.debug(`[参数管理器] 加载${strategyName} ${strategyMode}参数: ${Object.keys(result).length}个分组`);
       return result;
