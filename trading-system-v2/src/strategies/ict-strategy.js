@@ -648,11 +648,11 @@ class ICTStrategy {
     const stopDistance = Math.abs(entryPrice - stopLoss);
 
     if (trend === 'UP') {
-      // 上升趋势：入场价 + 3倍止损距离
-      return entryPrice + (3 * stopDistance);
+      // 上升趋势：入场价 + 3.5倍止损距离（提升盈亏比）
+      return entryPrice + (3.5 * stopDistance);
     } else if (trend === 'DOWN') {
-      // 下降趋势：入场价 - 3倍止损距离
-      return entryPrice - (3 * stopDistance);
+      // 下降趋势：入场价 - 3.5倍止损距离（提升盈亏比）
+      return entryPrice - (3.5 * stopDistance);
     }
 
     return entryPrice;
