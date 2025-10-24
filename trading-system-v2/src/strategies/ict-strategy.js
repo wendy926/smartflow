@@ -60,17 +60,17 @@ class ICTStrategy {
    * @returns {*} 参数值
    */
   getThreshold(category, name, defaultValue) {
-    const paramCategory = category === 'trend' ? 'trend_thresholds' : 
-                         category === 'entry' ? 'entry_thresholds' :
-                         category === 'factor' ? 'factor_thresholds' :
-                         category === 'filter' ? 'filters' : category;
-    
+    const paramCategory = category === 'trend' ? 'trend_thresholds' :
+      category === 'entry' ? 'entry_thresholds' :
+        category === 'factor' ? 'factor_thresholds' :
+          category === 'filter' ? 'filters' : category;
+
     const value = this.params[paramCategory]?.[name] || defaultValue;
-    
+
     if (name.includes('Threshold') || name.includes('Score')) {
       logger.info(`[ICT-getThreshold] category=${category}, name=${name}, paramCategory=${paramCategory}, dbValue=${this.params[paramCategory]?.[name]}, defaultValue=${defaultValue}, finalValue=${value}`);
     }
-    
+
     return value;
   }
 
@@ -153,7 +153,7 @@ class ICTStrategy {
       const firstPrice = recent20Prices[0];
       const lastPrice = recent20Prices[recent20Prices.length - 1];
       const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
-      
+
       // 添加调试日志
       logger.info(`[ICT日线趋势] 20日价格变化: ${priceChange.toFixed(2)}%, 首价: ${firstPrice}, 末价: ${lastPrice}, 阈值: ±1%`);
 
@@ -176,7 +176,7 @@ class ICTStrategy {
 
       // 添加趋势判断结果日志
       logger.info(`[ICT日线趋势] 趋势判断结果: ${trend}, 置信度: ${confidence.toFixed(3)}, 原因: ${priceChange.toFixed(2)}% ${priceChange > 1 ? '> 1%' : priceChange < -1 ? '< -1%' : '在±1%范围内'}`);
-      
+
       return {
         trend,
         confidence,
@@ -211,8 +211,8 @@ class ICTStrategy {
     const dataEndTime = parseFloat(klines[klines.length - 1][0]);
     const dataDurationMs = dataEndTime - dataStartTime;
     const maxAgeMs = Math.min(maxAgeDays * 24 * 60 * 60 * 1000, dataDurationMs * 0.3); // 最多使用30%的数据时长
-    
-    logger.info(`[ICT订单块检测] 年龄限制调整: 数据时长=${(dataDurationMs/(24*60*60*1000)).toFixed(1)}天, 最大年龄=${(maxAgeMs/(24*60*60*1000)).toFixed(1)}天`);
+
+    logger.info(`[ICT订单块检测] 年龄限制调整: 数据时长=${(dataDurationMs / (24 * 60 * 60 * 1000)).toFixed(1)}天, 最大年龄=${(maxAgeMs / (24 * 60 * 60 * 1000)).toFixed(1)}天`);
 
     // 寻找价格停留区域作为订单块（3-5根K线窗口）
     logger.info(`[ICT订单块检测] 开始检测, 数据长度: ${klines.length}, 循环范围: 3到${klines.length - 2}, 总窗口数: ${klines.length - 4}`);
@@ -248,7 +248,7 @@ class ICTStrategy {
       const ageMs = dataEndTime - timestamp;
       const ageDays = ageMs / (24 * 60 * 60 * 1000);
       if (i % 10 === 0) { // 每10个窗口输出一次年龄信息
-        logger.info(`[ICT订单块检测] 窗口${i}: 时间戳=${timestamp}, 相对年龄=${ageDays.toFixed(1)}天, 最大年龄=${(maxAgeMs/(24*60*60*1000)).toFixed(1)}天, 年龄有效=${ageMs < maxAgeMs}`);
+        logger.info(`[ICT订单块检测] 窗口${i}: 时间戳=${timestamp}, 相对年龄=${ageDays.toFixed(1)}天, 最大年龄=${(maxAgeMs / (24 * 60 * 60 * 1000)).toFixed(1)}天, 年龄有效=${ageMs < maxAgeMs}`);
       }
       if (ageMs > maxAgeMs) continue;
 
@@ -268,14 +268,14 @@ class ICTStrategy {
         const heightThreshold = 0.15 * atr4H;
         const priceThreshold = 0.03;
         const volumeThreshold = 0.6;
-        logger.info(`[ICT订单块检测] 窗口${i}: 高度=${obHeight.toFixed(2)}/${heightThreshold.toFixed(2)}, 价格稳定=${(obHeight/avgPrice*100).toFixed(2)}%/${priceThreshold*100}%, 成交量集中=${volumeConcentrated}, 高度有效=${heightValid}, 价格稳定=${priceStable}`);
+        logger.info(`[ICT订单块检测] 窗口${i}: 高度=${obHeight.toFixed(2)}/${heightThreshold.toFixed(2)}, 价格稳定=${(obHeight / avgPrice * 100).toFixed(2)}%/${priceThreshold * 100}%, 成交量集中=${volumeConcentrated}, 高度有效=${heightValid}, 价格稳定=${priceStable}`);
       }
-      
+
       if (heightValid && priceStable && volumeConcentrated) {
         // 确定订单块类型（基于价格位置）
         const currentPrice = parseFloat(klines[klines.length - 1][4]);
         const type = currentPrice > (windowHigh + windowLow) / 2 ? 'BULLISH' : 'BEARISH';
-        
+
         logger.info(`[ICT订单块检测] 发现订单块: 类型=${type}, 高度=${obHeight.toFixed(2)}, 价格=${avgPrice.toFixed(2)}`);
 
         orderBlocks.push({
@@ -570,14 +570,16 @@ class ICTStrategy {
    * 检查OB/FVG年龄过滤
    * 按照ICT文档：OB/FVG年龄 ≤ 2天
    * @param {Object} orderBlock - 订单块对象
+   * @param {number} currentTime - 当前时间（回测时使用数据时间）
    * @returns {boolean} 是否满足年龄条件
    */
-  checkOrderBlockAge(orderBlock) {
+  checkOrderBlockAge(orderBlock, currentTime = null) {
     if (!orderBlock || !orderBlock.timestamp) return false;
 
-    const currentTime = Date.now();
+    // 对于回测场景，使用传入的当前时间，否则使用系统时间
+    const now = currentTime || Date.now();
     const obTime = orderBlock.timestamp;
-    const ageDays = (currentTime - obTime) / (1000 * 60 * 60 * 24); // 转换为天
+    const ageDays = (now - obTime) / (1000 * 60 * 60 * 24); // 转换为天
 
     return ageDays <= 5; // 年龄 ≤ 5天（从2天放宽到5天）
   }
@@ -1045,7 +1047,9 @@ class ICTStrategy {
       }
 
       // 6. 检查订单块年龄过滤（≤2天）
-      const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob));
+      // 对于回测场景，使用数据时间戳作为当前时间
+      const currentDataTime = klines15m && klines15m.length > 0 ? parseFloat(klines15m[klines15m.length - 1][0]) : Date.now();
+      const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob, currentDataTime));
       const hasValidOrderBlock = validOrderBlocks.length > 0;
 
       // 检测LTF扫荡 - 基于4H订单块进行扫荡检测
@@ -1093,7 +1097,9 @@ class ICTStrategy {
 
         const atr4H = this.calculateATR(klines4H, 14);
         const orderBlocks = this.detectOrderBlocks(klines4H, atr4H[atr4H.length - 1], 30);
-        const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob));
+        // 对于回测场景，使用数据时间戳作为当前时间
+        const currentDataTime = klines15m && klines15m.length > 0 ? parseFloat(klines15m[klines15m.length - 1][0]) : Date.now();
+        const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob, currentDataTime));
 
         if (validOrderBlocks.length > 0) {
           const latestOrderBlock = validOrderBlocks[validOrderBlocks.length - 1];
@@ -1182,7 +1188,9 @@ class ICTStrategy {
 
         const atr4H = this.calculateATR(klines4H, 14);
         const orderBlocks = this.detectOrderBlocks(klines4H, atr4H[atr4H.length - 1], 30);
-        const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob));
+        // 对于回测场景，使用数据时间戳作为当前时间
+        const currentDataTime = klines15m && klines15m.length > 0 ? parseFloat(klines15m[klines15m.length - 1][0]) : Date.now();
+        const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob, currentDataTime));
 
         if (validOrderBlocks.length > 0) {
           const latestOrderBlock = validOrderBlocks[validOrderBlocks.length - 1];
@@ -1280,7 +1288,9 @@ class ICTStrategy {
 
         const atr4H = this.calculateATR(klines4H, 14);
         const orderBlocks = this.detectOrderBlocks(klines4H, atr4H[atr4H.length - 1], 30);
-        const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob));
+        // 对于回测场景，使用数据时间戳作为当前时间
+        const currentDataTime = klines15m && klines15m.length > 0 ? parseFloat(klines15m[klines15m.length - 1][0]) : Date.now();
+        const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob, currentDataTime));
 
         if (validOrderBlocks.length > 0) {
           const latestOrderBlock = validOrderBlocks[validOrderBlocks.length - 1];
@@ -1364,7 +1374,9 @@ class ICTStrategy {
 
         const atr4H = this.calculateATR(klines4H, 14);
         const orderBlocks = this.detectOrderBlocks(klines4H, atr4H[atr4H.length - 1], 30);
-        const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob));
+        // 对于回测场景，使用数据时间戳作为当前时间
+        const currentDataTime = klines15m && klines15m.length > 0 ? parseFloat(klines15m[klines15m.length - 1][0]) : Date.now();
+        const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob, currentDataTime));
 
         if (validOrderBlocks.length > 0) {
           const latestOrderBlock = validOrderBlocks[validOrderBlocks.length - 1];
@@ -1446,11 +1458,11 @@ class ICTStrategy {
       const sweepScore = (validSweepHTF.detected ? 10 : 0) + (sweepLTF.detected ? 5 : 0);
       const volumeScore = volumeExpansion.detected ? 5 : 0;
       const basicScore = trendScore + orderBlockScore + sweepScore + volumeScore;
-      
+
       // 入场条件：吞没/谐波满足阈值 或 基础信号强度足够
-      const entryValid = (engulfStrength >= minEngulfStrength) || 
-                        (harmonicScore >= minHarmonicScore) ||
-                        (basicScore >= 30); // 基础信号强度≥30分
+      const entryValid = (engulfStrength >= minEngulfStrength) ||
+        (harmonicScore >= minHarmonicScore) ||
+        (basicScore >= 30); // 基础信号强度≥30分
 
       if (!entryValid) {
         logger.info(`${symbol} ICT策略: 15M入场有效性不足 - 吞没强度${(engulfStrength * 100).toFixed(1)}%（需≥30%），谐波分数${(harmonicScore * 100).toFixed(1)}%（需≥30%），基础信号${basicScore}分（需≥30分）`);
@@ -1578,7 +1590,9 @@ class ICTStrategy {
 
         const atr4H = this.calculateATR(klines4H, 14);
         const orderBlocks = this.detectOrderBlocks(klines4H, atr4H[atr4H.length - 1], 30);
-        const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob));
+        // 对于回测场景，使用数据时间戳作为当前时间
+        const currentDataTime = klines15m && klines15m.length > 0 ? parseFloat(klines15m[klines15m.length - 1][0]) : Date.now();
+        const validOrderBlocks = orderBlocks.filter(ob => this.checkOrderBlockAge(ob, currentDataTime));
 
         if (validOrderBlocks.length > 0) {
           const latestOrderBlock = validOrderBlocks[validOrderBlocks.length - 1];
