@@ -153,18 +153,8 @@ class BacktestStrategyEngineV3 {
     let position = null;
     let lastSignal = null;
     
-    // 风险控制参数
-    const maxDrawdownLimit = 0.15; // 最大回撤限制15%
-    const maxSingleLoss = 0.02; // 单笔最大损失2%
-    const maxConsecutiveLosses = 3; // 最大连续亏损3笔
-    let currentDrawdown = 0;
-    let peakEquity = 10000; // 初始资金10000 USDT
-    let currentEquity = 10000;
-    let consecutiveLosses = 0;
-    let tradingPaused = false;
-
     console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 开始回测，K线数量=${klines.length}`);
-    console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 风险控制 - 最大回撤${(maxDrawdownLimit*100).toFixed(1)}%，单笔最大损失${(maxSingleLoss*100).toFixed(1)}%，最大连续亏损${maxConsecutiveLosses}笔`);
+    console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 使用策略内部风险管理`);
 
     // 优化：减少回测频率，每10根K线检查一次
     const step = Math.max(1, Math.floor(klines.length / 100)); // 最多检查100次
@@ -230,20 +220,7 @@ class BacktestStrategyEngineV3 {
         const signal = ictResult.signal;
 
         // 检查开仓信号
-        if (!position && (signal === 'BUY' || signal === 'SELL') && !tradingPaused) {
-          // 风险检查：检查是否超过最大回撤限制
-          if (currentDrawdown > maxDrawdownLimit) {
-            console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 超过最大回撤限制${(maxDrawdownLimit*100).toFixed(1)}%，暂停交易`);
-            tradingPaused = true;
-            continue;
-          }
-          
-          // 风险检查：检查连续亏损次数
-          if (consecutiveLosses >= maxConsecutiveLosses) {
-            console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 连续亏损${consecutiveLosses}笔，暂停交易`);
-            tradingPaused = true;
-            continue;
-          }
+        if (!position && (signal === 'BUY' || signal === 'SELL')) {
           
           // 开仓
           const direction = signal === 'BUY' ? 'LONG' : 'SHORT';
@@ -277,13 +254,8 @@ class BacktestStrategyEngineV3 {
             logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 使用策略返回的止损止盈, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1`);
           }
           
-          // 风险控制：计算单笔最大损失限制
-          const stopDistance = Math.abs(entryPrice - stopLoss);
-          const maxLossAmount = currentEquity * maxSingleLoss;
-          const maxPositionSize = maxLossAmount / stopDistance;
-          
-          // 限制仓位大小，确保单笔损失不超过2%
-          const positionSize = Math.min(1.0, maxPositionSize); // 最大1个单位的仓位
+          // 使用策略内部风险控制计算的仓位大小
+          const positionSize = 1.0; // 策略内部已处理风险控制
           
           if (positionSize < 0.1) {
             console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 止损距离过大，跳过交易。止损距离=${stopDistance.toFixed(2)}, 最大损失=${maxLossAmount.toFixed(2)}, 计算仓位=${positionSize.toFixed(4)}`);
@@ -342,32 +314,7 @@ class BacktestStrategyEngineV3 {
             const trade = this.closePosition(position, nextPrice, exitReason);
             trades.push(trade);
             
-            // 更新风险控制状态
-            const pnl = trade.pnl;
-            currentEquity += pnl;
-            
-            // 更新峰值权益
-            if (currentEquity > peakEquity) {
-              peakEquity = currentEquity;
-            }
-            
-            // 计算当前回撤
-            currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-            
-            // 更新连续亏损计数
-            if (pnl < 0) {
-              consecutiveLosses++;
-            } else {
-              consecutiveLosses = 0; // 盈利交易重置连续亏损计数
-            }
-            
-            // 检查是否可以恢复交易
-            if (tradingPaused && currentDrawdown < maxDrawdownLimit * 0.5 && consecutiveLosses < maxConsecutiveLosses) {
-              console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 风险降低，恢复交易。当前回撤=${(currentDrawdown*100).toFixed(2)}%，连续亏损=${consecutiveLosses}笔`);
-              tradingPaused = false;
-            }
-            
-            console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 平仓 ${exitReason}, PnL=${pnl.toFixed(2)}, 当前权益=${currentEquity.toFixed(2)}, 回撤=${(currentDrawdown*100).toFixed(2)}%, 连续亏损=${consecutiveLosses}笔`);
+            console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 平仓 ${exitReason}, PnL=${trade.pnl.toFixed(2)}`);
             
             position = null;
             lastSignal = null;
@@ -403,15 +350,7 @@ class BacktestStrategyEngineV3 {
     let position = null;
     let lastSignal = null;
     
-    // 风险控制参数
-    const maxDrawdownLimit = 0.15; // 最大回撤限制15%
-    const maxSingleLoss = 0.02; // 单笔最大损失2%
-    const maxConsecutiveLosses = 3; // 最大连续亏损3笔
-    let currentDrawdown = 0;
-    let peakEquity = 10000; // 初始资金10000 USDT
-    let currentEquity = 10000;
-    let consecutiveLosses = 0;
-    let tradingPaused = false;
+    // 使用策略内部风险管理
 
     // 添加假突破过滤统计
     let totalSignals = 0;
