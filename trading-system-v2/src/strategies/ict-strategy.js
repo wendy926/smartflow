@@ -252,16 +252,16 @@ class ICTStrategy {
       }
       if (ageMs > maxAgeMs) continue;
 
-      // 订单块条件：
-      // 1. 高度过滤：OB高度 >= 0.15 × ATR(4H)（放宽要求）
+      // 订单块条件：根据@ict-optimize.md优化
+      // 1. 高度过滤：OB高度 >= 0.25 × ATR(4H)（提升质量要求）
       // 2. 价格稳定性：窗口内价格范围相对较小
       // 3. 成交量集中：最后两根K线成交量大于平均值
-      const heightValid = obHeight >= 0.15 * atr4H; // 从0.25放宽到0.15
-      const priceStable = obHeight / avgPrice <= 0.03; // 从1%放宽到3%
+      const heightValid = obHeight >= 0.25 * atr4H; // 从0.15提升到0.25，提高质量
+      const priceStable = obHeight / avgPrice <= 0.03; // 保持3%的价格稳定性
 
       // 检查最后两根K线的成交量是否集中
       const lastTwoVolumes = window.slice(-2).map(k => parseFloat(k[5]));
-      const volumeConcentrated = lastTwoVolumes.every(vol => vol >= avgVolume * 0.6); // 从80%放宽到60%
+      const volumeConcentrated = lastTwoVolumes.every(vol => vol >= avgVolume * 0.8); // 从60%提升到80%，提高质量
 
       // 添加订单块检测调试日志
       if (i % 5 === 0) { // 每5个窗口输出一次日志
@@ -479,7 +479,7 @@ class ICTStrategy {
             }
 
             // 检查是否满足条件：sweep速率 ≥ 0.02 × ATR 且 bars数 ≤ 3（进一步降低阈值）
-            if (sweepSpeed >= 0.02 * currentATR && barsToReturn <= 3) {
+            if (sweepSpeed >= 0.1 * currentATR && barsToReturn <= 3) {
               detected = true;
               type = 'LTF_SWEEP_UP';
               level = extreme;
@@ -509,7 +509,7 @@ class ICTStrategy {
             }
 
             // 检查是否满足条件：sweep速率 ≥ 0.02 × ATR 且 bars数 ≤ 3（进一步降低阈值）
-            if (sweepSpeed >= 0.02 * currentATR && barsToReturn <= 3) {
+            if (sweepSpeed >= 0.1 * currentATR && barsToReturn <= 3) {
               detected = true;
               type = 'LTF_SWEEP_DOWN';
               level = extreme;
@@ -581,7 +581,7 @@ class ICTStrategy {
     const obTime = orderBlock.timestamp;
     const ageDays = (now - obTime) / (1000 * 60 * 60 * 24); // 转换为天
 
-    return ageDays <= 5; // 年龄 ≤ 5天（从2天放宽到5天）
+    return ageDays <= 3; // 年龄 ≤ 3天（从5天降低到3天，提高质量）
   }
 
   /**
@@ -599,30 +599,25 @@ class ICTStrategy {
       return 0;
     }
 
+    // 根据@ict-optimize.md建议：使用4H ATR × 2.5作为止损距离
+    const atr4H = this.calculateATR(klines4H, 14);
+    const currentATR = atr4H && atr4H.length > 0 ? atr4H[atr4H.length - 1] : 0;
+    const stopDistance = currentATR * 2.5; // 4H ATR × 2.5
+
     if (trend === 'UP') {
-      // 优化：上升趋势使用扫荡低点或最近6根4H的最低点（从3根改为6根）
-      const recent6Lows = klines4H.slice(-6).map(k => parseFloat(k[3])); // 最低价
-      const structuralLow = Math.min(...recent6Lows);
+      // 上升趋势：入场价 - 4H ATR × 2.5
+      const currentPrice = parseFloat(klines4H[klines4H.length - 1][4]);
+      const stopLoss = currentPrice - stopDistance;
 
-      // 如果有扫荡低点，使用扫荡点位（更精确）
-      const sweepLow = sweepResult?.level || null;
-
-      const stopLoss = sweepLow ? Math.min(sweepLow, structuralLow) : structuralLow;
-
-      logger.info(`${trend}趋势结构化止损: 扫荡低点=${sweepLow}, 结构低点=${structuralLow.toFixed(4)}, 止损=${stopLoss.toFixed(4)}`);
+      logger.info(`${trend}趋势结构化止损: 当前价=${currentPrice.toFixed(4)}, 4H ATR=${currentATR.toFixed(4)}, 止损距离=${stopDistance.toFixed(4)}, 止损=${stopLoss.toFixed(4)}`);
 
       return stopLoss;
     } else if (trend === 'DOWN') {
-      // 优化：下降趋势使用扫荡高点或最近6根4H的最高点
-      const recent6Highs = klines4H.slice(-6).map(k => parseFloat(k[2])); // 最高价
-      const structuralHigh = Math.max(...recent6Highs);
+      // 下降趋势：入场价 + 4H ATR × 2.5
+      const currentPrice = parseFloat(klines4H[klines4H.length - 1][4]);
+      const stopLoss = currentPrice + stopDistance;
 
-      // 如果有扫荡高点，使用扫荡点位
-      const sweepHigh = sweepResult?.level || null;
-
-      const stopLoss = sweepHigh ? Math.max(sweepHigh, structuralHigh) : structuralHigh;
-
-      logger.info(`${trend}趋势结构化止损: 扫荡高点=${sweepHigh}, 结构高点=${structuralHigh.toFixed(4)}, 止损=${stopLoss.toFixed(4)}`);
+      logger.info(`${trend}趋势结构化止损: 当前价=${currentPrice.toFixed(4)}, 4H ATR=${currentATR.toFixed(4)}, 止损距离=${stopDistance.toFixed(4)}, 止损=${stopLoss.toFixed(4)}`);
 
       return stopLoss;
     }
