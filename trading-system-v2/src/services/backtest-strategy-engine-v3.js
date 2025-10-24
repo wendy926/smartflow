@@ -222,6 +222,22 @@ class BacktestStrategyEngineV3 {
         // 检查开仓信号
         if (!position && (signal === 'BUY' || signal === 'SELL')) {
           
+          // 回撤检查 - 在开仓前检查是否超过最大回撤限制
+          const currentDrawdown = (this.ictStrategy.peakEquity - this.ictStrategy.currentEquity) / this.ictStrategy.peakEquity;
+          const maxDrawdownLimit = this.ictStrategy.getThreshold('risk', 'maxDrawdownLimit', 0.15);
+          
+          if (currentDrawdown > maxDrawdownLimit) {
+            logger.warn(`${symbol} ICT策略: 当前回撤${(currentDrawdown*100).toFixed(2)}%超过限制${(maxDrawdownLimit*100).toFixed(1)}%，跳过开仓`);
+            this.ictStrategy.tradingPaused = true;
+            continue;
+          }
+          
+          // 如果交易被暂停，检查是否可以恢复
+          if (this.ictStrategy.tradingPaused && currentDrawdown < maxDrawdownLimit * 0.5) {
+            logger.info(`${symbol} ICT策略: 回撤降低到${(currentDrawdown*100).toFixed(2)}%，恢复交易`);
+            this.ictStrategy.tradingPaused = false;
+          }
+          
           // 开仓
           const direction = signal === 'BUY' ? 'LONG' : 'SHORT';
           const entryPrice = currentPrice;
@@ -505,6 +521,23 @@ class BacktestStrategyEngineV3 {
 
         // 检查开仓信号
         if (!position && (signal === 'BUY' || signal === 'SELL')) {
+          
+          // 回撤检查 - 在开仓前检查是否超过最大回撤限制
+          const currentDrawdown = (this.v3Strategy.peakEquity - this.v3Strategy.currentEquity) / this.v3Strategy.peakEquity;
+          const maxDrawdownLimit = this.v3Strategy.getThreshold('risk', 'maxDrawdownLimit', 0.15);
+          
+          if (currentDrawdown > maxDrawdownLimit) {
+            logger.warn(`${symbol} V3策略: 当前回撤${(currentDrawdown*100).toFixed(2)}%超过限制${(maxDrawdownLimit*100).toFixed(1)}%，跳过开仓`);
+            this.v3Strategy.tradingPaused = true;
+            continue;
+          }
+          
+          // 如果交易被暂停，检查是否可以恢复
+          if (this.v3Strategy.tradingPaused && currentDrawdown < maxDrawdownLimit * 0.5) {
+            logger.info(`${symbol} V3策略: 回撤降低到${(currentDrawdown*100).toFixed(2)}%，恢复交易`);
+            this.v3Strategy.tradingPaused = false;
+          }
+          
           // 统计假突破过滤结果
           if (v3Result.filterResult) {
             if (v3Result.filterResult.passed) {
