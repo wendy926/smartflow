@@ -124,22 +124,42 @@ class StrategyWorker {
 
       const currentPrice = parseFloat(ticker.lastPrice);
 
-      // 计算止损止盈
-      const stopLoss = result.stopLoss !== undefined ? result.stopLoss : this.calculateStopLoss(currentPrice, result.signal);
-      const takeProfit = result.takeProfit !== undefined ? result.takeProfit : this.calculateTakeProfit(currentPrice, result.signal);
+      // 计算止损止盈 - 优先使用策略计算的参数
+      let stopLoss, takeProfit, leverage, margin_used, quantity;
+      
+      if (result.tradeParams && result.tradeParams.entry > 0) {
+        // 使用策略计算的精确参数
+        stopLoss = result.tradeParams.stopLoss || 0;
+        takeProfit = result.tradeParams.takeProfit || 0;
+        leverage = result.tradeParams.leverage || 1;
+        margin_used = result.tradeParams.margin || 0;
+        quantity = result.tradeParams.units || 0;
+        logger.info(`${strategy}策略使用精确参数: 止损=${stopLoss}, 止盈=${takeProfit}, 杠杆=${leverage}, 保证金=${margin_used}, 数量=${quantity}`);
+      } else {
+        // 使用默认计算方法
+        stopLoss = result.stopLoss !== undefined ? result.stopLoss : this.calculateStopLoss(currentPrice, result.signal);
+        takeProfit = result.takeProfit !== undefined ? result.takeProfit : this.calculateTakeProfit(currentPrice, result.signal);
+        leverage = result.leverage || 1;
+        margin_used = result.margin || 0;
+        quantity = 0;
+        logger.warn(`${strategy}策略使用默认参数: 止损=${stopLoss}, 止盈=${takeProfit}, 杠杆=${leverage}`);
+      }
 
-      // 获取最大损失金额（从用户设置中获取）
-      const maxLossAmount = result.maxLossAmount || getMaxLossAmount();
+      // 如果策略没有提供精确参数，则使用默认计算
+      if (!result.tradeParams || result.tradeParams.entry <= 0) {
+        // 获取最大损失金额（从用户设置中获取）
+        const maxLossAmount = result.maxLossAmount || getMaxLossAmount();
 
-      // 计算仓位大小（基于止损距离和最大损失金额）
-      const quantity = this.calculatePositionSize(currentPrice, result.signal, stopLoss, maxLossAmount);
+        // 计算仓位大小（基于止损距离和最大损失金额）
+        quantity = this.calculatePositionSize(currentPrice, result.signal, stopLoss, maxLossAmount);
 
-      // 计算杠杆和保证金
-      const stopDistance = Math.abs(currentPrice - stopLoss);
-      const stopDistancePct = stopDistance / currentPrice;
-      const maxLeverage = Math.floor(1 / (stopDistancePct + 0.005)); // 加0.5%缓冲
-      const leverage = result.leverage || Math.min(maxLeverage, 20); // 最大20倍杠杆
-      const margin_used = result.margin || (quantity * currentPrice / leverage);
+        // 计算杠杆和保证金
+        const stopDistance = Math.abs(currentPrice - stopLoss);
+        const stopDistancePct = stopDistance / currentPrice;
+        const maxLeverage = Math.floor(1 / (stopDistancePct + 0.005)); // 加0.5%缓冲
+        leverage = result.leverage || Math.min(maxLeverage, 20); // 最大20倍杠杆
+        margin_used = result.margin || (quantity * currentPrice / leverage);
+      }
 
       // 创建交易数据
       const tradeData = {
