@@ -230,7 +230,7 @@ class BacktestStrategyEngineV3 {
           
           // 回撤检查 - 在开仓前检查是否超过最大回撤限制
           const currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-          const maxDrawdownLimit = 0.05; // 临时设置为5%进行测试
+          const maxDrawdownLimit = 0.08; // 设置为8%进行回撤控制
           
           logger.info(`${symbol} ICT回撤检查: 当前回撤=${(currentDrawdown*100).toFixed(2)}%, 限制=${(maxDrawdownLimit*100).toFixed(1)}%, 峰值权益=${peakEquity}, 当前权益=${currentEquity}`);
           
