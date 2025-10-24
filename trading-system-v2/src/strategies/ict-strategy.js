@@ -1716,24 +1716,52 @@ class ICTStrategy {
           const cacheKey = `ict_trade_${symbol}`;
           const existingTrade = this.cache ? await this.cache.get(cacheKey) : null;
 
-          if (!existingTrade && hasValidOrderBlock) {
-            // 使用最新的有效订单块
-            const latestOrderBlock = validOrderBlocks[validOrderBlocks.length - 1];
-
-            // 计算新的交易参数（使用文档要求的方法）
-            tradeParams = await this.calculateTradeParameters(
-              symbol,
-              dailyTrend.trend,
-              {
-                engulfing,
-                sweepHTF,
-                sweepLTF,
-                volumeExpansion
-              },
-              latestOrderBlock,
-              klines4H,
-              atr4H[atr4H.length - 1]
-            );
+          if (!existingTrade) {
+            // 计算新的交易参数
+            if (hasValidOrderBlock) {
+              // 使用最新的有效订单块
+              const latestOrderBlock = validOrderBlocks[validOrderBlocks.length - 1];
+              logger.info(`${symbol} ICT策略: 使用有效订单块计算交易参数`);
+              
+              tradeParams = await this.calculateTradeParameters(
+                symbol,
+                dailyTrend.trend,
+                {
+                  engulfing,
+                  sweepHTF,
+                  sweepLTF,
+                  volumeExpansion
+                },
+                latestOrderBlock,
+                klines4H,
+                atr4H[atr4H.length - 1]
+              );
+            } else {
+              // 没有有效订单块时，使用基本参数计算
+              logger.info(`${symbol} ICT策略: 无有效订单块，使用基本参数计算`);
+              
+              // 创建虚拟订单块用于参数计算
+              const currentPrice = parseFloat(klines15m[klines15m.length - 1][4]);
+              const virtualOrderBlock = {
+                high: currentPrice * 1.01,
+                low: currentPrice * 0.99,
+                type: dailyTrend.trend === 'UP' ? 'BULLISH' : 'BEARISH'
+              };
+              
+              tradeParams = await this.calculateTradeParameters(
+                symbol,
+                dailyTrend.trend,
+                {
+                  engulfing,
+                  sweepHTF,
+                  sweepLTF,
+                  volumeExpansion
+                },
+                virtualOrderBlock,
+                klines4H,
+                atr4H[atr4H.length - 1]
+              );
+            }
 
             // 缓存交易参数（5分钟过期）
             if (this.cache && tradeParams.entry > 0) {
@@ -1742,6 +1770,7 @@ class ICTStrategy {
           } else if (existingTrade) {
             // 使用现有交易参数
             tradeParams = JSON.parse(existingTrade);
+            logger.info(`${symbol} ICT策略: 使用缓存的交易参数`);
           }
         } catch (error) {
           logger.error(`ICT交易参数计算失败: ${error.message}`);
