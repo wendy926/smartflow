@@ -240,7 +240,7 @@ class BacktestStrategyEngineV3 {
             const risk = stopDistance;
 
             // ✅ 从参数中获取止盈倍数，默认5.0
-            const takeProfitRatio = params?.risk_management?.takeProfitRatio || 5.0;
+            const takeProfitRatio = params?.risk_management?.takeProfitRatio || 3.5;
             takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
 
             const actualRR = takeProfitRatio / atrMultiplier;
@@ -526,7 +526,7 @@ class BacktestStrategyEngineV3 {
             const risk = stopDistance;
 
             // ✅ 从参数中获取止盈倍数，默认5.0
-            const takeProfitRatio = params?.risk_management?.takeProfitRatio || 5.0;
+            const takeProfitRatio = params?.risk_management?.takeProfitRatio || 3.5;
             takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
 
             const actualRR = takeProfitRatio / atrMultiplier;
