@@ -723,7 +723,13 @@ class ICTStrategy {
 
       const currentPrice = parseFloat(klines15m[klines15m.length - 1][4]); // 收盘价
       const equity = 10000; // 默认资金总额
-      const riskPct = 0.01; // 1%风险
+      
+      // 风险管理参数 - 从数据库配置获取
+      const maxDrawdownLimit = this.getThreshold('risk', 'maxDrawdownLimit', 0.15); // 最大回撤限制15%
+      const maxSingleLoss = this.getThreshold('risk', 'maxSingleLoss', 0.02); // 单笔最大损失2%
+      const riskPct = this.getThreshold('risk', 'riskPercent', 0.01); // 风险百分比1%
+      
+      logger.info(`${symbol} ICT风险管理: 最大回撤限制=${(maxDrawdownLimit*100).toFixed(1)}%, 单笔最大损失=${(maxSingleLoss*100).toFixed(1)}%, 风险百分比=${(riskPct*100).toFixed(1)}%`);
 
       // 计算入场价格（当前价格）
       const entry = currentPrice;
@@ -758,21 +764,41 @@ class ICTStrategy {
 
       // ICT策略使用结构止损
       const stopLoss = structuralStopLoss;
+      
+      // 风险管理检查
+      const stopDistance = Math.abs(entry - stopLoss);
+      const stopDistancePct = stopDistance / entry;
+      
+      // 检查止损距离是否过大（超过单笔最大损失限制）
+      if (stopDistancePct > maxSingleLoss) {
+        logger.warn(`${symbol} ICT策略: 止损距离过大${(stopDistancePct*100).toFixed(2)}%，超过单笔最大损失限制${(maxSingleLoss*100).toFixed(1)}%，跳过交易`);
+        return { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
+      }
+      
+      // 计算最大允许仓位大小
+      const maxLossAmount = equity * maxSingleLoss;
+      const maxPositionSize = maxLossAmount / stopDistance;
+      const adjustedRiskPct = Math.min(riskPct, maxSingleLoss / stopDistancePct);
 
-      // ✅ 使用新的仓位管理器计算头寸
+      // ✅ 使用新的仓位管理器计算头寸（应用风险控制）
       const sizing = ICTPositionManager.calculatePositionSize({
         accountBalance: equity,
-        riskPercent: riskPct,
+        riskPercent: adjustedRiskPct,
         entryPrice: entry,
         stopPrice: stopLoss
       });
+      
+      // 限制仓位大小
+      const finalQty = Math.min(sizing.qty, maxPositionSize);
+      
+      logger.info(`${symbol} ICT风险控制: 止损距离=${(stopDistancePct*100).toFixed(2)}%, 最大损失=${maxLossAmount.toFixed(2)}, 调整后风险=${(adjustedRiskPct*100).toFixed(2)}%, 最终仓位=${finalQty.toFixed(4)}`);
 
-      // ✅ 构建交易计划（分层止盈）
+      // ✅ 构建交易计划（分层止盈）- 使用风险控制后的仓位大小
       const plan = ICTPositionManager.buildTradePlan({
         direction: trend === 'UP' ? 'long' : 'short',
         entryPrice: entry,
         stopPrice: stopLoss,
-        qty: sizing.qty,
+        qty: finalQty, // 使用风险控制后的仓位大小
         profitMultipliers: [2, 3] // TP1=2R, TP2=3R
       });
 

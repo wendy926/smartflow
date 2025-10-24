@@ -700,6 +700,13 @@ class V3Strategy {
 
       const entryPrice = currentPrice;
       let leverage = 1;
+      
+      // 风险管理参数 - 从数据库配置获取
+      const maxDrawdownLimit = this.getThreshold('risk', 'maxDrawdownLimit', 0.15); // 最大回撤限制15%
+      const maxSingleLoss = this.getThreshold('risk', 'maxSingleLoss', 0.02); // 单笔最大损失2%
+      const riskPct = this.getThreshold('risk', 'riskPercent', 0.01); // 风险百分比1%
+      
+      logger.info(`${symbol} V3风险管理: 最大回撤限制=${(maxDrawdownLimit*100).toFixed(1)}%, 单笔最大损失=${(maxSingleLoss*100).toFixed(1)}%, 风险百分比=${(riskPct*100).toFixed(1)}%`);
 
       // 使用持仓时长管理器计算止损止盈
       const PositionDurationManager = require('../utils/position-duration-manager');
@@ -710,15 +717,27 @@ class V3Strategy {
       const stopLoss = stopLossConfig.stopLoss;
       const takeProfit = stopLossConfig.takeProfit;
 
-      // 按照文档计算杠杆和保证金
-      // 止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
+      // 风险管理检查
       const isLong = signal === 'BUY';
       const stopLossDistance = isLong
         ? (entryPrice - stopLoss) / entryPrice  // 多头
         : (stopLoss - entryPrice) / entryPrice; // 空头
       const stopLossDistanceAbs = Math.abs(stopLossDistance);
+      
+      // 检查止损距离是否过大（超过单笔最大损失限制）
+      if (stopLossDistanceAbs > maxSingleLoss) {
+        logger.warn(`${symbol} V3策略: 止损距离过大${(stopLossDistanceAbs*100).toFixed(2)}%，超过单笔最大损失限制${(maxSingleLoss*100).toFixed(1)}%，跳过交易`);
+        return { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
+      }
+      
+      // 计算最大允许损失金额
+      const equity = 10000; // 默认资金总额
+      const maxLossAmount = equity * maxSingleLoss;
+      
+      logger.info(`${symbol} V3风险控制: 止损距离=${(stopLossDistanceAbs*100).toFixed(2)}%, 最大损失=${maxLossAmount.toFixed(2)}, 风险百分比=${(riskPct*100).toFixed(1)}%`);
 
-      const maxLossAmount = 100; // 默认最大损失金额
+      // 按照文档计算杠杆和保证金
+      // 止损距离X%：多头：(entrySignal - stopLoss) / entrySignal，空头：(stopLoss - entrySignal) / entrySignal
 
       // 最大杠杆数Y：1/(X%+0.5%) 数值向下取整
       const calculatedMaxLeverage = Math.floor(1 / (stopLossDistanceAbs + 0.005));
