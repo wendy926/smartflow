@@ -802,8 +802,7 @@ class ICTStrategy {
         profitMultipliers: [2, 3] // TP1=2R, TP2=3R
       });
 
-      // 计算杠杆和保证金（使用已计算的stopDistance）
-      const stopDistancePct = stopDistance / entry;
+      // 计算杠杆和保证金（使用已计算的stopDistance和stopDistancePct）
       const calculatedMaxLeverage = Math.floor(1 / (stopDistancePct + 0.005));
 
       // ✅ 确保杠杆不超过24倍
