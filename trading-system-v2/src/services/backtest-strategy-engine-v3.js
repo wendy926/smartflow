@@ -152,13 +152,7 @@ class BacktestStrategyEngineV3 {
     const trades = [];
     let position = null;
     let lastSignal = null;
-
-    // 独立的回撤跟踪状态
-    let peakEquity = 10000; // 峰值权益
-    let currentEquity = 10000; // 当前权益
-    let maxDrawdown = 0; // 最大回撤
-    let tradingPaused = false; // 交易暂停标志
-
+    
     console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 开始回测，K线数量=${klines.length}`);
     console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 使用策略内部风险管理`);
 
@@ -228,24 +222,6 @@ class BacktestStrategyEngineV3 {
         // 检查开仓信号
         if (!position && (signal === 'BUY' || signal === 'SELL')) {
 
-          // 回撤检查 - 在开仓前检查是否超过最大回撤限制
-          const currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-          const maxDrawdownLimit = 0.08; // 设置为8%进行回撤控制
-
-          logger.info(`${symbol} ICT回撤检查: 当前回撤=${(currentDrawdown * 100).toFixed(2)}%, 限制=${(maxDrawdownLimit * 100).toFixed(1)}%, 峰值权益=${peakEquity}, 当前权益=${currentEquity}`);
-
-          if (currentDrawdown > maxDrawdownLimit) {
-            logger.warn(`${symbol} ICT策略: 当前回撤${(currentDrawdown * 100).toFixed(2)}%超过限制${(maxDrawdownLimit * 100).toFixed(1)}%，跳过开仓`);
-            tradingPaused = true;
-            continue;
-          }
-
-          // 如果交易被暂停，检查是否可以恢复
-          if (tradingPaused && currentDrawdown < maxDrawdownLimit * 0.5) {
-            logger.info(`${symbol} ICT策略: 回撤降低到${(currentDrawdown * 100).toFixed(2)}%，恢复交易`);
-            tradingPaused = false;
-          }
-
           // 开仓
           const direction = signal === 'BUY' ? 'LONG' : 'SHORT';
           const entryPrice = currentPrice;
@@ -308,21 +284,10 @@ class BacktestStrategyEngineV3 {
           // 信号反转，平仓
           const trade = this.closePosition(position, currentPrice, '信号反转');
           trades.push(trade);
-
-          // 更新独立的回撤状态
-          currentEquity += trade.pnl;
-          if (currentEquity > peakEquity) {
-            peakEquity = currentEquity;
-          }
-          const currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-          if (currentDrawdown > maxDrawdown) {
-            maxDrawdown = currentDrawdown;
-          }
-          logger.info(`${symbol} ICT回撤更新: 当前权益=${currentEquity.toFixed(2)}, 峰值权益=${peakEquity.toFixed(2)}, 当前回撤=${(currentDrawdown * 100).toFixed(2)}%, 最大回撤=${(maxDrawdown * 100).toFixed(2)}%`);
-
-          // 同时更新策略实例的回撤状态（保持同步）
+          
+          // 更新策略实例的回撤状态
           this.ictStrategy.updateDrawdownStatus(trade.pnl);
-
+          
           position = null;
           lastSignal = null;
         }
@@ -352,23 +317,12 @@ class BacktestStrategyEngineV3 {
           if (shouldExit) {
             const trade = this.closePosition(position, nextPrice, exitReason);
             trades.push(trade);
-
-            // 更新独立的回撤状态
-            currentEquity += trade.pnl;
-            if (currentEquity > peakEquity) {
-              peakEquity = currentEquity;
-            }
-            const currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-            if (currentDrawdown > maxDrawdown) {
-              maxDrawdown = currentDrawdown;
-            }
-            logger.info(`${symbol} ICT回撤更新: 当前权益=${currentEquity.toFixed(2)}, 峰值权益=${peakEquity.toFixed(2)}, 当前回撤=${(currentDrawdown * 100).toFixed(2)}%, 最大回撤=${(maxDrawdown * 100).toFixed(2)}%`);
-
-            // 同时更新策略实例的回撤状态（保持同步）
+            
+            // 更新策略实例的回撤状态
             this.ictStrategy.updateDrawdownStatus(trade.pnl);
-
+            
             console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 平仓 ${exitReason}, PnL=${trade.pnl.toFixed(2)}`);
-
+            
             position = null;
             lastSignal = null;
           }
@@ -383,19 +337,8 @@ class BacktestStrategyEngineV3 {
       const lastKline = klines[klines.length - 1];
       const trade = this.closePosition(position, lastKline[4], '回测结束');
       trades.push(trade);
-
-      // 更新独立的回撤状态
-      currentEquity += trade.pnl;
-      if (currentEquity > peakEquity) {
-        peakEquity = currentEquity;
-      }
-      const currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-      if (currentDrawdown > maxDrawdown) {
-        maxDrawdown = currentDrawdown;
-      }
-      logger.info(`${symbol} ICT回撤更新: 当前权益=${currentEquity.toFixed(2)}, 峰值权益=${peakEquity.toFixed(2)}, 当前回撤=${(currentDrawdown * 100).toFixed(2)}%, 最大回撤=${(maxDrawdown * 100).toFixed(2)}%`);
-
-      // 同时更新策略实例的回撤状态（保持同步）
+      
+      // 更新策略实例的回撤状态
       this.ictStrategy.updateDrawdownStatus(trade.pnl);
     }
 
@@ -418,12 +361,6 @@ class BacktestStrategyEngineV3 {
     let lastSignal = null;
 
     // 使用策略内部风险管理
-
-    // 独立的回撤跟踪状态
-    let peakEquity = 10000; // 峰值权益
-    let currentEquity = 10000; // 当前权益
-    let maxDrawdown = 0; // 最大回撤
-    let tradingPaused = false; // 交易暂停标志
 
     // 添加假突破过滤统计
     let totalSignals = 0;
@@ -569,24 +506,6 @@ class BacktestStrategyEngineV3 {
         // 检查开仓信号
         if (!position && (signal === 'BUY' || signal === 'SELL')) {
 
-          // 回撤检查 - 在开仓前检查是否超过最大回撤限制
-          const currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-          const maxDrawdownLimit = 0.08; // 设置为8%进行回撤控制
-
-          logger.info(`${symbol} V3回撤检查: 当前回撤=${(currentDrawdown * 100).toFixed(2)}%, 限制=${(maxDrawdownLimit * 100).toFixed(1)}%, 峰值权益=${peakEquity}, 当前权益=${currentEquity}`);
-
-          if (currentDrawdown > maxDrawdownLimit) {
-            logger.warn(`${symbol} V3策略: 当前回撤${(currentDrawdown * 100).toFixed(2)}%超过限制${(maxDrawdownLimit * 100).toFixed(1)}%，跳过开仓`);
-            tradingPaused = true;
-            continue;
-          }
-
-          // 如果交易被暂停，检查是否可以恢复
-          if (tradingPaused && currentDrawdown < maxDrawdownLimit * 0.5) {
-            logger.info(`${symbol} V3策略: 回撤降低到${(currentDrawdown * 100).toFixed(2)}%，恢复交易`);
-            tradingPaused = false;
-          }
-
           // 统计假突破过滤结果
           if (v3Result.filterResult) {
             if (v3Result.filterResult.passed) {
@@ -668,21 +587,10 @@ class BacktestStrategyEngineV3 {
           // 信号反转，平仓
           const trade = this.closePosition(position, currentPrice, '信号反转');
           trades.push(trade);
-
-          // 更新独立的回撤状态
-          currentEquity += trade.pnl;
-          if (currentEquity > peakEquity) {
-            peakEquity = currentEquity;
-          }
-          const currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-          if (currentDrawdown > maxDrawdown) {
-            maxDrawdown = currentDrawdown;
-          }
-          logger.info(`${symbol} V3回撤更新: 当前权益=${currentEquity.toFixed(2)}, 峰值权益=${peakEquity.toFixed(2)}, 当前回撤=${(currentDrawdown * 100).toFixed(2)}%, 最大回撤=${(maxDrawdown * 100).toFixed(2)}%`);
-
-          // 同时更新策略实例的回撤状态（保持同步）
+          
+          // 更新策略实例的回撤状态
           this.v3Strategy.updateDrawdownStatus(trade.pnl);
-
+          
           position = null;
           lastSignal = null;
         }
@@ -712,21 +620,10 @@ class BacktestStrategyEngineV3 {
           if (shouldExit) {
             const trade = this.closePosition(position, nextPrice, exitReason);
             trades.push(trade);
-
-            // 更新独立的回撤状态
-            currentEquity += trade.pnl;
-            if (currentEquity > peakEquity) {
-              peakEquity = currentEquity;
-            }
-            const currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-            if (currentDrawdown > maxDrawdown) {
-              maxDrawdown = currentDrawdown;
-            }
-            logger.info(`${symbol} V3回撤更新: 当前权益=${currentEquity.toFixed(2)}, 峰值权益=${peakEquity.toFixed(2)}, 当前回撤=${(currentDrawdown * 100).toFixed(2)}%, 最大回撤=${(maxDrawdown * 100).toFixed(2)}%`);
-
-            // 同时更新策略实例的回撤状态（保持同步）
+            
+            // 更新策略实例的回撤状态
             this.v3Strategy.updateDrawdownStatus(trade.pnl);
-
+            
             position = null;
             lastSignal = null;
           }
@@ -741,19 +638,8 @@ class BacktestStrategyEngineV3 {
       const lastKline = klines[klines.length - 1];
       const trade = this.closePosition(position, lastKline[4], '回测结束');
       trades.push(trade);
-
-      // 更新独立的回撤状态
-      currentEquity += trade.pnl;
-      if (currentEquity > peakEquity) {
-        peakEquity = currentEquity;
-      }
-      const currentDrawdown = (peakEquity - currentEquity) / peakEquity;
-      if (currentDrawdown > maxDrawdown) {
-        maxDrawdown = currentDrawdown;
-      }
-      logger.info(`${symbol} V3回撤更新: 当前权益=${currentEquity.toFixed(2)}, 峰值权益=${peakEquity.toFixed(2)}, 当前回撤=${(currentDrawdown * 100).toFixed(2)}%, 最大回撤=${(maxDrawdown * 100).toFixed(2)}%`);
-
-      // 同时更新策略实例的回撤状态（保持同步）
+      
+      // 更新策略实例的回撤状态
       this.v3Strategy.updateDrawdownStatus(trade.pnl);
     }
 
