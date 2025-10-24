@@ -284,6 +284,10 @@ class BacktestStrategyEngineV3 {
           // 信号反转，平仓
           const trade = this.closePosition(position, currentPrice, '信号反转');
           trades.push(trade);
+          
+          // 更新ICT策略的回撤状态
+          this.ictStrategy.updateDrawdownStatus(trade.pnl);
+          
           position = null;
           lastSignal = null;
         }
@@ -333,6 +337,9 @@ class BacktestStrategyEngineV3 {
       const lastKline = klines[klines.length - 1];
       const trade = this.closePosition(position, lastKline[4], '回测结束');
       trades.push(trade);
+      
+      // 更新ICT策略的回撤状态
+      this.ictStrategy.updateDrawdownStatus(trade.pnl);
     }
 
     logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 生成交易=${trades.length}`);
@@ -579,6 +586,10 @@ class BacktestStrategyEngineV3 {
           // 信号反转，平仓
           const trade = this.closePosition(position, currentPrice, '信号反转');
           trades.push(trade);
+          
+          // 更新V3策略的回撤状态
+          this.v3Strategy.updateDrawdownStatus(trade.pnl);
+          
           position = null;
           lastSignal = null;
         }
@@ -608,6 +619,10 @@ class BacktestStrategyEngineV3 {
           if (shouldExit) {
             const trade = this.closePosition(position, nextPrice, exitReason);
             trades.push(trade);
+            
+            // 更新V3策略的回撤状态
+            this.v3Strategy.updateDrawdownStatus(trade.pnl);
+            
             position = null;
             lastSignal = null;
           }
@@ -622,6 +637,9 @@ class BacktestStrategyEngineV3 {
       const lastKline = klines[klines.length - 1];
       const trade = this.closePosition(position, lastKline[4], '回测结束');
       trades.push(trade);
+      
+      // 更新V3策略的回撤状态
+      this.v3Strategy.updateDrawdownStatus(trade.pnl);
     }
 
     // 输出假突破过滤统计
