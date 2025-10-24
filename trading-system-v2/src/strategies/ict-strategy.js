@@ -622,14 +622,22 @@ class ICTStrategy {
    * @returns {number} 止损价格
    */
   calculateStructuralStopLoss(trend, orderBlock, klines4H, sweepResult) {
+    logger.info(`ICT结构止损计算: 趋势=${trend}, 4H数据长度=${klines4H ? klines4H.length : 'undefined'}`);
+    
     if (!klines4H || klines4H.length < 6) {
+      logger.warn(`ICT结构止损: 4H数据不足，长度=${klines4H ? klines4H.length : 'undefined'}，返回0`);
       return 0;
     }
 
     // 根据@ict-optimize.md建议：使用4H ATR × 2.5作为止损距离
     const atr4H = this.calculateATR(klines4H, 14);
+    logger.info(`ICT结构止损: ATR计算结果长度=${atr4H ? atr4H.length : 'undefined'}`);
+    
     const currentATR = atr4H && atr4H.length > 0 ? atr4H[atr4H.length - 1] : 0;
+    logger.info(`ICT结构止损: 当前ATR=${currentATR}, 是否为null=${currentATR === null}, 是否为undefined=${currentATR === undefined}`);
+    
     const stopDistance = currentATR * 2.5; // 4H ATR × 2.5
+    logger.info(`ICT结构止损: 止损距离=${stopDistance}`);
 
     if (trend === 'UP') {
       // 上升趋势：入场价 - 4H ATR × 2.5
@@ -796,12 +804,16 @@ class ICTStrategy {
       logger.info(`${symbol} ICT持仓配置: ${durationConfig.category} ${marketType}市, 最大持仓=${ictConfig.maxHoldingHours}小时, 时间止损=${ictConfig.timeStopMinutes}分钟`);
 
       // 计算ICT结构止损
+      logger.info(`${symbol} ICT交易参数计算开始: 趋势=${trend}, 4H数据长度=${klines4H ? klines4H.length : 'undefined'}`);
+      
       const structuralStopLoss = this.calculateStructuralStopLoss(
         trend,
         orderBlock,
         klines4H,
         signals.sweepHTF
       );
+
+      logger.info(`${symbol} ICT结构止损计算结果: ${structuralStopLoss}`);
 
       // ICT策略使用结构止损
       const stopLoss = structuralStopLoss;
