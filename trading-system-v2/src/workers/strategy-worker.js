@@ -53,12 +53,15 @@ class StrategyWorker {
 
         // 2. 执行V3策略分析
         const v3Result = await this.v3Strategy.execute(symbol);
-        logger.info(`V3策略分析完成: ${symbol} - ${v3Result.signal}`);
+        if (v3Result.signal !== 'WATCH') {
+          logger.info(`V3策略信号: ${symbol} - ${v3Result.signal}`);
+        }
 
         // 3. 执行ICT策略分析
-        logger.info(`开始执行ICT策略分析: ${symbol}`);
         const ictResult = await this.ictStrategy.execute(symbol);
-        logger.info(`ICT策略分析完成: ${symbol} - ${ictResult.signal}`);
+        if (ictResult.signal !== 'WATCH') {
+          logger.info(`ICT策略信号: ${symbol} - ${ictResult.signal}`);
+        }
 
         // 4. 根据策略信号创建交易
         await this.handleStrategySignals(symbol, v3Result, ictResult);

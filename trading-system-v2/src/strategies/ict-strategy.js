@@ -924,7 +924,7 @@ class ICTStrategy {
         await this.initializeParameters();
       }
 
-      logger.info(`Executing ICT strategy for ${symbol}`);
+      // logger.info(`Executing ICT strategy for ${symbol}`); // 减少日志输出
 
       // ==================== ADX过滤（震荡市过滤）====================
       if (this.params.filters?.adxEnabled) {
