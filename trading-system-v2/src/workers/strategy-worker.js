@@ -56,6 +56,7 @@ class StrategyWorker {
         logger.info(`V3策略分析完成: ${symbol} - ${v3Result.signal}`);
 
         // 3. 执行ICT策略分析
+        logger.info(`开始执行ICT策略分析: ${symbol}`);
         const ictResult = await this.ictStrategy.execute(symbol);
         logger.info(`ICT策略分析完成: ${symbol} - ${ictResult.signal}`);
 
