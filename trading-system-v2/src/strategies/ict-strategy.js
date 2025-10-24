@@ -45,7 +45,12 @@ class ICTStrategy {
       this.paramLoader = new StrategyParameterLoader(dbConnection);
 
       // 加载BALANCED模式参数
+      logger.info('[ICT策略] 开始加载参数...');
       this.params = await this.paramLoader.loadParameters('ICT', 'BALANCED');
+      logger.info('[ICT策略] 参数加载结果:', {
+        paramGroups: Object.keys(this.params).length,
+        params: this.params
+      });
 
       logger.info('[ICT策略] 参数加载完成', {
         paramGroups: Object.keys(this.params).length,
