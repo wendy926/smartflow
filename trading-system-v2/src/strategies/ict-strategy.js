@@ -22,6 +22,12 @@ class ICTStrategy {
     this.paramLoader = null;
     this.params = {};
 
+    // 回撤跟踪属性
+    this.peakEquity = 10000; // 峰值权益
+    this.currentEquity = 10000; // 当前权益
+    this.maxDrawdown = 0; // 最大回撤
+    this.tradingPaused = false; // 交易暂停标志
+
     // 异步初始化参数
     this.initializeParameters();
   }
@@ -72,6 +78,27 @@ class ICTStrategy {
     }
 
     return value;
+  }
+
+  /**
+   * 更新回撤状态
+   * @param {number} pnl - 交易盈亏
+   */
+  updateDrawdownStatus(pnl) {
+    this.currentEquity += pnl;
+    
+    // 更新峰值权益
+    if (this.currentEquity > this.peakEquity) {
+      this.peakEquity = this.currentEquity;
+    }
+    
+    // 计算当前回撤
+    const currentDrawdown = (this.peakEquity - this.currentEquity) / this.peakEquity;
+    if (currentDrawdown > this.maxDrawdown) {
+      this.maxDrawdown = currentDrawdown;
+    }
+    
+    logger.info(`ICT策略回撤更新: 当前权益=${this.currentEquity.toFixed(2)}, 峰值权益=${this.peakEquity.toFixed(2)}, 当前回撤=${(currentDrawdown*100).toFixed(2)}%, 最大回撤=${(this.maxDrawdown*100).toFixed(2)}%`);
   }
 
   /**
@@ -729,7 +756,21 @@ class ICTStrategy {
       const maxSingleLoss = this.getThreshold('risk', 'maxSingleLoss', 0.02); // 单笔最大损失2%
       const riskPct = this.getThreshold('risk', 'riskPercent', 0.01); // 风险百分比1%
       
-      logger.info(`${symbol} ICT风险管理: 最大回撤限制=${(maxDrawdownLimit*100).toFixed(1)}%, 单笔最大损失=${(maxSingleLoss*100).toFixed(1)}%, 风险百分比=${(riskPct*100).toFixed(1)}%`);
+      // 回撤检查 - 如果超过最大回撤限制，暂停交易
+      const currentDrawdown = (this.peakEquity - this.currentEquity) / this.peakEquity;
+      if (currentDrawdown > maxDrawdownLimit) {
+        logger.warn(`${symbol} ICT策略: 当前回撤${(currentDrawdown*100).toFixed(2)}%超过限制${(maxDrawdownLimit*100).toFixed(1)}%，暂停交易`);
+        this.tradingPaused = true;
+        return { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
+      }
+      
+      // 如果交易被暂停，检查是否可以恢复
+      if (this.tradingPaused && currentDrawdown < maxDrawdownLimit * 0.5) {
+        logger.info(`${symbol} ICT策略: 回撤降低到${(currentDrawdown*100).toFixed(2)}%，恢复交易`);
+        this.tradingPaused = false;
+      }
+      
+      logger.info(`${symbol} ICT风险管理: 最大回撤限制=${(maxDrawdownLimit*100).toFixed(1)}%, 单笔最大损失=${(maxSingleLoss*100).toFixed(1)}%, 风险百分比=${(riskPct*100).toFixed(1)}%, 当前回撤=${(currentDrawdown*100).toFixed(2)}%`);
 
       // 计算入场价格（当前价格）
       const entry = currentPrice;

@@ -314,6 +314,9 @@ class BacktestStrategyEngineV3 {
             const trade = this.closePosition(position, nextPrice, exitReason);
             trades.push(trade);
             
+            // 更新ICT策略的回撤状态
+            this.ictStrategy.updateDrawdownStatus(trade.pnl);
+            
             console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 平仓 ${exitReason}, PnL=${trade.pnl.toFixed(2)}`);
             
             position = null;
