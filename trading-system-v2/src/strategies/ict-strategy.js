@@ -237,7 +237,7 @@ class ICTStrategy {
     const dataStartTime = parseFloat(klines[0][0]);
     const dataEndTime = parseFloat(klines[klines.length - 1][0]);
     const dataDurationMs = dataEndTime - dataStartTime;
-    const maxAgeMs = Math.min(maxAgeDays * 24 * 60 * 60 * 1000, dataDurationMs * 0.3); // 最多使用30%的数据时长
+    const maxAgeMs = Math.min(maxAgeDays * 24 * 60 * 60 * 1000, dataDurationMs * 0.6); // 最多使用60%的数据时长
 
     logger.info(`[ICT订单块检测] 年龄限制调整: 数据时长=${(dataDurationMs / (24 * 60 * 60 * 1000)).toFixed(1)}天, 最大年龄=${(maxAgeMs / (24 * 60 * 60 * 1000)).toFixed(1)}天`);
 
@@ -283,17 +283,17 @@ class ICTStrategy {
       // 1. 高度过滤：OB高度 >= 0.25 × ATR(4H)（提升质量要求）
       // 2. 价格稳定性：窗口内价格范围相对较小
       // 3. 成交量集中：最后两根K线成交量大于平均值
-      const heightValid = obHeight >= 0.25 * atr4H; // 从0.15提升到0.25，提高质量
-      const priceStable = obHeight / avgPrice <= 0.03; // 保持3%的价格稳定性
+      const heightValid = obHeight >= 0.15 * atr4H; // 降低到0.15，增加订单块数量
+      const priceStable = obHeight / avgPrice <= 0.08; // 放宽到8%的价格稳定性
 
       // 检查最后两根K线的成交量是否集中
       const lastTwoVolumes = window.slice(-2).map(k => parseFloat(k[5]));
-      const volumeConcentrated = lastTwoVolumes.every(vol => vol >= avgVolume * 0.8); // 从60%提升到80%，提高质量
+      const volumeConcentrated = lastTwoVolumes.every(vol => vol >= avgVolume * 0.6); // 降低到60%，增加订单块数量
 
       // 添加订单块检测调试日志
       if (i % 5 === 0) { // 每5个窗口输出一次日志
         const heightThreshold = 0.15 * atr4H;
-        const priceThreshold = 0.03;
+        const priceThreshold = 0.08;
         const volumeThreshold = 0.6;
         logger.info(`[ICT订单块检测] 窗口${i}: 高度=${obHeight.toFixed(2)}/${heightThreshold.toFixed(2)}, 价格稳定=${(obHeight / avgPrice * 100).toFixed(2)}%/${priceThreshold * 100}%, 成交量集中=${volumeConcentrated}, 高度有效=${heightValid}, 价格稳定=${priceStable}`);
       }
@@ -921,7 +921,7 @@ class ICTStrategy {
 
         if (klines15mForADX && klines15mForADX.length >= 15) {
           const adxPeriod = this.params.filters.adxPeriod || 14;
-          const adxThreshold = this.params.filters.adxMinThreshold || 20;
+          const adxThreshold = this.params.filters.adxMinThreshold || 5;
           const adx = ADXCalculator.calculateADX(klines15mForADX, adxPeriod);
 
           logger.info(`[ICT-ADX] ${symbol} ADX=${adx?.toFixed(2) || 'N/A'}, 阈值=${adxThreshold}`);

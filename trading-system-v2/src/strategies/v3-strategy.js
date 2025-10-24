@@ -1115,7 +1115,7 @@ class V3Strategy {
 
         if (klines15mForADX && klines15mForADX.length >= 15) {
           const adxPeriod = this.params.filters.adxPeriod || 14;
-          const adxThreshold = this.params.filters.adxMinThreshold || 20;
+          const adxThreshold = this.params.filters.adxMinThreshold || 5;
           const adx = ADXCalculator.calculateADX(klines15mForADX, adxPeriod);
 
           if (ADXCalculator.shouldFilter(adx, adxThreshold)) {
