@@ -226,6 +226,8 @@ class BacktestStrategyEngineV3 {
           const currentDrawdown = (this.ictStrategy.peakEquity - this.ictStrategy.currentEquity) / this.ictStrategy.peakEquity;
           const maxDrawdownLimit = this.ictStrategy.getThreshold('risk', 'maxDrawdownLimit', 0.15);
           
+          logger.info(`${symbol} ICT回撤检查: 当前回撤=${(currentDrawdown*100).toFixed(2)}%, 限制=${(maxDrawdownLimit*100).toFixed(1)}%, 峰值权益=${this.ictStrategy.peakEquity}, 当前权益=${this.ictStrategy.currentEquity}`);
+          
           if (currentDrawdown > maxDrawdownLimit) {
             logger.warn(`${symbol} ICT策略: 当前回撤${(currentDrawdown*100).toFixed(2)}%超过限制${(maxDrawdownLimit*100).toFixed(1)}%，跳过开仓`);
             this.ictStrategy.tradingPaused = true;
