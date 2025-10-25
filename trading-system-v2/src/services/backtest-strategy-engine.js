@@ -128,11 +128,11 @@ class BacktestStrategyEngine {
     // 获取模式调整系数
     const modeMultiplier = this.getModeMultiplier(mode);
 
-    // 使用更保守的止损止盈逻辑，确保盈亏比至少2:1
-    const stopLossMultiplier = params.risk?.stopLossMultiplier || 1.5; // 降低止损倍数
-    const takeProfitMultiplier = params.risk?.takeProfitMultiplier || 3.0; // 保持止盈倍数，确保2:1盈亏比
+    // ✅ 使用与实盘一致的止损止盈逻辑：4H ATR × 2.5
+    const stopLossMultiplier = params.risk?.stopLossMultiplier || 2.5; // 与实际运行一致：4H ATR × 2.5
+    const takeProfitMultiplier = params.risk?.takeProfitMultiplier || 3.5; // 与实际运行一致：止损距离 × 3.5
 
-    logger.info(`[策略回测引擎] ${symbol} ICT-${mode}: 模式系数=${modeMultiplier}, 止损倍数=${stopLossMultiplier}, 止盈倍数=${takeProfitMultiplier}`);
+    logger.info(`[策略回测引擎] ${symbol} ICT-${mode}: 模式系数=${modeMultiplier}, 止损倍数=${stopLossMultiplier}(4H ATR), 止盈倍数=${takeProfitMultiplier}`);
 
     // 遍历K线，模拟交易
     let signalCount = 0;
