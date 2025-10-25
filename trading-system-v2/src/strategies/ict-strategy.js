@@ -1727,6 +1727,7 @@ class ICTStrategy {
 
       // 8. 计算交易参数（只在信号为BUY或SELL时计算）
       let tradeParams = { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
+      logger.info(`${symbol} ICT策略: 信号=${signal}, 将计算交易参数: ${signal === 'BUY' || signal === 'SELL'}`);
       if (signal === 'BUY' || signal === 'SELL') {
         try {
           // 检查是否已有交易
@@ -1779,6 +1780,8 @@ class ICTStrategy {
                 atr4H[atr4H.length - 1]
               );
             }
+            
+            logger.info(`${symbol} ICT策略: 计算完成, tradeParams.entry=${tradeParams.entry}, stopLoss=${tradeParams.stopLoss}, takeProfit=${tradeParams.takeProfit}`);
 
             // 缓存交易参数（5分钟过期）
             if (this.cache && tradeParams.entry > 0) {
