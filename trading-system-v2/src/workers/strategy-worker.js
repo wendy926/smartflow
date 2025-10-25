@@ -81,9 +81,13 @@ class StrategyWorker {
         // 1. 检查现有交易的止盈止损条件
         await this.checkExistingTrades(symbol);
 
-        // 2. 执行V3策略分析
+        // 2. 执行V3策略分析 - 添加超时控制（30秒）
         try {
-          v3Result = await this.v3Strategy.execute(symbol);
+          const v3Promise = this.v3Strategy.execute(symbol);
+          const v3Timeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('V3策略执行超时')), 30000)
+          );
+          v3Result = await Promise.race([v3Promise, v3Timeout]);
           if (v3Result && v3Result.signal !== 'WATCH') {
             logger.info(`V3策略信号: ${symbol} - ${v3Result.signal}`);
           }
@@ -91,9 +95,13 @@ class StrategyWorker {
           logger.error(`V3策略执行失败 ${symbol}: ${error.message}`);
         }
 
-        // 3. 执行ICT策略分析
+        // 3. 执行ICT策略分析 - 添加超时控制（30秒）
         try {
-          ictResult = await this.ictStrategy.execute(symbol);
+          const ictPromise = this.ictStrategy.execute(symbol);
+          const ictTimeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('ICT策略执行超时')), 30000)
+          );
+          ictResult = await Promise.race([ictPromise, ictTimeout]);
           if (ictResult && ictResult.signal !== 'WATCH') {
             logger.info(`ICT策略信号: ${symbol} - ${ictResult.signal}`);
           }
