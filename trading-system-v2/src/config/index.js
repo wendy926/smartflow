@@ -145,8 +145,8 @@ const config = {
   // 默认交易对配置
   defaultSymbols: process.env.DEFAULT_SYMBOLS?.split(',') || [
     'BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 'MKRUSDT', 'PENDLEUSDT',
-    'MPLUSDT', 'LINKUSDT', 'LDOUSDT', 'ADAUSDT', 'BNBUSDT', 'SOLUSDT',
-    'XRPUSDT', 'SUIUSDT', 'ASTERUSDT', 'MEMEUSDT'
+    'LINKUSDT', 'LDOUSDT', 'ADAUSDT', 'BNBUSDT', 'SOLUSDT',
+    'XRPUSDT', 'SUIUSDT'
   ]
 };
 
