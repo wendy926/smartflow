@@ -1785,7 +1785,7 @@ class ICTStrategy {
               );
             }
             
-            logger.info(`${symbol} ICT策略: 计算完成, tradeParams.entry=${tradeParams.entry}, stopLoss=${tradeParams.stopLoss}, takeProfit=${tradeParams.takeProfit}`);
+            logger.info(`${symbol} ICT策略: 计算完成, tradeParams.entry=${tradeParams.entry}, stopLoss=${tradeParams.stopLoss}, takeProfit=${tradeParams.takeProfit}, leverage=${tradeParams.leverage}, margin=${tradeParams.margin}`);
 
             // 缓存交易参数（5分钟过期）
             if (this.cache && tradeParams.entry > 0) {
@@ -1794,12 +1794,14 @@ class ICTStrategy {
           } else if (existingTrade) {
             // 使用现有交易参数
             tradeParams = JSON.parse(existingTrade);
-            logger.info(`${symbol} ICT策略: 使用缓存的交易参数`);
+            logger.info(`${symbol} ICT策略: 使用缓存的交易参数, entry=${tradeParams.entry}, stopLoss=${tradeParams.stopLoss}`);
           }
         } catch (error) {
           logger.error(`ICT交易参数计算失败: ${error.message}`);
         }
       }
+      
+      logger.info(`${symbol} ICT策略: 最终tradeParams = ${JSON.stringify(tradeParams)}`);
 
       // 计算置信度等级（MEDIUM或HIGH）
       const confidenceLevel = numericConfidence >= 0.7 ? 'HIGH' : 'MEDIUM';
