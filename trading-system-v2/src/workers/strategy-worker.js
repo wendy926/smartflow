@@ -38,7 +38,7 @@ class StrategyWorker {
         logger.warn('上一次策略执行尚未完成，跳过本次执行');
         return;
       }
-      
+
       try {
         this.isExecuting = true;
         await this.executeStrategies();
@@ -69,7 +69,7 @@ class StrategyWorker {
     for (const symbol of this.symbols) {
       let v3Result = null;
       let ictResult = null;
-      
+
       try {
         // 检查执行时间，超过4分钟则中断（留1分钟缓冲）
         const elapsed = Date.now() - startTime;
@@ -84,7 +84,7 @@ class StrategyWorker {
         // 2. 执行V3策略分析 - 添加超时控制（30秒）
         try {
           const v3Promise = this.v3Strategy.execute(symbol);
-          const v3Timeout = new Promise((_, reject) => 
+          const v3Timeout = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('V3策略执行超时')), 30000)
           );
           v3Result = await Promise.race([v3Promise, v3Timeout]);
@@ -98,7 +98,7 @@ class StrategyWorker {
         // 3. 执行ICT策略分析 - 添加超时控制（30秒）
         try {
           const ictPromise = this.ictStrategy.execute(symbol);
-          const ictTimeout = new Promise((_, reject) => 
+          const ictTimeout = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('ICT策略执行超时')), 30000)
           );
           ictResult = await Promise.race([ictPromise, ictTimeout]);
@@ -180,6 +180,12 @@ class StrategyWorker {
 
       // 计算止损止盈 - 优先使用策略计算的参数
       let stopLoss, takeProfit, leverage, margin_used, quantity;
+      
+      // 调试日志：检查result结构
+      logger.info(`${strategy}策略结果检查: tradeParams存在=${!!result.tradeParams}, signal=${result.signal}`);
+      if (result.tradeParams) {
+        logger.info(`${strategy}策略tradeParams详情: entry=${result.tradeParams.entry}, stopLoss=${result.tradeParams.stopLoss}, takeProfit=${result.tradeParams.takeProfit}`);
+      }
       
       if (result.tradeParams && result.tradeParams.entry > 0) {
         // 使用策略计算的精确参数
