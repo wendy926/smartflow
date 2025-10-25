@@ -18,7 +18,8 @@ class StrategyWorker {
     this.tradeManager = TradeManager;
     this.binanceAPI = getBinanceAPI();  // 使用单例
     this.isRunning = false;
-    this.symbols = config.defaultSymbols || ['BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 'MKRUSDT', 'PENDLEUSDT', 'MPLUSDT', 'LINKUSDT', 'LDOUSDT'];
+    this.symbols = config.defaultSymbols || ['BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 'MKRUSDT', 'PENDLEUSDT', 'LINKUSDT', 'LDOUSDT'];
+    this.intervalId = null; // 保存interval引用以便清理
   }
 
   async start() {
@@ -30,44 +31,62 @@ class StrategyWorker {
     this.isRunning = true;
     logger.info('策略工作进程启动');
 
-    // 每5分钟执行一次策略分析
-    setInterval(async () => {
+    // 每5分钟执行一次策略分析 - 保存interval引用以便清理
+    this.intervalId = setInterval(async () => {
       try {
         await this.executeStrategies();
       } catch (error) {
-        logger.error(`策略执行失败: ${error.message}`);
+        logger.error(`策略执行失败: ${error.message}`, error);
+        // 即使失败也继续运行，不抛出异常
       }
     }, 5 * 60 * 1000);
 
     // 立即执行一次
-    await this.executeStrategies();
+    try {
+      await this.executeStrategies();
+    } catch (error) {
+      logger.error(`初始策略执行失败: ${error.message}`, error);
+      // 即使失败也继续运行
+    }
   }
 
   async executeStrategies() {
     logger.info('开始执行策略分析和交易检查');
 
     for (const symbol of this.symbols) {
+      let v3Result = null;
+      let ictResult = null;
+      
       try {
         // 1. 检查现有交易的止盈止损条件
         await this.checkExistingTrades(symbol);
 
         // 2. 执行V3策略分析
-        const v3Result = await this.v3Strategy.execute(symbol);
-        if (v3Result.signal !== 'WATCH') {
-          logger.info(`V3策略信号: ${symbol} - ${v3Result.signal}`);
+        try {
+          v3Result = await this.v3Strategy.execute(symbol);
+          if (v3Result && v3Result.signal !== 'WATCH') {
+            logger.info(`V3策略信号: ${symbol} - ${v3Result.signal}`);
+          }
+        } catch (error) {
+          logger.error(`V3策略执行失败 ${symbol}: ${error.message}`);
         }
 
         // 3. 执行ICT策略分析
-        const ictResult = await this.ictStrategy.execute(symbol);
-        if (ictResult.signal !== 'WATCH') {
-          logger.info(`ICT策略信号: ${symbol} - ${ictResult.signal}`);
+        try {
+          ictResult = await this.ictStrategy.execute(symbol);
+          if (ictResult && ictResult.signal !== 'WATCH') {
+            logger.info(`ICT策略信号: ${symbol} - ${ictResult.signal}`);
+          }
+        } catch (error) {
+          logger.error(`ICT策略执行失败 ${symbol}: ${error.message}`);
         }
 
         // 4. 根据策略信号创建交易
         await this.handleStrategySignals(symbol, v3Result, ictResult);
 
       } catch (error) {
-        logger.error(`策略分析失败 ${symbol}: ${error.message}`);
+        logger.error(`策略分析失败 ${symbol}: ${error.message}`, error);
+        // 继续处理下一个交易对
       }
     }
   }
