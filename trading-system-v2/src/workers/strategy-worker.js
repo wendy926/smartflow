@@ -32,7 +32,7 @@ class StrategyWorker {
     this.isExecuting = false; // 添加执行标志，防止并发执行
     logger.info('策略工作进程启动');
 
-    // 每5分钟执行一次策略分析 - 保存interval引用以便清理
+    // 每10分钟执行一次策略分析 - 降低2C2G VPS负载 - 保存interval引用以便清理
     this.intervalId = setInterval(async () => {
       if (this.isExecuting) {
         logger.warn('上一次策略执行尚未完成，跳过本次执行');
@@ -48,7 +48,7 @@ class StrategyWorker {
       } finally {
         this.isExecuting = false;
       }
-    }, 5 * 60 * 1000);
+    }, 10 * 60 * 1000); // 从5分钟改为10分钟，降低VPS负载
 
     // 立即执行一次
     try {

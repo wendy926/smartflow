@@ -142,11 +142,9 @@ const config = {
     logs: 7 // 7天
   },
 
-  // 默认交易对配置
+  // 默认交易对配置 - 减少到4个核心交易对以降低2C2G VPS负载
   defaultSymbols: process.env.DEFAULT_SYMBOLS?.split(',') || [
-    'BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 'MKRUSDT', 'PENDLEUSDT',
-    'LINKUSDT', 'LDOUSDT', 'ADAUSDT', 'BNBUSDT', 'SOLUSDT',
-    'XRPUSDT', 'SUIUSDT'
+    'BTCUSDT', 'ETHUSDT', 'ONDOUSDT', 'MKRUSDT'
   ]
 };
 
