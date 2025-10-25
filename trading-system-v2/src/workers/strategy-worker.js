@@ -343,6 +343,28 @@ class StrategyWorker {
     }
   }
 
+  /**
+   * 手动触发策略执行（用于调试）
+   */
+  async triggerExecute() {
+    if (this.isExecuting) {
+      logger.warn('上一次策略执行尚未完成，等待完成');
+      return { success: false, message: '上一次策略执行尚未完成' };
+    }
+
+    try {
+      this.isExecuting = true;
+      logger.info('手动触发策略执行');
+      await this.executeStrategies();
+      return { success: true, message: '策略执行完成' };
+    } catch (error) {
+      logger.error(`手动触发策略执行失败: ${error.message}`, error);
+      return { success: false, message: error.message };
+    } finally {
+      this.isExecuting = false;
+    }
+  }
+
   stop() {
     this.isRunning = false;
     logger.info('策略工作进程停止');
