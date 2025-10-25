@@ -809,7 +809,7 @@ class ICTStrategy {
       logger.info(`${symbol} ICT持仓配置: ${durationConfig.category} ${marketType}市, 最大持仓=${ictConfig.maxHoldingHours}小时, 时间止损=${ictConfig.timeStopMinutes}分钟`);
 
       // 计算ICT结构止损
-      logger.info(`${symbol} ICT交易参数计算开始: 趋势=${trend}, 4H数据长度=${klines4H ? klines4H.length : 'undefined'}`);
+      logger.info(`${symbol} ICT交易参数计算开始: 趋势=${trend}, 入场价=${entry}, 4H数据长度=${klines4H ? klines4H.length : 'undefined'}`);
       
       const structuralStopLoss = this.calculateStructuralStopLoss(
         trend,
@@ -818,7 +818,7 @@ class ICTStrategy {
         signals.sweepHTF
       );
 
-      logger.info(`${symbol} ICT结构止损计算结果: ${structuralStopLoss}`);
+      logger.info(`${symbol} ICT结构止损计算结果: ${structuralStopLoss}, entry=${entry}, trend=${trend}`);
 
       // ICT策略使用结构止损
       const stopLoss = structuralStopLoss;
@@ -881,7 +881,7 @@ class ICTStrategy {
 
       logger.info(`${symbol} ICT交易参数 (优化V2.0): 趋势=${trend}, 置信度=${confidence}, 最大持仓=${ictConfig.maxHoldingHours}小时, TP1=${plan.tps[0]}, TP2=${plan.tps[1]}, 保本=${plan.breakevenMove}`);
 
-      return {
+      const result = {
         entry: parseFloat(entry.toFixed(4)),
         stopLoss: parseFloat(stopLoss.toFixed(4)),
         takeProfit: parseFloat(plan.tps[1].toFixed(4)), // 保留原有字段用于兼容
@@ -907,6 +907,10 @@ class ICTStrategy {
         tp1Quantity: parseFloat((sizing.qty * 0.5).toFixed(4)), // ✅ 新增：TP1数量
         tp2Quantity: parseFloat((sizing.qty * 0.5).toFixed(4)) // ✅ 新增：TP2数量
       };
+      
+      logger.info(`${symbol} ICT交易参数返回: entry=${result.entry}, stopLoss=${result.stopLoss}, takeProfit=${result.takeProfit}, leverage=${result.leverage}, margin=${result.margin}`);
+      
+      return result;
     } catch (error) {
       logger.error(`ICT Trade parameters calculation error for ${symbol}:`, error);
       return { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
