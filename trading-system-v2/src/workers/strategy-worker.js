@@ -29,28 +29,41 @@ class StrategyWorker {
     }
 
     this.isRunning = true;
+    this.isExecuting = false; // 添加执行标志，防止并发执行
     logger.info('策略工作进程启动');
 
     // 每5分钟执行一次策略分析 - 保存interval引用以便清理
     this.intervalId = setInterval(async () => {
+      if (this.isExecuting) {
+        logger.warn('上一次策略执行尚未完成，跳过本次执行');
+        return;
+      }
+      
       try {
+        this.isExecuting = true;
         await this.executeStrategies();
       } catch (error) {
         logger.error(`策略执行失败: ${error.message}`, error);
         // 即使失败也继续运行，不抛出异常
+      } finally {
+        this.isExecuting = false;
       }
     }, 5 * 60 * 1000);
 
     // 立即执行一次
     try {
+      this.isExecuting = true;
       await this.executeStrategies();
     } catch (error) {
       logger.error(`初始策略执行失败: ${error.message}`, error);
       // 即使失败也继续运行
+    } finally {
+      this.isExecuting = false;
     }
   }
 
   async executeStrategies() {
+    const startTime = Date.now();
     logger.info('开始执行策略分析和交易检查');
 
     for (const symbol of this.symbols) {
@@ -58,6 +71,13 @@ class StrategyWorker {
       let ictResult = null;
       
       try {
+        // 检查执行时间，超过4分钟则中断（留1分钟缓冲）
+        const elapsed = Date.now() - startTime;
+        if (elapsed > 4 * 60 * 1000) {
+          logger.warn(`策略执行超时(${elapsed}ms)，中断剩余交易对分析`);
+          break;
+        }
+
         // 1. 检查现有交易的止盈止损条件
         await this.checkExistingTrades(symbol);
 
@@ -89,6 +109,9 @@ class StrategyWorker {
         // 继续处理下一个交易对
       }
     }
+
+    const totalTime = Date.now() - startTime;
+    logger.info(`策略执行完成，耗时: ${totalTime}ms`);
   }
 
   /**
