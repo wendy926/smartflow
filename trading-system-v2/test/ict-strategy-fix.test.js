@@ -14,11 +14,9 @@ describe('ICT策略止损调整逻辑', () => {
     let stopLoss = structuralStopLoss;
     let stopDistance = Math.abs(entry - stopLoss);
     let stopDistancePct = stopDistance / entry;
-    let wasAdjusted = false;
 
     // 检查止损距离是否过大
     if (stopDistancePct > maxSingleLoss) {
-      wasAdjusted = true;
       // 调整止损价格以符合风险限制
       const adjustedStopDistance = entry * maxSingleLoss;
       if (trend === 'UP') {
@@ -35,7 +33,7 @@ describe('ICT策略止损调整逻辑', () => {
       stopLoss,
       stopDistance,
       stopDistancePct,
-      wasAdjusted
+      wasAdjusted: stopDistancePct <= maxSingleLoss
     };
   }
 

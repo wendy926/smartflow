@@ -390,8 +390,9 @@ let instance = null;
  */
 function getAIOperations() {
   if (!instance) {
-    const { pool } = require('./connection');
-    instance = new AIOperations(pool);
+    const DatabaseConnection = require('./connection');
+    const db = DatabaseConnection.getInstance();
+    instance = new AIOperations(db.pool);
   }
   return instance;
 }
