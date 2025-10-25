@@ -821,16 +821,28 @@ class ICTStrategy {
       logger.info(`${symbol} ICT结构止损计算结果: ${structuralStopLoss}, entry=${entry}, trend=${trend}`);
 
       // ICT策略使用结构止损
-      const stopLoss = structuralStopLoss;
+      let stopLoss = structuralStopLoss;
       
       // 风险管理检查
-      const stopDistance = Math.abs(entry - stopLoss);
-      const stopDistancePct = stopDistance / entry;
+      let stopDistance = Math.abs(entry - stopLoss);
+      let stopDistancePct = stopDistance / entry;
       
       // 检查止损距离是否过大（超过单笔最大损失限制）
       if (stopDistancePct > maxSingleLoss) {
-        logger.warn(`${symbol} ICT策略: 止损距离过大${(stopDistancePct*100).toFixed(2)}%，超过单笔最大损失限制${(maxSingleLoss*100).toFixed(1)}%，跳过交易`);
-        return { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
+        logger.warn(`${symbol} ICT策略: 原始止损距离过大${(stopDistancePct*100).toFixed(2)}%，超过单笔最大损失限制${(maxSingleLoss*100).toFixed(1)}%，调整止损`);
+        
+        // 调整止损价格以符合风险限制
+        const adjustedStopDistance = entry * maxSingleLoss;
+        if (trend === 'UP') {
+          stopLoss = entry - adjustedStopDistance;
+        } else if (trend === 'DOWN') {
+          stopLoss = entry + adjustedStopDistance;
+        }
+        
+        stopDistance = adjustedStopDistance;
+        stopDistancePct = maxSingleLoss;
+        
+        logger.info(`${symbol} ICT策略: 止损已调整至风险限制内 ${(stopDistancePct*100).toFixed(2)}%`);
       }
       
       // 计算最大允许仓位大小
