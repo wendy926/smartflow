@@ -33,8 +33,8 @@ const POSITION_DURATION_CONFIG = {
   HIGH_CAP_TREND: {
     name: '高市值强趋势币',
     trendMarket: {
-      maxDurationHours: 72,  // 3天
-      minDurationHours: 12,  // 0.5天
+      maxDurationHours: 4,   // 4小时（调整为4小时）
+      minDurationHours: 1,   // 1小时
       timeStopMinutes: 120,  // 2小时时间止损
       profitTarget: 6.0,     // 6倍ATR止盈（3:1盈亏比）
       stopLoss: 0.7          // 0.7倍ATR止损（超紧止损）
@@ -52,14 +52,14 @@ const POSITION_DURATION_CONFIG = {
   HOT: {
     name: '热点币',
     trendMarket: {
-      maxDurationHours: 24,  // 24小时
-      minDurationHours: 6,   // 6小时
+      maxDurationHours: 4,   // 4小时（调整为4小时）
+      minDurationHours: 1,   // 1小时
       timeStopMinutes: 180,  // 3小时时间止损
       profitTarget: 7.5,     // 7.5倍ATR止盈（3:1盈亏比）
       stopLoss: 0.8          // 0.8倍ATR止损（超紧止损）
     },
     rangeMarket: {
-      maxDurationHours: 3,   // 3小时
+      maxDurationHours: 4,   // 4小时（调整为4小时）
       minDurationHours: 1,   // 1小时
       timeStopMinutes: 60,   // 1小时时间止损
       profitTarget: 7.5,     // 7.5倍ATR止盈（3:1盈亏比）
@@ -71,14 +71,14 @@ const POSITION_DURATION_CONFIG = {
   SMALL_CAP: {
     name: '小币',
     trendMarket: {
-      maxDurationHours: 12,  // 12小时（仅震荡市，不做趋势）
+      maxDurationHours: 4,   // 4小时（调整为4小时）
       minDurationHours: 0.5, // 0.5小时
       timeStopMinutes: 30,   // 30分钟时间止损
       profitTarget: 4.5,     // 4.5倍ATR止盈（3:1盈亏比）
       stopLoss: 0.5          // 0.5倍ATR止损（超紧止损）
     },
     rangeMarket: {
-      maxDurationHours: 2,   // 2小时
+      maxDurationHours: 4,   // 4小时（调整为4小时）
       minDurationHours: 0.5, // 0.5小时
       timeStopMinutes: 30,   // 30分钟时间止损
       profitTarget: 4.5,     // 4.5倍ATR止盈（3:1盈亏比）
