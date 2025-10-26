@@ -1,7 +1,7 @@
 # 通用交易系统架构设计方案
 
-**日期**: 2025-07-07  
-**版本**: v3.0.0  
+**日期**: 2025-07-07
+**版本**: v3.0.0
 **设计范围**: 多市场交易系统 + AI模块解耦 + 跨机房部署
 
 ---
@@ -76,28 +76,28 @@ interface IMarket {
 
 interface IExchangeAdapter {
   readonly market: IMarket;
-  
+
   // 基础数据接口
   getKlines(symbol: string, timeframe: Timeframe, limit?: number): Promise<Kline[]>;
   getTicker(symbol: string): Promise<Ticker>;
   getOrderBook(symbol: string): Promise<OrderBook>;
-  
+
   // 交易接口
   placeOrder(order: OrderRequest): Promise<OrderResponse>;
   cancelOrder(orderId: string): Promise<boolean>;
   getOrders(symbol?: string): Promise<Order[]>;
-  
+
   // 账户接口
   getAccount(): Promise<Account>;
   getPositions(symbol?: string): Promise<Position[]>;
-  
+
   // 市场特定数据
   getMarketMetrics(symbol: string): Promise<MarketMetrics>;
 }
 
 enum MarketType {
   CRYPTO = 'crypto',
-  CN_STOCK = 'cn_stock', 
+  CN_STOCK = 'cn_stock',
   US_STOCK = 'us_stock'
 }
 
@@ -133,19 +133,19 @@ interface MarketMetrics {
   // 通用指标
   volume: number;
   turnover?: number;
-  
+
   // 加密货币特有
   fundingRate?: number;
   openInterest?: number;
   delta?: number;
   liquidation?: LiquidationData;
-  
+
   // A股特有
   financingBalance?: number;
   northwardFunds?: number;
   volumeRatio?: number;
   peRatio?: number;
-  
+
   // 美股特有
   putCallRatio?: number;
   optionOIChange?: number;
@@ -421,7 +421,7 @@ interface IAIService {
   readonly provider: AIProvider;
   readonly model: string;
   readonly region: 'SG' | 'CN';
-  
+
   analyzeMarket(marketData: MarketData[]): Promise<MarketAnalysis>;
   generateSignal(strategy: string, context: AnalysisContext): Promise<TradingSignal>;
   assessRisk(portfolio: Portfolio): Promise<RiskAssessment>;
@@ -473,7 +473,7 @@ export class ClaudeAIService implements IAIService {
 
   async analyzeMarket(marketData: MarketData[]): Promise<MarketAnalysis> {
     const prompt = this.buildMarketAnalysisPrompt(marketData);
-    
+
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 2000,
@@ -485,7 +485,7 @@ export class ClaudeAIService implements IAIService {
 
   async generateSignal(strategy: string, context: AnalysisContext): Promise<TradingSignal> {
     const prompt = this.buildSignalGenerationPrompt(strategy, context);
-    
+
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 1500,
@@ -531,7 +531,7 @@ export class DeepSeekAIService implements IAIService {
   async analyzeMarket(marketData: MarketData[]): Promise<MarketAnalysis> {
     // 针对A股市场优化的分析逻辑
     const prompt = this.buildChinaStockAnalysisPrompt(marketData);
-    
+
     const response = await this.client.chat.completions.create({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
@@ -591,7 +591,7 @@ export class RedisMessagingService implements IMessagingService {
 
   async subscribe(topic: string, handler: MessageHandler): Promise<void> {
     this.consumers.set(topic, handler);
-    
+
     // 启动消费者
     this.startConsumer(topic, handler);
   }
@@ -599,7 +599,7 @@ export class RedisMessagingService implements IMessagingService {
   async request(topic: string, data: any, timeout = 5000): Promise<any> {
     const requestId = generateUUID();
     const responseTopic = `${topic}.response.${requestId}`;
-    
+
     // 发送请求
     await this.publish(topic, {
       requestId,
@@ -675,14 +675,14 @@ export class DataSyncService {
     // 订阅跨机房数据同步消息
     await this.messaging.subscribe('data.sync.request', this.handleDataSyncRequest.bind(this));
     await this.messaging.subscribe('data.sync.response', this.handleDataSyncResponse.bind(this));
-    
+
     // 启动定时数据同步
     this.startPeriodicSync();
   }
 
   private async handleDataSyncRequest(message: any): Promise<void> {
     const { marketType, symbol, timeframe, from, to } = message;
-    
+
     try {
       const adapter = this.adapters.get(marketType);
       if (!adapter) {
@@ -690,7 +690,7 @@ export class DataSyncService {
       }
 
       const data = await adapter.getKlines(symbol, timeframe);
-      const filteredData = data.filter(k => 
+      const filteredData = data.filter(k =>
         k.timestamp >= new Date(from) && k.timestamp <= new Date(to)
       );
 
@@ -757,7 +757,7 @@ export class DataSyncService {
 interface SystemConfig {
   environment: 'development' | 'staging' | 'production';
   region: 'SG' | 'CN';
-  
+
   // 数据库配置
   database: {
     mysql: MySQLConfig;
@@ -765,14 +765,14 @@ interface SystemConfig {
     influxdb?: InfluxDBConfig;
     mongodb?: MongoDBConfig;
   };
-  
+
   // 市场配置
   markets: {
     crypto: MarketConfig;
     cnStock: MarketConfig;
     usStock: MarketConfig;
   };
-  
+
   // AI服务配置
   ai: {
     providers: {
@@ -781,13 +781,13 @@ interface SystemConfig {
     };
     defaultProvider: AIProvider;
   };
-  
+
   // 消息队列配置
   messaging: {
     redis: RedisConfig;
     topics: string[];
   };
-  
+
   // 监控配置
   monitoring: {
     prometheus: PrometheusConfig;
@@ -799,7 +799,7 @@ interface SystemConfig {
 const sgConfig: SystemConfig = {
   environment: 'production',
   region: 'SG',
-  
+
   database: {
     mysql: {
       host: 'sg-mysql-cluster.internal',
@@ -814,7 +814,7 @@ const sgConfig: SystemConfig = {
       password: process.env.REDIS_PASSWORD
     }
   },
-  
+
   markets: {
     crypto: {
       enabled: true,
@@ -833,7 +833,7 @@ const sgConfig: SystemConfig = {
       adapter: 'ChinaStockAdapter'
     }
   },
-  
+
   ai: {
     providers: {
       claude: {
@@ -849,7 +849,7 @@ const sgConfig: SystemConfig = {
     },
     defaultProvider: AIProvider.CLAUDE
   },
-  
+
   messaging: {
     redis: {
       host: 'sg-redis-cluster.internal',
@@ -871,7 +871,7 @@ const sgConfig: SystemConfig = {
 const cnConfig: SystemConfig = {
   environment: 'production',
   region: 'CN',
-  
+
   database: {
     mysql: {
       host: 'cn-mysql-cluster.internal',
@@ -886,7 +886,7 @@ const cnConfig: SystemConfig = {
       password: process.env.REDIS_PASSWORD
     }
   },
-  
+
   markets: {
     crypto: {
       enabled: false, // CN机房不直接交易加密货币
@@ -903,7 +903,7 @@ const cnConfig: SystemConfig = {
       tradingHours: '09:30-11:30,13:00-15:00'
     }
   },
-  
+
   ai: {
     providers: {
       deepseek: {
@@ -914,7 +914,7 @@ const cnConfig: SystemConfig = {
     },
     defaultProvider: AIProvider.DEEPSEEK
   },
-  
+
   messaging: {
     redis: {
       host: 'cn-redis-cluster.internal',
@@ -949,7 +949,7 @@ export class ConfigManager {
 
   private loadConfig(): void {
     const region = process.env.REGION as 'SG' | 'CN';
-    
+
     switch (region) {
       case 'SG':
         this.config = sgConfig;
@@ -1000,45 +1000,45 @@ export class TradingSystemApplication {
 
   async start(): Promise<void> {
     console.log(`🚀 Starting Trading System in ${this.config.region} region...`);
-    
+
     // 1. 初始化配置
     this.config = ConfigManager.getInstance().getConfig();
-    
+
     // 2. 初始化数据库连接
     await this.initializeDatabase();
-    
+
     // 3. 初始化消息队列
     await this.initializeMessaging();
-    
+
     // 4. 初始化市场适配器
     await this.initializeAdapters();
-    
+
     // 5. 初始化AI服务
     await this.initializeAIService();
-    
+
     // 6. 初始化数据同步服务
     await this.initializeDataSync();
-    
+
     // 7. 启动核心服务
     await this.startCoreServices();
-    
+
     console.log('✅ Trading System started successfully!');
   }
 
   private async initializeAdapters(): Promise<void> {
     this.adapters = new Map();
-    
+
     // 根据配置初始化适配器
     if (this.config.markets.crypto.enabled) {
       const binanceAdapter = new BinanceAdapter(this.config.markets.crypto);
       this.adapters.set(MarketType.CRYPTO, binanceAdapter);
     }
-    
+
     if (this.config.markets.cnStock.enabled) {
       const cnStockAdapter = new ChinaStockAdapter(this.config.markets.cnStock);
       this.adapters.set(MarketType.CN_STOCK, cnStockAdapter);
     }
-    
+
     if (this.config.markets.usStock.enabled) {
       const usStockAdapter = new USStockAdapter(this.config.markets.usStock);
       this.adapters.set(MarketType.US_STOCK, usStockAdapter);
@@ -1048,7 +1048,7 @@ export class TradingSystemApplication {
   private async initializeAIService(): Promise<void> {
     const provider = this.config.ai.defaultProvider;
     const providerConfig = this.config.ai.providers[provider];
-    
+
     switch (provider) {
       case AIProvider.CLAUDE:
         this.aiService = new ClaudeAIService(providerConfig);
@@ -1065,15 +1065,15 @@ export class TradingSystemApplication {
     // 启动策略引擎
     const strategyEngine = new StrategyEngine(this.adapters, this.aiService);
     await strategyEngine.start();
-    
+
     // 启动风险管理
     const riskManager = new RiskManager(this.adapters);
     await riskManager.start();
-    
+
     // 启动回测引擎
     const backtestEngine = new BacktestEngine(this.adapters);
     await backtestEngine.start();
-    
+
     // 启动订单管理
     const orderManager = new OrderManager(this.adapters);
     await orderManager.start();
@@ -1183,8 +1183,8 @@ volumes:
 3. ✅ 创建统一数据模型 - **已完成**
 4. ✅ 搭建消息队列基础设施 - **已完成**
 
-**验收日期**: 2025-10-26  
-**验收结果**: 通过  
+**验收日期**: 2025-10-26
+**验收结果**: 通过
 **详细报告**: 参考 PHASE1_CORE_ARCHITECTURE_REVIEW.md
 
 ### 阶段2: 市场适配器开发 (3-4周)

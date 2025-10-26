@@ -4,6 +4,7 @@
  */
 
 const { IExchangeAdapter, MarketType, Timeframe, OrderSide, OrderType, OrderStatus, TimeInForce, MarketInfo, TradingHours, Kline, MarketMetrics, OrderRequest, OrderResponse, Account, Position } = require('../core/interfaces/IExchangeAdapter');
+const { AlpacaAPI, AlphaVantageAPI, YahooFinanceAPI } = require('../api/us-stock-api');
 const logger = require('../utils/logger');
 
 class USStockAdapter extends IExchangeAdapter {
@@ -12,9 +13,9 @@ class USStockAdapter extends IExchangeAdapter {
     this.config = config;
     
     // 初始化数据源API
-    this.alpacaAPI = new AlpacaAPI(config.alpaca);
-    this.alphaVantageAPI = new AlphaVantageAPI(config.alphaVantage);
-    this.yahooFinanceAPI = new YahooFinanceAPI(config.yahooFinance);
+    this.alpacaAPI = new AlpacaAPI(config.alpaca || {});
+    this.alphaVantageAPI = new AlphaVantageAPI(config.alphaVantage || {});
+    this.yahooFinanceAPI = new YahooFinanceAPI(config.yahooFinance || {});
     
     // 市场信息
     this.marketInfo = new MarketInfo(
@@ -468,106 +469,6 @@ class USStockAdapter extends IExchangeAdapter {
       logger.error(`[USStockAdapter] Failed to get trading calendar:`, error);
       throw error;
     }
-  }
-}
-
-// Alpaca API封装
-class AlpacaAPI {
-  constructor(config) {
-    this.apiKey = config.apiKey;
-    this.secretKey = config.secretKey;
-    this.baseURL = config.baseURL || 'https://paper-api.alpaca.markets';
-    this.dataURL = config.dataURL || 'https://data.alpaca.markets';
-  }
-
-  async getBars(symbol, timeframe, limit) {
-    // 实现Alpaca K线数据获取
-    throw new Error('AlpacaAPI.getBars not implemented');
-  }
-
-  async getLatestTrade(symbol) {
-    // 实现最新交易价格获取
-    throw new Error('AlpacaAPI.getLatestTrade not implemented');
-  }
-
-  async getOrderBook(symbol) {
-    // 实现订单簿获取
-    throw new Error('AlpacaAPI.getOrderBook not implemented');
-  }
-
-  async placeOrder(orderParams) {
-    // 实现下单
-    throw new Error('AlpacaAPI.placeOrder not implemented');
-  }
-
-  async cancelOrder(orderId) {
-    // 实现取消订单
-    throw new Error('AlpacaAPI.cancelOrder not implemented');
-  }
-
-  async getOrders(symbol) {
-    // 实现获取订单列表
-    throw new Error('AlpacaAPI.getOrders not implemented');
-  }
-
-  async getAccount() {
-    // 实现获取账户信息
-    throw new Error('AlpacaAPI.getAccount not implemented');
-  }
-
-  async getPositions(symbol) {
-    // 实现获取持仓信息
-    throw new Error('AlpacaAPI.getPositions not implemented');
-  }
-
-  async getMarketStatus() {
-    // 实现获取市场状态
-    throw new Error('AlpacaAPI.getMarketStatus not implemented');
-  }
-
-  async getTradingCalendar(year, month) {
-    // 实现获取交易日历
-    throw new Error('AlpacaAPI.getTradingCalendar not implemented');
-  }
-}
-
-// Alpha Vantage API封装
-class AlphaVantageAPI {
-  constructor(config) {
-    this.apiKey = config.apiKey;
-    this.baseURL = config.baseURL || 'https://www.alphavantage.co/query';
-  }
-
-  async getOptionsData(symbol) {
-    // 实现期权数据获取
-    throw new Error('AlphaVantageAPI.getOptionsData not implemented');
-  }
-
-  async getInstitutionalFlow(symbol) {
-    // 实现机构资金流向获取
-    throw new Error('AlphaVantageAPI.getInstitutionalFlow not implemented');
-  }
-
-  async getVIX() {
-    // 实现VIX指数获取
-    throw new Error('AlphaVantageAPI.getVIX not implemented');
-  }
-}
-
-// Yahoo Finance API封装
-class YahooFinanceAPI {
-  constructor(config) {
-    this.baseURL = config.baseURL || 'https://query1.finance.yahoo.com';
-  }
-
-  async getShortInterest(symbol) {
-    // 实现做空数据获取
-    throw new Error('YahooFinanceAPI.getShortInterest not implemented');
-  }
-
-  async getStockInfo(symbol) {
-    // 实现股票基本信息获取
-    throw new Error('YahooFinanceAPI.getStockInfo not implemented');
   }
 }
 
