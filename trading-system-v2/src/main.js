@@ -124,19 +124,43 @@ class TradingSystemApp {
       });
     });
 
-    // 根路径和前端路由 - 所有前端路由都返回index.html
+    // 根路径 - 首页介绍页
     this.app.get('/', (req, res) => {
+      res.sendFile('home.html', { root: 'src/web' });
+    });
+
+    // 加密货币路由 (crypto/*)
+    this.app.get(['/crypto/dashboard', '/crypto/strategies', '/crypto/statistics', 
+                   '/crypto/tools', '/crypto/smart-money', '/crypto/large-orders', '/crypto/backtest'], 
+      (req, res) => {
+        res.sendFile('index.html', { root: 'src/web' });
+    });
+
+    // A股路由 (a/*) 
+    this.app.get(['/a/dashboard', '/a/strategies', '/a/statistics', '/a/backtest'], 
+      (req, res) => {
+        res.sendFile('cn-stock.html', { root: 'src/web' });
+    });
+
+    // 美股路由 (us/*)
+    this.app.get(['/us/dashboard', '/us/strategies', '/us/statistics', '/us/backtest'], 
+      (req, res) => {
+        res.sendFile('us-stock.html', { root: 'src/web' });
+    });
+
+    // 系统监控和文档（直接访问）
+    this.app.get(['/monitoring', '/docs'], (req, res) => {
       res.sendFile('index.html', { root: 'src/web' });
     });
 
-    // 前端路由处理 - 支持SPA路由
-    this.app.get(['/dashboard', '/strategies', '/monitoring', '/statistics', /* '/new-coin-monitor', */ '/tools', '/smart-money', '/large-orders', '/docs'], (req, res) => {
-      res.sendFile('index.html', { root: 'src/web' });
-    });
-
-    // 策略参数调优页面
+    // 策略参数调优页面（保持原路径，作为加密货币的快捷入口）
     this.app.get('/strategy-params', (req, res) => {
       res.sendFile('strategy-params.html', { root: 'src/web' });
+    });
+
+    // 兼容旧路由（重定向到新路由）
+    this.app.get(['/dashboard', '/strategies', '/statistics'], (req, res) => {
+      res.redirect('/crypto' + req.path);
     });
   }
 
