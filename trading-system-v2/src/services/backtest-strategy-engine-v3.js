@@ -231,33 +231,22 @@ class BacktestStrategyEngineV3 {
           const direction = signal === 'BUY' ? 'LONG' : 'SHORT';
           const entryPrice = currentPrice;
 
-          // ✅ 使用策略返回的止盈止损（避免硬编码）
-          let stopLoss = ictResult.stopLoss || 0;
-          let takeProfit = ictResult.takeProfit || 0;
+          // ✅ 回测时强制使用参数计算止损止盈，忽略策略返回值
+          // 计算真实的ATR（过去14根K线的平均真实波动幅度）
+          const atr = this.calculateTrueATR(klines, i, 14);
 
-          // 如果策略没有返回止盈止损，使用默认计算
-          if (stopLoss === 0 || takeProfit === 0) {
-            // 计算真实的ATR（过去14根K线的平均真实波动幅度）
-            const atr = this.calculateTrueATR(klines, i, 14);
+          // ✅ 从参数中获取止损倍数（从position分组读取）
+          const atrMultiplier = params?.position?.stopLossATRMultiplier || 1.5;
+          const stopDistance = atr * atrMultiplier;
+          const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
+          const risk = stopDistance;
 
-            // ✅ 从参数中获取止损倍数（从position分组读取）
-            const atrMultiplier = params?.position?.stopLossATRMultiplier || 1.5;
-            const stopDistance = atr * atrMultiplier;
-            stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
-            const risk = stopDistance;
+          // ✅ 从参数中获取止盈倍数（从position分组读取）
+          const takeProfitRatio = params?.position?.takeProfitRatio || 3.5;
+          const takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
 
-            // ✅ 从参数中获取止盈倍数（从position分组读取）
-            const takeProfitRatio = params?.position?.takeProfitRatio || 3.5;
-            takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
-
-            const actualRR = takeProfitRatio / atrMultiplier;
-            logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 使用参数计算止损止盈, ATR=${atr.toFixed(2)}, ATR倍数=${atrMultiplier}, 止盈倍数=${takeProfitRatio}, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1`);
-          } else {
-            const risk = Math.abs(entryPrice - stopLoss);
-            const reward = Math.abs(takeProfit - entryPrice);
-            const actualRR = reward / risk;
-            logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 使用策略返回的止损止盈, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1`);
-          }
+          const actualRR = takeProfitRatio / atrMultiplier;
+          logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 使用参数计算止损止盈, ATR=${atr.toFixed(2)}, ATR倍数=${atrMultiplier}, 止盈倍数=${takeProfitRatio}, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1`);
 
           // 使用策略内部风险控制计算的仓位大小
           const positionSize = 1.0; // 策略内部已处理风险控制
@@ -529,33 +518,22 @@ class BacktestStrategyEngineV3 {
           // ✅ 使用策略返回的止盈止损逻辑（避免硬编码）
           const confidence = v3Result.confidence || 'med';
 
-          // 优先使用策略返回的止盈止损
-          let stopLoss = v3Result.stopLoss || 0;
-          let takeProfit = v3Result.takeProfit || 0;
+          // ✅ 回测时强制使用参数计算止损止盈，忽略策略返回值
+          // 计算真实的ATR（过去14根K线的平均真实波动幅度）
+          const atr = this.calculateTrueATR(klines, i, 14);
 
-          // 如果策略没有返回止盈止损，使用参数计算
-          if (stopLoss === 0 || takeProfit === 0) {
-            // 计算真实的ATR（过去14根K线的平均真实波动幅度）
-            const atr = this.calculateTrueATR(klines, i, 14);
+          // ✅ 从参数中获取止损倍数（从position分组读取）
+          const atrMultiplier = params?.position?.stopLossATRMultiplier || 1.5;
+          const stopDistance = atr * atrMultiplier;
+          const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
+          const risk = stopDistance;
 
-            // ✅ 从参数中获取止损倍数（从position分组读取）
-            const atrMultiplier = params?.position?.stopLossATRMultiplier || 1.5;
-            const stopDistance = atr * atrMultiplier;
-            stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
-            const risk = stopDistance;
+          // ✅ 从参数中获取止盈倍数（从position分组读取）
+          const takeProfitRatio = params?.position?.takeProfitRatio || 3.5;
+          const takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
 
-            // ✅ 从参数中获取止盈倍数（从position分组读取）
-            const takeProfitRatio = params?.position?.takeProfitRatio || 3.5;
-            takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
-
-            const actualRR = takeProfitRatio / atrMultiplier;
-            logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 使用参数计算止损止盈, ATR=${atr.toFixed(2)}, ATR倍数=${atrMultiplier}, 止盈倍数=${takeProfitRatio}, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1, 置信度=${confidence}`);
-          } else {
-            const risk = Math.abs(entryPrice - stopLoss);
-            const reward = Math.abs(takeProfit - entryPrice);
-            const actualRR = reward / risk;
-            logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 使用策略返回的止损止盈, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1, 置信度=${confidence}`);
-          }
+          const actualRR = takeProfitRatio / atrMultiplier;
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 使用参数计算止损止盈, ATR=${atr.toFixed(2)}, ATR倍数=${atrMultiplier}, 止盈倍数=${takeProfitRatio}, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1, 置信度=${confidence}`);
 
           position = {
             symbol,
