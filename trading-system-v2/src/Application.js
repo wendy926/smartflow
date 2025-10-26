@@ -4,7 +4,7 @@
  */
 
 const SimpleConfigManager = require('./config/SimpleConfigManager');
-const { AdapterFactory } = require('./core/interfaces/IExchangeAdapter');
+const { AdapterFactory } = require('./adapters/AdapterFactory');
 const { AIServiceFactory, AIServiceManager } = require('./services/ai/IAIService');
 const { CrossRegionMessagingService, DataSyncHandler, AIAnalysisHandler } = require('./services/CrossRegionMessagingService');
 const { DataSyncService } = require('./services/DataSyncService');
