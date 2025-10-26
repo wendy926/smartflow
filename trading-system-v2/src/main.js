@@ -87,6 +87,7 @@ class TradingSystemApp {
     });
 
     // API路由
+    this.app.use('/api/v1/auth', require('./api/routes/auth')); // 认证路由（注册登录）
     this.app.use('/api/v1/strategies', require('./api/routes/strategies'));
     this.app.use('/api/v1/symbols', require('./api/routes/symbols'));
     this.app.use('/api/v1/trades', require('./api/routes/trades'));
