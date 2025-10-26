@@ -3577,15 +3577,77 @@
                   </ul>
 
                   <h4>核心组件架构</h4>
-                  <ul>
-                    <li><strong>主应用</strong>：src/main.js - 应用入口和中间件配置</li>
-                    <li><strong>策略引擎</strong>：src/strategies/ - V3多因子趋势策略和ICT订单块策略</li>
-                    <li><strong>工作进程</strong>：src/workers/ - 策略执行和数据更新后台任务</li>
-                    <li><strong>API路由</strong>：src/api/routes/ - RESTful API接口实现</li>
-                    <li><strong>数据库层</strong>：src/database/ - MySQL操作和Redis缓存管理</li>
-                    <li><strong>监控服务</strong>：src/services/ - 宏观监控、新币监控、系统监控</li>
-                    <li><strong>工具模块</strong>：src/utils/ - 日志、配置、通用工具函数</li>
-                  </ul>
+                  
+                  <h5>🏗️ 核心引擎层</h5>
+                  <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                    <ul>
+                      <li><strong>StrategyEngine</strong> (src/core/strategy-engine.js)
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>策略注册：支持动态注册多种策略</li>
+                          <li>参数管理：ParameterManager统一管理策略参数</li>
+                          <li>信号处理：SignalProcessor处理策略信号输出</li>
+                          <li>数据库适配：支持多种数据库适配器</li>
+                        </ul>
+                      </li>
+                      <li><strong>BacktestEngine</strong> (src/core/backtest-engine.js)
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>K线窗口构建：为策略提供历史数据上下文</li>
+                          <li>回测执行：模拟历史交易环境</li>
+                          <li>PnL计算：完整计算盈亏（含资金费率、利息、手续费）</li>
+                          <li>报告生成：生成详细回测报告</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <h5>⚙️ 微服务层</h5>
+                  <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                    <ul>
+                      <li><strong>BacktestManagerV3</strong> (src/services/backtest-manager-v3.js)
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>市场数据获取：从数据库获取历史K线数据</li>
+                          <li>策略执行：调用V3/ICT策略进行回测</li>
+                          <li>结果保存：保存回测结果到数据库</li>
+                          <li>数据缓存：缓存常用数据提升性能</li>
+                        </ul>
+                      </li>
+                      <li><strong>StrategyParameterManager</strong> (src/services/strategy-parameter-manager.js)
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>参数加载：从数据库加载策略参数</li>
+                          <li>缓存管理：Redis缓存提升加载速度</li>
+                          <li>模式支持：AGGRESSIVE/BALANCED/CONSERVATIVE三种模式</li>
+                        </ul>
+                      </li>
+                      <li><strong>AIAnalysisScheduler</strong> (src/services/ai-agent/scheduler.js)
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>宏观分析：每小时分析BTC/ETH宏观风险</li>
+                          <li>趋势分析：每15分钟分析活跃交易对</li>
+                          <li>DeepSeek集成：使用DeepSeek API进行AI分析</li>
+                          <li>结果缓存：缓存AI分析结果避免重复调用</li>
+                        </ul>
+                      </li>
+                      <li><strong>MarketDataPreloader</strong> (src/services/market-data-preloader.js)
+                        <ul style="margin: 5px 0; padding-left: 20px; font-size: 14px;">
+                          <li>数据预加载：从Binance API获取历史数据</li>
+                          <li>多时间框架：支持1m/5m/15m/1h/4h/1d数据</li>
+                          <li>自动补全：自动补全缺失的历史数据</li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <h5>🔄 应用层</h5>
+                  <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                    <ul>
+                      <li><strong>主应用</strong>：src/main.js - 应用入口和中间件配置</li>
+                      <li><strong>策略实现</strong>：src/strategies/ - V3多因子趋势策略和ICT订单块策略</li>
+                      <li><strong>工作进程</strong>：src/workers/ - 策略执行和数据更新后台任务</li>
+                      <li><strong>API路由</strong>：src/api/routes/ - RESTful API接口实现</li>
+                      <li><strong>数据库层</strong>：src/database/ - MySQL操作和Redis缓存管理</li>
+                      <li><strong>监控服务</strong>：src/services/ - 宏观监控、新币监控、系统监控</li>
+                      <li><strong>工具模块</strong>：src/utils/ - 日志、配置、通用工具函数</li>
+                    </ul>
+                  </div>
 
                   <h4>最新优化 (2025-10-10)</h4>
                   <div
@@ -3613,7 +3675,32 @@
                     </ul>
                   </div>
 
-                  <h4>最新优化 (2025-10-17)</h4>
+                  <h4>最新优化 (2025-10-26)</h4>
+                  <div
+                    style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5 style="color: #1b5e20;">📊 回测系统优化</h5>
+                    <ul style="color: #1b5e20;">
+                      <li><strong>15分钟数据</strong>：统一使用15m级别数据进行回测，更贴近实盘执行</li>
+                      <li><strong>参数化管理</strong>：ICT/V3策略支持三种模式（激进/平衡/保守），参数完全可配置</li>
+                      <li><strong>实时回测</strong>：前端可直接触发回测，实时查看参数调整效果</li>
+                      <li><strong>数据预加载</strong>：自动预加载15m历史数据，支持2024-01-01至2025-10-20区间</li>
+                      <li><strong>成本分析</strong>：回测结果包含资金费率、利息、手续费等完整成本计算</li>
+                    </ul>
+                  </div>
+
+                  <div
+                    style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                    <h5 style="color: #0d47a1;">🤖 AI分析服务升级</h5>
+                    <ul style="color: #0d47a1;">
+                      <li><strong>DeepSeek集成</strong>：使用DeepSeek API进行AI分析，成本优化至约$1/月</li>
+                      <li><strong>宏观风险分析</strong>：每小时自动分析BTC/ETH宏观风险，提供风险等级</li>
+                      <li><strong>交易对趋势分析</strong>：每15分钟分析活跃交易对，提供6档评分信号</li>
+                      <li><strong>实时数据支持</strong>：AI分析使用Binance实时价格，确保数据准确性</li>
+                      <li><strong>备用服务机制</strong>：主服务失败时自动切换到备用AI服务</li>
+                    </ul>
+                  </div>
+
+                  <h4>历史优化 (2025-10-17)</h4>
                   <div
                     style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 10px 0; border-radius: 5px;">
                     <h5 style="color: #1b5e20;">💰 聪明钱四阶段检测系统 V3.0</h5>
