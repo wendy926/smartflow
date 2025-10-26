@@ -49,8 +49,20 @@ class TradingSystemApp {
   }
 
   setupMiddleware() {
-    // 安全中间件
-    this.app.use(helmet());
+    // 安全中间件 - 配置CSP以允许CDN资源
+    this.app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
+          fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "data:"],
+          imgSrc: ["'self'", "data:"],
+          connectSrc: ["'self'"],
+          upgradeInsecureRequests: [],
+        },
+      },
+    }));
 
     // CORS配置
     this.app.use(cors({
