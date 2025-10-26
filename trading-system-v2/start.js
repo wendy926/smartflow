@@ -5,6 +5,9 @@
  * 支持多环境、多区域部署
  */
 
+// 加载环境变量
+require('dotenv').config();
+
 const Application = require('./src/Application');
 const logger = require('./src/utils/logger');
 
