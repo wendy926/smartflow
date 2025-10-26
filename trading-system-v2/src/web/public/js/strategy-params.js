@@ -477,7 +477,7 @@ class StrategyParamsManager {
 
     // 从时间框架选择器获取选择的时间框架
     const timeframeSelect = document.getElementById(`${strategy.toLowerCase()}-timeframe`);
-    const timeframe = timeframeSelect ? timeframeSelect.value : '1h';
+    const timeframe = timeframeSelect ? timeframeSelect.value : '15m';
 
     console.log(`[策略参数] 使用时间框架: ${timeframe}`);
 
@@ -524,7 +524,7 @@ class StrategyParamsManager {
    * @returns {Promise} 回测结果
    */
 
-  async startSingleModeBacktest(strategy, mode, timeframe = '1h') {
+  async startSingleModeBacktest(strategy, mode, timeframe = '15m') {
     try {
       const response = await fetch(`/api/v1/backtest/${strategy}/${mode}`, {
         method: 'POST',

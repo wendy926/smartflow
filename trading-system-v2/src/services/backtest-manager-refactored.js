@@ -39,7 +39,7 @@ class BacktestManagerRefactored {
   async startBacktest(strategyName, mode, options = {}) {
     try {
       const {
-        timeframe = '1h',
+        timeframe = '15m',
         startDate = '2025-04-25',
         endDate = '2025-10-22',
         symbol = 'BTCUSDT'

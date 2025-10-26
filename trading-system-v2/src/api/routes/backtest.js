@@ -190,7 +190,7 @@ router.get('/data/preload/status', async (req, res) => {
 router.post('/:strategy/:mode', async (req, res) => {
   try {
     const { strategy, mode } = req.params;
-    const { symbols, timeframe = '1h', forceRefresh = false } = req.body;
+    const { symbols, timeframe = '15m', forceRefresh = false } = req.body;
 
     console.log(`[回测API] 收到回测请求: ${strategy}-${mode} (${timeframe})`);
     logger.info(`[回测API] 收到回测请求: ${strategy}-${mode} (${timeframe})`);
@@ -544,7 +544,7 @@ router.get('/data/status', async (req, res) => {
  */
 router.post('/data/refresh', async (req, res) => {
   try {
-    const { symbols, timeframe = '1h' } = req.body;
+    const { symbols, timeframe = '15m' } = req.body;
 
     if (!backtestDataService) {
       return res.status(500).json({

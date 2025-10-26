@@ -122,7 +122,7 @@ class BacktestManagerV3 {
       process.stderr.write(`[回测管理器V3] 强制输出测试: 任务${taskId}状态确认，继续执行\n`);
 
       // 1. 获取市场数据
-      const timeframe = options.timeframe || '1h';
+      const timeframe = options.timeframe || '15m';
       console.log(`[回测管理器V3] 开始获取市场数据，时间框架: ${timeframe}`);
       logger.info(`[回测管理器V3] 开始获取市场数据，时间框架: ${timeframe}`);
       process.stderr.write(`[回测管理器V3] 强制输出: 开始获取市场数据，时间框架: ${timeframe}\n`);
@@ -245,7 +245,7 @@ class BacktestManagerV3 {
    * @param {string} timeframe - 时间框架 (1h, 5m)
    * @returns {Promise<Object>} 市场数据 { symbol: { '1h': [klines], '5m': [klines] } }
    */
-  async fetchMarketData(symbols, timeframe = '1h') {
+  async fetchMarketData(symbols, timeframe = '15m') {
     const marketData = {};
 
     try {
@@ -296,7 +296,7 @@ class BacktestManagerV3 {
    * @param {string} timeframe - 时间框架 (1h, 5m)
    * @returns {Promise<Array>} K线数据
    */
-  async fetchBacktestData(symbol, timeframe = '1h') {
+  async fetchBacktestData(symbol, timeframe = '15m') {
     try {
       logger.info(`[回测管理器V3] 开始获取${symbol}的${timeframe}回测数据`);
 
@@ -338,7 +338,7 @@ class BacktestManagerV3 {
    * @param {string} timeframe - 时间框架 (1h, 5m)
    * @returns {Promise<Array>} K线数据
    */
-  async fetchSymbolData(symbol, timeframe = '1h') {
+  async fetchSymbolData(symbol, timeframe = '15m') {
     try {
       logger.info(`[回测管理器V3] 开始获取${symbol}的${timeframe}数据`);
 
@@ -379,7 +379,7 @@ class BacktestManagerV3 {
    * @param {string} timeframe - 时间框架 (1h, 5m)
    * @returns {Promise<Array>} K线数据
    */
-  async getBacktestMarketData(symbol, timeframe = '1h') {
+  async getBacktestMarketData(symbol, timeframe = '15m') {
     try {
       logger.info(`[回测管理器V3] 从数据库获取${symbol}的${timeframe}回测数据`);
 
@@ -439,7 +439,7 @@ class BacktestManagerV3 {
    * @param {string} timeframe - 时间框架 (1h, 5m)
    * @returns {Promise<Array>} K线数据
    */
-  async getCachedMarketData(symbol, timeframe = '1h') {
+  async getCachedMarketData(symbol, timeframe = '15m') {
     try {
       logger.info(`[回测管理器V3] 从数据库获取${symbol}的${timeframe}缓存数据`);
 

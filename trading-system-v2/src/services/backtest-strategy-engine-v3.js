@@ -30,7 +30,7 @@ class BacktestStrategyEngineV3 {
    * @param {string} timeframe - 时间框架 (1h, 5m)
    * @returns {Promise<Object>} 回测结果
    */
-  async runStrategyBacktest(strategyName, mode, params, marketData, timeframe = '1h') {
+  async runStrategyBacktest(strategyName, mode, params, marketData, timeframe = '15m') {
     if (strategyName === 'ICT') {
       return await this.runICTBacktest(mode, params, marketData, timeframe);
     } else if (strategyName === 'V3') {
@@ -49,7 +49,7 @@ class BacktestStrategyEngineV3 {
    * @param {string} timeframe - 时间框架 (1h, 5m)
    * @returns {Promise<Object>} 回测结果
    */
-  async runICTBacktest(mode, params, marketData, timeframe = '1h') {
+  async runICTBacktest(mode, params, marketData, timeframe = '15m') {
     logger.info(`[回测引擎V3] 开始ICT-${mode}策略回测`);
 
     const allTrades = [];
@@ -93,7 +93,7 @@ class BacktestStrategyEngineV3 {
    * @param {string} timeframe - 时间框架 (1h, 5m)
    * @returns {Promise<Object>} 回测结果
    */
-  async runV3Backtest(mode, params, marketData, timeframe = '1h') {
+  async runV3Backtest(mode, params, marketData, timeframe = '15m') {
     console.log(`[回测引擎V3] 开始V3-${mode}策略回测，时间框架: ${timeframe}`);
     logger.info(`[回测引擎V3] 开始V3-${mode}策略回测，时间框架: ${timeframe}`);
 
