@@ -270,8 +270,8 @@ class BacktestStrategyEngineV3 {
 
           lastSignal = signal;
 
-          const actualRR = Math.abs(position.takeProfit - entryPrice) / Math.abs(entryPrice - position.stopLoss);
-          logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 开仓 ${direction} @ ${entryPrice.toFixed(2)}, SL=${position.stopLoss.toFixed(2)}, TP=${position.takeProfit.toFixed(2)}, 实际盈亏比=${actualRR.toFixed(2)}:1`);
+          const actualRRRecalculated = Math.abs(position.takeProfit - entryPrice) / Math.abs(entryPrice - position.stopLoss);
+          logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 开仓 ${direction} @ ${entryPrice.toFixed(2)}, SL=${position.stopLoss.toFixed(2)}, TP=${position.takeProfit.toFixed(2)}, 实际盈亏比=${actualRRRecalculated.toFixed(2)}:1`);
         }
         // 检查信号反转
         else if (position && signal !== 'HOLD' && signal !== lastSignal) {
@@ -549,9 +549,9 @@ class BacktestStrategyEngineV3 {
 
           lastSignal = signal;
 
-          const actualRR = Math.abs(position.takeProfit - entryPrice) / Math.abs(entryPrice - position.stopLoss);
+          const actualRRRecalculated = Math.abs(position.takeProfit - entryPrice) / Math.abs(entryPrice - position.stopLoss);
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 开仓 ${direction} @ ${entryPrice}, SL=${position.stopLoss}, TP=${position.takeProfit}`);
-          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 风险=${Math.abs(entryPrice - position.stopLoss)}, 预期盈利=${Math.abs(position.takeProfit - entryPrice)}, 实际盈亏比=${actualRR.toFixed(2)}`);
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 风险=${Math.abs(entryPrice - position.stopLoss)}, 预期盈利=${Math.abs(position.takeProfit - entryPrice)}, 实际盈亏比=${actualRRRecalculated.toFixed(2)}`);
         }
         // 检查信号反转
         else if (position && signal !== 'HOLD' && signal !== lastSignal) {
