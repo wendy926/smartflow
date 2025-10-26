@@ -6,6 +6,7 @@
 require('dotenv').config();
 const ChinaStockAdapter = require('./src/adapters/ChinaStockAdapter');
 const CNStockMarketDataLoader = require('./src/services/cn-stock-market-data-loader');
+const { CNStockFreeAPI } = require('./src/api/cn-stock-free-api');
 const logger = require('./src/utils/logger');
 
 // A股主要指数
@@ -134,20 +135,54 @@ async function testStrategy() {
 }
 
 /**
+ * 测试免费数据源
+ */
+async function testFreeDataSource() {
+  try {
+    logger.info('=== 测试免费数据源 ===');
+    
+    const freeAPI = new CNStockFreeAPI();
+    await freeAPI.initialize();
+    
+    // 测试获取沪深300数据
+    logger.info('测试获取沪深300数据...');
+    const endDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 1);
+    const startDateStr = startDate.toISOString().slice(0, 10).replace(/-/g, '');
+    
+    const data = await freeAPI.getIndexDaily('000300.SH', startDateStr, endDate);
+    logger.info(`获取到 ${data.length} 条数据`);
+    
+    if (data.length > 0) {
+      const last = data[data.length - 1];
+      logger.info(`最新数据: ${last.date || last.time} - ${last.close}`);
+    }
+    
+    logger.info('✅ 免费数据源测试完成');
+  } catch (error) {
+    logger.error(`❌ 免费数据源测试失败: ${error.message}`);
+  }
+}
+
+/**
  * 主函数
  */
 async function main() {
   logger.info('🚀 开始A股策略测试...');
   
   try {
+    // 0. 测试免费数据源
+    await testFreeDataSource();
+    
     // 1. 测试数据加载
-    await testDataLoader();
+    // await testDataLoader();
     
     // 2. 测试适配器
-    await testAdapter();
+    // await testAdapter();
     
     // 3. 测试策略
-    await testStrategy();
+    // await testStrategy();
     
     logger.info('🎉 所有测试完成');
   } catch (error) {
