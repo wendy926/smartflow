@@ -240,14 +240,14 @@ class BacktestStrategyEngineV3 {
             // 计算真实的ATR（过去14根K线的平均真实波动幅度）
             const atr = this.calculateTrueATR(klines, i, 14);
 
-            // ✅ 从参数中获取止损倍数，默认1.5
-            const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || 1.5;
+            // ✅ 从参数中获取止损倍数（从position分组读取）
+            const atrMultiplier = params?.position?.stopLossATRMultiplier || 1.5;
             const stopDistance = atr * atrMultiplier;
             stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
             const risk = stopDistance;
 
-            // ✅ 从参数中获取止盈倍数，默认5.0
-            const takeProfitRatio = params?.risk_management?.takeProfitRatio || 3.5;
+            // ✅ 从参数中获取止盈倍数（从position分组读取）
+            const takeProfitRatio = params?.position?.takeProfitRatio || 3.5;
             takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
 
             const actualRR = takeProfitRatio / atrMultiplier;
@@ -538,26 +538,14 @@ class BacktestStrategyEngineV3 {
             // 计算真实的ATR（过去14根K线的平均真实波动幅度）
             const atr = this.calculateTrueATR(klines, i, 14);
 
-            // ✅ 从参数中获取止损倍数（根据置信度），默认1.8
-            let atrMultiplier = 1.8;
-            if (params?.risk_management) {
-              if (confidence === 'high' && params.risk_management.stopLossATRMultiplier_high) {
-                atrMultiplier = params.risk_management.stopLossATRMultiplier_high;
-              } else if (confidence === 'med' && params.risk_management.stopLossATRMultiplier_medium) {
-                atrMultiplier = params.risk_management.stopLossATRMultiplier_medium;
-              } else if (confidence === 'low' && params.risk_management.stopLossATRMultiplier_low) {
-                atrMultiplier = params.risk_management.stopLossATRMultiplier_low;
-              } else if (params.risk_management.stopLossATRMultiplier) {
-                atrMultiplier = params.risk_management.stopLossATRMultiplier;
-              }
-            }
-
+            // ✅ 从参数中获取止损倍数（从position分组读取）
+            const atrMultiplier = params?.position?.stopLossATRMultiplier || 1.5;
             const stopDistance = atr * atrMultiplier;
             stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
             const risk = stopDistance;
 
-            // ✅ 从参数中获取止盈倍数，默认5.0
-            const takeProfitRatio = params?.risk_management?.takeProfitRatio || 3.5;
+            // ✅ 从参数中获取止盈倍数（从position分组读取）
+            const takeProfitRatio = params?.position?.takeProfitRatio || 3.5;
             takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
 
             const actualRR = takeProfitRatio / atrMultiplier;
