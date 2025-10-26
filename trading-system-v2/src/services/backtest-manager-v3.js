@@ -221,18 +221,24 @@ class BacktestManagerV3 {
     for (const [symbol, data] of Object.entries(marketData)) {
       // marketData现在包含多个时间框架的数据
       const hourlyData = data['1h'] || [];
+      const fifteenMinData = data['15m'] || [];
       const fiveMinData = data['5m'] || [];
 
       // 为所有时间框架提供数据
       historicalData[symbol] = {
         '1h': hourlyData,
-        '5m': fiveMinData,
+        '15m': fifteenMinData || hourlyData, // 优先使用15m数据，fallback到1h
+        '5m': fiveMinData || fifteenMinData, // 优先使用5m数据，fallback到15m
         '1d': hourlyData, // 使用1h数据模拟1d
         '4h': hourlyData, // 使用1h数据模拟4h
-        '15m': fiveMinData // 使用5m数据模拟15m
       };
 
-      logger.info(`[回测管理器V3] ${symbol}: 1h数据${hourlyData.length}条, 5m数据${fiveMinData.length}条`);
+      const dataSummary = [
+        `1h=${hourlyData.length}`,
+        `15m=${fifteenMinData.length}`,
+        `5m=${fiveMinData.length}`
+      ].join(', ');
+      logger.info(`[回测管理器V3] ${symbol}: ${dataSummary}`);
     }
 
     logger.info(`[回测管理器V3] 创建Mock Binance API，基础时间框架: ${timeframe}, 交易对: ${Object.keys(historicalData).join(', ')}`);
@@ -252,27 +258,36 @@ class BacktestManagerV3 {
       console.log(`[回测管理器V3] 开始获取回测历史数据，交易对: ${symbols.join(', ')}, 时间框架: ${timeframe}`);
       logger.info(`[回测管理器V3] 开始获取回测历史数据，交易对: ${symbols.join(', ')}, 时间框架: ${timeframe}`);
 
-      // 获取指定时间框架的回测数据
+      // 为ICT策略需要获取多个时间框架的数据
+      const timeframesNeeded = ['15m', '1h']; // 最少需要这两个时间框架
+      
       const dataPromises = symbols.map(async symbol => {
-        console.log(`[回测管理器V3] 开始获取${symbol}的${timeframe}回测数据`);
-        const timedData = await this.fetchBacktestData(symbol, timeframe);
-        console.log(`[回测管理器V3] ${symbol}的${timeframe}数据获取完成 - 共${timedData?.length || 0}条`);
-        return { symbol, timedData };
+        const symbolData = {};
+        
+        for (const tf of timeframesNeeded) {
+          console.log(`[回测管理器V3] 开始获取${symbol}的${tf}回测数据`);
+          const timedData = await this.fetchBacktestData(symbol, tf);
+          console.log(`[回测管理器V3] ${symbol}的${tf}数据获取完成 - 共${timedData?.length || 0}条`);
+          if (timedData && timedData.length > 0) {
+            symbolData[tf] = timedData;
+          }
+        }
+        
+        return { symbol, symbolData };
       });
 
       const results = await Promise.all(dataPromises);
       console.log(`[回测管理器V3] 所有交易对数据获取完成，共${results.length}个结果`);
 
-      results.forEach(({ symbol, timedData }) => {
-        if (timedData && timedData.length > 0) {
-          marketData[symbol] = {
-            [timeframe]: timedData
-          };
-          console.log(`[回测管理器V3] ${symbol}: ${timeframe}数据${timedData.length}条`);
-          logger.info(`[回测管理器V3] ${symbol}: ${timeframe}数据${timedData.length}条`);
+      results.forEach(({ symbol, symbolData }) => {
+        if (symbolData && Object.keys(symbolData).length > 0) {
+          marketData[symbol] = symbolData;
+          const dataSummary = Object.entries(symbolData).map(([tf, data]) => `${tf}=${data.length}`).join(', ');
+          console.log(`[回测管理器V3] ${symbol}: ${dataSummary}`);
+          logger.info(`[回测管理器V3] ${symbol}: ${dataSummary}`);
         } else {
-          console.warn(`[回测管理器V3] ${symbol}: 没有足够的${timeframe}回测数据`);
-          logger.warn(`[回测管理器V3] ${symbol}: 没有足够的${timeframe}回测数据`);
+          console.warn(`[回测管理器V3] ${symbol}: 没有足够的回测数据`);
+          logger.warn(`[回测管理器V3] ${symbol}: 没有足够的回测数据`);
         }
       });
 
