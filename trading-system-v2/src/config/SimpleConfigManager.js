@@ -136,6 +136,16 @@ class SimpleConfigManager {
   getLoggerConfig() {
     return this.config.logger;
   }
+
+  getMonitoringConfig() {
+    return {
+      interval: process.env.MONITOR_INTERVAL || 30000,
+      cpuThreshold: process.env.CPU_THRESHOLD || 60,
+      memoryThreshold: process.env.MEMORY_THRESHOLD || 60,
+      diskThreshold: process.env.DISK_THRESHOLD || 80,
+      enabled: process.env.MONITORING_ENABLED !== 'false'
+    };
+  }
 }
 
 module.exports = SimpleConfigManager;
