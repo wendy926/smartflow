@@ -1,7 +1,7 @@
 # 美股策略实施指南
 
-**日期**: 2025-10-26  
-**版本**: v3.0.0  
+**日期**: 2025-10-26
+**版本**: v3.0.0
 **策略**: V3 + ICT (纯技术分析)
 
 ---
@@ -43,13 +43,13 @@ const entry15m = identifyEntry(klines15m, trend4H, momentum1H);
 #### 3. 入场规则
 ```javascript
 // 做多信号
-if (trend4H === 'BULLISH' && 
-    momentum1H > 50 && 
+if (trend4H === 'BULLISH' &&
+    momentum1H > 50 &&
     entry15m.signal === 'BUY') {
   const entryPrice = entry15m.price;
   const stopLoss = entryPrice - (entryPrice * 0.02);  // 2%止损
   const takeProfit = entryPrice + (entryPrice * 0.04);  // 4%止盈
-  
+
   createTrade('LONG', entryPrice, stopLoss, takeProfit);
 }
 ```
@@ -75,7 +75,7 @@ const orderBlock = identifyOrderBlock(klines, {
 });
 
 // 做多订单块（买方订单块）
-if (orderBlock.type === 'BUY' && 
+if (orderBlock.type === 'BUY' &&
     price <= orderBlock.high) {
   entrySignal = 'BUY';
 }
@@ -98,14 +98,14 @@ if (priceSweptAboveHigh && pricePullback) {
 #### 3. 入场规则
 ```javascript
 // ICT做多入场
-if (orderBlock.direction === 'UP' && 
-    liquiditySwept && 
+if (orderBlock.direction === 'UP' &&
+    liquiditySwept &&
     priceRetestOrderBlock) {
-  
+
   const entryPrice = orderBlock.retestPrice;
   const stopLoss = orderBlock.low - 0.01;
   const takeProfit = entryPrice + ((entryPrice - stopLoss) * 2);
-  
+
   createTrade('LONG', entryPrice, stopLoss, takeProfit);
 }
 ```
@@ -173,7 +173,7 @@ for (const signal of allSignals) {
     quantity: calculatePositionSize(signal),
     strategy: signal.strategyName
   });
-  
+
   // 记录到数据库
   await recordTradeToDatabase(simulatedOrder);
 }
@@ -186,7 +186,7 @@ for (const signal of allSignals) {
 for (const trade of openTrades) {
   const currentPrice = await usStockAdapter.getTicker(trade.symbol);
   const pnl = calculatePnL(trade, currentPrice);
-  
+
   // 更新数据库
   await updateTradePnL(trade.orderId, pnl);
 }
@@ -272,7 +272,7 @@ const aggressiveParams = {
   takeProfit: 0.06      // 6%止盈
 };
 
-// 平衡模式  
+// 平衡模式
 const balancedParams = {
   trend: { emaFast: 12, emaSlow: 26 },
   momentum: { rsiPeriod: 14, rsiOverbought: 75, rsiOversold: 25 },
