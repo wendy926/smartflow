@@ -78,12 +78,48 @@ def get_index_daily(code):
             start_date = start_date_obj.strftime('%Y%m%d')
         
         # 获取数据
-        df = ak.index_zh_a_hist(
-            symbol=code,
-            period="daily",
-            start_date=start_date,
-            end_date=end_date
-        )
+        try:
+            df = ak.index_zh_a_hist(
+                symbol=code,
+                period="daily",
+                start_date=start_date,
+                end_date=end_date
+            )
+        except Exception as e:
+            logger.error(f"akshare调用失败: {e}")
+            # 尝试使用备用方法
+            try:
+                # 使用东方财富接口作为备用
+                import requests
+                secid = f"1.{code}" if code.startswith('000') else f"0.{code}"
+                url = f"http://push2his.eastmoney.com/api/qt/kline/get?secid={secid}&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=101&fqt=1&lmt={limit}"
+                resp = requests.get(url, timeout=10)
+                data = resp.json()
+                
+                if data.get('data') and data['data'].get('klines'):
+                    # 转换格式
+                    result = []
+                    for k in data['data']['klines'][:limit]:
+                        parts = k.split(',')
+                        result.append({
+                            'date': parts[0],
+                            'open': float(parts[1]),
+                            'high': float(parts[3]),
+                            'low': float(parts[2]),
+                            'close': float(parts[4]),
+                            'volume': float(parts[5]),
+                            'change_pct': float(parts[8])
+                        })
+                    
+                    return jsonify({
+                        'code': code,
+                        'period': 'daily',
+                        'count': len(result),
+                        'data': result
+                    })
+            except Exception as e2:
+                logger.error(f"备用方法也失败: {e2}")
+                return jsonify({'error': f'Data fetch failed: {e}'}), 500
         
         if df.empty:
             return jsonify({'error': 'No data available'}), 404
