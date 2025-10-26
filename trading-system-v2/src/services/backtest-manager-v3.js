@@ -252,31 +252,27 @@ class BacktestManagerV3 {
       console.log(`[回测管理器V3] 开始获取回测历史数据，交易对: ${symbols.join(', ')}, 时间框架: ${timeframe}`);
       logger.info(`[回测管理器V3] 开始获取回测历史数据，交易对: ${symbols.join(', ')}, 时间框架: ${timeframe}`);
 
-      // 并行获取所有交易对的1h和5m回测数据
+      // 获取指定时间框架的回测数据
       const dataPromises = symbols.map(async symbol => {
-        console.log(`[回测管理器V3] 开始获取${symbol}的回测数据`);
-        const [hourlyData, fiveMinData] = await Promise.all([
-          this.fetchBacktestData(symbol, '1h'),
-          this.fetchBacktestData(symbol, '5m')
-        ]);
-        console.log(`[回测管理器V3] ${symbol}数据获取完成 - 1h:${hourlyData?.length || 0}条, 5m:${fiveMinData?.length || 0}条`);
-        return { symbol, hourlyData, fiveMinData };
+        console.log(`[回测管理器V3] 开始获取${symbol}的${timeframe}回测数据`);
+        const timedData = await this.fetchBacktestData(symbol, timeframe);
+        console.log(`[回测管理器V3] ${symbol}的${timeframe}数据获取完成 - 共${timedData?.length || 0}条`);
+        return { symbol, timedData };
       });
 
       const results = await Promise.all(dataPromises);
       console.log(`[回测管理器V3] 所有交易对数据获取完成，共${results.length}个结果`);
 
-      results.forEach(({ symbol, hourlyData, fiveMinData }) => {
-        if (hourlyData && hourlyData.length > 0) {
+      results.forEach(({ symbol, timedData }) => {
+        if (timedData && timedData.length > 0) {
           marketData[symbol] = {
-            '1h': hourlyData,
-            '5m': fiveMinData || []
+            [timeframe]: timedData
           };
-          console.log(`[回测管理器V3] ${symbol}: 1h数据${hourlyData.length}条, 5m数据${fiveMinData ? fiveMinData.length : 0}条`);
-          logger.info(`[回测管理器V3] ${symbol}: 1h数据${hourlyData.length}条, 5m数据${fiveMinData ? fiveMinData.length : 0}条`);
+          console.log(`[回测管理器V3] ${symbol}: ${timeframe}数据${timedData.length}条`);
+          logger.info(`[回测管理器V3] ${symbol}: ${timeframe}数据${timedData.length}条`);
         } else {
-          console.warn(`[回测管理器V3] ${symbol}: 没有足够的回测数据`);
-          logger.warn(`[回测管理器V3] ${symbol}: 没有足够的回测数据`);
+          console.warn(`[回测管理器V3] ${symbol}: 没有足够的${timeframe}回测数据`);
+          logger.warn(`[回测管理器V3] ${symbol}: 没有足够的${timeframe}回测数据`);
         }
       });
 
