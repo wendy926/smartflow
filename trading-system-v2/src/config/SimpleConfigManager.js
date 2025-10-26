@@ -3,7 +3,7 @@
  * 直接使用环境变量，不依赖配置文件
  */
 
-const logger = require('./logger');
+const logger = require('../utils/logger');
 
 class SimpleConfigManager {
   constructor() {
