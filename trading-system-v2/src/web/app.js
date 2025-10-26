@@ -4537,18 +4537,7 @@ function formatProfit(pnlPercentage) {
   return `${amount >= 0 ? '+' : ''}${amount.toFixed(2)}%`;
 }
 
-// 格式化日期时间
-function formatDate(dateString) {
-  if (!dateString) return '--';
-  const date = new Date(dateString);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
+// 格式化日期时间 (使用已定义的formatDate函数)
 
 // 返回顶部按钮功能
 function initBackToTop() {
@@ -4750,126 +4739,10 @@ function initMarginCalculator() {
   }
 }
 
-/**
- * 保存交易触发Telegram配置
- */
-async function saveTradingTelegramSettings() {
-  const botToken = document.getElementById('tradingTelegramBotToken').value.trim();
-  const chatId = document.getElementById('tradingTelegramChatId').value.trim();
-  const statusEl = document.getElementById('tradingTelegramStatus');
+// 使用已定义的saveTradingTelegramSettings函数
 
-  if (!botToken || !chatId) {
-    statusEl.innerHTML = '<span style="color: red;">❌ 请填写Bot Token和Chat ID</span>';
-    return;
-  }
+// 使用已定义的testTradingTelegram函数
 
-  try {
-    const response = await fetch('/api/v1/telegram/trading-config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ botToken, chatId })
-    });
+// 使用已定义的saveMonitoringTelegramSettings函数
 
-    const result = await response.json();
-
-    if (result.success) {
-      statusEl.innerHTML = '<span style="color: green;">✅ 配置保存成功</span>';
-      showNotification('交易触发Telegram配置保存成功', 'success');
-    } else {
-      statusEl.innerHTML = `<span style="color: red;">❌ ${result.error || '保存失败'}</span>`;
-      showNotification(`保存失败: ${result.error}`, 'error');
-    }
-  } catch (error) {
-    statusEl.innerHTML = `<span style="color: red;">❌ ${error.message}</span>`;
-    showNotification(`保存失败: ${error.message}`, 'error');
-  }
-}
-
-/**
- * 测试交易触发Telegram连接
- */
-async function testTradingTelegram() {
-  const statusEl = document.getElementById('tradingTelegramStatus');
-
-  try {
-    const response = await fetch('/api/v1/telegram/test-trading', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      statusEl.innerHTML = '<span style="color: green;">✅ 测试消息已发送</span>';
-      showNotification('测试消息已发送，请检查Telegram', 'success');
-    } else {
-      statusEl.innerHTML = `<span style="color: red;">❌ ${result.error || '发送失败'}</span>`;
-      showNotification(`发送失败: ${result.error}`, 'error');
-    }
-  } catch (error) {
-    statusEl.innerHTML = `<span style="color: red;">❌ ${error.message}</span>`;
-    showNotification(`发送失败: ${error.message}`, 'error');
-  }
-}
-
-/**
- * 保存系统监控Telegram配置
- */
-async function saveMonitoringTelegramSettings() {
-  const botToken = document.getElementById('monitoringTelegramBotToken').value.trim();
-  const chatId = document.getElementById('monitoringTelegramChatId').value.trim();
-  const statusEl = document.getElementById('monitoringTelegramStatus');
-
-  if (!botToken || !chatId) {
-    statusEl.innerHTML = '<span style="color: red;">❌ 请填写Bot Token和Chat ID</span>';
-    return;
-  }
-
-  try {
-    const response = await fetch('/api/v1/telegram/monitoring-config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ botToken, chatId })
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      statusEl.innerHTML = '<span style="color: green;">✅ 配置保存成功</span>';
-      showNotification('系统监控Telegram配置保存成功', 'success');
-    } else {
-      statusEl.innerHTML = `<span style="color: red;">❌ ${result.error || '保存失败'}</span>`;
-      showNotification(`保存失败: ${result.error}`, 'error');
-    }
-  } catch (error) {
-    statusEl.innerHTML = `<span style="color: red;">❌ ${error.message}</span>`;
-    showNotification(`保存失败: ${error.message}`, 'error');
-  }
-}
-
-/**
- * 测试系统监控Telegram连接
- */
-async function testMonitoringTelegram() {
-  const statusEl = document.getElementById('monitoringTelegramStatus');
-
-  try {
-    const response = await fetch('/api/v1/telegram/test-monitoring', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      statusEl.innerHTML = '<span style="color: green;">✅ 测试消息已发送</span>';
-      showNotification('测试消息已发送，请检查Telegram', 'success');
-    } else {
-      statusEl.innerHTML = `<span style="color: red;">❌ ${result.error || '发送失败'}</span>`;
-      showNotification(`发送失败: ${result.error}`, 'error');
-    }
-  } catch (error) {
-    statusEl.innerHTML = `<span style="color: red;">❌ ${error.message}</span>`;
-    showNotification(`发送失败: ${error.message}`, 'error');
-  }
-}
+// 使用已定义的testMonitoringTelegram函数

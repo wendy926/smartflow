@@ -1,0 +1,154 @@
+# SG机房部署配置
+version: "3.8"
+
+services:
+  trading-system-sg:
+    build: .
+    container_name: trading-system-sg
+    environment:
+      - NODE_ENV=production
+      - REGION=SG
+      - MYSQL_HOST=mysql-sg
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=trading_sg
+      - MYSQL_USERNAME=trading_user
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - REDIS_HOST=redis-sg
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - BINANCE_API_KEY=${BINANCE_API_KEY}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY}
+      - ALPACA_API_KEY=${ALPACA_API_KEY}
+      - ALPACA_SECRET_KEY=${ALPACA_SECRET_KEY}
+      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
+    ports:
+      - "3000:3000"
+      - "9090:9090"
+    depends_on:
+      mysql-sg:
+        condition: service_healthy
+      redis-sg:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    restart: unless-stopped
+    networks:
+      - trading-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mysql-sg:
+    image: mysql:8.0
+    container_name: mysql-sg
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=trading_sg
+      - MYSQL_USER=trading_user
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-sg-data:/var/lib/mysql
+      - ./config/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - trading-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    command: --default-authentication-plugin=mysql_native_password
+
+  redis-sg:
+    image: redis:7-alpine
+    container_name: redis-sg
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-sg-data:/data
+    restart: unless-stopped
+    networks:
+      - trading-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  influxdb-sg:
+    image: influxdb:2.7-alpine
+    container_name: influxdb-sg
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=trading
+      - DOCKER_INFLUXDB_INIT_BUCKET=trading_metrics
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-sg-data:/var/lib/influxdb2
+    restart: unless-stopped
+    networks:
+      - trading-network
+
+  prometheus-sg:
+    image: prom/prometheus:latest
+    container_name: prometheus-sg
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-sg-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+    networks:
+      - trading-network
+
+  grafana-sg:
+    image: grafana/grafana:latest
+    container_name: grafana-sg
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-sg-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+    restart: unless-stopped
+    networks:
+      - trading-network
+
+volumes:
+  mysql-sg-data:
+  redis-sg-data:
+  influxdb-sg-data:
+  prometheus-sg-data:
+  grafana-sg-data:
+
+networks:
+  trading-network:
+    driver: bridge
