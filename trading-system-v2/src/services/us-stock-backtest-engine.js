@@ -198,19 +198,103 @@ class USStockBacktestEngine {
   }
 
   /**
-   * 运行策略（简化版，实际需要调用具体的策略类）
+   * 运行策略
    */
   async runStrategy(strategyName, marketData, currentIndex, strategyParams) {
-    // 这里应该调用实际的策略逻辑
-    // 暂时返回空信号，后续集成真实策略
-    return [];
+    try {
+      const currentData = marketData[currentIndex];
+      const klines15m = marketData; // 简化版，使用当前数据
 
-    // TODO: 集成V3和ICT策略
-    // if (strategyName === 'V3_US') {
-    //   return await this.runV3Strategy(marketData, currentIndex, strategyParams);
-    // } else if (strategyName === 'ICT_US') {
-    //   return await this.runICTStrategy(marketData, currentIndex, strategyParams);
-    // }
+      // 获取多时间框架数据
+      const { klines4H, klines1H } = await this.getMultiTimeframeData(
+        currentData.symbol,
+        currentData.timestamp
+      );
+
+      if (strategyName === 'V3_US') {
+        return await this.runV3Strategy(klines4H, klines1H, klines15m);
+      } else if (strategyName === 'ICT_US') {
+        return await this.runICTStrategy(klines15m);
+      }
+
+      return [];
+
+    } catch (error) {
+      logger.error(`[USStockBacktestEngine] 策略执行失败:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * 运行V3策略
+   */
+  async runV3Strategy(klines4H, klines1H, klines15m) {
+    try {
+      const USV3Strategy = require('../strategies/us-v3-strategy');
+      const strategy = new USV3Strategy();
+      
+      const result = await strategy.execute(klines4H, klines1H, klines15m);
+      
+      if (result && result.action === 'BUY') {
+        return [{
+          action: 'BUY',
+          symbol: klines15m[0]?.symbol || 'UNKNOWN',
+          stopLoss: result.stopLoss,
+          takeProfit: result.takeProfit
+        }];
+      }
+
+      return [];
+
+    } catch (error) {
+      logger.error('[USStockBacktestEngine] V3策略执行失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 运行ICT策略
+   */
+  async runICTStrategy(klines15m) {
+    try {
+      const USICTStrategy = require('../strategies/us-ict-strategy');
+      const strategy = new USICTStrategy();
+      
+      const result = await strategy.execute(klines15m);
+      
+      if (result && result.action === 'BUY') {
+        return [{
+          action: 'BUY',
+          symbol: klines15m[0]?.symbol || 'UNKNOWN',
+          stopLoss: result.stopLoss,
+          takeProfit: result.takeProfit
+        }];
+      }
+
+      return [];
+
+    } catch (error) {
+      logger.error('[USStockBacktestEngine] ICT策略执行失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取多时间框架数据
+   */
+  async getMultiTimeframeData(symbol, timestamp) {
+    try {
+      // 获取4H数据
+      const klines4H = await this.getMarketData(symbol, '4h', null, null);
+      // 获取1H数据
+      const klines1H = await this.getMarketData(symbol, '1h', null, null);
+
+      return { klines4H, klines1H };
+
+    } catch (error) {
+      logger.error(`[USStockBacktestEngine] 获取多时间框架数据失败:`, error);
+      return { klines4H: [], klines1H: [] };
+    }
   }
 
   /**
