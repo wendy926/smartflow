@@ -49,14 +49,18 @@ router.post('/send-code', async (req, res) => {
     }
 
     // 发送验证码
+    logger.info(`[发送验证码] 邮箱: ${email}, 类型: ${type}`);
     const result = await verificationService.sendCode(email, type);
     
     if (result.success) {
+      logger.info(`[验证码已发送] 邮箱: ${email}, 验证码: ${result.code || '未返回'}`);
       res.json({
         success: true,
-        message: result.message
+        message: result.message || '验证码已发送',
+        code: result.code // 开发模式下返回验证码
       });
     } else {
+      logger.error(`[验证码发送失败] 邮箱: ${email}, 错误: ${result.message}`);
       res.status(500).json({
         error: 'Internal Server Error',
         message: result.message

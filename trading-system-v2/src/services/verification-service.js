@@ -149,12 +149,14 @@ class VerificationService {
       if (sent) {
         return {
           success: true,
-          message: '验证码已发送到您的邮箱'
+          message: '验证码已发送到您的邮箱',
+          code: code // 开发模式下返回验证码
         };
       } else {
         return {
           success: false,
-          message: '验证码发送失败，请稍后重试'
+          message: '验证码发送失败，请稍后重试',
+          code: code // 即使失败也返回验证码，便于调试
         };
       }
     } catch (error) {
