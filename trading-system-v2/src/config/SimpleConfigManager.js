@@ -146,6 +146,17 @@ class SimpleConfigManager {
       enabled: process.env.MONITORING_ENABLED !== 'false'
     };
   }
+
+  getConfigSummary() {
+    return {
+      environment: this.config.environment,
+      region: this.config.region,
+      port: this.config.port,
+      adapters: Object.keys(this.config.markets).filter(key => this.config.markets[key].enabled),
+      aiServices: Object.keys(this.config.ai.providers).filter(key => this.config.ai.providers[key].enabled),
+      defaultAIProvider: this.config.ai.defaultProvider
+    };
+  }
 }
 
 module.exports = SimpleConfigManager;
