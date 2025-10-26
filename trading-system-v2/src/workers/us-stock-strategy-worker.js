@@ -223,7 +223,8 @@ class USStockStrategyWorker {
 }
 
 // 启动Worker（如果直接运行）
-if (require.main === module) {
+// 注意: 美股Worker当前未启用，避免占用内存
+if (require.main === module && process.env.ENABLE_US_STOCK_WORKER === 'true') {
   const worker = new USStockStrategyWorker();
   
   worker.start().catch(error => {
@@ -237,6 +238,8 @@ if (require.main === module) {
     worker.stop();
     process.exit(0);
   });
+} else {
+  logger.info('[USStockStrategyWorker] 美股Worker未启用（环境变量ENABLE_US_STOCK_WORKER未设置）');
 }
 
 module.exports = USStockStrategyWorker;

@@ -10,6 +10,38 @@ class USStockBacktestEngine {
   constructor(database) {
     this.database = database;
     this.simulationTrades = new USStockSimulationTrades();
+    
+    // 内存监控
+    this.maxMemoryUsage = 512 * 1024 * 1024; // 512MB限制
+    this.memoryCheckInterval = null;
+  }
+
+  /**
+   * 监控内存使用
+   */
+  startMemoryMonitoring() {
+    this.memoryCheckInterval = setInterval(() => {
+      const memUsage = process.memoryUsage();
+      const heapUsed = memUsage.heapUsed;
+      
+      if (heapUsed > this.maxMemoryUsage) {
+        logger.warn(`[USStockBacktestEngine] 内存使用过高: ${(heapUsed / 1024 / 1024).toFixed(2)}MB`);
+        if (global.gc) {
+          global.gc(); // 手动触发垃圾回收
+          logger.info('[USStockBacktestEngine] 已触发手动垃圾回收');
+        }
+      }
+    }, 30000); // 每30秒检查一次
+  }
+
+  /**
+   * 停止内存监控
+   */
+  stopMemoryMonitoring() {
+    if (this.memoryCheckInterval) {
+      clearInterval(this.memoryCheckInterval);
+      this.memoryCheckInterval = null;
+    }
   }
 
   /**
@@ -88,11 +120,25 @@ class USStockBacktestEngine {
           }
         }
 
-        // 更新未平仓订单的浮动盈亏
-        for (const [posSymbol, position] of positions.entries()) {
-          const unrealizedPnl = this.calculateTradePnL(position, currentPrice);
-          await this.simulationTrades.updatePnL(position.orderId, 0, unrealizedPnl);
+        // 更新未平仓订单的浮动盈亏（避免每次循环都计算所有持仓）
+        if (i % 10 === 0) {  // 每10根K线更新一次
+          for (const [posSymbol, position] of positions.entries()) {
+            const unrealizedPnl = this.calculateTradePnL(position, currentPrice);
+            await this.simulationTrades.updatePnL(position.orderId, 0, unrealizedPnl);
+          }
         }
+
+        // 定期清理trades数组，避免内存堆积（保留最近100条）
+        if (trades.length > 100 && i % 50 === 0) {
+          trades.splice(0, trades.length - 100);
+        }
+      }
+
+      // 最终更新所有未平仓订单
+      const currentPrice = marketData[marketData.length - 1].close;
+      for (const [posSymbol, position] of positions.entries()) {
+        const unrealizedPnl = this.calculateTradePnL(position, currentPrice);
+        await this.simulationTrades.updatePnL(position.orderId, 0, unrealizedPnl);
       }
 
       // 4. 计算回测指标
