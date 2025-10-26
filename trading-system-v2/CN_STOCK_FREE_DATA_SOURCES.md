@@ -1,6 +1,6 @@
 # A股指数免费数据源指南
 
-**日期**: 2025-10-26  
+**日期**: 2025-10-26
 **适用于**: 本地开发和测试
 
 ---
@@ -175,10 +175,10 @@ df.to_csv('index_data.csv', index=False)
 class EastMoneyAPI {
   async getIndexKline(code, period = '101', limit = 100) {
     const url = `http://push2his.eastmoney.com/api/qt/kline/get?secid=${code}&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=${period}&fqt=1&lmt=${limit}`;
-    
+
     const response = await fetch(url);
     const data = await response.json();
-    
+
     return data.data.klines.map(k => {
       const [time, open, close, high, low, volume, amount] = k.split(',');
       return { time, open, high, low, close, volume, amount };
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     code = sys.argv[1]
     start = sys.argv[2]
     end = sys.argv[3]
-    
+
     result = fetch_index_data(code, start, end)
     if result:
         print(result)

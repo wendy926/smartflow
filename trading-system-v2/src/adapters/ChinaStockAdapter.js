@@ -5,7 +5,7 @@
  */
 
 const { IExchangeAdapter, MarketType, Timeframe, OrderSide, OrderType, OrderStatus, TimeInForce, MarketInfo, TradingHours, Kline, MarketMetrics, OrderRequest, OrderResponse, Account, Position } = require('../core/interfaces/IExchangeAdapter');
-const { TushareAPI } = require('../api/cn-stock-api');
+const CNStockServiceAPI = require('../api/cn-stock-service-api');
 const logger = require('../utils/logger');
 
 class ChinaStockAdapter extends IExchangeAdapter {
@@ -13,8 +13,11 @@ class ChinaStockAdapter extends IExchangeAdapter {
     super();
     this.config = config;
     
-    // 初始化Tushare API
-    this.tushareAPI = new TushareAPI(config.tushare || {});
+    // 初始化Python数据服务API
+    this.serviceAPI = new CNStockServiceAPI({
+      baseURL: config.serviceURL || 'http://localhost:5001',
+      timeout: config.timeout || 30000
+    });
     
     // 市场信息 - A股交易时间
     this.marketInfo = new MarketInfo(
@@ -57,7 +60,11 @@ class ChinaStockAdapter extends IExchangeAdapter {
       const endDate = this.formatDate(new Date(), 'YYYYMMDD');
       const startDate = this.calculateStartDate(timeframe, limit);
       
-      const data = await this.tushareAPI.getIndexDaily(symbol, startDate, endDate);
+      // 提取指数代码（去除市场后缀）
+      const code = symbol.replace(/\.(SH|SZ)$/, '');
+      
+      // 调用Python数据服务
+      const data = await this.serviceAPI.getIndexDaily(code, startDate, endDate, limit);
       
       // 转换数据格式
       const klines = data.map(item => new Kline(
@@ -88,30 +95,19 @@ class ChinaStockAdapter extends IExchangeAdapter {
         throw new Error(`Symbol ${symbol} is not supported`);
       }
 
-      // Tushare需要通过指数基本信息获取
-      const basicInfo = await this.tushareAPI.getIndexBasic(symbol);
-      if (!basicInfo || basicInfo.length === 0) {
-        throw new Error(`无法获取指数基本信息: ${symbol}`);
-      }
-
-      // 获取最新交易数据
-      const endDate = this.formatDate(new Date(), 'YYYYMMDD');
-      const latestData = await this.tushareAPI.getIndexDaily(symbol, null, endDate);
+      // 提取指数代码
+      const code = symbol.replace(/\.(SH|SZ)$/, '');
       
-      if (!latestData || latestData.length === 0) {
-        throw new Error(`无法获取最新行情: ${symbol}`);
-      }
-
-      const lastBar = latestData[0];
+      // 调用Python数据服务获取实时行情
+      const ticker = await this.serviceAPI.getIndexRealtime(code);
       
       return {
         symbol: symbol,
-        price: parseFloat(lastBar.close),
-        change: parseFloat(lastBar.change || 0),
-        changePercent: parseFloat(lastBar.pct_chg || 0),
-        volume: parseFloat(lastBar.vol || 0),
-        amount: parseFloat(lastBar.amount || 0),
-        timestamp: this.parseTushareDate(lastBar.trade_date)
+        price: ticker.price,
+        change: ticker.change,
+        changePercent: ticker.changePercent,
+        volume: ticker.volume,
+        timestamp: ticker.timestamp
       };
     } catch (error) {
       logger.error(`获取实时行情失败: ${symbol}, ${error.message}`);
