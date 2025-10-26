@@ -3693,6 +3693,10 @@ class SmartFlowApp {
    */
   async fetchData(endpoint, retryCount = 0) {
     const url = `${this.apiBaseUrl}${endpoint}`;
+    
+    // 获取token
+    const token = localStorage.getItem('authToken');
+    
     const options = {
       method: 'GET',
       headers: {
@@ -3702,9 +3706,22 @@ class SmartFlowApp {
       }
     };
 
+    // 如果已登录，添加Authorization header
+    if (token) {
+      options.headers['Authorization'] = `Bearer ${token}`;
+    }
+
     try {
       const response = await fetch(url, options);
       if (!response.ok) {
+        // 401未授权，清除token并跳转登录
+        if (response.status === 401) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userInfo');
+          window.location.href = '/';
+          throw new Error('未授权，请重新登录');
+        }
+        
         if (response.status === 502 && retryCount < 3) {
           console.log(`API请求失败，正在重试 (${retryCount + 1}/3): ${endpoint}`);
           await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
