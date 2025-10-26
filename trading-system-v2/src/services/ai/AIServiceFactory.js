@@ -31,11 +31,11 @@ class AIServiceFactory {
       case AIProvider.DEEPSEEK:
         return new DeepSeekAIService(config);
       case AIProvider.OPENAI:
-        // TODO: 实现OpenAI服务
-        throw new Error('OpenAI service not implemented yet');
+        logger.warn(`[AIServiceFactory] OpenAI service not implemented yet, skipping...`);
+        return null;
       case AIProvider.GEMINI:
-        // TODO: 实现Gemini服务
-        throw new Error('Gemini service not implemented yet');
+        logger.warn(`[AIServiceFactory] Gemini service not implemented yet, skipping...`);
+        return null;
       default:
         throw new Error(`Unsupported AI provider: ${provider}`);
     }

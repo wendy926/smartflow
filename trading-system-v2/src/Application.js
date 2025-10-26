@@ -227,9 +227,12 @@ class UniversalTradingSystem {
       for (const [provider, providerConfig] of Object.entries(aiConfig.providers || {})) {
         if (providerConfig.apiKey) {
           const aiService = AIServiceFactory.create(provider, providerConfig);
-          this.aiServiceManager.registerService(provider, aiService);
-          
-          logger.info(`✅ ${provider} AI service initialized`);
+          if (aiService) {
+            this.aiServiceManager.registerService(provider, aiService);
+            logger.info(`✅ ${provider} AI service initialized`);
+          } else {
+            logger.warn(`⚠️ ${provider} AI service skipped (not implemented)`);
+          }
         }
       }
       
