@@ -81,7 +81,7 @@ router.post('/data/preload', async (req, res) => {
     // 启动预加载任务
     const result = await marketDataPreloader.preloadAllData(
       symbols || ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ADAUSDT'],
-      timeframes || ['1h', '4h', '1d']
+      timeframes || ['15m', '1h', '4h', '1d']
     );
 
     res.json({
