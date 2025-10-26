@@ -120,7 +120,7 @@ router.post('/verify', async (req, res) => {
     // 如果用户不存在，自动创建
     if (!users || users.length === 0) {
       const result = await database.query(
-        'INSERT INTO users (email, email_verified, verified_at) VALUES (?, ?, NOW())',
+        'INSERT INTO users (email, email_verified, verified_at, password_hash) VALUES (?, ?, NOW(), NULL)',
         [email, true]
       );
       userId = result.insertId || result[0].insertId;

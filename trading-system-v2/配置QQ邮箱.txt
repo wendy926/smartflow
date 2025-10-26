@@ -1,0 +1,36 @@
+============================================
+📧 QQ 邮箱 SMTP 配置（最快、最简单）
+============================================
+
+【第一步】获取 QQ 邮箱授权码
+
+1. 登录 QQ 邮箱：https://mail.qq.com
+2. 点击"设置" → "账户"
+3. 找到"POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV服务"
+4. 开启"POP3/SMTP服务"和"IMAP/SMTP服务"
+5. 点击"生成授权码"（可能需要手机验证）
+6. **复制授权码**（16位字符，例如：abcdefghijklmnop）
+
+【第二步】配置 VPS
+
+执行以下命令（告诉我授权码，我帮您配置）：
+
+# 将 YOUR_QQ_NUMBER 替换为您的 QQ 号
+# 将 AUTH_CODE 替换为授权码
+
+cd /home/admin/trading-system-v2/trading-system-v2/trading-system-v2
+cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
+cat >> .env << 'CONFIG'
+
+# QQ 邮箱 SMTP 配置
+SMTP_HOST=smtp.qq.com
+SMTP_PORT=587
+SMTP_USER=YOUR_QQ_NUMBER@qq.com
+SMTP_PASS=AUTH_CODE
+CONFIG
+pm2 restart main-app
+
+【测试】
+访问 https://smart.aimaventop.com/ 测试验证码功能
+
+============================================
