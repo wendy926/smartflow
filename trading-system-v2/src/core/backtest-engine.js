@@ -6,10 +6,14 @@
 const { StrategyEngine, ParameterManager, SignalProcessor } = require('./strategy-engine');
 const logger = require('../utils/logger');
 const BacktestDataService = require('../services/backtest-data-service');
+const FundingRateCalculator = require('../utils/funding-rate-calculator');
+const MarketRateManager = require('../utils/market-rate-manager');
+const CostAnalysisReporter = require('../utils/cost-analysis-reporter');
 
 class BacktestEngine {
-  constructor(databaseAdapter) {
+  constructor(databaseAdapter, binanceAPI = null) {
     this.databaseAdapter = databaseAdapter;
+    this.binanceAPI = binanceAPI;
 
     // 初始化参数管理器和信号处理器
     this.parameterManager = new ParameterManager();
@@ -26,6 +30,9 @@ class BacktestEngine {
     this.dataManager = new DataManager(databaseAdapter);
     this.resultProcessor = new ResultProcessor();
     this.tradeManager = new TradeManager();
+    this.fundingRateCalculator = new FundingRateCalculator();
+    this.marketRateManager = binanceAPI ? new MarketRateManager(binanceAPI) : null;
+    this.costAnalysisReporter = new CostAnalysisReporter();
   }
 
   /**
@@ -119,7 +126,7 @@ class BacktestEngine {
         }
 
         // 检查平仓条件
-        this.tradeManager.checkExitConditions(positions, adaptedData, trades);
+        await this.tradeManager.checkExitConditions(positions, adaptedData, trades, this.fundingRateCalculator);
 
         // 定期清理内存
         if (i % 1000 === 0) {
@@ -182,7 +189,7 @@ class DataManager {
    */
   async fetchDataFromDatabase(symbol, timeframe, startDate, endDate) {
     const sql = `
-      SELECT 
+      SELECT
         UNIX_TIMESTAMP(open_time) * 1000 as timestamp,
         open_price, high_price, low_price, close_price,
         volume, quote_volume, trades_count,
@@ -351,11 +358,12 @@ class TradeManager {
    * @param {string} closeReason - 平仓原因
    * @returns {Object} 交易记录
    */
-  closePosition(position, marketData, closeReason = '未知') {
+  async closePosition(position, marketData, closeReason = '未知', fundingRateCalculator) {
     const exitPrice = marketData.currentPrice || marketData.close;
-    const pnl = this.calculatePnL(position, exitPrice);
+    const pnlResult = await this.calculatePnL(position, exitPrice, fundingRateCalculator, marketData);
     const duration = (marketData.timestamp || new Date()) - position.entryTime;
-    const pnlPercent = (pnl / position.entryPrice) * 100;
+    const rawPnlPercent = (pnlResult.rawPnL / position.entryPrice) * 100;
+    const netPnlPercent = (pnlResult.netPnL / position.entryPrice) * 100;
     const riskRewardActual = position.direction === 'BUY'
       ? (exitPrice - position.entryPrice) / (position.entryPrice - position.stopLoss)
       : (position.entryPrice - exitPrice) / (position.stopLoss - position.entryPrice);
@@ -364,13 +372,25 @@ class TradeManager {
       ...position,
       exitPrice,
       exitTime: marketData.timestamp || new Date(),
-      pnl,
-      pnlPercent,
+      pnl: pnlResult.netPnL, // 使用净盈亏作为主要盈亏
+      rawPnl: pnlResult.rawPnL,
+      netPnl: pnlResult.netPnL,
+      pnlPercent: netPnlPercent,
+      rawPnlPercent: rawPnlPercent,
       duration,
       durationHours: duration / (1000 * 60 * 60),
+      holdHours: pnlResult.holdHours,
       closeReason,
       riskRewardActual,
-      status: 'CLOSED'
+      status: 'CLOSED',
+      // 成本明细
+      feeCost: pnlResult.feeCost,
+      fundingCost: pnlResult.fundingCost,
+      interestCost: pnlResult.interestCost,
+      totalCost: pnlResult.totalCost,
+      fundingRate: pnlResult.fundingRate,
+      interestRate: pnlResult.interestRate,
+      feeRate: pnlResult.feeRate
     };
 
     // 记录详细交易日志
@@ -382,25 +402,84 @@ class TradeManager {
       stopLoss: trade.stopLoss,
       takeProfit: trade.takeProfit,
       closeReason: trade.closeReason,
-      pnl: trade.pnl.toFixed(2),
-      pnlPercent: trade.pnlPercent.toFixed(2) + '%',
-      holdTime: trade.durationHours.toFixed(2) + 'h',
+      rawPnl: trade.rawPnl.toFixed(2),
+      netPnl: trade.netPnl.toFixed(2),
+      rawPnlPercent: trade.rawPnlPercent.toFixed(2) + '%',
+      netPnlPercent: trade.netPnlPercent.toFixed(2) + '%',
+      holdTime: trade.holdHours.toFixed(2) + 'h',
       riskRewardActual: trade.riskRewardActual.toFixed(2) + ':1',
-      confidence: trade.confidence
+      confidence: trade.confidence,
+      // 成本明细
+      feeCost: trade.feeCost.toFixed(4),
+      fundingCost: trade.fundingCost.toFixed(4),
+      interestCost: trade.interestCost.toFixed(4),
+      totalCost: trade.totalCost.toFixed(4),
+      fundingRate: (trade.fundingRate * 100).toFixed(4) + '%',
+      feeRate: (trade.feeRate * 100).toFixed(4) + '%'
     });
 
     return trade;
   }
 
   /**
-   * 计算盈亏
+   * 计算盈亏（包含完整成本）
    * @param {Object} position - 持仓记录
    * @param {number} exitPrice - 退出价格
-   * @returns {number} 盈亏
+   * @param {Object} fundingRateCalculator - 资金费率计算器
+   * @param {Object} marketData - 市场数据（包含资金费率等）
+   * @returns {Object} 盈亏计算结果
    */
-  calculatePnL(position, exitPrice) {
+  async calculatePnL(position, exitPrice, fundingRateCalculator, marketData = {}) {
+    // 基础盈亏计算
     const priceDiff = exitPrice - position.entryPrice;
-    return position.direction === 'BUY' ? priceDiff : -priceDiff;
+    const rawPnL = position.direction === 'BUY' ? priceDiff : -priceDiff;
+
+    // 计算持仓时长（小时）
+    const entryTime = new Date(position.entryTime);
+    const exitTime = new Date();
+    const holdHours = (exitTime - entryTime) / (1000 * 60 * 60);
+
+    // 获取市场费率（优先使用实时数据，否则使用默认值）
+    let fundingRate = marketData.fundingRate || 0.0001;
+    let interestRate = marketData.interestRate || 0.01;
+    let feeRate = marketData.feeRate || 0.0004;
+
+    // 如果有市场费率管理器，尝试获取实时费率
+    if (this.marketRateManager && position.symbol) {
+      try {
+        const rates = await this.marketRateManager.getAllRates(position.symbol);
+        fundingRate = rates.fundingRate;
+        interestRate = rates.interestRate;
+        feeRate = rates.feeRate;
+      } catch (error) {
+        logger.warn(`[回测引擎] 获取实时费率失败，使用默认值: ${position.symbol}`, error);
+      }
+    }
+
+    // 计算完整成本
+    const costsResult = fundingRateCalculator.calculateCostsOnly({
+      positionSize: position.quantity * position.entryPrice,
+      holdHours: holdHours,
+      fundingRate: fundingRate,
+      interestRate: interestRate,
+      feeRate: feeRate
+    });
+
+    // 计算净盈亏
+    const netPnL = rawPnL - costsResult.totalCost;
+
+    return {
+      rawPnL: rawPnL,
+      netPnL: netPnL,
+      feeCost: costsResult.feeCost,
+      fundingCost: costsResult.fundingCost,
+      interestCost: costsResult.interestCost,
+      totalCost: costsResult.totalCost,
+      holdHours: holdHours,
+      fundingRate: fundingRate,
+      interestRate: interestRate,
+      feeRate: feeRate
+    };
   }
 
   /**
@@ -409,7 +488,7 @@ class TradeManager {
    * @param {Object} marketData - 市场数据
    * @param {Array} trades - 交易记录
    */
-  checkExitConditions(positions, marketData, trades) {
+  async checkExitConditions(positions, marketData, trades, fundingRateCalculator) {
     const currentPrice = marketData.currentPrice || marketData.close;
     const currentTime = marketData.timestamp || new Date();
 
@@ -444,7 +523,7 @@ class TradeManager {
       }
 
       if (shouldClose) {
-        const closedTrade = this.closePosition(position, marketData, closeReason);
+        const closedTrade = await this.closePosition(position, marketData, closeReason, fundingRateCalculator);
         trades.push(closedTrade);
         positions.delete(symbol);
       }
@@ -511,8 +590,11 @@ class ResultProcessor {
     // 计算夏普比率
     const sharpeRatio = this.calculateSharpeRatio(closedTrades);
 
-    // 计算手续费
-    const totalFees = closedTrades.length * 0.001; // 假设每笔交易0.1%手续费
+    // 计算成本分析
+    const costAnalysis = this.calculateCostAnalysis(closedTrades);
+
+    // 生成成本分析报告
+    const costReport = this.generateCostReport(costAnalysis, closedTrades);
 
     // 计算回测天数
     const startDate = new Date(metadata.startDate || closedTrades[0].entryTime);
@@ -567,6 +649,9 @@ class ResultProcessor {
       closeReasonStats,
       pnlDistribution,
       holdTimeStats,
+      // 成本分析
+      costAnalysis,
+      costReport,
       createdAt: new Date().toISOString()
     };
   }
@@ -674,6 +759,106 @@ class ResultProcessor {
     if (stdDev === 0) return 0;
 
     return avgReturn / stdDev;
+  }
+
+  /**
+   * 计算成本分析
+   * @param {Array} trades - 交易记录
+   * @returns {Object} 成本分析结果
+   */
+  calculateCostAnalysis(trades) {
+    if (trades.length === 0) {
+      return {
+        totalRawPnL: 0,
+        totalNetPnL: 0,
+        totalCosts: 0,
+        costBreakdown: {
+          totalFeeCost: 0,
+          totalFundingCost: 0,
+          totalInterestCost: 0
+        },
+        costPercentages: {
+          feeCostPercent: 0,
+          fundingCostPercent: 0,
+          interestCostPercent: 0
+        },
+        avgCostPerTrade: 0,
+        costImpact: 0
+      };
+    }
+
+    // 计算总成本
+    const totalRawPnL = trades.reduce((sum, trade) => sum + (trade.rawPnl || trade.pnl), 0);
+    const totalNetPnL = trades.reduce((sum, trade) => sum + trade.pnl, 0);
+    const totalFeeCost = trades.reduce((sum, trade) => sum + (trade.feeCost || 0), 0);
+    const totalFundingCost = trades.reduce((sum, trade) => sum + (trade.fundingCost || 0), 0);
+    const totalInterestCost = trades.reduce((sum, trade) => sum + (trade.interestCost || 0), 0);
+    const totalCosts = totalFeeCost + totalFundingCost + totalInterestCost;
+
+    // 计算成本占比
+    const totalPositionValue = trades.reduce((sum, trade) => sum + (trade.quantity * trade.entryPrice), 0);
+    const feeCostPercent = totalPositionValue > 0 ? (totalFeeCost / totalPositionValue) * 100 : 0;
+    const fundingCostPercent = totalPositionValue > 0 ? (totalFundingCost / totalPositionValue) * 100 : 0;
+    const interestCostPercent = totalPositionValue > 0 ? (totalInterestCost / totalPositionValue) * 100 : 0;
+
+    // 计算平均成本
+    const avgCostPerTrade = totalCosts / trades.length;
+
+    // 计算成本影响（成本占原始盈亏的比例）
+    const costImpact = totalRawPnL !== 0 ? (totalCosts / Math.abs(totalRawPnL)) * 100 : 0;
+
+    return {
+      totalRawPnL: parseFloat(totalRawPnL.toFixed(4)),
+      totalNetPnL: parseFloat(totalNetPnL.toFixed(4)),
+      totalCosts: parseFloat(totalCosts.toFixed(4)),
+      costBreakdown: {
+        totalFeeCost: parseFloat(totalFeeCost.toFixed(4)),
+        totalFundingCost: parseFloat(totalFundingCost.toFixed(4)),
+        totalInterestCost: parseFloat(totalInterestCost.toFixed(4))
+      },
+      costPercentages: {
+        feeCostPercent: parseFloat(feeCostPercent.toFixed(4)),
+        fundingCostPercent: parseFloat(fundingCostPercent.toFixed(4)),
+        interestCostPercent: parseFloat(interestCostPercent.toFixed(4))
+      },
+      avgCostPerTrade: parseFloat(avgCostPerTrade.toFixed(4)),
+      costImpact: parseFloat(costImpact.toFixed(2))
+    };
+  }
+
+  /**
+   * 生成成本分析报告
+   * @param {Object} costAnalysis - 成本分析数据
+   * @param {Array} trades - 交易记录
+   * @returns {Object} 成本分析报告
+   */
+  generateCostReport(costAnalysis, trades) {
+    try {
+      const costAnalysisReporter = new CostAnalysisReporter();
+
+      // 生成摘要报告
+      const summaryReport = costAnalysisReporter.generateReport(costAnalysis, trades, 'summary');
+
+      // 生成详细报告
+      const detailedReport = costAnalysisReporter.generateReport(costAnalysis, trades, 'detailed');
+
+      // 生成对比报告
+      const comparisonReport = costAnalysisReporter.generateReport(costAnalysis, trades, 'comparison');
+
+      return {
+        summary: summaryReport,
+        detailed: detailedReport,
+        comparison: comparisonReport,
+        generatedAt: new Date().toISOString()
+      };
+
+    } catch (error) {
+      logger.error('[回测引擎] 生成成本分析报告失败', error);
+      return {
+        error: error.message,
+        generatedAt: new Date().toISOString()
+      };
+    }
   }
 }
 
