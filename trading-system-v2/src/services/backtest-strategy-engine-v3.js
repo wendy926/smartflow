@@ -65,7 +65,7 @@ class BacktestStrategyEngineV3 {
       }
 
       try {
-        const symbolTrades = await this.simulateICTTrades(symbol, klines, params, mode);
+        const symbolTrades = await this.simulateICTTrades(symbol, klines, params, mode, timeframe);
         allTrades.push(...symbolTrades);
         logger.info(`[回测引擎V3] ${symbol} ICT-${mode} 生成${symbolTrades.length}笔交易`);
       } catch (error) {
@@ -118,7 +118,7 @@ class BacktestStrategyEngineV3 {
       try {
         console.log(`[回测引擎V3] 开始模拟${symbol} V3-${mode}交易`);
         logger.info(`[回测引擎V3] 开始模拟${symbol} V3-${mode}交易`);
-        const symbolTrades = await this.simulateV3Trades(symbol, klines, params, mode);
+        const symbolTrades = await this.simulateV3Trades(symbol, klines, params, mode, timeframe);
         allTrades.push(...symbolTrades);
         console.log(`[回测引擎V3] ${symbol} V3-${mode} 生成${symbolTrades.length}笔交易`);
         logger.info(`[回测引擎V3] ${symbol} V3-${mode} 生成${symbolTrades.length}笔交易`);
@@ -148,7 +148,7 @@ class BacktestStrategyEngineV3 {
    * @param {string} mode - 策略模式
    * @returns {Promise<Array>} 交易记录
    */
-  async simulateICTTrades(symbol, klines, params, mode) {
+  async simulateICTTrades(symbol, klines, params, mode, timeframe = '15m') {
     const trades = [];
     let position = null;
     let lastSignal = null;
@@ -355,7 +355,7 @@ class BacktestStrategyEngineV3 {
    * @param {string} mode - 策略模式
    * @returns {Promise<Array>} 交易记录
    */
-  async simulateV3Trades(symbol, klines, params, mode) {
+  async simulateV3Trades(symbol, klines, params, mode, timeframe = '15m') {
     const trades = [];
     let position = null;
     let lastSignal = null;
@@ -375,9 +375,9 @@ class BacktestStrategyEngineV3 {
     const MockBinanceAPI = require('./mock-binance-api');
     const mockAPI = new MockBinanceAPI({ [symbol]: { '1h': klines, '4h': klines, '15m': klines, '5m': klines } });
     this.v3Strategy.binanceAPI = mockAPI;
-    console.log(`[回测引擎V3] ${symbol} V3-${mode}: Mock Binance API已注入，数据量: 1h=${klines.length}条`);
-    logger.info(`[回测引擎V3] ${symbol} V3-${mode}: Mock Binance API已注入，数据量: 1h=${klines.length}条`);
-    process.stderr.write(`[回测引擎V3] 强制输出: ${symbol} V3-${mode}Mock Binance API已注入，数据量: 1h=${klines.length}条\n`);
+    console.log(`[回测引擎V3] ${symbol} V3-${mode}: Mock Binance API已注入，数据量: ${timeframe}=${klines.length}条`);
+    logger.info(`[回测引擎V3] ${symbol} V3-${mode}: Mock Binance API已注入，数据量: ${timeframe}=${klines.length}条`);
+    process.stderr.write(`[回测引擎V3] 强制输出: ${symbol} V3-${mode}Mock Binance API已注入，数据量: ${timeframe}=${klines.length}条\n`);
 
     // 优化：减少回测频率，每20根K线检查一次
     const step = Math.max(1, Math.floor(klines.length / 20)); // 最多检查20次，减少CPU消耗
