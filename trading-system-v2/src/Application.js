@@ -6,7 +6,8 @@
 const SimpleConfigManager = require('./config/SimpleConfigManager');
 const { AdapterFactory } = require('./adapters/AdapterFactory');
 const { MarketType } = require('./core/interfaces/IExchangeAdapter');
-const { AIServiceFactory, AIServiceManager } = require('./services/ai/IAIService');
+const { AIServiceFactory } = require('./services/ai/AIServiceFactory');
+const { AIServiceManager } = require('./services/ai/IAIService');
 const { CrossRegionMessagingService, DataSyncHandler, AIAnalysisHandler } = require('./services/CrossRegionMessagingService');
 const { DataSyncService } = require('./services/DataSyncService');
 const logger = require('./utils/logger');
