@@ -3,6 +3,19 @@ let targetMarket = 'crypto';
 
 // 显示认证模态框
 function showAuthModal(market) {
+  // 检查是否已登录
+  const authToken = localStorage.getItem('authToken');
+  if (authToken) {
+    // 已登录，直接跳转到对应市场的dashboard
+    let redirectUrl = '/crypto/dashboard';
+    if (market === 'a') redirectUrl = '/a/dashboard';
+    if (market === 'us') redirectUrl = '/us/dashboard';
+    
+    window.location.href = redirectUrl;
+    return;
+  }
+  
+  // 未登录，显示登录框
   targetMarket = market;
   document.getElementById('authModal').classList.add('active');
 }
