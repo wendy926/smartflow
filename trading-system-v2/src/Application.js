@@ -188,12 +188,20 @@ class UniversalTradingSystem {
     try {
       const markets = this.config.markets || {};
       
-      for (const [marketType, marketConfig] of Object.entries(markets)) {
+      // 市场类型映射
+      const marketTypeMap = {
+        'binance': 'CRYPTO',
+        'alpaca': 'US_STOCK',
+        'tushare': 'CN_STOCK'
+      };
+      
+      for (const [marketName, marketConfig] of Object.entries(markets)) {
         if (marketConfig.enabled) {
-          const adapter = AdapterFactory.create(marketType, marketConfig.config);
-          this.adapters.set(marketType, adapter);
+          const marketType = marketTypeMap[marketName] || marketName.toUpperCase();
+          const adapter = AdapterFactory.create(marketType, marketConfig);
+          this.adapters.set(marketName, adapter);
           
-          logger.info(`✅ ${marketType} adapter initialized`);
+          logger.info(`✅ ${marketName} adapter initialized`);
         }
       }
       
