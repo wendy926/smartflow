@@ -8,7 +8,7 @@ const authMiddleware = (req, res, next) => {
   try {
     // 从请求头获取token
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({
         error: 'Unauthorized',
@@ -18,7 +18,7 @@ const authMiddleware = (req, res, next) => {
 
     // 验证token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
+
     // 将用户信息附加到请求对象
     req.user = decoded;
     next();
@@ -37,12 +37,12 @@ const authMiddleware = (req, res, next) => {
 const optionalAuthMiddleware = (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
       req.user = decoded;
     }
-    
+
     next();
   } catch (error) {
     // 可选认证失败也不阻止请求

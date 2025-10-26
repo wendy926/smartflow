@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,7 +48,8 @@
       gap: 15px;
     }
 
-    .btn-login, .btn-register {
+    .btn-login,
+    .btn-register {
       padding: 8px 20px;
       border-radius: 6px;
       border: none;
@@ -360,6 +362,7 @@
     }
   </style>
 </head>
+
 <body>
   <!-- 导航栏 -->
   <nav class="navbar">
@@ -566,31 +569,31 @@
     // 处理登录
     async function handleLogin(event) {
       event.preventDefault();
-      
+
       const email = document.getElementById('loginEmail').value;
       const password = document.getElementById('loginPassword').value;
-      
+
       const errorDiv = document.getElementById('loginErrorMessage');
       const successDiv = document.getElementById('loginSuccessMessage');
-      
+
       try {
         const response = await fetch('/api/v1/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok && data.success) {
           // 保存token
           localStorage.setItem('authToken', data.data.token);
           localStorage.setItem('userInfo', JSON.stringify(data.data.user));
-          
+
           successDiv.textContent = '登录成功！正在跳转...';
           successDiv.style.display = 'block';
           errorDiv.style.display = 'none';
-          
+
           // 跳转到加密货币仪表板
           setTimeout(() => {
             window.location.href = '/crypto/dashboard';
@@ -610,29 +613,29 @@
     // 处理注册
     async function handleRegister(event) {
       event.preventDefault();
-      
+
       const email = document.getElementById('registerEmail').value;
       const password = document.getElementById('registerPassword').value;
       const name = document.getElementById('registerName').value;
       const company = document.getElementById('registerCompany').value;
-      
+
       const errorDiv = document.getElementById('registerErrorMessage');
       const successDiv = document.getElementById('registerSuccessMessage');
-      
+
       try {
         const response = await fetch('/api/v1/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password, name, company })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok && data.success) {
           successDiv.textContent = '注册成功！请登录...';
           successDiv.style.display = 'block';
           errorDiv.style.display = 'none';
-          
+
           // 切换到登录模态框
           setTimeout(() => {
             document.getElementById('registerModal').classList.remove('active');
@@ -668,5 +671,5 @@
     }
   </script>
 </body>
-</html>
 
+</html>

@@ -86,32 +86,37 @@ class TradingSystemApp {
       });
     });
 
-    // API路由
+    // 导入鉴权中间件
+    const { authMiddleware } = require('./middleware/auth');
+
+    // 公开API路由（无需认证）
     this.app.use('/api/v1/auth', require('./api/routes/auth')); // 认证路由（注册登录）
-    this.app.use('/api/v1/strategies', require('./api/routes/strategies'));
-    this.app.use('/api/v1/symbols', require('./api/routes/symbols'));
-    this.app.use('/api/v1/trades', require('./api/routes/trades'));
-    this.app.use('/api/v1/monitoring', require('./api/routes/monitoring'));
-    this.app.use('/api/v1/macro-monitor', require('./api/routes/macro-monitor'));
+
+    // 受保护的API路由（需要认证）
+    this.app.use('/api/v1/strategies', authMiddleware, require('./api/routes/strategies'));
+    this.app.use('/api/v1/symbols', authMiddleware, require('./api/routes/symbols'));
+    this.app.use('/api/v1/trades', authMiddleware, require('./api/routes/trades'));
+    this.app.use('/api/v1/monitoring', authMiddleware, require('./api/routes/monitoring'));
+    this.app.use('/api/v1/macro-monitor', authMiddleware, require('./api/routes/macro-monitor'));
     // this.app.use('/api/v1/new-coin-monitor', require('./api/routes/new-coin-monitor')); // V2.0禁用：功能未使用
-    this.app.use('/api/v1/smart-money', require('./api/routes/smart-money')); // V2.0.1新增：聪明钱跟踪
-    this.app.use('/api/v1/smart-money-monitor', require('./api/routes/smart-money-monitor')); // V2.1.0新增：聪明钱监控
-    this.app.use('/api/v1/smart-money-four-phase', require('./api/routes/smart-money-four-phase')); // V2.2.0新增：四阶段聪明钱检测
-    this.app.use('/api/v1/smart-money-four-phase-notifier', require('./api/routes/smart-money-four-phase-notifier')); // V2.2.1新增：四阶段聪明钱通知
-    this.app.use('/api/v1/large-orders', require('./api/routes/large-orders')()); // V2.1.0新增：大额挂单监控
-    this.app.use('/api/v1/large-orders-advanced', require('./api/routes/large-orders-advanced')()); // V2.2.2新增：大额挂单高级查询
-    this.app.use('/api/v1/smart-money-v2', require('./api/routes/smart-money-v2')()); // V2.3.0新增：聪明钱V2 API
-    this.app.use('/api/v1/ict-position', require('./api/routes/ict-position')); // ICT优化V2.0新增：ICT仓位管理API
-    this.app.use('/api/v1/tools', require('./api/routes/tools'));
-    this.app.use('/api/v1/telegram', require('./api/routes/telegram'));
-    this.app.use('/api/v1/settings', require('./api/routes/settings'));
-    this.app.use('/api/v1/ai', require('./api/routes/ai-analysis'));
-    this.app.use('/api/v1/position-monitor', require('./api/routes/position-monitor'));
-    this.app.use('/api/v1/strategy-params', require('./api/routes/strategy-params')); // 策略参数化调优API
+    this.app.use('/api/v1/smart-money', authMiddleware, require('./api/routes/smart-money')); // V2.0.1新增：聪明钱跟踪
+    this.app.use('/api/v1/smart-money-monitor', authMiddleware, require('./api/routes/smart-money-monitor')); // V2.1.0新增：聪明钱监控
+    this.app.use('/api/v1/smart-money-four-phase', authMiddleware, require('./api/routes/smart-money-four-phase')); // V2.2.0新增：四阶段聪明钱检测
+    this.app.use('/api/v1/smart-money-four-phase-notifier', authMiddleware, require('./api/routes/smart-money-four-phase-notifier')); // V2.2.1新增：四阶段聪明钱通知
+    this.app.use('/api/v1/large-orders', authMiddleware, require('./api/routes/large-orders')()); // V2.1.0新增：大额挂单监控
+    this.app.use('/api/v1/large-orders-advanced', authMiddleware, require('./api/routes/large-orders-advanced')()); // V2.2.2新增：大额挂单高级查询
+    this.app.use('/api/v1/smart-money-v2', authMiddleware, require('./api/routes/smart-money-v2')()); // V2.3.0新增：聪明钱V2 API
+    this.app.use('/api/v1/ict-position', authMiddleware, require('./api/routes/ict-position')); // ICT优化V2.0新增：ICT仓位管理API
+    this.app.use('/api/v1/tools', authMiddleware, require('./api/routes/tools'));
+    this.app.use('/api/v1/telegram', authMiddleware, require('./api/routes/telegram'));
+    this.app.use('/api/v1/settings', authMiddleware, require('./api/routes/settings'));
+    this.app.use('/api/v1/ai', authMiddleware, require('./api/routes/ai-analysis'));
+    this.app.use('/api/v1/position-monitor', authMiddleware, require('./api/routes/position-monitor'));
+    this.app.use('/api/v1/strategy-params', authMiddleware, require('./api/routes/strategy-params')); // 策略参数化调优API
 
     // 回测API路由
     const { router: backtestRouter, setBacktestServices } = require('./api/routes/backtest');
-    this.app.use('/api/v1/backtest', backtestRouter);
+    this.app.use('/api/v1/backtest', authMiddleware, backtestRouter);
     this.setBacktestServices = setBacktestServices; // 保存设置函数
 
     // 健康检查
@@ -131,23 +136,23 @@ class TradingSystemApp {
     });
 
     // 加密货币路由 (crypto/*)
-    this.app.get(['/crypto/dashboard', '/crypto/strategies', '/crypto/statistics', 
-                   '/crypto/tools', '/crypto/smart-money', '/crypto/large-orders', '/crypto/backtest'], 
+    this.app.get(['/crypto/dashboard', '/crypto/strategies', '/crypto/statistics',
+      '/crypto/tools', '/crypto/smart-money', '/crypto/large-orders', '/crypto/backtest'],
       (req, res) => {
         res.sendFile('index.html', { root: 'src/web' });
-    });
+      });
 
-    // A股路由 (a/*) 
-    this.app.get(['/a/dashboard', '/a/strategies', '/a/statistics', '/a/backtest'], 
+    // A股路由 (a/*)
+    this.app.get(['/a/dashboard', '/a/strategies', '/a/statistics', '/a/backtest'],
       (req, res) => {
         res.sendFile('cn-stock.html', { root: 'src/web' });
-    });
+      });
 
     // 美股路由 (us/*)
-    this.app.get(['/us/dashboard', '/us/strategies', '/us/statistics', '/us/backtest'], 
+    this.app.get(['/us/dashboard', '/us/strategies', '/us/statistics', '/us/backtest'],
       (req, res) => {
         res.sendFile('us-stock.html', { root: 'src/web' });
-    });
+      });
 
     // 系统监控和文档（直接访问）
     this.app.get(['/monitoring', '/docs'], (req, res) => {
