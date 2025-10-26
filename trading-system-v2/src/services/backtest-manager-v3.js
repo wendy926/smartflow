@@ -387,7 +387,7 @@ class BacktestManagerV3 {
         LIMIT 10000
       `;
 
-      const [rows] = await this.database.pool.query(query, [symbol, timeframe]);
+      const rows = await this.database.query(query, [symbol, timeframe]);
       logger.info(`[回测管理器V3] 查询到${rows.length}条${symbol}-${timeframe}回测数据`);
 
       if (rows.length === 0) {
@@ -446,7 +446,7 @@ class BacktestManagerV3 {
         ORDER BY open_time DESC
       `;
 
-      const [rows] = await this.database.pool.query(query, [symbol, timeframe]);
+      const rows = await this.database.query(query, [symbol, timeframe]);
       logger.info(`[回测管理器V3] 查询到${rows.length}条${symbol}-${timeframe}数据`);
 
       return rows.map(row => {
@@ -497,7 +497,7 @@ class BacktestManagerV3 {
       VALUES (?, ?, '180天', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 180, 'COMPLETED')
     `;
 
-    await this.database.pool.query(query, [
+    await this.database.query(query, [
       strategyName, mode, metrics.totalTrades, metrics.winningTrades, metrics.losingTrades,
       metrics.winRate, metrics.totalPnl, metrics.avgWin, metrics.avgLoss, metrics.maxDrawdown,
       metrics.sharpeRatio, metrics.profitFactor, metrics.avgTradeDuration, metrics.maxConsecutiveWins,
@@ -555,7 +555,7 @@ class BacktestManagerV3 {
         ORDER BY created_at DESC
       `;
 
-      const [rows] = await this.database.pool.query(query, [strategy]);
+      const rows = await this.database.query(query, [strategy]);
       logger.info(`[回测管理器V3] 获取到${rows.length}条${strategy}回测结果`);
 
       return rows;
@@ -590,7 +590,7 @@ class BacktestManagerV3 {
         FROM strategy_params 
         WHERE strategy_name = ? AND strategy_mode = ? AND is_active = 1
       `;
-      let [rows] = await this.database.pool.query(query, [strategyName, mode]);
+      let rows = await this.database.query(query, [strategyName, mode]);
       console.log(`[回测管理器V3] 查询正在运行的参数: ${strategyName}-${mode}, 结果数量: ${rows.length}`);
 
       // 如果没有正在运行的参数，则使用回测参数 (is_active = 0)
@@ -600,7 +600,7 @@ class BacktestManagerV3 {
           FROM strategy_params 
           WHERE strategy_name = ? AND strategy_mode = ? AND is_active = 0
         `;
-        [rows] = await this.database.pool.query(query, [strategyName, mode]);
+        rows = await this.database.query(query, [strategyName, mode]);
         console.log(`[回测管理器V3] 使用回测参数: ${strategyName}-${mode}, 结果数量: ${rows.length}`);
         logger.info(`[回测管理器V3] 使用回测参数: ${strategyName}-${mode}`);
       } else {
