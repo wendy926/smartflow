@@ -235,14 +235,14 @@ class BacktestStrategyEngineV3 {
           // 计算真实的ATR（过去14根K线的平均真实波动幅度）
           const atr = this.calculateTrueATR(klines, i, 14);
 
-          // ✅ 从参数中获取止损倍数（从position分组读取）
-          const atrMultiplier = params?.position?.stopLossATRMultiplier || 1.5;
+          // ✅ 从参数中获取止损倍数（支持多个可能的category）
+          const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 1.5;
           const stopDistance = atr * atrMultiplier;
           const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
           const risk = stopDistance;
 
-          // ✅ 从参数中获取止盈倍数（从position分组读取）
-          const takeProfitRatio = params?.position?.takeProfitRatio || 3.5;
+          // ✅ 从参数中获取止盈倍数（支持多个可能的category）
+          const takeProfitRatio = params?.risk_management?.takeProfitRatio || params?.position?.takeProfitRatio || 3.5;
           const takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
 
           const actualRR = takeProfitRatio / atrMultiplier;
@@ -522,14 +522,14 @@ class BacktestStrategyEngineV3 {
           // 计算真实的ATR（过去14根K线的平均真实波动幅度）
           const atr = this.calculateTrueATR(klines, i, 14);
 
-          // ✅ 从参数中获取止损倍数（从position分组读取）
-          const atrMultiplier = params?.position?.stopLossATRMultiplier || 1.5;
+          // ✅ 从参数中获取止损倍数（支持多个可能的category）
+          const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 1.5;
           const stopDistance = atr * atrMultiplier;
           const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
           const risk = stopDistance;
 
-          // ✅ 从参数中获取止盈倍数（从position分组读取）
-          const takeProfitRatio = params?.position?.takeProfitRatio || 3.5;
+          // ✅ 从参数中获取止盈倍数（支持多个可能的category）
+          const takeProfitRatio = params?.risk_management?.takeProfitRatio || params?.position?.takeProfitRatio || 3.5;
           const takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
 
           const actualRR = takeProfitRatio / atrMultiplier;
