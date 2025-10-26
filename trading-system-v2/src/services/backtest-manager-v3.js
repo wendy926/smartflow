@@ -381,7 +381,7 @@ class BacktestManagerV3 {
 
       const query = `
         SELECT open_time, close_time, open_price, high_price, low_price, close_price, volume, quote_volume
-        FROM backtest_market_data 
+        FROM backtest_market_data
         WHERE symbol = ? AND timeframe = ?
         ORDER BY open_time ASC
         LIMIT 10000
@@ -441,7 +441,7 @@ class BacktestManagerV3 {
 
       const query = `
         SELECT open_time, close_time, open_price, high_price, low_price, close_price, volume, quote_volume
-        FROM backtest_market_data 
+        FROM backtest_market_data
         WHERE symbol = ? AND timeframe = ?
         ORDER BY open_time DESC
       `;
@@ -486,26 +486,61 @@ class BacktestManagerV3 {
    * @param {Object} result - 回测结果
    */
   async saveBacktestResult(taskId, strategyName, mode, result) {
-    const metrics = result.metrics;
+    try {
+      const metrics = result.metrics;
 
-    const query = `
-      INSERT INTO strategy_parameter_backtest_results 
-      (strategy_name, strategy_mode, backtest_period, total_trades, winning_trades, losing_trades, 
-       win_rate, total_pnl, avg_win, avg_loss, max_drawdown, sharpe_ratio, profit_factor, 
-       avg_trade_duration, max_consecutive_wins, max_consecutive_losses, total_fees, net_profit,
-       backtest_start_date, backtest_end_date, total_days, backtest_status)
-      VALUES (?, ?, '180天', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 180, 'COMPLETED')
-    `;
+      // 清理NaN和Infinity值
+      const cleanValue = (value) => {
+        if (value === null || value === undefined) return 0;
+        if (typeof value === 'number') {
+          if (isNaN(value)) return 0;
+          if (!isFinite(value)) return 0;
+          return value;
+        }
+        return value;
+      };
 
-    await this.database.query(query, [
-      strategyName, mode, metrics.totalTrades, metrics.winningTrades, metrics.losingTrades,
-      metrics.winRate, metrics.totalPnl, metrics.avgWin, metrics.avgLoss, metrics.maxDrawdown,
-      metrics.sharpeRatio, metrics.profitFactor, metrics.avgTradeDuration, metrics.maxConsecutiveWins,
-      metrics.maxConsecutiveLosses, metrics.totalFees, metrics.netProfit,
-      new Date(Date.now() - 180 * 24 * 60 * 60 * 1000), new Date(), 180
-    ]);
+      const values = [
+        strategyName,
+        mode,
+        '180天',
+        cleanValue(metrics.totalTrades),
+        cleanValue(metrics.winningTrades),
+        cleanValue(metrics.losingTrades),
+        cleanValue(metrics.winRate),
+        cleanValue(metrics.totalPnl),
+        cleanValue(metrics.avgWin),
+        cleanValue(metrics.avgLoss),
+        cleanValue(metrics.maxDrawdown),
+        cleanValue(metrics.sharpeRatio),
+        cleanValue(metrics.profitFactor),
+        cleanValue(metrics.avgTradeDuration),
+        cleanValue(metrics.maxConsecutiveWins),
+        cleanValue(metrics.maxConsecutiveLosses),
+        cleanValue(metrics.totalFees),
+        cleanValue(metrics.netProfit),
+        new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+        new Date(),
+        180,
+        'COMPLETED'
+      ];
 
-    logger.info(`[回测管理器V3] 回测结果已保存: ${strategyName}-${mode}`);
+      const query = `
+        INSERT INTO strategy_parameter_backtest_results
+        (strategy_name, strategy_mode, backtest_period, total_trades, winning_trades, losing_trades,
+         win_rate, total_pnl, avg_win, avg_loss, max_drawdown, sharpe_ratio, profit_factor,
+         avg_trade_duration, max_consecutive_wins, max_consecutive_losses, total_fees, net_profit,
+         backtest_start_date, backtest_end_date, total_days, backtest_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      await this.database.query(query, values);
+
+      logger.info(`[回测管理器V3] 回测结果已保存: ${strategyName}-${mode}`);
+    } catch (error) {
+      logger.error(`[回测管理器V3] 保存回测结果失败:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -550,7 +585,7 @@ class BacktestManagerV3 {
   async getAllBacktestResults(strategy) {
     try {
       const query = `
-        SELECT * FROM strategy_parameter_backtest_results 
+        SELECT * FROM strategy_parameter_backtest_results
         WHERE strategy_name = ?
         ORDER BY created_at DESC
       `;
@@ -587,7 +622,7 @@ class BacktestManagerV3 {
       // ✅ 优先使用正在运行的策略参数 (is_active = 1)，查询category字段
       let query = `
         SELECT param_name, param_value, category, param_group, param_type
-        FROM strategy_params 
+        FROM strategy_params
         WHERE strategy_name = ? AND strategy_mode = ? AND is_active = 1
       `;
       let rows = await this.database.query(query, [strategyName, mode]);
@@ -597,7 +632,7 @@ class BacktestManagerV3 {
       if (rows.length === 0) {
         query = `
           SELECT param_name, param_value, category, param_group, param_type
-          FROM strategy_params 
+          FROM strategy_params
           WHERE strategy_name = ? AND strategy_mode = ? AND is_active = 0
         `;
         rows = await this.database.query(query, [strategyName, mode]);
@@ -613,7 +648,7 @@ class BacktestManagerV3 {
       rows.forEach(row => {
         // 优先使用category，fallback到param_group
         const group = row.category || row.param_group || 'general';
-        
+
         // 转换参数值类型
         let value = row.param_value;
         switch (row.param_type) {
