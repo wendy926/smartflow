@@ -72,7 +72,11 @@ class SimpleConfigManager {
 
       // 跨区域通信
       messaging: {
-        redisUrl: process.env.MESSAGING_REDIS_URL || 'redis://localhost:6379',
+        redis: {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: process.env.REDIS_PORT || 6379,
+          password: process.env.REDIS_PASSWORD || '',
+        },
         channel: process.env.MESSAGING_CHANNEL || 'cross_region_trading_channel',
       },
 
