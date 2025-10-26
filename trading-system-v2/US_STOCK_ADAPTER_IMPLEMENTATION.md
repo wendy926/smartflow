@@ -34,61 +34,87 @@
 
 ## 🔑 所需的API密钥
 
-### Alpaca API
-**用途**: 美股交易、实时数据、订单管理
+### Market Data API (市场数据)
+**用途**: 获取美股历史K线数据和实时行情
 
 **获取方式**:
 1. 访问 https://alpaca.markets
-2. 注册账号并创建应用
-3. 获取 API Key 和 Secret Key
-4. 建议使用 Paper Trading（模拟交易）进行测试
+2. 注册账号（无需金融认证）
+3. 获取 API Key
+4. **注意**: 仅用于数据获取，不进行真实交易
 
 **环境变量**:
 ```bash
-ALPACA_API_KEY=your_alpaca_api_key
-ALPACA_SECRET_KEY=your_alpaca_secret_key
-ALPACA_USE_SANDBOX=true  # 使用模拟交易环境
+ALPACA_API_KEY=your_alpaca_api_key  # 可选，如需历史数据
+ALPACA_USE_SANDBOX=true
 ```
 
-**API限制**:
-- 免费版: 200 requests/min
-- 付费版: 更高频率限制
+**说明**: 由于只做回测和模拟交易，无需Trading API的Secret Key
+
+### Alpha Vantage API (已提供)
+**用途**: 期权数据、机构资金流、VIX指数
+
+**环境变量**:
+```bash
+ALPHA_VANTAGE_API_KEY=6XV08K479PGSITYI
+```
+
+**API限制**: 500 calls/day, 5 calls/min
 
 ---
 
-### Alpha Vantage API
-**用途**: 期权数据、机构资金流向、VIX恐慌指数
+## 💾 模拟交易和回测架构
 
-**获取方式**:
-1. 访问 https://www.alphavantage.co/support/#api-key
-2. 填写表单获取免费API密钥
-3. 每日API调用限制为500次
+### 数据流程
+1. **获取市场数据**: 使用Market Data API和Alpha Vantage获取K线和市场指标
+2. **策略分析**: 运行交易策略，产生交易信号
+3. **模拟下单**: 不调用真实API，直接生成订单
+4. **记录数据库**: 将模拟订单存储到MySQL数据库
+5. **回测计算**: 基于历史数据模拟执行，计算PnL和胜率
 
-**环境变量**:
-```bash
-ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
+### 数据库表设计
+```sql
+-- 模拟交易记录
+CREATE TABLE IF NOT EXISTS us_stock_trades (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    symbol VARCHAR(20) NOT NULL,
+    side ENUM('BUY', 'SELL') NOT NULL,
+    type ENUM('MARKET', 'LIMIT', 'STOP', 'STOP_LIMIT') NOT NULL,
+    quantity DECIMAL(18, 8) NOT NULL,
+    price DECIMAL(18, 8),
+    stop_price DECIMAL(18, 8),
+    status ENUM('PENDING', 'FILLED', 'CANCELLED', 'REJECTED') NOT NULL,
+    filled_quantity DECIMAL(18, 8),
+    avg_fill_price DECIMAL(18, 8),
+    pnl DECIMAL(18, 8),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    filled_at TIMESTAMP NULL,
+    INDEX idx_symbol (symbol),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at)
+);
+
+-- 回测结果
+CREATE TABLE IF NOT EXISTS us_stock_backtest_results (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    strategy_name VARCHAR(50) NOT NULL,
+    symbol VARCHAR(20) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    total_trades INT NOT NULL,
+    winning_trades INT NOT NULL,
+    losing_trades INT NOT NULL,
+    win_rate DECIMAL(5, 2),
+    total_profit DECIMAL(18, 8),
+    total_loss DECIMAL(18, 8),
+    net_pnl DECIMAL(18, 8),
+    max_drawdown DECIMAL(18, 8),
+    sharpe_ratio DECIMAL(10, 4),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_strategy (strategy_name),
+    INDEX idx_symbol (symbol)
+);
 ```
-
-**API限制**:
-- 免费版: 500 calls/day, 5 calls/min
-- 订阅版: 更高限制
-
----
-
-### Yahoo Finance API
-**用途**: 股票基本信息、做空数据、技术指标
-
-**获取方式**:
-- Yahoo Finance提供开放的REST API
-- 无需API密钥（但建议使用代理以避免限流）
-
-**环境变量**:
-```bash
-YAHOO_FINANCE_BASE_URL=https://query1.finance.yahoo.com
-```
-
-**API限制**:
-- 无官方限制，但建议控制请求频率（<10 requests/sec）
 
 ---
 

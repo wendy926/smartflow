@@ -115,7 +115,8 @@ class USStockAdapter extends IExchangeAdapter {
   }
 
   /**
-   * 下单
+   * 下单 - 模拟交易模式
+   * 注意: 此实现不进行真实交易，仅用于回测和模拟交易
    */
   async placeOrder(order) {
     try {
@@ -127,32 +128,34 @@ class USStockAdapter extends IExchangeAdapter {
         throw new Error('Market is closed');
       }
 
-      const orderParams = {
+      // 获取当前价格以模拟执行
+      const currentPrice = await this.getTicker(order.symbol);
+      
+      // 模拟订单响应
+      const simulatedResponse = {
+        id: `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         symbol: order.symbol,
-        qty: order.quantity,
-        side: order.side.toLowerCase(),
-        type: order.type.toLowerCase(),
-        time_in_force: order.timeInForce?.toLowerCase() || 'day'
+        status: 'FILLED',
+        filled_qty: order.quantity,
+        filled_avg_price: order.price || currentPrice,
+        created_at: new Date().toISOString()
       };
 
-      // 添加价格相关参数
-      if (order.type === OrderType.LIMIT || order.type === OrderType.STOP_LIMIT) {
-        orderParams.limit_price = order.price;
-      }
-
-      if (order.type === OrderType.STOP || order.type === OrderType.STOP_LIMIT) {
-        orderParams.stop_price = order.stopPrice;
-      }
-
-      const response = await this.alpacaAPI.placeOrder(orderParams);
+      logger.info(`[USStockAdapter] Simulated order placed:`, {
+        orderId: simulatedResponse.id,
+        symbol: order.symbol,
+        side: order.side,
+        quantity: order.quantity,
+        price: simulatedResponse.filled_avg_price
+      });
 
       return new OrderResponse(
-        response.id,
-        order.symbol,
-        response.status.toUpperCase(),
-        parseFloat(response.filled_qty || 0),
-        parseFloat(response.filled_avg_price || 0),
-        new Date(response.created_at)
+        simulatedResponse.id,
+        simulatedResponse.symbol,
+        simulatedResponse.status,
+        parseFloat(simulatedResponse.filled_qty),
+        parseFloat(simulatedResponse.filled_avg_price),
+        new Date(simulatedResponse.created_at)
       );
 
     } catch (error) {

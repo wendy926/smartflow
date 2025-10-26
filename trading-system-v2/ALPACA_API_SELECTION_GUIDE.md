@@ -1,6 +1,6 @@
 # Alpaca API选择指南
 
-**日期**: 2025-10-26  
+**日期**: 2025-10-26
 **参考**: https://alpaca.markets
 
 ---
@@ -176,10 +176,10 @@ console.log(account.buying_power);
 - **切换环境**: 修改baseURL即可
 
 ### API限制
-- **免费版**: 
+- **免费版**:
   - Trading API: 200 requests/min
   - Market Data: 实时数据免费
-- **付费版**: 
+- **付费版**:
   - 更高的请求频率
   - 更多高级功能
 
