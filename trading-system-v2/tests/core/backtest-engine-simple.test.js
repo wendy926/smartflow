@@ -9,8 +9,8 @@ describe('BacktestEngine 单元测试框架', () => {
 
   test('应正确计算PnL', () => {
     const calculatePnL = (entryPrice, exitPrice, quantity, direction) => {
-      const priceDiff = direction === 'LONG' 
-        ? exitPrice - entryPrice 
+      const priceDiff = direction === 'LONG'
+        ? exitPrice - entryPrice
         : entryPrice - exitPrice;
       return priceDiff * quantity;
     };
@@ -28,7 +28,7 @@ describe('BacktestEngine 单元测试框架', () => {
     };
 
     const cost = calculateFundingCost(100, 1, 0.0001, 24);
-    
+
     expect(cost).toBeGreaterThan(0);
     expect(cost).toBeLessThan(0.1); // 成本应该很小
   });
@@ -61,7 +61,7 @@ describe('BacktestEngine 单元测试框架', () => {
     };
 
     const window = buildWindow(marketData, 50, 100);
-    
+
     expect(window.length).toBe(50);
     expect(window[0].timestamp).toBeLessThan(window[49].timestamp);
   });

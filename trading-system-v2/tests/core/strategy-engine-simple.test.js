@@ -12,7 +12,7 @@ describe('StrategyEngine 单元测试框架', () => {
     const strategies = new Map();
     strategies.set('V3', { name: 'V3' });
     strategies.set('ICT', { name: 'ICT' });
-    
+
     expect(strategies.has('V3')).toBe(true);
     expect(strategies.has('ICT')).toBe(true);
     expect(strategies.size).toBe(2);
@@ -23,7 +23,7 @@ describe('StrategyEngine 单元测试框架', () => {
       stopLossATR: 1.5,
       takeProfitRatio: 3.0
     };
-    
+
     expect(params.stopLossATR).toBe(1.5);
     expect(params.takeProfitRatio).toBe(3.0);
   });
@@ -34,7 +34,7 @@ describe('StrategyEngine 单元测试框架', () => {
       confidence: 0.8,
       price: 100
     };
-    
+
     expect(signal.type).toBe('BUY');
     expect(signal.confidence).toBeGreaterThan(0);
     expect(signal.price).toBe(100);
