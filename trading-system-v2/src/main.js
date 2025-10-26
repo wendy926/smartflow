@@ -69,9 +69,6 @@ class TradingSystemApp {
     // 解析中间件
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-    // 静态文件
-    this.app.use(express.static('src/web'));
   }
 
   setupRoutes() {
@@ -168,6 +165,9 @@ class TradingSystemApp {
     this.app.get(['/dashboard', '/strategies', '/statistics'], (req, res) => {
       res.redirect('/crypto' + req.path);
     });
+
+    // 静态文件（放在所有路由之后，避免覆盖路由）
+    this.app.use(express.static('src/web'));
   }
 
   setupErrorHandling() {
