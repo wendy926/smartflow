@@ -5,6 +5,7 @@
 
 const SimpleConfigManager = require('./config/SimpleConfigManager');
 const { AdapterFactory } = require('./adapters/AdapterFactory');
+const { MarketType } = require('./core/interfaces/IExchangeAdapter');
 const { AIServiceFactory, AIServiceManager } = require('./services/ai/IAIService');
 const { CrossRegionMessagingService, DataSyncHandler, AIAnalysisHandler } = require('./services/CrossRegionMessagingService');
 const { DataSyncService } = require('./services/DataSyncService');
@@ -190,9 +191,9 @@ class UniversalTradingSystem {
       
       // 市场类型映射
       const marketTypeMap = {
-        'binance': 'CRYPTO',
-        'alpaca': 'US_STOCK',
-        'tushare': 'CN_STOCK'
+        'binance': MarketType.CRYPTO,
+        'alpaca': MarketType.US_STOCK,
+        'tushare': MarketType.CN_STOCK
       };
       
       for (const [marketName, marketConfig] of Object.entries(markets)) {
