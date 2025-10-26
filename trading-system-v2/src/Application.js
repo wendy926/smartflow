@@ -15,7 +15,7 @@ const logger = require('./utils/logger');
  */
 class UniversalTradingSystem {
   constructor() {
-    this.configManager = new ConfigManager();
+    this.configManager = new SimpleConfigManager();
     this.config = this.configManager.getConfig();
     this.region = this.configManager.getRegion();
     this.environment = this.configManager.getEnvironment();
