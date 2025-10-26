@@ -310,33 +310,52 @@ function calculateMetrics(trades) {
 
 ## 🎯 与现有系统集成
 
-### 适配Binance的聪明钱逻辑
+### 美股策略简化为趋势交易
 
-现有的加密货币聪明钱检测逻辑（大额挂单、散户资金流向等）同样适用于美股：
+**仅使用V3和ICT策略，无需聪明钱检测**：
 
-1. **期权链数据**: 类似于币圈的资金费率，反映市场情绪
-2. **机构资金流**: 类似于聪明钱，大单买入卖出
-3. **做空数据**: 类似于空头持仓，反映市场看空情绪
-4. **VIX指数**: 类似于币圈的恐慌指数
+1. **V3 Multi-factor Trend Strategy** - 多因子趋势策略
+   - 趋势识别
+   - 动量确认
+   - 入场/出场信号
+
+2. **ICT Order Block Strategy** - ICT订单块策略
+   - 订单块识别
+   - 流动性扫荡
+   - 止损止盈管理
 
 ### 策略复用
 
-现有的V3策略和ICT策略可以直接适配美股：
+现有的V3策略和ICT策略直接适配美股：
 
 ```javascript
-// 原有策略引擎
+// 使用统一的策略引擎
 const strategyEngine = new StrategyEngine(database, parameterManager);
 
 // 美股适配器
 const usStockAdapter = new USStockAdapter(config);
 
-// 使用统一接口
-const signals = await strategyEngine.analyze({
-  symbol: 'AAPL',
-  marketData: usStockKlines,
-  marketMetrics: usStockMetrics,  // 美股特有指标
-  adapter: usStockAdapter
+// 获取市场数据
+const klines = await usStockAdapter.getKlines('AAPL', '15m', 100);
+
+// 运行V3策略
+const v3Signals = await v3Strategy.execute(klines, {
+  trendFactors: true,
+  momentum: true,
+  entryExit: true
 });
+
+// 运行ICT策略  
+const ictSignals = await ictStrategy.execute(klines, {
+  orderBlocks: true,
+  liquiditySweep: true,
+  stopLoss: true
+});
+
+// 生成模拟订单
+for (const signal of v3Signals) {
+  await simulateTrade(signal, usStockAdapter);
+}
 ```
 
 ---
