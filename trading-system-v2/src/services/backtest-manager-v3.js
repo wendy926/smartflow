@@ -225,12 +225,13 @@ class BacktestManagerV3 {
       const fiveMinData = data['5m'] || [];
 
       // 为所有时间框架提供数据
+      // ICT策略需要1d, 4h, 15m，V3策略需要1h, 15m
       historicalData[symbol] = {
-        '1h': hourlyData,
-        '15m': fifteenMinData || hourlyData, // 优先使用15m数据，fallback到1h
-        '5m': fiveMinData || fifteenMinData, // 优先使用5m数据，fallback到15m
-        '1d': hourlyData, // 使用1h数据模拟1d
-        '4h': hourlyData, // 使用1h数据模拟4h
+        '1h': hourlyData.length > 0 ? hourlyData : fifteenMinData, // 优先使用1h，fallback到15m
+        '15m': fifteenMinData.length > 0 ? fifteenMinData : fiveMinData, // 优先使用15m，fallback到5m
+        '5m': fiveMinData.length > 0 ? fiveMinData : fifteenMinData, // 优先使用5m，fallback到15m
+        '1d': hourlyData.length > 0 ? hourlyData : fifteenMinData, // 使用1h模拟1d，fallback到15m
+        '4h': hourlyData.length > 0 ? hourlyData : fifteenMinData, // 使用1h模拟4h，fallback到15m
       };
 
       const dataSummary = [
@@ -259,11 +260,11 @@ class BacktestManagerV3 {
       logger.info(`[回测管理器V3] 开始获取回测历史数据，交易对: ${symbols.join(', ')}, 时间框架: ${timeframe}`);
 
       // 为ICT策略需要获取多个时间框架的数据
-      const timeframesNeeded = ['15m', '1h']; // 最少需要这两个时间框架
-      
+      const timeframesNeeded = ['15m', '1h', '5m']; // 需要这三个时间框架（5m用于模拟15m）
+
       const dataPromises = symbols.map(async symbol => {
         const symbolData = {};
-        
+
         for (const tf of timeframesNeeded) {
           console.log(`[回测管理器V3] 开始获取${symbol}的${tf}回测数据`);
           const timedData = await this.fetchBacktestData(symbol, tf);
@@ -272,7 +273,7 @@ class BacktestManagerV3 {
             symbolData[tf] = timedData;
           }
         }
-        
+
         return { symbol, symbolData };
       });
 
