@@ -152,7 +152,11 @@ class TradingSystemApp {
       });
 
     // 系统监控和文档（直接访问）
-    this.app.get(['/monitoring', '/docs'], (req, res) => {
+    this.app.get('/monitoring', (req, res) => {
+      res.sendFile('index.html', { root: 'src/web' });
+    });
+
+    this.app.get('/docs', (req, res) => {
       res.sendFile('index.html', { root: 'src/web' });
     });
 
