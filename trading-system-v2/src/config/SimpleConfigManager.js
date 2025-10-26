@@ -116,6 +116,26 @@ class SimpleConfigManager {
   getEnvironment() {
     return this.config.environment;
   }
+
+  getDatabaseConfig() {
+    return this.config.database;
+  }
+
+  getAIConfig() {
+    return this.config.ai;
+  }
+
+  getMarketConfig() {
+    return this.config.markets;
+  }
+
+  getMessagingConfig() {
+    return this.config.messaging;
+  }
+
+  getLoggerConfig() {
+    return this.config.logger;
+  }
 }
 
 module.exports = SimpleConfigManager;
