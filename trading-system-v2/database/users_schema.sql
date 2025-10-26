@@ -2,16 +2,19 @@
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  name VARCHAR(100),
-  company VARCHAR(200),
-  phone VARCHAR(20),
+  password_hash VARCHAR(255) NULL,
+  name VARCHAR(100) NULL,
+  company VARCHAR(200) NULL,
+  phone VARCHAR(20) NULL,
+  email_verified BOOLEAN DEFAULT FALSE,
+  verified_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   last_login_at TIMESTAMP NULL,
   is_active BOOLEAN DEFAULT TRUE,
   INDEX idx_email (email),
-  INDEX idx_created_at (created_at)
+  INDEX idx_created_at (created_at),
+  INDEX idx_email_verified (email_verified)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 用户会话表

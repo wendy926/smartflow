@@ -4,23 +4,23 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const logger = require('../../utils/logger');
 const DatabaseConnection = require('../../database/connection');
+const verificationService = require('../../services/verification-service');
 
 const router = express.Router();
 const database = DatabaseConnection.getInstance ? DatabaseConnection.getInstance() : DatabaseConnection.default;
 
 /**
- * 用户注册
- * POST /api/v1/auth/register
+ * 发送验证码
+ * POST /api/v1/auth/send-code
  */
-router.post('/register', async (req, res) => {
+router.post('/send-code', async (req, res) => {
   try {
-    const { email, password, name, company, phone } = req.body;
+    const { email, type = 'register' } = req.body;
 
-    // 验证必填字段
-    if (!email || !password) {
+    if (!email) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: '邮箱和密码不能为空'
+        message: '邮箱不能为空'
       });
     }
 
@@ -33,52 +33,144 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // 验证密码长度
-    if (password.length < 8) {
+    // 如果是注册，检查邮箱是否已存在
+    if (type === 'register') {
+      const existingUsers = await database.query(
+        'SELECT id FROM users WHERE email = ?',
+        [email]
+      );
+
+      if (existingUsers && existingUsers.length > 0) {
+        return res.status(409).json({
+          error: 'Conflict',
+          message: '该邮箱已被注册'
+        });
+      }
+    }
+
+    // 发送验证码
+    const result = await verificationService.sendCode(email, type);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message
+      });
+    } else {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: result.message
+      });
+    }
+  } catch (error) {
+    logger.error('Send code error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: '发送验证码失败，请稍后重试'
+    });
+  }
+});
+
+/**
+ * 验证码登录/注册（统一接口）
+ * POST /api/v1/auth/verify
+ */
+router.post('/verify', async (req, res) => {
+  try {
+    const { email, code } = req.body;
+
+    // 验证必填字段
+    if (!email || !code) {
       return res.status(400).json({
         error: 'Bad Request',
-        message: '密码长度至少8位'
+        message: '邮箱和验证码不能为空'
       });
     }
 
-    // 检查邮箱是否已存在
-    const [existingUsers] = await database.query(
-      'SELECT id FROM users WHERE email = ?',
+    // 验证邮箱格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: '邮箱格式不正确'
+      });
+    }
+
+    // 验证码验证
+    const isValid = await verificationService.verifyCode(email, code, 'register');
+    if (!isValid) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: '验证码错误或已过期'
+      });
+    }
+
+    // 查询用户是否存在
+    let users = await database.query(
+      'SELECT * FROM users WHERE email = ?',
       [email]
     );
 
-    if (existingUsers.length > 0) {
-      return res.status(409).json({
-        error: 'Conflict',
-        message: '该邮箱已被注册'
-      });
+    let userId;
+    
+    // 如果用户不存在，自动创建
+    if (!users || users.length === 0) {
+      const result = await database.query(
+        'INSERT INTO users (email, email_verified, verified_at) VALUES (?, ?, NOW())',
+        [email, true]
+      );
+      userId = result.insertId || result[0].insertId;
+      logger.info(`新用户自动创建: ${email}`);
+    } else {
+      // 用户已存在，更新验证状态
+      userId = users[0].id;
+      await database.query(
+        'UPDATE users SET email_verified = TRUE, verified_at = NOW() WHERE id = ?',
+        [userId]
+      );
+      logger.info(`用户验证成功: ${email}`);
     }
 
-    // 加密密码
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
-
-    // 创建用户
-    const [result] = await database.query(
-      'INSERT INTO users (email, password_hash, name, company, phone) VALUES (?, ?, ?, ?, ?)',
-      [email, password_hash, name || null, company || null, phone || null]
+    // 生成JWT token
+    const token = jwt.sign(
+      { userId, email },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
     );
 
-    logger.info(`新用户注册: ${email}`);
+    // 生成refresh token
+    const refreshToken = crypto.randomBytes(64).toString('hex');
 
-    res.status(201).json({
+    // 保存会话
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    try {
+      await database.query(
+        'INSERT INTO user_sessions (user_id, token, refresh_token, expires_at) VALUES (?, ?, ?, ?)',
+        [userId, token, refreshToken, expiresAt]
+      );
+    } catch (err) {
+      // 如果会话已存在，忽略错误
+    }
+
+    logger.info(`验证码登录成功: ${email}`);
+
+    res.json({
       success: true,
-      message: '注册成功',
+      message: '登录成功',
       data: {
-        userId: result.insertId,
-        email
+        token,
+        refreshToken,
+        user: {
+          id: userId,
+          email
+        }
       }
     });
   } catch (error) {
-    logger.error('Register error:', error);
+    logger.error('Verify error:', error);
     res.status(500).json({
       error: 'Internal Server Error',
-      message: '注册失败，请稍后重试'
+      message: '验证失败，请稍后重试'
     });
   }
 });
@@ -100,12 +192,12 @@ router.post('/login', async (req, res) => {
     }
 
     // 查询用户
-    const [users] = await database.query(
+    const users = await database.query(
       'SELECT * FROM users WHERE email = ? AND is_active = TRUE',
       [email]
     );
 
-    if (users.length === 0) {
+    if (!users || users.length === 0) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: '邮箱或密码错误'
