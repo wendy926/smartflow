@@ -13,6 +13,7 @@ class BacktestStrategyEngineV3 {
     this.mockBinanceAPI = mockBinanceAPI;
     this.ictStrategy = new ICTStrategy();
     this.v3Strategy = new V3Strategy(); // ✅ 使用主V3策略
+    this.currentICTMode = null; // 跟踪当前ICT模式，用于复用策略实例
 
     // 将Mock Binance API注入到策略中
     if (this.mockBinanceAPI) {
@@ -152,7 +153,7 @@ class BacktestStrategyEngineV3 {
     const trades = [];
     let position = null;
     let lastSignal = null;
-    
+
     console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 开始回测，K线数量=${klines.length}`);
     console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 使用策略内部风险管理`);
 
@@ -174,9 +175,13 @@ class BacktestStrategyEngineV3 {
 
         // ✅ 应用策略参数到params属性（嵌套结构）
         if (params && Object.keys(params).length > 0) {
-          // 先重置策略实例，然后应用参数
-          this.ictStrategy = new ICTStrategy();
+          // 复用策略实例，只在第一次或参数改变时重新创建
+          if (!this.ictStrategy || this.currentICTMode !== mode) {
+            this.ictStrategy = new ICTStrategy();
+            this.currentICTMode = mode;
+          }
           this.ictStrategy.binanceAPI = this.mockBinanceAPI;
+          this.ictStrategy.mode = mode; // 设置模式
 
           // 清除参数加载器缓存，确保每次都重新加载
           if (this.ictStrategy.paramLoader) {
@@ -284,10 +289,10 @@ class BacktestStrategyEngineV3 {
           // 信号反转，平仓
           const trade = this.closePosition(position, currentPrice, '信号反转');
           trades.push(trade);
-          
+
           // 更新策略实例的回撤状态
           this.ictStrategy.updateDrawdownStatus(trade.pnl);
-          
+
           position = null;
           lastSignal = null;
         }
@@ -317,12 +322,12 @@ class BacktestStrategyEngineV3 {
           if (shouldExit) {
             const trade = this.closePosition(position, nextPrice, exitReason);
             trades.push(trade);
-            
+
             // 更新策略实例的回撤状态
             this.ictStrategy.updateDrawdownStatus(trade.pnl);
-            
+
             console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 平仓 ${exitReason}, PnL=${trade.pnl.toFixed(2)}`);
-            
+
             position = null;
             lastSignal = null;
           }
@@ -337,7 +342,7 @@ class BacktestStrategyEngineV3 {
       const lastKline = klines[klines.length - 1];
       const trade = this.closePosition(position, lastKline[4], '回测结束');
       trades.push(trade);
-      
+
       // 更新策略实例的回撤状态
       this.ictStrategy.updateDrawdownStatus(trade.pnl);
     }
@@ -587,10 +592,10 @@ class BacktestStrategyEngineV3 {
           // 信号反转，平仓
           const trade = this.closePosition(position, currentPrice, '信号反转');
           trades.push(trade);
-          
+
           // 更新策略实例的回撤状态
           this.v3Strategy.updateDrawdownStatus(trade.pnl);
-          
+
           position = null;
           lastSignal = null;
         }
@@ -620,10 +625,10 @@ class BacktestStrategyEngineV3 {
           if (shouldExit) {
             const trade = this.closePosition(position, nextPrice, exitReason);
             trades.push(trade);
-            
+
             // 更新策略实例的回撤状态
             this.v3Strategy.updateDrawdownStatus(trade.pnl);
-            
+
             position = null;
             lastSignal = null;
           }
@@ -638,7 +643,7 @@ class BacktestStrategyEngineV3 {
       const lastKline = klines[klines.length - 1];
       const trade = this.closePosition(position, lastKline[4], '回测结束');
       trades.push(trade);
-      
+
       // 更新策略实例的回撤状态
       this.v3Strategy.updateDrawdownStatus(trade.pnl);
     }
