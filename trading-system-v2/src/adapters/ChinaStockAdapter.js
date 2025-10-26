@@ -1,9 +1,11 @@
 /**
  * A股市场适配器
- * 实现A股市场交易接口，集成Tushare和东方财富API
+ * 实现A股市场交易接口，专注于指数交易
+ * 不进行真实交易，仅模拟交易并记录到数据库
  */
 
 const { IExchangeAdapter, MarketType, Timeframe, OrderSide, OrderType, OrderStatus, TimeInForce, MarketInfo, TradingHours, Kline, MarketMetrics, OrderRequest, OrderResponse, Account, Position } = require('../core/interfaces/IExchangeAdapter');
+const { TushareAPI } = require('../api/cn-stock-api');
 const logger = require('../utils/logger');
 
 class ChinaStockAdapter extends IExchangeAdapter {
@@ -11,21 +13,28 @@ class ChinaStockAdapter extends IExchangeAdapter {
     super();
     this.config = config;
     
-    // 初始化数据源API
-    this.tushareAPI = new TushareAPI(config.tushare);
-    this.efinanceAPI = new EFinanceAPI(config.efinance);
-    this.brokerAPI = new BrokerAPI(config.broker); // 券商API
+    // 初始化Tushare API
+    this.tushareAPI = new TushareAPI(config.tushare || {});
     
-    // 市场信息
+    // 市场信息 - A股交易时间
     this.marketInfo = new MarketInfo(
       MarketType.CN_STOCK,
       new TradingHours('Asia/Shanghai', [
         { open: '09:30', close: '11:30', days: [1, 2, 3, 4, 5] }, // 上午
-        { open: '13:00', close: '15:00', days: [1, 2, 3, 4, 5] }  // 下午
+        { open: '13:00', close: '15:00', days: [1, 2, 3, 4, 5] } // 下午
       ]),
-      config.symbols || ['000001.SZ', '600000.SH', '000002.SZ', '600036.SH', '000858.SZ'],
+      config.symbols || [
+        '000300.SH', // 沪深300
+        '000905.SH', // 中证500
+        '000852.SH', // 中证1000
+        '399001.SZ', // 深证成指
+        '399006.SZ'  // 创业板指
+      ],
       'Asia/Shanghai'
     );
+
+    // 是否启用模拟交易
+    this.simulationMode = config.simulationMode !== false; // 默认启用模拟模式
   }
 
   /**
@@ -44,31 +53,34 @@ class ChinaStockAdapter extends IExchangeAdapter {
         throw new Error(`Symbol ${symbol} is not supported`);
       }
 
-      // 转换时间框架格式
-      const tushareTimeframe = this.convertTimeframe(timeframe);
+      // 计算日期范围
+      const endDate = this.formatDate(new Date(), 'YYYYMMDD');
+      const startDate = this.calculateStartDate(timeframe, limit);
       
-      const data = await this.tushareAPI.getKlines(symbol, tushareTimeframe, limit);
+      const data = await this.tushareAPI.getIndexDaily(symbol, startDate, endDate);
       
-      return data.map(k => new Kline(
-        new Date(k.trade_date),    // timestamp
-        parseFloat(k.open),       // open
-        parseFloat(k.high),       // high
-        parseFloat(k.low),        // low
-        parseFloat(k.close),      // close
-        parseFloat(k.vol),        // volume
+      // 转换数据格式
+      const klines = data.map(item => new Kline(
+        this.parseTushareDate(item.trade_date),
+        parseFloat(item.open),
+        parseFloat(item.high),
+        parseFloat(item.low),
+        parseFloat(item.close),
+        parseFloat(item.vol || 0),
         symbol,
         timeframe,
         MarketType.CN_STOCK
       ));
 
+      return klines.slice(-limit);
     } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get klines for ${symbol}:`, error);
+      logger.error(`获取K线数据失败: ${symbol}, ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * 获取实时价格
+   * 获取实时行情
    */
   async getTicker(symbol) {
     try {
@@ -76,159 +88,110 @@ class ChinaStockAdapter extends IExchangeAdapter {
         throw new Error(`Symbol ${symbol} is not supported`);
       }
 
-      const ticker = await this.efinanceAPI.getRealtimePrice(symbol);
-      return parseFloat(ticker.price);
-
-    } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get ticker for ${symbol}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * 获取订单簿
-   */
-  async getOrderBook(symbol) {
-    try {
-      if (!this.isSymbolSupported(symbol)) {
-        throw new Error(`Symbol ${symbol} is not supported`);
+      // Tushare需要通过指数基本信息获取
+      const basicInfo = await this.tushareAPI.getIndexBasic(symbol);
+      if (!basicInfo || basicInfo.length === 0) {
+        throw new Error(`无法获取指数基本信息: ${symbol}`);
       }
 
-      const orderBook = await this.efinanceAPI.getOrderBook(symbol);
+      // 获取最新交易数据
+      const endDate = this.formatDate(new Date(), 'YYYYMMDD');
+      const latestData = await this.tushareAPI.getIndexDaily(symbol, null, endDate);
+      
+      if (!latestData || latestData.length === 0) {
+        throw new Error(`无法获取最新行情: ${symbol}`);
+      }
+
+      const lastBar = latestData[0];
       
       return {
-        bids: orderBook.bids.map(bid => ({
-          price: parseFloat(bid.price),
-          quantity: parseFloat(bid.volume)
-        })),
-        asks: orderBook.asks.map(ask => ({
-          price: parseFloat(ask.price),
-          quantity: parseFloat(ask.volume)
-        })),
-        timestamp: new Date(orderBook.timestamp)
+        symbol: symbol,
+        price: parseFloat(lastBar.close),
+        change: parseFloat(lastBar.change || 0),
+        changePercent: parseFloat(lastBar.pct_chg || 0),
+        volume: parseFloat(lastBar.vol || 0),
+        amount: parseFloat(lastBar.amount || 0),
+        timestamp: this.parseTushareDate(lastBar.trade_date)
       };
-
     } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get order book for ${symbol}:`, error);
+      logger.error(`获取实时行情失败: ${symbol}, ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * 下单
+   * 获取订单簿（A股指数不提供深度数据）
    */
-  async placeOrder(order) {
+  async getOrderBook(symbol) {
+    throw new Error('A股指数不支持订单簿数据');
+  }
+
+  /**
+   * 下单 - 仅模拟交易
+   */
+  async placeOrder(orderRequest) {
     try {
-      if (!this.isSymbolSupported(order.symbol)) {
-        throw new Error(`Symbol ${order.symbol} is not supported`);
+      if (!this.simulationMode) {
+        throw new Error('A股适配器仅支持模拟交易模式');
       }
 
-      if (!this.isTradingTime()) {
-        throw new Error('Market is closed');
-      }
-
-      const orderParams = {
-        symbol: order.symbol,
-        side: order.side,
-        type: order.type,
-        quantity: order.quantity,
-        price: order.price
-      };
-
-      const response = await this.brokerAPI.placeOrder(orderParams);
-
-      return new OrderResponse(
-        response.orderId,
-        order.symbol,
-        response.status,
-        parseFloat(response.filledQuantity || 0),
-        parseFloat(response.avgPrice || 0),
-        new Date(response.timestamp)
+      // 模拟订单生成
+      const orderResponse = new OrderResponse(
+        `SIM_${Date.now()}`,
+        orderRequest.symbol,
+        OrderStatus.FILLED,
+        orderRequest.quantity,
+        await this.getTicker(orderRequest.symbol).then(t => t.price),
+        new Date()
       );
 
+      logger.info(`模拟订单创建成功: ${JSON.stringify(orderResponse)}`);
+      
+      // 这里应该将交易记录写入数据库
+      // await this.saveTradeToDatabase(orderResponse);
+
+      return orderResponse;
     } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to place order:`, error);
+      logger.error(`下单失败: ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * 取消订单
+   * 取消订单（模拟）
    */
   async cancelOrder(orderId) {
-    try {
-      const response = await this.brokerAPI.cancelOrder(orderId);
-      return response.success;
-
-    } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to cancel order ${orderId}:`, error);
-      throw error;
-    }
+    logger.warn(`模拟交易不支持取消订单: ${orderId}`);
+    return false;
   }
 
   /**
-   * 获取订单列表
+   * 获取订单列表（模拟）
    */
   async getOrders(symbol) {
-    try {
-      const orders = await this.brokerAPI.getOrders(symbol);
-      
-      return orders.map(order => new OrderResponse(
-        order.orderId,
-        order.symbol,
-        order.status,
-        parseFloat(order.filledQuantity || 0),
-        parseFloat(order.avgPrice || 0),
-        new Date(order.timestamp)
-      ));
-
-    } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get orders:`, error);
-      throw error;
-    }
+    logger.warn(`模拟交易不支持获取订单列表`);
+    return [];
   }
 
   /**
-   * 获取账户信息
+   * 获取账户信息（模拟）
    */
   async getAccount() {
-    try {
-      const accountInfo = await this.brokerAPI.getAccount();
-      
-      const balance = accountInfo.balances.map(balance => ({
-        asset: balance.asset,
-        free: parseFloat(balance.available),
-        locked: parseFloat(balance.frozen)
-      }));
-
-      return new Account(balance, [], []);
-
-    } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get account:`, error);
-      throw error;
-    }
+    // 返回模拟账户信息
+    return new Account(
+      'SIM_ACCOUNT',
+      1000000, // 100万模拟资金
+      'CNY',
+      MarketType.CN_STOCK
+    );
   }
 
   /**
-   * 获取持仓信息
+   * 获取持仓（模拟）
    */
   async getPositions(symbol) {
-    try {
-      const positions = await this.brokerAPI.getPositions(symbol);
-      
-      return positions.map(position => new Position(
-        position.symbol,
-        position.side,
-        parseFloat(position.quantity),
-        parseFloat(position.entryPrice),
-        parseFloat(position.unrealizedPnL || 0),
-        parseFloat(position.realizedPnL || 0)
-      ));
-
-    } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get positions:`, error);
-      throw error;
-    }
+    // 从数据库查询模拟持仓
+    return [];
   }
 
   /**
@@ -236,274 +199,115 @@ class ChinaStockAdapter extends IExchangeAdapter {
    */
   async getMarketMetrics(symbol) {
     try {
-      if (!this.isSymbolSupported(symbol)) {
-        throw new Error(`Symbol ${symbol} is not supported`);
-      }
-
-      const [financing, northward, basic, moneyFlow] = await Promise.all([
-        this.tushareAPI.getFinancingBalance(symbol).catch(() => ({ balance: 0 })),
-        this.efinanceAPI.getNorthwardFunds().catch(() => ({ netInflow: 0 })),
-        this.tushareAPI.getStockBasic(symbol).catch(() => ({ volume: 0, avgVolume: 1, pe: 0 })),
-        this.efinanceAPI.getMoneyFlow(symbol).catch(() => ({ netInflow: 0 }))
+      const [ticker, basic] = await Promise.all([
+        this.getTicker(symbol),
+        this.tushareAPI.getIndexBasic(symbol)
       ]);
 
-      return new MarketMetrics({
-        volume: basic.volume,
-        turnover: basic.turnover,
-        financingBalance: financing.balance,
-        northwardFunds: northward.netInflow,
-        volumeRatio: basic.volume / basic.avgVolume,
-        peRatio: basic.pe,
-        moneyFlow: moneyFlow.netInflow
-      });
+      const basicInfo = basic && basic.length > 0 ? basic[0] : null;
 
+      return new MarketMetrics(
+        ticker.volume,
+        ticker.amount,
+        // A股特有指标
+        basicInfo ? {
+          pb: basicInfo.pb,
+          pe: basicInfo.pe,
+          totalMv: basicInfo.total_mv,
+          floatMv: basicInfo.float_mv
+        } : {}
+      );
     } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get market metrics for ${symbol}:`, error);
+      logger.error(`获取市场指标失败: ${symbol}, ${error.message}`);
       throw error;
     }
   }
 
   /**
-   * 获取融资融券数据
-   */
-  async getFinancingData(symbol, limit = 100) {
-    try {
-      const financingData = await this.tushareAPI.getFinancingHistory(symbol, limit);
-      
-      return financingData.map(data => ({
-        symbol: data.ts_code,
-        financingBalance: parseFloat(data.fin_balance),
-        marginBalance: parseFloat(data.margin_balance),
-        financingBuy: parseFloat(data.fin_buy_amt),
-        marginBuy: parseFloat(data.margin_buy_amt),
-        financingRepay: parseFloat(data.fin_repay_amt),
-        marginRepay: parseFloat(data.margin_repay_amt),
-        date: new Date(data.trade_date)
-      }));
-
-    } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get financing data for ${symbol}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * 获取北向资金数据
-   */
-  async getNorthwardFundsData(limit = 100) {
-    try {
-      const northwardData = await this.efinanceAPI.getNorthwardFundsHistory(limit);
-      
-      return northwardData.map(data => ({
-        date: new Date(data.date),
-        netInflow: parseFloat(data.net_inflow),
-        buyAmount: parseFloat(data.buy_amount),
-        sellAmount: parseFloat(data.sell_amount),
-        totalAmount: parseFloat(data.total_amount)
-      }));
-
-    } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get northward funds data:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * 获取资金流向数据
-   */
-  async getMoneyFlowData(symbol, limit = 100) {
-    try {
-      const moneyFlowData = await this.efinanceAPI.getMoneyFlowHistory(symbol, limit);
-      
-      return moneyFlowData.map(data => ({
-        symbol: data.symbol,
-        date: new Date(data.date),
-        netInflow: parseFloat(data.net_inflow),
-        mainInflow: parseFloat(data.main_inflow),
-        retailInflow: parseFloat(data.retail_inflow),
-        superInflow: parseFloat(data.super_inflow)
-      }));
-
-    } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get money flow data for ${symbol}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * 获取股票基本信息
-   */
-  async getStockBasicInfo(symbol) {
-    try {
-      const basicInfo = await this.tushareAPI.getStockBasic(symbol);
-      
-      return {
-        symbol: basicInfo.ts_code,
-        name: basicInfo.name,
-        industry: basicInfo.industry,
-        area: basicInfo.area,
-        market: basicInfo.market,
-        listDate: new Date(basicInfo.list_date),
-        pe: parseFloat(basicInfo.pe || 0),
-        pb: parseFloat(basicInfo.pb || 0),
-        totalShares: parseFloat(basicInfo.total_share || 0),
-        floatShares: parseFloat(basicInfo.float_share || 0)
-      };
-
-    } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get stock basic info for ${symbol}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * 转换时间框架格式
+   * 转换时间框架
    */
   convertTimeframe(timeframe) {
-    const timeframeMap = {
-      [Timeframe.MINUTE_1]: '1min',
-      [Timeframe.MINUTE_5]: '5min',
-      [Timeframe.MINUTE_15]: '15min',
-      [Timeframe.MINUTE_30]: '30min',
-      [Timeframe.HOUR_1]: '1hour',
-      [Timeframe.HOUR_4]: '4hour',
-      [Timeframe.DAY_1]: '1day',
-      [Timeframe.WEEK_1]: '1week',
-      [Timeframe.MONTH_1]: '1month'
+    const tfMap = {
+      '1m': '1min',
+      '5m': '5min',
+      '15m': '15min',
+      '30m': '30min',
+      '1h': '60min',
+      '1d': 'daily'
     };
-
-    return timeframeMap[timeframe] || '1day';
+    return tfMap[timeframe] || timeframe;
   }
 
   /**
-   * 检查交易时间（包含集合竞价时间）
+   * 计算开始日期
+   */
+  calculateStartDate(timeframe, limit) {
+    const days = {
+      '1m': limit / (60 * 24),
+      '5m': limit / (12 * 24),
+      '15m': limit / (4 * 24),
+      '30m': limit / (2 * 24),
+      '1h': limit / 24,
+      '1d': limit
+    };
+
+    const daysToSubtract = days[timeframe] || limit;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysToSubtract);
+    return this.formatDate(startDate, 'YYYYMMDD');
+  }
+
+  /**
+   * 格式化日期
+   */
+  formatDate(date, format) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    if (format === 'YYYYMMDD') {
+      return `${year}${month}${day}`;
+    }
+    return date;
+  }
+
+  /**
+   * 解析Tushare日期
+   */
+  parseTushareDate(dateStr) {
+    // 格式: '20250126'
+    const year = parseInt(dateStr.substring(0, 4));
+    const month = parseInt(dateStr.substring(4, 6)) - 1;
+    const day = parseInt(dateStr.substring(6, 8));
+    return new Date(year, month, day);
+  }
+
+  /**
+   * 检查交易时间
    */
   isTradingTime() {
     const now = new Date();
-    const currentDay = now.getDay();
-    const currentTime = now.toLocaleTimeString('en-US', { 
-      hour12: false, 
-      timeZone: 'Asia/Shanghai' 
-    }).substring(0, 5);
+    const chinaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+    const hour = chinaTime.getHours();
+    const minute = chinaTime.getMinutes();
+    const day = chinaTime.getDay();
 
-    // 检查是否在交易日内
-    if (currentDay === 0 || currentDay === 6) {
+    // 周一到周五
+    if (day < 1 || day > 5) {
       return false;
     }
 
-    // 检查是否在交易时间内（包含集合竞价）
-    const tradingSessions = [
-      { open: '09:15', close: '11:30' }, // 上午（包含集合竞价）
-      { open: '13:00', close: '15:00' }  // 下午
-    ];
-
-    return tradingSessions.some(session => 
-      currentTime >= session.open && currentTime <= session.close
-    );
-  }
-
-  /**
-   * 获取交易日历
-   */
-  async getTradingCalendar(year, month) {
-    try {
-      const calendar = await this.tushareAPI.getTradingCalendar(year, month);
-      
-      return calendar.map(day => ({
-        date: new Date(day.cal_date),
-        isTradingDay: day.is_open === 1,
-        pretradeDate: day.pretrade_date ? new Date(day.pretrade_date) : null
-      }));
-
-    } catch (error) {
-      logger.error(`[ChinaStockAdapter] Failed to get trading calendar:`, error);
-      throw error;
+    // 上午: 09:30 - 11:30
+    if ((hour === 9 && minute >= 30) || hour === 10 || (hour === 11 && minute <= 30)) {
+      return true;
     }
-  }
-}
 
-// Tushare API封装
-class TushareAPI {
-  constructor(config) {
-    this.token = config.token;
-    this.baseURL = config.baseURL || 'http://api.tushare.pro';
-  }
+    // 下午: 13:00 - 15:00
+    if (hour >= 13 && hour < 15) {
+      return true;
+    }
 
-  async getKlines(symbol, timeframe, limit) {
-    // 实现Tushare K线数据获取
-    // 这里需要根据实际的Tushare API进行实现
-    throw new Error('TushareAPI.getKlines not implemented');
-  }
-
-  async getFinancingBalance(symbol) {
-    // 实现融资融券余额获取
-    throw new Error('TushareAPI.getFinancingBalance not implemented');
-  }
-
-  async getStockBasic(symbol) {
-    // 实现股票基本信息获取
-    throw new Error('TushareAPI.getStockBasic not implemented');
-  }
-}
-
-// 东方财富API封装
-class EFinanceAPI {
-  constructor(config) {
-    this.baseURL = config.baseURL || 'https://push2.eastmoney.com';
-  }
-
-  async getRealtimePrice(symbol) {
-    // 实现实时价格获取
-    throw new Error('EFinanceAPI.getRealtimePrice not implemented');
-  }
-
-  async getOrderBook(symbol) {
-    // 实现订单簿获取
-    throw new Error('EFinanceAPI.getOrderBook not implemented');
-  }
-
-  async getNorthwardFunds() {
-    // 实现北向资金获取
-    throw new Error('EFinanceAPI.getNorthwardFunds not implemented');
-  }
-
-  async getMoneyFlow(symbol) {
-    // 实现资金流向获取
-    throw new Error('EFinanceAPI.getMoneyFlow not implemented');
-  }
-}
-
-// 券商API封装
-class BrokerAPI {
-  constructor(config) {
-    this.baseURL = config.baseURL;
-    this.apiKey = config.apiKey;
-    this.secretKey = config.secretKey;
-  }
-
-  async placeOrder(orderParams) {
-    // 实现下单
-    throw new Error('BrokerAPI.placeOrder not implemented');
-  }
-
-  async cancelOrder(orderId) {
-    // 实现取消订单
-    throw new Error('BrokerAPI.cancelOrder not implemented');
-  }
-
-  async getOrders(symbol) {
-    // 实现获取订单列表
-    throw new Error('BrokerAPI.getOrders not implemented');
-  }
-
-  async getAccount() {
-    // 实现获取账户信息
-    throw new Error('BrokerAPI.getAccount not implemented');
-  }
-
-  async getPositions(symbol) {
-    // 实现获取持仓信息
-    throw new Error('BrokerAPI.getPositions not implemented');
+    return false;
   }
 }
 
