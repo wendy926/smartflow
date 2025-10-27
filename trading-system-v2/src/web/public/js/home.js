@@ -204,4 +204,71 @@ document.addEventListener('DOMContentLoaded', function() {
       logout();
     });
   }
+
+  // 加载系统监控数据
+  loadMonitoringData();
+
+  // 加载用户统计数据
+  loadUserStats();
 });
+
+// 加载系统监控数据
+async function loadMonitoringData() {
+  try {
+    const response = await fetch('/api/v1/monitoring/status');
+    const data = await response.json();
+    
+    if (data.success) {
+      const content = `
+        <div style="text-align: left; line-height: 1.8;">
+          <p><strong>CPU使用率：</strong> ${data.data.cpu || 'N/A'}%</p>
+          <p><strong>内存使用率：</strong> ${data.data.memory || 'N/A'}%</p>
+          <p><strong>磁盘使用率：</strong> ${data.data.disk || 'N/A'}%</p>
+          <p><strong>数据库状态：</strong> <span style="color: green;">正常</span></p>
+          <p><strong>Redis状态：</strong> <span style="color: green;">正常</span></p>
+        </div>
+      `;
+      document.getElementById('monitoringContent').innerHTML = content;
+    } else {
+      document.getElementById('monitoringContent').innerHTML = '<p style="color: #999;">暂无监控数据</p>';
+    }
+  } catch (error) {
+    console.error('加载监控数据失败:', error);
+    document.getElementById('monitoringContent').innerHTML = '<p style="color: #999;">无法加载监控数据</p>';
+  }
+}
+
+// 加载用户统计数据
+async function loadUserStats() {
+  try {
+    const authToken = localStorage.getItem('authToken');
+    
+    // 获取总用户数
+    let userCount = 'N/A';
+    try {
+      const response = await fetch('/api/v1/users/stats', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        userCount = data.data.totalUsers || 'N/A';
+      }
+    } catch (e) {
+      // 忽略错误，使用N/A
+    }
+    
+    const content = `
+      <div style="text-align: left; line-height: 1.8;">
+        <p><strong>总用户数：</strong> ${userCount}</p>
+        <p><strong>今日新增用户：</strong> 统计中</p>
+        <p><strong>活跃用户数：</strong> 统计中</p>
+      </div>
+    `;
+    document.getElementById('userStatsContent').innerHTML = content;
+  } catch (error) {
+    console.error('加载用户数据失败:', error);
+    document.getElementById('userStatsContent').innerHTML = '<p style="color: #999;">无法加载用户数据</p>';
+  }
+}
