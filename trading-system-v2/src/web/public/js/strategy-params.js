@@ -9,6 +9,37 @@ class StrategyParamsManager {
     this.init();
   }
 
+  /**
+   * 带认证的fetch请求
+   */
+  async fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem('authToken');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const config = {
+      ...options,
+      headers
+    };
+
+    const response = await fetch(url, config);
+    
+    if (response.status === 401) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userInfo');
+      window.location.href = '/';
+      throw new Error('Unauthorized');
+    }
+
+    return response;
+  }
+
   init() {
     console.log('[策略参数] 初始化参数管理器');
 
@@ -72,7 +103,7 @@ class StrategyParamsManager {
     container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>';
 
     try {
-      const response = await fetch(`/api/v1/strategy-params/${strategy}/${mode}`);
+      const response = await this.fetchWithAuth(`/api/v1/strategy-params/${strategy}/${mode}`);
       const result = await response.json();
 
       if (result.success && result.data && result.data.params) {
@@ -220,7 +251,7 @@ class StrategyParamsManager {
 
     try {
       // 使用新的回测API获取所有模式的结果
-      const response = await fetch(`/api/v1/backtest/${strategy}`);
+      const response = await this.fetchWithAuth(`/api/v1/backtest/${strategy}`);
       const result = await response.json();
 
       if (result.success && result.data) {
@@ -336,7 +367,7 @@ class StrategyParamsManager {
 
   async fetchParamHistory(strategy, mode) {
     try {
-      const response = await fetch(`/api/v1/strategy-params/${strategy}/${mode}/history`);
+      const response = await this.fetchWithAuth(`/api/v1/strategy-params/${strategy}/${mode}/history`);
       const result = await response.json();
       return {
         mode: mode,
@@ -443,11 +474,8 @@ class StrategyParamsManager {
     }
 
     try {
-      const response = await fetch(`/api/v1/strategy-params/${strategyName}/${strategyMode}/${paramGroup}/${paramName}`, {
+      const response = await this.fetchWithAuth(`/api/v1/strategy-params/${strategyName}/${strategyMode}/${paramGroup}/${paramName}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({
           value: newValue,
           changedBy: 'user',
@@ -526,11 +554,8 @@ class StrategyParamsManager {
 
   async startSingleModeBacktest(strategy, mode, timeframe = '15m') {
     try {
-      const response = await fetch(`/api/v1/backtest/${strategy}/${mode}`, {
+      const response = await this.fetchWithAuth(`/api/v1/backtest/${strategy}/${mode}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({
           symbols: this.getDefaultSymbols(),
           timeframe: timeframe,
