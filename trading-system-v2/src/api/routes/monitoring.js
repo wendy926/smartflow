@@ -230,21 +230,26 @@ router.get('/status', async (req, res) => {
     let aiStats = { totalCalls: 0, successCalls: 0, successRate: 0 };
     try {
       const aiStatsRows = await database.query(
-        `SELECT
+        `SELECT 
           COUNT(*) as total_calls,
-          SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_calls
-        FROM ai_analysis_logs
+          SUM(CASE WHEN response_status = 'SUCCESS' THEN 1 ELSE 0 END) as success_calls
+        FROM ai_api_logs 
         WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)`
       );
-      if (aiStatsRows && aiStatsRows.length > 0) {
+      if (aiStatsRows && aiStatsRows.length > 0 && aiStatsRows[0]) {
+        const totalCalls = Number(aiStatsRows[0].total_calls || 0);
+        const successCalls = Number(aiStatsRows[0].success_calls || 0);
+        const successRate = totalCalls > 0 
+          ? ((successCalls / totalCalls) * 100).toFixed(1)
+          : 0;
+        
         aiStats = {
-          totalCalls: Number(aiStatsRows[0].total_calls || 0),
-          successCalls: Number(aiStatsRows[0].success_calls || 0),
-          successRate: aiStatsRows[0].total_calls > 0
-            ? ((aiStatsRows[0].success_calls / aiStatsRows[0].total_calls) * 100).toFixed(1)
-            : 0
+          totalCalls,
+          successCalls,
+          successRate
         };
       }
+      logger.info('AI统计:', aiStats);
     } catch (error) {
       logger.warn('获取AI统计失败:', error.message);
     }
