@@ -61,6 +61,7 @@ class SmartFlowApp {
       '/tools': 'tools',
       '/smart-money': 'smart-money',
       '/large-orders': 'large-orders',
+      '/backtest': 'strategy-params',
       '/strategy-params': 'strategy-params',
       '/docs': 'docs'
     };
@@ -288,11 +289,11 @@ class SmartFlowApp {
    * @returns {string} - 市场前缀（/crypto, /a, /us 或空字符串）
    */
   getMarketPrefix(path) {
-    if (path.startsWith('/crypto/')) {
+    if (path.startsWith('/crypto/') || path === '/crypto') {
       return '/crypto';
-    } else if (path.startsWith('/a/')) {
+    } else if (path.startsWith('/a/') || path === '/a') {
       return '/a';
-    } else if (path.startsWith('/us/')) {
+    } else if (path.startsWith('/us/') || path === '/us') {
       return '/us';
     }
     return '/crypto'; // 默认返回加密货币前缀
@@ -305,9 +306,11 @@ class SmartFlowApp {
   switchTab(tabName) {
     console.log('切换标签页到:', tabName);
 
-    // 特殊处理：strategy-params跳转到独立页面
+    // 特殊处理：strategy-params跳转到独立页面（使用当前市场前缀）
     if (tabName === 'strategy-params') {
-      window.location.href = '/strategy-params';
+      const currentPath = window.location.pathname;
+      const marketPrefix = this.getMarketPrefix(currentPath);
+      window.location.href = `${marketPrefix}/strategy-params`;
       return;
     }
 

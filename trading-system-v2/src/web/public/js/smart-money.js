@@ -18,7 +18,7 @@ class SmartMoneyTracker {
       'Content-Type': 'application/json',
       ...(options.headers || {})
     };
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -29,7 +29,7 @@ class SmartMoneyTracker {
     };
 
     const response = await fetch(url, config);
-    
+
     if (response.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('userInfo');
@@ -137,7 +137,7 @@ class SmartMoneyTracker {
 
       const trapIndicator = result.trap && result.trap.detected
         ? `<span class="trap-${result.trap.type === 'BULL_TRAP' ? 'bull' : 'bear'}">
-             ⚠️ ${result.trap.type === 'BULL_TRAP' ? '诱多' : '诱空'} 
+             ⚠️ ${result.trap.type === 'BULL_TRAP' ? '诱多' : '诱空'}
              (${result.trap.confidence.toFixed(0)}%)
            </span>`
         : '';

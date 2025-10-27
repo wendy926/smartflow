@@ -19,7 +19,7 @@ class LargeOrdersTracker {
       'Content-Type': 'application/json',
       ...(options.headers || {})
     };
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -30,7 +30,7 @@ class LargeOrdersTracker {
     };
 
     const response = await fetch(url, config);
-    
+
     if (response.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('userInfo');
@@ -173,9 +173,9 @@ class LargeOrdersTracker {
 
     return `
       <div class="historical-panel" style="
-        background: white; 
-        border-radius: 8px; 
-        padding: 20px; 
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         border-top: 4px solid ${symbolColor};
       ">
@@ -183,9 +183,9 @@ class LargeOrdersTracker {
         <div style="border-bottom: 2px solid #e9ecef; padding-bottom: 15px; margin-bottom: 15px;">
           <h3 style="margin: 0 0 10px 0; font-size: 24px; display: flex; align-items: center; gap: 10px;">
             <span style="
-              background: ${symbolColor}; 
-              color: white; 
-              padding: 6px 12px; 
+              background: ${symbolColor};
+              color: white;
+              padding: 6px 12px;
               border-radius: 6px;
               font-weight: 700;
               display: flex;
@@ -199,7 +199,7 @@ class LargeOrdersTracker {
               💡 大额挂单：单笔 > 10M USD
             </span>
           </h3>
-          
+
           <!-- 统计信息 -->
           <div style="display: flex; gap: 20px; font-size: 13px; flex-wrap: wrap; margin-bottom: 12px;">
             <span style="color: #666;">
@@ -212,7 +212,7 @@ class LargeOrdersTracker {
               ⚡ 长期活跃: <strong style="color: #28a745;">${longTermOrders.length}个</strong>
             </span>
           </div>
-          
+
           <!-- 长期挂单买卖比例 -->
           ${longTermOrders.length > 0 ? `
           <div style="margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
@@ -232,7 +232,7 @@ class LargeOrdersTracker {
             </div>
           </div>
           ` : ''}
-          
+
           <!-- 短期新增挂单统计 -->
           ${shortTermOrders.length > 0 ? `
           <div style="margin-bottom: 12px; padding: 10px; background: #fff3cd; border-radius: 6px; border-left: 3px solid #ffc107;">
@@ -486,7 +486,7 @@ class LargeOrdersTracker {
             <div style="font-size: 12px; color: #666;">追踪挂单 (>1M USD)</div>
           </div>
         </div>
-        
+
         <!-- 买卖力量对比 -->
         <div style="margin: 15px 0;">
           <div style="font-size: 13px; color: #666; margin-bottom: 5px;">买卖力量对比</div>
@@ -503,7 +503,7 @@ class LargeOrdersTracker {
             <span>卖方 ${sellPct}%</span>
           </div>
         </div>
-        
+
         <!-- 关键指标 -->
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px;">
           <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 6px;">
