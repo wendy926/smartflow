@@ -158,7 +158,7 @@ router.put('/:strategyName/:strategyMode/:paramGroup/:paramName', async (req, re
 /**
  * 批量更新参数
  * PUT /api/v1/strategy-params/:strategyName/:strategyMode
- * Body: { 
+ * Body: {
  *   updates: { paramGroup: { paramName: value } },
  *   changedBy: xxx,
  *   reason: xxx
@@ -446,17 +446,17 @@ router.post('/:strategyName/:strategyMode/apply-to-running-trades', async (req, 
           // 风险管理参数
           stopLossATRMultiplier: params.risk_management?.stopLossATRMultiplier,
           takeProfitRatio: params.risk_management?.takeProfitRatio,
-          
+
           // 仓位参数
           positionSize: params.position?.size,
           maxLeverage: params.position?.maxLeverage,
-          
+
           // 模式
           strategyMode: mode
         };
 
         // 移除undefined值
-        Object.keys(updateParams).forEach(key => 
+        Object.keys(updateParams).forEach(key =>
           updateParams[key] === undefined && delete updateParams[key]
         );
 
@@ -466,7 +466,7 @@ router.post('/:strategyName/:strategyMode/apply-to-running-trades', async (req, 
 
         // 重新计算止损和止盈价格
         // 注意：这里只是更新数据库记录，实际的价格调整需要策略引擎来处理
-        
+
         await database.query(
           'UPDATE trades SET updated_at = NOW() WHERE id = ?',
           [trade.id]

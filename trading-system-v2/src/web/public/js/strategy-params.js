@@ -18,7 +18,7 @@ class StrategyParamsManager {
       'Content-Type': 'application/json',
       ...(options.headers || {})
     };
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -29,7 +29,7 @@ class StrategyParamsManager {
     };
 
     const response = await fetch(url, config);
-    
+
     if (response.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('userInfo');

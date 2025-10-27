@@ -625,6 +625,33 @@
       font-size: 14px;
       border-radius: 6px;
     }
+
+    /* 确保策略section使用card样式 */
+    .strategy-section {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+
+    .strategy-section-header {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .strategy-section-header h2 {
+      font-size: 1.25rem;
+      margin: 0;
+    }
+
+    .strategy-section-content {
+      padding: 1.5rem;
+    }
   </style>
 </head>
 
@@ -743,9 +770,11 @@
   </header>
 
   <div class="container">
+    <!-- 主要内容区域 -->
+    <main class="main-content">
     <div class="page-header">
-      <h1><i class="fas fa-sliders-h"></i> 策略参数调优</h1>
-      <p class="page-description">动态调整 ICT 和 V3 策略参数，支持激进/保守/平衡三种模式</p>
+      <h2>策略参数调优</h2>
+      <p style="color: #666; font-size: 14px; margin-top: 8px;">动态调整 ICT 和 V3 策略参数，支持激进/保守/平衡三种模式</p>
     </div>
 
     <div class="strategy-section" id="ict-strategy-section">
@@ -871,6 +900,7 @@
         </div>
       </div>
     </div>
+    </main>
   </div>
 
   <div id="editParamModal" class="modal">
