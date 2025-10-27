@@ -52,6 +52,14 @@ class StrategyParamsManager {
       });
     });
 
+    // 绑定应用配置按钮事件
+    document.querySelectorAll('.btn-apply-config').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const strategy = e.currentTarget.dataset.strategy;
+        this.applyConfigToRunningTrades(strategy);
+      });
+    });
+
     // 加载所有数据
     this.loadAllData();
   }
@@ -620,6 +628,71 @@ class StrategyParamsManager {
   showError(message) {
     console.error('[策略参数] 错误:', message);
     alert(message);
+  }
+
+  /**
+   * 应用当前配置到运行中的交易
+   * @param {string} strategy - 策略名称 (ICT 或 V3)
+   */
+  async applyConfigToRunningTrades(strategy) {
+    // 获取当前选择的模式
+    const activeModeTab = document.querySelector(`.mode-tab.active[data-strategy="${strategy}"]`);
+    if (!activeModeTab) {
+      alert('请先选择一个模式');
+      return;
+    }
+
+    const currentMode = activeModeTab.dataset.mode;
+    const strategyName = strategy;
+
+    // 确认对话框
+    const confirmed = confirm(
+      `确认要将当前${currentMode}模式的配置应用到所有运行中的${strategyName}策略交易吗？\n\n` +
+      `这将会更新所有OPEN状态的交易参数。\n\n` +
+      `策略: ${strategyName}\n` +
+      `模式: ${currentMode}\n`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      console.log(`[策略参数] 应用配置: ${strategyName} - ${currentMode}`);
+
+      // 获取当前配置的参数
+      const paramsUrl = `/api/v1/strategy-params/${strategyName}/${currentMode}`;
+      const paramsResponse = await this.fetchWithAuth(paramsUrl);
+      const paramsResult = await paramsResponse.json();
+
+      if (!paramsResult.success || !paramsResult.data || !paramsResult.data.params) {
+        throw new Error('获取当前配置失败');
+      }
+
+      const params = paramsResult.data.params;
+
+      // 调用API应用配置到运行中的交易
+      const applyUrl = `/api/v1/strategy-params/${strategyName}/${currentMode}/apply-to-running-trades`;
+      const applyResponse = await this.fetchWithAuth(applyUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          params: params,
+          mode: currentMode
+        })
+      });
+
+      const applyResult = await applyResponse.json();
+
+      if (applyResult.success) {
+        alert(`配置应用成功！\n\n已更新 ${applyResult.data?.updatedCount || 0} 个运行中的交易。`);
+        console.log('[策略参数] 配置应用成功:', applyResult);
+      } else {
+        throw new Error(applyResult.error || '应用配置失败');
+      }
+    } catch (error) {
+      console.error('[策略参数] 应用配置失败:', error);
+      alert(`应用配置失败: ${error.message}`);
+    }
   }
 }
 

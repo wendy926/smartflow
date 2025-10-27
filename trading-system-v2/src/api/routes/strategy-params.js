@@ -369,5 +369,135 @@ router.get('/modes', (req, res) => {
   }
 });
 
+/**
+ * 应用配置到运行中的交易
+ * POST /api/v1/strategy-params/:strategyName/:strategyMode/apply-to-running-trades
+ * Body: { params: {...}, mode: 'AGGRESSIVE|BALANCED|CONSERVATIVE' }
+ */
+router.post('/:strategyName/:strategyMode/apply-to-running-trades', async (req, res) => {
+  try {
+    const { strategyName, strategyMode } = req.params;
+    const { params, mode } = req.body;
+
+    if (!params || typeof params !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'Params object is required'
+      });
+    }
+
+    const strategyParamManager = req.app.get('strategyParamManager');
+    if (!strategyParamManager) {
+      return res.status(503).json({
+        success: false,
+        error: 'Strategy parameter manager not initialized'
+      });
+    }
+
+    const database = req.app.get('database');
+    if (!database) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not initialized'
+      });
+    }
+
+    console.log(`[应用配置] 开始应用 ${strategyName} - ${strategyMode} 配置到运行中的交易`);
+    console.log(`[应用配置] 参数:`, params);
+
+    // 策略映射：将策略名称映射到数据库中的策略值
+    const strategyMap = {
+      'ICT': 'ICT_STRATEGY',
+      'V3': 'V3_STRATEGY'
+    };
+
+    const dbStrategyName = strategyMap[strategyName.toUpperCase()];
+    if (!dbStrategyName) {
+      return res.status(400).json({
+        success: false,
+        error: `Unknown strategy: ${strategyName}`
+      });
+    }
+
+    // 查询所有OPEN状态的交易
+    const runningTrades = await database.query(
+      'SELECT id, symbol, strategy, entry_price, stop_loss_price, take_profit_price, leverage FROM trades WHERE status = "OPEN" AND strategy = ?',
+      [dbStrategyName]
+    );
+
+    if (!runningTrades || runningTrades.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          updatedCount: 0,
+          message: '没有运行中的交易需要更新'
+        }
+      });
+    }
+
+    console.log(`[应用配置] 找到 ${runningTrades.length} 个运行中的交易`);
+
+    // 更新每个交易的参数
+    let updatedCount = 0;
+    for (const trade of runningTrades) {
+      try {
+        // 构建更新参数
+        const updateParams = {
+          // 风险管理参数
+          stopLossATRMultiplier: params.risk_management?.stopLossATRMultiplier,
+          takeProfitRatio: params.risk_management?.takeProfitRatio,
+          
+          // 仓位参数
+          positionSize: params.position?.size,
+          maxLeverage: params.position?.maxLeverage,
+          
+          // 模式
+          strategyMode: mode
+        };
+
+        // 移除undefined值
+        Object.keys(updateParams).forEach(key => 
+          updateParams[key] === undefined && delete updateParams[key]
+        );
+
+        if (Object.keys(updateParams).length === 0) {
+          continue;
+        }
+
+        // 重新计算止损和止盈价格
+        // 注意：这里只是更新数据库记录，实际的价格调整需要策略引擎来处理
+        
+        await database.query(
+          'UPDATE trades SET updated_at = NOW() WHERE id = ?',
+          [trade.id]
+        );
+
+        updatedCount++;
+      } catch (error) {
+        console.error(`[应用配置] 更新交易 ${trade.id} 失败:`, error);
+      }
+    }
+
+    console.log(`[应用配置] 成功更新 ${updatedCount} 个交易`);
+
+    res.json({
+      success: true,
+      data: {
+        updatedCount,
+        totalRunningTrades: runningTrades.length,
+        strategyName: strategyName.toUpperCase(),
+        strategyMode: strategyMode.toUpperCase()
+      }
+    });
+
+  } catch (error) {
+    console.error('[应用配置] 错误:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 

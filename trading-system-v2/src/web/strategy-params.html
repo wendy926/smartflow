@@ -613,6 +613,18 @@
       width: 18px;
       text-align: center;
     }
+
+    .strategy-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .btn-apply-config {
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 6px;
+    }
   </style>
 </head>
 
@@ -739,7 +751,12 @@
     <div class="strategy-section" id="ict-strategy-section">
       <div class="strategy-section-header ict">
         <h2><i class="fas fa-chart-candlestick strategy-icon"></i> ICT 策略 - 订单块策略</h2>
-        <div class="strategy-status"><i class="fas fa-circle" style="color: #4caf50;"></i><span>运行中</span></div>
+        <div class="strategy-header-actions">
+          <div class="strategy-status"><i class="fas fa-circle" style="color: #4caf50;"></i><span>运行中</span></div>
+          <button class="btn btn-primary btn-apply-config" data-strategy="ICT" id="ict-apply-config">
+            <i class="fas fa-sync-alt"></i> 应用当前配置到运行中的交易
+          </button>
+        </div>
       </div>
       <div class="strategy-section-content">
         <div class="mode-tabs">
@@ -796,7 +813,12 @@
     <div class="strategy-section" id="v3-strategy-section">
       <div class="strategy-section-header v3">
         <h2><i class="fas fa-chart-area strategy-icon"></i> V3 策略 - 多因子趋势策略</h2>
-        <div class="strategy-status"><i class="fas fa-circle" style="color: #4caf50;"></i><span>运行中</span></div>
+        <div class="strategy-header-actions">
+          <div class="strategy-status"><i class="fas fa-circle" style="color: #4caf50;"></i><span>运行中</span></div>
+          <button class="btn btn-primary btn-apply-config" data-strategy="V3" id="v3-apply-config">
+            <i class="fas fa-sync-alt"></i> 应用当前配置到运行中的交易
+          </button>
+        </div>
       </div>
       <div class="strategy-section-content">
         <div class="mode-tabs">
