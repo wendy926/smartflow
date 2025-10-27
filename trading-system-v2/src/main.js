@@ -100,12 +100,13 @@ class TradingSystemApp {
 
     // 公开API路由（无需认证）
     this.app.use('/api/v1/auth', require('./api/routes/auth')); // 认证路由（注册登录）
+    this.app.use('/api/v1/users', require('./api/routes/users')); // 用户统计路由
 
     // 受保护的API路由（需要认证）
     this.app.use('/api/v1/strategies', authMiddleware, require('./api/routes/strategies'));
     this.app.use('/api/v1/symbols', authMiddleware, require('./api/routes/symbols'));
     this.app.use('/api/v1/trades', authMiddleware, require('./api/routes/trades'));
-    this.app.use('/api/v1/monitoring', authMiddleware, require('./api/routes/monitoring'));
+    this.app.use('/api/v1/monitoring', require('./api/routes/monitoring'));
     this.app.use('/api/v1/macro-monitor', authMiddleware, require('./api/routes/macro-monitor'));
     // this.app.use('/api/v1/new-coin-monitor', require('./api/routes/new-coin-monitor')); // V2.0禁用：功能未使用
     this.app.use('/api/v1/smart-money', authMiddleware, require('./api/routes/smart-money')); // V2.0.1新增：聪明钱跟踪

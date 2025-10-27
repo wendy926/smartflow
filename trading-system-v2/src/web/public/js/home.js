@@ -241,32 +241,21 @@ async function loadMonitoringData() {
 // 加载用户统计数据
 async function loadUserStats() {
   try {
-    const authToken = localStorage.getItem('authToken');
+    const response = await fetch('/api/v1/users/stats');
+    const data = await response.json();
     
-    // 获取总用户数
-    let userCount = 'N/A';
-    try {
-      const response = await fetch('/api/v1/users/stats', {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-      const data = await response.json();
-      if (data.success) {
-        userCount = data.data.totalUsers || 'N/A';
-      }
-    } catch (e) {
-      // 忽略错误，使用N/A
+    if (data.success) {
+      const content = `
+        <div style="text-align: left; line-height: 1.8;">
+          <p><strong>总用户数：</strong> ${data.data.totalUsers || 0}</p>
+          <p><strong>今日新增用户：</strong> ${data.data.todayNewUsers || 0}</p>
+          <p><strong>活跃用户数：</strong> ${data.data.activeUsers || 0}</p>
+        </div>
+      `;
+      document.getElementById('userStatsContent').innerHTML = content;
+    } else {
+      document.getElementById('userStatsContent').innerHTML = '<p style="color: #999;">暂无用户数据</p>';
     }
-    
-    const content = `
-      <div style="text-align: left; line-height: 1.8;">
-        <p><strong>总用户数：</strong> ${userCount}</p>
-        <p><strong>今日新增用户：</strong> 统计中</p>
-        <p><strong>活跃用户数：</strong> 统计中</p>
-      </div>
-    `;
-    document.getElementById('userStatsContent').innerHTML = content;
   } catch (error) {
     console.error('加载用户数据失败:', error);
     document.getElementById('userStatsContent').innerHTML = '<p style="color: #999;">无法加载用户数据</p>';

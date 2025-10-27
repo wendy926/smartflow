@@ -218,6 +218,33 @@ router.post('/:symbol/statistics', async (req, res) => {
 });
 
 /**
+ * 获取系统状态（简化版，用于首页）
+ * GET /api/v1/monitoring/status
+ */
+router.get('/status', async (req, res) => {
+  try {
+    const currentResources = await resourceMonitor.checkResources();
+    
+    res.json({
+      success: true,
+      data: {
+        cpu: currentResources.cpu?.toFixed(1) || '0',
+        memory: currentResources.memory?.toFixed(1) || '0',
+        disk: currentResources.disk?.toFixed(1) || '0',
+        status: currentResources.cpu && currentResources.cpu < 80 ? 'healthy' : 'warning',
+        timestamp: toBeijingISO()
+      }
+    });
+  } catch (error) {
+    logger.error('获取系统状态失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * 获取健康检查状态
  * GET /api/v1/monitoring/health
  */
