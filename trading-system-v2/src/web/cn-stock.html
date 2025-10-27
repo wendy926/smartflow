@@ -242,6 +242,7 @@
     }
 
     @media (max-width: 768px) {
+
       /* 移动端导航调整 */
       .nav {
         flex-wrap: wrap;
@@ -4254,7 +4255,7 @@
         document.getElementById('confirmAddStock')?.addEventListener('click', () => {
           const name = document.getElementById('stockName').value;
           const code = document.getElementById('stockCode').value;
-          
+
           if (name && code && code.length === 6) {
             // 添加到股票列表
             const stockList = document.querySelector('.stock-list');
@@ -4267,7 +4268,7 @@
               </button>
             `;
             stockList.appendChild(newItem);
-            
+
             document.getElementById('addStockModal').style.display = 'none';
             document.getElementById('stockName').value = '';
             document.getElementById('stockCode').value = '';
