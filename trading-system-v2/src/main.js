@@ -144,9 +144,14 @@ class TradingSystemApp {
       res.sendFile('home.html', { root: 'src/web' });
     });
 
+    // 策略参数调优页面（需要放在其他路由之前，优先匹配）
+    this.app.get(['/strategy-params', '/crypto/strategy-params'], (req, res) => {
+      res.sendFile('strategy-params.html', { root: 'src/web' });
+    });
+
     // 加密货币路由 (crypto/*)
     this.app.get(['/crypto/dashboard', '/crypto/strategies', '/crypto/statistics',
-      '/crypto/tools', '/crypto/smart-money', '/crypto/large-orders', '/crypto/backtest', '/crypto/strategy-params'],
+      '/crypto/tools', '/crypto/smart-money', '/crypto/large-orders', '/crypto/backtest'],
       (req, res) => {
         res.sendFile('index.html', { root: 'src/web' });
       });
@@ -170,11 +175,6 @@ class TradingSystemApp {
 
     this.app.get('/docs', (req, res) => {
       res.sendFile('index.html', { root: 'src/web' });
-    });
-
-    // 策略参数调优页面（保持原路径，作为加密货币的快捷入口）
-    this.app.get(['/strategy-params', '/crypto/strategy-params'], (req, res) => {
-      res.sendFile('strategy-params.html', { root: 'src/web' });
     });
 
     // 兼容旧路由（重定向到新路由）
