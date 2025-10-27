@@ -306,18 +306,14 @@ class SmartFlowApp {
   switchTab(tabName) {
     console.log('切换标签页到:', tabName);
 
-    // 特殊处理：strategy-params跳转到独立页面（使用当前市场前缀）
-    if (tabName === 'strategy-params') {
-      const currentPath = window.location.pathname;
-      const marketPrefix = this.getMarketPrefix(currentPath);
-      // 跳转到策略参数页面
-      window.location.href = `${marketPrefix}/strategy-params`;
-      return;
-    }
-    
     // 特殊处理：如果是 /crypto/backtest，跳转到策略回测页面
     if (window.location.pathname === '/crypto/backtest') {
       window.location.href = '/crypto/strategy-params';
+      return;
+    }
+    
+    // 特殊处理：如果已经访问了 strategy-params 页面，不再处理切换
+    if (window.location.pathname === '/crypto/strategy-params' || window.location.pathname === '/strategy-params') {
       return;
     }
 

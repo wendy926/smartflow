@@ -173,7 +173,7 @@ class TradingSystemApp {
     });
 
     // 策略参数调优页面（保持原路径，作为加密货币的快捷入口）
-    this.app.get('/strategy-params', (req, res) => {
+    this.app.get(['/strategy-params', '/crypto/strategy-params'], (req, res) => {
       res.sendFile('strategy-params.html', { root: 'src/web' });
     });
 
