@@ -23,7 +23,7 @@ const getDbOps = () => {
 router.get('/stats', async (req, res) => {
   try {
     const database = req.app.get('database');
-    
+
     // 获取总用户数
     const userCountRows = await database.query(
       'SELECT COUNT(*) as total_users FROM users WHERE deleted_at IS NULL'
@@ -32,16 +32,16 @@ router.get('/stats', async (req, res) => {
 
     // 获取今日新增用户数
     const todayNewUsersRows = await database.query(
-      `SELECT COUNT(*) as today_new_users 
-       FROM users 
+      `SELECT COUNT(*) as today_new_users
+       FROM users
        WHERE DATE(created_at) = CURDATE() AND deleted_at IS NULL`
     );
     const todayNewUsers = (todayNewUsersRows && todayNewUsersRows[0] && todayNewUsersRows[0].today_new_users) ? Number(todayNewUsersRows[0].today_new_users) : 0;
 
     // 获取活跃用户数（最近7天登录过）
     const activeUsersRows = await database.query(
-      `SELECT COUNT(DISTINCT user_id) as active_users 
-       FROM user_sessions 
+      `SELECT COUNT(DISTINCT user_id) as active_users
+       FROM user_sessions
        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`
     );
     const activeUsers = (activeUsersRows && activeUsersRows[0] && activeUsersRows[0].active_users) ? Number(activeUsersRows[0].active_users) : 0;

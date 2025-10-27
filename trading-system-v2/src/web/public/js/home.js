@@ -10,11 +10,11 @@ function showAuthModal(market) {
     let redirectUrl = '/crypto/dashboard';
     if (market === 'a') redirectUrl = '/a/dashboard';
     if (market === 'us') redirectUrl = '/us/dashboard';
-    
+
     window.location.href = redirectUrl;
     return;
   }
-  
+
   // 未登录，显示登录框
   targetMarket = market;
   document.getElementById('authModal').classList.add('active');
@@ -133,7 +133,7 @@ async function verifyCode() {
       let redirectUrl = '/crypto/dashboard';
       if (targetMarket === 'a') redirectUrl = '/a/dashboard';
       if (targetMarket === 'us') redirectUrl = '/us/dashboard';
-      
+
       setTimeout(() => {
         window.location.href = redirectUrl;
       }, 1500);
@@ -156,10 +156,10 @@ function logout() {
 }
 
 // 事件监听器
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   // 所有"进入交易系统"按钮
   document.querySelectorAll('button[data-market]').forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', function () {
       const market = this.getAttribute('data-market');
       showAuthModal(market);
     });
@@ -168,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // 发送验证码按钮
   const sendCodeBtn = document.getElementById('sendCodeBtn');
   if (sendCodeBtn) {
-    sendCodeBtn.addEventListener('click', function(e) {
+    sendCodeBtn.addEventListener('click', function (e) {
       e.preventDefault();
       sendVerificationCode();
     });
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // 验证按钮
   const verifyBtn = document.getElementById('verifyBtn');
   if (verifyBtn) {
-    verifyBtn.addEventListener('click', function(e) {
+    verifyBtn.addEventListener('click', function (e) {
       e.preventDefault();
       verifyCode();
     });
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // 模态框关闭
   const authModal = document.getElementById('authModal');
   if (authModal) {
-    authModal.addEventListener('click', function(e) {
+    authModal.addEventListener('click', function (e) {
       closeModal(e);
     });
   }
@@ -199,8 +199,8 @@ document.addEventListener('DOMContentLoaded', function() {
       <span style="margin-right: 15px;">欢迎，${userInfo.email}</span>
       <button class="btn-login" id="logoutBtn">退出</button>
     `;
-    
-    document.getElementById('logoutBtn').addEventListener('click', function() {
+
+    document.getElementById('logoutBtn').addEventListener('click', function () {
       logout();
     });
   }
@@ -217,12 +217,12 @@ async function loadMonitoringData() {
   try {
     const response = await fetch('/api/v1/monitoring/status');
     const data = await response.json();
-    
+
     if (data.success) {
       const vps = data.data.vps || {};
       const ai = data.data.ai || {};
       const services = data.data.services || {};
-      
+
       // 获取健康状态的颜色和文本
       const getStatusColor = (status) => {
         switch (status) {
@@ -233,7 +233,7 @@ async function loadMonitoringData() {
           default: return 'gray';
         }
       };
-      
+
       const getStatusText = (status) => {
         switch (status) {
           case 'healthy': return '健康';
@@ -245,20 +245,30 @@ async function loadMonitoringData() {
       };
 
       const content = `
-        <div style="text-align: left; line-height: 1.8;">
-          <h4 style="color: #667eea; margin-bottom: 10px;">📊 VPS资源使用</h4>
-          <p><strong>CPU使用率：</strong> ${vps.cpu || 'N/A'}%</p>
-          <p><strong>内存使用率：</strong> ${vps.memory || 'N/A'}%</p>
-          <p><strong>磁盘使用率：</strong> ${vps.disk || 'N/A'}%</p>
-          
-          <h4 style="color: #667eea; margin: 20px 0 10px 0;">🤖 AI分析统计（24小时）</h4>
-          <p><strong>总调用次数：</strong> ${ai.totalCalls || 0}</p>
-          <p><strong>成功次数：</strong> ${ai.successCalls || 0}</p>
-          <p><strong>成功率：</strong> ${ai.successRate || 0}%</p>
-          
-          <h4 style="color: #667eea; margin: 20px 0 10px 0;">🔧 服务健康状态</h4>
-          <p><strong>数据库：</strong> <span style="color: ${getStatusColor(services.database)};">${getStatusText(services.database)}</span></p>
-          <p><strong>Redis：</strong> <span style="color: ${getStatusColor(services.redis)};">${getStatusText(services.redis)}</span></p>
+        <div style="text-align: left; line-height: 2;">
+          <div style="margin-bottom: 20px;">
+            <p style="color: #666; font-size: 14px; margin-bottom: 8px;">CPU使用率</p>
+            <span style="font-size: 20px; font-weight: bold; color: ${parseFloat(vps.cpu) > 70 ? '#ff6b6b' : '#4caf50'};">${vps.cpu}%</span>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <p style="color: #666; font-size: 14px; margin-bottom: 8px;">内存使用率</p>
+            <span style="font-size: 20px; font-weight: bold; color: ${parseFloat(vps.memory) > 70 ? '#ff6b6b' : '#4caf50'};">${vps.memory}%</span>
+          </div>
+          <div style="margin-bottom: 20px;">
+            <p style="color: #666; font-size: 14px; margin-bottom: 8px;">AI调用成功率</p>
+            <span style="font-size: 20px; font-weight: bold; color: #667eea;">${ai.successRate}%</span>
+            <p style="color: #999; font-size: 12px; margin-top: 5px;">${ai.totalCalls}次调用 / 成功${ai.successCalls}次</p>
+          </div>
+          <div style="display: flex; gap: 15px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+            <div>
+              <p style="color: #666; font-size: 12px; margin-bottom: 5px;">数据库</p>
+              <span style="color: ${getStatusColor(services.database)}; font-weight: bold;">${getStatusText(services.database)}</span>
+            </div>
+            <div>
+              <p style="color: #666; font-size: 12px; margin-bottom: 5px;">Redis</p>
+              <span style="color: ${getStatusColor(services.redis)}; font-weight: bold;">${getStatusText(services.redis)}</span>
+            </div>
+          </div>
         </div>
       `;
       document.getElementById('monitoringContent').innerHTML = content;
@@ -279,10 +289,19 @@ async function loadUserStats() {
     
     if (data.success) {
       const content = `
-        <div style="text-align: left; line-height: 1.8;">
-          <p><strong>总用户数：</strong> ${data.data.totalUsers || 0}</p>
-          <p><strong>今日新增用户：</strong> ${data.data.todayNewUsers || 0}</p>
-          <p><strong>活跃用户数：</strong> ${data.data.activeUsers || 0}</p>
+        <div style="text-align: left; line-height: 2;">
+          <div style="margin-bottom: 15px;">
+            <span style="font-size: 24px; font-weight: bold; color: #667eea;">${data.data.totalUsers || 0}</span>
+            <p style="color: #666; margin-top: 5px; font-size: 14px;">总用户数</p>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <span style="font-size: 24px; font-weight: bold; color: #f7931a;">${data.data.todayNewUsers || 0}</span>
+            <p style="color: #666; margin-top: 5px; font-size: 14px;">今日新增</p>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <span style="font-size: 24px; font-weight: bold; color: #4caf50;">${data.data.activeUsers || 0}</span>
+            <p style="color: #666; margin-top: 5px; font-size: 14px;">活跃用户（7天）</p>
+          </div>
         </div>
       `;
       document.getElementById('userStatsContent').innerHTML = content;

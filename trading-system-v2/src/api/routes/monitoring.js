@@ -225,22 +225,22 @@ router.get('/status', async (req, res) => {
   try {
     const database = req.app.get('database');
     const currentResources = await resourceMonitor.checkResources();
-    
+
     // 获取AI分析调用统计（最近24小时）
     let aiStats = { totalCalls: 0, successCalls: 0, successRate: 0 };
     try {
       const aiStatsRows = await database.query(
-        `SELECT 
+        `SELECT
           COUNT(*) as total_calls,
           SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_calls
-        FROM ai_analysis_logs 
+        FROM ai_analysis_logs
         WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)`
       );
       if (aiStatsRows && aiStatsRows.length > 0) {
         aiStats = {
           totalCalls: Number(aiStatsRows[0].total_calls || 0),
           successCalls: Number(aiStatsRows[0].success_calls || 0),
-          successRate: aiStatsRows[0].total_calls > 0 
+          successRate: aiStatsRows[0].total_calls > 0
             ? ((aiStatsRows[0].success_calls / aiStatsRows[0].total_calls) * 100).toFixed(1)
             : 0
         };
@@ -260,8 +260,8 @@ router.get('/status', async (req, res) => {
     // 检查Redis连接
     let redisStatus = 'healthy';
     try {
-      const redisClient = req.app.get('redisClient');
-      if (redisClient && redisClient.ready) {
+      const cache = require('../../cache/redis');
+      if (cache.isReady()) {
         redisStatus = 'healthy';
       } else {
         redisStatus = 'disconnected';
@@ -269,7 +269,7 @@ router.get('/status', async (req, res) => {
     } catch (error) {
       redisStatus = 'unhealthy';
     }
-    
+
     res.json({
       success: true,
       data: {
