@@ -11,6 +11,38 @@ class AIAnalysisModule {
   }
 
   /**
+   * 带认证的fetch请求
+   */
+  async fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem('authToken');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const config = {
+      ...options,
+      headers
+    };
+
+    const response = await fetch(url, config);
+    
+    // 处理401错误
+    if (response.status === 401) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userInfo');
+      window.location.href = '/';
+      throw new Error('未授权，请重新登录');
+    }
+
+    return response;
+  }
+
+  /**
    * 初始化模块
    */
   async init() {
@@ -41,7 +73,7 @@ class AIAnalysisModule {
       const url = `${this.apiBase}/macro-risk?symbols=BTCUSDT,ETHUSDT${forceParam}`;
       console.log(`[AI分析] 请求URL: ${url}`);
 
-      const response = await fetch(url);
+      const response = await this.fetchWithAuth(url);
       console.log(`[AI分析] 响应状态: ${response.status}`);
 
       const result = await response.json();
@@ -402,7 +434,7 @@ class AIAnalysisModule {
   async showDetailModal(symbol) {
     try {
       const symbolPair = `${symbol}USDT`;
-      const response = await fetch(`${this.apiBase}/macro-risk?symbols=${symbolPair}`);
+      const response = await this.fetchWithAuth(`${this.apiBase}/macro-risk?symbols=${symbolPair}`);
       const result = await response.json();
 
       if (!result.success || !result.data[symbolPair]) {
@@ -554,7 +586,7 @@ class AIAnalysisModule {
   async loadSymbolAnalysis(symbol, forceRefresh = false) {
     try {
       const forceParam = forceRefresh ? '&forceRefresh=true' : '';
-      const response = await fetch(`${this.apiBase}/symbol-analysis?symbol=${symbol}${forceParam}`);
+      const response = await this.fetchWithAuth(`${this.apiBase}/symbol-analysis?symbol=${symbol}${forceParam}`);
       const result = await response.json();
 
       if (result.success && result.data) {
