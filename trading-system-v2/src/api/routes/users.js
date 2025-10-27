@@ -32,6 +32,7 @@ router.get('/stats', async (req, res) => {
     
     let totalUsers = 0;
     if (userCountRows && Array.isArray(userCountRows) && userCountRows.length > 0) {
+      // 注意：MySQL返回的COUNT结果是字符串
       totalUsers = Number(userCountRows[0].total_users || 0);
     }
 
