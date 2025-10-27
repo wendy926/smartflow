@@ -1022,10 +1022,10 @@ class DatabaseOperations {
    */
   async calculateMaxDrawdown(connection, strategy) {
     try {
-      // 获取按时间排序的交易记录
+      // 只获取已完成交易记录（CLOSED状态）
       const [trades] = await connection.execute(
         `SELECT pnl, created_at FROM simulation_trades 
-         WHERE strategy_name = ? AND pnl IS NOT NULL 
+         WHERE strategy_name = ? AND pnl IS NOT NULL AND status = 'CLOSED'
          ORDER BY created_at ASC`,
         [strategy]
       );
@@ -1063,10 +1063,10 @@ class DatabaseOperations {
    */
   async calculateTotalMaxDrawdown(connection) {
     try {
-      // 获取按时间排序的所有交易记录
+      // 只获取已完成交易记录（CLOSED状态）
       const [trades] = await connection.execute(
         `SELECT pnl, created_at FROM simulation_trades 
-         WHERE pnl IS NOT NULL 
+         WHERE pnl IS NOT NULL AND status = 'CLOSED'
          ORDER BY created_at ASC`
       );
 
