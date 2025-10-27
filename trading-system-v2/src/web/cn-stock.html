@@ -541,127 +541,6 @@
           </div>
         </div>
 
-        <!-- 宏观监控数据卡片 -->
-        <div class="macro-monitoring-section">
-          <div class="card">
-            <div class="card-header">
-              <h3>宏观数据监控</h3>
-              <div class="card-actions">
-                <button class="btn btn-secondary" id="refreshMacroData">
-                  <i class="fas fa-sync-alt"></i>
-                  刷新
-                </button>
-              </div>
-            </div>
-            <div class="card-content">
-              <div class="macro-cards-grid">
-                <!-- 资金流监控链接 -->
-                <div class="macro-card" id="fundFlowCard">
-                  <div class="macro-card-header">
-                    <div class="macro-card-icon">
-                      <i class="fas fa-coins"></i>
-                    </div>
-                    <div class="macro-card-title">
-                      <h4>资金流监控</h4>
-                      <span class="macro-card-subtitle">链上大额资金流 & 市场数据</span>
-                    </div>
-                  </div>
-                  <div class="macro-card-content">
-                    <div class="macro-metric" style="flex-direction: column; align-items: center; padding: 20px 0;">
-                      <a href="https://www.coinglass.com/zh" target="_blank" class="external-link-button"
-                        style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
-                        <i class="fas fa-external-link-alt"></i>
-                        <span>访问 CoinGlass 数据平台</span>
-                      </a>
-                      <p style="margin-top: 12px; font-size: 13px; color: #6c757d; text-align: center;">
-                        查看实时资金费率、爆仓数据、持仓量等市场指标
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 市场情绪监控卡片 -->
-                <div class="macro-card" id="sentimentCard">
-                  <div class="macro-card-header">
-                    <div class="macro-card-icon">
-                      <i class="fas fa-brain"></i>
-                    </div>
-                    <div class="macro-card-title">
-                      <h4>市场情绪</h4>
-                      <span class="macro-card-subtitle">恐惧贪婪指数</span>
-                    </div>
-                  </div>
-                  <div class="macro-card-content">
-                    <div class="macro-metric">
-                      <span class="macro-metric-label">当前指数</span>
-                      <span class="macro-metric-value" id="fearGreedIndex">--</span>
-                    </div>
-                    <div class="macro-metric">
-                      <span class="macro-metric-label">情绪状态</span>
-                      <span class="macro-metric-value" id="sentimentState">--</span>
-                    </div>
-                    <div class="macro-status" id="sentimentStatus">
-                      <span class="status-indicator status-normal">正常</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 合约市场监控链接 -->
-                <div class="macro-card" id="futuresCard">
-                  <div class="macro-card-header">
-                    <div class="macro-card-icon">
-                      <i class="fas fa-chart-area"></i>
-                    </div>
-                    <div class="macro-card-title">
-                      <h4>合约市场</h4>
-                      <span class="macro-card-subtitle">多空比 & 资金费率 & 爆仓数据</span>
-                    </div>
-                  </div>
-                  <div class="macro-card-content">
-                    <div class="macro-metric" style="flex-direction: column; align-items: center; padding: 20px 0;">
-                      <a href="https://www.coinglass.com/zh" target="_blank" class="external-link-button"
-                        style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
-                        <i class="fas fa-external-link-alt"></i>
-                        <span>访问 CoinGlass 数据平台</span>
-                      </a>
-                      <p style="margin-top: 12px; font-size: 13px; color: #6c757d; text-align: center;">
-                        查看实时多空比、资金费率、爆仓数据、持仓量等合约市场指标
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 宏观指标监控卡片 -->
-                <div class="macro-card" id="macroCard">
-                  <div class="macro-card-header">
-                    <div class="macro-card-icon">
-                      <i class="fas fa-globe-americas"></i>
-                    </div>
-                    <div class="macro-card-title">
-                      <h4>宏观指标</h4>
-                      <span class="macro-card-subtitle">利率 & 通胀率</span>
-                    </div>
-                  </div>
-                  <div class="macro-card-content">
-                    <div class="macro-metric">
-                      <span class="macro-metric-label">美联储利率</span>
-                      <span class="macro-metric-value" id="fedFundsRate">--</span>
-                    </div>
-                    <div class="macro-metric">
-                      <span class="macro-metric-label">CPI通胀率</span>
-                      <span class="macro-metric-value" id="cpiRate">--</span>
-                    </div>
-                    <div class="macro-status" id="macroStatus">
-                      <span class="status-indicator status-normal">正常</span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- A股默认交易标的配置 -->
         <div class="card" style="margin-top: 20px;">
           <div class="card-header">
@@ -705,7 +584,7 @@
         <div class="ai-macro-section">
           <div class="card">
             <div class="card-header">
-              <h3>AI市场风险分析 (A股)</h3>
+              <h3>AI市场风险分析 - 沪深300/科创50</h3>
               <div class="card-actions">
                 <span class="status-item" style="margin-right: 15px;">
                   <span class="status-label">最后更新:</span>
