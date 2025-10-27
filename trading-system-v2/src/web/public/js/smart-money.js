@@ -10,13 +10,44 @@ class SmartMoneyTracker {
   }
 
   /**
+   * 带认证的fetch请求
+   */
+  async fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem('authToken');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const config = {
+      ...options,
+      headers
+    };
+
+    const response = await fetch(url, config);
+    
+    if (response.status === 401) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userInfo');
+      window.location.href = '/';
+      throw new Error('Unauthorized');
+    }
+
+    return response;
+  }
+
+  /**
    * 加载聪明钱数据
    */
   async loadSmartMoneyData() {
     try {
       console.log('[聪明钱] 开始加载数据...');
 
-      const response = await fetch('/api/v1/smart-money/detect');
+      const response = await this.fetchWithAuth('/api/v1/smart-money/detect');
       const data = await response.json();
 
       if (data.success) {

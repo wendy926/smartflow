@@ -10,6 +10,37 @@ class LargeOrdersTracker {
     this.init();
   }
 
+  /**
+   * 带认证的fetch请求
+   */
+  async fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem('authToken');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const config = {
+      ...options,
+      headers
+    };
+
+    const response = await fetch(url, config);
+    
+    if (response.status === 401) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userInfo');
+      window.location.href = '/';
+      throw new Error('Unauthorized');
+    }
+
+    return response;
+  }
+
   init() {
     // 绑定刷新按钮
     const refreshBtn = document.getElementById('refresh-large-orders-btn');
@@ -49,7 +80,7 @@ class LargeOrdersTracker {
   async loadHistoricalData() {
     try {
       console.log('[LargeOrders] 加载7天历史数据...');
-      const response = await fetch('/api/v1/large-orders/history-aggregated?symbols=BTCUSDT,ETHUSDT&days=7');
+      const response = await this.fetchWithAuth('/api/v1/large-orders/history-aggregated?symbols=BTCUSDT,ETHUSDT&days=7');
       const result = await response.json();
       console.log('[LargeOrders] 历史数据:', result);
 
@@ -380,7 +411,7 @@ class LargeOrdersTracker {
   async loadData() {
     try {
       console.log('[LargeOrders] 开始加载数据...');
-      const response = await fetch('/api/v1/large-orders/detect');
+      const response = await this.fetchWithAuth('/api/v1/large-orders/detect');
       const result = await response.json();
       console.log('[LargeOrders] API响应:', result);
 
@@ -712,7 +743,7 @@ class LargeOrdersTracker {
 
       console.log(`[LargeOrders] 查询持续${days}天且>${amount}USD的挂单...`);
 
-      const response = await fetch(`/api/v1/large-orders-advanced/persistent-orders?symbols=BTCUSDT,ETHUSDT&minDays=${days}&minAmount=${amount}`);
+      const response = await this.fetchWithAuth(`/api/v1/large-orders-advanced/persistent-orders?symbols=BTCUSDT,ETHUSDT&minDays=${days}&minAmount=${amount}`);
       const result = await response.json();
 
       if (result.success && result.data) {
@@ -735,7 +766,7 @@ class LargeOrdersTracker {
 
       console.log(`[LargeOrders] 查询>${amount}USD的超大挂单...`);
 
-      const response = await fetch(`/api/v1/large-orders-advanced/mega-orders?symbols=BTCUSDT,ETHUSDT&minAmount=${amount}`);
+      const response = await this.fetchWithAuth(`/api/v1/large-orders-advanced/mega-orders?symbols=BTCUSDT,ETHUSDT&minAmount=${amount}`);
       const result = await response.json();
 
       if (result.success && result.data) {
