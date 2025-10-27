@@ -144,9 +144,17 @@ class TradingSystemApp {
       res.sendFile('home.html', { root: 'src/web' });
     });
 
-    // 策略参数调优页面（需要放在其他路由之前，优先匹配）
+    // 策略回测页面（需要放在其他路由之前，优先匹配）
     this.app.get(['/strategy-params', '/crypto/strategy-params'], (req, res) => {
       res.sendFile('strategy-params.html', { root: 'src/web' });
+    });
+
+    this.app.get('/a/strategy-params', (req, res) => {
+      res.sendFile('a-strategy-params.html', { root: 'src/web' });
+    });
+
+    this.app.get('/us/strategy-params', (req, res) => {
+      res.sendFile('us-strategy-params.html', { root: 'src/web' });
     });
 
     // 加密货币路由 (crypto/*)
