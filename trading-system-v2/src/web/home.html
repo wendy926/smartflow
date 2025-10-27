@@ -270,6 +270,17 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       text-align: center;
       transition: transform 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      min-height: 350px;
+    }
+    
+    .market-card > * {
+      flex-shrink: 0;
+    }
+    
+    .market-card .btn {
+      margin-top: auto;
     }
 
     .market-card:hover {
