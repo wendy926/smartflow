@@ -26,36 +26,53 @@ router.get('/stats', async (req, res) => {
 
     // 获取总用户数
     const userCountRows = await database.query(
-      'SELECT COUNT(*) as total_users FROM users WHERE deleted_at IS NULL'
+      'SELECT COUNT(*) as total_users FROM users'
     );
-    const totalUsers = (userCountRows && userCountRows[0] && userCountRows[0].total_users) ? Number(userCountRows[0].total_users) : 0;
+    logger.info('总用户数查询结果:', JSON.stringify(userCountRows));
+    
+    let totalUsers = 0;
+    if (userCountRows && Array.isArray(userCountRows) && userCountRows.length > 0) {
+      totalUsers = Number(userCountRows[0].total_users || 0);
+    }
 
     // 获取今日新增用户数
     const todayNewUsersRows = await database.query(
-      `SELECT COUNT(*) as today_new_users
-       FROM users
-       WHERE DATE(created_at) = CURDATE() AND deleted_at IS NULL`
+      `SELECT COUNT(*) as today_new_users 
+       FROM users 
+       WHERE DATE(created_at) = CURDATE()`
     );
-    const todayNewUsers = (todayNewUsersRows && todayNewUsersRows[0] && todayNewUsersRows[0].today_new_users) ? Number(todayNewUsersRows[0].today_new_users) : 0;
+    logger.info('今日新增用户查询结果:', JSON.stringify(todayNewUsersRows));
+    
+    let todayNewUsers = 0;
+    if (todayNewUsersRows && Array.isArray(todayNewUsersRows) && todayNewUsersRows.length > 0) {
+      todayNewUsers = Number(todayNewUsersRows[0].today_new_users || 0);
+    }
 
     // 获取活跃用户数（最近7天登录过）
     const activeUsersRows = await database.query(
       `SELECT COUNT(DISTINCT user_id) as active_users
-       FROM user_sessions
+       FROM user_sessions 
        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`
     );
-    const activeUsers = (activeUsersRows && activeUsersRows[0] && activeUsersRows[0].active_users) ? Number(activeUsersRows[0].active_users) : 0;
+    logger.info('活跃用户查询结果:', JSON.stringify(activeUsersRows));
+    
+    let activeUsers = 0;
+    if (activeUsersRows && Array.isArray(activeUsersRows) && activeUsersRows.length > 0) {
+      activeUsers = Number(activeUsersRows[0].active_users || 0);
+    }
 
-    logger.info('用户统计数据:', { totalUsers, todayNewUsers, activeUsers });
+    const result = {
+      totalUsers,
+      todayNewUsers,
+      activeUsers,
+      timestamp: toBeijingISO()
+    };
+
+    logger.info('最终用户统计数据:', result);
 
     res.json({
       success: true,
-      data: {
-        totalUsers,
-        todayNewUsers,
-        activeUsers,
-        timestamp: toBeijingISO()
-      }
+      data: result
     });
   } catch (error) {
     logger.error('获取用户统计数据失败:', error);
