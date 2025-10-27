@@ -775,134 +775,134 @@
   <div class="container">
     <!-- 主要内容区域 -->
     <main class="main-content">
-    <div class="page-header">
-      <h2>A股策略回测</h2>
-      <p style="color: #666; font-size: 14px; margin-top: 8px;">动态调整 ICT 和 V3 策略参数，支持激进/保守/平衡三种模式</p>
-    </div>
-
-    <div class="strategy-section" id="ict-strategy-section">
-      <div class="strategy-section-header ict">
-        <h2><i class="fas fa-chart-candlestick strategy-icon"></i> ICT 策略 - 订单块策略</h2>
-        <div class="strategy-header-actions">
-          <div class="strategy-status"><i class="fas fa-circle" style="color: #4caf50;"></i><span>运行中</span></div>
-          <button class="btn btn-primary btn-apply-config" data-strategy="ICT" id="ict-apply-config">
-            <i class="fas fa-sync-alt"></i> 应用当前配置到运行中的交易
-          </button>
-        </div>
+      <div class="page-header">
+        <h2>A股策略回测</h2>
+        <p style="color: #666; font-size: 14px; margin-top: 8px;">动态调整 ICT 和 V3 策略参数，支持激进/保守/平衡三种模式</p>
       </div>
-      <div class="strategy-section-content">
-        <div class="mode-tabs">
-          <div class="mode-tab aggressive active" data-mode="AGGRESSIVE" data-strategy="ICT"><i
-              class="fas fa-bolt mode-tab-icon"></i>激进模式</div>
-          <div class="mode-tab balanced" data-mode="BALANCED" data-strategy="ICT"><i
-              class="fas fa-balance-scale mode-tab-icon"></i>平衡模式</div>
-          <div class="mode-tab conservative" data-mode="CONSERVATIVE" data-strategy="ICT"><i
-              class="fas fa-shield-alt mode-tab-icon"></i>保守模式</div>
-        </div>
-        <div class="mode-content active" data-mode="AGGRESSIVE" data-strategy="ICT">
-          <div class="params-grid" id="ict-aggressive-params">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
+
+      <div class="strategy-section" id="ict-strategy-section">
+        <div class="strategy-section-header ict">
+          <h2><i class="fas fa-chart-candlestick strategy-icon"></i> ICT 策略 - 订单块策略</h2>
+          <div class="strategy-header-actions">
+            <div class="strategy-status"><i class="fas fa-circle" style="color: #4caf50;"></i><span>运行中</span></div>
+            <button class="btn btn-primary btn-apply-config" data-strategy="ICT" id="ict-apply-config">
+              <i class="fas fa-sync-alt"></i> 应用当前配置到运行中的交易
+            </button>
           </div>
         </div>
-        <div class="mode-content" data-mode="BALANCED" data-strategy="ICT">
-          <div class="params-grid" id="ict-balanced-params">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
+        <div class="strategy-section-content">
+          <div class="mode-tabs">
+            <div class="mode-tab aggressive active" data-mode="AGGRESSIVE" data-strategy="ICT"><i
+                class="fas fa-bolt mode-tab-icon"></i>激进模式</div>
+            <div class="mode-tab balanced" data-mode="BALANCED" data-strategy="ICT"><i
+                class="fas fa-balance-scale mode-tab-icon"></i>平衡模式</div>
+            <div class="mode-tab conservative" data-mode="CONSERVATIVE" data-strategy="ICT"><i
+                class="fas fa-shield-alt mode-tab-icon"></i>保守模式</div>
           </div>
-        </div>
-        <div class="mode-content" data-mode="CONSERVATIVE" data-strategy="ICT">
-          <div class="params-grid" id="ict-conservative-params">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
-          </div>
-        </div>
-        <div class="backtest-section">
-          <div class="backtest-actions">
-            <div class="backtest-title">回测结果</div>
-            <div class="backtest-controls">
-              <div class="timeframe-selector">
-                <label for="ict-timeframe">时间框架:</label>
-                <select id="ict-timeframe" class="timeframe-select">
-                  <option value="15m" selected>15分钟</option>
-                </select>
-              </div>
-              <button class="btn-run-backtest" data-strategy="ICT">
-                <i class="fas fa-play"></i>运行回测
-              </button>
+          <div class="mode-content active" data-mode="AGGRESSIVE" data-strategy="ICT">
+            <div class="params-grid" id="ict-aggressive-params">
+              <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
             </div>
           </div>
-          <div class="backtest-grid" id="ict-backtest-results">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载回测结果中...</div>
-          </div>
-        </div>
-        <div class="history-section">
-          <div class="backtest-title">参数修改历史</div>
-          <div id="ict-history">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载历史记录中...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="strategy-section" id="v3-strategy-section">
-      <div class="strategy-section-header v3">
-        <h2><i class="fas fa-chart-area strategy-icon"></i> V3 策略 - 多因子趋势策略</h2>
-        <div class="strategy-header-actions">
-          <div class="strategy-status"><i class="fas fa-circle" style="color: #4caf50;"></i><span>运行中</span></div>
-          <button class="btn btn-primary btn-apply-config" data-strategy="V3" id="v3-apply-config">
-            <i class="fas fa-sync-alt"></i> 应用当前配置到运行中的交易
-          </button>
-        </div>
-      </div>
-      <div class="strategy-section-content">
-        <div class="mode-tabs">
-          <div class="mode-tab aggressive active" data-mode="AGGRESSIVE" data-strategy="V3"><i
-              class="fas fa-bolt mode-tab-icon"></i>激进模式</div>
-          <div class="mode-tab balanced" data-mode="BALANCED" data-strategy="V3"><i
-              class="fas fa-balance-scale mode-tab-icon"></i>平衡模式</div>
-          <div class="mode-tab conservative" data-mode="CONSERVATIVE" data-strategy="V3"><i
-              class="fas fa-shield-alt mode-tab-icon"></i>保守模式</div>
-        </div>
-        <div class="mode-content active" data-mode="AGGRESSIVE" data-strategy="V3">
-          <div class="params-grid" id="v3-aggressive-params">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
-          </div>
-        </div>
-        <div class="mode-content" data-mode="BALANCED" data-strategy="V3">
-          <div class="params-grid" id="v3-balanced-params">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
-          </div>
-        </div>
-        <div class="mode-content" data-mode="CONSERVATIVE" data-strategy="V3">
-          <div class="params-grid" id="v3-conservative-params">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
-          </div>
-        </div>
-        <div class="backtest-section">
-          <div class="backtest-actions">
-            <div class="backtest-title">回测结果</div>
-            <div class="backtest-controls">
-              <div class="timeframe-selector">
-                <label for="v3-timeframe">时间框架:</label>
-                <select id="v3-timeframe" class="timeframe-select">
-                  <option value="15m" selected>15分钟</option>
-                </select>
-              </div>
-              <button class="btn-run-backtest" data-strategy="V3">
-                <i class="fas fa-play"></i>运行回测
-              </button>
+          <div class="mode-content" data-mode="BALANCED" data-strategy="ICT">
+            <div class="params-grid" id="ict-balanced-params">
+              <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
             </div>
           </div>
-          <div class="backtest-grid" id="v3-backtest-results">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载回测结果中...</div>
+          <div class="mode-content" data-mode="CONSERVATIVE" data-strategy="ICT">
+            <div class="params-grid" id="ict-conservative-params">
+              <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
+            </div>
           </div>
-        </div>
-        <div class="history-section">
-          <div class="backtest-title">参数修改历史</div>
-          <div id="v3-history">
-            <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载历史记录中...</div>
+          <div class="backtest-section">
+            <div class="backtest-actions">
+              <div class="backtest-title">回测结果</div>
+              <div class="backtest-controls">
+                <div class="timeframe-selector">
+                  <label for="ict-timeframe">时间框架:</label>
+                  <select id="ict-timeframe" class="timeframe-select">
+                    <option value="15m" selected>15分钟</option>
+                  </select>
+                </div>
+                <button class="btn-run-backtest" data-strategy="ICT">
+                  <i class="fas fa-play"></i>运行回测
+                </button>
+              </div>
+            </div>
+            <div class="backtest-grid" id="ict-backtest-results">
+              <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载回测结果中...</div>
+            </div>
+          </div>
+          <div class="history-section">
+            <div class="backtest-title">参数修改历史</div>
+            <div id="ict-history">
+              <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载历史记录中...</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <div class="strategy-section" id="v3-strategy-section">
+        <div class="strategy-section-header v3">
+          <h2><i class="fas fa-chart-area strategy-icon"></i> V3 策略 - 多因子趋势策略</h2>
+          <div class="strategy-header-actions">
+            <div class="strategy-status"><i class="fas fa-circle" style="color: #4caf50;"></i><span>运行中</span></div>
+            <button class="btn btn-primary btn-apply-config" data-strategy="V3" id="v3-apply-config">
+              <i class="fas fa-sync-alt"></i> 应用当前配置到运行中的交易
+            </button>
+          </div>
+        </div>
+        <div class="strategy-section-content">
+          <div class="mode-tabs">
+            <div class="mode-tab aggressive active" data-mode="AGGRESSIVE" data-strategy="V3"><i
+                class="fas fa-bolt mode-tab-icon"></i>激进模式</div>
+            <div class="mode-tab balanced" data-mode="BALANCED" data-strategy="V3"><i
+                class="fas fa-balance-scale mode-tab-icon"></i>平衡模式</div>
+            <div class="mode-tab conservative" data-mode="CONSERVATIVE" data-strategy="V3"><i
+                class="fas fa-shield-alt mode-tab-icon"></i>保守模式</div>
+          </div>
+          <div class="mode-content active" data-mode="AGGRESSIVE" data-strategy="V3">
+            <div class="params-grid" id="v3-aggressive-params">
+              <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
+            </div>
+          </div>
+          <div class="mode-content" data-mode="BALANCED" data-strategy="V3">
+            <div class="params-grid" id="v3-balanced-params">
+              <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
+            </div>
+          </div>
+          <div class="mode-content" data-mode="CONSERVATIVE" data-strategy="V3">
+            <div class="params-grid" id="v3-conservative-params">
+              <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载参数中...</div>
+            </div>
+          </div>
+          <div class="backtest-section">
+            <div class="backtest-actions">
+              <div class="backtest-title">回测结果</div>
+              <div class="backtest-controls">
+                <div class="timeframe-selector">
+                  <label for="v3-timeframe">时间框架:</label>
+                  <select id="v3-timeframe" class="timeframe-select">
+                    <option value="15m" selected>15分钟</option>
+                  </select>
+                </div>
+                <button class="btn-run-backtest" data-strategy="V3">
+                  <i class="fas fa-play"></i>运行回测
+                </button>
+              </div>
+            </div>
+            <div class="backtest-grid" id="v3-backtest-results">
+              <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载回测结果中...</div>
+            </div>
+          </div>
+          <div class="history-section">
+            <div class="backtest-title">参数修改历史</div>
+            <div id="v3-history">
+              <div class="loading"><i class="fas fa-spinner fa-spin"></i> 加载历史记录中...</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 

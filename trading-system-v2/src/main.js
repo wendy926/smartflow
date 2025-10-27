@@ -165,16 +165,26 @@ class TradingSystemApp {
       });
 
     // A股路由 (a/*)
-    this.app.get(['/a/dashboard', '/a/strategies', '/a/statistics', '/a/backtest'],
+    this.app.get(['/a/dashboard', '/a/strategies', '/a/statistics'],
       (req, res) => {
         res.sendFile('cn-stock.html', { root: 'src/web' });
       });
 
+    // A股策略回测
+    this.app.get('/a/backtest', (req, res) => {
+      res.sendFile('a-strategy-params.html', { root: 'src/web' });
+    });
+
     // 美股路由 (us/*)
-    this.app.get(['/us/dashboard', '/us/strategies', '/us/statistics', '/us/backtest'],
+    this.app.get(['/us/dashboard', '/us/strategies', '/us/statistics'],
       (req, res) => {
         res.sendFile('us-stock.html', { root: 'src/web' });
       });
+
+    // 美股策略回测
+    this.app.get('/us/backtest', (req, res) => {
+      res.sendFile('us-strategy-params.html', { root: 'src/web' });
+    });
 
     // 系统监控和文档（直接访问）
     this.app.get('/monitoring', (req, res) => {
