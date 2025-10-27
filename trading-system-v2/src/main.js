@@ -146,7 +146,7 @@ class TradingSystemApp {
 
     // 加密货币路由 (crypto/*)
     this.app.get(['/crypto/dashboard', '/crypto/strategies', '/crypto/statistics',
-      '/crypto/tools', '/crypto/smart-money', '/crypto/large-orders', '/crypto/backtest'],
+      '/crypto/tools', '/crypto/smart-money', '/crypto/large-orders', '/crypto/backtest', '/crypto/strategy-params'],
       (req, res) => {
         res.sendFile('index.html', { root: 'src/web' });
       });

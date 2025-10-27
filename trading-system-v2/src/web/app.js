@@ -49,10 +49,10 @@ class SmartFlowApp {
    */
   handleRouteChange() {
     const path = window.location.pathname;
-    
+
     // 移除市场前缀，获取基础路径
     const basePath = path.replace(/^\/(crypto|a|us)/, '') || '/dashboard';
-    
+
     const tabMap = {
       '/dashboard': 'dashboard',
       '/strategies': 'strategies',
@@ -310,7 +310,14 @@ class SmartFlowApp {
     if (tabName === 'strategy-params') {
       const currentPath = window.location.pathname;
       const marketPrefix = this.getMarketPrefix(currentPath);
+      // 跳转到策略参数页面
       window.location.href = `${marketPrefix}/strategy-params`;
+      return;
+    }
+    
+    // 特殊处理：如果是 /crypto/backtest，跳转到策略回测页面
+    if (window.location.pathname === '/crypto/backtest') {
+      window.location.href = '/crypto/strategy-params';
       return;
     }
 
@@ -3718,10 +3725,10 @@ class SmartFlowApp {
    */
   async fetchData(endpoint, retryCount = 0) {
     const url = `${this.apiBaseUrl}${endpoint}`;
-    
+
     // 获取token
     const token = localStorage.getItem('authToken');
-    
+
     const options = {
       method: 'GET',
       headers: {
@@ -3746,7 +3753,7 @@ class SmartFlowApp {
           window.location.href = '/';
           throw new Error('未授权，请重新登录');
         }
-        
+
         if (response.status === 502 && retryCount < 3) {
           console.log(`API请求失败，正在重试 (${retryCount + 1}/3): ${endpoint}`);
           await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
