@@ -49,6 +49,10 @@ class SmartFlowApp {
    */
   handleRouteChange() {
     const path = window.location.pathname;
+    
+    // 移除市场前缀，获取基础路径
+    const basePath = path.replace(/^\/(crypto|a|us)/, '') || '/dashboard';
+    
     const tabMap = {
       '/dashboard': 'dashboard',
       '/strategies': 'strategies',
@@ -61,7 +65,7 @@ class SmartFlowApp {
       '/docs': 'docs'
     };
 
-    const tab = tabMap[path] || 'dashboard';
+    const tab = tabMap[basePath] || 'dashboard';
     this.switchTab(tab);
   }
 
@@ -279,6 +283,22 @@ class SmartFlowApp {
   }
 
   /**
+   * 获取市场前缀
+   * @param {string} path - 当前路径
+   * @returns {string} - 市场前缀（/crypto, /a, /us 或空字符串）
+   */
+  getMarketPrefix(path) {
+    if (path.startsWith('/crypto/')) {
+      return '/crypto';
+    } else if (path.startsWith('/a/')) {
+      return '/a';
+    } else if (path.startsWith('/us/')) {
+      return '/us';
+    }
+    return '/crypto'; // 默认返回加密货币前缀
+  }
+
+  /**
    * 切换标签页
    * @param {string} tabName - 标签页名称
    */
@@ -320,13 +340,15 @@ class SmartFlowApp {
 
     this.currentTab = tabName;
 
-    // 更新URL（如果当前URL不匹配）
+    // 更新URL（如果当前URL不匹配）- 使用二级路径
+    const currentPath = window.location.pathname;
+    const marketPrefix = this.getMarketPrefix(currentPath);
     const pathMap = {
-      'dashboard': '/dashboard',
-      'strategies': '/strategies',
-      'monitoring': '/monitoring',
-      'statistics': '/statistics',
-      'tools': '/tools'
+      'dashboard': `${marketPrefix}/dashboard`,
+      'strategies': `${marketPrefix}/strategies`,
+      'monitoring': `${marketPrefix}/monitoring`,
+      'statistics': `${marketPrefix}/statistics`,
+      'tools': `${marketPrefix}/tools`
     };
     const expectedPath = pathMap[tabName];
     if (expectedPath && window.location.pathname !== expectedPath) {
