@@ -33,20 +33,9 @@ router.post('/send-code', async (req, res) => {
       });
     }
 
-    // 如果是注册，检查邮箱是否已存在
-    if (type === 'register') {
-      const existingUsers = await database.query(
-        'SELECT id FROM users WHERE email = ?',
-        [email]
-      );
-
-      if (existingUsers && existingUsers.length > 0) {
-        return res.status(409).json({
-          error: 'Conflict',
-          message: '该邮箱已被注册'
-        });
-      }
-    }
+    // 不需要检查邮箱是否已存在，验证码登录可以用于新用户注册和旧用户登录
+    // 旧的逻辑：如果是注册类型且邮箱已存在，返回错误
+    // 新逻辑：统一使用验证码登录，无论是新用户还是旧用户
 
     // 发送验证码
     logger.info(`[发送验证码] 邮箱: ${email}, 类型: ${type}`);

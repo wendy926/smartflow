@@ -311,7 +311,7 @@ class SmartFlowApp {
       window.location.href = '/crypto/strategy-params';
       return;
     }
-    
+
     // 特殊处理：如果已经访问了 strategy-params 页面，不再处理切换
     if (window.location.pathname === '/crypto/strategy-params' || window.location.pathname === '/strategy-params') {
       return;
