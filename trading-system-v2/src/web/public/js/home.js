@@ -219,13 +219,46 @@ async function loadMonitoringData() {
     const data = await response.json();
     
     if (data.success) {
+      const vps = data.data.vps || {};
+      const ai = data.data.ai || {};
+      const services = data.data.services || {};
+      
+      // 获取健康状态的颜色和文本
+      const getStatusColor = (status) => {
+        switch (status) {
+          case 'healthy': return 'green';
+          case 'warning': return 'orange';
+          case 'unhealthy':
+          case 'disconnected': return 'red';
+          default: return 'gray';
+        }
+      };
+      
+      const getStatusText = (status) => {
+        switch (status) {
+          case 'healthy': return '健康';
+          case 'warning': return '警告';
+          case 'unhealthy': return '异常';
+          case 'disconnected': return '断开';
+          default: return '未知';
+        }
+      };
+
       const content = `
         <div style="text-align: left; line-height: 1.8;">
-          <p><strong>CPU使用率：</strong> ${data.data.cpu || 'N/A'}%</p>
-          <p><strong>内存使用率：</strong> ${data.data.memory || 'N/A'}%</p>
-          <p><strong>磁盘使用率：</strong> ${data.data.disk || 'N/A'}%</p>
-          <p><strong>数据库状态：</strong> <span style="color: green;">正常</span></p>
-          <p><strong>Redis状态：</strong> <span style="color: green;">正常</span></p>
+          <h4 style="color: #667eea; margin-bottom: 10px;">📊 VPS资源使用</h4>
+          <p><strong>CPU使用率：</strong> ${vps.cpu || 'N/A'}%</p>
+          <p><strong>内存使用率：</strong> ${vps.memory || 'N/A'}%</p>
+          <p><strong>磁盘使用率：</strong> ${vps.disk || 'N/A'}%</p>
+          
+          <h4 style="color: #667eea; margin: 20px 0 10px 0;">🤖 AI分析统计（24小时）</h4>
+          <p><strong>总调用次数：</strong> ${ai.totalCalls || 0}</p>
+          <p><strong>成功次数：</strong> ${ai.successCalls || 0}</p>
+          <p><strong>成功率：</strong> ${ai.successRate || 0}%</p>
+          
+          <h4 style="color: #667eea; margin: 20px 0 10px 0;">🔧 服务健康状态</h4>
+          <p><strong>数据库：</strong> <span style="color: ${getStatusColor(services.database)};">${getStatusText(services.database)}</span></p>
+          <p><strong>Redis：</strong> <span style="color: ${getStatusColor(services.redis)};">${getStatusText(services.redis)}</span></p>
         </div>
       `;
       document.getElementById('monitoringContent').innerHTML = content;

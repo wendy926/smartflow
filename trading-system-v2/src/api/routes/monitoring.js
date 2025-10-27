@@ -223,15 +223,74 @@ router.post('/:symbol/statistics', async (req, res) => {
  */
 router.get('/status', async (req, res) => {
   try {
+    const database = req.app.get('database');
     const currentResources = await resourceMonitor.checkResources();
+    
+    // 获取AI分析调用统计（最近24小时）
+    let aiStats = { totalCalls: 0, successCalls: 0, successRate: 0 };
+    try {
+      const aiStatsRows = await database.query(
+        `SELECT 
+          COUNT(*) as total_calls,
+          SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as success_calls
+        FROM ai_analysis_logs 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)`
+      );
+      if (aiStatsRows && aiStatsRows.length > 0) {
+        aiStats = {
+          totalCalls: Number(aiStatsRows[0].total_calls || 0),
+          successCalls: Number(aiStatsRows[0].success_calls || 0),
+          successRate: aiStatsRows[0].total_calls > 0 
+            ? ((aiStatsRows[0].success_calls / aiStatsRows[0].total_calls) * 100).toFixed(1)
+            : 0
+        };
+      }
+    } catch (error) {
+      logger.warn('获取AI统计失败:', error.message);
+    }
+
+    // 检查数据库连接
+    let dbStatus = 'healthy';
+    try {
+      await database.query('SELECT 1');
+    } catch (error) {
+      dbStatus = 'unhealthy';
+    }
+
+    // 检查Redis连接
+    let redisStatus = 'healthy';
+    try {
+      const redisClient = req.app.get('redisClient');
+      if (redisClient && redisClient.ready) {
+        redisStatus = 'healthy';
+      } else {
+        redisStatus = 'disconnected';
+      }
+    } catch (error) {
+      redisStatus = 'unhealthy';
+    }
     
     res.json({
       success: true,
       data: {
-        cpu: currentResources.cpu?.toFixed(1) || '0',
-        memory: currentResources.memory?.toFixed(1) || '0',
-        disk: currentResources.disk?.toFixed(1) || '0',
-        status: currentResources.cpu && currentResources.cpu < 80 ? 'healthy' : 'warning',
+        // VPS资源使用率
+        vps: {
+          cpu: currentResources.cpu?.toFixed(1) || '0',
+          memory: currentResources.memory?.toFixed(1) || '0',
+          disk: currentResources.disk?.toFixed(1) || '0',
+          status: currentResources.cpu && currentResources.cpu < 80 ? 'healthy' : 'warning'
+        },
+        // AI分析统计
+        ai: {
+          totalCalls: aiStats.totalCalls,
+          successCalls: aiStats.successCalls,
+          successRate: aiStats.successRate
+        },
+        // 服务健康状态
+        services: {
+          database: dbStatus,
+          redis: redisStatus
+        },
         timestamp: toBeijingISO()
       }
     });
