@@ -72,7 +72,8 @@ class StrategyWorker {
    */
   async loadActiveStrategyModes() {
     try {
-      const database = require('../database/connection');
+      const DatabaseConnection = require('../database/connection');
+      const database = new DatabaseConnection();
       
       // 查询当前活跃的策略模式
       const query = `
