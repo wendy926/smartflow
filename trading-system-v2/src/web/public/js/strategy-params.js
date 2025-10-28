@@ -432,20 +432,106 @@ class StrategyParamsManager {
     container.innerHTML = html;
   }
 
-  switchMode(strategy, mode) {
+  async switchMode(strategy, mode) {
     console.log(`[策略参数] 切换到${strategy}策略的${mode}模式`);
 
-    // 更新标签页状态
-    document.querySelectorAll(`.mode-tab[data-strategy="${strategy}"]`).forEach(tab => {
-      tab.classList.remove('active');
-    });
-    document.querySelector(`.mode-tab[data-strategy="${strategy}"][data-mode="${mode}"]`).classList.add('active');
+    try {
+      // ✅ 调用API切换实盘策略模式
+      const response = await this.fetchWithAuth(`/api/v1/strategy-params/${strategy}/set-mode`, {
+        method: 'POST',
+        body: JSON.stringify({ mode })
+      });
 
-    // 更新内容显示
-    document.querySelectorAll(`.mode-content[data-strategy="${strategy}"]`).forEach(content => {
-      content.classList.remove('active');
-    });
-    document.querySelector(`.mode-content[data-strategy="${strategy}"][data-mode="${mode}"]`).classList.add('active');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '模式切换失败');
+      }
+
+      const result = await response.json();
+      console.log(`[策略参数] ${strategy}策略已切换到${mode}模式:`, result);
+
+      // 显示成功提示
+      this.showNotification(`${strategy}策略已切换到${mode}模式`, 'success');
+
+      // 更新标签页状态
+      document.querySelectorAll(`.mode-tab[data-strategy="${strategy}"]`).forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelector(`.mode-tab[data-strategy="${strategy}"][data-mode="${mode}"]`).classList.add('active');
+
+      // 更新内容显示
+      document.querySelectorAll(`.mode-content[data-strategy="${strategy}"]`).forEach(content => {
+        content.classList.remove('active');
+      });
+      document.querySelector(`.mode-content[data-strategy="${strategy}"][data-mode="${mode}"]`).classList.add('active');
+
+      // 重新加载当前模式的参数
+      await this.loadStrategyData(strategy, mode);
+
+    } catch (error) {
+      console.error(`[策略参数] 模式切换失败:`, error);
+      this.showNotification(`模式切换失败: ${error.message}`, 'error');
+    }
+  }
+
+  /**
+   * 显示通知消息
+   */
+  showNotification(message, type = 'info') {
+    // 创建通知元素
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    // 添加样式
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 4px;
+      color: white;
+      font-weight: 500;
+      z-index: 10000;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+    `;
+    
+    // 根据类型设置背景色
+    switch (type) {
+      case 'success':
+        notification.style.backgroundColor = '#4CAF50';
+        break;
+      case 'error':
+        notification.style.backgroundColor = '#f44336';
+        break;
+      case 'warning':
+        notification.style.backgroundColor = '#ff9800';
+        break;
+      default:
+        notification.style.backgroundColor = '#2196F3';
+    }
+    
+    // 添加到页面
+    document.body.appendChild(notification);
+    
+    // 显示动画
+    setTimeout(() => {
+      notification.style.opacity = '1';
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // 自动隐藏
+    setTimeout(() => {
+      notification.style.opacity = '0';
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
   }
 
   openEditModal(param) {

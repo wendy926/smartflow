@@ -13,13 +13,9 @@ const { getMaxLossAmount } = require('../api/routes/settings');
 
 class StrategyWorker {
   constructor() {
-    // ✅ ICT策略使用BALANCED模式（默认）
-    this.ictStrategy = new ICTStrategy(); // 构造函数中默认加载BALANCED
-    
-    // ✅ V3策略使用AGGRESSIVE模式
-    this.v3Strategy = new V3Strategy();
-    this.v3Strategy.mode = 'AGGRESSIVE'; // 设置为激进模式
-    this.v3Strategy.params = {}; // 清空参数，强制重新加载
+    // ✅ 策略初始化，使用默认模式（BALANCED）
+    this.ictStrategy = new ICTStrategy(); // 默认 BALANCED 模式
+    this.v3Strategy = new V3Strategy();   // 默认 BALANCED 模式
     
     this.tradeManager = TradeManager;
     this.binanceAPI = getBinanceAPI();  // 使用单例
@@ -37,6 +33,9 @@ class StrategyWorker {
     this.isRunning = true;
     this.isExecuting = false; // 添加执行标志，防止并发执行
     logger.info('策略工作进程启动');
+
+    // ✅ 启动时加载当前活跃的策略模式
+    await this.loadActiveStrategyModes();
 
     // 每10分钟执行一次策略分析 - 降低2C2G VPS负载 - 保存interval引用以便清理
     this.intervalId = setInterval(async () => {
@@ -69,6 +68,59 @@ class StrategyWorker {
   }
 
   /**
+   * ✅ 启动时加载当前活跃的策略模式
+   */
+  async loadActiveStrategyModes() {
+    try {
+      const database = require('../database/connection');
+      
+      // 查询当前活跃的策略模式
+      const query = `
+        SELECT strategy_name, strategy_mode 
+        FROM strategy_params 
+        WHERE is_active = 1 
+        GROUP BY strategy_name, strategy_mode
+        ORDER BY strategy_name, strategy_mode
+      `;
+      
+      const results = await database.query(query);
+      logger.info('[策略Worker] 数据库中的活跃策略模式:', results);
+      
+      // 为每个策略设置模式
+      const strategyModes = {};
+      results.forEach(row => {
+        if (!strategyModes[row.strategy_name]) {
+          strategyModes[row.strategy_name] = row.strategy_mode;
+        }
+      });
+      
+      // 设置ICT策略模式
+      if (strategyModes['ICT']) {
+        await this.ictStrategy.setMode(strategyModes['ICT']);
+        logger.info(`[策略Worker] ICT策略设置为${strategyModes['ICT']}模式`);
+      } else {
+        logger.warn('[策略Worker] 未找到ICT策略的活跃模式，使用默认BALANCED');
+        await this.ictStrategy.setMode('BALANCED');
+      }
+      
+      // 设置V3策略模式
+      if (strategyModes['V3']) {
+        await this.v3Strategy.setMode(strategyModes['V3']);
+        logger.info(`[策略Worker] V3策略设置为${strategyModes['V3']}模式`);
+      } else {
+        logger.warn('[策略Worker] 未找到V3策略的活跃模式，使用默认BALANCED');
+        await this.v3Strategy.setMode('BALANCED');
+      }
+      
+    } catch (error) {
+      logger.error('[策略Worker] 加载活跃策略模式失败:', error);
+      // 使用默认模式
+      await this.ictStrategy.setMode('BALANCED');
+      await this.v3Strategy.setMode('BALANCED');
+    }
+  }
+
+  /**
    * ✅ 动态切换策略模式
    * @param {string} strategyName - 策略名称 ('ICT' 或 'V3')
    * @param {string} mode - 新模式 (AGGRESSIVE/BALANCED/CONSERVATIVE)
@@ -89,14 +141,14 @@ class StrategyWorker {
       } else {
         return { success: false, message: `未知的策略: ${strategyName}` };
       }
-      
+
       return { success: true, message: `${strategyName} 策略已切换至 ${mode} 模式` };
     } catch (error) {
       logger.error(`[策略Worker] 切换模式失败: ${error.message}`, error);
       return { success: false, message: error.message };
     }
   }
-  
+
   /**
    * ✅ 检查并加载模式切换信号
    * 从文件系统读取模式切换请求
@@ -107,7 +159,7 @@ class StrategyWorker {
     const signalDir = path.join(__dirname, '../../.mode-signals');
     const ictSignalFile = path.join(signalDir, 'ict-mode.txt');
     const v3SignalFile = path.join(signalDir, 'v3-mode.txt');
-    
+
     try {
       // 检查 ICT 模式信号
       if (fs.existsSync(ictSignalFile)) {
@@ -118,7 +170,7 @@ class StrategyWorker {
           logger.info(`[策略Worker] ICT模式已切换至: ${mode}`);
         }
       }
-      
+
       // 检查 V3 模式信号
       if (fs.existsSync(v3SignalFile)) {
         const mode = fs.readFileSync(v3SignalFile, 'utf8').trim().toUpperCase();

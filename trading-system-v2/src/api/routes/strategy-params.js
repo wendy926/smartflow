@@ -520,6 +520,29 @@ router.post('/:strategyName/set-mode', async (req, res) => {
       });
     }
 
+    // ✅ 更新数据库中的活跃状态
+    const database = req.app.get('database');
+    if (database) {
+      try {
+        // 先将该策略的所有模式设为非活跃
+        await database.query(
+          'UPDATE strategy_params SET is_active = 0 WHERE strategy_name = ?',
+          [strategyName.toUpperCase()]
+        );
+        
+        // 将新模式设为活跃
+        await database.query(
+          'UPDATE strategy_params SET is_active = 1 WHERE strategy_name = ? AND strategy_mode = ?',
+          [strategyName.toUpperCase(), mode]
+        );
+        
+        console.log(`[模式切换] 数据库已更新: ${strategyName} -> ${mode}`);
+      } catch (dbError) {
+        console.error(`[模式切换] 数据库更新失败:`, dbError);
+        // 继续执行，不中断流程
+      }
+    }
+
     // 创建信号目录
     const signalDir = path.join(__dirname, '../../.mode-signals');
     if (!fs.existsSync(signalDir)) {
@@ -532,7 +555,7 @@ router.post('/:strategyName/set-mode', async (req, res) => {
 
     console.log(`[模式切换] 已创建信号文件: ${signalFile}, 模式: ${mode}`);
 
-    // ✅ 可选：如果有 strategy worker 实例，立即切换
+    // ✅ 如果有 strategy worker 实例，立即切换
     const strategyWorker = req.app.get('strategyWorker');
     if (strategyWorker) {
       await strategyWorker.setStrategyMode(strategyName.toUpperCase(), mode);
@@ -540,7 +563,9 @@ router.post('/:strategyName/set-mode', async (req, res) => {
 
     res.json({
       success: true,
-      message: `${strategyName} 策略将在下次执行时切换至 ${mode} 模式`
+      message: `${strategyName}策略已切换到${mode}模式`,
+      strategy: strategyName.toUpperCase(),
+      mode: mode
     });
 
   } catch (error) {

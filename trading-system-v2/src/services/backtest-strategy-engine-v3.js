@@ -196,7 +196,7 @@ class BacktestStrategyEngineV3 {
 
           logger.debug(`[回测引擎V3] ${symbol} ICT-${mode}: 应用参数到params`, Object.keys(params));
         }
-        
+
         // ✅ 确保参数已加载完成（与实盘一致）
         if (!this.ictStrategy.params || Object.keys(this.ictStrategy.params).length === 0) {
           logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 参数未加载，开始加载...`);
@@ -241,39 +241,39 @@ class BacktestStrategyEngineV3 {
           // ✅ 使用实盘的止损止盈计算方法
           // 获取策略返回的交易参数（包含结构止损和多止盈点）
           const tradeParams = ictResult.tradeParams || ictResult;
-          
+
           // ✅ 使用实盘的结构止损逻辑
           let stopLoss = tradeParams.stopLoss || entryPrice;
           let takeProfit = tradeParams.takeProfit || entryPrice;
-          
+
           // 如果策略返回了多个止盈点，使用 TP2（第二个止盈点）
           if (tradeParams.takeProfit2) {
             takeProfit = tradeParams.takeProfit2;
           }
-          
+
           // ✅ 获取风险百分比（与实盘一致）
           const riskPct = params?.position?.riskPercent || this.ictStrategy.params?.position?.riskPercent || 0.01;
-          
+
           // ✅ 使用实盘的仓位计算逻辑
           const equity = 10000; // 默认资金
           const riskAmount = equity * riskPct;
           const stopDistance = Math.abs(entryPrice - stopLoss);
-          
+
           // 计算单位数
           const units = stopDistance > 0 ? riskAmount / stopDistance : 0;
-          
+
           // 计算杠杆（与实盘逻辑一致）
           const stopLossDistancePct = stopDistance / entryPrice;
           const calculatedMaxLeverage = Math.floor(1 / (stopLossDistancePct + 0.005));
           const leverage = Math.min(calculatedMaxLeverage, 24);
-          
+
           const positionSize = units;
-          
+
           if (positionSize < 0.1) {
             logger.warn(`[回测引擎V3] ${symbol} ICT-${mode}: 止损距离过大，跳过交易。止损距离=${stopDistance.toFixed(2)}, 计算仓位=${positionSize.toFixed(4)}`);
             continue;
           }
-          
+
           logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 使用实盘逻辑计算止损止盈, 入场=${entryPrice.toFixed(2)}, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 杠杆=${leverage}, 仓位=${positionSize.toFixed(4)}`);
 
           position = {
@@ -437,7 +437,7 @@ class BacktestStrategyEngineV3 {
           console.log(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
         }
-        
+
         // ✅ 确保参数已加载完成（与实盘一致）
         if (!this.v3Strategy.params || Object.keys(this.v3Strategy.params).length === 0) {
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数未加载，开始加载...`);
