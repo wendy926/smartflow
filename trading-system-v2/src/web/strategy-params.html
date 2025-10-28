@@ -19,20 +19,7 @@
       min-height: 100vh;
     }
 
-    /* 确保 header 导航样式与其他页面一致 */
-    .header {
-      background: white !important;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    }
-
-    .nav-link {
-      color: #495057 !important;
-      text-decoration: none !important;
-    }
-
-    .nav-link:hover {
-      color: #007bff !important;
-    }
+    /* ✅ 移除内联样式，使用 styles.css 的统一样式 */
 
     .container {
       max-width: 1400px;
@@ -678,10 +665,10 @@
 
 <body>
   <header class="header">
-    <div class="logo">
+    <a href="/" class="logo" style="text-decoration: none; color: inherit; cursor: pointer;">
       <i class="fas fa-chart-line"></i>
       <h1>SmartFlow</h1>
-    </div>
+    </a>
     <nav class="nav">
       <!-- ✅ 修复：使用与dashboard一致的一级导航 -->
       <a href="/crypto/dashboard" class="nav-link">
