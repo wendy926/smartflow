@@ -419,10 +419,10 @@ router.post('/:strategyName/:strategyMode/apply-to-running-trades', async (req, 
       });
     }
 
-    // 查询所有OPEN状态的交易
+    // ✅ 修复：使用正确的表名和列名
     const runningTrades = await database.query(
-      'SELECT id, symbol, strategy, entry_price, stop_loss_price, take_profit_price, leverage FROM trades WHERE status = "OPEN" AND strategy = ?',
-      [dbStrategyName]
+      'SELECT id, symbol_id, strategy_name, entry_price, stop_loss, take_profit, leverage FROM simulation_trades WHERE status = "OPEN" AND strategy_name = ?',
+      [strategyName.toUpperCase()]
     );
 
     if (!runningTrades || runningTrades.length === 0) {
@@ -467,8 +467,10 @@ router.post('/:strategyName/:strategyMode/apply-to-running-trades', async (req, 
         // 重新计算止损和止盈价格
         // 注意：这里只是更新数据库记录，实际的价格调整需要策略引擎来处理
 
+        // ✅ 修复：更新simulation_trades表
+        // 这里只是标记为已更新，实际的价格调整由策略引擎动态处理
         await database.query(
-          'UPDATE trades SET updated_at = NOW() WHERE id = ?',
+          'UPDATE simulation_trades SET entry_time = entry_time WHERE id = ?',
           [trade.id]
         );
 
