@@ -65,8 +65,10 @@ function buildTradePlan({ direction, entryPrice, stopPrice, qty, profitMultiplie
     ? roundTo(entryPrice + 0.25 * stopDistance, 8)
     : roundTo(entryPrice - 0.25 * stopDistance, 8);
   
-  // 计算风险回报比
-  const rr_at_tp1 = roundTo((tps[0] - entryPrice) / stopDistance, 4);
+  // 计算风险回报比（考虑方向）
+  const rr_at_tp1 = direction === 'long' 
+    ? roundTo((tps[0] - entryPrice) / stopDistance, 4)
+    : roundTo((entryPrice - tps[0]) / stopDistance, 4);
   
   return {
     direction,
