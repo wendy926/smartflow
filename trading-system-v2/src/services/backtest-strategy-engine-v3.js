@@ -7,6 +7,8 @@
 const logger = require('../utils/logger');
 const ICTStrategy = require('../strategies/ict-strategy');
 const V3Strategy = require('../strategies/v3-strategy'); // ✅ 使用主V3策略而非旧版integrated
+const PositionDurationManager = require('../utils/position-duration-manager');
+const TokenClassifier = require('../utils/token-classifier');
 
 class BacktestStrategyEngineV3 {
   constructor(mockBinanceAPI) {
@@ -20,6 +22,23 @@ class BacktestStrategyEngineV3 {
       this.ictStrategy.binanceAPI = this.mockBinanceAPI;
       this.v3Strategy.binanceAPI = this.mockBinanceAPI;
     }
+  }
+
+  /**
+   * 获取持仓时长配置（用于时间止损）
+   * @param {string} symbol - 交易对符号
+   * @param {string} marketType - 市场类型
+   * @returns {Object} 持仓配置
+   */
+  getPositionConfig(symbol, marketType = 'TREND') {
+    const category = TokenClassifier.classifyToken(symbol);
+    const config = PositionDurationManager.getPositionConfig(symbol, marketType);
+    
+    return {
+      maxHoldingMinutes: config.maxDurationHours * 60,
+      timeStopMinutes: config.timeStopMinutes,
+      marketType: marketType
+    };
   }
 
   /**
@@ -311,19 +330,41 @@ class BacktestStrategyEngineV3 {
           let shouldExit = false;
           let exitReason = '';
 
+          // ✅ 添加时间止损检查（与实盘一致）
+          const positionConfig = this.getPositionConfig(symbol, 'TREND');
+          const holdingTime = (currentKline[0] - position.entryTime.getTime()) / 1000 / 60; // 分钟
+          
+          // 检查最大持仓时长限制
+          if (holdingTime >= positionConfig.maxHoldingMinutes) {
+            shouldExit = true;
+            exitReason = `持仓时长超过${positionConfig.maxHoldingMinutes}分钟限制`;
+            logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: ${exitReason}`);
+          }
+          // 检查时间止损（持仓超时且未盈利）
+          else if (holdingTime >= positionConfig.timeStopMinutes) {
+            const isProfitable = (position.type === 'LONG' && nextPrice > position.entryPrice) ||
+                                 (position.type === 'SHORT' && nextPrice < position.entryPrice);
+            
+            if (!isProfitable) {
+              shouldExit = true;
+              exitReason = `时间止损 - 持仓${holdingTime.toFixed(0)}分钟未盈利`;
+              logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: ${exitReason}`);
+            }
+          }
+
           // 检查止损
-          if (position.type === 'LONG' && nextPrice <= position.stopLoss) {
+          if (!shouldExit && position.type === 'LONG' && nextPrice <= position.stopLoss) {
             shouldExit = true;
             exitReason = '止损';
-          } else if (position.type === 'SHORT' && nextPrice >= position.stopLoss) {
+          } else if (!shouldExit && position.type === 'SHORT' && nextPrice >= position.stopLoss) {
             shouldExit = true;
             exitReason = '止损';
           }
           // 检查止盈
-          else if (position.type === 'LONG' && nextPrice >= position.takeProfit) {
+          else if (!shouldExit && position.type === 'LONG' && nextPrice >= position.takeProfit) {
             shouldExit = true;
             exitReason = '止盈';
-          } else if (position.type === 'SHORT' && nextPrice <= position.takeProfit) {
+          } else if (!shouldExit && position.type === 'SHORT' && nextPrice <= position.takeProfit) {
             shouldExit = true;
             exitReason = '止盈';
           }
@@ -335,7 +376,7 @@ class BacktestStrategyEngineV3 {
             // 更新策略实例的回撤状态
             this.ictStrategy.updateDrawdownStatus(trade.pnl);
 
-            console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 平仓 ${exitReason}, PnL=${trade.pnl.toFixed(2)}`);
+            console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 平仓 ${exitReason}, PnL=${trade.pnl.toFixed(2)}, 持仓时长=${holdingTime.toFixed(1)}分钟`);
 
             position = null;
             lastSignal = null;
@@ -597,19 +638,41 @@ class BacktestStrategyEngineV3 {
           let shouldExit = false;
           let exitReason = '';
 
+          // ✅ 添加时间止损检查（与实盘一致）
+          const positionConfig = this.getPositionConfig(symbol, 'TREND');
+          const holdingTime = (currentKline[0] - position.entryTime.getTime()) / 1000 / 60; // 分钟
+          
+          // 检查最大持仓时长限制
+          if (holdingTime >= positionConfig.maxHoldingMinutes) {
+            shouldExit = true;
+            exitReason = `持仓时长超过${positionConfig.maxHoldingMinutes}分钟限制`;
+            logger.info(`[回测引擎V3] ${symbol} V3-${mode}: ${exitReason}`);
+          }
+          // 检查时间止损（持仓超时且未盈利）
+          else if (holdingTime >= positionConfig.timeStopMinutes) {
+            const isProfitable = (position.type === 'LONG' && nextPrice > position.entryPrice) ||
+                                 (position.type === 'SHORT' && nextPrice < position.entryPrice);
+            
+            if (!isProfitable) {
+              shouldExit = true;
+              exitReason = `时间止损 - 持仓${holdingTime.toFixed(0)}分钟未盈利`;
+              logger.info(`[回测引擎V3] ${symbol} V3-${mode}: ${exitReason}`);
+            }
+          }
+
           // 检查止损
-          if (position.type === 'LONG' && nextPrice <= position.stopLoss) {
+          if (!shouldExit && position.type === 'LONG' && nextPrice <= position.stopLoss) {
             shouldExit = true;
             exitReason = '止损';
-          } else if (position.type === 'SHORT' && nextPrice >= position.stopLoss) {
+          } else if (!shouldExit && position.type === 'SHORT' && nextPrice >= position.stopLoss) {
             shouldExit = true;
             exitReason = '止损';
           }
           // 检查止盈
-          else if (position.type === 'LONG' && nextPrice >= position.takeProfit) {
+          else if (!shouldExit && position.type === 'LONG' && nextPrice >= position.takeProfit) {
             shouldExit = true;
             exitReason = '止盈';
-          } else if (position.type === 'SHORT' && nextPrice <= position.takeProfit) {
+          } else if (!shouldExit && position.type === 'SHORT' && nextPrice <= position.takeProfit) {
             shouldExit = true;
             exitReason = '止盈';
           }
@@ -620,6 +683,8 @@ class BacktestStrategyEngineV3 {
 
             // 更新策略实例的回撤状态
             this.v3Strategy.updateDrawdownStatus(trade.pnl);
+
+            console.log(`[回测引擎V3] ${symbol} V3-${mode}: 平仓 ${exitReason}, PnL=${trade.pnl.toFixed(2)}, 持仓时长=${holdingTime.toFixed(1)}分钟`);
 
             position = null;
             lastSignal = null;
