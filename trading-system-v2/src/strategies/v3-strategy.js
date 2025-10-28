@@ -22,7 +22,7 @@ class V3Strategy {
     // 参数加载器
     this.paramLoader = null;
     this.params = {};
-    
+
     // ✅ 添加模式属性，默认为 BALANCED
     this.mode = 'BALANCED';
 
@@ -47,7 +47,7 @@ class V3Strategy {
     try {
       // 更新模式
       this.mode = mode;
-      
+
       // 获取数据库连接实例
       const dbConnection = typeof DatabaseConnection.getInstance === 'function'
         ? DatabaseConnection.getInstance()
@@ -64,7 +64,7 @@ class V3Strategy {
       this.params = this.getDefaultParameters();
     }
   }
-  
+
   /**
    * ✅ 动态切换模式
    * @param {string} mode - 新模式 (AGGRESSIVE/BALANCED/CONSERVATIVE)
@@ -74,7 +74,7 @@ class V3Strategy {
       logger.error(`[V3策略] 无效的模式: ${mode}`);
       return;
     }
-    
+
     if (this.mode !== mode) {
       logger.info(`[V3策略] 切换模式: ${this.mode} -> ${mode}`);
       this.params = {}; // 清空参数，强制重新加载
@@ -990,23 +990,27 @@ class V3Strategy {
       return await this.determineRangeEntrySignal(currentPrice, rangeBoundary, klines15m, bbw);
     }
 
-    // 趋势市逻辑（原有逻辑）
-    const isTrending = adx > 15;
-    const isVolatile = bbw > 0.02;
-    const isAboveVWAP = currentPrice > vwap;
-    const isBelowVWAP = currentPrice < vwap;
+    // ✅ 优化后：趋势市逻辑（放宽入场条件，优化入场时机）
+    const isTrending = adx > 10;  // 从15降低到10，放宽趋势要求
+    const isVolatile = bbw > 0.01;  // 从0.02降低到0.01，放宽波动要求
+    const deltaThreshold = 0.05;  // 从0.1降低到0.05，放宽Delta要求
 
-    // 买入信号
-    if (isTrending && isVolatile && isAboveVWAP && delta > 0.1) {
-      return { signal: 'BUY', stopLoss: 0, takeProfit: 0, reason: 'Trend long' };
+    // 优化入场时机：在价格回撤到VWAP附近时入场，而非追高
+    const priceDeviation = (currentPrice - vwap) / vwap;
+    const isGoodLongEntry = Math.abs(priceDeviation) < 0.015 && priceDeviation > -0.02;  // 价格接近VWAP但略高于VWAP
+    const isGoodShortEntry = Math.abs(priceDeviation) < 0.015 && priceDeviation < 0.02;   // 价格接近VWAP但略低于VWAP
+
+    // 买入信号（优化后）
+    if (isTrending && isVolatile && isGoodLongEntry && delta > deltaThreshold) {
+      return { signal: 'BUY', stopLoss: 0, takeProfit: 0, reason: 'Trend long (optimized entry)' };
     }
 
-    // 卖出信号
-    if (isTrending && isVolatile && isBelowVWAP && delta < -0.1) {
-      return { signal: 'SELL', stopLoss: 0, takeProfit: 0, reason: 'Trend short' };
+    // 卖出信号（优化后）
+    if (isTrending && isVolatile && isGoodShortEntry && delta < -deltaThreshold) {
+      return { signal: 'SELL', stopLoss: 0, takeProfit: 0, reason: 'Trend short (optimized entry)' };
     }
 
-    return { signal: 'HOLD', stopLoss: 0, takeProfit: 0, reason: 'No trend signal' };
+    return { signal: 'HOLD', stopLoss: 0, takeProfit: 0, reason: 'No optimized signal' };
   }
 
   /**
