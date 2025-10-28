@@ -532,6 +532,16 @@ class BacktestStrategyEngineV3 {
             this.v3Strategy.paramLoader.clearCache();
           }
 
+          // 🔍 调试：输出关键参数值
+          const keyParams = ['trend4HStrongThreshold', 'entry15MStrongThreshold', 'stopLossATRMultiplier', 'takeProfitRatio'];
+          console.log(`[回测引擎V3] ${symbol} V3-${mode}: 接收到的参数值:`);
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 接收到的参数值:`);
+          keyParams.forEach(param => {
+            const value = params.trend_thresholds?.[param] || params.entry_thresholds?.[param] || params.risk_management?.[param] || 'undefined';
+            console.log(`  ${param}: ${value}`);
+            logger.info(`  ${param}: ${value}`);
+          });
+
           // 直接使用params（已经是嵌套结构了）
           this.v3Strategy.params = params;
 
