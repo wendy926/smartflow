@@ -775,17 +775,31 @@ class V3Strategy {
 
       logger.info(`${symbol} V3风险管理: 最大回撤限制=${(maxDrawdownLimit * 100).toFixed(1)}%, 单笔最大损失=${(maxSingleLoss * 100).toFixed(1)}%, 风险百分比=${(riskPct * 100).toFixed(1)}%, 当前回撤=${(currentDrawdown * 100).toFixed(2)}%`);
 
-      // 使用持仓时长管理器计算止损止盈
+      // ✅ 从数据库读取止损/止盈参数，替代hardcoded值
+      const stopLossATRMultiplier = this.params.risk_management?.stopLossATRMultiplier || this.getThreshold('risk_management', 'stopLossATRMultiplier', 1.0);
+      const takeProfitRatio = this.params.risk_management?.takeProfitRatio || this.getThreshold('risk_management', 'takeProfitRatio', 3.0);
+      
+      logger.info(`${symbol} V3止损止盈参数: stopLossATRMultiplier=${stopLossATRMultiplier}, takeProfitRatio=${takeProfitRatio}`);
+      
+      // 直接计算止损/止盈（使用数据库参数）
+      let stopLoss, takeProfit;
+      const isLong = signal === 'BUY';
+      
+      if (isLong) {
+        stopLoss = entryPrice - (atr * stopLossATRMultiplier);
+        takeProfit = entryPrice + (atr * stopLossATRMultiplier * takeProfitRatio);
+      } else {
+        stopLoss = entryPrice + (atr * stopLossATRMultiplier);
+        takeProfit = entryPrice - (atr * stopLossATRMultiplier * takeProfitRatio);
+      }
+      
+      logger.info(`${symbol} V3交易参数: 入场=${entryPrice.toFixed(4)}, 止损=${stopLoss.toFixed(4)}, 止盈=${takeProfit.toFixed(4)}, 盈亏比=${takeProfitRatio}:1`);
+      
+      // 获取时间止损配置
       const PositionDurationManager = require('../utils/position-duration-manager');
-      const stopLossConfig = PositionDurationManager.calculateDurationBasedStopLoss(
-        symbol, signal, entryPrice, atr, marketType, confidence
-      );
-
-      const stopLoss = stopLossConfig.stopLoss;
-      const takeProfit = stopLossConfig.takeProfit;
+      const positionConfig = PositionDurationManager.getPositionConfig(symbol, marketType);
 
       // 风险管理检查
-      const isLong = signal === 'BUY';
       const stopLossDistance = isLong
         ? (entryPrice - stopLoss) / entryPrice  // 多头
         : (stopLoss - entryPrice) / entryPrice; // 空头
@@ -815,7 +829,7 @@ class V3Strategy {
       // 保证金Z：M/(Y*X%) 数值向上取整
       const margin = stopLossDistanceAbs > 0 ? Math.ceil(maxLossAmount / (leverage * stopLossDistanceAbs)) : 0;
 
-      logger.info(`${symbol} 交易参数计算: 市场类型=${marketType}, 置信度=${confidence}, 最大持仓=${stopLossConfig.maxDurationHours}小时, 时间止损=${stopLossConfig.timeStopMinutes}分钟`);
+      logger.info(`${symbol} 交易参数计算: 市场类型=${marketType}, 置信度=${confidence}, 最大持仓=${positionConfig.maxDurationHours}小时, 时间止损=${positionConfig.timeStopMinutes}分钟`);
 
       return {
         entryPrice: parseFloat(entryPrice.toFixed(4)),
@@ -823,8 +837,8 @@ class V3Strategy {
         takeProfit: parseFloat(takeProfit.toFixed(4)),
         leverage: leverage,
         margin: margin,
-        timeStopMinutes: stopLossConfig.timeStopMinutes,
-        maxDurationHours: stopLossConfig.maxDurationHours,
+        timeStopMinutes: positionConfig.timeStopMinutes,
+        maxDurationHours: positionConfig.maxDurationHours,
         marketType: marketType,
         confidence: confidence
       };
@@ -1529,7 +1543,7 @@ class V3Strategy {
         entry: entryScore >= 1   // 从3降低到1
       };
       const satisfiedCount = [conditions.trend, conditions.factor, conditions.entry].filter(Boolean).length;
-      
+
       if (satisfiedCount >= 2) {  // 至少满足2个条件
         logger.info(`✅ 强信号触发(新逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=2, 因子=${factorScore}>=1, 15M=${entryScore}>=1, 满足${satisfiedCount}个条件`);
         return trendDirection === 'UP' ? 'BUY' : 'SELL';
