@@ -312,8 +312,15 @@ class SmartFlowApp {
       return;
     }
 
-    // 特殊处理：如果已经访问了 strategy-params 页面，不再处理切换
+    // ✅ 特殊处理：如果是 /crypto/strategy-params，跳转到独立的策略回测页面
     if (window.location.pathname === '/crypto/strategy-params' || window.location.pathname === '/strategy-params') {
+      window.location.href = '/crypto/strategy-params';
+      return;
+    }
+
+    // ✅ 特殊处理：如果点击的是 strategy-params 标签，直接跳转到独立页面
+    if (tabName === 'strategy-params') {
+      window.location.href = '/crypto/strategy-params';
       return;
     }
 
