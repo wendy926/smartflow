@@ -653,15 +653,18 @@ class ICTStrategy {
       return 0;
     }
 
-    // 根据@ict-optimize.md建议：使用4H ATR × 2.5作为止损距离
+    // ✅ 从数据库配置读取 ATR 倍数（不再硬编码）
+    const atrMultiplier = this.params.risk_management?.stopLossATRMultiplier || 2.5;
+    
     const atr4H = this.calculateATR(klines4H, 14);
     logger.info(`ICT结构止损: ATR计算结果长度=${atr4H ? atr4H.length : 'undefined'}`);
 
     const currentATR = atr4H && atr4H.length > 0 ? atr4H[atr4H.length - 1] : 0;
     logger.info(`ICT结构止损: 当前ATR=${currentATR}, 是否为null=${currentATR === null}, 是否为undefined=${currentATR === undefined}`);
 
-    const stopDistance = currentATR * 2.5; // 4H ATR × 2.5
-    logger.info(`ICT结构止损: 止损距离=${stopDistance}`);
+    // ✅ 使用数据库配置的 ATR 倍数
+    const stopDistance = currentATR * atrMultiplier;
+    logger.info(`ICT结构止损: ATR倍数=${atrMultiplier}, 止损距离=${stopDistance}`);
 
     if (trend === 'UP') {
       // 上升趋势：入场价 - 4H ATR × 2.5
