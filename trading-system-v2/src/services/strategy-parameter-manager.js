@@ -33,12 +33,12 @@ class StrategyParameterManager {
         }
       }
 
-      // 构建查询 - 参数调优使用 is_active = 1 的活跃参数
+      // 构建查询 - 优先使用活跃参数，如果没有则使用该模式的所有参数
       let query = `
         SELECT param_group, param_name, param_value, param_type, category, 
                description, unit, min_value, max_value
         FROM strategy_params
-        WHERE strategy_name = ? AND strategy_mode = ? AND is_active = 1
+        WHERE strategy_name = ? AND strategy_mode = ?
       `;
       const params = [strategyName, strategyMode];
 
@@ -50,6 +50,11 @@ class StrategyParameterManager {
       query += ' ORDER BY param_group, param_name';
 
       const [rows] = await this.database.pool.query(query, params);
+      
+      // 如果查询结果为空，记录警告
+      if (rows.length === 0) {
+        logger.warn(`[参数管理器] 未找到${strategyName} ${strategyMode}模式的参数`);
+      }
 
       // 转换为对象结构
       const result = {};

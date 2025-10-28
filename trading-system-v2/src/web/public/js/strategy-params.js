@@ -432,46 +432,31 @@ class StrategyParamsManager {
     container.innerHTML = html;
   }
 
-  async switchMode(strategy, mode) {
-    console.log(`[策略参数] 切换到${strategy}策略的${mode}模式`);
+  switchMode(strategy, mode) {
+    console.log(`[策略参数] 切换到${strategy}策略的${mode}模式（仅UI切换）`);
 
-    try {
-      // ✅ 调用API切换实盘策略模式
-      const response = await this.fetchWithAuth(`/api/v1/strategy-params/${strategy}/set-mode`, {
-        method: 'POST',
-        body: JSON.stringify({ mode })
-      });
+    // ✅ 仅更新UI，不调用API切换实盘策略模式
+    // 只有点击"应用当前配置到运行中的交易"才会真正切换实盘模式
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '模式切换失败');
-      }
-
-      const result = await response.json();
-      console.log(`[策略参数] ${strategy}策略已切换到${mode}模式:`, result);
-
-      // 显示成功提示
-      this.showNotification(`${strategy}策略已切换到${mode}模式`, 'success');
-
-      // 更新标签页状态
-      document.querySelectorAll(`.mode-tab[data-strategy="${strategy}"]`).forEach(tab => {
-        tab.classList.remove('active');
-      });
-      document.querySelector(`.mode-tab[data-strategy="${strategy}"][data-mode="${mode}"]`).classList.add('active');
-
-      // 更新内容显示
-      document.querySelectorAll(`.mode-content[data-strategy="${strategy}"]`).forEach(content => {
-        content.classList.remove('active');
-      });
-      document.querySelector(`.mode-content[data-strategy="${strategy}"][data-mode="${mode}"]`).classList.add('active');
-
-      // 重新加载当前模式的参数
-      await this.loadStrategyData(strategy, mode);
-
-    } catch (error) {
-      console.error(`[策略参数] 模式切换失败:`, error);
-      this.showNotification(`模式切换失败: ${error.message}`, 'error');
+    // 更新标签页状态
+    document.querySelectorAll(`.mode-tab[data-strategy="${strategy}"]`).forEach(tab => {
+      tab.classList.remove('active');
+    });
+    const activeTab = document.querySelector(`.mode-tab[data-strategy="${strategy}"][data-mode="${mode}"]`);
+    if (activeTab) {
+      activeTab.classList.add('active');
     }
+
+    // 更新内容显示
+    document.querySelectorAll(`.mode-content[data-strategy="${strategy}"]`).forEach(content => {
+      content.classList.remove('active');
+    });
+    const activeContent = document.querySelector(`.mode-content[data-strategy="${strategy}"][data-mode="${mode}"]`);
+    if (activeContent) {
+      activeContent.classList.add('active');
+    }
+
+    console.log(`[策略参数] ${strategy}策略UI已切换到${mode}模式（实盘模式未改变）`);
   }
 
   /**
