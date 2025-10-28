@@ -532,17 +532,11 @@ class BacktestStrategyEngineV3 {
             this.v3Strategy.paramLoader.clearCache();
           }
 
-          // ✅ 将扁平参数转换为嵌套结构（与V3策略期望的格式一致）
-          const nestedParams = this.convertToNestedParams(params);
-          
-          // 将参数合并到this.v3Strategy.params（覆盖数据库参数）
-          this.v3Strategy.params = {
-            ...this.v3Strategy.params,
-            ...nestedParams
-          };
+          // 直接使用params（已经是嵌套结构了）
+          this.v3Strategy.params = params;
 
-          console.log(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(nestedParams));
-          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(nestedParams));
+          console.log(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
         }
 
         // 验证关键参数是否正确应用（仅在debug模式下）
