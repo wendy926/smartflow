@@ -62,20 +62,88 @@ class StrategyWorker {
     }
   }
 
+  /**
+   * ✅ 动态切换策略模式
+   * @param {string} strategyName - 策略名称 ('ICT' 或 'V3')
+   * @param {string} mode - 新模式 (AGGRESSIVE/BALANCED/CONSERVATIVE)
+   */
+  async setStrategyMode(strategyName, mode) {
+    if (!['AGGRESSIVE', 'BALANCED', 'CONSERVATIVE'].includes(mode)) {
+      logger.error(`[策略Worker] 无效的模式: ${mode}`);
+      return { success: false, message: `无效的模式: ${mode}` };
+    }
+
+    try {
+      if (strategyName === 'ICT') {
+        await this.ictStrategy.setMode(mode);
+        logger.info(`[策略Worker] ICT策略已切换至 ${mode} 模式`);
+      } else if (strategyName === 'V3') {
+        await this.v3Strategy.setMode(mode);
+        logger.info(`[策略Worker] V3策略已切换至 ${mode} 模式`);
+      } else {
+        return { success: false, message: `未知的策略: ${strategyName}` };
+      }
+      
+      return { success: true, message: `${strategyName} 策略已切换至 ${mode} 模式` };
+    } catch (error) {
+      logger.error(`[策略Worker] 切换模式失败: ${error.message}`, error);
+      return { success: false, message: error.message };
+    }
+  }
+  
+  /**
+   * ✅ 检查并加载模式切换信号
+   * 从文件系统读取模式切换请求
+   */
+  async checkModeChangeSignal() {
+    const fs = require('fs');
+    const path = require('path');
+    const signalDir = path.join(__dirname, '../../.mode-signals');
+    const ictSignalFile = path.join(signalDir, 'ict-mode.txt');
+    const v3SignalFile = path.join(signalDir, 'v3-mode.txt');
+    
+    try {
+      // 检查 ICT 模式信号
+      if (fs.existsSync(ictSignalFile)) {
+        const mode = fs.readFileSync(ictSignalFile, 'utf8').trim().toUpperCase();
+        if (['AGGRESSIVE', 'BALANCED', 'CONSERVATIVE'].includes(mode) && this.ictStrategy.mode !== mode) {
+          await this.ictStrategy.setMode(mode);
+          fs.unlinkSync(ictSignalFile); // 删除信号文件
+          logger.info(`[策略Worker] ICT模式已切换至: ${mode}`);
+        }
+      }
+      
+      // 检查 V3 模式信号
+      if (fs.existsSync(v3SignalFile)) {
+        const mode = fs.readFileSync(v3SignalFile, 'utf8').trim().toUpperCase();
+        if (['AGGRESSIVE', 'BALANCED', 'CONSERVATIVE'].includes(mode) && this.v3Strategy.mode !== mode) {
+          await this.v3Strategy.setMode(mode);
+          fs.unlinkSync(v3SignalFile); // 删除信号文件
+          logger.info(`[策略Worker] V3模式已切换至: ${mode}`);
+        }
+      }
+    } catch (error) {
+      logger.error(`[策略Worker] 检查模式切换信号失败: ${error.message}`);
+    }
+  }
+
   async executeStrategies() {
     const startTime = Date.now();
     logger.info('开始执行策略分析和交易检查');
 
+    // ✅ 检查模式切换信号
+    await this.checkModeChangeSignal();
+
     // ✅ 修复1：确保参数已加载完成
     if (!this.ictStrategy.params || Object.keys(this.ictStrategy.params).length === 0) {
       logger.info('[策略Worker] ICT参数未加载，开始加载...');
-      await this.ictStrategy.initializeParameters();
+      await this.ictStrategy.initializeParameters(this.ictStrategy.mode);
       logger.info('[策略Worker] ICT参数加载完成，参数分组数:', Object.keys(this.ictStrategy.params).length);
     }
-    
+
     if (!this.v3Strategy.params || Object.keys(this.v3Strategy.params).length === 0) {
       logger.info('[策略Worker] V3参数未加载，开始加载...');
-      await this.v3Strategy.initializeParameters();
+      await this.v3Strategy.initializeParameters(this.v3Strategy.mode);
       logger.info('[策略Worker] V3参数加载完成，参数分组数:', Object.keys(this.v3Strategy.params).length);
     }
 
@@ -209,13 +277,13 @@ class StrategyWorker {
 
       // 计算止损止盈 - 优先使用策略计算的参数
       let stopLoss, takeProfit, leverage, margin_used, quantity;
-      
+
       // 调试日志：检查result结构
       logger.info(`${strategy}策略结果检查: tradeParams存在=${!!result.tradeParams}, signal=${result.signal}`);
       if (result.tradeParams) {
         logger.info(`${strategy}策略tradeParams详情: entry=${result.tradeParams.entry}, stopLoss=${result.tradeParams.stopLoss}, takeProfit=${result.tradeParams.takeProfit}`);
       }
-      
+
       if (result.tradeParams && result.tradeParams.entry > 0) {
         // 使用策略计算的精确参数
         stopLoss = result.tradeParams.stopLoss || 0;

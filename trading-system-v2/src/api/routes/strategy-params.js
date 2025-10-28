@@ -501,5 +501,56 @@ router.post('/:strategyName/:strategyMode/apply-to-running-trades', async (req, 
   }
 });
 
+/**
+ * ✅ 动态切换策略模式
+ * POST /api/v1/strategy-params/:strategyName/set-mode
+ * Body: { mode: 'AGGRESSIVE' | 'BALANCED' | 'CONSERVATIVE' }
+ */
+router.post('/:strategyName/set-mode', async (req, res) => {
+  try {
+    const { strategyName } = req.params;
+    const { mode } = req.body;
+    const fs = require('fs');
+    const path = require('path');
+
+    if (!['AGGRESSIVE', 'BALANCED', 'CONSERVATIVE'].includes(mode)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid mode. Must be AGGRESSIVE, BALANCED, or CONSERVATIVE'
+      });
+    }
+
+    // 创建信号目录
+    const signalDir = path.join(__dirname, '../../.mode-signals');
+    if (!fs.existsSync(signalDir)) {
+      fs.mkdirSync(signalDir, { recursive: true });
+    }
+
+    // 创建模式切换信号文件
+    const signalFile = path.join(signalDir, `${strategyName.toLowerCase()}-mode.txt`);
+    fs.writeFileSync(signalFile, mode);
+
+    console.log(`[模式切换] 已创建信号文件: ${signalFile}, 模式: ${mode}`);
+
+    // ✅ 可选：如果有 strategy worker 实例，立即切换
+    const strategyWorker = req.app.get('strategyWorker');
+    if (strategyWorker) {
+      await strategyWorker.setStrategyMode(strategyName.toUpperCase(), mode);
+    }
+
+    res.json({
+      success: true,
+      message: `${strategyName} 策略将在下次执行时切换至 ${mode} 模式`
+    });
+
+  } catch (error) {
+    console.error('[切换模式] 错误:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 

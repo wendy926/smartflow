@@ -21,6 +21,9 @@ class ICTStrategy {
     // 参数加载器
     this.paramLoader = null;
     this.params = {};
+    
+    // ✅ 添加模式属性，默认为 BALANCED
+    this.mode = 'BALANCED';
 
     // 回撤跟踪属性
     this.peakEquity = 10000; // 峰值权益
@@ -28,15 +31,19 @@ class ICTStrategy {
     this.maxDrawdown = 0; // 最大回撤
     this.tradingPaused = false; // 交易暂停标志
 
-    // 异步初始化参数
-    this.initializeParameters();
+    // 异步初始化参数（默认为BALANCED模式）
+    this.initializeParameters('BALANCED');
   }
 
   /**
    * 初始化策略参数（从数据库加载）
+   * @param {string} mode - 参数模式 (AGGRESSIVE/BALANCED/CONSERVATIVE)
    */
-  async initializeParameters() {
+  async initializeParameters(mode = 'BALANCED') {
     try {
+      // 更新模式
+      this.mode = mode;
+      
       // 获取数据库连接实例
       const dbConnection = typeof DatabaseConnection.getInstance === 'function'
         ? DatabaseConnection.getInstance()
@@ -44,22 +51,34 @@ class ICTStrategy {
 
       this.paramLoader = new StrategyParameterLoader(dbConnection);
 
-      // 加载BALANCED模式参数
-      logger.info('[ICT策略] 开始加载参数...');
-      this.params = await this.paramLoader.loadParameters('ICT', 'BALANCED');
-      logger.info('[ICT策略] 参数加载结果:', {
-        paramGroups: Object.keys(this.params).length,
-        params: this.params
-      });
-
-      logger.info('[ICT策略] 参数加载完成', {
+      // ✅ 加载指定模式的参数
+      logger.info(`[ICT策略] 开始加载参数 (模式: ${this.mode})...`);
+      this.params = await this.paramLoader.loadParameters('ICT', this.mode);
+      logger.info(`[ICT策略] 参数加载完成 (模式: ${this.mode})`, {
         paramGroups: Object.keys(this.params).length,
         adxEnabled: this.params.filters?.adxEnabled,
         stopLossATR: this.params.risk_management?.stopLossATRMultiplier
       });
     } catch (error) {
-      logger.error('[ICT策略] 参数加载失败，使用默认值', error);
+      logger.error(`[ICT策略] 参数加载失败 (模式: ${this.mode})，使用默认值`, error);
       this.params = this.getDefaultParameters();
+    }
+  }
+  
+  /**
+   * ✅ 动态切换模式
+   * @param {string} mode - 新模式 (AGGRESSIVE/BALANCED/CONSERVATIVE)
+   */
+  async setMode(mode) {
+    if (!['AGGRESSIVE', 'BALANCED', 'CONSERVATIVE'].includes(mode)) {
+      logger.error(`[ICT策略] 无效的模式: ${mode}`);
+      return;
+    }
+    
+    if (this.mode !== mode) {
+      logger.info(`[ICT策略] 切换模式: ${this.mode} -> ${mode}`);
+      this.params = {}; // 清空参数，强制重新加载
+      await this.initializeParameters(mode);
     }
   }
 
@@ -91,19 +110,19 @@ class ICTStrategy {
    */
   updateDrawdownStatus(pnl) {
     this.currentEquity += pnl;
-    
+
     // 更新峰值权益
     if (this.currentEquity > this.peakEquity) {
       this.peakEquity = this.currentEquity;
     }
-    
+
     // 计算当前回撤
     const currentDrawdown = (this.peakEquity - this.currentEquity) / this.peakEquity;
     if (currentDrawdown > this.maxDrawdown) {
       this.maxDrawdown = currentDrawdown;
     }
-    
-    logger.info(`ICT策略回撤更新: 当前权益=${this.currentEquity.toFixed(2)}, 峰值权益=${this.peakEquity.toFixed(2)}, 当前回撤=${(currentDrawdown*100).toFixed(2)}%, 最大回撤=${(this.maxDrawdown*100).toFixed(2)}%`);
+
+    logger.info(`ICT策略回撤更新: 当前权益=${this.currentEquity.toFixed(2)}, 峰值权益=${this.peakEquity.toFixed(2)}, 当前回撤=${(currentDrawdown * 100).toFixed(2)}%, 最大回撤=${(this.maxDrawdown * 100).toFixed(2)}%`);
   }
 
   /**
@@ -619,7 +638,7 @@ class ICTStrategy {
   /**
    * 计算结构化止损价格（优化版）
    * 根据ict-plus.md：使用扫荡点位或结构低点/高点，不使用ATR扩大
-   * 
+   *
    * @param {string} trend - 趋势方向
    * @param {Object} orderBlock - 订单块
    * @param {Array} klines4H - 4H K线数据
@@ -628,7 +647,7 @@ class ICTStrategy {
    */
   calculateStructuralStopLoss(trend, orderBlock, klines4H, sweepResult) {
     logger.info(`ICT结构止损计算: 趋势=${trend}, 4H数据长度=${klines4H ? klines4H.length : 'undefined'}`);
-    
+
     if (!klines4H || klines4H.length < 6) {
       logger.warn(`ICT结构止损: 4H数据不足，长度=${klines4H ? klines4H.length : 'undefined'}，返回0`);
       return 0;
@@ -637,10 +656,10 @@ class ICTStrategy {
     // 根据@ict-optimize.md建议：使用4H ATR × 2.5作为止损距离
     const atr4H = this.calculateATR(klines4H, 14);
     logger.info(`ICT结构止损: ATR计算结果长度=${atr4H ? atr4H.length : 'undefined'}`);
-    
+
     const currentATR = atr4H && atr4H.length > 0 ? atr4H[atr4H.length - 1] : 0;
     logger.info(`ICT结构止损: 当前ATR=${currentATR}, 是否为null=${currentATR === null}, 是否为undefined=${currentATR === undefined}`);
-    
+
     const stopDistance = currentATR * 2.5; // 4H ATR × 2.5
     logger.info(`ICT结构止损: 止损距离=${stopDistance}`);
 
@@ -763,29 +782,29 @@ class ICTStrategy {
 
       const currentPrice = parseFloat(klines15m[klines15m.length - 1][4]); // 收盘价
       const equity = 10000; // 默认资金总额
-      
+
       // 风险管理参数 - 从数据库配置获取
       const maxDrawdownLimit = this.getThreshold('risk', 'maxDrawdownLimit', 0.15); // 最大回撤限制15%
       const maxSingleLoss = this.getThreshold('risk', 'maxSingleLoss', 0.02); // 单笔最大损失2%
-      
+
       // ✅ 修复4：从数据库读取风险百分比，不再硬编码
       const riskPct = this.params.position?.riskPercent || this.getThreshold('position', 'riskPercent', 0.01); // 风险百分比
-      
+
       // 回撤检查 - 如果超过最大回撤限制，暂停交易
       const currentDrawdown = (this.peakEquity - this.currentEquity) / this.peakEquity;
       if (currentDrawdown > maxDrawdownLimit) {
-        logger.warn(`${symbol} ICT策略: 当前回撤${(currentDrawdown*100).toFixed(2)}%超过限制${(maxDrawdownLimit*100).toFixed(1)}%，暂停交易`);
+        logger.warn(`${symbol} ICT策略: 当前回撤${(currentDrawdown * 100).toFixed(2)}%超过限制${(maxDrawdownLimit * 100).toFixed(1)}%，暂停交易`);
         this.tradingPaused = true;
         return { entry: 0, stopLoss: 0, takeProfit: 0, leverage: 1, risk: 0 };
       }
-      
+
       // 如果交易被暂停，检查是否可以恢复
       if (this.tradingPaused && currentDrawdown < maxDrawdownLimit * 0.5) {
-        logger.info(`${symbol} ICT策略: 回撤降低到${(currentDrawdown*100).toFixed(2)}%，恢复交易`);
+        logger.info(`${symbol} ICT策略: 回撤降低到${(currentDrawdown * 100).toFixed(2)}%，恢复交易`);
         this.tradingPaused = false;
       }
-      
-      logger.info(`${symbol} ICT风险管理: 最大回撤限制=${(maxDrawdownLimit*100).toFixed(1)}%, 单笔最大损失=${(maxSingleLoss*100).toFixed(1)}%, 风险百分比=${(riskPct*100).toFixed(1)}%, 当前回撤=${(currentDrawdown*100).toFixed(2)}%`);
+
+      logger.info(`${symbol} ICT风险管理: 最大回撤限制=${(maxDrawdownLimit * 100).toFixed(1)}%, 单笔最大损失=${(maxSingleLoss * 100).toFixed(1)}%, 风险百分比=${(riskPct * 100).toFixed(1)}%, 当前回撤=${(currentDrawdown * 100).toFixed(2)}%`);
 
       // 计算入场价格（当前价格）
       const entry = currentPrice;
@@ -812,7 +831,7 @@ class ICTStrategy {
 
       // 计算ICT结构止损
       logger.info(`${symbol} ICT交易参数计算开始: 趋势=${trend}, 入场价=${entry}, 4H数据长度=${klines4H ? klines4H.length : 'undefined'}`);
-      
+
       const structuralStopLoss = this.calculateStructuralStopLoss(
         trend,
         orderBlock,
@@ -824,15 +843,15 @@ class ICTStrategy {
 
       // ICT策略使用结构止损
       let stopLoss = structuralStopLoss;
-      
+
       // 风险管理检查
       let stopDistance = Math.abs(entry - stopLoss);
       let stopDistancePct = stopDistance / entry;
-      
+
       // 检查止损距离是否过大（超过单笔最大损失限制）
       if (stopDistancePct > maxSingleLoss) {
-        logger.warn(`${symbol} ICT策略: 原始止损距离过大${(stopDistancePct*100).toFixed(2)}%，超过单笔最大损失限制${(maxSingleLoss*100).toFixed(1)}%，调整止损`);
-        
+        logger.warn(`${symbol} ICT策略: 原始止损距离过大${(stopDistancePct * 100).toFixed(2)}%，超过单笔最大损失限制${(maxSingleLoss * 100).toFixed(1)}%，调整止损`);
+
         // 调整止损价格以符合风险限制
         const adjustedStopDistance = entry * maxSingleLoss;
         if (trend === 'UP') {
@@ -840,13 +859,13 @@ class ICTStrategy {
         } else if (trend === 'DOWN') {
           stopLoss = entry + adjustedStopDistance;
         }
-        
+
         stopDistance = adjustedStopDistance;
         stopDistancePct = maxSingleLoss;
-        
-        logger.info(`${symbol} ICT策略: 止损已调整至风险限制内 ${(stopDistancePct*100).toFixed(2)}%`);
+
+        logger.info(`${symbol} ICT策略: 止损已调整至风险限制内 ${(stopDistancePct * 100).toFixed(2)}%`);
       }
-      
+
       // 计算最大允许仓位大小
       const maxLossAmount = equity * maxSingleLoss;
       const maxPositionSize = maxLossAmount / stopDistance;
@@ -859,11 +878,11 @@ class ICTStrategy {
         entryPrice: entry,
         stopPrice: stopLoss
       });
-      
+
       // 限制仓位大小
       const finalQty = Math.min(sizing.qty, maxPositionSize);
-      
-      logger.info(`${symbol} ICT风险控制: 止损距离=${(stopDistancePct*100).toFixed(2)}%, 最大损失=${maxLossAmount.toFixed(2)}, 调整后风险=${(adjustedRiskPct*100).toFixed(2)}%, 最终仓位=${finalQty.toFixed(4)}`);
+
+      logger.info(`${symbol} ICT风险控制: 止损距离=${(stopDistancePct * 100).toFixed(2)}%, 最大损失=${maxLossAmount.toFixed(2)}, 调整后风险=${(adjustedRiskPct * 100).toFixed(2)}%, 最终仓位=${finalQty.toFixed(4)}`);
 
       // ✅ 构建交易计划（分层止盈）- 使用风险控制后的仓位大小
       const plan = ICTPositionManager.buildTradePlan({
@@ -921,9 +940,9 @@ class ICTStrategy {
         tp1Quantity: parseFloat((sizing.qty * 0.5).toFixed(4)), // ✅ 新增：TP1数量
         tp2Quantity: parseFloat((sizing.qty * 0.5).toFixed(4)) // ✅ 新增：TP2数量
       };
-      
+
       logger.info(`${symbol} ICT交易参数返回: entry=${result.entry}, stopLoss=${result.stopLoss}, takeProfit=${result.takeProfit}, leverage=${result.leverage}, margin=${result.margin}`);
-      
+
       return result;
     } catch (error) {
       logger.error(`ICT Trade parameters calculation error for ${symbol}:`, error);
@@ -1758,7 +1777,7 @@ class ICTStrategy {
               // 使用最新的有效订单块
               const latestOrderBlock = validOrderBlocks[validOrderBlocks.length - 1];
               logger.info(`${symbol} ICT策略: 使用有效订单块计算交易参数`);
-              
+
               tradeParams = await this.calculateTradeParameters(
                 symbol,
                 dailyTrend.trend,
@@ -1775,7 +1794,7 @@ class ICTStrategy {
             } else {
               // 没有有效订单块时，使用基本参数计算
               logger.info(`${symbol} ICT策略: 无有效订单块，使用基本参数计算`);
-              
+
               // 创建虚拟订单块用于参数计算
               const currentPrice = parseFloat(klines15m[klines15m.length - 1][4]);
               const virtualOrderBlock = {
@@ -1783,7 +1802,7 @@ class ICTStrategy {
                 low: currentPrice * 0.99,
                 type: dailyTrend.trend === 'UP' ? 'BULLISH' : 'BEARISH'
               };
-              
+
               tradeParams = await this.calculateTradeParameters(
                 symbol,
                 dailyTrend.trend,
@@ -1798,7 +1817,7 @@ class ICTStrategy {
                 atr4H[atr4H.length - 1]
               );
             }
-            
+
             logger.info(`${symbol} ICT策略: 计算完成, tradeParams.entry=${tradeParams.entry}, stopLoss=${tradeParams.stopLoss}, takeProfit=${tradeParams.takeProfit}, leverage=${tradeParams.leverage}, margin=${tradeParams.margin}`);
 
             // 缓存交易参数（5分钟过期）
@@ -1814,7 +1833,7 @@ class ICTStrategy {
           logger.error(`ICT交易参数计算失败: ${error.message}`);
         }
       }
-      
+
       logger.info(`${symbol} ICT策略: 最终tradeParams = ${JSON.stringify(tradeParams)}`);
 
       // 计算置信度等级（MEDIUM或HIGH）

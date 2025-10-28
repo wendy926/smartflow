@@ -22,6 +22,9 @@ class V3Strategy {
     // 参数加载器
     this.paramLoader = null;
     this.params = {};
+    
+    // ✅ 添加模式属性，默认为 BALANCED
+    this.mode = 'BALANCED';
 
     // 回撤跟踪属性
     this.peakEquity = 10000; // 峰值权益
@@ -29,8 +32,8 @@ class V3Strategy {
     this.maxDrawdown = 0; // 最大回撤
     this.tradingPaused = false; // 交易暂停标志
 
-    // 异步初始化参数
-    this.initializeParameters();
+    // 异步初始化参数（默认为BALANCED模式）
+    this.initializeParameters('BALANCED');
 
     // ✅ 移除所有硬编码，改用从数据库/参数加载
     // 所有阈值和权重都通过getThreshold()和getWeight()方法动态获取
@@ -38,23 +41,44 @@ class V3Strategy {
 
   /**
    * 初始化策略参数（从数据库加载）
+   * @param {string} mode - 参数模式 (AGGRESSIVE/BALANCED/CONSERVATIVE)
    */
-  async initializeParameters() {
+  async initializeParameters(mode = 'BALANCED') {
     try {
+      // 更新模式
+      this.mode = mode;
+      
       // 获取数据库连接实例
       const dbConnection = typeof DatabaseConnection.getInstance === 'function'
         ? DatabaseConnection.getInstance()
         : DatabaseConnection;
 
       this.paramLoader = new StrategyParameterLoader(dbConnection);
-      this.params = await this.paramLoader.loadParameters('V3', 'BALANCED');
+      this.params = await this.paramLoader.loadParameters('V3', this.mode);
 
-      logger.info('[V3策略] 参数加载完成', {
+      logger.info(`[V3策略] 参数加载完成 (模式: ${this.mode})`, {
         paramGroups: Object.keys(this.params).length
       });
     } catch (error) {
-      logger.error('[V3策略] 参数加载失败，使用默认值', error);
+      logger.error(`[V3策略] 参数加载失败 (模式: ${this.mode})，使用默认值`, error);
       this.params = this.getDefaultParameters();
+    }
+  }
+  
+  /**
+   * ✅ 动态切换模式
+   * @param {string} mode - 新模式 (AGGRESSIVE/BALANCED/CONSERVATIVE)
+   */
+  async setMode(mode) {
+    if (!['AGGRESSIVE', 'BALANCED', 'CONSERVATIVE'].includes(mode)) {
+      logger.error(`[V3策略] 无效的模式: ${mode}`);
+      return;
+    }
+    
+    if (this.mode !== mode) {
+      logger.info(`[V3策略] 切换模式: ${this.mode} -> ${mode}`);
+      this.params = {}; // 清空参数，强制重新加载
+      await this.initializeParameters(mode);
     }
   }
 
@@ -731,7 +755,7 @@ class V3Strategy {
       // 风险管理参数 - 从数据库配置获取
       const maxDrawdownLimit = this.getThreshold('risk', 'maxDrawdownLimit', 0.15); // 最大回撤限制15%
       const maxSingleLoss = this.getThreshold('risk', 'maxSingleLoss', 0.02); // 单笔最大损失2%
-      
+
       // ✅ 修复4：从数据库读取风险百分比，不再硬编码
       const riskPct = this.params.risk_management?.riskPercent || this.getThreshold('risk_management', 'riskPercent', 0.01); // 风险百分比
 
@@ -1426,7 +1450,7 @@ class V3Strategy {
    * 综合判断信号（优化版：容忍度逻辑 + 补偿机制）
    * 根据strategy-v3-plus.md：允许"强中短一致 + 弱偏差"容忍度
    * 增加补偿机制和动态权重调整解决信号死区问题
-   * 
+   *
    * @param {Object} trend4H - 4H趋势分析结果
    * @param {Object} factors1H - 1H因子分析结果
    * @param {Object} execution15M - 15M执行信号结果
