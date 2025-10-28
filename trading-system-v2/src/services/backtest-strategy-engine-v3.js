@@ -643,13 +643,13 @@ class BacktestStrategyEngineV3 {
           const atr = this.calculateTrueATR(klines, i, 14);
 
           // ✅ 从参数中获取止损倍数（支持多个可能的category）
-          const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 1.5;
+          const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 1.0;
           const stopDistance = atr * atrMultiplier;
           const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
           const risk = stopDistance;
 
           // ✅ 从参数中获取止盈倍数（支持多个可能的category）
-          const takeProfitRatio = params?.risk_management?.takeProfitRatio || params?.position?.takeProfitRatio || 3.5;
+          const takeProfitRatio = params?.risk_management?.takeProfitRatio || params?.position?.takeProfitRatio || 3.0;
           const takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
 
           const actualRR = takeProfitRatio / atrMultiplier;
