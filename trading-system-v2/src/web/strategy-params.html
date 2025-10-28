@@ -4,6 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>策略回测 - SmartFlow</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/public/css/strategy-params.css">
@@ -14,6 +17,21 @@
       padding: 0;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
+    }
+
+    /* 确保 header 导航样式与其他页面一致 */
+    .header {
+      background: white !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .nav-link {
+      color: #495057 !important;
+      text-decoration: none !important;
+    }
+
+    .nav-link:hover {
+      color: #007bff !important;
     }
 
     .container {
