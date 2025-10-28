@@ -196,6 +196,13 @@ class BacktestStrategyEngineV3 {
 
           logger.debug(`[回测引擎V3] ${symbol} ICT-${mode}: 应用参数到params`, Object.keys(params));
         }
+        
+        // ✅ 确保参数已加载完成（与实盘一致）
+        if (!this.ictStrategy.params || Object.keys(this.ictStrategy.params).length === 0) {
+          logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 参数未加载，开始加载...`);
+          await this.ictStrategy.initializeParameters(mode);
+          logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 参数加载完成`);
+        }
 
         // 直接调用ICT策略的execute方法（异步处理）
         const ictResult = await this.ictStrategy.execute(symbol);
@@ -231,30 +238,43 @@ class BacktestStrategyEngineV3 {
           const direction = signal === 'BUY' ? 'LONG' : 'SHORT';
           const entryPrice = currentPrice;
 
-          // ✅ 回测时强制使用参数计算止损止盈，忽略策略返回值
-          // 计算真实的ATR（过去14根K线的平均真实波动幅度）
-          const atr = this.calculateTrueATR(klines, i, 14);
-
-          // ✅ 从参数中获取止损倍数（支持多个可能的category）
-          const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 1.5;
-          const stopDistance = atr * atrMultiplier;
-          const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
-          const risk = stopDistance;
-
-          // ✅ 从参数中获取止盈倍数（支持多个可能的category）
-          const takeProfitRatio = params?.risk_management?.takeProfitRatio || params?.position?.takeProfitRatio || 3.5;
-          const takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
-
-          const actualRR = takeProfitRatio / atrMultiplier;
-          logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 使用参数计算止损止盈, ATR=${atr.toFixed(2)}, ATR倍数=${atrMultiplier}, 止盈倍数=${takeProfitRatio}, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1`);
-
-          // 使用策略内部风险控制计算的仓位大小
-          const positionSize = 1.0; // 策略内部已处理风险控制
-
+          // ✅ 使用实盘的止损止盈计算方法
+          // 获取策略返回的交易参数（包含结构止损和多止盈点）
+          const tradeParams = ictResult.tradeParams || ictResult;
+          
+          // ✅ 使用实盘的结构止损逻辑
+          let stopLoss = tradeParams.stopLoss || entryPrice;
+          let takeProfit = tradeParams.takeProfit || entryPrice;
+          
+          // 如果策略返回了多个止盈点，使用 TP2（第二个止盈点）
+          if (tradeParams.takeProfit2) {
+            takeProfit = tradeParams.takeProfit2;
+          }
+          
+          // ✅ 获取风险百分比（与实盘一致）
+          const riskPct = params?.position?.riskPercent || this.ictStrategy.params?.position?.riskPercent || 0.01;
+          
+          // ✅ 使用实盘的仓位计算逻辑
+          const equity = 10000; // 默认资金
+          const riskAmount = equity * riskPct;
+          const stopDistance = Math.abs(entryPrice - stopLoss);
+          
+          // 计算单位数
+          const units = stopDistance > 0 ? riskAmount / stopDistance : 0;
+          
+          // 计算杠杆（与实盘逻辑一致）
+          const stopLossDistancePct = stopDistance / entryPrice;
+          const calculatedMaxLeverage = Math.floor(1 / (stopLossDistancePct + 0.005));
+          const leverage = Math.min(calculatedMaxLeverage, 24);
+          
+          const positionSize = units;
+          
           if (positionSize < 0.1) {
-            console.log(`[回测引擎V3] ${symbol} ICT-${mode}: 止损距离过大，跳过交易。止损距离=${stopDistance.toFixed(2)}, 最大损失=${maxLossAmount.toFixed(2)}, 计算仓位=${positionSize.toFixed(4)}`);
+            logger.warn(`[回测引擎V3] ${symbol} ICT-${mode}: 止损距离过大，跳过交易。止损距离=${stopDistance.toFixed(2)}, 计算仓位=${positionSize.toFixed(4)}`);
             continue;
           }
+          
+          logger.info(`[回测引擎V3] ${symbol} ICT-${mode}: 使用实盘逻辑计算止损止盈, 入场=${entryPrice.toFixed(2)}, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 杠杆=${leverage}, 仓位=${positionSize.toFixed(4)}`);
 
           position = {
             symbol,
@@ -416,6 +436,14 @@ class BacktestStrategyEngineV3 {
 
           console.log(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
+        }
+        
+        // ✅ 确保参数已加载完成（与实盘一致）
+        if (!this.v3Strategy.params || Object.keys(this.v3Strategy.params).length === 0) {
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数未加载，开始加载...`);
+          await this.v3Strategy.initializeParameters(mode);
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数加载完成`);
+        }
 
           // 验证关键参数是否正确应用
           console.log(`[回测引擎V3] ${symbol} V3-${mode}: 验证参数 - trend4HStrongThreshold=${this.v3Strategy.trend4HStrongThreshold}, entry15MStrongThreshold=${this.v3Strategy.entry15MStrongThreshold}`);
