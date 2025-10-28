@@ -13,8 +13,14 @@ const { getMaxLossAmount } = require('../api/routes/settings');
 
 class StrategyWorker {
   constructor() {
+    // ✅ ICT策略使用BALANCED模式（默认）
+    this.ictStrategy = new ICTStrategy(); // 构造函数中默认加载BALANCED
+    
+    // ✅ V3策略使用AGGRESSIVE模式
     this.v3Strategy = new V3Strategy();
-    this.ictStrategy = new ICTStrategy();
+    this.v3Strategy.mode = 'AGGRESSIVE'; // 设置为激进模式
+    this.v3Strategy.params = {}; // 清空参数，强制重新加载
+    
     this.tradeManager = TradeManager;
     this.binanceAPI = getBinanceAPI();  // 使用单例
     this.isRunning = false;
