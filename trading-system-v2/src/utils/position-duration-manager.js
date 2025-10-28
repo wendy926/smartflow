@@ -10,77 +10,77 @@ const logger = require('./logger');
  * 持仓时长配置（基于strategy-v3.md建议）
  */
 const POSITION_DURATION_CONFIG = {
-  // 主流币（高流动性）- BTC/ETH 24小时时间止损
+  // 主流币（高流动性）- BTC/ETH 48小时时间止损
   MAINSTREAM: {
     name: '主流币',
     trendMarket: {
       maxDurationHours: 168, // 7天
       minDurationHours: 24,  // 1天
-      timeStopMinutes: 1440,   // ✅ 24小时时间止损（1440分钟）
+      timeStopMinutes: 2880,   // ✅ 48小时时间止损（2880分钟）
       profitTarget: 4.5,     // 4.5倍ATR止盈（3:1盈亏比）
       stopLoss: 0.5          // 0.5倍ATR止损（超紧止损）
     },
     rangeMarket: {
       maxDurationHours: 12,  // 12小时
       minDurationHours: 1,   // 1小时
-      timeStopMinutes: 1440,   // ✅ 24小时时间止损（1440分钟）
+      timeStopMinutes: 2880,   // ✅ 48小时时间止损（2880分钟）
       profitTarget: 4.5,     // 4.5倍ATR止盈（3:1盈亏比）
       stopLoss: 0.5          // 0.5倍ATR止损（超紧止损）
     }
   },
 
-  // 高市值强趋势币 - 12小时时间止损
+  // 高市值强趋势币 - 24小时时间止损
   HIGH_CAP_TREND: {
     name: '高市值强趋势币',
     trendMarket: {
       maxDurationHours: 4,   // 4小时（调整为4小时）
       minDurationHours: 1,   // 1小时
-      timeStopMinutes: 720,  // ✅ 12小时时间止损（720分钟）
+      timeStopMinutes: 1440,  // ✅ 24小时时间止损（1440分钟）
       profitTarget: 6.0,     // 6倍ATR止盈（3:1盈亏比）
       stopLoss: 0.7          // 0.7倍ATR止损（超紧止损）
     },
     rangeMarket: {
       maxDurationHours: 4,   // 4小时
       minDurationHours: 1,   // 1小时
-      timeStopMinutes: 720,   // ✅ 12小时时间止损（720分钟）
+      timeStopMinutes: 1440,   // ✅ 24小时时间止损（1440分钟）
       profitTarget: 6.0,     // 6倍ATR止盈（3:1盈亏比）
       stopLoss: 0.7          // 0.7倍ATR止损（超紧止损）
     }
   },
 
-  // 热点币（Trending）- 12小时时间止损
+  // 热点币（Trending）- 24小时时间止损
   HOT: {
     name: '热点币',
     trendMarket: {
       maxDurationHours: 4,   // 4小时（调整为4小时）
       minDurationHours: 1,   // 1小时
-      timeStopMinutes: 720,  // ✅ 12小时时间止损（720分钟）
+      timeStopMinutes: 1440,  // ✅ 24小时时间止损（1440分钟）
       profitTarget: 7.5,     // 7.5倍ATR止盈（3:1盈亏比）
       stopLoss: 0.8          // 0.8倍ATR止损（超紧止损）
     },
     rangeMarket: {
       maxDurationHours: 4,   // 4小时（调整为4小时）
       minDurationHours: 1,   // 1小时
-      timeStopMinutes: 720,   // ✅ 12小时时间止损（720分钟）
+      timeStopMinutes: 1440,   // ✅ 24小时时间止损（1440分钟）
       profitTarget: 7.5,     // 7.5倍ATR止盈（3:1盈亏比）
       stopLoss: 0.8          // 0.8倍ATR止损（超紧止损）
     }
   },
 
-  // 小币（低流动性）- 12小时时间止损
+  // 小币（低流动性）- 24小时时间止损
   SMALL_CAP: {
     name: '小币',
     trendMarket: {
       maxDurationHours: 4,   // 4小时（调整为4小时）
       minDurationHours: 0.5, // 0.5小时
-      timeStopMinutes: 720,   // ✅ 12小时时间止损（720分钟）
+      timeStopMinutes: 1440,   // ✅ 24小时时间止损（1440分钟）
       profitTarget: 4.5,     // 4.5倍ATR止盈（3:1盈亏比）
       stopLoss: 0.5          // 0.5倍ATR止损（超紧止损）
     },
     rangeMarket: {
       maxDurationHours: 4,   // 4小时（调整为4小时）
       minDurationHours: 0.5, // 0.5小时
-      timeStopMinutes: 720,   // ✅ 12小时时间止损（720分钟）
+      timeStopMinutes: 1440,   // ✅ 24小时时间止损（1440分钟）
       profitTarget: 4.5,     // 4.5倍ATR止盈（3:1盈亏比）
       stopLoss: 0.5          // 0.5倍ATR止损（超紧止损）
     }
