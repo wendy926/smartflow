@@ -1538,30 +1538,30 @@ class V3Strategy {
     // 强信号：总分>=30，且满足两个条件
     if (normalizedScore >= 30 && trendDirection !== 'RANGE') {
       const conditions = {
-        trend: trendScore >= 2,  // 从8降低到2
+        trend: trendScore >= trend4HModerateThreshold,  // 使用数据库阈值
         factor: factorScore >= 1, // 从strong降低到1
-        entry: entryScore >= 1   // 从3降低到1
+        entry: entryScore >= entry15MModerateThreshold   // 使用数据库阈值
       };
       const satisfiedCount = [conditions.trend, conditions.factor, conditions.entry].filter(Boolean).length;
 
       if (satisfiedCount >= 2) {  // 至少满足2个条件
-        logger.info(`✅ 强信号触发(新逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=2, 因子=${factorScore}>=1, 15M=${entryScore}>=1, 满足${satisfiedCount}个条件`);
+        logger.info(`✅ 强信号触发(新逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=1, 15M=${entryScore}>=${entry15MModerateThreshold}, 满足${satisfiedCount}个条件`);
         return trendDirection === 'UP' ? 'BUY' : 'SELL';
       }
     }
 
     // 中等信号：总分>=20，且满足任意一个条件
     if (normalizedScore >= 20 && normalizedScore < 30 && trendDirection !== 'RANGE') {
-      if (trendScore >= 2 || factorScore >= 1 || entryScore >= 1) {
-        logger.info(`⚠️ 中等信号触发(新逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}, 15M=${entryScore}`);
+      if (trendScore >= trend4HModerateThreshold || factorScore >= 1 || entryScore >= entry15MModerateThreshold) {
+        logger.info(`⚠️ 中等信号触发(新逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=1, 15M=${entryScore}>=${entry15MModerateThreshold}`);
         return trendDirection === 'UP' ? 'BUY' : 'SELL';
       }
     }
 
     // 弱信号：总分>=15，且有明确趋势方向
     if (normalizedScore >= 15 && normalizedScore < 20 && trendDirection !== 'RANGE') {
-      if (trendScore >= 1) {  // 只要有趋势即可
-        logger.info(`⚠️ 弱信号触发(新逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}, 方向=${trendDirection}`);
+      if (trendScore >= trend4HWeakThreshold) {  // 使用数据库阈值
+        logger.info(`⚠️ 弱信号触发(新逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HWeakThreshold}, 方向=${trendDirection}`);
         return trendDirection === 'UP' ? 'BUY' : 'SELL';
       }
     }
