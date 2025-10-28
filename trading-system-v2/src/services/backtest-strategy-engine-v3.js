@@ -445,7 +445,8 @@ class BacktestStrategyEngineV3 {
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数加载完成`);
         }
 
-          // 验证关键参数是否正确应用
+        // 验证关键参数是否正确应用（仅在debug模式下）
+        if (process.env.DEBUG) {
           console.log(`[回测引擎V3] ${symbol} V3-${mode}: 验证参数 - trend4HStrongThreshold=${this.v3Strategy.trend4HStrongThreshold}, entry15MStrongThreshold=${this.v3Strategy.entry15MStrongThreshold}`);
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 验证参数 - trend4HStrongThreshold=${this.v3Strategy.trend4HStrongThreshold}, entry15MStrongThreshold=${this.v3Strategy.entry15MStrongThreshold}`);
 
@@ -466,9 +467,6 @@ class BacktestStrategyEngineV3 {
             entry15MWeakThreshold: this.v3Strategy.entry15MWeakThreshold
           });
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数应用验证完成`);
-        } else {
-          console.log(`[回测引擎V3] ${symbol} V3-${mode}: 没有参数需要应用，设置模式为${mode}`);
-          logger.warn(`[回测引擎V3] ${symbol} V3-${mode}: 没有参数需要应用，设置模式为${mode}`);
         }
 
         // 强制验证模式设置
