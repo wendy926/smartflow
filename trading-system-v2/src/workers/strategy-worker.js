@@ -66,6 +66,35 @@ class StrategyWorker {
     const startTime = Date.now();
     logger.info('开始执行策略分析和交易检查');
 
+    // ✅ 修复1：确保参数已加载完成
+    if (!this.ictStrategy.params || Object.keys(this.ictStrategy.params).length === 0) {
+      logger.info('[策略Worker] ICT参数未加载，开始加载...');
+      await this.ictStrategy.initializeParameters();
+      logger.info('[策略Worker] ICT参数加载完成，参数分组数:', Object.keys(this.ictStrategy.params).length);
+    }
+    
+    if (!this.v3Strategy.params || Object.keys(this.v3Strategy.params).length === 0) {
+      logger.info('[策略Worker] V3参数未加载，开始加载...');
+      await this.v3Strategy.initializeParameters();
+      logger.info('[策略Worker] V3参数加载完成，参数分组数:', Object.keys(this.v3Strategy.params).length);
+    }
+
+    // ✅ 添加参数验证日志
+    logger.info('[策略Worker] 当前使用参数:', {
+      ict: {
+        paramGroups: Object.keys(this.ictStrategy.params).length,
+        stopLossATR: this.ictStrategy.params.risk_management?.stopLossATRMultiplier,
+        takeProfit: this.ictStrategy.params.risk_management?.takeProfitRatio,
+        riskPercent: this.ictStrategy.params.position?.riskPercent
+      },
+      v3: {
+        paramGroups: Object.keys(this.v3Strategy.params).length,
+        stopLossATR: this.v3Strategy.params.risk_management?.stopLossATRMultiplier_medium,
+        takeProfit: this.v3Strategy.params.risk_management?.takeProfitRatio,
+        riskPercent: this.v3Strategy.params.risk_management?.riskPercent
+      }
+    });
+
     for (const symbol of this.symbols) {
       let v3Result = null;
       let ictResult = null;

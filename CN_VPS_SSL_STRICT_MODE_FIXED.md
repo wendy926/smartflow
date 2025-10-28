@@ -30,7 +30,7 @@ Cloudflare配置为"**完全严格**"SSL模式：
 
 ### 服务架构
 ```
-用户 
+用户
   ↓ HTTPS
 Cloudflare (完全严格模式)
   ↓ HTTPS

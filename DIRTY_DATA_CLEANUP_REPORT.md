@@ -10,7 +10,7 @@
 ### 数据分析
 ```sql
 -- 查询脏数据特征
-SELECT 
+SELECT
   exit_price = 0 as has_zero_exit_price,
   stop_loss = 0 as has_zero_stop_loss,
   take_profit = 0 as has_zero_take_profit,
@@ -41,7 +41,7 @@ WHERE status = 'CLOSED' AND strategy_name = 'ICT' AND DATE(entry_time) = '2025-1
 
 ### 删除脏数据
 ```sql
-DELETE FROM simulation_trades 
+DELETE FROM simulation_trades
 WHERE exit_price = 0 AND status = 'CLOSED';
 -- 删除: 722笔
 ```

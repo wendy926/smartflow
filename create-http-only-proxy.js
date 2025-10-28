@@ -16,7 +16,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(proxyRes.statusCode, proxyRes.headers);
     proxyRes.pipe(res);
   });
-  
+
   req.pipe(proxyReq);
 });
 

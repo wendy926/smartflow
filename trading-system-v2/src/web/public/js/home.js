@@ -5,20 +5,20 @@ let targetMarket = 'crypto';
 function showAuthModal(market) {
   // 检查是否为CN VPS域名（smart.aimaven.top）
   const isCNVPS = window.location.hostname === 'smart.aimaven.top';
-  
+
   // 如果是CN VPS，且选择的是加密货币或美股市场，则重定向到SG VPS
   if (isCNVPS && (market === 'crypto' || market === 'us')) {
     // 显示提示信息
     const marketName = market === 'crypto' ? '加密货币' : '美股';
     alert(`${marketName}交易功能受地域限制，正在跳转到国际服务器...`);
-    
+
     // 获取用户的登录状态
     const authToken = localStorage.getItem('authToken');
     const userEmail = localStorage.getItem('userEmail');
-    
+
     // 构建重定向URL
     let redirectUrl = 'https://smart.aimaventop.com/';
-    
+
     // 如果用户已登录，重定向到对应的dashboard并传递token
     if (authToken) {
       if (market === 'crypto') {
@@ -29,12 +29,12 @@ function showAuthModal(market) {
       // 设置token以便SG VPS识别用户
       redirectUrl += `?token=${encodeURIComponent(authToken)}`;
     }
-    
+
     // 重定向
     window.location.href = redirectUrl;
     return;
   }
-  
+
   // 检查是否已登录
   const authToken = localStorage.getItem('authToken');
   if (authToken) {
@@ -318,7 +318,7 @@ async function loadUserStats() {
   try {
     const response = await fetch('/api/v1/users/stats');
     const data = await response.json();
-    
+
     if (data.success) {
       const content = `
         <div style="text-align: left; line-height: 2;">

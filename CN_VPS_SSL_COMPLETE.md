@@ -18,7 +18,7 @@
 - **HTTPS代理**: ✅ 已启动 (PM2进程: https-proxy)
 - **HTTP重定向**: ✅ HTTP自动重定向到HTTPS
 - **SSL/TLS**: ✅ 已启用 (TLS 1.2/1.3)
-- **端口监听**: 
+- **端口监听**:
   - ✅ 80端口 (HTTP重定向)
   - ✅ 443端口 (HTTPS)
   - ✅ 8080端口 (应用服务)
@@ -59,7 +59,7 @@ https-proxy  - 运行中 (HTTPS代理服务)
 ### HTTPS代理
 - **监听**: 443 (HTTPS)
 - **目标**: localhost:8080 (应用)
-- **功能**: 
+- **功能**:
   - HTTP → HTTPS 重定向
   - SSL/TLS终止
   - 代理转发

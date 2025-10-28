@@ -32,7 +32,7 @@ https.createServer(options, (req, res) => {
     res.writeHead(proxyRes.statusCode, proxyRes.headers);
     proxyRes.pipe(res);
   });
-  
+
   req.pipe(proxyReq);
 }).listen(443, () => {
   console.log('HTTPS server listening on port 443');

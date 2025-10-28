@@ -767,7 +767,9 @@ class ICTStrategy {
       // 风险管理参数 - 从数据库配置获取
       const maxDrawdownLimit = this.getThreshold('risk', 'maxDrawdownLimit', 0.15); // 最大回撤限制15%
       const maxSingleLoss = this.getThreshold('risk', 'maxSingleLoss', 0.02); // 单笔最大损失2%
-      const riskPct = this.getThreshold('risk', 'riskPercent', 0.01); // 风险百分比1%
+      
+      // ✅ 修复4：从数据库读取风险百分比，不再硬编码
+      const riskPct = this.params.position?.riskPercent || this.getThreshold('position', 'riskPercent', 0.01); // 风险百分比
       
       // 回撤检查 - 如果超过最大回撤限制，暂停交易
       const currentDrawdown = (this.peakEquity - this.currentEquity) / this.peakEquity;
@@ -803,7 +805,7 @@ class ICTStrategy {
         maxHoldingHours: durationConfig.maxDurationHours, // 根据交易对类别动态调整
         timeStopMinutes: durationConfig.timeStopMinutes,  // 根据交易对类别动态调整
         timeExitPct: 0.5,           // 时间止损平仓50%
-        riskPercent: 0.01           // 1%风险
+        riskPercent: riskPct        // 使用从数据库读取的风险百分比
       };
 
       logger.info(`${symbol} ICT持仓配置: ${durationConfig.category} ${marketType}市, 最大持仓=${ictConfig.maxHoldingHours}小时, 时间止损=${ictConfig.timeStopMinutes}分钟`);

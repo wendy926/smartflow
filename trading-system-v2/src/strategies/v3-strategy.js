@@ -731,7 +731,9 @@ class V3Strategy {
       // 风险管理参数 - 从数据库配置获取
       const maxDrawdownLimit = this.getThreshold('risk', 'maxDrawdownLimit', 0.15); // 最大回撤限制15%
       const maxSingleLoss = this.getThreshold('risk', 'maxSingleLoss', 0.02); // 单笔最大损失2%
-      const riskPct = this.getThreshold('risk', 'riskPercent', 0.01); // 风险百分比1%
+      
+      // ✅ 修复4：从数据库读取风险百分比，不再硬编码
+      const riskPct = this.params.risk_management?.riskPercent || this.getThreshold('risk_management', 'riskPercent', 0.01); // 风险百分比
 
       // 回撤检查 - 如果超过最大回撤限制，暂停交易
       const currentDrawdown = (this.peakEquity - this.currentEquity) / this.peakEquity;

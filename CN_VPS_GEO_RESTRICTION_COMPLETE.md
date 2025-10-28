@@ -20,18 +20,18 @@ const isCNVPS = window.location.hostname === 'smart.aimaven.top';
 if (isCNVPS && (market === 'crypto' || market === 'us')) {
   // 显示提示信息
   alert('加密货币交易功能受地域限制，正在跳转到国际服务器...');
-  
+
   // 获取用户登录状态
   const authToken = localStorage.getItem('authToken');
-  
+
   // 构建重定向URL
   let redirectUrl = 'https://smart.aimaventop.com/crypto/dashboard';
-  
+
   // 如果已登录，传递token
   if (authToken) {
     redirectUrl += `?token=${encodeURIComponent(authToken)}`;
   }
-  
+
   // 重定向
   window.location.href = redirectUrl;
 }

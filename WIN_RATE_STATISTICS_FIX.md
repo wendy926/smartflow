@@ -25,8 +25,8 @@
 ```javascript
 // 包含所有状态的交易
 const [trades] = await connection.execute(
-  `SELECT pnl, created_at FROM simulation_trades 
-   WHERE strategy_name = ? AND pnl IS NOT NULL 
+  `SELECT pnl, created_at FROM simulation_trades
+   WHERE strategy_name = ? AND pnl IS NOT NULL
    ORDER BY created_at ASC`,
   [strategy]
 );
@@ -36,7 +36,7 @@ const [trades] = await connection.execute(
 ```javascript
 // 只包含已完成交易（CLOSED状态）
 const [trades] = await connection.execute(
-  `SELECT pnl, created_at FROM simulation_trades 
+  `SELECT pnl, created_at FROM simulation_trades
    WHERE strategy_name = ? AND pnl IS NOT NULL AND status = 'CLOSED'
    ORDER BY created_at ASC`,
   [strategy]

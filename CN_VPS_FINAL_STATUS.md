@@ -51,7 +51,7 @@
 
 ```
 [INFO] Database connected successfully
-[INFO] Redis connected successfully  
+[INFO] Redis connected successfully
 [INFO] Resource monitoring started
 [INFO] Macro monitoring started
 [ERROR] 网络请求超时 (connect ETIMEDOUT)

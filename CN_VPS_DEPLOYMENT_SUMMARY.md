@@ -95,7 +95,7 @@ ssh -i ~/.ssh/smartflow_vps_cn root@121.41.228.109 "pm2 restart smartflow-cn"
 
 **影响**: 加密货币实时数据获取受限
 
-**建议**: 
+**建议**:
 - CN VPS主要用于A股市场
 - 加密货币功能需在SG VPS运行
 

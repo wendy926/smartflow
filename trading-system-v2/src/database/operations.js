@@ -87,7 +87,7 @@ class DatabaseOperations {
       const { symbol, status = 'active', funding_rate = 0, last_price = 0, volume_24h = 0, price_change_24h = 0 } = symbolData;
 
       const [result] = await connection.execute(
-        `INSERT INTO symbols (symbol, status, funding_rate, last_price, volume_24h, price_change_24h, created_at, updated_at) 
+        `INSERT INTO symbols (symbol, status, funding_rate, last_price, volume_24h, price_change_24h, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
         [symbol, status, funding_rate, last_price, volume_24h, price_change_24h]
       );
@@ -229,14 +229,14 @@ class DatabaseOperations {
 
         // 关联AI分析数据
         const [rows] = await connection.execute(`
-          SELECT 
+          SELECT
             s.*,
             ai.analysis_data as aiAnalysis,
             ai.confidence_score as aiConfidence,
             ai.created_at as aiAnalyzedAt
           FROM symbols s
           LEFT JOIN (
-            SELECT 
+            SELECT
               symbol,
               analysis_data,
               confidence_score,
@@ -294,8 +294,8 @@ class DatabaseOperations {
       } = judgmentData;
 
       const [result] = await connection.execute(
-        `INSERT INTO strategy_judgments 
-         (symbol, strategy, timeframe, signal, score, trend_direction, confidence, reasons, indicators_data, created_at) 
+        `INSERT INTO strategy_judgments
+         (symbol, strategy, timeframe, signal, score, trend_direction, confidence, reasons, indicators_data, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [symbol, strategy, timeframe, signal, score, trend, confidence, reasons, JSON.stringify(indicators_data), created_at]
       );
@@ -374,9 +374,9 @@ class DatabaseOperations {
       } = tradeData;
 
       const [result] = await connection.execute(
-        `INSERT INTO simulation_trades 
-         (symbol, strategy, side, entry_price, exit_price, quantity, leverage, stop_loss, take_profit, 
-          pnl, pnl_percentage, status, entry_time, exit_time, created_at) 
+        `INSERT INTO simulation_trades
+         (symbol, strategy, side, entry_price, exit_price, quantity, leverage, stop_loss, take_profit,
+          pnl, pnl_percentage, status, entry_time, exit_time, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [symbol, strategy, side, entry_price, exit_price, quantity, leverage, stop_loss, take_profit,
           pnl, pnl_percentage, status, entry_time, exit_time, created_at]
@@ -415,8 +415,8 @@ class DatabaseOperations {
           SELECT st.*, s.symbol,
                  st.strategy_name as strategy_type,
                  st.trade_type as \`signal\`
-          FROM simulation_trades st 
-          JOIN symbols s ON st.symbol_id = s.id 
+          FROM simulation_trades st
+          JOIN symbols s ON st.symbol_id = s.id
           ORDER BY st.created_at DESC LIMIT ${limitNum}
         `;
         logger.info(`Executing query without strategy filter: ${query}`);
@@ -431,8 +431,8 @@ class DatabaseOperations {
         SELECT st.*, s.symbol,
                st.strategy_name as strategy_type,
                st.trade_type as \`signal\`
-        FROM simulation_trades st 
-        JOIN symbols s ON st.symbol_id = s.id 
+        FROM simulation_trades st
+        JOIN symbols s ON st.symbol_id = s.id
         WHERE st.strategy_name = '${strategyUpper}'
       `;
 
@@ -531,9 +531,9 @@ class DatabaseOperations {
       const symbolId = symbolRows[0].id;
 
       const [result] = await connection.execute(
-        `INSERT INTO simulation_trades 
-         (symbol_id, strategy_name, trade_type, entry_price, stop_loss, take_profit, 
-          leverage, margin_used, quantity, entry_reason, market_type, time_stop_minutes, max_duration_hours, created_at) 
+        `INSERT INTO simulation_trades
+         (symbol_id, strategy_name, trade_type, entry_price, stop_loss, take_profit,
+          leverage, margin_used, quantity, entry_reason, market_type, time_stop_minutes, max_duration_hours, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           symbolId, strategy_type, trade_type, entry_price, stop_loss, take_profit,
@@ -560,9 +560,9 @@ class DatabaseOperations {
     const connection = await this.getConnection();
     try {
       const [rows] = await connection.execute(
-        `SELECT st.*, s.symbol 
-         FROM simulation_trades st 
-         JOIN symbols s ON st.symbol_id = s.id 
+        `SELECT st.*, s.symbol
+         FROM simulation_trades st
+         JOIN symbols s ON st.symbol_id = s.id
          WHERE st.id = ?`,
         [tradeId]
       );
@@ -586,7 +586,7 @@ class DatabaseOperations {
     const connection = await this.getConnection();
     try {
       let query = `
-        SELECT 
+        SELECT
           COUNT(*) as total_trades,
           SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as winning_trades,
           SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losing_trades,
@@ -654,8 +654,8 @@ class DatabaseOperations {
       } = monitoringData;
 
       const [result] = await connection.execute(
-        `INSERT INTO system_monitoring 
-         (component, metric_name, metric_value, status, message, created_at) 
+        `INSERT INTO system_monitoring
+         (component, metric_name, metric_value, status, message, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [component, metric_name, metric_value, status, message, created_at]
       );
@@ -726,9 +726,9 @@ class DatabaseOperations {
       } = statisticsData;
 
       const [result] = await connection.execute(
-        `INSERT INTO symbol_statistics 
-         (symbol, strategy, timeframe, total_trades, winning_trades, losing_trades, 
-          win_rate, total_pnl, avg_pnl, max_drawdown, sharpe_ratio, created_at) 
+        `INSERT INTO symbol_statistics
+         (symbol, strategy, timeframe, total_trades, winning_trades, losing_trades,
+          win_rate, total_pnl, avg_pnl, max_drawdown, sharpe_ratio, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [symbol, strategy, timeframe, total_trades, winning_trades, losing_trades,
           win_rate, total_pnl, avg_pnl, max_drawdown, sharpe_ratio, created_at]
@@ -836,7 +836,7 @@ class DatabaseOperations {
       const { config_key, config_value, description, created_at = new Date() } = configData;
 
       const [result] = await connection.execute(
-        `INSERT INTO system_config (config_key, config_value, description, created_at) 
+        `INSERT INTO system_config (config_key, config_value, description, created_at)
          VALUES (?, ?, ?, ?)`,
         [config_key, config_value, description, created_at]
       );
@@ -902,7 +902,7 @@ class DatabaseOperations {
     const connection = await this.getConnection();
     try {
       const [result] = await connection.execute(
-        `UPDATE system_config SET config_value = ?, description = ?, updated_at = NOW() 
+        `UPDATE system_config SET config_value = ?, description = ?, updated_at = NOW()
          WHERE config_key = ?`,
         [configValue, description, configKey]
       );
@@ -1024,7 +1024,7 @@ class DatabaseOperations {
     try {
       // 只获取已完成交易记录（CLOSED状态）
       const [trades] = await connection.execute(
-        `SELECT pnl, created_at FROM simulation_trades 
+        `SELECT pnl, created_at FROM simulation_trades
          WHERE strategy_name = ? AND pnl IS NOT NULL AND status = 'CLOSED'
          ORDER BY created_at ASC`,
         [strategy]
@@ -1065,7 +1065,7 @@ class DatabaseOperations {
     try {
       // 只获取已完成交易记录（CLOSED状态）
       const [trades] = await connection.execute(
-        `SELECT pnl, created_at FROM simulation_trades 
+        `SELECT pnl, created_at FROM simulation_trades
          WHERE pnl IS NOT NULL AND status = 'CLOSED'
          ORDER BY created_at ASC`
       );
