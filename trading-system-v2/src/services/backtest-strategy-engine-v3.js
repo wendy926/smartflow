@@ -26,6 +26,56 @@ class BacktestStrategyEngineV3 {
   }
 
   /**
+   * 将扁平参数转换为嵌套结构（V3策略期望的格式）
+   * @param {Object} flatParams - 扁平参数对象
+   * @returns {Object} 嵌套参数对象
+   */
+  convertToNestedParams(flatParams) {
+    const nestedParams = {};
+    
+    // 参数映射：扁平参数名 -> 嵌套结构
+    const paramMapping = {
+      // 风险管理参数
+      'riskPercent': 'risk_management.riskPercent',
+      'stopLossATRMultiplier': 'risk_management.stopLossATRMultiplier',
+      'takeProfitRatio': 'risk_management.takeProfitRatio',
+      'maxLeverage': 'risk_management.maxLeverage',
+      
+      // 趋势阈值参数
+      'trend4HStrongThreshold': 'trend_thresholds.trend4HStrongThreshold',
+      'trend4HModerateThreshold': 'trend_thresholds.trend4HModerateThreshold',
+      'trend4HWeakThreshold': 'trend_thresholds.trend4HWeakThreshold',
+      
+      // 入场阈值参数
+      'entry15MStrongThreshold': 'entry_thresholds.entry15MStrongThreshold',
+      'entry15MModerateThreshold': 'entry_thresholds.entry15MModerateThreshold',
+      'entry15MWeakThreshold': 'entry_thresholds.entry15MWeakThreshold',
+      
+      // 因子阈值参数
+      'factorStrongThreshold': 'factor_thresholds.factorStrongThreshold',
+      'factorModerateThreshold': 'factor_thresholds.factorModerateThreshold',
+      'factorWeakThreshold': 'factor_thresholds.factorWeakThreshold'
+    };
+    
+    // 转换参数
+    Object.entries(flatParams).forEach(([key, value]) => {
+      const mapping = paramMapping[key];
+      if (mapping) {
+        const [category, paramName] = mapping.split('.');
+        if (!nestedParams[category]) {
+          nestedParams[category] = {};
+        }
+        nestedParams[category][paramName] = value;
+      } else {
+        // 如果没有映射，直接放在根级别
+        nestedParams[key] = value;
+      }
+    });
+    
+    return nestedParams;
+  }
+
+  /**
    * 获取持仓时长配置（用于时间止损）
    * @param {string} symbol - 交易对符号
    * @param {string} marketType - 市场类型
@@ -468,6 +518,13 @@ class BacktestStrategyEngineV3 {
         this.v3Strategy.binanceAPI = mockAPI; // 使用同一个Mock API实例
         this.v3Strategy.mode = mode; // 强制设置模式
 
+        // ✅ 确保参数已加载完成（与实盘一致）
+        if (!this.v3Strategy.params || Object.keys(this.v3Strategy.params).length === 0) {
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数未加载，开始加载...`);
+          await this.v3Strategy.initializeParameters(mode);
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数加载完成`);
+        }
+
         // ✅ 应用参数到策略的params属性（嵌套结构）
         if (params && Object.keys(params).length > 0) {
           // 清除参数加载器缓存，确保每次都重新加载
@@ -475,21 +532,17 @@ class BacktestStrategyEngineV3 {
             this.v3Strategy.paramLoader.clearCache();
           }
 
-          // 将参数合并到this.v3Strategy.params
+          // ✅ 将扁平参数转换为嵌套结构（与V3策略期望的格式一致）
+          const nestedParams = this.convertToNestedParams(params);
+          
+          // 将参数合并到this.v3Strategy.params（覆盖数据库参数）
           this.v3Strategy.params = {
             ...this.v3Strategy.params,
-            ...params
+            ...nestedParams
           };
 
-          console.log(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
-          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
-        }
-
-        // ✅ 确保参数已加载完成（与实盘一致）
-        if (!this.v3Strategy.params || Object.keys(this.v3Strategy.params).length === 0) {
-          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数未加载，开始加载...`);
-          await this.v3Strategy.initializeParameters(mode);
-          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数加载完成`);
+          console.log(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(nestedParams));
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(nestedParams));
         }
 
         // 验证关键参数是否正确应用（仅在debug模式下）
