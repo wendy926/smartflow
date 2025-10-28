@@ -32,7 +32,7 @@ class BacktestStrategyEngineV3 {
    */
   convertToNestedParams(flatParams) {
     const nestedParams = {};
-    
+
     // 参数映射：扁平参数名 -> 嵌套结构
     const paramMapping = {
       // 风险管理参数
@@ -40,23 +40,23 @@ class BacktestStrategyEngineV3 {
       'stopLossATRMultiplier': 'risk_management.stopLossATRMultiplier',
       'takeProfitRatio': 'risk_management.takeProfitRatio',
       'maxLeverage': 'risk_management.maxLeverage',
-      
+
       // 趋势阈值参数
       'trend4HStrongThreshold': 'trend_thresholds.trend4HStrongThreshold',
       'trend4HModerateThreshold': 'trend_thresholds.trend4HModerateThreshold',
       'trend4HWeakThreshold': 'trend_thresholds.trend4HWeakThreshold',
-      
+
       // 入场阈值参数
       'entry15MStrongThreshold': 'entry_thresholds.entry15MStrongThreshold',
       'entry15MModerateThreshold': 'entry_thresholds.entry15MModerateThreshold',
       'entry15MWeakThreshold': 'entry_thresholds.entry15MWeakThreshold',
-      
+
       // 因子阈值参数
       'factorStrongThreshold': 'factor_thresholds.factorStrongThreshold',
       'factorModerateThreshold': 'factor_thresholds.factorModerateThreshold',
       'factorWeakThreshold': 'factor_thresholds.factorWeakThreshold'
     };
-    
+
     // 转换参数
     Object.entries(flatParams).forEach(([key, value]) => {
       const mapping = paramMapping[key];
@@ -71,7 +71,7 @@ class BacktestStrategyEngineV3 {
         nestedParams[key] = value;
       }
     });
-    
+
     return nestedParams;
   }
 
@@ -84,7 +84,7 @@ class BacktestStrategyEngineV3 {
   getPositionConfig(symbol, marketType = 'TREND') {
     const category = TokenClassifier.classifyToken(symbol);
     const config = PositionDurationManager.getPositionConfig(symbol, marketType);
-    
+
     return {
       maxHoldingMinutes: config.maxDurationHours * 60,
       timeStopMinutes: config.timeStopMinutes,
@@ -384,7 +384,7 @@ class BacktestStrategyEngineV3 {
           // ✅ 添加时间止损检查（与实盘一致）
           const positionConfig = this.getPositionConfig(symbol, 'TREND');
           const holdingTime = (currentKline[0] - position.entryTime.getTime()) / 1000 / 60; // 分钟
-          
+
           // 检查最大持仓时长限制
           if (holdingTime >= positionConfig.maxHoldingMinutes) {
             shouldExit = true;
@@ -394,8 +394,8 @@ class BacktestStrategyEngineV3 {
           // 检查时间止损（持仓超时且未盈利）
           else if (holdingTime >= positionConfig.timeStopMinutes) {
             const isProfitable = (position.type === 'LONG' && nextPrice > position.entryPrice) ||
-                                 (position.type === 'SHORT' && nextPrice < position.entryPrice);
-            
+              (position.type === 'SHORT' && nextPrice < position.entryPrice);
+
             if (!isProfitable) {
               shouldExit = true;
               exitReason = `时间止损 - 持仓${holdingTime.toFixed(0)}分钟未盈利`;
@@ -514,7 +514,7 @@ class BacktestStrategyEngineV3 {
           this.currentV3Mode = mode;
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 创建新的策略实例`);
         }
-        
+
         this.v3Strategy.binanceAPI = mockAPI; // 使用同一个Mock API实例
         this.v3Strategy.mode = mode; // 强制设置模式
 
@@ -525,22 +525,30 @@ class BacktestStrategyEngineV3 {
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数加载完成`);
         }
 
-        // ✅ 应用参数到策略的params属性（嵌套结构）
+        // 🔍 调试：输出关键参数值（从策略实例中读取）
+        const keyParams = ['trend4HStrongThreshold', 'entry15MStrongThreshold', 'stopLossATRMultiplier', 'takeProfitRatio'];
+        console.log(`[回测引擎V3] ${symbol} V3-${mode}: 策略实例参数值:`);
+        logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 策略实例参数值:`);
+        keyParams.forEach(param => {
+          let value = 'undefined';
+          if (param.includes('Threshold')) {
+            const category = param.includes('trend4H') ? 'trend_thresholds' : 'entry_thresholds';
+            value = this.v3Strategy.params[category]?.[param] || 'undefined';
+          } else if (param.includes('ATR') || param.includes('Ratio')) {
+            value = this.v3Strategy.params.risk_management?.[param] || 'undefined';
+          }
+          console.log(`  ${param}: ${value}`);
+          logger.info(`  ${param}: ${value}`);
+        });
+
+        // ✅ 不再直接覆盖策略参数，让策略使用自己加载的参数
+        // 注释掉原来的参数覆盖逻辑
+        /*
         if (params && Object.keys(params).length > 0) {
           // 清除参数加载器缓存，确保每次都重新加载
           if (this.v3Strategy.paramLoader) {
             this.v3Strategy.paramLoader.clearCache();
           }
-
-          // 🔍 调试：输出关键参数值
-          const keyParams = ['trend4HStrongThreshold', 'entry15MStrongThreshold', 'stopLossATRMultiplier', 'takeProfitRatio'];
-          console.log(`[回测引擎V3] ${symbol} V3-${mode}: 接收到的参数值:`);
-          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 接收到的参数值:`);
-          keyParams.forEach(param => {
-            const value = params.trend_thresholds?.[param] || params.entry_thresholds?.[param] || params.risk_management?.[param] || 'undefined';
-            console.log(`  ${param}: ${value}`);
-            logger.info(`  ${param}: ${value}`);
-          });
 
           // 直接使用params（已经是嵌套结构了）
           this.v3Strategy.params = params;
@@ -548,6 +556,7 @@ class BacktestStrategyEngineV3 {
           console.log(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 应用参数到params`, Object.keys(params));
         }
+        */
 
         // 验证关键参数是否正确应用（仅在debug模式下）
         if (process.env.DEBUG) {
@@ -704,7 +713,7 @@ class BacktestStrategyEngineV3 {
           // ✅ 添加时间止损检查（与实盘一致）
           const positionConfig = this.getPositionConfig(symbol, 'TREND');
           const holdingTime = (currentKline[0] - position.entryTime.getTime()) / 1000 / 60; // 分钟
-          
+
           // 检查最大持仓时长限制
           if (holdingTime >= positionConfig.maxHoldingMinutes) {
             shouldExit = true;
@@ -714,8 +723,8 @@ class BacktestStrategyEngineV3 {
           // 检查时间止损（持仓超时且未盈利）
           else if (holdingTime >= positionConfig.timeStopMinutes) {
             const isProfitable = (position.type === 'LONG' && nextPrice > position.entryPrice) ||
-                                 (position.type === 'SHORT' && nextPrice < position.entryPrice);
-            
+              (position.type === 'SHORT' && nextPrice < position.entryPrice);
+
             if (!isProfitable) {
               shouldExit = true;
               exitReason = `时间止损 - 持仓${holdingTime.toFixed(0)}分钟未盈利`;
