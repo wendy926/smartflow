@@ -16,6 +16,7 @@ class BacktestStrategyEngineV3 {
     this.ictStrategy = new ICTStrategy();
     this.v3Strategy = new V3Strategy(); // ✅ 使用主V3策略
     this.currentICTMode = null; // 跟踪当前ICT模式，用于复用策略实例
+    this.currentV3Mode = null; // 跟踪当前V3模式，用于复用策略实例
 
     // 将Mock Binance API注入到策略中
     if (this.mockBinanceAPI) {
@@ -457,8 +458,13 @@ class BacktestStrategyEngineV3 {
         // 设置Mock Binance API的当前索引
         mockAPI.setCurrentIndex(i);
 
-        // ✅ 不需要每次循环都new，复用constructor中创建的实例
-        // this.v3Strategy在constructor中已经创建
+        // ✅ 为每个模式创建独立的策略实例，避免参数污染
+        if (!this.v3Strategy || this.currentV3Mode !== mode) {
+          this.v3Strategy = new V3Strategy();
+          this.currentV3Mode = mode;
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 创建新的策略实例`);
+        }
+        
         this.v3Strategy.binanceAPI = mockAPI; // 使用同一个Mock API实例
         this.v3Strategy.mode = mode; // 强制设置模式
 
