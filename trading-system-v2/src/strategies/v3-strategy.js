@@ -728,16 +728,16 @@ class V3Strategy {
   }
 
   /**
-   * 计算交易参数
+   * 优化版交易参数计算（基于optimize.md建议）
    * @param {string} symbol - 交易对
    * @param {string} signal - 交易信号
    * @param {number} currentPrice - 当前价格
    * @param {number} atr - ATR值
    * @param {string} marketType - 市场类型 'TREND' 或 'RANGE'
-   * @param {string} confidence - 置信度 'high'/'med'/'low'
+   * @param {string} confidence - 置信度 'High'/'Med'/'Low'
    * @returns {Object} 交易参数
    */
-  async calculateTradeParameters(symbol, signal, currentPrice, atr, marketType = 'RANGE', confidence = 'med') {
+  async calculateTradeParameters(symbol, signal, currentPrice, atr, marketType = 'RANGE', confidence = 'Med') {
     try {
       if (!currentPrice) {
         return { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
@@ -775,25 +775,49 @@ class V3Strategy {
 
       logger.info(`${symbol} V3风险管理: 最大回撤限制=${(maxDrawdownLimit * 100).toFixed(1)}%, 单笔最大损失=${(maxSingleLoss * 100).toFixed(1)}%, 风险百分比=${(riskPct * 100).toFixed(1)}%, 当前回撤=${(currentDrawdown * 100).toFixed(2)}%`);
 
-      // ✅ 从数据库读取止损/止盈参数，替代hardcoded值
+      // ✅ 基于optimize.md的分仓出场策略
       const stopLossATRMultiplier = this.params.risk_management?.stopLossATRMultiplier || this.getThreshold('risk_management', 'stopLossATRMultiplier', 1.0);
-      const takeProfitRatio = this.params.risk_management?.takeProfitRatio || this.getThreshold('risk_management', 'takeProfitRatio', 3.0);
+      const tp1Ratio = this.getThreshold('position_management', 'tp1Ratio', 1.5);
+      const tp2Ratio = this.getThreshold('position_management', 'tp2Ratio', 4.0);
+      const breakevenTrigger = this.getThreshold('position_management', 'breakevenTrigger', 1.0);
+      const trailingStep = this.getThreshold('position_management', 'trailingStep', 0.5);
 
-      logger.info(`${symbol} V3止损止盈参数: stopLossATRMultiplier=${stopLossATRMultiplier}, takeProfitRatio=${takeProfitRatio}`);
+      // 根据置信度确定仓位比例
+      const highConfidenceRatio = this.getThreshold('position_management', 'highConfidencePositionRatio', 60) / 100;
+      const medConfidenceRatio = this.getThreshold('position_management', 'medConfidencePositionRatio', 40) / 100;
 
-      // 直接计算止损/止盈（使用数据库参数）
-      let stopLoss, takeProfit;
-      const isLong = signal === 'BUY';
-
-      if (isLong) {
-        stopLoss = entryPrice - (atr * stopLossATRMultiplier);
-        takeProfit = entryPrice + (atr * stopLossATRMultiplier * takeProfitRatio);
+      let positionRatio = 0;
+      if (confidence === 'High') {
+        positionRatio = highConfidenceRatio;
+      } else if (confidence === 'Med') {
+        positionRatio = medConfidenceRatio;
       } else {
-        stopLoss = entryPrice + (atr * stopLossATRMultiplier);
-        takeProfit = entryPrice - (atr * stopLossATRMultiplier * takeProfitRatio);
+        positionRatio = 0; // Low置信度不建仓
       }
 
-      logger.info(`${symbol} V3交易参数: 入场=${entryPrice.toFixed(4)}, 止损=${stopLoss.toFixed(4)}, 止盈=${takeProfit.toFixed(4)}, 盈亏比=${takeProfitRatio}:1`);
+      logger.info(`${symbol} V3分仓参数: 置信度=${confidence}, 仓位比例=${positionRatio}, TP1=${tp1Ratio}, TP2=${tp2Ratio}`);
+
+      // 计算止损/止盈（使用数据库参数）
+      let stopLoss, takeProfit1, takeProfit2;
+      const isLong = signal === 'BUY';
+      const stopDistance = atr * stopLossATRMultiplier;
+
+      if (isLong) {
+        stopLoss = entryPrice - stopDistance;
+        takeProfit1 = entryPrice + (stopDistance * tp1Ratio); // 第一期止盈
+        takeProfit2 = entryPrice + (stopDistance * tp2Ratio); // 第二期止盈
+      } else {
+        stopLoss = entryPrice + stopDistance;
+        takeProfit1 = entryPrice - (stopDistance * tp1Ratio); // 第一期止盈
+        takeProfit2 = entryPrice - (stopDistance * tp2Ratio); // 第二期止盈
+      }
+
+      // 计算分仓数量
+      const totalQuantity = (riskPct * this.currentEquity) / stopDistance;
+      const tp1Quantity = totalQuantity * positionRatio * 0.5; // 第一期平50%仓位
+      const tp2Quantity = totalQuantity * positionRatio * 0.5; // 第二期平50%仓位
+
+      logger.info(`${symbol} V3分仓交易参数: 入场=${entryPrice.toFixed(4)}, 止损=${stopLoss.toFixed(4)}, TP1=${takeProfit1.toFixed(4)}, TP2=${takeProfit2.toFixed(4)}, 总数量=${totalQuantity.toFixed(4)}, TP1数量=${tp1Quantity.toFixed(4)}, TP2数量=${tp2Quantity.toFixed(4)}`);
 
       // 获取时间止损配置
       const PositionDurationManager = require('../utils/position-duration-manager');
@@ -834,13 +858,21 @@ class V3Strategy {
       return {
         entryPrice: parseFloat(entryPrice.toFixed(4)),
         stopLoss: parseFloat(stopLoss.toFixed(4)),
-        takeProfit: parseFloat(takeProfit.toFixed(4)),
+        takeProfit: parseFloat(takeProfit2.toFixed(4)), // 主要止盈目标
+        takeProfit1: parseFloat(takeProfit1.toFixed(4)), // 第一期止盈
+        takeProfit2: parseFloat(takeProfit2.toFixed(4)), // 第二期止盈
+        tp1Quantity: parseFloat(tp1Quantity.toFixed(4)), // 第一期数量
+        tp2Quantity: parseFloat(tp2Quantity.toFixed(4)), // 第二期数量
         leverage: leverage,
         margin: margin,
         timeStopMinutes: positionConfig.timeStopMinutes,
         maxDurationHours: positionConfig.maxDurationHours,
         marketType: marketType,
-        confidence: confidence
+        confidence: confidence,
+        positionRatio: positionRatio,
+        breakevenTrigger: breakevenTrigger,
+        trailingStep: trailingStep,
+        stopDistance: parseFloat(stopDistance.toFixed(4))
       };
     } catch (error) {
       logger.error(`V3交易参数计算失败: ${error.message}`);
@@ -1239,8 +1271,10 @@ class V3Strategy {
 
       // 综合判断
       logger.info(`[${symbol}] 开始信号融合: 4H=${trend4H?.score}, 1H=${factors1H?.score}, 15M=${execution15M?.score}`);
-      const finalSignal = this.combineSignals(trend4H, factors1H, execution15M);
-      logger.info(`[${symbol}] 信号融合结果: ${finalSignal}`);
+      const signalResult = this.combineSignals(trend4H, factors1H, execution15M, klines4H, klines1H, klines15M);
+      const finalSignal = signalResult.signal;
+      const confidence = signalResult.confidence;
+      logger.info(`[${symbol}] 信号融合结果: ${finalSignal}, 置信度: ${confidence}`);
 
       // 计算交易参数（如果有交易信号且没有现有交易）
       let tradeParams = { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
@@ -1275,7 +1309,7 @@ class V3Strategy {
 
             logger.info(`[V3策略] ${symbol} ATR计算: 15M=${currentATR15M?.toFixed(4)}, 4H=${currentATR4H?.toFixed(4)}, 使用${currentATR4H ? '4H' : '15M'}级别`);
 
-            tradeParams = await this.calculateTradeParameters(symbol, finalSignal, currentPrice, atrForStopLoss);
+            tradeParams = await this.calculateTradeParameters(symbol, finalSignal, currentPrice, atrForStopLoss, signalResult.marketState || 'TREND', confidence);
 
             // 缓存交易参数（5分钟过期）
             if (this.cache && tradeParams.entryPrice > 0) {
@@ -1295,6 +1329,9 @@ class V3Strategy {
         symbol,
         strategy: 'V3',
         signal: finalSignal,
+        confidence: confidence,
+        score: signalResult.normalizedScore || Math.round(((trend4H?.score || 0) + (factors1H?.score || 0) + (execution15M?.score || 0)) / 3),
+        reason: signalResult.reason || `V3策略分析完成: 4H趋势=${trend4H?.trend}, 1H因子=${factors1H?.score}, 15M入场=${execution15M?.score}`,
         timeframes: {
           '4H': trend4H,
           '1H': factors1H,
@@ -1304,11 +1341,23 @@ class V3Strategy {
         entryPrice: tradeParams.entryPrice || 0,
         stopLoss: tradeParams.stopLoss || 0,
         takeProfit: tradeParams.takeProfit || 0,
+        takeProfit1: tradeParams.takeProfit1 || 0, // 第一期止盈
+        takeProfit2: tradeParams.takeProfit2 || 0, // 第二期止盈
+        tp1Quantity: tradeParams.tp1Quantity || 0, // 第一期数量
+        tp2Quantity: tradeParams.tp2Quantity || 0, // 第二期数量
         leverage: tradeParams.leverage || 0,
         margin: tradeParams.margin || 0,
         marketType: tradeParams.marketType || 'RANGE', // ✅ 保存市场类型
         timeStopMinutes: tradeParams.timeStopMinutes, // ✅ 保存时间止损
         maxDurationHours: tradeParams.maxDurationHours, // ✅ 保存最大持仓时长
+        positionRatio: tradeParams.positionRatio || 0, // 仓位比例
+        breakevenTrigger: tradeParams.breakevenTrigger || 1.0, // 保本触发点
+        trailingStep: tradeParams.trailingStep || 0.5, // 追踪步长
+        stopDistance: tradeParams.stopDistance || 0, // 止损距离
+        // 新增优化信息
+        marketState: signalResult.marketState,
+        earlyTrend: signalResult.earlyTrend,
+        fakeBreakoutFilter: signalResult.fakeBreakoutFilter,
         timestamp: new Date()
       };
 
@@ -1465,125 +1514,310 @@ class V3Strategy {
   }
 
   /**
-   * 综合判断信号（优化版：容忍度逻辑 + 补偿机制）
-   * 根据strategy-v3-plus.md：允许"强中短一致 + 弱偏差"容忍度
-   * 增加补偿机制和动态权重调整解决信号死区问题
-   *
+   * 市场状态分类器（基于optimize.md建议）
+   * @param {Array} klines4H - 4H K线数据
+   * @returns {string} 市场状态：TREND/RANGE/VOLATILE/LOWVOL
+   */
+  classifyMarketState(klines4H) {
+    try {
+      if (!klines4H || klines4H.length < 50) {
+        return 'RANGE'; // 默认震荡市
+      }
+
+      const prices = klines4H.map(k => parseFloat(k[4]));
+      const bbw = TechnicalIndicators.calculateBBW(prices);
+      const adx = TechnicalIndicators.calculateADX(
+        klines4H.map(k => parseFloat(k[2])),
+        klines4H.map(k => parseFloat(k[3])),
+        prices
+      );
+
+      const bbwTrendThreshold = this.getThreshold('market_classifier', 'bbwTrendThreshold', 0.04);
+      const adxTrendThreshold = this.getThreshold('market_classifier', 'adxTrendThreshold', 25);
+      const adxRangeThreshold = this.getThreshold('market_classifier', 'adxRangeThreshold', 20);
+
+      logger.info(`市场状态分析: BBW=${bbw?.bbw?.toFixed(4)}, ADX=${adx?.adx?.toFixed(2)}`);
+
+      // TREND: BBW > 阈值 且 ADX > 25
+      if (bbw?.bbw > bbwTrendThreshold && adx?.adx > adxTrendThreshold) {
+        return 'TREND';
+      }
+      
+      // RANGE: ADX < 20 且 BBW 小
+      if (adx?.adx < adxRangeThreshold && bbw?.bbw < bbwTrendThreshold * 0.5) {
+        return 'RANGE';
+      }
+      
+      // VOLATILE: BBW 很高
+      if (bbw?.bbw > bbwTrendThreshold * 2) {
+        return 'VOLATILE';
+      }
+      
+      // LOWVOL: BBW 很低
+      if (bbw?.bbw < bbwTrendThreshold * 0.3) {
+        return 'LOWVOL';
+      }
+
+      return 'RANGE'; // 默认震荡市
+    } catch (error) {
+      logger.error(`市场状态分类失败: ${error.message}`);
+      return 'RANGE';
+    }
+  }
+
+  /**
+   * 改进的假突破过滤器（基于optimize.md建议）
+   * @param {Array} klines15M - 15M K线数据
+   * @param {Array} klines1H - 1H K线数据
+   * @param {Array} klines4H - 4H K线数据
+   * @returns {Object} 置信度评估结果
+   */
+  improvedFakeBreakoutFilter(klines15M, klines1H, klines4H) {
+    try {
+      const volFactor = this.getThreshold('signal_filter', 'volFactor', 1.5);
+      const deltaThreshold = this.getThreshold('signal_filter', 'deltaThreshold', 0.06);
+      const retraceLimit = this.getThreshold('signal_filter', 'retraceLimit', 0.25);
+      const volZScoreThreshold = this.getThreshold('signal_filter', 'volZScoreThreshold', 0.8);
+
+      // 计算成交量Z分数
+      const volumes = klines15M.map(k => parseFloat(k[5]));
+      const meanVol = volumes.reduce((sum, vol) => sum + vol, 0) / volumes.length;
+      const volStd = Math.sqrt(volumes.reduce((sum, vol) => sum + Math.pow(vol - meanVol, 2), 0) / volumes.length);
+      const volZScore = (volumes[volumes.length - 1] - meanVol) / volStd;
+
+      // 计算Delta
+      const prices = klines15M.map(k => parseFloat(k[4]));
+      const delta = this.calculateSimpleDelta(prices, volumes);
+
+      // 检查突破确认
+      const currentPrice = prices[prices.length - 1];
+      const prevPrice = prices[prices.length - 2];
+      const priceChange = Math.abs(currentPrice - prevPrice) / prevPrice;
+
+      // 高质量支持条件
+      const conditions = {
+        volumeConfirmed: volZScore >= volZScoreThreshold,
+        deltaAligned: Math.abs(delta) >= deltaThreshold,
+        breakoutConfirmed: priceChange >= retraceLimit * 0.1, // 最小突破幅度
+        retraceLimited: priceChange <= retraceLimit
+      };
+
+      const satisfiedCount = Object.values(conditions).filter(Boolean).length;
+
+      // 必须满足至少2/3的高质量支持条件
+      if (satisfiedCount >= 2) {
+        return {
+          confidence: satisfiedCount >= 3 ? 'High' : 'Med',
+          conditions,
+          satisfiedCount,
+          volZScore,
+          delta,
+          priceChange
+        };
+      } else {
+        return {
+          confidence: 'Reject',
+          conditions,
+          satisfiedCount,
+          volZScore,
+          delta,
+          priceChange,
+          reason: `只满足${satisfiedCount}个条件，需要至少2个`
+        };
+      }
+    } catch (error) {
+      logger.error(`假突破过滤器失败: ${error.message}`);
+      return { confidence: 'Reject', error: error.message };
+    }
+  }
+
+  /**
+   * 改进的早期趋势检测器（基于optimize.md建议）
+   * @param {Array} klines1H - 1H K线数据
+   * @param {Array} klines4H - 4H K线数据
+   * @returns {Object} 早期趋势检测结果
+   */
+  improvedEarlyTrendDetector(klines1H, klines4H) {
+    try {
+      const prices1H = klines1H.map(k => parseFloat(k[4]));
+      const prices4H = klines4H.map(k => parseFloat(k[4]));
+
+      // 计算MACD
+      const macd1H = TechnicalIndicators.calculateMACDHistogram(prices1H, 12, 26, 9);
+      const macd4H = TechnicalIndicators.calculateMACDHistogram(prices4H, 12, 26, 9);
+
+      // 计算ADX
+      const adx1H = TechnicalIndicators.calculateADX(
+        klines1H.map(k => parseFloat(k[2])),
+        klines1H.map(k => parseFloat(k[3])),
+        prices1H
+      );
+
+      // 计算VWAP
+      const vwap1H = TechnicalIndicators.calculateVWAP(klines1H);
+
+      // 计算EMA
+      const ema20_4H = TechnicalIndicators.calculateEMA(prices4H, 20);
+      const ema50_4H = TechnicalIndicators.calculateEMA(prices4H, 50);
+
+      const currentPrice1H = prices1H[prices1H.length - 1];
+      const currentPrice4H = prices4H[prices4H.length - 1];
+
+      // 检查连续两根MACD Hist >= 0.5
+      const macdHist1 = macd1H.histogram[macd1H.histogram.length - 1];
+      const macdHist2 = macd1H.histogram[macd1H.histogram.length - 2];
+      const macdHist4H = macd4H.histogram[macd4H.histogram.length - 1];
+
+      const conditions = {
+        macdConsecutive: macdHist1 >= 0.5 && macdHist2 >= 0.5,
+        adxStrong: adx1H.adx > 20,
+        priceAboveVWAP: currentPrice1H > vwap1H,
+        macd4HAligned: Math.abs(macdHist4H) > 0.1,
+        ema4HAligned: ema20_4H[ema20_4H.length - 1] > ema50_4H[ema50_4H.length - 1]
+      };
+
+      const satisfiedCount = Object.values(conditions).filter(Boolean).length;
+
+      return {
+        detected: satisfiedCount >= 3, // 至少满足3个条件
+        conditions,
+        satisfiedCount,
+        macdHist1H: macdHist1,
+        macdHist4H: macdHist4H,
+        adx1H: adx1H.adx,
+        weightBonus: satisfiedCount >= 4 ? 5 : (satisfiedCount >= 3 ? 3 : 0) // 降低权重奖励
+      };
+    } catch (error) {
+      logger.error(`早期趋势检测失败: ${error.message}`);
+      return { detected: false, error: error.message };
+    }
+  }
+  /**
+   * 优化版信号融合（基于optimize.md建议）
    * @param {Object} trend4H - 4H趋势分析结果
    * @param {Object} factors1H - 1H因子分析结果
    * @param {Object} execution15M - 15M执行信号结果
-   * @returns {string} 最终交易信号
+   * @param {Array} klines4H - 4H K线数据（用于市场状态分类）
+   * @param {Array} klines1H - 1H K线数据（用于早期趋势检测）
+   * @param {Array} klines15M - 15M K线数据（用于假突破过滤）
+   * @returns {Object} 最终交易信号和置信度
    */
-  combineSignals(trend4H, factors1H, execution15M) {
+  combineSignals(trend4H, factors1H, execution15M, klines4H = null, klines1H = null, klines15M = null) {
     const trendDirection = trend4H.trendDirection || trend4H.trend;
     const trendScore = trend4H.score || 0;
     const factorScore = factors1H.totalScore || factors1H.score || 0;
     const entryScore = execution15M.score || 0;
     const structureScore = execution15M.structureScore || 0;
 
-    logger.info(`combineSignals调试: factors1H.totalScore=${factors1H.totalScore}, factors1H.score=${factors1H.score}, factorScore=${factorScore}`);
+    logger.info(`[V3信号融合] 4H=${trendScore}/10, 1H=${factorScore}/6, 15M=${entryScore}/5, 结构=${structureScore}/2`);
 
-    // 计算动态权重
+    // 1. 市场状态分类
+    let marketState = 'RANGE';
+    if (klines4H) {
+      marketState = this.classifyMarketState(klines4H);
+      logger.info(`[V3市场状态] ${marketState}`);
+    }
+
+    // 2. 早期趋势检测
+    let earlyTrend = { detected: false, weightBonus: 0 };
+    if (klines1H && klines4H) {
+      earlyTrend = this.improvedEarlyTrendDetector(klines1H, klines4H);
+      logger.info(`[V3早期趋势] 检测=${earlyTrend.detected}, 权重奖励=${earlyTrend.weightBonus}`);
+    }
+
+    // 3. 假突破过滤器
+    let fakeBreakoutFilter = { confidence: 'Reject' };
+    if (klines15M && klines1H && klines4H) {
+      fakeBreakoutFilter = this.improvedFakeBreakoutFilter(klines15M, klines1H, klines4H);
+      logger.info(`[V3假突破过滤] 置信度=${fakeBreakoutFilter.confidence}, 满足条件=${fakeBreakoutFilter.satisfiedCount}`);
+    }
+
+    // 4. 计算动态权重（包含早期趋势奖励）
     const weights = this.calculateDynamicWeights(trendScore, factorScore, entryScore);
-    logger.info(`动态权重: 趋势=${weights.trend}, 因子=${weights.factor}, 入场=${weights.entry}`);
+    if (earlyTrend.detected && trendScore >= 6) {
+      weights.trend += 0.05; // 小幅提升
+    }
+    logger.info(`[V3动态权重] 趋势=${weights.trend}, 因子=${weights.factor}, 入场=${weights.entry}`);
 
-    // 计算总分（使用动态权重）
+    // 5. 计算总分
     const totalScore = (
-      (trendScore / 10) * weights.trend +      // 4H: 0-10分 → 0-0.6
-      (factorScore / 6) * weights.factor +     // 1H: 0-6分 → 0-0.4
-      (entryScore / 5) * weights.entry         // 15M: 0-5分 → 0-0.2
+      (trendScore / 10) * weights.trend +
+      (factorScore / 6) * weights.factor +
+      (entryScore / 5) * weights.entry
     );
-
-    // 归一化到0-100
     const normalizedScore = Math.round(totalScore * 100);
 
-    // 计算补偿值
-    const compensation = this.calculateCompensation(normalizedScore, trendScore, factorScore, entryScore, structureScore);
-    logger.info(`补偿值: ${compensation}`);
+    // 6. 严格信号筛选（基于optimize.md建议）
+    const trend4HStrongThreshold = this.getThreshold('trend', 'trend4HStrongThreshold', 7);
+    const factorStrongThreshold = this.getThreshold('factor', 'factorModerateThreshold', 5);
+    const entryStrongThreshold = this.getThreshold('entry', 'entry15MStrongThreshold', 2);
 
-    // 获取调整后的因子门槛
-    const adjustedThreshold = this.getAdjustedFactorThreshold(normalizedScore, trendScore, compensation);
-    logger.info(`调整后门槛: 强=${adjustedThreshold.strong}, 中=${adjustedThreshold.moderate}, 弱=${adjustedThreshold.weak}`);
-
-    logger.info(`V3信号融合: 4H=${trendScore}/10, 1H=${factorScore}/6, 15M=${entryScore}/5, 结构=${structureScore}/2, 总分=${normalizedScore}%, 补偿=${compensation}`);
-
-    // 如果趋势不明确，检查是否有震荡市假突破信号
-    if (trendDirection === 'RANGE') {
-      logger.info(`震荡市模式: 检查15M假突破信号`);
-      // 如果15M检测到假突破信号，返回对应的交易信号
-      if (execution15M.signal && (execution15M.signal === 'BUY' || execution15M.signal === 'SELL')) {
-        const reason = execution15M.reason || '';
-        if (reason.includes('Range fake breakout') || reason.includes('震荡市')) {
-          logger.info(`✅ 震荡市假突破信号: ${execution15M.signal}, 理由: ${reason}`);
-          return execution15M.signal;
-        }
+    // 震荡市：只允许假突破策略
+    if (marketState === 'RANGE') {
+      if (fakeBreakoutFilter.confidence === 'High' && execution15M.signal && 
+          (execution15M.signal === 'BUY' || execution15M.signal === 'SELL')) {
+        logger.info(`✅ 震荡市假突破信号: ${execution15M.signal}`);
+        return {
+          signal: execution15M.signal,
+          confidence: 'High',
+          reason: '震荡市假突破',
+          marketState,
+          fakeBreakoutFilter
+        };
       }
       logger.info(`震荡市无有效假突破信号，HOLD`);
-      return 'HOLD';
+      return { signal: 'HOLD', confidence: 'Low', reason: '震荡市无假突破', marketState };
     }
 
-    // 强信号：总分>=30 且 4H趋势强 且 1H因子强 且 15M有效
-    const trend4HStrongThreshold = this.getThreshold('trend', 'trend4HStrongThreshold', 3); // ✅ 3以匹配实际得分
-    const entry15MStrongThreshold = this.getThreshold('entry', 'entry15MStrongThreshold', 3);
-
-    // ✅ 添加详细日志
-    logger.info(`[V3信号判断] 阈值: trend4HStrong=${trend4HStrongThreshold}, entry15MStrong=${entry15MStrongThreshold}, adjustedStrong=${adjustedThreshold.strong}`);
-    logger.info(`[V3信号判断] 得分: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
-
-    // ✅ 进一步优化信号质量：更严格的信号筛选
-    const trend4HModerateThreshold = this.getThreshold('trend', 'trend4HModerateThreshold', 2);
-    const entry15MModerateThreshold = this.getThreshold('entry', 'entry15MModerateThreshold', 2);
-    const entry15MWeakThreshold = this.getThreshold('entry', 'entry15MWeakThreshold', 1);
-    const factorModerateThreshold = this.getThreshold('factor', 'factorModerateThreshold', 1);
-
-    // 超强信号：总分>=70，且满足所有三个条件（最高质量）
-    if (normalizedScore >= 70 && trendDirection !== 'RANGE') {
-      const conditions = {
-        trend: trendScore >= trend4HModerateThreshold,
-        factor: factorScore >= factorModerateThreshold,
-        entry: entryScore >= entry15MModerateThreshold
-      };
-      const satisfiedCount = [conditions.trend, conditions.factor, conditions.entry].filter(Boolean).length;
-
-      if (satisfiedCount >= 3) {
-        logger.info(`🔥 超强信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=${factorModerateThreshold}, 15M=${entryScore}>=${entry15MModerateThreshold}, 满足${satisfiedCount}个条件`);
-        return trendDirection === 'UP' ? 'BUY' : 'SELL';
+    // 趋势市：只做高质量趋势建仓
+    if (marketState === 'TREND') {
+      // High置信度信号：所有条件满足
+      if (fakeBreakoutFilter.confidence === 'High' && 
+          normalizedScore >= 70 && 
+          trendScore >= trend4HStrongThreshold && 
+          factorScore >= factorStrongThreshold && 
+          entryScore >= entryStrongThreshold) {
+        logger.info(`🔥 超强信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HStrongThreshold}, 因子=${factorScore}>=${factorStrongThreshold}, 15M=${entryScore}>=${entryStrongThreshold}`);
+        return {
+          signal: trendDirection === 'UP' ? 'BUY' : 'SELL',
+          confidence: 'High',
+          reason: '超强趋势信号',
+          marketState,
+          normalizedScore,
+          earlyTrend,
+          fakeBreakoutFilter
+        };
       }
-    }
 
-    // 强信号：总分>=60，且满足所有三个条件（高质量）
-    if (normalizedScore >= 60 && normalizedScore < 70 && trendDirection !== 'RANGE') {
-      const conditions = {
-        trend: trendScore >= trend4HModerateThreshold,
-        factor: factorScore >= factorModerateThreshold,
-        entry: entryScore >= entry15MModerateThreshold
-      };
-      const satisfiedCount = [conditions.trend, conditions.factor, conditions.entry].filter(Boolean).length;
-
-      if (satisfiedCount >= 3) {
-        logger.info(`✅ 强信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=${factorModerateThreshold}, 15M=${entryScore}>=${entry15MModerateThreshold}, 满足${satisfiedCount}个条件`);
-        return trendDirection === 'UP' ? 'BUY' : 'SELL';
-      }
-    }
-
-    // 中等信号：总分>=50，且满足至少两个条件（中等质量）
-    if (normalizedScore >= 50 && normalizedScore < 60 && trendDirection !== 'RANGE') {
-      const conditions = {
-        trend: trendScore >= trend4HModerateThreshold,
-        factor: factorScore >= factorModerateThreshold,
-        entry: entryScore >= entry15MModerateThreshold
-      };
-      const satisfiedCount = [conditions.trend, conditions.factor, conditions.entry].filter(Boolean).length;
-
-      if (satisfiedCount >= 2) {
-        logger.info(`⚠️ 中等信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=${factorModerateThreshold}, 15M=${entryScore}>=${entry15MModerateThreshold}, 满足${satisfiedCount}个条件`);
-        return trendDirection === 'UP' ? 'BUY' : 'SELL';
+      // Med置信度信号：满足大部分条件
+      if (fakeBreakoutFilter.confidence === 'Med' && 
+          normalizedScore >= 60 && 
+          factorScore >= factorStrongThreshold && 
+          entryScore >= entryStrongThreshold) {
+        logger.info(`⚠️ 中等信号触发: 总分=${normalizedScore}%, 因子=${factorScore}>=${factorStrongThreshold}, 15M=${entryScore}>=${entryStrongThreshold}`);
+        return {
+          signal: trendDirection === 'UP' ? 'BUY' : 'SELL',
+          confidence: 'Med',
+          reason: '中等趋势信号',
+          marketState,
+          normalizedScore,
+          earlyTrend,
+          fakeBreakoutFilter
+        };
       }
     }
 
     // 其他情况HOLD
-    logger.info(`信号不足: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}, 15M=${entryScore}, 补偿=${compensation}, HOLD`);
-    return 'HOLD';
+    logger.info(`信号不足: 总分=${normalizedScore}%, 市场状态=${marketState}, 假突破置信度=${fakeBreakoutFilter.confidence}, HOLD`);
+    return { 
+      signal: 'HOLD', 
+      confidence: 'Low', 
+      reason: '信号质量不足', 
+      marketState,
+      normalizedScore,
+      earlyTrend,
+      fakeBreakoutFilter
+    };
   }
 
   // 以下方法是为了兼容测试文件而添加的包装器方法
