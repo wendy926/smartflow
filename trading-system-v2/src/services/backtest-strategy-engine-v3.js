@@ -675,22 +675,47 @@ class BacktestStrategyEngineV3 {
           const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
           const risk = stopDistance;
 
-          // ✅ 从参数中获取止盈倍数（支持多个可能的category）
-          const takeProfitRatio = params?.risk_management?.takeProfitRatio || params?.position?.takeProfitRatio || 3.0;
-          const takeProfit = direction === 'LONG' ? entryPrice + takeProfitRatio * risk : entryPrice - takeProfitRatio * risk;
+          // ✅ 分仓出场策略：计算TP1和TP2
+          const tp1Ratio = params?.position_management?.tp1Ratio || 1.5;
+          const tp2Ratio = params?.position_management?.tp2Ratio || 4.0;
+          
+          // 根据置信度确定仓位比例
+          const highConfidenceRatio = (params?.position_management?.highConfidencePositionRatio || 70) / 100;
+          const medConfidenceRatio = (params?.position_management?.medConfidencePositionRatio || 50) / 100;
+          const positionRatio = confidence === 'High' ? highConfidenceRatio : (confidence === 'Med' ? medConfidenceRatio : 0);
+          
+          // 计算总数量（假设风险为固定金额）
+          const totalQuantity = 1.0 * positionRatio; // 基础数量 × 仓位比例
+          
+          // 计算TP1和TP2
+          const takeProfit1 = direction === 'LONG' ? entryPrice + tp1Ratio * risk : entryPrice - tp1Ratio * risk;
+          const takeProfit2 = direction === 'LONG' ? entryPrice + tp2Ratio * risk : entryPrice - tp2Ratio * risk;
+          
+          // 分仓数量：TP1平50%，TP2平50%
+          const tp1Quantity = totalQuantity * 0.5;
+          const tp2Quantity = totalQuantity * 0.5;
+          const remainingQuantity = totalQuantity; // 初始剩余数量等于总数量
 
-          const actualRR = takeProfitRatio / atrMultiplier;
-          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 使用参数计算止损止盈, ATR=${atr.toFixed(2)}, ATR倍数=${atrMultiplier}, 止盈倍数=${takeProfitRatio}, SL=${stopLoss.toFixed(2)}, TP=${takeProfit.toFixed(2)}, 盈亏比=${actualRR.toFixed(2)}:1, 置信度=${confidence}`);
+          const actualRR = tp2Ratio / atrMultiplier; // 使用TP2计算整体盈亏比
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 分仓出场策略, ATR=${atr.toFixed(4)}, ATR倍数=${atrMultiplier}, TP1倍数=${tp1Ratio}, TP2倍数=${tp2Ratio}, 置信度=${confidence}, 仓位比例=${positionRatio}, 总数量=${totalQuantity.toFixed(4)}, TP1数量=${tp1Quantity.toFixed(4)}, TP2数量=${tp2Quantity.toFixed(4)}`);
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: SL=${stopLoss.toFixed(4)}, TP1=${takeProfit1.toFixed(4)}, TP2=${takeProfit2.toFixed(4)}, 整体盈亏比=${actualRR.toFixed(2)}:1`);
 
           position = {
             symbol,
             type: direction,
             entryTime: new Date(currentKline[0]),
             entryPrice,
-            quantity: 1.0,
+            quantity: totalQuantity,
+            remainingQuantity: remainingQuantity, // 剩余数量（用于分仓出场）
             confidence: v3Result.confidence || 'med',
-            stopLoss: stopLoss, // 使用策略或ATR计算的止损
-            takeProfit: takeProfit,
+            stopLoss: stopLoss,
+            takeProfit: takeProfit2, // 主要止盈目标（TP2）
+            takeProfit1: takeProfit1, // 第一期止盈
+            takeProfit2: takeProfit2, // 第二期止盈
+            tp1Quantity: tp1Quantity, // 第一期数量
+            tp2Quantity: tp2Quantity, // 第二期数量
+            tp1Filled: false, // TP1是否已平仓
+            tp2Filled: false, // TP2是否已平仓
             leverage: v3Result.leverage || 1
           };
 
@@ -740,7 +765,7 @@ class BacktestStrategyEngineV3 {
             }
           }
 
-          // 检查止损
+          // 检查止损（止损时全仓平仓）
           if (!shouldExit && position.type === 'LONG' && nextPrice <= position.stopLoss) {
             shouldExit = true;
             exitReason = '止损';
@@ -748,15 +773,68 @@ class BacktestStrategyEngineV3 {
             shouldExit = true;
             exitReason = '止损';
           }
-          // 检查止盈
-          else if (!shouldExit && position.type === 'LONG' && nextPrice >= position.takeProfit) {
-            shouldExit = true;
-            exitReason = '止盈';
-          } else if (!shouldExit && position.type === 'SHORT' && nextPrice <= position.takeProfit) {
-            shouldExit = true;
-            exitReason = '止盈';
+          // ✅ 分仓出场逻辑：先检查TP1，再检查TP2
+          else if (!shouldExit && position.takeProfit1 && position.remainingQuantity > 0) {
+            // 检查TP1（第一期止盈）
+            const tp1Hit = position.type === 'LONG' 
+              ? nextPrice >= position.takeProfit1 && !position.tp1Filled
+              : nextPrice <= position.takeProfit1 && !position.tp1Filled;
+
+            if (tp1Hit && position.remainingQuantity >= position.tp1Quantity) {
+              // TP1平仓（部分仓位）
+              const partialTrade = this.closePartialPosition(position, nextPrice, 'TP1止盈', position.tp1Quantity);
+              trades.push(partialTrade);
+              
+              // 更新策略实例的回撤状态
+              this.v3Strategy.updateDrawdownStatus(partialTrade.pnl);
+              
+              // 更新position状态
+              position.remainingQuantity -= position.tp1Quantity;
+              position.tp1Filled = true;
+              
+              console.log(`[回测引擎V3] ${symbol} V3-${mode}: TP1平仓 ${position.tp1Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
+              logger.info(`[回测引擎V3] ${symbol} V3-${mode}: TP1平仓 ${position.tp1Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
+            }
+
+            // 检查TP2（第二期止盈）
+            const tp2Hit = position.type === 'LONG'
+              ? nextPrice >= position.takeProfit2 && !position.tp2Filled
+              : nextPrice <= position.takeProfit2 && !position.tp2Filled;
+
+            if (tp2Hit && position.remainingQuantity >= position.tp2Quantity) {
+              // TP2平仓（剩余仓位）
+              const partialTrade = this.closePartialPosition(position, nextPrice, 'TP2止盈', position.tp2Quantity);
+              trades.push(partialTrade);
+              
+              // 更新策略实例的回撤状态
+              this.v3Strategy.updateDrawdownStatus(partialTrade.pnl);
+              
+              // 更新position状态
+              position.remainingQuantity -= position.tp2Quantity;
+              position.tp2Filled = true;
+              
+              console.log(`[回测引擎V3] ${symbol} V3-${mode}: TP2平仓 ${position.tp2Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
+              logger.info(`[回测引擎V3] ${symbol} V3-${mode}: TP2平仓 ${position.tp2Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
+            }
+
+            // 如果所有仓位都已平仓，清空position
+            if (position.remainingQuantity <= 0.0001) {
+              position = null;
+              lastSignal = null;
+            }
+          }
+          // 兼容旧逻辑：如果没有分仓信息，使用旧逻辑
+          else if (!shouldExit && position.takeProfit && !position.takeProfit1) {
+            if (position.type === 'LONG' && nextPrice >= position.takeProfit) {
+              shouldExit = true;
+              exitReason = '止盈';
+            } else if (position.type === 'SHORT' && nextPrice <= position.takeProfit) {
+              shouldExit = true;
+              exitReason = '止盈';
+            }
           }
 
+          // 全仓平仓（止损或旧逻辑）
           if (shouldExit) {
             const trade = this.closePosition(position, nextPrice, exitReason);
             trades.push(trade);
@@ -778,11 +856,20 @@ class BacktestStrategyEngineV3 {
     // 平仓未完成的持仓
     if (position) {
       const lastKline = klines[klines.length - 1];
-      const trade = this.closePosition(position, lastKline[4], '回测结束');
-      trades.push(trade);
-
-      // 更新策略实例的回撤状态
-      this.v3Strategy.updateDrawdownStatus(trade.pnl);
+      const lastPrice = parseFloat(lastKline[4]);
+      
+      // 如果还有剩余仓位，按最后价格全部平仓
+      if (position.remainingQuantity > 0.0001) {
+        const finalTrade = this.closePartialPosition(position, lastPrice, '回测结束', position.remainingQuantity);
+        trades.push(finalTrade);
+        this.v3Strategy.updateDrawdownStatus(finalTrade.pnl);
+        logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 回测结束平仓剩余数量=${position.remainingQuantity.toFixed(4)}, PnL=${finalTrade.pnl.toFixed(2)}`);
+      } else {
+        // 如果没有剩余仓位，但position还存在，说明可能是旧逻辑，使用全仓平仓
+        const trade = this.closePosition(position, lastPrice, '回测结束');
+        trades.push(trade);
+        this.v3Strategy.updateDrawdownStatus(trade.pnl);
+      }
     }
 
     // 输出假突破过滤统计
@@ -815,6 +902,38 @@ class BacktestStrategyEngineV3 {
       durationHours,
       exitReason: reason,
       fees
+    };
+  }
+
+  /**
+   * 部分平仓（用于分仓出场）
+   * @param {Object} position - 持仓
+   * @param {number} exitPrice - 平仓价格
+   * @param {string} reason - 平仓原因
+   * @param {number} exitQuantity - 平仓数量
+   * @returns {Object} 交易记录
+   */
+  closePartialPosition(position, exitPrice, reason, exitQuantity) {
+    const pnl = position.type === 'LONG'
+      ? (exitPrice - position.entryPrice) * exitQuantity
+      : (position.entryPrice - exitPrice) * exitQuantity;
+
+    const durationHours = (new Date() - position.entryTime) / (1000 * 60 * 60);
+    const fees = Math.abs(pnl) * 0.001; // 0.1% 手续费
+
+    return {
+      symbol: position.symbol,
+      type: position.type,
+      entryTime: position.entryTime,
+      exitTime: new Date(),
+      entryPrice: position.entryPrice,
+      exitPrice,
+      quantity: exitQuantity, // 部分数量
+      pnl,
+      durationHours,
+      exitReason: reason,
+      fees,
+      confidence: position.confidence
     };
   }
 
