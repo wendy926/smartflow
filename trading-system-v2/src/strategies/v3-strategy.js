@@ -778,13 +778,13 @@ class V3Strategy {
       // ✅ 从数据库读取止损/止盈参数，替代hardcoded值
       const stopLossATRMultiplier = this.params.risk_management?.stopLossATRMultiplier || this.getThreshold('risk_management', 'stopLossATRMultiplier', 1.0);
       const takeProfitRatio = this.params.risk_management?.takeProfitRatio || this.getThreshold('risk_management', 'takeProfitRatio', 3.0);
-      
+
       logger.info(`${symbol} V3止损止盈参数: stopLossATRMultiplier=${stopLossATRMultiplier}, takeProfitRatio=${takeProfitRatio}`);
-      
+
       // 直接计算止损/止盈（使用数据库参数）
       let stopLoss, takeProfit;
       const isLong = signal === 'BUY';
-      
+
       if (isLong) {
         stopLoss = entryPrice - (atr * stopLossATRMultiplier);
         takeProfit = entryPrice + (atr * stopLossATRMultiplier * takeProfitRatio);
@@ -792,9 +792,9 @@ class V3Strategy {
         stopLoss = entryPrice + (atr * stopLossATRMultiplier);
         takeProfit = entryPrice - (atr * stopLossATRMultiplier * takeProfitRatio);
       }
-      
+
       logger.info(`${symbol} V3交易参数: 入场=${entryPrice.toFixed(4)}, 止损=${stopLoss.toFixed(4)}, 止盈=${takeProfit.toFixed(4)}, 盈亏比=${takeProfitRatio}:1`);
-      
+
       // 获取时间止损配置
       const PositionDurationManager = require('../utils/position-duration-manager');
       const positionConfig = PositionDurationManager.getPositionConfig(symbol, marketType);

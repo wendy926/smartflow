@@ -519,14 +519,15 @@ class BacktestStrategyEngineV3 {
         this.v3Strategy.mode = mode; // 强制设置模式
 
         // ✅ 确保参数已加载完成（与实盘一致）
-        if (!this.v3Strategy.params || Object.keys(this.v3Strategy.params).length === 0) {
-          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数未加载，开始加载...`);
+        // 如果模式改变或参数为空，重新加载参数
+        if (!this.v3Strategy.params || Object.keys(this.v3Strategy.params).length === 0 || this.v3Strategy.mode !== mode) {
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数未加载或模式不匹配，开始加载...`);
           await this.v3Strategy.initializeParameters(mode);
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 参数加载完成`);
         }
 
         // 🔍 调试：输出关键参数值（从策略实例中读取）
-        const keyParams = ['trend4HStrongThreshold', 'entry15MStrongThreshold', 'stopLossATRMultiplier', 'takeProfitRatio'];
+        const keyParams = ['trend4HStrongThreshold', 'entry15MStrongThreshold', 'trend4HModerateThreshold', 'entry15MModerateThreshold', 'stopLossATRMultiplier', 'takeProfitRatio'];
         console.log(`[回测引擎V3] ${symbol} V3-${mode}: 策略实例参数值:`);
         logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 策略实例参数值:`);
         keyParams.forEach(param => {
