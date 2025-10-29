@@ -56,7 +56,7 @@ async function triggerBacktest() {
     // 查询回测结果
     console.log('4. 查询回测结果...\n');
     const query = `
-      SELECT 
+      SELECT
         strategy_mode as mode,
         ROUND(win_rate * 100, 2) as win_rate_pct,
         ROUND(total_pnl, 2) as total_pnl,
@@ -64,7 +64,7 @@ async function triggerBacktest() {
         total_trades,
         ROUND(IFNULL(avg_win/ABS(avg_loss), 0), 2) as rr_ratio,
         created_at
-      FROM strategy_parameter_backtest_results 
+      FROM strategy_parameter_backtest_results
       WHERE strategy_name = 'V3'
         AND created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)
       ORDER BY created_at DESC
@@ -88,16 +88,16 @@ async function triggerBacktest() {
     // 验证是否达标
     console.log('\n🎯 验证结果:');
     console.log('='.repeat(80));
-    
+
     let allPassed = true;
     for (const result of dbResults) {
       const winRateOK = result.win_rate_pct >= 50;
       const rrOK = result.rr_ratio >= 3.0;
       const profitOK = result.total_pnl >= 0;
-      
+
       const status = (winRateOK && rrOK && profitOK) ? '✅' : '❌';
-      console.log(`${status} ${result.mode}: 胜率${winRateOK?'✅':'❌'} ${result.win_rate_pct}%, 盈亏比${rrOK?'✅':'❌'} ${result.rr_ratio}, 盈亏${profitOK?'✅':'❌'} ${result.total_pnl}`);
-      
+      console.log(`${status} ${result.mode}: 胜率${winRateOK ? '✅' : '❌'} ${result.win_rate_pct}%, 盈亏比${rrOK ? '✅' : '❌'} ${result.rr_ratio}, 盈亏${profitOK ? '✅' : '❌'} ${result.total_pnl}`);
+
       if (!winRateOK || !rrOK || !profitOK) {
         allPassed = false;
       }

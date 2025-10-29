@@ -1,6 +1,6 @@
 # V3策略优化和验证最终状态报告
 
-**报告时间**: 2025-10-29  
+**报告时间**: 2025-10-29
 **优化目标**: 胜率≥50%，盈亏比≥3:1，无亏损
 
 ## ✅ 已完成的优化工作
@@ -79,16 +79,16 @@ curl -X POST 'https://smart.aimaventop.com/api/v1/backtest/V3/AGGRESSIVE' \
 ### 方法3: 直接查询数据库
 
 ```sql
-SELECT 
+SELECT
   strategy_mode as '模式',
   ROUND(win_rate*100, 2) as '胜率%',
   ROUND(total_pnl, 2) as '总盈亏',
   total_trades as '交易数',
   ROUND(IFNULL(avg_win/ABS(avg_loss), 0), 2) as '盈亏比',
   created_at as '时间'
-FROM strategy_parameter_backtest_results 
-WHERE strategy_name='V3' 
-ORDER BY created_at DESC 
+FROM strategy_parameter_backtest_results
+WHERE strategy_name='V3'
+ORDER BY created_at DESC
 LIMIT 3;
 ```
 
@@ -139,6 +139,6 @@ LIMIT 3;
 - [ ] 验证是否达到目标
 
 ---
-**当前状态**: ⏳ 回测任务已触发，等待结果验证  
+**当前状态**: ⏳ 回测任务已触发，等待结果验证
 **下一步**: 通过前端页面或API查询最新回测结果并验证是否达标
 

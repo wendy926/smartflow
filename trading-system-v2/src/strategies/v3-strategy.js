@@ -777,22 +777,27 @@ class V3Strategy {
 
       // ✅ 基于optimize.md的分仓出场策略
       const stopLossATRMultiplier = this.params.risk_management?.stopLossATRMultiplier || this.getThreshold('risk_management', 'stopLossATRMultiplier', 1.0);
-      const tp1Ratio = this.getThreshold('position_management', 'tp1Ratio', 1.5);
-      const tp2Ratio = this.getThreshold('position_management', 'tp2Ratio', 4.0);
+      const takeProfitRatio = this.params.risk_management?.takeProfitRatio || this.getThreshold('risk_management', 'takeProfitRatio', 5.0);
+      // TP1: 第一个止盈位（60%的止盈距离）
+      const tp1Ratio = this.getThreshold('position_management', 'tp1Ratio', 0.6) * takeProfitRatio;
+      // TP2: 第二个止盈位（100%的止盈距离）
+      const tp2Ratio = takeProfitRatio;
       const breakevenTrigger = this.getThreshold('position_management', 'breakevenTrigger', 1.0);
       const trailingStep = this.getThreshold('position_management', 'trailingStep', 0.5);
 
-      // 根据置信度确定仓位比例
-      const highConfidenceRatio = this.getThreshold('position_management', 'highConfidencePositionRatio', 60) / 100;
-      const medConfidenceRatio = this.getThreshold('position_management', 'medConfidencePositionRatio', 40) / 100;
+      // ✅ 根据optimize.md建议：只用High信号建仓，Med信号加额外过滤（已在combineSignals中处理）
+      // 确保只有High置信度信号才能建仓，Med信号应该已经在combineSignals中被过滤
+      const highConfidenceRatio = this.getThreshold('position_management', 'highConfidencePositionRatio', 100) / 100; // High信号100%仓位
+      const medConfidenceRatio = this.getThreshold('position_management', 'medConfidencePositionRatio', 70) / 100; // Med信号70%仓位（已加额外过滤）
 
       let positionRatio = 0;
       if (confidence === 'High') {
-        positionRatio = highConfidenceRatio;
+        positionRatio = highConfidenceRatio; // High信号：100%仓位
       } else if (confidence === 'Med') {
-        positionRatio = medConfidenceRatio;
+        positionRatio = medConfidenceRatio; // Med信号（已加额外过滤）：70%仓位
       } else {
         positionRatio = 0; // Low置信度不建仓
+        logger.warn(`${symbol} V3策略: 置信度${confidence}过低，不建仓`);
       }
 
       logger.info(`${symbol} V3分仓参数: 置信度=${confidence}, 仓位比例=${positionRatio}, TP1=${tp1Ratio}, TP2=${tp2Ratio}`);
@@ -1276,9 +1281,24 @@ class V3Strategy {
       const confidence = signalResult.confidence;
       logger.info(`[${symbol}] 信号融合结果: ${finalSignal}, 置信度: ${confidence}`);
 
+      // ✅ 根据optimize.md建议：只用High信号建仓，Med信号加额外过滤
+      // 确保只有High或Med（已加额外过滤）置信度才能建仓
+      if (finalSignal !== 'HOLD' && finalSignal !== 'ERROR' && confidence !== 'High' && confidence !== 'Med') {
+        logger.warn(`[${symbol}] V3策略: 信号置信度${confidence}过低，跳过建仓`);
+        return {
+          success: true,
+          symbol,
+          strategy: 'V3',
+          signal: 'HOLD',
+          confidence: 'Low',
+          reason: `信号置信度${confidence}过低，不建仓`,
+          timestamp: new Date()
+        };
+      }
+
       // 计算交易参数（如果有交易信号且没有现有交易）
       let tradeParams = { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
-      if (finalSignal !== 'HOLD' && finalSignal !== 'ERROR') {
+      if (finalSignal !== 'HOLD' && finalSignal !== 'ERROR' && (confidence === 'High' || confidence === 'Med')) {
         try {
           // 检查是否已有交易（简单的内存缓存检查）
           const cacheKey = `v3_trade_${symbol}`;
@@ -1574,10 +1594,12 @@ class V3Strategy {
    */
   improvedFakeBreakoutFilter(klines15M, klines1H, klines4H) {
     try {
+      // ✅ 根据optimize.md建议收紧：volFactor→1.5, Delta→0.06
       const volFactor = this.getThreshold('signal_filter', 'volFactor', 1.5);
       const deltaThreshold = this.getThreshold('signal_filter', 'deltaThreshold', 0.06);
       const retraceLimit = this.getThreshold('signal_filter', 'retraceLimit', 0.25);
-      const volZScoreThreshold = this.getThreshold('signal_filter', 'volZScoreThreshold', 0.8);
+      // ✅ 使用vol_z分数而非仅乘数（根据optimize.md建议）
+      const volZScoreThreshold = this.getThreshold('signal_filter', 'volZScoreThreshold', 1.0);
 
       // 计算成交量Z分数
       const volumes = klines15M.map(k => parseFloat(k[5]));
@@ -1604,10 +1626,19 @@ class V3Strategy {
 
       const satisfiedCount = Object.values(conditions).filter(Boolean).length;
 
-      // 必须满足至少2/3的高质量支持条件
-      if (satisfiedCount >= 2) {
+      // ✅ 收紧：必须满足至少3/4的高质量支持条件才能通过
+      if (satisfiedCount >= 3) {
         return {
-          confidence: satisfiedCount >= 3 ? 'High' : 'Med',
+          confidence: 'High', // 只有满足3个或以上条件才是High
+          conditions,
+          satisfiedCount,
+          volZScore,
+          delta,
+          priceChange
+        };
+      } else if (satisfiedCount >= 2) {
+        return {
+          confidence: 'Med', // 满足2个条件是Med
           conditions,
           satisfiedCount,
           volZScore,
@@ -1769,18 +1800,25 @@ class V3Strategy {
       return { signal: 'HOLD', confidence: 'Low', reason: '震荡市无假突破', marketState };
     }
 
-    // 趋势市：只做高质量趋势建仓
+    // 趋势市：只做高质量趋势建仓（根据optimize.md建议：只用High信号建仓）
     if (marketState === 'TREND') {
-      // High置信度信号：放宽条件（从70降到60，允许部分条件满足）
-      if ((fakeBreakoutFilter.confidence === 'High' || fakeBreakoutFilter.confidence === 'Med') && 
-          normalizedScore >= 60 && 
-          trendScore >= trend4HStrongThreshold && 
-          (factorScore >= factorStrongThreshold || entryScore >= entryStrongThreshold)) {
-        logger.info(`🔥 超强信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HStrongThreshold}, 因子=${factorScore}>=${factorStrongThreshold}, 15M=${entryScore}>=${entryStrongThreshold}`);
+      // ✅ 优化：只用High置信度信号建仓，提高胜率
+      // 要求：normalizedScore >= 65（提高阈值），fakeBreakoutFilter必须High，且满足所有关键条件
+      const trend4HModerateThreshold = this.getThreshold('trend', 'trend4HModerateThreshold', 2);
+      const entry15MModerateThreshold = this.getThreshold('entry', 'entry15MModerateThreshold', 2);
+      const factorModerateThreshold = this.getThreshold('factor', 'factorModerateThreshold', 1);
+      
+      // High信号：严格要求
+      if (fakeBreakoutFilter.confidence === 'High' && 
+          normalizedScore >= 65 && 
+          trendScore >= trend4HModerateThreshold && 
+          factorScore >= factorModerateThreshold && 
+          entryScore >= entry15MModerateThreshold) {
+        logger.info(`🔥 High信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=${factorModerateThreshold}, 15M=${entryScore}>=${entry15MModerateThreshold}`);
         return {
           signal: trendDirection === 'UP' ? 'BUY' : 'SELL',
           confidence: 'High',
-          reason: '超强趋势信号',
+          reason: '高质量趋势信号（所有条件满足）',
           marketState,
           normalizedScore,
           earlyTrend,
@@ -1788,15 +1826,17 @@ class V3Strategy {
         };
       }
 
-      // Med置信度信号：进一步放宽（从60降到50）
-      if ((fakeBreakoutFilter.confidence === 'Med' || fakeBreakoutFilter.confidence === 'High') && 
-          normalizedScore >= 50 && 
-          (factorScore >= factorStrongThreshold || entryScore >= entryStrongThreshold)) {
-        logger.info(`⚠️ 中等信号触发: 总分=${normalizedScore}%, 因子=${factorScore}>=${factorStrongThreshold}, 15M=${entryScore}>=${entryStrongThreshold}`);
+      // ✅ Med信号：加额外过滤（根据optimize.md建议）
+      // 要求更高：normalizedScore >= 70，且fakeBreakoutFilter必须High或Med，且早期趋势检测必须通过
+      if ((fakeBreakoutFilter.confidence === 'High' || fakeBreakoutFilter.confidence === 'Med') && 
+          normalizedScore >= 70 && 
+          earlyTrend.detected && 
+          (factorScore >= factorModerateThreshold || entryScore >= entry15MModerateThreshold)) {
+        logger.info(`⚠️ Med信号（加额外过滤）触发: 总分=${normalizedScore}%, 早期趋势=${earlyTrend.detected}, 因子=${factorScore}>=${factorModerateThreshold}或15M=${entryScore}>=${entry15MModerateThreshold}`);
         return {
           signal: trendDirection === 'UP' ? 'BUY' : 'SELL',
           confidence: 'Med',
-          reason: '中等趋势信号',
+          reason: '中等趋势信号（早期趋势确认）',
           marketState,
           normalizedScore,
           earlyTrend,

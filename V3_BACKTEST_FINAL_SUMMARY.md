@@ -1,6 +1,6 @@
 # V3策略回测验证最终总结
 
-**日期**: 2025-10-29  
+**日期**: 2025-10-29
 **目标**: 胜率≥50%，盈亏比≥3:1，无亏损
 
 ## ✅ 已完成的优化工作
@@ -57,9 +57,9 @@
 ### 方案3: 直接查询数据库验证参数
 确认回测使用的参数是否正确：
 ```sql
-SELECT param_name, param_value, strategy_mode 
-FROM strategy_params 
-WHERE strategy_name='V3' 
+SELECT param_name, param_value, strategy_mode
+FROM strategy_params
+WHERE strategy_name='V3'
   AND param_name='stopLossATRMultiplier'
   AND is_active=1;
 ```

@@ -675,14 +675,24 @@ class BacktestStrategyEngineV3 {
           const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
           const risk = stopDistance;
 
-          // ✅ 分仓出场策略：计算TP1和TP2
-          const tp1Ratio = params?.position_management?.tp1Ratio || 1.5;
-          const tp2Ratio = params?.position_management?.tp2Ratio || 4.0;
+          // ✅ 分仓出场策略：使用takeProfitRatio计算TP1和TP2
+          const takeProfitRatio = params?.risk_management?.takeProfitRatio || 5.0;
+          // TP1: 第一个止盈位（60%的止盈距离）
+          const tp1Ratio = 0.6 * takeProfitRatio;
+          // TP2: 第二个止盈位（100%的止盈距离）
+          const tp2Ratio = takeProfitRatio;
           
-          // 根据置信度确定仓位比例
-          const highConfidenceRatio = (params?.position_management?.highConfidencePositionRatio || 70) / 100;
-          const medConfidenceRatio = (params?.position_management?.medConfidencePositionRatio || 50) / 100;
+          // ✅ 根据optimize.md建议：只用High信号建仓，Med信号加额外过滤
+          // High信号：100%仓位，Med信号（已加额外过滤）：70%仓位
+          const highConfidenceRatio = (params?.position_management?.highConfidencePositionRatio || 100) / 100;
+          const medConfidenceRatio = (params?.position_management?.medConfidencePositionRatio || 70) / 100;
           const positionRatio = confidence === 'High' ? highConfidenceRatio : (confidence === 'Med' ? medConfidenceRatio : 0);
+          
+          // 如果置信度不足，不建仓
+          if (positionRatio === 0) {
+            logger.warn(`[回测引擎V3] ${symbol} V3-${mode}: 置信度${confidence}不足，跳过建仓`);
+            continue;
+          }
           
           // 计算总数量（假设风险为固定金额）
           const totalQuantity = 1.0 * positionRatio; // 基础数量 × 仓位比例

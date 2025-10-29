@@ -1,7 +1,7 @@
 # V3策略回测验证报告
 
-**生成时间**: 2025-10-29  
-**部署状态**: ✅ 已部署到vps-sg  
+**生成时间**: 2025-10-29
+**部署状态**: ✅ 已部署到vps-sg
 **文档更新**: ✅ 已更新docs页面V3策略实现逻辑架构
 
 ## 📊 当前回测结果
@@ -34,7 +34,7 @@
 
 ### ❗ 关键发现
 
-**stopLossATRMultiplier=0.2 过小**  
+**stopLossATRMultiplier=0.2 过小**
 - 当前值0.2会导致止损非常紧，容易被市场噪音触发
 - 根据优化计划，应该调整为0.6（保守）或0.25（根据optimize.md建议）
 - 0.2的止损配合5.0的止盈，理论上盈亏比是25:1，但实际只有0.53，说明大多数交易都被止损了
@@ -43,7 +43,7 @@
 
 根据optimize.md和用户要求：
 - ✅ **胜率**: ≥50%
-- ✅ **盈亏比**: ≥3:1  
+- ✅ **盈亏比**: ≥3:1
 - ✅ **回测结果**: 无亏损（总盈亏≥0）
 
 ## 🔧 建议修复方案
@@ -55,17 +55,17 @@
 **解决方案**:
 ```sql
 -- 将所有模式的stopLossATRMultiplier调整为0.6（与优化文档一致）
-UPDATE strategy_params 
-SET param_value = '0.6' 
-WHERE strategy_name = 'V3' 
-  AND param_name = 'stopLossATRMultiplier' 
+UPDATE strategy_params
+SET param_value = '0.6'
+WHERE strategy_name = 'V3'
+  AND param_name = 'stopLossATRMultiplier'
   AND is_active = 1;
 
 -- 或者使用optimize.md建议的0.25
-UPDATE strategy_params 
-SET param_value = '0.25' 
-WHERE strategy_name = 'V3' 
-  AND param_name = 'stopLossATRMultiplier' 
+UPDATE strategy_params
+SET param_value = '0.25'
+WHERE strategy_name = 'V3'
+  AND param_name = 'stopLossATRMultiplier'
   AND is_active = 1;
 ```
 
@@ -112,6 +112,6 @@ WHERE strategy_name = 'V3'
 - ✅ 三种模式结果有明显差异（确认参数正确加载）
 
 ---
-**报告生成时间**: 2025-10-29  
+**报告生成时间**: 2025-10-29
 **状态**: ⚠️ 需要参数调整后重新验证
 
