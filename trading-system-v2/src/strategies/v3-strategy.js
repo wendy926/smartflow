@@ -1530,14 +1530,14 @@ class V3Strategy {
     logger.info(`[V3信号判断] 阈值: trend4HStrong=${trend4HStrongThreshold}, entry15MStrong=${entry15MStrongThreshold}, adjustedStrong=${adjustedThreshold.strong}`);
     logger.info(`[V3信号判断] 得分: 总分=${normalizedScore}%, 趋势=${trendScore}, 因子=${factorScore}, 15M=${entryScore}, 结构=${structureScore}, 补偿=${compensation}`);
 
-    // ✅ 大幅降低阈值：强信号（总分>=30，且任何两个条件满足即可）
+    // ✅ 优化信号质量：提高阈值，减少低质量信号
     const trend4HModerateThreshold = this.getThreshold('trend', 'trend4HModerateThreshold', 2);
     const entry15MModerateThreshold = this.getThreshold('entry', 'entry15MModerateThreshold', 2);
     const entry15MWeakThreshold = this.getThreshold('entry', 'entry15MWeakThreshold', 1);
     const factorModerateThreshold = this.getThreshold('factor', 'factorModerateThreshold', 1);
 
-    // 强信号：总分>=30，且满足两个条件
-    if (normalizedScore >= 30 && trendDirection !== 'RANGE') {
+    // 强信号：总分>=50，且满足所有三个条件（提高质量要求）
+    if (normalizedScore >= 50 && trendDirection !== 'RANGE') {
       const conditions = {
         trend: trendScore >= trend4HModerateThreshold,  // 使用数据库阈值
         factor: factorScore >= factorModerateThreshold, // 使用数据库阈值
@@ -1545,24 +1545,31 @@ class V3Strategy {
       };
       const satisfiedCount = [conditions.trend, conditions.factor, conditions.entry].filter(Boolean).length;
 
+      if (satisfiedCount >= 3) {  // 必须满足所有3个条件
+        logger.info(`✅ 强信号触发(优化逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=${factorModerateThreshold}, 15M=${entryScore}>=${entry15MModerateThreshold}, 满足${satisfiedCount}个条件`);
+        return trendDirection === 'UP' ? 'BUY' : 'SELL';
+      }
+    }
+
+    // 中等信号：总分>=40，且满足至少两个条件（提高质量要求）
+    if (normalizedScore >= 40 && normalizedScore < 50 && trendDirection !== 'RANGE') {
+      const conditions = {
+        trend: trendScore >= trend4HModerateThreshold,
+        factor: factorScore >= factorModerateThreshold,
+        entry: entryScore >= entry15MModerateThreshold
+      };
+      const satisfiedCount = [conditions.trend, conditions.factor, conditions.entry].filter(Boolean).length;
+
       if (satisfiedCount >= 2) {  // 至少满足2个条件
-        logger.info(`✅ 强信号触发(新逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=${factorModerateThreshold}, 15M=${entryScore}>=${entry15MModerateThreshold}, 满足${satisfiedCount}个条件`);
+        logger.info(`⚠️ 中等信号触发(优化逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=${factorModerateThreshold}, 15M=${entryScore}>=${entry15MModerateThreshold}, 满足${satisfiedCount}个条件`);
         return trendDirection === 'UP' ? 'BUY' : 'SELL';
       }
     }
 
-    // 中等信号：总分>=20，且满足任意一个条件
-    if (normalizedScore >= 20 && normalizedScore < 30 && trendDirection !== 'RANGE') {
-      if (trendScore >= trend4HModerateThreshold || factorScore >= factorModerateThreshold || entryScore >= entry15MModerateThreshold) {
-        logger.info(`⚠️ 中等信号触发(新逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=${factorModerateThreshold}, 15M=${entryScore}>=${entry15MModerateThreshold}`);
-        return trendDirection === 'UP' ? 'BUY' : 'SELL';
-      }
-    }
-
-    // 弱信号：总分>=15，且有明确趋势方向
-    if (normalizedScore >= 15 && normalizedScore < 20 && trendDirection !== 'RANGE') {
-      if (trendScore >= trend4HWeakThreshold) {  // 使用数据库阈值
-        logger.info(`⚠️ 弱信号触发(新逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HWeakThreshold}, 方向=${trendDirection}`);
+    // 弱信号：总分>=35，且趋势和入场都满足（提高质量要求）
+    if (normalizedScore >= 35 && normalizedScore < 40 && trendDirection !== 'RANGE') {
+      if (trendScore >= trend4HModerateThreshold && entryScore >= entry15MModerateThreshold) {
+        logger.info(`⚠️ 弱信号触发(优化逻辑): 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 15M=${entryScore}>=${entry15MModerateThreshold}, 方向=${trendDirection}`);
         return trendDirection === 'UP' ? 'BUY' : 'SELL';
       }
     }
