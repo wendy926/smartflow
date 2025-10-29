@@ -697,6 +697,14 @@ class BacktestStrategyEngineV3 {
           const remainingQuantity = totalQuantity; // 初始剩余数量等于总数量
 
           const actualRR = tp2Ratio / atrMultiplier; // 使用TP2计算整体盈亏比
+          
+          // ✅ 详细调试输出
+          console.log(`[回测引擎V3调试] ${symbol} V3-${mode}: 参数验证`);
+          console.log(`[回测引擎V3调试] - ATR=${atr.toFixed(4)}, stopLossATRMultiplier=${atrMultiplier}, stopDistance=${stopDistance.toFixed(4)}`);
+          console.log(`[回测引擎V3调试] - tp1Ratio=${tp1Ratio}, tp2Ratio=${tp2Ratio}, confidence=${confidence}, positionRatio=${positionRatio}`);
+          console.log(`[回测引擎V3调试] - totalQuantity=${totalQuantity.toFixed(4)}, tp1Quantity=${tp1Quantity.toFixed(4)}, tp2Quantity=${tp2Quantity.toFixed(4)}`);
+          console.log(`[回测引擎V3调试] - entryPrice=${entryPrice.toFixed(4)}, stopLoss=${stopLoss.toFixed(4)}, stopDistance=${stopDistance.toFixed(4)}, 止损百分比=${((stopDistance/entryPrice)*100).toFixed(2)}%`);
+          
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 分仓出场策略, ATR=${atr.toFixed(4)}, ATR倍数=${atrMultiplier}, TP1倍数=${tp1Ratio}, TP2倍数=${tp2Ratio}, 置信度=${confidence}, 仓位比例=${positionRatio}, 总数量=${totalQuantity.toFixed(4)}, TP1数量=${tp1Quantity.toFixed(4)}, TP2数量=${tp2Quantity.toFixed(4)}`);
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: SL=${stopLoss.toFixed(4)}, TP1=${takeProfit1.toFixed(4)}, TP2=${takeProfit2.toFixed(4)}, 整体盈亏比=${actualRR.toFixed(2)}:1`);
 
