@@ -527,13 +527,20 @@ class BacktestStrategyEngineV3 {
         }
 
         // 🔍 调试：输出关键参数值（从策略实例中读取）
-        const keyParams = ['trend4HStrongThreshold', 'entry15MStrongThreshold', 'trend4HModerateThreshold', 'entry15MModerateThreshold', 'stopLossATRMultiplier', 'takeProfitRatio'];
+        const keyParams = ['trend4HStrongThreshold', 'entry15MStrongThreshold', 'trend4HModerateThreshold', 'entry15MModerateThreshold', 'factorModerateThreshold', 'stopLossATRMultiplier', 'takeProfitRatio'];
         console.log(`[回测引擎V3] ${symbol} V3-${mode}: 策略实例参数值:`);
         logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 策略实例参数值:`);
         keyParams.forEach(param => {
           let value = 'undefined';
           if (param.includes('Threshold')) {
-            const category = param.includes('trend4H') ? 'trend_thresholds' : 'entry_thresholds';
+            let category;
+            if (param.includes('trend4H')) {
+              category = 'trend_thresholds';
+            } else if (param.includes('entry15M')) {
+              category = 'entry_thresholds';
+            } else if (param.includes('factor')) {
+              category = 'factor_thresholds';
+            }
             value = this.v3Strategy.params[category]?.[param] || 'undefined';
           } else if (param.includes('ATR') || param.includes('Ratio')) {
             value = this.v3Strategy.params.risk_management?.[param] || 'undefined';
