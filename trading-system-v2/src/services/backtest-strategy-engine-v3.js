@@ -773,9 +773,11 @@ class BacktestStrategyEngineV3 {
             shouldExit = true;
             exitReason = '止损';
           }
-          // ✅ 分仓出场逻辑：先检查TP1，再检查TP2
+          // ✅ 分仓出场逻辑：先检查TP1，再检查TP2（必须在TP1已平仓或价格同时达到时才检查TP2）
           else if (!shouldExit && position.takeProfit1 && position.remainingQuantity > 0) {
-            // 检查TP1（第一期止盈）
+            let tp1Executed = false;
+            
+            // 检查TP1（第一期止盈）- 优先执行
             const tp1Hit = position.type === 'LONG' 
               ? nextPrice >= position.takeProfit1 && !position.tp1Filled
               : nextPrice <= position.takeProfit1 && !position.tp1Filled;
@@ -791,30 +793,33 @@ class BacktestStrategyEngineV3 {
               // 更新position状态
               position.remainingQuantity -= position.tp1Quantity;
               position.tp1Filled = true;
+              tp1Executed = true;
               
               console.log(`[回测引擎V3] ${symbol} V3-${mode}: TP1平仓 ${position.tp1Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
               logger.info(`[回测引擎V3] ${symbol} V3-${mode}: TP1平仓 ${position.tp1Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
             }
 
-            // 检查TP2（第二期止盈）
-            const tp2Hit = position.type === 'LONG'
-              ? nextPrice >= position.takeProfit2 && !position.tp2Filled
-              : nextPrice <= position.takeProfit2 && !position.tp2Filled;
+            // 检查TP2（第二期止盈）- 只有在TP1已执行或价格同时达到时才执行
+            if ((tp1Executed || tp1Hit || position.tp1Filled) && position.remainingQuantity > 0) {
+              const tp2Hit = position.type === 'LONG'
+                ? nextPrice >= position.takeProfit2 && !position.tp2Filled
+                : nextPrice <= position.takeProfit2 && !position.tp2Filled;
 
-            if (tp2Hit && position.remainingQuantity >= position.tp2Quantity) {
-              // TP2平仓（剩余仓位）
-              const partialTrade = this.closePartialPosition(position, nextPrice, 'TP2止盈', position.tp2Quantity);
-              trades.push(partialTrade);
-              
-              // 更新策略实例的回撤状态
-              this.v3Strategy.updateDrawdownStatus(partialTrade.pnl);
-              
-              // 更新position状态
-              position.remainingQuantity -= position.tp2Quantity;
-              position.tp2Filled = true;
-              
-              console.log(`[回测引擎V3] ${symbol} V3-${mode}: TP2平仓 ${position.tp2Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
-              logger.info(`[回测引擎V3] ${symbol} V3-${mode}: TP2平仓 ${position.tp2Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
+              if (tp2Hit && position.remainingQuantity >= position.tp2Quantity) {
+                // TP2平仓（剩余仓位）
+                const partialTrade = this.closePartialPosition(position, nextPrice, 'TP2止盈', position.tp2Quantity);
+                trades.push(partialTrade);
+                
+                // 更新策略实例的回撤状态
+                this.v3Strategy.updateDrawdownStatus(partialTrade.pnl);
+                
+                // 更新position状态
+                position.remainingQuantity -= position.tp2Quantity;
+                position.tp2Filled = true;
+                
+                console.log(`[回测引擎V3] ${symbol} V3-${mode}: TP2平仓 ${position.tp2Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
+                logger.info(`[回测引擎V3] ${symbol} V3-${mode}: TP2平仓 ${position.tp2Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
+              }
             }
 
             // 如果所有仓位都已平仓，清空position
