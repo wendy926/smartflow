@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartFlow 交易策略系统 - 最新优化文档 (2025-10-18)</title>
+  <title>SmartFlow 交易策略系统 - 最新优化文档 (2025-10-29)</title>
   <link rel="stylesheet" href="styles.css">
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
   <style>
@@ -118,8 +118,8 @@
   <div class="docs-content">
     <div class="update-section">
       <h1><i class="fas fa-file-alt"></i> SmartFlow 交易策略系统文档</h1>
-      <p class="timestamp">最后更新: 2025-10-18</p>
-      <p>本文档记录了ICT策略和V3策略的最新优化和修复内容，包括持仓时长管理系统</p>
+      <p class="timestamp">最后更新: 2025-10-29</p>
+      <p>本文档记录了ICT策略和V3策略的最新优化和修复内容，包括V3策略信号质量优化和参数化配置系统</p>
     </div>
 
     <!-- 目录 -->
@@ -874,6 +874,65 @@
         adjustedThreshold = baseThreshold - compensation
       </div>
 
+      <h4>最新优化版本（2025-10-29）：</h4>
+      
+      <h5>1. 信号质量分级系统：</h5>
+      <div class="code-block">
+        // 超强信号：总分≥70%，且满足所有三个条件（最高质量）
+        if (normalizedScore >= 70 && trendDirection !== 'RANGE') {
+          if (trendScore >= trend4HModerateThreshold && 
+              factorScore >= factorModerateThreshold && 
+              entryScore >= entry15MModerateThreshold) {
+            return trendDirection === 'UP' ? 'BUY' : 'SELL';
+          }
+        }
+
+        // 强信号：总分≥60%，且满足所有三个条件（高质量）
+        if (normalizedScore >= 60 && normalizedScore < 70 && trendDirection !== 'RANGE') {
+          if (trendScore >= trend4HModerateThreshold && 
+              factorScore >= factorModerateThreshold && 
+              entryScore >= entry15MModerateThreshold) {
+            return trendDirection === 'UP' ? 'BUY' : 'SELL';
+          }
+        }
+
+        // 中等信号：总分≥50%，且满足至少两个条件（中等质量）
+        if (normalizedScore >= 50 && normalizedScore < 60 && trendDirection !== 'RANGE') {
+          const satisfiedCount = [trend, factor, entry].filter(Boolean).length;
+          if (satisfiedCount >= 2) {
+            return trendDirection === 'UP' ? 'BUY' : 'SELL';
+          }
+        }
+      </div>
+
+      <h5>2. 参数化阈值系统：</h5>
+      <ul>
+        <li><strong>趋势阈值</strong>：trend4HModerateThreshold（数据库配置）</li>
+        <li><strong>因子阈值</strong>：factorModerateThreshold（数据库配置）</li>
+        <li><strong>入场阈值</strong>：entry15MModerateThreshold（数据库配置）</li>
+        <li><strong>动态调整</strong>：根据策略模式（AGGRESSIVE/BALANCED/CONSERVATIVE）动态调整</li>
+      </ul>
+
+      <h5>3. 止损止盈优化：</h5>
+      <ul>
+        <li><strong>止损</strong>：0.6x ATR（保守设置，减少止损频率）</li>
+        <li><strong>止盈</strong>：5.0x ATR（5:1盈亏比，提高盈利潜力）</li>
+        <li><strong>时间止损</strong>：BTC/ETH 48小时，其他币种 24小时</li>
+      </ul>
+
+      <h5>4. 震荡市假突破逻辑：</h5>
+      <div class="code-block">
+        if (trendDirection === 'RANGE') {
+          // 检查15M假突破信号
+          if (execution15M.signal === 'BUY' || execution15M.signal === 'SELL') {
+            if (reason.includes('Range fake breakout') || reason.includes('震荡市')) {
+              return execution15M.signal; // 返回假突破信号
+            }
+          }
+          return 'HOLD'; // 无假突破信号，继续观望
+        }
+      </div>
+
       <h4>信号判断（趋势市）：</h4>
       <table>
         <tr>
@@ -884,11 +943,18 @@
           <th>15M入场</th>
         </tr>
         <tr>
-          <td>强信号</td>
+          <td>超强信号</td>
           <td>≥70</td>
-          <td>≥6</td>
-          <td>≥4（调整后）</td>
-          <td>≥1</td>
+          <td>≥阈值</td>
+          <td>≥阈值</td>
+          <td>≥阈值</td>
+        </tr>
+        <tr>
+          <td>强信号</td>
+          <td>≥60</td>
+          <td>≥阈值</td>
+          <td>≥阈值</td>
+          <td>≥阈值</td>
         </tr>
         <tr>
           <td>中等信号</td>
@@ -922,6 +988,64 @@
         }
         }
         return 'HOLD'
+        }
+      </div>
+    </div>
+
+    <h3>V3策略技术实现架构</h3>
+
+    <div class="strategy-detail">
+      <h4>1. 参数化配置系统：</h4>
+      <ul>
+        <li><strong>数据库驱动</strong>：所有阈值和权重通过`strategy_params`表动态配置</li>
+        <li><strong>三种模式</strong>：AGGRESSIVE（激进）、BALANCED（平衡）、CONSERVATIVE（保守）</li>
+        <li><strong>实时切换</strong>：支持运行时动态切换策略模式</li>
+        <li><strong>参数加载器</strong>：StrategyParameterLoader负责从数据库加载参数</li>
+      </ul>
+
+      <h4>2. 多时间框架分析引擎：</h4>
+      <ul>
+        <li><strong>4H分析</strong>：analyze4HTrend() - 趋势方向判断和强度评估</li>
+        <li><strong>1H分析</strong>：analyze1HFactors() - 6个因子的详细评分</li>
+        <li><strong>15M分析</strong>：analyze15MExecution() - 入场信号和结构确认</li>
+        <li><strong>信号融合</strong>：combineSignals() - 多因子综合判断</li>
+      </ul>
+
+      <h4>3. 风险控制系统：</h4>
+      <ul>
+        <li><strong>回撤控制</strong>：超过15%最大回撤时暂停交易</li>
+        <li><strong>动态杠杆</strong>：根据ATR和最大损失金额计算杠杆</li>
+        <li><strong>持仓监控</strong>：集成PositionDurationManager自动监控</li>
+        <li><strong>补偿机制</strong>：避免信号死区，防止单一因子阻碍</li>
+      </ul>
+
+      <h4>4. 性能优化：</h4>
+      <ul>
+        <li><strong>并行计算</strong>：Promise.all并行执行多时间框架分析</li>
+        <li><strong>缓存机制</strong>：参数加载器使用5分钟缓存</li>
+        <li><strong>错误处理</strong>：完善的异常捕获和降级处理</li>
+        <li><strong>日志系统</strong>：详细的调试日志和性能监控</li>
+      </ul>
+
+      <h4>5. 核心类结构：</h4>
+      <div class="code-block">
+        class V3Strategy {
+          constructor() {
+            this.mode = 'BALANCED';           // 策略模式
+            this.paramLoader = null;          // 参数加载器
+            this.params = {};                 // 策略参数
+            this.peakEquity = 10000;          // 峰值权益
+            this.currentEquity = 10000;       // 当前权益
+            this.tradingPaused = false;      // 交易暂停标志
+          }
+
+          async initializeParameters(mode)    // 初始化参数
+          async execute(symbol)               // 主执行方法
+          analyze4HTrend(klines)              // 4H趋势分析
+          analyze1HFactors(symbol, klines)    // 1H因子分析
+          analyze15MExecution(symbol, klines) // 15M入场分析
+          combineSignals(trend4H, factors1H, execution15M) // 信号融合
+          calculateTradeParameters(symbol, signal, currentPrice, atr) // 交易参数计算
         }
       </div>
     </div>
