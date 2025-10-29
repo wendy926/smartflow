@@ -1771,12 +1771,11 @@ class V3Strategy {
 
     // 趋势市：只做高质量趋势建仓
     if (marketState === 'TREND') {
-      // High置信度信号：所有条件满足
-      if (fakeBreakoutFilter.confidence === 'High' && 
-          normalizedScore >= 70 && 
+      // High置信度信号：放宽条件（从70降到60，允许部分条件满足）
+      if ((fakeBreakoutFilter.confidence === 'High' || fakeBreakoutFilter.confidence === 'Med') && 
+          normalizedScore >= 60 && 
           trendScore >= trend4HStrongThreshold && 
-          factorScore >= factorStrongThreshold && 
-          entryScore >= entryStrongThreshold) {
+          (factorScore >= factorStrongThreshold || entryScore >= entryStrongThreshold)) {
         logger.info(`🔥 超强信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HStrongThreshold}, 因子=${factorScore}>=${factorStrongThreshold}, 15M=${entryScore}>=${entryStrongThreshold}`);
         return {
           signal: trendDirection === 'UP' ? 'BUY' : 'SELL',
@@ -1789,11 +1788,10 @@ class V3Strategy {
         };
       }
 
-      // Med置信度信号：满足大部分条件
-      if (fakeBreakoutFilter.confidence === 'Med' && 
-          normalizedScore >= 60 && 
-          factorScore >= factorStrongThreshold && 
-          entryScore >= entryStrongThreshold) {
+      // Med置信度信号：进一步放宽（从60降到50）
+      if ((fakeBreakoutFilter.confidence === 'Med' || fakeBreakoutFilter.confidence === 'High') && 
+          normalizedScore >= 50 && 
+          (factorScore >= factorStrongThreshold || entryScore >= entryStrongThreshold)) {
         logger.info(`⚠️ 中等信号触发: 总分=${normalizedScore}%, 因子=${factorScore}>=${factorStrongThreshold}, 15M=${entryScore}>=${entryStrongThreshold}`);
         return {
           signal: trendDirection === 'UP' ? 'BUY' : 'SELL',
