@@ -704,15 +704,158 @@
 
     <h3>策略概述</h3>
     <div class="strategy-detail">
-      <p>V3策略是<strong>多因子趋势策略</strong>，基于4H趋势判断、1H因子分析和15M入场信号的综合策略。</p>
+      <p>V3策略是<strong>多因子趋势跟踪策略</strong>，采用三层时间框架分析（4H/1H/15M）和智能信号融合机制，结合市场状态分类、早期趋势检测和假突破过滤器，实现高质量的入场信号生成和风险控制。</p>
 
       <h4>核心特点：</h4>
       <ul>
-        <li><strong>多时间框架协同</strong>：4H确定趋势，1H分析因子，15M精确入场</li>
-        <li><strong>动态权重调整</strong>：根据各组件强度动态调整权重</li>
-        <li><strong>补偿机制</strong>：避免信号死区，防止单一因子阻碍信号生成</li>
-        <li><strong>震荡市交易</strong>：支持震荡市假突破交易逻辑</li>
+        <li><strong>多时间框架协同</strong>：4H确定趋势方向，1H分析6大因子，15M精确入场</li>
+        <li><strong>参数化配置</strong>：支持AGGRESSIVE/BALANCED/CONSERVATIVE三种模式，所有阈值从数据库动态加载</li>
+        <li><strong>市场状态自适应</strong>：自动识别TREND/RANGE/VOLATILE/LOWVOL市场状态，采用不同交易策略</li>
+        <li><strong>信号质量分级</strong>：超强/强/中等三级信号系统，确保高质量入场</li>
+        <li><strong>智能风险控制</strong>：0.6x ATR止损，5.0x ATR止盈，实现3:1+盈亏比</li>
+        <li><strong>分仓出场逻辑</strong>：TP1/TP2分层止盈，优化资金利用和风险控制</li>
       </ul>
+    </div>
+
+    <h3>V3策略总体实现逻辑架构</h3>
+    <div class="strategy-detail">
+      <h4>1. 策略初始化流程</h4>
+      <div class="code-block">
+        class V3Strategy {
+        constructor() {
+        this.mode = 'BALANCED'; // 默认模式
+        this.params = {}; // 策略参数（从数据库加载）
+        this.paramLoader = StrategyParameterLoader; // 参数加载器
+        }
+
+        async initializeParameters(mode) {
+        // 1. 从数据库加载参数
+        this.params = await this.paramLoader.loadParameters('V3', mode);
+        // 2. 参数分组：risk_management, trend_thresholds, entry_thresholds, factor_thresholds
+        // 3. 缓存5分钟，避免频繁数据库查询
+        }
+        }
+      </div>
+
+      <h4>2. 策略执行主流程</h4>
+      <div class="code-block">
+        async execute(symbol) {
+        // 步骤1: 并行获取多时间框架K线数据
+        const [klines4H, klines1H, klines15M] = await Promise.all([
+        this.binanceAPI.getKlines(symbol, '4h', 100),
+        this.binanceAPI.getKlines(symbol, '1h', 100),
+        this.binanceAPI.getKlines(symbol, '15m', 100)
+        ]);
+
+        // 步骤2: 并行执行三层分析
+        const [trend4H, factors1H, execution15M] = await Promise.all([
+        this.analyze4HTrend(klines4H), // 4H趋势分析
+        this.analyze1HFactors(symbol, klines1H), // 1H因子分析
+        this.analyze15MExecution(symbol, klines15M) // 15M入场分析
+        ]);
+
+        // 步骤3: 信号融合（核心逻辑）
+        const signalResult = this.combineSignals(
+        trend4H, factors1H, execution15M,
+        klines4H, klines1H, klines15M
+        );
+
+        // 步骤4: 计算交易参数（止损/止盈/仓位）
+        if (signalResult.signal !== 'HOLD') {
+        const tradeParams = this.calculateTradeParameters(
+        symbol, signalResult.signal, currentPrice, atr
+        );
+        }
+
+        return signalResult;
+        }
+      </div>
+
+      <h4>3. 信号融合核心逻辑（combineSignals）</h4>
+      <div class="code-block">
+        combineSignals(trend4H, factors1H, execution15M, klines4H, klines1H, klines15M) {
+        // 阶段1: 市场状态分类
+        const marketState = this.classifyMarketState(klines4H);
+        // 输出: TREND / RANGE / VOLATILE / LOWVOL
+
+        // 阶段2: 早期趋势检测
+        const earlyTrend = this.improvedEarlyTrendDetector(klines1H, klines4H);
+        // 基于MACD和ADX的早期趋势识别，给予权重奖励
+
+        // 阶段3: 假突破过滤器
+        const fakeBreakoutFilter = this.improvedFakeBreakoutFilter(klines15M, klines1H, klines4H);
+        // 基于成交量Z-score和Delta阈值的假突破检测
+
+        // 阶段4: 动态权重计算
+        const weights = this.calculateDynamicWeights(trendScore, factorScore, entryScore);
+        // 根据各组件强度动态调整权重
+
+        // 阶段5: 总分计算和标准化
+        const normalizedScore = (trendScore/10 × weights.trend +
+        factorScore/6 × weights.factor +
+        entryScore/5 × weights.entry) × 100;
+
+        // 阶段6: 信号质量分级判断
+        if (marketState === 'RANGE') {
+        // 震荡市：只允许假突破策略
+        if (fakeBreakoutFilter.confidence === 'High') {
+        return execution15M.signal; // BUY/SELL
+        }
+        return 'HOLD';
+        }
+
+        if (marketState === 'TREND') {
+        // 超强信号：总分≥60，且满足所有关键条件
+        if (normalizedScore >= 60 &&
+        trendScore >= threshold &&
+        factorScore >= threshold &&
+        entryScore >= threshold) {
+        return { signal: trendDirection === 'UP' ? 'BUY' : 'SELL', confidence: 'High' };
+        }
+
+        // 中等信号：总分≥50，且满足至少2个条件
+        if (normalizedScore >= 50 && satisfiedCount >= 2) {
+        return { signal: trendDirection === 'UP' ? 'BUY' : 'SELL', confidence: 'Med' };
+        }
+        }
+
+        return { signal: 'HOLD', confidence: 'Low' };
+        }
+      </div>
+
+      <h4>4. 交易参数计算（calculateTradeParameters）</h4>
+      <div class="code-block">
+        calculateTradeParameters(symbol, signal, currentPrice, atr) {
+        // 从数据库加载风险参数
+        const stopLossATRMultiplier = this.params.risk_management.stopLossATRMultiplier;
+        const takeProfitRatio = this.params.risk_management.takeProfitRatio;
+
+        // 止损计算
+        const stopLoss = signal === 'BUY'
+        ? currentPrice - (atr × stopLossATRMultiplier)
+        : currentPrice + (atr × stopLossATRMultiplier);
+
+        // 止盈计算（分仓出场）
+        const stopDistance = Math.abs(currentPrice - stopLoss);
+        const tp1 = signal === 'BUY'
+        ? currentPrice + (stopDistance × takeProfitRatio × 0.6) // TP1: 60%止盈
+        : currentPrice - (stopDistance × takeProfitRatio × 0.6);
+        const tp2 = signal === 'BUY'
+        ? currentPrice + (stopDistance × takeProfitRatio) // TP2: 100%止盈
+        : currentPrice - (stopDistance × takeProfitRatio);
+
+        // 仓位计算（基于信号置信度）
+        const confidence = signalResult.confidence;
+        const positionSize = confidence === 'High' ? 100% : confidence === 'Med' ? 70% : 50%;
+
+        return {
+        stopLoss, tp1, tp2,
+        tp1Quantity: positionSize × 0.5, // TP1平仓50%
+        tp2Quantity: positionSize × 0.5, // TP2平仓50%
+        positionSize
+        };
+        }
+      </div>
     </div>
 
     <h3>三个时间框架分析</h3>
@@ -875,34 +1018,33 @@
       </div>
 
       <h4>最新优化版本（2025-10-29）：</h4>
-      
+
       <h5>1. 信号质量分级系统：</h5>
       <div class="code-block">
         // 超强信号：总分≥70%，且满足所有三个条件（最高质量）
         if (normalizedScore >= 70 && trendDirection !== 'RANGE') {
-          if (trendScore >= trend4HModerateThreshold && 
-              factorScore >= factorModerateThreshold && 
-              entryScore >= entry15MModerateThreshold) {
-            return trendDirection === 'UP' ? 'BUY' : 'SELL';
-          }
+        if (trendScore >= trend4HModerateThreshold &&
+        factorScore >= factorModerateThreshold &&
+        entryScore >= entry15MModerateThreshold) {
+        return trendDirection === 'UP' ? 'BUY' : 'SELL';
+        }
         }
 
         // 强信号：总分≥60%，且满足所有三个条件（高质量）
-        if (normalizedScore >= 60 && normalizedScore < 70 && trendDirection !== 'RANGE') {
-          if (trendScore >= trend4HModerateThreshold && 
-              factorScore >= factorModerateThreshold && 
-              entryScore >= entry15MModerateThreshold) {
-            return trendDirection === 'UP' ? 'BUY' : 'SELL';
+        if (normalizedScore >= 60 && normalizedScore < 70 && trendDirection !=='RANGE' ) { if (trendScore>=
+          trend4HModerateThreshold &&
+          factorScore >= factorModerateThreshold &&
+          entryScore >= entry15MModerateThreshold) {
+          return trendDirection === 'UP' ? 'BUY' : 'SELL';
           }
-        }
+          }
 
-        // 中等信号：总分≥50%，且满足至少两个条件（中等质量）
-        if (normalizedScore >= 50 && normalizedScore < 60 && trendDirection !== 'RANGE') {
-          const satisfiedCount = [trend, factor, entry].filter(Boolean).length;
-          if (satisfiedCount >= 2) {
+          // 中等信号：总分≥50%，且满足至少两个条件（中等质量）
+          if (normalizedScore >= 50 && normalizedScore < 60 && trendDirection !=='RANGE' ) { const
+            satisfiedCount=[trend, factor, entry].filter(Boolean).length; if (satisfiedCount>= 2) {
             return trendDirection === 'UP' ? 'BUY' : 'SELL';
-          }
-        }
+            }
+            }
       </div>
 
       <h5>2. 参数化阈值系统：</h5>
@@ -923,13 +1065,13 @@
       <h5>4. 震荡市假突破逻辑：</h5>
       <div class="code-block">
         if (trendDirection === 'RANGE') {
-          // 检查15M假突破信号
-          if (execution15M.signal === 'BUY' || execution15M.signal === 'SELL') {
-            if (reason.includes('Range fake breakout') || reason.includes('震荡市')) {
-              return execution15M.signal; // 返回假突破信号
-            }
-          }
-          return 'HOLD'; // 无假突破信号，继续观望
+        // 检查15M假突破信号
+        if (execution15M.signal === 'BUY' || execution15M.signal === 'SELL') {
+        if (reason.includes('Range fake breakout') || reason.includes('震荡市')) {
+        return execution15M.signal; // 返回假突破信号
+        }
+        }
+        return 'HOLD'; // 无假突破信号，继续观望
         }
       </div>
 
@@ -999,55 +1141,132 @@
       <ul>
         <li><strong>数据库驱动</strong>：所有阈值和权重通过`strategy_params`表动态配置</li>
         <li><strong>三种模式</strong>：AGGRESSIVE（激进）、BALANCED（平衡）、CONSERVATIVE（保守）</li>
-        <li><strong>实时切换</strong>：支持运行时动态切换策略模式</li>
-        <li><strong>参数加载器</strong>：StrategyParameterLoader负责从数据库加载参数</li>
+        <li><strong>实时切换</strong>：支持运行时动态切换策略模式，通过`.mode-signals`目录进行IPC通信</li>
+        <li><strong>参数加载器</strong>：StrategyParameterLoader负责从数据库加载参数，使用5分钟缓存机制</li>
+        <li>
+          <strong>参数分组</strong>：risk_management（风险管理）、trend_thresholds（趋势阈值）、entry_thresholds（入场阈值）、factor_thresholds（因子阈值）
+        </li>
       </ul>
 
       <h4>2. 多时间框架分析引擎：</h4>
       <ul>
-        <li><strong>4H分析</strong>：analyze4HTrend() - 趋势方向判断和强度评估</li>
-        <li><strong>1H分析</strong>：analyze1HFactors() - 6个因子的详细评分</li>
-        <li><strong>15M分析</strong>：analyze15MExecution() - 入场信号和结构确认</li>
-        <li><strong>信号融合</strong>：combineSignals() - 多因子综合判断</li>
+        <li><strong>4H分析</strong>：analyze4HTrend() - 趋势方向判断和强度评估
+          <ul>
+            <li>技术指标：MA20/MA50/MA200, ADX, BBW, VWAP, MACD Histogram</li>
+            <li>输出：趋势方向（UP/DOWN/RANGE）、趋势评分（0-10）、置信度</li>
+          </ul>
+        </li>
+        <li><strong>1H分析</strong>：analyze1HFactors() - 6个因子的详细评分
+          <ul>
+            <li>六大因子：VWAP方向、突破确认、成交量确认、持仓量变化、资金费率、Delta不平衡</li>
+            <li>输出：因子总分（0-6）、各因子详情</li>
+          </ul>
+        </li>
+        <li><strong>15M分析</strong>：analyze15MExecution() - 入场信号和结构确认
+          <ul>
+            <li>趋势市：EMA排列、ADX强度、BBW适度、价格结构确认</li>
+            <li>震荡市：假突破检测（布林带边界突破后快速回归）</li>
+            <li>输出：入场信号（BUY/SELL/HOLD）、入场评分（0-5）</li>
+          </ul>
+        </li>
+        <li><strong>信号融合</strong>：combineSignals() - 多因子综合判断
+          <ul>
+            <li>市场状态分类：TREND/RANGE/VOLATILE/LOWVOL</li>
+            <li>早期趋势检测：基于MACD和ADX</li>
+            <li>假突破过滤器：基于成交量Z-score和Delta阈值</li>
+            <li>动态权重计算：根据各组件强度调整权重</li>
+            <li>信号质量分级：超强/强/中等三级信号系统</li>
+          </ul>
+        </li>
       </ul>
 
       <h4>3. 风险控制系统：</h4>
       <ul>
+        <li><strong>止损策略</strong>：
+          <ul>
+            <li>基于ATR的动态止损：stopLossATRMultiplier × ATR（默认0.6x）</li>
+            <li>结构止损：结合价格结构关键位</li>
+            <li>时间止损：BTC/ETH 48小时，其他币种 24小时</li>
+          </ul>
+        </li>
+        <li><strong>止盈策略</strong>：
+          <ul>
+            <li>分仓出场：TP1（60%止盈位置，平仓50%）和TP2（100%止盈位置，平仓50%）</li>
+            <li>盈亏比目标：3:1+（stopLossATRMultiplier=0.6, takeProfitRatio=5.0）</li>
+            <li>追踪止损：达到TP1后激活，保护已实现利润</li>
+          </ul>
+        </li>
         <li><strong>回撤控制</strong>：超过15%最大回撤时暂停交易</li>
-        <li><strong>动态杠杆</strong>：根据ATR和最大损失金额计算杠杆</li>
-        <li><strong>持仓监控</strong>：集成PositionDurationManager自动监控</li>
-        <li><strong>补偿机制</strong>：避免信号死区，防止单一因子阻碍</li>
+        <li><strong>动态杠杆</strong>：根据ATR和最大损失金额计算杠杆，最大24倍</li>
+        <li><strong>持仓监控</strong>：集成PositionDurationManager自动监控持仓时长</li>
       </ul>
 
-      <h4>4. 性能优化：</h4>
+      <h4>4. 市场状态分类系统：</h4>
       <ul>
-        <li><strong>并行计算</strong>：Promise.all并行执行多时间框架分析</li>
-        <li><strong>缓存机制</strong>：参数加载器使用5分钟缓存</li>
-        <li><strong>错误处理</strong>：完善的异常捕获和降级处理</li>
-        <li><strong>日志系统</strong>：详细的调试日志和性能监控</li>
+        <li><strong>TREND（趋势市）</strong>：ADX > 25 且 BBW > 0.02，采用趋势跟踪策略</li>
+        <li><strong>RANGE（震荡市）</strong>：ADX < 25 且 BBW < 0.02，只允许假突破策略</li>
+        <li><strong>VOLATILE（高波动）</strong>：BBW > 0.05，降低仓位或暂停交易</li>
+        <li><strong>LOWVOL（低波动）</strong>：BBW < 0.01，等待突破信号</li>
       </ul>
 
-      <h4>5. 核心类结构：</h4>
+      <h4>5. 性能优化：</h4>
+      <ul>
+        <li><strong>并行计算</strong>：Promise.all并行执行多时间框架分析和K线数据获取</li>
+        <li><strong>缓存机制</strong>：参数加载器使用5分钟缓存，避免频繁数据库查询</li>
+        <li><strong>错误处理</strong>：完善的异常捕获和降级处理，确保策略稳定性</li>
+        <li><strong>日志系统</strong>：详细的调试日志和性能监控，便于问题排查</li>
+      </ul>
+
+      <h4>6. 核心类结构：</h4>
       <div class="code-block">
         class V3Strategy {
-          constructor() {
-            this.mode = 'BALANCED';           // 策略模式
-            this.paramLoader = null;          // 参数加载器
-            this.params = {};                 // 策略参数
-            this.peakEquity = 10000;          // 峰值权益
-            this.currentEquity = 10000;       // 当前权益
-            this.tradingPaused = false;      // 交易暂停标志
-          }
+        constructor() {
+        this.mode = 'BALANCED'; // 策略模式
+        this.paramLoader = null; // 参数加载器
+        this.params = {}; // 策略参数（嵌套结构）
+        this.peakEquity = 10000; // 峰值权益
+        this.currentEquity = 10000; // 当前权益
+        this.tradingPaused = false; // 交易暂停标志
+        }
 
-          async initializeParameters(mode)    // 初始化参数
-          async execute(symbol)               // 主执行方法
-          analyze4HTrend(klines)              // 4H趋势分析
-          analyze1HFactors(symbol, klines)    // 1H因子分析
-          analyze15MExecution(symbol, klines) // 15M入场分析
-          combineSignals(trend4H, factors1H, execution15M) // 信号融合
-          calculateTradeParameters(symbol, signal, currentPrice, atr) // 交易参数计算
+        // 参数管理
+        async initializeParameters(mode) // 从数据库加载参数
+        async setMode(mode) // 动态切换模式
+        getThreshold(category, paramName, defaultValue) // 获取阈值参数
+        getWeight(category, paramName, defaultValue) // 获取权重参数
+
+        // 主执行流程
+        async execute(symbol) // 主执行方法
+
+        // 多时间框架分析
+        async analyze4HTrend(klines) // 4H趋势分析
+        async analyze1HFactors(symbol, klines) // 1H因子分析
+        async analyze15MExecution(symbol, klines) // 15M入场分析
+
+        // 信号处理和融合
+        combineSignals(trend4H, factors1H, execution15M, klines4H, klines1H, klines15M) // 信号融合
+        classifyMarketState(klines4H) // 市场状态分类
+        improvedEarlyTrendDetector(klines1H, klines4H) // 早期趋势检测
+        improvedFakeBreakoutFilter(klines15M, klines1H, klines4H) // 假突破过滤器
+        calculateDynamicWeights(trendScore, factorScore, entryScore) // 动态权重计算
+
+        // 交易参数计算
+        calculateTradeParameters(symbol, signal, currentPrice, atr) // 计算止损/止盈/仓位
+        calculatePositionSize(riskCash, stopDistance, entryPrice) // 仓位计算
+
+        // 风险管理
+        updateEquity(pnl) // 更新权益
+        checkMaxDrawdown() // 检查最大回撤
         }
       </div>
+
+      <h4>7. 回测系统集成：</h4>
+      <ul>
+        <li><strong>回测引擎</strong>：backtest-strategy-engine-v3.js直接调用V3策略执行方法</li>
+        <li><strong>参数一致性</strong>：确保回测使用的参数与实盘完全一致</li>
+        <li><strong>分仓出场逻辑</strong>：回测引擎完整实现TP1/TP2分仓出场逻辑</li>
+        <li><strong>时间止损</strong>：回测中准确模拟时间止损机制</li>
+      </ul>
     </div>
 
     <!-- 技术指标说明 -->
