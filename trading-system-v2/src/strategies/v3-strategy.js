@@ -1833,38 +1833,38 @@ class V3Strategy {
       // ✅ 调试：输出详细检查日志
       logger.info(`[V3-TREND检查] 总分=${normalizedScore}%, trendScore=${trendScore}, factorScore=${factorScore}, entryScore=${entryScore}, 趋势方向=${validTrendDirection}`);
       // 按分数阈值直接放行（不强依赖假突破置信度）
-      // ✅ 方案2：进一步收紧信号过滤，提高信号阈值至≥70（目标：20-40笔高质量交易，盈亏比1.8+）
-      // High信号：总分>=70（从65进一步提高，进一步收紧信号过滤）
-      if (normalizedScore >= 70) {
-        console.log(`[V3-DEBUG-CONSOLE] 🔥 TREND-High触发: 总分=${normalizedScore}% (>=70)`);
-        logger.info(`🔥 TREND-High触发: 总分=${normalizedScore}% (>=70)`);
+      // ✅ 方案A：降低High阈值至≥65，平衡信号质量与数量（目标：增加实盘交易机会，保持高质量）
+      // High信号：总分>=65（从70降低至65，增加交易机会，保持高质量）
+      if (normalizedScore >= 65) {
+        console.log(`[V3-DEBUG-CONSOLE] 🔥 TREND-High触发: 总分=${normalizedScore}% (>=65)`);
+        logger.info(`🔥 TREND-High触发: 总分=${normalizedScore}% (>=65)`);
         return {
           signal: validTrendDirection === 'UP' ? 'BUY' : 'SELL',
           confidence: 'High',
-          reason: `趋势强信号（分数主导，总分≥70，进一步收紧过滤）`,
+          reason: `趋势强信号（分数主导，总分≥65，方案A：平衡质量与数量）`,
           marketState,
           normalizedScore,
           earlyTrend,
           fakeBreakoutFilter
         };
       }
-      // Med信号：总分65-69（从55提高至65，但不建仓）
-      if (normalizedScore >= 65 && normalizedScore < 70) {
-        console.log(`[V3-DEBUG-CONSOLE] ⚠️ TREND-Med触发: 总分=${normalizedScore}% (65-69)，但不建仓`);
-        logger.info(`⚠️ TREND-Med触发: 总分=${normalizedScore}% (65-69)，但不建仓（仅记录）`);
-        // ✅ 方案2：Med信号不建仓，仅记录
+      // Med信号：总分55-64（降低阈值，但不建仓）
+      if (normalizedScore >= 55 && normalizedScore < 65) {
+        console.log(`[V3-DEBUG-CONSOLE] ⚠️ TREND-Med触发: 总分=${normalizedScore}% (55-64)，但不建仓`);
+        logger.info(`⚠️ TREND-Med触发: 总分=${normalizedScore}% (55-64)，但不建仓（仅记录）`);
+        // ✅ 方案A：Med信号不建仓，仅记录
         return {
           signal: 'HOLD',
           confidence: 'Med',
-          reason: `趋势中等信号（分数主导，总分≥65但<70，进一步收紧过滤，不建仓）`,
+          reason: `趋势中等信号（分数主导，总分≥55但<65，方案A，不建仓）`,
           marketState,
           normalizedScore,
           earlyTrend,
           fakeBreakoutFilter
         };
       }
-      // ✅ Low信号：总分60-64（从50提高至60，但不建仓）
-      if (normalizedScore >= 60 && normalizedScore < 65) {
+      // ✅ Low信号：总分50-54（但不建仓）
+      if (normalizedScore >= 50 && normalizedScore < 55) {
         // 检查子项阈值：至少满足1个（trendScore≥2 或 factorScore≥1 或 entryScore≥2）
         const hasValidSubScore = trendScore >= 2 || factorScore >= 1 || entryScore >= 2;
         if (hasValidSubScore) {
