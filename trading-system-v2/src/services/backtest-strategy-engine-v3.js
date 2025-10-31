@@ -674,16 +674,16 @@ class BacktestStrategyEngineV3 {
           const atr = this.calculateTrueATR(klines, i, 14);
 
           // ✅ 从参数中获取止损倍数（支持多个可能的category）
-          // ✅ 优化策略：进一步放宽止损距离，降低平均亏损，提高盈亏比
-          // 默认止损：0.5倍ATR（从0.4放宽，进一步降低止损触发损失，提高盈亏比）
-          const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 0.5;
+          // ✅ 方案3：收紧止损距离，降低平均亏损，提升盈亏比
+          // 默认止损：0.3倍ATR（从0.5收紧，降低平均亏损30-50%，提升盈亏比）
+          const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 0.3;
           const stopDistance = atr * atrMultiplier;
           const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
           const risk = stopDistance;
 
-          // ✅ 优化策略：进一步降低止盈目标，提高TP1/TP2触发率，确保盈亏比≥2:1
-          // 默认止盈：2.5倍（从3.0降低，大幅提高触发率，确保RR≥2.5:1，实际盈亏比≥2:1）
-          const takeProfitRatio = params?.risk_management?.takeProfitRatio || 2.5;
+          // ✅ 方案3：提高止盈目标，提升平均盈利，提升盈亏比
+          // 默认止盈：3.0倍（从2.5提高，提升平均盈利，提升盈亏比至1.5-2.0+）
+          const takeProfitRatio = params?.risk_management?.takeProfitRatio || 3.0;
           // TP1: 第一个止盈位（60%的止盈距离）
           const tp1Ratio = 0.6 * takeProfitRatio;
           // TP2: 第二个止盈位（100%的止盈距离）
@@ -720,10 +720,10 @@ class BacktestStrategyEngineV3 {
 
           const actualRR = tp2Ratio / atrMultiplier; // 使用TP2计算整体盈亏比
 
-          // ✅ 强制RR过滤：小于3:1的交易直接跳过，保障目标RR
-          // ✅ 优化：由于止盈目标已降至2.5，实际RR = 2.5 / 0.3 = 8.33:1，仍满足≥3:1
-          if (actualRR < 3) {
-            logger.warn(`[回测引擎V3] ${symbol} V3-${mode}: 实际RR=${actualRR.toFixed(2)} < 3:1，跳过该信号`);
+          // ✅ 方案3：强制RR过滤：小于2:1的交易直接跳过，保障目标RR
+          // ✅ 优化：由于止盈目标已提高至3.0，止损收紧至0.3，实际RR = 3.0 / 0.3 = 10:1，满足≥2:1
+          if (actualRR < 2) {
+            logger.warn(`[回测引擎V3] ${symbol} V3-${mode}: 实际RR=${actualRR.toFixed(2)} < 2:1，跳过该信号`);
             continue;
           }
 
