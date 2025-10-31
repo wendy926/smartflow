@@ -1595,9 +1595,9 @@ class V3Strategy {
    */
   improvedFakeBreakoutFilter(klines15M, klines1H, klines4H) {
     try {
-      // ✅ 方案1：收紧信号过滤，恢复交易质量（目标：33笔左右高质量交易，盈亏比1.8+）
-      // 提高volFactor至1.5，收紧信号过滤，只保留高质量信号
-      const volFactor = this.getThreshold('signal_filter', 'volFactor', 1.5);
+      // ✅ 方案2：进一步收紧信号过滤（目标：20-40笔高质量交易，盈亏比1.8+）
+      // 提高volFactor至1.8，进一步收紧信号过滤，只保留最高质量信号
+      const volFactor = this.getThreshold('signal_filter', 'volFactor', 1.8);
       const deltaThreshold = this.getThreshold('signal_filter', 'deltaThreshold', 0.08);
       const retraceLimit = this.getThreshold('signal_filter', 'retraceLimit', 0.25);
       // ✅ 使用vol_z分数而非仅乘数（根据optimize.md建议），提高阈值至1.2
@@ -1833,54 +1833,54 @@ class V3Strategy {
       // ✅ 调试：输出详细检查日志
       logger.info(`[V3-TREND检查] 总分=${normalizedScore}%, trendScore=${trendScore}, factorScore=${factorScore}, entryScore=${entryScore}, 趋势方向=${validTrendDirection}`);
       // 按分数阈值直接放行（不强依赖假突破置信度）
-      // ✅ 方案1：收紧信号过滤，提高信号阈值，只保留高质量信号（目标：30-50笔交易，盈亏比1.8+）
-      // High信号：总分>=65（从61提高，收紧信号过滤，恢复交易质量）
-      if (normalizedScore >= 65) {
-        console.log(`[V3-DEBUG-CONSOLE] 🔥 TREND-High触发: 总分=${normalizedScore}% (>=65)`);
-        logger.info(`🔥 TREND-High触发: 总分=${normalizedScore}% (>=65)`);
+      // ✅ 方案2：进一步收紧信号过滤，提高信号阈值至≥70（目标：20-40笔高质量交易，盈亏比1.8+）
+      // High信号：总分>=70（从65进一步提高，进一步收紧信号过滤）
+      if (normalizedScore >= 70) {
+        console.log(`[V3-DEBUG-CONSOLE] 🔥 TREND-High触发: 总分=${normalizedScore}% (>=70)`);
+        logger.info(`🔥 TREND-High触发: 总分=${normalizedScore}% (>=70)`);
         return {
           signal: validTrendDirection === 'UP' ? 'BUY' : 'SELL',
           confidence: 'High',
-          reason: `趋势强信号（分数主导，总分≥65，收紧过滤）`,
+          reason: `趋势强信号（分数主导，总分≥70，进一步收紧过滤）`,
           marketState,
           normalizedScore,
           earlyTrend,
           fakeBreakoutFilter
         };
       }
-      // Med信号：总分55-64（从56提高，收紧信号过滤，但不建仓）
-      if (normalizedScore >= 55 && normalizedScore < 65) {
-        console.log(`[V3-DEBUG-CONSOLE] ⚠️ TREND-Med触发: 总分=${normalizedScore}% (55-64)，但不建仓`);
-        logger.info(`⚠️ TREND-Med触发: 总分=${normalizedScore}% (55-64)，但不建仓（仅记录）`);
-        // ✅ 方案1：Med信号不建仓，仅记录
+      // Med信号：总分65-69（从55提高至65，但不建仓）
+      if (normalizedScore >= 65 && normalizedScore < 70) {
+        console.log(`[V3-DEBUG-CONSOLE] ⚠️ TREND-Med触发: 总分=${normalizedScore}% (65-69)，但不建仓`);
+        logger.info(`⚠️ TREND-Med触发: 总分=${normalizedScore}% (65-69)，但不建仓（仅记录）`);
+        // ✅ 方案2：Med信号不建仓，仅记录
         return {
           signal: 'HOLD',
           confidence: 'Med',
-          reason: `趋势中等信号（分数主导，总分≥55但<65，收紧过滤，不建仓）`,
+          reason: `趋势中等信号（分数主导，总分≥65但<70，进一步收紧过滤，不建仓）`,
           marketState,
           normalizedScore,
           earlyTrend,
           fakeBreakoutFilter
         };
       }
-      // ✅ Low信号：总分50-54（从51提高，收紧信号过滤，但不建仓）
-      if (normalizedScore >= 50 && normalizedScore < 55) {
+      // ✅ Low信号：总分60-64（从50提高至60，但不建仓）
+      if (normalizedScore >= 60 && normalizedScore < 65) {
         // 检查子项阈值：至少满足1个（trendScore≥2 或 factorScore≥1 或 entryScore≥2）
         const hasValidSubScore = trendScore >= 2 || factorScore >= 1 || entryScore >= 2;
         if (hasValidSubScore) {
-          logger.info(`⚠️ TREND-Low触发: 总分=${normalizedScore}% (50-54)，子项检查通过，但不建仓`);
-          // ✅ 方案1：Low信号不建仓，仅记录
+          logger.info(`⚠️ TREND-Low触发: 总分=${normalizedScore}% (60-64)，子项检查通过，但不建仓`);
+          // ✅ 方案2：Low信号不建仓，仅记录
           return {
             signal: 'HOLD',
             confidence: 'Low',
-            reason: `趋势弱信号（分数主导，总分≥50但<55，收紧过滤，不建仓）`,
+            reason: `趋势弱信号（分数主导，总分≥60但<65，进一步收紧过滤，不建仓）`,
             marketState,
             normalizedScore,
             earlyTrend,
             fakeBreakoutFilter
           };
         } else {
-          logger.info(`⚠️ TREND-Low被过滤: 总分=${normalizedScore}% (50-54)，但子项阈值不满足 (trend=${trendScore}, factor=${factorScore}, entry=${entryScore})`);
+          logger.info(`⚠️ TREND-Low被过滤: 总分=${normalizedScore}% (60-64)，但子项阈值不满足 (trend=${trendScore}, factor=${factorScore}, entry=${entryScore})`);
         }
       }
       // ✅ 如果连35%都没达到，输出详细日志
