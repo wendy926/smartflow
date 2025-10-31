@@ -395,15 +395,28 @@ class BacktestManagerV3 {
     try {
       logger.info(`[回测管理器V3] 从数据库获取${symbol}的${timeframe}回测数据`);
 
-      const query = `
-        SELECT open_time, close_time, open_price, high_price, low_price, close_price, volume, quote_volume
-        FROM backtest_market_data
-        WHERE symbol = ? AND timeframe = ?
-        ORDER BY open_time ASC
-        LIMIT 10000
-      `;
-
-      const rows = await this.database.query(query, [symbol, timeframe]);
+      // 支持通过环境变量限定回测时间范围（ISO或可被Date解析的格式）
+      const startEnv = process.env.BACKTEST_START;
+      const endEnv = process.env.BACKTEST_END;
+      let rows;
+      if (startEnv && endEnv) {
+        const query = `
+          SELECT open_time, close_time, open_price, high_price, low_price, close_price, volume, quote_volume
+          FROM backtest_market_data
+          WHERE symbol = ? AND timeframe = ?
+            AND open_time >= ? AND close_time <= ?
+          ORDER BY open_time ASC
+        `;
+        rows = await this.database.query(query, [symbol, timeframe, new Date(startEnv), new Date(endEnv)]);
+      } else {
+        const query = `
+          SELECT open_time, close_time, open_price, high_price, low_price, close_price, volume, quote_volume
+          FROM backtest_market_data
+          WHERE symbol = ? AND timeframe = ?
+          ORDER BY open_time ASC
+        `;
+        rows = await this.database.query(query, [symbol, timeframe]);
+      }
       logger.info(`[回测管理器V3] 查询到${rows.length}条${symbol}-${timeframe}回测数据`);
 
       if (rows.length === 0) {
@@ -600,14 +613,24 @@ class BacktestManagerV3 {
    */
   async getAllBacktestResults(strategy) {
     try {
+      // ✅ 修复：只返回每个模式的最新一条记录，而不是所有历史记录
+      // 使用子查询获取每个模式的最新created_at，然后关联回原表获取完整记录
       const query = `
-        SELECT * FROM strategy_parameter_backtest_results
-        WHERE strategy_name = ?
-        ORDER BY created_at DESC
+        SELECT t1.* 
+        FROM strategy_parameter_backtest_results t1
+        INNER JOIN (
+          SELECT strategy_mode, MAX(created_at) as max_created_at
+          FROM strategy_parameter_backtest_results
+          WHERE strategy_name = ?
+          GROUP BY strategy_mode
+        ) t2 ON t1.strategy_mode = t2.strategy_mode 
+           AND t1.created_at = t2.max_created_at
+        WHERE t1.strategy_name = ?
+        ORDER BY t1.strategy_mode
       `;
 
-      const rows = await this.database.query(query, [strategy]);
-      logger.info(`[回测管理器V3] 获取到${rows.length}条${strategy}回测结果`);
+      const rows = await this.database.query(query, [strategy, strategy]);
+      logger.info(`[回测管理器V3] 获取到${rows.length}条${strategy}回测结果（每个模式最新一条）`);
 
       return rows;
     } catch (error) {
@@ -621,7 +644,7 @@ class BacktestManagerV3 {
    * @returns {Array<string>} 交易对列表
    */
   getDefaultSymbols() {
-    return ['BTCUSDT', 'ETHUSDT'];
+    return ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT', 'XRPUSDT', 'DOGEUSDT', 'TONUSDT', 'LINKUSDT', 'AVAXUSDT'];
   }
 
   /**
