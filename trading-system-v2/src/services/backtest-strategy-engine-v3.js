@@ -673,13 +673,52 @@ class BacktestStrategyEngineV3 {
           // 计算真实的ATR（过去14根K线的平均真实波动幅度）
           const atr = this.calculateTrueATR(klines, i, 14);
 
-          // ✅ 从参数中获取止损倍数（支持多个可能的category）
-          // ✅ 方案3：收紧止损距离，降低平均亏损，提升盈亏比
-          // 默认止损：0.3倍ATR（从0.5收紧，降低平均亏损30-50%，提升盈亏比）
-          const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 0.3;
-          const stopDistance = atr * atrMultiplier;
+          // ✅ 方案4：根据市场波动性（ATR）动态调整止损距离
+          // 计算ATR历史平均值（过去50根K线）
+          const atrHistory = [];
+          const historyPeriod = Math.min(50, i + 1);
+          for (let j = Math.max(0, i - historyPeriod + 1); j <= i; j++) {
+            const historicalATR = this.calculateTrueATR(klines, j, 14);
+            if (historicalATR > 0) {
+              atrHistory.push(historicalATR);
+            }
+          }
+          const avgATR = atrHistory.length > 0 
+            ? atrHistory.reduce((a, b) => a + b, 0) / atrHistory.length 
+            : atr;
+
+          // 计算当前ATR相对平均ATR的比例
+          const atrRatio = avgATR > 0 ? atr / avgATR : 1.0;
+
+          // 从参数中获取基础止损倍数
+          const baseMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 0.3;
+
+          // 根据波动性动态调整止损倍数
+          // 低波动（ATR < 80%平均）：使用较紧止损（基础值的80%）
+          // 正常波动（80%-120%）：使用标准止损（基础值）
+          // 高波动（ATR > 120%平均）：使用较宽止损（基础值的133%）
+          let dynamicStopMultiplier = baseMultiplier;
+          if (atrRatio < 0.8) {
+            // 低波动：收紧止损至基础值的80%
+            dynamicStopMultiplier = baseMultiplier * 0.8;
+          } else if (atrRatio > 1.2) {
+            // 高波动：放宽止损至基础值的133%
+            dynamicStopMultiplier = baseMultiplier * 1.33;
+          } else {
+            // 正常波动：使用基础值
+            dynamicStopMultiplier = baseMultiplier;
+          }
+
+          // 确保止损倍数在合理范围内（0.2-0.6）
+          dynamicStopMultiplier = Math.max(0.2, Math.min(0.6, dynamicStopMultiplier));
+
+          const stopDistance = atr * dynamicStopMultiplier;
           const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
           const risk = stopDistance;
+
+          // ✅ 方案4调试日志：输出动态止损计算信息
+          logger.info(`[回测引擎V3-方案4] ${symbol} V3-${mode}: 动态止损计算 - ATR=${atr.toFixed(4)}, 平均ATR=${avgATR.toFixed(4)}, ATR比例=${atrRatio.toFixed(2)}, 基础倍数=${baseMultiplier}, 动态倍数=${dynamicStopMultiplier.toFixed(3)}, 止损距离=${stopDistance.toFixed(4)}`);
+          console.log(`[回测引擎V3-方案4-CONSOLE] ${symbol} V3-${mode}: 动态止损 - ATR=${atr.toFixed(4)}, 平均ATR=${avgATR.toFixed(4)}, 比例=${atrRatio.toFixed(2)}, 倍数=${dynamicStopMultiplier.toFixed(3)}`);
 
           // ✅ 方案3：提高止盈目标，提升平均盈利，提升盈亏比
           // 默认止盈：3.0倍（从2.5提高，提升平均盈利，提升盈亏比至1.5-2.0+）
@@ -718,7 +757,7 @@ class BacktestStrategyEngineV3 {
           const tp2Quantity = totalQuantity * 0.5;
           const remainingQuantity = totalQuantity; // 初始剩余数量等于总数量
 
-          const actualRR = tp2Ratio / atrMultiplier; // 使用TP2计算整体盈亏比
+          const actualRR = tp2Ratio / dynamicStopMultiplier; // 使用TP2和动态止损倍数计算整体盈亏比
 
           // ✅ 方案3：强制RR过滤：小于2:1的交易直接跳过，保障目标RR
           // ✅ 优化：由于止盈目标已提高至3.0，止损收紧至0.3，实际RR = 3.0 / 0.3 = 10:1，满足≥2:1
