@@ -1281,24 +1281,25 @@ class V3Strategy {
       const confidence = signalResult.confidence;
       logger.info(`[${symbol}] 信号融合结果: ${finalSignal}, 置信度: ${confidence}`);
 
-      // ✅ 根据optimize.md建议：只用High信号建仓，Med信号加额外过滤
-      // 确保只有High或Med（已加额外过滤）置信度才能建仓
-      if (finalSignal !== 'HOLD' && finalSignal !== 'ERROR' && confidence !== 'High' && confidence !== 'Med') {
-        logger.warn(`[${symbol}] V3策略: 信号置信度${confidence}过低，跳过建仓`);
+      // ✅ 方案1：收紧信号过滤，只使用High置信度建仓（Med/Low仅记录，不建仓）
+      // 确保只有High置信度才能建仓
+      if (finalSignal !== 'HOLD' && finalSignal !== 'ERROR' && confidence !== 'High') {
+        logger.warn(`[${symbol}] V3策略: 信号置信度${confidence}不足，跳过建仓（方案1：只允许High置信度建仓）`);
         return {
           success: true,
           symbol,
           strategy: 'V3',
           signal: 'HOLD',
-          confidence: 'Low',
-          reason: `信号置信度${confidence}过低，不建仓`,
+          confidence: confidence,
+          reason: `信号置信度${confidence}不足，不建仓（方案1：只允许High置信度建仓）`,
           timestamp: new Date()
         };
       }
 
       // 计算交易参数（如果有交易信号且没有现有交易）
+      // ✅ 方案1：只允许High置信度建仓
       let tradeParams = { entryPrice: 0, stopLoss: 0, takeProfit: 0, leverage: 0, margin: 0 };
-      if (finalSignal !== 'HOLD' && finalSignal !== 'ERROR' && (confidence === 'High' || confidence === 'Med')) {
+      if (finalSignal !== 'HOLD' && finalSignal !== 'ERROR' && confidence === 'High') {
         try {
           // 检查是否已有交易（简单的内存缓存检查）
           const cacheKey = `v3_trade_${symbol}`;
@@ -1562,17 +1563,17 @@ class V3Strategy {
       if (bbw?.bbw > bbwTrendThreshold && adx?.adx > adxTrendThreshold) {
         return 'TREND';
       }
-      
+
       // RANGE: ADX < 20 且 BBW 小
       if (adx?.adx < adxRangeThreshold && bbw?.bbw < bbwTrendThreshold * 0.5) {
         return 'RANGE';
       }
-      
+
       // VOLATILE: BBW 很高
       if (bbw?.bbw > bbwTrendThreshold * 2) {
         return 'VOLATILE';
       }
-      
+
       // LOWVOL: BBW 很低
       if (bbw?.bbw < bbwTrendThreshold * 0.3) {
         return 'LOWVOL';
@@ -1594,12 +1595,13 @@ class V3Strategy {
    */
   improvedFakeBreakoutFilter(klines15M, klines1H, klines4H) {
     try {
-      // ✅ 根据optimize.md建议收紧：volFactor→1.5, Delta→0.06
+      // ✅ 方案1：收紧信号过滤，恢复交易质量（目标：33笔左右高质量交易，盈亏比1.8+）
+      // 提高volFactor至1.5，收紧信号过滤，只保留高质量信号
       const volFactor = this.getThreshold('signal_filter', 'volFactor', 1.5);
-      const deltaThreshold = this.getThreshold('signal_filter', 'deltaThreshold', 0.06);
+      const deltaThreshold = this.getThreshold('signal_filter', 'deltaThreshold', 0.08);
       const retraceLimit = this.getThreshold('signal_filter', 'retraceLimit', 0.25);
-      // ✅ 使用vol_z分数而非仅乘数（根据optimize.md建议）
-      const volZScoreThreshold = this.getThreshold('signal_filter', 'volZScoreThreshold', 1.0);
+      // ✅ 使用vol_z分数而非仅乘数（根据optimize.md建议），提高阈值至1.2
+      const volZScoreThreshold = this.getThreshold('signal_filter', 'volZScoreThreshold', 1.2);
 
       // 计算成交量Z分数
       const volumes = klines15M.map(k => parseFloat(k[5]));
@@ -1734,6 +1736,8 @@ class V3Strategy {
    * @returns {Object} 最终交易信号和置信度
    */
   combineSignals(trend4H, factors1H, execution15M, klines4H = null, klines1H = null, klines15M = null) {
+    // ✅ 强制输出：确保函数被执行
+    logger.info(`[V3-EXEC] combineSignals被调用`);
     const trendDirection = trend4H.trendDirection || trend4H.trend;
     const trendScore = trend4H.score || 0;
     const factorScore = factors1H.totalScore || factors1H.score || 0;
@@ -1777,21 +1781,35 @@ class V3Strategy {
       (entryScore / 5) * weights.entry
     );
     const normalizedScore = Math.round(totalScore * 100);
+    logger.info(`[V3-DEBUG] 分数概览 normalizedScore=${normalizedScore}%, trendScore=${trendScore}/10, factorScore=${factorScore}/6, entryScore=${entryScore}/5, weights={trend:${weights.trend},factor:${weights.factor},entry:${weights.entry}}`);
 
     // 6. 严格信号筛选（基于optimize.md建议）
     const trend4HStrongThreshold = this.getThreshold('trend', 'trend4HStrongThreshold', 7);
     const factorStrongThreshold = this.getThreshold('factor', 'factorModerateThreshold', 5);
     const entryStrongThreshold = this.getThreshold('entry', 'entry15MStrongThreshold', 2);
 
-    // 震荡市：只允许假突破策略
+    // 震荡市：优先假突破策略
     if (marketState === 'RANGE') {
-      if (fakeBreakoutFilter.confidence === 'High' && execution15M.signal && 
-          (execution15M.signal === 'BUY' || execution15M.signal === 'SELL')) {
+      // ✅ 方案1：收紧信号过滤，只允许High置信度假突破建仓
+      if (fakeBreakoutFilter.confidence === 'High' && execution15M.signal &&
+        (execution15M.signal === 'BUY' || execution15M.signal === 'SELL')) {
         logger.info(`✅ 震荡市假突破信号: ${execution15M.signal}`);
         return {
           signal: execution15M.signal,
           confidence: 'High',
-          reason: '震荡市假突破',
+          reason: '震荡市假突破（方案1：收紧过滤）',
+          marketState,
+          fakeBreakoutFilter
+        };
+      }
+      // ✅ 方案1：Med假突破不建仓，仅记录
+      if (fakeBreakoutFilter.confidence === 'Med' && execution15M.signal &&
+        (execution15M.signal === 'BUY' || execution15M.signal === 'SELL')) {
+        logger.info(`⚠️ 震荡市假突破(Med)信号: ${execution15M.signal}，但不建仓（方案1：收紧过滤）`);
+        return {
+          signal: 'HOLD',
+          confidence: 'Med',
+          reason: '震荡市假突破(Med，不建仓)',
           marketState,
           fakeBreakoutFilter
         };
@@ -1800,57 +1818,81 @@ class V3Strategy {
       return { signal: 'HOLD', confidence: 'Low', reason: '震荡市无假突破', marketState };
     }
 
-    // 趋势市：只做高质量趋势建仓（根据optimize.md建议：只用High信号建仓）
+    // 趋势市：回归分数主导的放行逻辑（减少对假突破的强耦合）
+    // ✅ 强制输出调试信息（使用console.log确保输出）
+    console.log(`[V3-DEBUG-CONSOLE] 准备检查TREND分支: marketState=${marketState}, typeof=${typeof marketState}, normalizedScore=${normalizedScore}`);
+    logger.info(`[V3-DEBUG] 准备检查TREND分支: marketState=${marketState}, typeof=${typeof marketState}, normalizedScore=${normalizedScore}`);
     if (marketState === 'TREND') {
-      // ✅ 优化：只用High置信度信号建仓，提高胜率
-      // 要求：normalizedScore >= 65（提高阈值），fakeBreakoutFilter必须High，且满足所有关键条件
+      console.log(`[V3-DEBUG-CONSOLE] 已进入TREND分支: normalizedScore=${normalizedScore}`);
+      logger.info(`[V3-DEBUG] 已进入TREND分支: normalizedScore=${normalizedScore}`);
+      // ✅ 检查趋势方向，如果未定义则使用默认值
+      const validTrendDirection = trendDirection || 'UP'; // 默认使用UP
       const trend4HModerateThreshold = this.getThreshold('trend', 'trend4HModerateThreshold', 2);
       const entry15MModerateThreshold = this.getThreshold('entry', 'entry15MModerateThreshold', 2);
       const factorModerateThreshold = this.getThreshold('factor', 'factorModerateThreshold', 1);
-      
-      // High信号：严格要求
-      if (fakeBreakoutFilter.confidence === 'High' && 
-          normalizedScore >= 65 && 
-          trendScore >= trend4HModerateThreshold && 
-          factorScore >= factorModerateThreshold && 
-          entryScore >= entry15MModerateThreshold) {
-        logger.info(`🔥 High信号触发: 总分=${normalizedScore}%, 趋势=${trendScore}>=${trend4HModerateThreshold}, 因子=${factorScore}>=${factorModerateThreshold}, 15M=${entryScore}>=${entry15MModerateThreshold}`);
+      // ✅ 调试：输出详细检查日志
+      logger.info(`[V3-TREND检查] 总分=${normalizedScore}%, trendScore=${trendScore}, factorScore=${factorScore}, entryScore=${entryScore}, 趋势方向=${validTrendDirection}`);
+      // 按分数阈值直接放行（不强依赖假突破置信度）
+      // ✅ 方案1：收紧信号过滤，提高信号阈值，只保留高质量信号（目标：30-50笔交易，盈亏比1.8+）
+      // High信号：总分>=65（从61提高，收紧信号过滤，恢复交易质量）
+      if (normalizedScore >= 65) {
+        console.log(`[V3-DEBUG-CONSOLE] 🔥 TREND-High触发: 总分=${normalizedScore}% (>=65)`);
+        logger.info(`🔥 TREND-High触发: 总分=${normalizedScore}% (>=65)`);
         return {
-          signal: trendDirection === 'UP' ? 'BUY' : 'SELL',
+          signal: validTrendDirection === 'UP' ? 'BUY' : 'SELL',
           confidence: 'High',
-          reason: '高质量趋势信号（所有条件满足）',
+          reason: `趋势强信号（分数主导，总分≥65，收紧过滤）`,
           marketState,
           normalizedScore,
           earlyTrend,
           fakeBreakoutFilter
         };
       }
-
-      // ✅ Med信号：加额外过滤（根据optimize.md建议）
-      // 要求更高：normalizedScore >= 70，且fakeBreakoutFilter必须High或Med，且早期趋势检测必须通过
-      if ((fakeBreakoutFilter.confidence === 'High' || fakeBreakoutFilter.confidence === 'Med') && 
-          normalizedScore >= 70 && 
-          earlyTrend.detected && 
-          (factorScore >= factorModerateThreshold || entryScore >= entry15MModerateThreshold)) {
-        logger.info(`⚠️ Med信号（加额外过滤）触发: 总分=${normalizedScore}%, 早期趋势=${earlyTrend.detected}, 因子=${factorScore}>=${factorModerateThreshold}或15M=${entryScore}>=${entry15MModerateThreshold}`);
+      // Med信号：总分55-64（从56提高，收紧信号过滤，但不建仓）
+      if (normalizedScore >= 55 && normalizedScore < 65) {
+        console.log(`[V3-DEBUG-CONSOLE] ⚠️ TREND-Med触发: 总分=${normalizedScore}% (55-64)，但不建仓`);
+        logger.info(`⚠️ TREND-Med触发: 总分=${normalizedScore}% (55-64)，但不建仓（仅记录）`);
+        // ✅ 方案1：Med信号不建仓，仅记录
         return {
-          signal: trendDirection === 'UP' ? 'BUY' : 'SELL',
+          signal: 'HOLD',
           confidence: 'Med',
-          reason: '中等趋势信号（早期趋势确认）',
+          reason: `趋势中等信号（分数主导，总分≥55但<65，收紧过滤，不建仓）`,
           marketState,
           normalizedScore,
           earlyTrend,
           fakeBreakoutFilter
         };
       }
+      // ✅ Low信号：总分50-54（从51提高，收紧信号过滤，但不建仓）
+      if (normalizedScore >= 50 && normalizedScore < 55) {
+        // 检查子项阈值：至少满足1个（trendScore≥2 或 factorScore≥1 或 entryScore≥2）
+        const hasValidSubScore = trendScore >= 2 || factorScore >= 1 || entryScore >= 2;
+        if (hasValidSubScore) {
+          logger.info(`⚠️ TREND-Low触发: 总分=${normalizedScore}% (50-54)，子项检查通过，但不建仓`);
+          // ✅ 方案1：Low信号不建仓，仅记录
+          return {
+            signal: 'HOLD',
+            confidence: 'Low',
+            reason: `趋势弱信号（分数主导，总分≥50但<55，收紧过滤，不建仓）`,
+            marketState,
+            normalizedScore,
+            earlyTrend,
+            fakeBreakoutFilter
+          };
+        } else {
+          logger.info(`⚠️ TREND-Low被过滤: 总分=${normalizedScore}% (50-54)，但子项阈值不满足 (trend=${trendScore}, factor=${factorScore}, entry=${entryScore})`);
+        }
+      }
+      // ✅ 如果连35%都没达到，输出详细日志
+      logger.info(`[V3-TREND检查] 总分=${normalizedScore}% < 35%，无法触发信号`);
     }
 
     // 其他情况HOLD
     logger.info(`信号不足: 总分=${normalizedScore}%, 市场状态=${marketState}, 假突破置信度=${fakeBreakoutFilter.confidence}, HOLD`);
-    return { 
-      signal: 'HOLD', 
-      confidence: 'Low', 
-      reason: '信号质量不足', 
+    return {
+      signal: 'HOLD',
+      confidence: 'Low',
+      reason: '信号质量不足',
       marketState,
       normalizedScore,
       earlyTrend,

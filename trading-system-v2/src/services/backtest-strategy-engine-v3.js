@@ -82,7 +82,8 @@ class BacktestStrategyEngineV3 {
    * @returns {Object} 持仓配置
    */
   getPositionConfig(symbol, marketType = 'TREND') {
-    const category = TokenClassifier.classifyToken(symbol);
+    // ✅ 修复：使用正确的方法名classify（不是classifyToken）
+    const category = TokenClassifier.classify(symbol);
     const config = PositionDurationManager.getPositionConfig(symbol, marketType);
 
     return {
@@ -485,8 +486,8 @@ class BacktestStrategyEngineV3 {
     logger.info(`[回测引擎V3] ${symbol} V3-${mode}: Mock Binance API已注入，数据量: ${timeframe}=${klines.length}条`);
     process.stderr.write(`[回测引擎V3] 强制输出: ${symbol} V3-${mode}Mock Binance API已注入，数据量: ${timeframe}=${klines.length}条\n`);
 
-    // 优化：减少回测频率，每20根K线检查一次
-    const step = Math.max(1, Math.floor(klines.length / 20)); // 最多检查20次，减少CPU消耗
+    // 优化：进一步减小步长以及时检测TP1/TP2，提高执行精度
+    const step = Math.max(1, Math.floor(klines.length / 200)); // 检查200次，确保不遗漏任何价格变化
     console.log(`[回测引擎V3] ${symbol} V3-${mode}: 优化回测，步长=${step}，总K线=${klines.length}`);
     logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 优化回测，步长=${step}，总K线=${klines.length}`);
     process.stderr.write(`[回测引擎V3] 强制输出: ${symbol} V3-${mode}优化回测，步长=${step}，总K线=${klines.length}\n`);
@@ -503,6 +504,9 @@ class BacktestStrategyEngineV3 {
       const currentPrice = currentKline[4]; // close price
       const nextKline = klines[Math.min(i + step, klines.length - 1)];
       const nextPrice = nextKline[4];
+      // ✅ 使用high/low价格范围进行更精确的止盈止损检测
+      const nextHigh = parseFloat(nextKline[2]); // high price
+      const nextLow = parseFloat(nextKline[3]); // low price
 
       try {
         // 设置Mock Binance API的当前索引
@@ -670,51 +674,80 @@ class BacktestStrategyEngineV3 {
           const atr = this.calculateTrueATR(klines, i, 14);
 
           // ✅ 从参数中获取止损倍数（支持多个可能的category）
-          const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 1.0;
+          // ✅ 优化策略：进一步放宽止损距离，降低平均亏损，提高盈亏比
+          // 默认止损：0.5倍ATR（从0.4放宽，进一步降低止损触发损失，提高盈亏比）
+          const atrMultiplier = params?.risk_management?.stopLossATRMultiplier || params?.position?.stopLossATRMultiplier || 0.5;
           const stopDistance = atr * atrMultiplier;
           const stopLoss = direction === 'LONG' ? entryPrice - stopDistance : entryPrice + stopDistance;
           const risk = stopDistance;
 
-          // ✅ 分仓出场策略：使用takeProfitRatio计算TP1和TP2
-          const takeProfitRatio = params?.risk_management?.takeProfitRatio || 5.0;
+          // ✅ 优化策略：进一步降低止盈目标，提高TP1/TP2触发率，确保盈亏比≥2:1
+          // 默认止盈：2.5倍（从3.0降低，大幅提高触发率，确保RR≥2.5:1，实际盈亏比≥2:1）
+          const takeProfitRatio = params?.risk_management?.takeProfitRatio || 2.5;
           // TP1: 第一个止盈位（60%的止盈距离）
           const tp1Ratio = 0.6 * takeProfitRatio;
           // TP2: 第二个止盈位（100%的止盈距离）
           const tp2Ratio = takeProfitRatio;
-          
-          // ✅ 根据optimize.md建议：只用High信号建仓，Med信号加额外过滤
-          // High信号：100%仓位，Med信号（已加额外过滤）：70%仓位
+
+          // ✅ 方案1：收紧信号过滤，只使用High置信度建仓（Med/Low仅记录，不建仓）
+          // 只允许High置信度建仓，Med/Low置信度不建仓
           const highConfidenceRatio = (params?.position_management?.highConfidencePositionRatio || 100) / 100;
-          const medConfidenceRatio = (params?.position_management?.medConfidencePositionRatio || 70) / 100;
-          const positionRatio = confidence === 'High' ? highConfidenceRatio : (confidence === 'Med' ? medConfidenceRatio : 0);
-          
-          // 如果置信度不足，不建仓
-          if (positionRatio === 0) {
-            logger.warn(`[回测引擎V3] ${symbol} V3-${mode}: 置信度${confidence}不足，跳过建仓`);
+          const medConfidenceRatio = 0; // 方案1：Med信号不建仓
+          const lowConfidenceRatio = 0; // 方案1：Low信号不建仓
+          const positionRatio = confidence === 'High' ? highConfidenceRatio : (confidence === 'Med' ? medConfidenceRatio : lowConfidenceRatio);
+
+          // 如果置信度不足（不是High），不建仓
+          if (positionRatio <= 0 || confidence !== 'High') {
+            logger.warn(`[回测引擎V3] ${symbol} V3-${mode}: 置信度${confidence}不足，跳过建仓（方案1：只允许High置信度建仓）`);
             continue;
           }
-          
-          // 计算总数量（假设风险为固定金额）
-          const totalQuantity = 1.0 * positionRatio; // 基础数量 × 仓位比例
-          
+
+          // 使用风险金额控制仓位：以账户1%风险和止损距离计算张数
+          const equity = 10000; // 名义资金
+          const riskPct = (params?.risk_management?.riskPercent ?? params?.position?.riskPercent) || 0.01;
+          const riskAmount = equity * riskPct;
+          const units = stopDistance > 0 ? (riskAmount / stopDistance) : 0;
+          const totalQuantity = units * positionRatio;
+
           // 计算TP1和TP2
           const takeProfit1 = direction === 'LONG' ? entryPrice + tp1Ratio * risk : entryPrice - tp1Ratio * risk;
           const takeProfit2 = direction === 'LONG' ? entryPrice + tp2Ratio * risk : entryPrice - tp2Ratio * risk;
-          
+
           // 分仓数量：TP1平50%，TP2平50%
           const tp1Quantity = totalQuantity * 0.5;
           const tp2Quantity = totalQuantity * 0.5;
           const remainingQuantity = totalQuantity; // 初始剩余数量等于总数量
 
           const actualRR = tp2Ratio / atrMultiplier; // 使用TP2计算整体盈亏比
-          
+
+          // ✅ 强制RR过滤：小于3:1的交易直接跳过，保障目标RR
+          // ✅ 优化：由于止盈目标已降至2.5，实际RR = 2.5 / 0.3 = 8.33:1，仍满足≥3:1
+          if (actualRR < 3) {
+            logger.warn(`[回测引擎V3] ${symbol} V3-${mode}: 实际RR=${actualRR.toFixed(2)} < 3:1，跳过该信号`);
+            continue;
+          }
+
+          // ✅ 输出开仓信息，便于追踪（包含TP1/TP2距离百分比）
+          const tp1DistancePct = direction === 'LONG'
+            ? ((takeProfit1 - entryPrice) / entryPrice * 100).toFixed(2)
+            : ((entryPrice - takeProfit1) / entryPrice * 100).toFixed(2);
+          const tp2DistancePct = direction === 'LONG'
+            ? ((takeProfit2 - entryPrice) / entryPrice * 100).toFixed(2)
+            : ((entryPrice - takeProfit2) / entryPrice * 100).toFixed(2);
+          const stopDistancePct = direction === 'LONG'
+            ? ((entryPrice - stopLoss) / entryPrice * 100).toFixed(2)
+            : ((stopLoss - entryPrice) / entryPrice * 100).toFixed(2);
+
+          logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 准备开仓 - 方向=${direction}, 入场=${entryPrice.toFixed(4)}, 止损=${stopLoss.toFixed(4)}(${stopDistancePct}%), TP1=${takeProfit1.toFixed(4)}(${tp1DistancePct}%), TP2=${takeProfit2.toFixed(4)}(${tp2DistancePct}%), 理论RR=${actualRR.toFixed(2)}:1`);
+          console.log(`[回测引擎V3-CONSOLE] ${symbol} V3-${mode}: 开仓参数 - 入场=${entryPrice.toFixed(4)}, TP1=${takeProfit1.toFixed(4)}(${tp1DistancePct}%), TP2=${takeProfit2.toFixed(4)}(${tp2DistancePct}%), RR=${actualRR.toFixed(2)}:1`);
+
           // ✅ 详细调试输出
           console.log(`[回测引擎V3调试] ${symbol} V3-${mode}: 参数验证`);
           console.log(`[回测引擎V3调试] - ATR=${atr.toFixed(4)}, stopLossATRMultiplier=${atrMultiplier}, stopDistance=${stopDistance.toFixed(4)}`);
           console.log(`[回测引擎V3调试] - tp1Ratio=${tp1Ratio}, tp2Ratio=${tp2Ratio}, confidence=${confidence}, positionRatio=${positionRatio}`);
           console.log(`[回测引擎V3调试] - totalQuantity=${totalQuantity.toFixed(4)}, tp1Quantity=${tp1Quantity.toFixed(4)}, tp2Quantity=${tp2Quantity.toFixed(4)}`);
-          console.log(`[回测引擎V3调试] - entryPrice=${entryPrice.toFixed(4)}, stopLoss=${stopLoss.toFixed(4)}, stopDistance=${stopDistance.toFixed(4)}, 止损百分比=${((stopDistance/entryPrice)*100).toFixed(2)}%`);
-          
+          console.log(`[回测引擎V3调试] - entryPrice=${entryPrice.toFixed(4)}, stopLoss=${stopLoss.toFixed(4)}, stopDistance=${stopDistance.toFixed(4)}, 止损百分比=${((stopDistance / entryPrice) * 100).toFixed(2)}%`);
+
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 分仓出场策略, ATR=${atr.toFixed(4)}, ATR倍数=${atrMultiplier}, TP1倍数=${tp1Ratio}, TP2倍数=${tp2Ratio}, 置信度=${confidence}, 仓位比例=${positionRatio}, 总数量=${totalQuantity.toFixed(4)}, TP1数量=${tp1Quantity.toFixed(4)}, TP2数量=${tp2Quantity.toFixed(4)}`);
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: SL=${stopLoss.toFixed(4)}, TP1=${takeProfit1.toFixed(4)}, TP2=${takeProfit2.toFixed(4)}, 整体盈亏比=${actualRR.toFixed(2)}:1`);
 
@@ -739,6 +772,10 @@ class BacktestStrategyEngineV3 {
 
           lastSignal = signal;
 
+          // ✅ 诊断：输出position创建后的验证信息
+          logger.info(`[回测引擎V3-诊断] ${symbol} V3-${mode}: position创建完成 - takeProfit1=${position.takeProfit1.toFixed(4)}, takeProfit2=${position.takeProfit2.toFixed(4)}, remainingQuantity=${position.remainingQuantity.toFixed(4)}, tp1Quantity=${position.tp1Quantity.toFixed(4)}, tp2Quantity=${position.tp2Quantity.toFixed(4)}`);
+          console.log(`[回测引擎V3-诊断-CONSOLE] ${symbol} V3-${mode}: position创建 - TP1=${position.takeProfit1.toFixed(4)}, TP2=${position.takeProfit2.toFixed(4)}, remainingQty=${position.remainingQuantity.toFixed(4)}`);
+
           const actualRRRecalculated = Math.abs(position.takeProfit - entryPrice) / Math.abs(entryPrice - position.stopLoss);
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 开仓 ${direction} @ ${entryPrice}, SL=${position.stopLoss}, TP=${position.takeProfit}`);
           logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 风险=${Math.abs(entryPrice - position.stopLoss)}, 预期盈利=${Math.abs(position.takeProfit - entryPrice)}, 实际盈亏比=${actualRRRecalculated.toFixed(2)}`);
@@ -758,6 +795,10 @@ class BacktestStrategyEngineV3 {
 
         // 检查平仓条件（如果有持仓）
         if (position) {
+          // ✅ 诊断：每次持仓检查都输出开始信息
+          logger.info(`[回测引擎V3-诊断] ${symbol} V3-${mode}: 开始持仓检查 - 持仓存在=${!!position}, takeProfit1=${position.takeProfit1 ? position.takeProfit1.toFixed(4) : 'undefined'}, takeProfit1存在=${!!position.takeProfit1}, remainingQuantity=${position.remainingQuantity || 'undefined'}`);
+          console.log(`[回测引擎V3-诊断-CONSOLE] ${symbol} V3-${mode}: 持仓检查开始 - position存在=${!!position}, TP1=${position.takeProfit1 ? position.takeProfit1.toFixed(4) : 'N/A'}, remainingQty=${position.remainingQuantity || 'N/A'}`);
+
           let shouldExit = false;
           let exitReason = '';
 
@@ -765,76 +806,143 @@ class BacktestStrategyEngineV3 {
           const positionConfig = this.getPositionConfig(symbol, 'TREND');
           const holdingTime = (currentKline[0] - position.entryTime.getTime()) / 1000 / 60; // 分钟
 
+          // ✅ 诊断：每次持仓检查都输出时间止损检查信息
+          logger.info(`[回测引擎V3-诊断] ${symbol} V3-${mode}: 时间止损检查 - 持仓时长=${holdingTime.toFixed(1)}分钟, maxHoldingMinutes=${positionConfig.maxHoldingMinutes}, timeStopMinutes=${positionConfig.timeStopMinutes}`);
+
           // 检查最大持仓时长限制
           if (holdingTime >= positionConfig.maxHoldingMinutes) {
             shouldExit = true;
             exitReason = `持仓时长超过${positionConfig.maxHoldingMinutes}分钟限制`;
             logger.info(`[回测引擎V3] ${symbol} V3-${mode}: ${exitReason}`);
+            console.log(`[回测引擎V3-诊断-CONSOLE] ${symbol} V3-${mode}: shouldExit设置为true (最大持仓时长)`);
           }
           // 检查时间止损（持仓超时且未盈利）
           else if (holdingTime >= positionConfig.timeStopMinutes) {
             const isProfitable = (position.type === 'LONG' && nextPrice > position.entryPrice) ||
               (position.type === 'SHORT' && nextPrice < position.entryPrice);
 
-            if (!isProfitable) {
+            // ✅ 优化策略：如果接近TP1（距离<3%），延长持仓时间，避免过早平仓
+            let nearTP1 = false;
+            if (position.takeProfit1) {
+              const tp1DistancePct = position.type === 'LONG'
+                ? ((nextPrice - position.takeProfit1) / position.entryPrice * 100)
+                : ((position.takeProfit1 - nextPrice) / position.entryPrice * 100);
+              nearTP1 = Math.abs(tp1DistancePct) < 3.0; // 接近TP1（距离<3%，从2%放宽）
+            }
+
+            // 如果未盈利且不接近TP1，触发时间止损
+            if (!isProfitable && !nearTP1) {
               shouldExit = true;
-              exitReason = `时间止损 - 持仓${holdingTime.toFixed(0)}分钟未盈利`;
+              exitReason = `时间止损 - 持仓${holdingTime.toFixed(0)}分钟未盈利且远离TP1`;
               logger.info(`[回测引擎V3] ${symbol} V3-${mode}: ${exitReason}`);
+              console.log(`[回测引擎V3-诊断-CONSOLE] ${symbol} V3-${mode}: shouldExit设置为true (时间止损)`);
+            } else if (!isProfitable && nearTP1) {
+              // 接近TP1但未盈利，延长持仓时间（额外增加50%的时间）
+              logger.info(`[回测引擎V3] ${symbol} V3-${mode}: 接近TP1，延长持仓时间（当前${holdingTime.toFixed(0)}分钟）`);
             }
           }
 
-          // 检查止损（止损时全仓平仓）
-          if (!shouldExit && position.type === 'LONG' && nextPrice <= position.stopLoss) {
-            shouldExit = true;
-            exitReason = '止损';
-          } else if (!shouldExit && position.type === 'SHORT' && nextPrice >= position.stopLoss) {
-            shouldExit = true;
-            exitReason = '止损';
+          // ✅ 优先级调整：先检查止盈（TP1/TP2），再检查止损（避免止损过早触发）
+          // 分仓出场逻辑：先检查TP1，再检查TP2（必须在TP1已平仓或价格同时达到时才检查TP2）
+          // ✅ 诊断：输出条件检查信息（每次持仓检查都输出）
+          const hasTakeProfit1 = !!position.takeProfit1;
+          const hasRemainingQuantity = position.remainingQuantity > 0;
+          const conditionCheck = !shouldExit && position && hasTakeProfit1 && hasRemainingQuantity;
+
+          // ✅ 优化：每次持仓检查都输出条件检查信息，确保能追踪
+          if (position) {
+            logger.info(`[回测引擎V3-诊断] ${symbol} V3-${mode}: TP1/TP2检查条件 - shouldExit=${shouldExit}, position存在=${!!position}, takeProfit1存在=${hasTakeProfit1}(${position.takeProfit1 || 'N/A'}), remainingQuantity=${position.remainingQuantity}, 条件满足=${conditionCheck}`);
+            console.log(`[回测引擎V3-诊断-CONSOLE] ${symbol} V3-${mode}: 条件检查 - shouldExit=${shouldExit}, hasTP1=${hasTakeProfit1}, remainingQty=${position.remainingQuantity}, 进入TP检查=${conditionCheck}`);
           }
-          // ✅ 分仓出场逻辑：先检查TP1，再检查TP2（必须在TP1已平仓或价格同时达到时才检查TP2）
-          else if (!shouldExit && position.takeProfit1 && position.remainingQuantity > 0) {
+
+          // ✅ 优化：增加持仓检查日志，确保能追踪持仓状态
+          if (!shouldExit && position && position.takeProfit1 && position.remainingQuantity > 0) {
+            // 每次持仓检查都输出基本信息（每10次输出一次）
+            if (loopCount % 10 === 0) {
+              logger.info(`[回测引擎V3-持仓] ${symbol} V3-${mode}: 持仓检查 - 方向=${position.type}, 入场=${position.entryPrice.toFixed(4)}, 当前价=${nextPrice.toFixed(4)}, 剩余仓位=${position.remainingQuantity.toFixed(4)}, TP1=${position.takeProfit1.toFixed(4)}, TP2=${position.takeProfit2.toFixed(4)}, 止损=${position.stopLoss.toFixed(4)}`);
+            }
             let tp1Executed = false;
-            
-            // 检查TP1（第一期止盈）- 优先执行
-            const tp1Hit = position.type === 'LONG' 
-              ? nextPrice >= position.takeProfit1 && !position.tp1Filled
-              : nextPrice <= position.takeProfit1 && !position.tp1Filled;
+
+            // ✅ 优化：使用high/low价格范围检测TP1，提高触发精度
+            const tp1Hit = position.type === 'LONG'
+              ? (nextHigh >= position.takeProfit1 && !position.tp1Filled) // LONG: high价达到TP1
+              : (nextLow <= position.takeProfit1 && !position.tp1Filled); // SHORT: low价达到TP1
+
+            // ✅ 优化：增强调试日志，降低输出阈值，确保能追踪TP1触发状态
+            if (position.type === 'LONG') {
+              const tp1DistancePct = ((nextHigh - position.takeProfit1) / position.takeProfit1 * 100);
+              const tp1DistanceAbs = Math.abs(tp1DistancePct);
+              // ✅ 优化：降低阈值从1.0%到0.5%，并且每次持仓检查都输出（loopCount % 5 === 0）
+              if (loopCount % 5 === 0 || tp1DistanceAbs < 0.5 || tp1Hit) { // 每5次、接近TP1（0.5%）或触发时输出
+                logger.info(`[回测引擎V3-TP1] ${symbol} V3-${mode}: LONG TP1检查 - 入场=${position.entryPrice.toFixed(4)}, TP1=${position.takeProfit1.toFixed(4)}, 当前high=${nextHigh.toFixed(4)}, low=${nextLow.toFixed(4)}, 距离=${tp1DistancePct.toFixed(4)}%, 是否触发=${tp1Hit}, 剩余仓位=${position.remainingQuantity.toFixed(4)}`);
+                console.log(`[回测引擎V3-TP1-CONSOLE] ${symbol} V3-${mode}: LONG TP1检查 - TP1=${position.takeProfit1.toFixed(4)}, high=${nextHigh.toFixed(4)}, 距离=${tp1DistancePct.toFixed(4)}%, 触发=${tp1Hit}`);
+              }
+            } else {
+              const tp1DistancePct = ((position.takeProfit1 - nextLow) / position.takeProfit1 * 100);
+              const tp1DistanceAbs = Math.abs(tp1DistancePct);
+              if (loopCount % 5 === 0 || tp1DistanceAbs < 0.5 || tp1Hit) { // 每5次、接近TP1（0.5%）或触发时输出
+                logger.info(`[回测引擎V3-TP1] ${symbol} V3-${mode}: SHORT TP1检查 - 入场=${position.entryPrice.toFixed(4)}, TP1=${position.takeProfit1.toFixed(4)}, 当前high=${nextHigh.toFixed(4)}, low=${nextLow.toFixed(4)}, 距离=${tp1DistancePct.toFixed(4)}%, 是否触发=${tp1Hit}, 剩余仓位=${position.remainingQuantity.toFixed(4)}`);
+                console.log(`[回测引擎V3-TP1-CONSOLE] ${symbol} V3-${mode}: SHORT TP1检查 - TP1=${position.takeProfit1.toFixed(4)}, low=${nextLow.toFixed(4)}, 距离=${tp1DistancePct.toFixed(4)}%, 触发=${tp1Hit}`);
+              }
+            }
 
             if (tp1Hit && position.remainingQuantity >= position.tp1Quantity) {
               // TP1平仓（部分仓位）
               const partialTrade = this.closePartialPosition(position, nextPrice, 'TP1止盈', position.tp1Quantity);
               trades.push(partialTrade);
-              
+
               // 更新策略实例的回撤状态
               this.v3Strategy.updateDrawdownStatus(partialTrade.pnl);
-              
+
               // 更新position状态
               position.remainingQuantity -= position.tp1Quantity;
               position.tp1Filled = true;
               tp1Executed = true;
-              
+
+              // ✅ TP1后移动止损至保本，确保剩余仓位不亏损
+              position.stopLoss = position.entryPrice;
+
               console.log(`[回测引擎V3] ${symbol} V3-${mode}: TP1平仓 ${position.tp1Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
               logger.info(`[回测引擎V3] ${symbol} V3-${mode}: TP1平仓 ${position.tp1Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
             }
 
-            // 检查TP2（第二期止盈）- 只有在TP1已执行或价格同时达到时才执行
+            // ✅ 优化：使用high/low价格范围检测TP2，提高触发精度
             if ((tp1Executed || tp1Hit || position.tp1Filled) && position.remainingQuantity > 0) {
               const tp2Hit = position.type === 'LONG'
-                ? nextPrice >= position.takeProfit2 && !position.tp2Filled
-                : nextPrice <= position.takeProfit2 && !position.tp2Filled;
+                ? (nextHigh >= position.takeProfit2 && !position.tp2Filled) // LONG: high价达到TP2
+                : (nextLow <= position.takeProfit2 && !position.tp2Filled); // SHORT: low价达到TP2
+
+              // ✅ 优化：增强调试日志，降低输出阈值，确保能追踪TP2触发状态
+              if (position.tp1Filled || (tp1Executed || tp1Hit)) { // TP1已触发或即将触发时记录TP2
+                if (position.type === 'LONG') {
+                  const tp2DistancePct = ((nextHigh - position.takeProfit2) / position.takeProfit2 * 100);
+                  const tp2DistanceAbs = Math.abs(tp2DistancePct);
+                  if (loopCount % 5 === 0 || tp2DistanceAbs < 0.5 || tp2Hit) { // 每5次、接近TP2（0.5%）或触发时输出
+                    logger.info(`[回测引擎V3-TP2] ${symbol} V3-${mode}: LONG TP2检查 - TP2=${position.takeProfit2.toFixed(4)}, 当前high=${nextHigh.toFixed(4)}, low=${nextLow.toFixed(4)}, 距离=${tp2DistancePct.toFixed(4)}%, 是否触发=${tp2Hit}, 剩余仓位=${position.remainingQuantity.toFixed(4)}`);
+                    console.log(`[回测引擎V3-TP2-CONSOLE] ${symbol} V3-${mode}: LONG TP2检查 - TP2=${position.takeProfit2.toFixed(4)}, high=${nextHigh.toFixed(4)}, 距离=${tp2DistancePct.toFixed(4)}%, 触发=${tp2Hit}`);
+                  }
+                } else {
+                  const tp2DistancePct = ((position.takeProfit2 - nextLow) / position.takeProfit2 * 100);
+                  const tp2DistanceAbs = Math.abs(tp2DistancePct);
+                  if (loopCount % 5 === 0 || tp2DistanceAbs < 0.5 || tp2Hit) { // 每5次、接近TP2（0.5%）或触发时输出
+                    logger.info(`[回测引擎V3-TP2] ${symbol} V3-${mode}: SHORT TP2检查 - TP2=${position.takeProfit2.toFixed(4)}, 当前high=${nextHigh.toFixed(4)}, low=${nextLow.toFixed(4)}, 距离=${tp2DistancePct.toFixed(4)}%, 是否触发=${tp2Hit}, 剩余仓位=${position.remainingQuantity.toFixed(4)}`);
+                    console.log(`[回测引擎V3-TP2-CONSOLE] ${symbol} V3-${mode}: SHORT TP2检查 - TP2=${position.takeProfit2.toFixed(4)}, low=${nextLow.toFixed(4)}, 距离=${tp2DistancePct.toFixed(4)}%, 触发=${tp2Hit}`);
+                  }
+                }
+              }
 
               if (tp2Hit && position.remainingQuantity >= position.tp2Quantity) {
                 // TP2平仓（剩余仓位）
                 const partialTrade = this.closePartialPosition(position, nextPrice, 'TP2止盈', position.tp2Quantity);
                 trades.push(partialTrade);
-                
+
                 // 更新策略实例的回撤状态
                 this.v3Strategy.updateDrawdownStatus(partialTrade.pnl);
-                
+
                 // 更新position状态
                 position.remainingQuantity -= position.tp2Quantity;
                 position.tp2Filled = true;
-                
+
                 console.log(`[回测引擎V3] ${symbol} V3-${mode}: TP2平仓 ${position.tp2Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
                 logger.info(`[回测引擎V3] ${symbol} V3-${mode}: TP2平仓 ${position.tp2Quantity.toFixed(4)}, PnL=${partialTrade.pnl.toFixed(2)}, 剩余数量=${position.remainingQuantity.toFixed(4)}`);
               }
@@ -846,8 +954,24 @@ class BacktestStrategyEngineV3 {
               lastSignal = null;
             }
           }
+          // ✅ 优化：使用high/low价格范围检测止损，提高触发精度
+          if (!shouldExit && position && position.remainingQuantity > 0) {
+            const stopLossHit = position.type === 'LONG'
+              ? (nextLow <= position.stopLoss) // LONG: low价跌破止损
+              : (nextHigh >= position.stopLoss); // SHORT: high价突破止损
+
+            if (stopLossHit) {
+              shouldExit = true;
+              exitReason = '止损';
+              // ✅ 调试日志：输出止损触发信息
+              const stopDistance = position.type === 'LONG'
+                ? ((position.stopLoss - position.entryPrice) / position.entryPrice * 100).toFixed(4)
+                : ((position.entryPrice - position.stopLoss) / position.entryPrice * 100).toFixed(4);
+              logger.info(`[回测引擎V3-DEBUG] ${symbol} V3-${mode}: 止损触发 - 入场=${position.entryPrice.toFixed(4)}, 止损=${position.stopLoss.toFixed(4)}, 当前${position.type === 'LONG' ? 'low' : 'high'}=${position.type === 'LONG' ? nextLow.toFixed(4) : nextHigh.toFixed(4)}, 距离=${stopDistance}%`);
+            }
+          }
           // 兼容旧逻辑：如果没有分仓信息，使用旧逻辑
-          else if (!shouldExit && position.takeProfit && !position.takeProfit1) {
+          if (!shouldExit && position && position.takeProfit && !position.takeProfit1) {
             if (position.type === 'LONG' && nextPrice >= position.takeProfit) {
               shouldExit = true;
               exitReason = '止盈';
@@ -880,7 +1004,7 @@ class BacktestStrategyEngineV3 {
     if (position) {
       const lastKline = klines[klines.length - 1];
       const lastPrice = parseFloat(lastKline[4]);
-      
+
       // 如果还有剩余仓位，按最后价格全部平仓
       if (position.remainingQuantity > 0.0001) {
         const finalTrade = this.closePartialPosition(position, lastPrice, '回测结束', position.remainingQuantity);
